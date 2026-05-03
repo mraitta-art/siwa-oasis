@@ -17,6 +17,7 @@ interface CarouselSlide {
 export default function HeroCarouselManager() {
   const [slides, setSlides] = useState<CarouselSlide[]>([]);
   const [loading, setLoading] = useState(true);
+  const [siteId, setSiteId] = useState('main');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,11 +35,12 @@ export default function HeroCarouselManager() {
   // Fetch slides on mount
   useEffect(() => {
     fetchSlides();
-  }, []);
+  }, [siteId]);
 
   async function fetchSlides() {
+    setLoading(true);
     try {
-      const res = await fetch('/api/jana/hero-carousel');
+      const res = await fetch(`/api/jana/hero-carousel?siteId=${siteId}`);
       if (res.ok) {
         const data = await res.json();
         // The API returns { slides: [...] }
@@ -142,7 +144,7 @@ export default function HeroCarouselManager() {
       const res = await fetch('/api/jana/hero-carousel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: updatedSlides })
+        body: JSON.stringify({ slides: updatedSlides, siteId })
       });
 
       if (res.ok) {
@@ -170,7 +172,7 @@ export default function HeroCarouselManager() {
       const res = await fetch('/api/jana/hero-carousel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: updatedSlides })
+        body: JSON.stringify({ slides: updatedSlides, siteId })
       });
 
       if (res.ok) {
@@ -199,7 +201,7 @@ export default function HeroCarouselManager() {
       const res = await fetch('/api/jana/hero-carousel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: finalSlides })
+        body: JSON.stringify({ slides: finalSlides, siteId })
       });
 
       if (res.ok) {
@@ -222,19 +224,43 @@ export default function HeroCarouselManager() {
             <h1 style={{ fontSize: '3rem', fontWeight: 900, color: '#0f172a', margin: '0.5rem 0 0 0', letterSpacing: '-1px' }}>
               HERO CAROUSEL
             </h1>
-            <p style={{ color: '#64748b' }}>Manage homepage cinematic slides</p>
+            <p style={{ color: '#64748b' }}>Manage cinematic slides for your marketplace and minisites</p>
           </div>
-          {!showForm && (
-            <button
-              onClick={() => { resetForm(); setShowForm(true); }}
-              style={{
-                background: '#D4AF37', color: '#fff', border: 'none', padding: '1rem 2rem',
-                borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer'
-              }}
-            >
-              + ADD NEW SLIDE
-            </button>
-          )}
+          
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ background: '#fff', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>CAROUSEL ID / NAME:</label>
+              <input 
+                type="text"
+                value={siteId} 
+                onChange={(e) => setSiteId(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                placeholder="e.g. home_hero"
+                style={{ border: 'none', fontWeight: 700, color: '#D4AF37', outline: 'none', background: 'transparent', width: '150px' }}
+              />
+              <select 
+                onChange={(e) => setSiteId(e.target.value)}
+                style={{ border: 'none', fontSize: '0.8rem', color: '#64748b', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="">-- PRESETS --</option>
+                <option value="main_hero">Main Hero</option>
+                <option value="main_gallery">Main Gallery</option>
+                <option value="hotels_hero">Hotels Hero</option>
+                <option value="partner_logos">Partner Logos</option>
+              </select>
+            </div>
+
+            {!showForm && (
+              <button
+                onClick={() => { resetForm(); setShowForm(true); }}
+                style={{
+                  background: '#D4AF37', color: '#fff', border: 'none', padding: '1rem 2rem',
+                  borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(212,175,55,0.3)'
+                }}
+              >
+                + ADD NEW SLIDE
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Message Overlay */}
