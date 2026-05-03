@@ -62,33 +62,36 @@ export default function HomePage() {
     
     // Handle Hero/Cinematic Carousels
     if (['hero_carousel', 'hero', 'cinematic_carousel'].includes(c.type)) {
-      const slides = c.props?.slides?.length > 0 ? c.props.slides : carouselSlides;
-      if (slides && slides.length > 0) {
-        return (
-          <AdvancedHeroCarousel
-            key={c.id}
-            slides={slides}
-            autoPlay={settings?.carousel_autoplay !== false}
-            autoPlayInterval={settings?.carousel_interval || 8000}
-            transitionDuration={c.props?.transitionDuration || 1200}
-            height={c.props?.height || '100vh'}
-            showIndicators={c.props?.showIndicators !== false}
-            showArrows={c.props?.showArrows !== false}
-            showProgress={c.props?.showProgress !== false}
-          />
-        );
-      }
-      return null;
+      // Use specific named carousel if provided in props, otherwise fallback to main_hero
+      const nameToLoad = c.props?.carouselName || c.props?.siteId || 'main_hero';
+      
+      return (
+        <AdvancedHeroCarousel
+          key={c.id}
+          carouselName={nameToLoad}
+          autoPlay={settings?.carousel_autoplay !== false}
+          autoPlayInterval={settings?.carousel_interval || 8000}
+          transitionDuration={c.props?.transitionDuration || 1200}
+          height={c.props?.height || '100vh'}
+          showIndicators={c.props?.showIndicators !== false}
+          showArrows={c.props?.showArrows !== false}
+          showProgress={c.props?.showProgress !== false}
+          visualSettings={c.props?.visualSettings || {}}
+        />
+      );
     }
 
     // Handle Master Blog Component
     if (c.type === 'blog') {
+      const blogTitle = c.props?.title || 'SIWA STORIES';
+      const blogCategory = c.props?.category || null; // Allow filtering blogs by category/section
+      
       return (
         <section key={c.id} style={{ maxWidth: 1400, margin: '0 auto', padding: '4rem 1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '2rem' }}>
             <div style={{ maxWidth: '700px' }}>
-              <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, color: '#0f172a', margin: 0, lineHeight: 1 }}>{c.props?.title || 'SIWA STORIES'}</h2>
-              <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 2vw, 1.25rem)', marginTop: '1.5rem', lineHeight: 1.6 }}>Discover curated narratives from our community partners.</p>
+              <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, color: '#0f172a', margin: 0, lineHeight: 1 }}>{blogTitle}</h2>
+              <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 2vw, 1.25rem)', marginTop: '1.5rem', lineHeight: 1.6 }}>{c.props?.subtitle || 'Discover curated narratives from our community partners.'}</p>
             </div>
             <Link href="/stories" style={{ 
               padding: '1rem 2rem', 
@@ -106,7 +109,10 @@ export default function HomePage() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 400px), 1fr))', 
             gap: '2rem' 
           }}>
-            {blogPosts.map((post: any) => (
+            {blogPosts
+              .filter(post => !blogCategory || post.sectionId === blogCategory)
+              .slice(0, c.props?.limit || 6)
+              .map((post: any) => (
               <Link href={post.slug} key={post.id} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <article style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
