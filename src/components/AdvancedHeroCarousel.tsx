@@ -271,9 +271,22 @@ function SlideMedia({ slide, animation, isActive }: { slide: Slide; animation: s
 function YouTubeBackground({ videoUrl, isActive }: { videoUrl: string; isActive: boolean }) {
   const videoId = extractYouTubeId(videoUrl) || '';
   if (!videoId) return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
+  
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      <YouTubeCarouselPlayer videoId={videoId} isActive={isActive} title="Video" showControls={false} autoplay={true} />
+      {/* We use YouTubeFacade here which handles the thumbnail and play button logic automatically */}
+      <YouTubeFacade 
+        videoId={videoId} 
+        autoplay={false} 
+        className="w-full h-full"
+        thumbnailQuality="maxresdefault"
+      />
+      <style jsx global>{`
+        .youtube-facade-wrapper {
+          padding-bottom: 0 !important;
+          height: 100% !important;
+        }
+      `}</style>
     </div>
   );
 }
