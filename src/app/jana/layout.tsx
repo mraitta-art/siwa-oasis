@@ -33,6 +33,7 @@ const NAV_GROUPS = [
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Data Sections', path: '/jana/sections', icon: 'fa-columns' },
       { name: 'Form Fields', path: '/jana/form-builder', icon: 'fa-list-check' },
+      { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
     ]
   },
   {
