@@ -34,6 +34,17 @@ export default function HeroCarouselManager() {
 
   // Fetch slides on mount
   useEffect(() => {
+    // Restore siteId from session storage if available
+    const savedSiteId = sessionStorage.getItem('siwa_carousel_siteId');
+    if (savedSiteId && savedSiteId !== siteId) {
+      setSiteId(savedSiteId);
+    } else {
+      fetchSlides();
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('siwa_carousel_siteId', siteId);
     fetchSlides();
   }, [siteId]);
 
@@ -61,6 +72,11 @@ export default function HeroCarouselManager() {
   }
 
   function resetForm() {
+    // Calculate next display order correctly
+    const nextOrder = slides.length > 0 
+      ? Math.max(...slides.map(s => s.displayOrder || 0)) + 1 
+      : 0;
+
     setFormData({
       title: '',
       subtitle: '',
@@ -68,7 +84,7 @@ export default function HeroCarouselManager() {
       type: 'image',
       ctaText: '',
       ctaLink: '',
-      displayOrder: slides.length
+      displayOrder: nextOrder
     });
     setEditingId(null);
     setShowForm(false);
@@ -86,36 +102,71 @@ export default function HeroCarouselManager() {
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate locally
-    if (file.size > 10 * 1024 * 1024) {
-      showMessage('error', 'File too large (max 10MB)');
-      return;
-    }
-
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setSaving(true);
     try {
-      const res = await fetch('/api/jana/media/upload', {
-        method: 'POST',
-        body: uploadFormData
-      });
+      const uploadResults = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 10 * 1024 * 1024) {
+          showMessage('error', `File ${file.name} too large (max 10MB)`);
+          continue;
+        }
 
-      if (res.ok) {
-        const data = await res.json();
-        setFormData(prev => ({ ...prev, mediaUrl: data.url, type: 'image' }));
-        showMessage('success', 'Image uploaded!');
-      } else {
-        const err = await res.json();
-        showMessage('error', err.error || 'Upload failed');
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+
+        const res = await fetch('/api/jana/media/upload', {
+          method: 'POST',
+          body: uploadFormData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          uploadResults.push({ url: data.url, name: file.name });
+        }
+      }
+
+      if (uploadResults.length > 0) {
+        // If only one file, update current form
+        if (uploadResults.length === 1) {
+          setFormData(prev => ({ ...prev, mediaUrl: uploadResults[0].url, type: 'image' }));
+          showMessage('success', 'Image uploaded!');
+        } else {
+          // If multiple, auto-create slides for others and update local list
+          const newSlides: CarouselSlide[] = [];
+          let currentMaxOrder = slides.length > 0 ? Math.max(...slides.map(s => s.displayOrder || 0)) : -1;
+          
+          uploadResults.forEach((result, idx) => {
+            newSlides.push({
+              id: `slide_${Date.now()}_${idx}`,
+              title: result.name.split('.')[0].replace(/[-_]/g, ' '),
+              mediaUrl: result.url,
+              type: 'image',
+              displayOrder: currentMaxOrder + idx + 1
+            });
+          });
+
+          const finalSlides = [...slides, ...newSlides];
+          
+          // Save the batch immediately to the database
+          const res = await fetch('/api/jana/hero-carousel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slides: finalSlides, siteId })
+          });
+
+          if (res.ok) {
+            setSlides(finalSlides);
+            showMessage('success', `Uploaded and saved ${uploadResults.length} slides!`);
+          }
+        }
       }
     } catch (err) {
       console.error('Upload error:', err);
-      showMessage('error', 'Failed to upload image');
+      showMessage('error', 'Failed to upload images');
     } finally {
       setSaving(false);
     }
@@ -133,10 +184,14 @@ export default function HeroCarouselManager() {
       if (editingId) {
         updatedSlides = slides.map(s => s.id === editingId ? { ...s, ...formData } as CarouselSlide : s);
       } else {
+        const nextOrder = slides.length > 0 
+          ? Math.max(...slides.map(s => s.displayOrder || 0)) + 1 
+          : 0;
+
         const newSlide = {
           ...formData,
           id: `slide_${Date.now()}`,
-          displayOrder: slides.length
+          displayOrder: nextOrder
         } as CarouselSlide;
         updatedSlides = [...slides, newSlide];
       }
@@ -315,15 +370,52 @@ export default function HeroCarouselManager() {
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>MEDIA URL / YOUTUBE URL</label>
-                <input
-                  name="mediaUrl"
-                  value={formData.mediaUrl}
-                  onChange={handleInputChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                  placeholder="https://..."
-                />
-                <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.5rem' }}>Or upload an image below</p>
-                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ marginTop: '0.5rem' }} />
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+                  <input
+                    name="mediaUrl"
+                    value={formData.mediaUrl}
+                    onChange={handleInputChange}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+                    placeholder="https://..."
+                  />
+                  <div style={{ position: 'relative', overflow: 'hidden' }}>
+                    <button style={{ 
+                      background: '#D4AF37', color: '#fff', border: 'none', padding: '0.75rem 1rem', 
+                      borderRadius: '0.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem'
+                    }}>
+                      {saving ? '...' : 'UPLOAD'}
+                    </button>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple
+                      onChange={handleFileUpload} 
+                      style={{ 
+                        position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' 
+                      }} 
+                    />
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Provide a URL or upload a file from your device</p>
+                
+                {/* PREVIEW AREA */}
+                {formData.mediaUrl && (
+                  <div style={{ marginTop: '1.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc', height: '150px' }}>
+                    {formData.type === 'image' ? (
+                      <img 
+                        src={formData.mediaUrl} 
+                        alt="Preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x150?text=Invalid+Image+URL'; }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
+                        <i className="fab fa-youtube fa-3x"></i>
+                        <span style={{ marginLeft: '1rem' }}>YouTube Preview (URL Set)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>BUTTON TEXT</label>

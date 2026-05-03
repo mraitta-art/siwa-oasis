@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';
 
 interface Slide {
   id: string;
@@ -32,6 +33,7 @@ export default function CinematicHeroCarousel({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  const [isMuted, setIsMuted] = useState(true);
 
   // Auto-play
   useEffect(() => {
@@ -114,7 +116,28 @@ export default function CinematicHeroCarousel({
       >
         {/* Media Background */}
         {slide.type === 'youtube' ? (
-          <YouTubeBackground videoUrl={slide.mediaUrl} />
+          <div style={{ position: 'absolute', inset: 0 }}>
+             <YouTubeCarouselPlayer 
+                videoId={extractVideoId(slide.mediaUrl)} 
+                isActive={!isTransitioning} 
+                autoplay={true}
+                showControls={false}
+                muted={isMuted}
+             />
+             {isMuted && (
+                <div 
+                  onClick={() => setIsMuted(false)}
+                  style={{ 
+                    position: 'absolute', bottom: '10rem', right: '3rem', zIndex: 100,
+                    background: 'rgba(212,175,55,0.9)', color: '#fff', padding: '0.5rem 1rem',
+                    borderRadius: '2rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                    display: 'flex', alignItems: 'center', gap: '0.5rem'
+                  }}
+                >
+                  <i className="fas fa-volume-mute"></i> TAP FOR SOUND
+                </div>
+             )}
+          </div>
         ) : slide.type === 'video' ? (
           <video
             src={slide.mediaUrl}
@@ -395,56 +418,16 @@ export default function CinematicHeroCarousel({
   );
 }
 
-// YouTube Background Component
-function YouTubeBackground({ videoUrl }: { videoUrl: string }) {
-  const [videoId, setVideoId] = useState<string>('');
-
-  useEffect(() => {
-    // Extract YouTube video ID from various URL formats
-    const extractVideoId = (url: string): string => {
-      const patterns = [
-        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
-        /youtube\.com\/watch\?.*v=([^&\s]+)/,
-      ];
-      
-      for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) return match[1];
-      }
-      return '';
-    };
-
-    setVideoId(extractVideoId(videoUrl));
-  }, [videoUrl]);
-
-  if (!videoId) {
-    return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
+// Helper to extract YouTube video ID
+function extractVideoId(url: string): string {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
+    /youtube\.com\/watch\?.*v=([^&\s]+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) return match[1];
   }
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        overflow: 'hidden',
-        pointerEvents: 'none'
-      }}
-    >
-      <iframe
-        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&disablekb=1&fs=0`}
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: '120vw',
-          height: '120vh',
-          transform: 'translate(-50%, -50%)',
-          border: 'none'
-        }}
-        allow="autoplay; encrypted-media"
-        allowFullScreen={false}
-        tabIndex={-1}
-      />
-    </div>
-  );
+  return '';
 }

@@ -8,6 +8,7 @@ interface YouTubeCarouselPlayerProps {
   title?: string;
   showControls?: boolean;
   autoplay?: boolean;
+  muted?: boolean;
 }
 
 declare global {
@@ -23,6 +24,7 @@ export default function YouTubeCarouselPlayer({
   title = 'Video',
   showControls = true,
   autoplay = true,
+  muted = true,
 }: YouTubeCarouselPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -96,6 +98,17 @@ export default function YouTubeCarouselPlayer({
     }
   }, [isActive, isLoaded]);
 
+  // 4. Handle Mute State Changes
+  useEffect(() => {
+    if (isLoaded && playerRef.current) {
+      if (muted) {
+        playerRef.current.mute();
+      } else {
+        playerRef.current.unMute();
+      }
+    }
+  }, [muted, isLoaded]);
+
   const togglePlay = () => {
     if (!playerRef.current) return;
     if (isPlaying) {
@@ -103,6 +116,12 @@ export default function YouTubeCarouselPlayer({
     } else {
       playerRef.current.unMute();
       playerRef.current.playVideo();
+    }
+  };
+
+  const unmute = () => {
+    if (playerRef.current) {
+      playerRef.current.unMute();
     }
   };
 
