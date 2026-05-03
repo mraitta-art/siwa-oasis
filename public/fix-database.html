@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Database - Siwa Oasis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 2rem;
+            color: white;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .content {
+            padding: 2rem;
+        }
+        .step {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        .sql-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 1rem 0;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0.5rem;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            background: white;
+            border-radius: 4px;
+            border: 2px solid #e9ecef;
+        }
+        .checklist li::before {
+            content: '☐ ';
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ Database Setup Required</h1>
+            <p>Create the missing table to enable carousel functionality</p>
+        </div>
+
+        <div class="content">
+            <div class="warning">
+                <strong>⚠️ Issue:</strong> The <code>website_configs</code> table doesn't exist in your database. This is why the carousel cannot save slides.
+            </div>
+
+            <div class="step">
+                <h3>Step 1: Open phpMyAdmin</h3>
+                <p>Click the button below to open phpMyAdmin:</p>
+                <a href="http://localhost/phpmyadmin" target="_blank" class="button">
+                    🌐 Open phpMyAdmin
+                </a>
+                <p style="margin-top: 1rem;">
+                    <strong>Login credentials:</strong><br>
+                    Username: <code>root</code><br>
+                    Password: <em>(leave empty)</em>
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>Step 2: Select Database</h3>
+                <p>In the left sidebar, click on:</p>
+                <div class="sql-box">
+                    <strong>siwa_oasis</strong>
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Step 3: Go to SQL Tab</h3>
+                <p>Click on the <strong>"SQL"</strong> tab at the top of the page.</p>
+            </div>
+
+            <div class="step">
+                <h3>Step 4: Copy & Paste This SQL</h3>
+                <p>Click the "Copy" button, then paste it in the SQL box:</p>
+                
+                <div class="sql-box">
+                    <button class="copy-btn" onclick="copySQL()">📋 Copy SQL</button>
+                    <pre id="sql-code">CREATE TABLE IF NOT EXISTS website_configs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  type VARCHAR(100) UNIQUE NOT NULL,
+  config JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_type (type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO website_configs (type, config) VALUES (
+  'hero_carousel',
+  '{"slides":[]}'
+);</pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Step 5: Execute</h3>
+                <p>Click the <strong>"Go"</strong> button at the bottom right.</p>
+                <div class="success">
+                    <strong>✅ Success!</strong> You should see a message that the table was created.
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Step 6: Verify</h3>
+                <p>After creating the table, verify it exists:</p>
+                <ul class="checklist">
+                    <li>Look for <code>website_configs</code> in the left sidebar</li>
+                    <li>Click on it to see the table structure</li>
+                    <li>You should see columns: id, type, config, created_at, updated_at</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h3>Step 7: Test the Carousel</h3>
+                <p>After creating the table, test if it works:</p>
+                <a href="http://localhost:3000/admin/hero-carousel" target="_blank" class="button">
+                    🎬 Open Carousel Admin
+                </a>
+                <p style="margin-top: 1rem;">
+                    Try adding a slide with YouTube URL and click Save!
+                </p>
+            </div>
+
+            <div class="success">
+                <h3 style="margin-bottom: 1rem;">✅ What This Fixes:</h3>
+                <ul style="margin-left: 1.5rem;">
+                    <li>✅ Carousel slides will save to database</li>
+                    <li>✅ YouTube URLs will be stored</li>
+                    <li>✅ Captions will persist</li>
+                    <li>✅ Multiple slides can be added</li>
+                    <li>✅ Data survives page refresh</li>
+                </ul>
+            </div>
+
+            <div class="warning">
+                <h3 style="margin-bottom: 1rem;">🔍 Troubleshooting:</h3>
+                <p><strong>If phpMyAdmin is not at localhost/phpmyadmin:</strong></p>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Try: http://localhost:8080/phpmyadmin</li>
+                    <li>Try: http://127.0.0.1/phpmyadmin</li>
+                    <li>Check your XAMPP/WAMP control panel</li>
+                </ul>
+                <p style="margin-top: 1rem;"><strong>If you see "Table already exists":</strong></p>
+                <p style="margin-left: 1.5rem;">This is GOOD! It means the table was already created. The carousel should work now.</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e9ecef;">
+                <h3 style="margin-bottom: 1rem;">🚀 Quick Links:</h3>
+                <a href="http://localhost:3000" target="_blank" class="button">🏠 Homepage</a>
+                <a href="http://localhost:3000/admin/hero-carousel" target="_blank" class="button">🎬 Carousel Admin</a>
+                <a href="http://localhost/phpmyadmin" target="_blank" class="button">🗄️ phpMyAdmin</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copySQL() {
+            const sql = document.getElementById('sql-code').innerText;
+            navigator.clipboard.writeText(sql).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerText = '✅ Copied!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.innerText = '📋 Copy SQL';
+                    btn.style.background = '#667eea';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

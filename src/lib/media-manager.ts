@@ -50,7 +50,7 @@ export function parseExternalVideo(url: string): ParsedMedia {
 }
 
 /**
- * Checks a file against strict upload constraints before allowing it to touch Supabase.
+ * Checks a file against strict upload constraints before allowing server upload.
  */
 export function validateDirectUpload(file: File): { valid: boolean; error?: string } {
   // 1MB Limit

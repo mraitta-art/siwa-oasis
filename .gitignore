@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# deployment bundles
+/deploy_bundle
+/deploy_bundle_cpanel
+/siwa-cpanel-release
+/siwa-cpanel-release.zip
+*.zip
+
+# temporary logs
+server_log.txt

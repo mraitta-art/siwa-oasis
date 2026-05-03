@@ -1,0 +1,185 @@
+{
+  "_comment": "Master Deployment Configuration - Edit this file to control all deployment settings",
+  "_version": "1.0.0",
+  "_lastUpdated": "2026-04-28",
+  
+  "application": {
+    "name": "siwa-oasis",
+    "version": "0.1.0",
+    "description": "Siwa Oasis Platform",
+    "nextVersion": "15.1.0",
+    "reactVersion": "19.0.0"
+  },
+
+  "deployment": {
+    "strategy": "manual_upload",
+    "bundles": {
+      "universal": {
+        "enabled": true,
+        "directory": "deploy_bundle",
+        "description": "Works on all environments (recommended)",
+        "zipName": "siwa_upload.zip"
+      },
+      "cpanel_optimized": {
+        "enabled": true,
+        "directory": "deploy_bundle_cpanel",
+        "description": "Optimized specifically for cPanel",
+        "zipName": "siwa_upload_cpanel.zip"
+      }
+    }
+  },
+
+  "environments": {
+    "universal": {
+      "description": "Safe configuration for any environment",
+      "build": {
+        "command": "next build",
+        "memoryLimit": null,
+        "nodeOptions": null
+      },
+      "server": {
+        "standalone": false,
+        "imageOptimization": true
+      },
+      "htaccess": {
+        "securityHeaders": false,
+        "caching": false,
+        "compression": false
+      }
+    },
+
+    "cpanel": {
+      "description": "Optimized for cPanel hosting",
+      "build": {
+        "command": "next build",
+        "memoryLimit": "1024",
+        "nodeOptions": null,
+        "note": "Set memory limit in cPanel UI, not in scripts"
+      },
+      "server": {
+        "standalone": true,
+        "imageOptimization": false,
+        "note": "cPanel may not support Next.js image optimization"
+      },
+      "htaccess": {
+        "securityHeaders": true,
+        "caching": true,
+        "compression": true,
+        "note": "Enhanced .htaccess for cPanel Apache"
+      },
+      "cpanel": {
+        "nodeVersion": "20.x",
+        "applicationMode": "production",
+        "memoryLimit": "1024",
+        "startupFile": "server.js",
+        "environmentVariables": [
+          "DB_HOST=localhost",
+          "DB_PORT=3306",
+          "DB_USER=__DB_USER__",
+          "DB_PASSWORD=__DB_PASSWORD__",
+          "DB_NAME=__DB_NAME__",
+          "JWT_SECRET=__JWT_SECRET__",
+          "SESSION_COOKIE_NAME=siwa_session",
+          "NEXT_PUBLIC_APP_URL=https://__DOMAIN__",
+          "NODE_ENV=production",
+          "HOST=0.0.0.0",
+          "PORT=3000"
+        ]
+      }
+    }
+  },
+
+  "files": {
+    "include": [
+      "src",
+      "public",
+      "scripts",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "next.config.ts",
+      ".env.example",
+      "server.js",
+      ".next",
+      "schema.sql",
+      "DEPLOYMENT.md"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      ".next/cache",
+      "*.md",
+      "!DEPLOYMENT.md",
+      "scratch",
+      "siwa_upload.zip",
+      "*.log"
+    ]
+  },
+
+  "autoSync": {
+    "enabled": true,
+    "watchFiles": [
+      "src/**/*",
+      "public/**/*",
+      "package.json",
+      "next.config.ts",
+      "server.js",
+      "tsconfig.json"
+    ],
+    "rebuildOnChanges": true,
+    "generateManifest": true
+  },
+
+  "cpanel": {
+    "requirements": {
+      "nodeVersions": ["18.x", "20.x"],
+      "minMemoryMB": 1024,
+      "minDiskSpaceGB": 2,
+      "features": [
+        "Setup Node.js App",
+        "MySQL Databases",
+        "phpMyAdmin",
+        "File Manager"
+      ]
+    },
+    "deployment": {
+      "order": [
+        "database_setup",
+        "nodejs_app_creation",
+        "file_upload",
+        "environment_config",
+        "install_and_build",
+        "verification"
+      ],
+      "database": {
+        "schemaFile": "schema.sql",
+        "migrationsDir": "scratch",
+        "defaultUsers": [
+          {
+            "email": "super@siwa.com",
+            "password": "super123",
+            "mustChange": true
+          }
+        ]
+      }
+    }
+  },
+
+  "scripts": {
+    "prepare": "node scripts/prepare-deployment-advanced.js",
+    "check": "node scripts/check-cpanel-compatibility.js",
+    "deploy": "node scripts/deploy-prepare.js",
+    "build": {
+      "local": "npm run build",
+      "cpanel": "next build",
+      "production": "next build"
+    }
+  },
+
+  "documentation": {
+    "preDeploymentChecklist": "CPANEL_PRE_DEPLOYMENT_CHECKLIST.md",
+    "quickReference": "DEPLOYMENT_QUICK_REFERENCE.md",
+    "troubleshooting": "TESTING_AND_DEPLOYMENT_FIXES.md",
+    "deploymentGuide": "DEPLOYMENT.md"
+  }
+}

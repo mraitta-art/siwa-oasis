@@ -1,194 +1,210 @@
-import React from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
+'use client';
 
-export default function PublicHomepage() {
-  return (
-    <div className="flex flex-col min-h-screen">
-      
-      {/* 1. Global Navigation (Transparent overlay) */}
-      <nav className="absolute top-0 left-0 right-0 z-50 px-8 py-6 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent">
-        <div className="flex items-center gap-2">
-          <span className="font-outfit text-3xl font-extrabold text-white tracking-tight drop-shadow-lg">
-            <span className="text-brand-400">SIWA</span> OASIS
-          </span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-white font-medium">
-          <Link href="/search" className="hover:text-brand-300 transition-colors drop-shadow-md">Explore</Link>
-          <Link href="/tours" className="hover:text-brand-300 transition-colors drop-shadow-md">Experiences</Link>
-          <Link href="/stays" className="hover:text-brand-300 transition-colors drop-shadow-md">Stays</Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-white hover:text-brand-300 font-medium transition-colors">Sign In</Link>
-          <Link href="/signup">
-            <Button variant="accent" className="shadow-[0_0_20px_rgba(245,158,11,0.4)]">Add Your Business</Button>
-          </Link>
-        </div>
-      </nav>
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
-      {/* 2. Hero Section (Immersive & Swift Navigation) */}
-      <section className="relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden">
-        {/* Background Image / Video Mock */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-slate-900/40 mix-blend-multiply z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-bg-base/20 to-transparent z-10" />
-          <img 
-            src="https://images.unsplash.com/photo-1543884175-01e4ec305a46?q=80&w=2670&auto=format&fit=crop" 
-            alt="Siwa Oasis Desert" 
-            className="w-full h-full object-cover animate-in fade-in zoom-in duration-[3000ms]"
+export default function HomePage() {
+  const [pageData, setPageData] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
+  const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showHeroCarousel, setShowHeroCarousel] = useState(true);
+
+  useEffect(() => {
+    async function init() {
+      // 1. Fetch Carousel Slides (Manual + Discovery)
+      try {
+        const [manualRes, featuredRes, blogRes] = await Promise.all([
+          fetch('/api/admin/hero-carousel'),
+          fetch('/api/discovery/featured'),
+          fetch('/api/discovery/blog?limit=6')
+        ]);
+
+        const manual = manualRes.ok ? (await manualRes.json()).slides || [] : [];
+        const featured = featuredRes.ok ? (await featuredRes.json()).slides || [] : [];
+        const blogs = blogRes.ok ? (await blogRes.json()).posts || [] : [];
+
+        setCarouselSlides([...manual, ...featured]);
+        setBlogPosts(blogs);
+      } catch (e) { console.error('Discovery fetch fail:', e); }
+
+      // 2. Fetch Website Settings
+      try {
+        const sRes = await fetch('/api/admin/website?type=main');
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          const settings = sData[0]?.site_settings || {};
+          setSettings(settings);
+          // Check if hero carousel should be shown (defaults to true)
+          setShowHeroCarousel(settings?.show_hero_carousel !== false);
+        }
+      } catch (e) { console.error('Settings fetch fail:', e); }
+
+      // 3. Fetch Page Structure
+      try {
+        const pRes = await fetch('/api/admin/website/pages?siteId=website_main');
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const indexPage = pData.find((p: any) => p.slug === 'index' || p.slug === 'home');
+          setPageData(indexPage || pData[0]);
+        }
+      } catch (e) { console.error('Page fetch fail:', e); }
+
+      setLoading(false);
+    }
+    init();
+  }, []);
+
+  const renderComponent = (c: any) => {
+    const primaryColor = settings?.primary_color || '#D4AF37';
+    
+    // Handle Hero/Cinematic Carousels
+    if (['hero_carousel', 'hero', 'cinematic_carousel'].includes(c.type)) {
+      const slides = c.props?.slides?.length > 0 ? c.props.slides : carouselSlides;
+      if (slides && slides.length > 0) {
+        return (
+          <AdvancedHeroCarousel
+            key={c.id}
+            slides={slides}
+            autoPlay={settings?.carousel_autoplay !== false}
+            autoPlayInterval={settings?.carousel_interval || 8000}
+            transitionDuration={c.props?.transitionDuration || 1200}
+            height={c.props?.height || '100vh'}
+            showIndicators={c.props?.showIndicators !== false}
+            showArrows={c.props?.showArrows !== false}
+            showProgress={c.props?.showProgress !== false}
           />
-        </div>
+        );
+      }
+      return null;
+    }
 
-        <div className="relative z-20 text-center px-4 max-w-4xl pt-20">
-          <h1 className="font-outfit text-5xl md:text-7xl font-bold text-white mb-6 drop-shadow-2xl animate-in slide-in-from-bottom-8 duration-700">
-            Discover the Magic of the <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-accent-400">Western Desert</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-slate-200 mb-10 font-light drop-shadow-lg animate-in slide-in-from-bottom-8 duration-700 delay-150">
-            Book luxury eco-lodges, authentic traditional camps, and unforgettable desert safaris directly from verified local hosts.
-          </p>
-          
-          {/* Smart Search Engine Engine (Controlled by Taxonomy) */}
-          <div className="glass-card p-3 max-w-3xl mx-auto flex flex-col md:flex-row gap-3 animate-in slide-in-from-bottom-8 duration-700 delay-300">
-            <div className="flex-1 relative">
-              <i className="fas fa-map-marker-alt absolute left-4 top-1/2 -translate-y-1/2 text-brand-400"></i>
-              <select className="w-full h-12 bg-slate-900/80 border border-slate-700 rounded-lg pl-12 pr-4 text-white focus:ring-2 focus:ring-brand-500 appearance-none">
-                <option value="">Any Location in Siwa</option>
-                <option value="aghurmi">Aghurmi (Old Fortress)</option>
-                <option value="cleopatra">Cleopatra Spring</option>
-                <option value="sand-sea">Great Sand Sea</option>
-              </select>
+    // Handle Master Blog Component
+    if (c.type === 'blog') {
+      return (
+        <section key={c.id} style={{ maxWidth: 1400, margin: '0 auto', padding: '4rem 1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '2rem' }}>
+            <div style={{ maxWidth: '700px' }}>
+              <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, color: '#0f172a', margin: 0, lineHeight: 1 }}>{c.props?.title || 'SIWA STORIES'}</h2>
+              <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 2vw, 1.25rem)', marginTop: '1.5rem', lineHeight: 1.6 }}>Discover curated narratives from our community partners.</p>
             </div>
-            <div className="flex-1 relative">
-              <i className="fas fa-building absolute left-4 top-1/2 -translate-y-1/2 text-accent-400"></i>
-              <select className="w-full h-12 bg-slate-900/80 border border-slate-700 rounded-lg pl-12 pr-4 text-white focus:ring-2 focus:ring-brand-500 appearance-none">
-                <option value="">All Experiences</option>
-                <option value="hotel">Luxury Hotels & Resorts</option>
-                <option value="camp">Desert Camps & Lodges</option>
-                <option value="safari">4x4 Safari Expeditions</option>
-              </select>
-            </div>
-            <Button variant="primary" className="h-12 px-8 shadow-brand-500/50">
-              <i className="fas fa-search mr-2"></i> Search
-            </Button>
+            <Link href="/stories" style={{ 
+              padding: '1rem 2rem', 
+              border: `2px solid ${primaryColor}`, 
+              color: primaryColor, 
+              borderRadius: '50px', 
+              fontWeight: 800, 
+              textDecoration: 'none',
+              whiteSpace: 'nowrap'
+            }}>EXPLORE ALL</Link>
           </div>
-        </div>
-      </section>
 
-      {/* 3. Dynamic Categories (Driven by Business Types DB) */}
-      <section className="py-24 bg-bg-base relative z-20">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="text-3xl font-outfit font-bold text-white mb-2">Curated Categories</h2>
-              <p className="text-slate-400">Fly swiftly between our top-rated services.</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { title: 'Eco Lodges', count: 24, icon: 'fa-leaf', img: 'https://images.unsplash.com/photo-1542640244-7e672d6cb466?w=800&q=80' },
-              { title: 'Hot Springs', count: 12, icon: 'fa-water', img: 'https://images.unsplash.com/photo-1520637102912-2df6bb2aec6d?w=800&q=80' },
-              { title: '4x4 Desert Safari', count: 45, icon: 'fa-truck-monster', img: 'https://images.unsplash.com/photo-1621245648585-e6f4773de578?w=800&q=80' },
-              { title: 'Historic Sites', count: 18, icon: 'fa-monument', img: 'https://images.unsplash.com/photo-1572914857229-37bf6ee8101c?w=800&q=80' }
-            ].map((cat, i) => (
-              <Link href="/search" key={i} className="group relative h-64 rounded-2xl overflow-hidden glass-card border border-slate-700/50 cursor-pointer block">
-                <img src={cat.img} alt={cat.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 mix-blend-overlay" />
-                <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-bg-base/60 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 right-6">
-                  <div className="w-10 h-10 rounded-full bg-brand-500/20 backdrop-blur-md flex items-center justify-center border border-brand-500/50 mb-4 group-hover:bg-brand-500/40 transition-colors">
-                    <i className={`fas ${cat.icon} text-brand-300`}></i>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 400px), 1fr))', 
+            gap: '2rem' 
+          }}>
+            {blogPosts.map((post: any) => (
+              <Link href={post.slug} key={post.id} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <article style={{ background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
+                    <img src={post.image} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', top: 20, left: 20, background: primaryColor, color: '#fff', padding: '4px 12px', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 800 }}>
+                      {post.sectionName}
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-1">{cat.title}</h3>
-                  <p className="text-sm text-brand-300">{cat.count} listings</p>
-                </div>
+                  <div style={{ padding: '2rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: primaryColor, marginBottom: '0.5rem' }}>{post.businessName.toUpperCase()}</div>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem', lineHeight: 1.2 }}>{post.title}</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>{post.excerpt}</p>
+                    <div style={{ marginTop: 'auto', fontWeight: 900, fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      READ STORY <i className="fas fa-chevron-right" style={{ fontSize: '0.7rem', color: primaryColor }}></i>
+                    </div>
+                  </div>
+                </article>
               </Link>
             ))}
           </div>
+        </section>
+      );
+    }
+
+    return (
+      <div key={c.id} style={{ padding: '2rem', border: '1px dashed #eee', textAlign: 'center', margin: '1rem', borderRadius: '12px' }}>
+        <i className="fas fa-cube" style={{ color: primaryColor, marginRight: '0.5rem' }}></i> {c.name} (Production Ready)
+      </div>
+    );
+  };
+
+  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fas fa-sun fa-spin fa-3x" style={{ color: '#D4AF37' }}></i></div>;
+
+  const allComponents = [
+    ...(pageData?.header_components || []),
+    ...(pageData?.body_components || []),
+    ...(pageData?.components || [])
+  ];
+
+  const hasHeroComponent = allComponents.some((c: any) => 
+    ['hero_carousel', 'hero', 'cinematic_carousel'].includes(c.type)
+  );
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+      <nav style={{ padding: '1.5rem 3rem', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1000 }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>
+          <i className="fas fa-sun" style={{ color: settings?.primary_color || '#D4AF37', marginRight: '0.75rem' }}></i>
+          {settings?.site_name?.toUpperCase() || 'SIWA TODAY'}
+        </h1>
+        <div style={{ display: 'flex', gap: '3rem', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '2px', color: '#1e293b' }}>
+          <span>DISCOVER</span>
+          <span>PLAN</span>
+          <span>STAY</span>
+          <Link href="/login" style={{ color: settings?.primary_color || '#D4AF37', textDecoration: 'none' }}>SIGN IN</Link>
         </div>
-      </section>
+      </nav>
 
-      {/* 4. The Vendor B2B Sales Pitch (To attract clients to sign up) */}
-      <section className="py-24 relative overflow-hidden bg-slate-900 border-t border-b border-brand-500/20">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-900/20 to-transparent"></div>
-        <div className="max-w-7xl mx-auto px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-             <div className="lg:w-1/2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-500/10 border border-accent-500/30 text-accent-400 text-sm font-medium mb-6">
-                  <i className="fas fa-rocket"></i> For Business Owners
-                </div>
-                <h2 className="text-4xl md:text-5xl font-outfit font-bold text-white mb-6 leading-tight">
-                  Grow your business with the <span className="text-brand-400">official</span> Siwa Directory.
-                </h2>
-                <p className="text-lg text-slate-300 mb-8 leading-relaxed">
-                  Join hundreds of verified local vendors reaching thousands of daily travelers. Create your interactive Minisite in minutes, manage bookings, and showcase your Premium Media Gallery without paying massive commission fees to foreign agencies.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/signup">
-                    <Button variant="primary" size="lg" className="w-full sm:w-auto shadow-brand-500/30 shadow-lg">Create Minisite (Free)</Button>
-                  </Link>
-                  <Link href="/pricing">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto">View Partner Tiers</Button>
-                  </Link>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-6 mt-12 border-t border-slate-700/50 pt-8">
-                   <div>
-                     <h4 className="text-3xl font-bold text-white">45k+</h4>
-                     <p className="text-sm text-slate-400 mt-1">Monthly Visitors</p>
-                   </div>
-                   <div>
-                     <h4 className="text-3xl font-bold text-brand-400">0%</h4>
-                     <p className="text-sm text-slate-400 mt-1">Booking Fees</p>
-                   </div>
-                   <div>
-                     <h4 className="text-3xl font-bold text-accent-400">120+</h4>
-                     <p className="text-sm text-slate-400 mt-1">Local Vendors</p>
-                   </div>
-                </div>
-             </div>
+      {/* 1. Header Components */}
+      {pageData?.header_components?.map(renderComponent)}
 
-             {/* UI Preview Mockup (Showing off the tools to vendors) */}
-             <div className="lg:w-1/2 w-full">
-                <div className="glass-panel p-2 rounded-2xl rotate-3 hover:rotate-0 transition-transform duration-500 shadow-2xl shadow-brand-500/20 border-brand-500/30">
-                  <div className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800">
-                    <div className="h-8 bg-slate-950 flex items-center px-4 gap-2 border-b border-slate-800">
-                      <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-600 to-accent-500 flex items-center justify-center p-0.5">
-                          <img src="https://images.unsplash.com/photo-1542640244-7e672d6cb466?w=100&q=80" className="w-full h-full object-cover rounded-full" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-bold text-lg">Siwa Premium Camp</h4>
-                          <div className="flex text-accent-400 text-xs">
-                            <i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="h-2 w-3/4 bg-slate-800 rounded-full"></div>
-                        <div className="h-2 w-full bg-slate-800 rounded-full"></div>
-                        <div className="h-2 w-5/6 bg-slate-800 rounded-full"></div>
-                      </div>
-                      <div className="mt-6 flex gap-3">
-                        <div className="flex-1 h-24 rounded-lg bg-brand-900/30 border border-brand-500/20 flex items-center justify-center">
-                          <i className="fas fa-images text-brand-400 text-2xl opacity-50"></i>
-                        </div>
-                        <div className="flex-1 h-24 rounded-lg bg-emerald-900/30 border border-emerald-500/20 flex items-center justify-center">
-                          <i className="fab fa-whatsapp text-emerald-400 text-2xl opacity-50"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-             </div>
+      {/* 2. Fallback Hero (Only if enabled and not explicitly disabled) */}
+      {showHeroCarousel && !hasHeroComponent && carouselSlides.length > 0 && (
+        <AdvancedHeroCarousel
+          slides={carouselSlides}
+          autoPlay={settings?.carousel_autoplay !== false}
+          autoPlayInterval={settings?.carousel_interval || 8000}
+          height="100vh"
+          showIndicators={true}
+          showArrows={true}
+          showProgress={true}
+        />
+      )}
+
+      {/* 3. Main Content */}
+      <main>
+        {pageData?.components?.map(renderComponent)}
+        {!pageData?.components?.length && !pageData?.header_components?.length && (
+           <div style={{ textAlign: 'center', padding: '15rem 2rem' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '2rem' }}>🏜️</div>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a' }}>WELCOME TO {settings?.site_name?.toUpperCase()}</h2>
+              <p style={{ color: '#64748b', fontSize: '1.2rem' }}>The Master Orchestrator is curating your Siwa experience...</p>
+           </div>
+        )}
+      </main>
+
+      {/* 4. Footer */}
+      <footer style={{ background: '#0f172a', color: '#fff', padding: '6rem 3rem' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontWeight: 900, fontSize: '2rem', marginBottom: '0.5rem' }}>{settings?.site_name?.toUpperCase()}</h2>
+            <p style={{ opacity: 0.6, fontSize: '1rem' }}>{settings?.footerText || 'Your premier guide to the Siwa Oasis experience.'}</p>
+          </div>
+          <div style={{ opacity: 0.4, fontSize: '0.8rem', fontWeight: 700 }}>
+            © {new Date().getFullYear()} SIWA TODAY • ALL RIGHTS RESERVED.
           </div>
         </div>
-      </section>
-
+      </footer>
     </div>
-  )
+  );
 }

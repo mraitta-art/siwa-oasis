@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom YouTube Carousel Player - Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #D4AF37, #F5E6AD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+        .demo-carousel {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            background: #000;
+            border-radius: 1rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .youtube-slide {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .thumbnail {
+            position: absolute;
+            inset: 0;
+            background: url('https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg') center/cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .thumbnail:hover { transform: scale(1.02); }
+        .thumbnail:hover .play-btn { transform: scale(1.1); }
+        .thumbnail-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+        }
+        .play-btn {
+            position: relative;
+            z-index: 1;
+            width: 100px;
+            height: 70px;
+            background: rgba(212, 175, 55, 0.95);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .play-btn svg {
+            width: 40px;
+            height: 40px;
+            fill: #1a1a2e;
+            margin-left: 4px;
+        }
+        .slide-content {
+            position: absolute;
+            bottom: 3rem;
+            left: 3rem;
+            right: 3rem;
+            text-align: center;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .slide-content h2 {
+            font-size: 3rem;
+            font-weight: 900;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            margin-bottom: 1rem;
+        }
+        .slide-content p {
+            font-size: 1.2rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            opacity: 0.9;
+        }
+        .playing-badge {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            background: rgba(212, 175, 55, 0.9);
+            color: #1a1a2e;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 25;
+        }
+        .playing-badge.active { display: flex; }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #1a1a2e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        .controls {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            background: linear-gradient(transparent 70%, rgba(0,0,0,0.7) 100%);
+            z-index: 20;
+        }
+        .controls.active { display: flex; }
+        .controls-top {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        .control-btn:hover {
+            background: rgba(212, 175, 55, 0.9);
+            color: #1a1a2e;
+        }
+        .controls-center {
+            display: flex;
+            justify-content: center;
+        }
+        .play-pause-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.9);
+            border: none;
+            color: #1a1a2e;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        .play-pause-btn:hover { transform: scale(1.1); }
+        .iframe-container {
+            position: absolute;
+            inset: 0;
+            display: none;
+        }
+        .iframe-container.active { display: block; }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        .feature-card h3 {
+            color: #D4AF37;
+            margin-bottom: 0.5rem;
+        }
+        .feature-card p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+        .steps li {
+            counter-increment: step;
+            margin-bottom: 1.5rem;
+            padding-left: 4rem;
+            position: relative;
+        }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2.5rem;
+            height: 2.5rem;
+            background: linear-gradient(135deg, #D4AF37, #F5E6AD);
+            color: #1a1a2e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+        }
+        .steps li h4 {
+            color: #D4AF37;
+            margin-bottom: 0.5rem;
+        }
+        .steps li p {
+            color: rgba(255,255,255,0.7);
+            line-height: 1.6;
+        }
+        .code-block {
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            .demo-carousel { height: 400px; }
+            .slide-content h2 { font-size: 2rem; }
+            .play-btn { width: 70px; height: 50px; }
+            .play-btn svg { width: 30px; height: 30px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Custom YouTube Carousel Player</h1>
+        <p class="subtitle">Your Controls • Your Design • Full User Control</p>
+
+        <!-- Interactive Demo -->
+        <div class="demo-carousel" id="demoCarousel">
+            <div class="youtube-slide">
+                <!-- Thumbnail (Shows when paused) -->
+                <div class="thumbnail" id="thumbnail">
+                    <div class="thumbnail-overlay"></div>
+                    <div class="play-btn" id="playBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Playing Badge -->
+                <div class="playing-badge" id="playingBadge">
+                    <div class="pulse-dot"></div>
+                    PLAYING
+                </div>
+
+                <!-- Custom Controls (Shows on hover when playing) -->
+                <div class="controls" id="controls">
+                    <div class="controls-top">
+                        <button class="control-btn" id="muteBtn" title="Toggle Mute">🔇</button>
+                    </div>
+                    <div class="controls-center">
+                        <button class="play-pause-btn" id="pauseBtn">⏸</button>
+                    </div>
+                </div>
+
+                <!-- IFrame Container (Hidden in demo) -->
+                <div class="iframe-container" id="iframeContainer">
+                    <div style="position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">🎬</div>
+                            <p style="font-size: 1.2rem;">In real implementation, YouTube IFrame loads here</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide Content -->
+                <div class="slide-content">
+                    <h2>Discover Siwa Oasis</h2>
+                    <p>Click the play button to start the video</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="statusMessage" style="text-align: center; padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 0.5rem; margin-bottom: 2rem;">
+            <span style="color: #D4AF37; font-weight: 600;">Status: ⏸ Paused - Click play button to start</span>
+        </div>
+
+        <!-- Features -->
+        <div class="features">
+            <div class="feature-card">
+                <h3>🎯 Custom Play Button</h3>
+                <p>Gold-themed play button matching your brand. User clicks to start video.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⏸ Click to Pause</h3>
+                <p>Click anywhere on playing video to pause. Thumbnail returns instantly.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔇 Mute/Unmute</h3>
+                <p>Hover over playing video to see mute button. Toggle sound on/off.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎬 Playing Badge</h3>
+                <p>Gold "PLAYING" indicator with pulse animation shows when video is active.</p>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <h2 style="text-align: center; color: #D4AF37; margin: 3rem 0 2rem 0;">How It Works</h2>
+        <ol class="steps">
+            <li>
+                <h4>User Sees Thumbnail</h4>
+                <p>High-quality YouTube thumbnail with gold play button overlay</p>
+                <div class="code-block">Thumbnail + Play Button + Title</div>
+            </li>
+            <li>
+                <h4>User Clicks Play</h4>
+                <p>YouTube IFrame loads and video starts playing (muted by default)</p>
+                <div class="code-block">Video plays → "PLAYING" badge appears → Mute button shows</div>
+            </li>
+            <li>
+                <h4>User Hovers Video</h4>
+                <p>Custom controls fade in (play/pause + mute/unmute)</p>
+                <div class="code-block">Controls appear on hover → User can pause or toggle sound</div>
+            </li>
+            <li>
+                <h4>User Clicks to Pause</h4>
+                <p>Video stops, thumbnail with play button returns</p>
+                <div class="code-block">Video pauses → Thumbnail shows → Ready to play again</div>
+            </li>
+        </ol>
+
+        <!-- Integration Steps -->
+        <h2 style="text-align: center; color: #D4AF37; margin: 3rem 0 2rem 0;">Integration (3 Steps)</h2>
+        <ol class="steps">
+            <li>
+                <h4>Add Import</h4>
+                <p>In AdvancedHeroCarousel.tsx, add:</p>
+                <div class="code-block">import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';</div>
+            </li>
+            <li>
+                <h4>Replace YouTubeBackground Function</h4>
+                <p>Use YouTubeCarouselPlayer instead of YouTubeFacade:</p>
+                <div class="code-block">&lt;YouTubeCarouselPlayer<br/>  videoId={videoId}<br/>  isActive={isActive}<br/>  showControls={true}<br/>  autoplay={false}<br/>/&gt;</div>
+            </li>
+            <li>
+                <h4>Test & Enjoy!</h4>
+                <p>Run npm run dev and test your custom YouTube player</p>
+            </li>
+        </ol>
+
+        <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: rgba(212, 175, 55, 0.1); border-radius: 1rem;">
+            <h3 style="color: #D4AF37; margin-bottom: 1rem;">📚 Documentation</h3>
+            <p style="color: rgba(255,255,255,0.7);">
+                See <strong>YOUTUBE_CAROUSEL_PLAYER_GUIDE.md</strong> for complete integration guide
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Interactive Demo Logic
+        const thumbnail = document.getElementById('thumbnail');
+        const playBtn = document.getElementById('playBtn');
+        const playingBadge = document.getElementById('playingBadge');
+        const controls = document.getElementById('controls');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const iframeContainer = document.getElementById('iframeContainer');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let isPlaying = false;
+        let isMuted = true;
+
+        // Play button click
+        thumbnail.addEventListener('click', () => {
+            isPlaying = true;
+            thumbnail.style.display = 'none';
+            iframeContainer.classList.add('active');
+            playingBadge.classList.add('active');
+            controls.classList.add('active');
+            statusMessage.innerHTML = '<span style="color: #D4AF37; font-weight: 600;">Status: ▶ Playing - Hover to see controls, click to pause</span>';
+        });
+
+        // Pause button click
+        pauseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isPlaying = false;
+            thumbnail.style.display = 'flex';
+            iframeContainer.classList.remove('active');
+            playingBadge.classList.remove('active');
+            controls.classList.remove('active');
+            statusMessage.innerHTML = '<span style="color: #D4AF37; font-weight: 600;">Status: ⏸ Paused - Click play button to start</span>';
+        });
+
+        // Mute button click
+        muteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMuted = !isMuted;
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+            statusMessage.innerHTML = `<span style="color: #D4AF37; font-weight: 600;">Status: ▶ Playing - Sound ${isMuted ? 'OFF' : 'ON'}</span>`;
+        });
+
+        // Click on video to pause
+        iframeContainer.addEventListener('click', () => {
+            if (isPlaying) {
+                pauseBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>

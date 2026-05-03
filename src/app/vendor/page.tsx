@@ -1,76 +1,51 @@
-import React from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import React from 'react';
+import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { query } from '@/lib/db';
+import Link from 'next/link';
 
-export default function VendorDashboardPage() {
+export default async function VendorDashboard() {
+  const user = await getCurrentUser();
+  if (!user) redirect('/login');
+
+  const business = user.businessId
+    ? await query('SELECT b.*, bt.name as type_name FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id WHERE b.id = ?', [user.businessId])
+    : [];
+
+  const biz = (business as any[])[0] || null;
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      {/* Welcome Banner */}
-      <div className="glass-panel p-8 relative overflow-hidden bg-gradient-to-r from-slate-900 to-brand-900/20 border-brand-500/30">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-2xl font-outfit font-bold text-white">Welcome back, Ahmed!</h2>
-            <p className="text-slate-300 mt-2 max-w-2xl">
-              Your minisite is currently live. You've had <strong className="text-brand-400">124</strong> profile views this week. Keep your profile updated to attract more travelers.
-            </p>
-          </div>
-          <Button variant="primary" className="whitespace-nowrap shadow-brand-500/20">
-            Edit Profile Data <i className="fas fa-magic ml-2"></i>
-          </Button>
+    <div className="container" style={{ maxWidth: 900 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1><i className="fas fa-store" style={{ color: '#D4AF37' }}></i> Vendor Dashboard</h1>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <span className="subscription-badge">{user.subscriptionTier}</span>
+          <Link href="/" className="btn btn-outline btn-sm"><i className="fas fa-home"></i> Home</Link>
         </div>
       </div>
 
-      {/* Profile Health & Quotas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Tier Info Card */}
-        <Card className="border-brand-500/30 bg-gradient-to-br from-slate-900 to-brand-950/40">
-          <CardHeader className="border-b border-brand-500/20">
-            <div className="flex items-center justify-between w-full">
-              <CardTitle className="text-brand-300 text-sm tracking-wider uppercase">Active Tier</CardTitle>
-              <i className="fas fa-crown text-accent-400 text-xl drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]"></i>
+      {biz ? (
+        <>
+          <div className="card" style={{ borderTop: '4px solid #D4AF37' }}>
+            <h3>{biz.name}</h3>
+            <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Category: {biz.type_name} · Status: <span className="badge badge-success">{biz.status}</span></p>
+            <div className="stats" style={{ marginTop: '1rem', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="stat"><div className="stat-value">{biz.views}</div><div className="stat-label">Views</div></div>
+              <div className="stat"><div className="stat-value">{biz.subscription_tier}</div><div className="stat-label">Current Tier</div></div>
+              <div className="stat"><div className="stat-value">{biz.published ? '✅' : '❌'}</div><div className="stat-label">Published</div></div>
             </div>
-          </CardHeader>
-          <CardContent className="pt-6 text-center">
-            <h3 className="text-3xl font-outfit font-bold text-white">PREMIUM</h3>
-            <p className="text-slate-400 mt-2 text-sm">Full access to Minisite Builder and Advanced Galleries.</p>
-            <Button variant="outline" className="w-full mt-6 border-brand-500/30 text-brand-300 hover:bg-brand-500/10">
-              View My Policy Limits
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Media Quota Tracker */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Storage & Media Limits</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-medium text-slate-300">Direct Image Uploads</span>
-                <span className="text-sm font-bold text-white">32 <span className="text-slate-500 font-normal">/ 50 Images</span></span>
-              </div>
-              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-brand-500 w-[64%]"></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-medium text-slate-300">YouTube / External Videos</span>
-                <span className="text-sm font-bold text-emerald-400">Unlimited <i className="fas fa-infinity ml-1 text-xs"></i></span>
-              </div>
-              <p className="text-xs text-slate-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg leading-relaxed">
-                <i className="fas fa-info-circle text-emerald-400 mr-1"></i> You are using external URLs for videos. This does not consume your tier storage limits. Highly recommended!
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+          </div>
+          <div className="notification-banner">
+            <i className="fas fa-info-circle"></i> Edit your business information and manage your listing from here.
+          </div>
+        </>
+      ) : (
+        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <i className="fas fa-store" style={{ fontSize: '3rem', color: '#D4AF37', display: 'block', marginBottom: '1rem' }}></i>
+          <h3>No Business Linked</h3>
+          <p style={{ color: '#6b7280' }}>Contact an admin to link your account to a business listing.</p>
+        </div>
+      )}
     </div>
-  )
+  );
 }

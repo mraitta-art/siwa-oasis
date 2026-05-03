@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Facade Pattern - Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f0f2f5;
+            padding: 2rem;
+            color: #1a1a2e;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #D4AF37;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .example-box {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .example-box h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .before h2 {
+            color: #ef4444;
+        }
+
+        .after h2 {
+            color: #10b981;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            color: #1a1a2e;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        /* YouTube Facade CSS */
+        .youtube-facade-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            background: #000;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+        }
+
+        .youtube-facade-wrapper:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .youtube-facade-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .youtube-facade-wrapper:hover .youtube-facade-thumbnail {
+            transform: scale(1.02);
+        }
+
+        .youtube-facade-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.15);
+            transition: background 0.3s ease;
+        }
+
+        .youtube-facade-play-btn {
+            position: relative;
+            z-index: 1;
+            width: 68px;
+            height: 48px;
+            background: rgba(255, 0, 0, 0.9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .youtube-facade-wrapper:hover .youtube-facade-play-btn {
+            transform: scale(1.1);
+            background: rgba(255, 0, 0, 1);
+        }
+
+        .youtube-facade-play-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            margin-left: 3px;
+        }
+
+        .youtube-facade-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .code-block {
+            background: #1a1a2e;
+            color: #f8f8f2;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            margin: 1rem 0;
+            line-height: 1.6;
+        }
+
+        .code-comment {
+            color: #6272a4;
+        }
+
+        .code-tag {
+            color: #ff79c6;
+        }
+
+        .code-attr {
+            color: #50fa7b;
+        }
+
+        .code-string {
+            color: #f1fa8c;
+        }
+
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 YouTube Facade Pattern</h1>
+        <p class="subtitle">Lazy Loading Implementation for Better Performance</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">95%</div>
+                <div class="stat-label">Faster Initial Load</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">80%</div>
+                <div class="stat-label">Less Data Usage</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Privacy Compliant</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">16:9</div>
+                <div class="stat-label">Responsive Ratio</div>
+            </div>
+        </div>
+
+        <div class="comparison">
+            <div class="example-box before">
+                <h2>❌ Before (Direct IFrame)</h2>
+                <div class="code-block">
+<span class="code-comment">&lt;!-- Loads immediately, blocks page --&gt;</span>
+<span class="code-tag">&lt;iframe</span>
+  <span class="code-attr">src</span>=<span class="code-string">"https://www.youtube.com/embed/VIDEO_ID"</span>
+  <span class="code-attr">width</span>=<span class="code-string">"560"</span>
+  <span class="code-attr">height</span>=<span class="code-string">"315"</span>
+<span class="code-tag">&gt;&lt;/iframe&gt;</span>
+
+<span class="code-comment">// Problems:</span>
+<span class="code-comment">// ✗ Loads on page render (slow)</span>
+<span class="code-comment">// ✗ 15+ HTTP requests per video</span>
+<span class="code-comment">// ✗ ~1.5 MB data per embed</span>
+<span class="code-comment">// ✗ Sets tracking cookies</span>
+<span class="code-comment">// ✗ Blocks page load</span>
+                </div>
+            </div>
+
+            <div class="example-box after">
+                <h2>✅ After (Facade Pattern)</h2>
+                <div class="code-block">
+<span class="code-comment">&lt;!-- Lightweight thumbnail, loads IFrame on click --&gt;</span>
+<span class="code-tag">&lt;YouTubeFacade</span>
+  <span class="code-attr">videoId</span>=<span class="code-string">"VIDEO_ID"</span>
+  <span class="code-attr">title</span>=<span class="code-string">"Video Title"</span>
+  <span class="code-attr">thumbnailQuality</span>=<span class="code-string">"maxresdefault"</span>
+<span class="code-tag">/&gt;</span>
+
+<span class="code-comment">// Benefits:</span>
+<span class="code-comment">// ✓ Loads thumbnail only (~50KB)</span>
+<span class="code-comment">// ✓ 1 HTTP request initially</span>
+<span class="code-comment">// ✓ No cookies until interaction</span>
+<span class="code-comment">// ✓ Non-blocking, async</span>
+<span class="code-comment">// ✓ Privacy mode enabled</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-box">
+            <h2 style="margin-bottom: 1.5rem; color: #D4AF37;">🎯 Live Example</h2>
+            
+            <h3 style="margin-bottom: 1rem;">Click the thumbnail to load the video:</h3>
+            
+            <!-- YouTube Facade Implementation -->
+            <div class="youtube-facade-wrapper" id="youtubeFacade">
+                <div class="youtube-facade-thumbnail" style="background-image: url('https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg');">
+                    <div class="youtube-facade-overlay"></div>
+                    <div class="youtube-facade-play-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 0.5rem;">
+                <p style="font-size: 0.875rem; color: #6b7280;">
+                    <strong>Notice:</strong> The video IFrame is NOT loaded yet. Click the play button above to load it on demand. 
+                    This demonstrates the facade pattern - only loading heavy resources when needed.
+                </p>
+            </div>
+        </div>
+
+        <div class="example-box" style="margin-top: 2rem;">
+            <h2 style="margin-bottom: 1.5rem; color: #D4AF37;">📝 Implementation Code</h2>
+            
+            <h3 style="margin-bottom: 0.5rem;">Vanilla JavaScript Version:</h3>
+            <div class="code-block">
+<span class="code-tag">function</span> <span class="code-attr">createYouTubeFacade</span>(container, videoId) {
+  <span class="code-comment">// Create thumbnail wrapper</span>
+  container.innerHTML = <span class="code-string">`
+    &lt;div class="youtube-facade-wrapper"&gt;
+      &lt;div class="youtube-facade-thumbnail" 
+           style="background-image: url('https://img.youtube.com/vi/${videoId}/maxresdefault.jpg')"&gt;
+        &lt;div class="youtube-facade-overlay"&gt;&lt;/div&gt;
+        &lt;div class="youtube-facade-play-btn"&gt;
+          &lt;svg viewBox="0 0 24 24"&gt;&lt;path d="M8 5v14l11-7z"/&gt;&lt;/svg&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `</span>;
+
+  <span class="code-comment">// Load IFrame on click</span>
+  container.querySelector(<span class="code-string">'.youtube-facade-wrapper'</span>)
+    .addEventListener(<span class="code-string">'click'</span>, <span class="code-tag">function</span>() {
+      <span class="code-tag">const</span> origin = window.location.origin;
+      <span class="code-tag">const</span> embedUrl = <span class="code-string">`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&enablejsapi=1&playsinline=1&origin=${origin}`</span>;
+      
+      <span class="code-tag">this</span>.innerHTML = <span class="code-string">`&lt;iframe class="youtube-facade-iframe" src="${embedUrl}" allowfullscreen&gt;&lt;/iframe&gt;`</span>;
+    });
+}
+
+<span class="code-comment">// Usage:</span>
+<span class="code-tag">const</span> container = document.getElementById(<span class="code-string">'youtubeFacade'</span>);
+createYouTubeFacade(container, <span class="code-string">'dQw4w9WgXcQ'</span>);
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // YouTube Facade Pattern Implementation
+        function createYouTubeFacade(container, videoId) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'youtube-facade-wrapper';
+            
+            wrapper.innerHTML = `
+                <div class="youtube-facade-thumbnail" style="background-image: url('https://img.youtube.com/vi/${videoId}/maxresdefault.jpg')">
+                    <div class="youtube-facade-overlay"></div>
+                    <div class="youtube-facade-play-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                </div>
+            `;
+            
+            // Load IFrame on click (lazy loading)
+            wrapper.addEventListener('click', function() {
+                const origin = window.location.origin;
+                const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&enablejsapi=1&playsinline=1&origin=${origin}`;
+                
+                this.innerHTML = `<iframe class="youtube-facade-iframe" src="${embedUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(wrapper);
+        }
+
+        // Initialize the example
+        const facadeContainer = document.getElementById('youtubeFacade');
+        createYouTubeFacade(facadeContainer, 'dQw4w9WgXcQ');
+    </script>
+</body>
+</html>

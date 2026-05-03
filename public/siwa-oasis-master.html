@@ -711,6 +711,8 @@
             min-width: 120px
         }
     </style>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -930,11 +932,37 @@
         // ================================================================
         // MODULE 6: PERSISTENCE
         // ================================================================
-        function saveStore() { localStorage.setItem('siwa_master_v4', JSON.stringify(STORE)) }
-        function loadStore() {
+        const SUPABASE_URL = 'https://ilgaeabgwygktoxzjccc.supabase.co'; // Integrated from chat
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsZ2FlYWJnd3lna3RveHpqY2NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA1OTAsImV4cCI6MjA5MDk0NjU5MH0.NvkGQ4jmdzRmXLYAmcpQHh0AURHKTEV8oX8TvnSRR74'; // Integrated from chat
+        let supabaseClient = null;
+        if (typeof supabase !== 'undefined' && SUPABASE_URL.startsWith('https')) {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
+        async function saveStore() { 
+            localStorage.setItem('siwa_master_v4', JSON.stringify(STORE));
+            if (supabaseClient) {
+                try {
+                    await supabaseClient.from('app_state').upsert({ id: 'siwa_master_v4', data: STORE });
+                } catch(e) { console.error('Cloud save failed', e); }
+            }
+        }
+        
+        async function loadStore() {
             const d = localStorage.getItem('siwa_master_v4');
             if (d) { try { const p = JSON.parse(d); if (p.vendors && p.vendors.length >= 5) { Object.assign(STORE, p) } else { localStorage.removeItem('siwa_master_v4'); initDefaultData() } } catch (e) { initDefaultData() } }
             else { initDefaultData() }
+            
+            // Sync from cloud if available
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 'siwa_master_v4').single();
+                    if (data && data.data && data.data.vendors) {
+                        Object.assign(STORE, data.data);
+                        localStorage.setItem('siwa_master_v4', JSON.stringify(STORE)); // Sync down
+                    }
+                } catch(e) { console.error('Cloud load failed', e); }
+            }
         }
         function addActivity(msg) { STORE.activity.unshift({ time: new Date().toLocaleString(), msg, user: currentUser.email || 'system' }); if (STORE.activity.length > 50) STORE.activity.pop(); saveStore() }
         function addAudit(action, details) { STORE.auditLog.unshift({ ts: new Date().toISOString(), user: currentUser.email || 'anon', role: currentUser.role, action, details }); if (STORE.auditLog.length > 200) STORE.auditLog.pop(); saveStore() }
@@ -2138,11 +2166,13 @@
         // ================================================================
         function resetAllData() { if (confirm('Reset ALL data?')) { localStorage.removeItem('siwa_master_v4'); initDefaultData(); showToast('Data reset! Refreshing...', 'success'); setTimeout(() => location.reload(), 500) } }
 
-        // Single clean initialization
-        loadStore();
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        renderApp();
+        // Async initialization to allow cloud sync
+        (async function initApp() {
+            await loadStore();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            renderApp();
+        })();
 
         // Expose functions to HTML onclick handlers
         const globalFns = ['showLoginModal', 'logout', 'renderApp', 'pubDoSearch', 'pubFilterCat', 'viewBizDetail', 'claimBiz', 'adminNav', 'addBizType', 'editBizType', 'delBizType', 'addSection', 'editSection', 'delSection', 'onFormBizChange', 'onFormSecChange', 'fbDragStart', 'fbDragEnd', 'fbDragOver', 'fbDragLeave', 'fbDrop', 'showAddFieldModal', 'editField', 'dupField', 'delField', 'saveFormFields', 'exportForms', 'importForms', 'onCardBizChange', 'setCardLayout', 'saveCardConfig', 'resetCardConfig', 'renderAdminWebsite', 'setWebMode', 'wbDragStart', 'wbDragEnd', 'wbDragOver', 'wbDragLeave', 'wbDrop', 'moveComp', 'removeComp', 'saveWebsite', 'addPolicy', 'editPolicy', 'delPolicy', 'addTier', 'editTier', 'delTier', 'addExpr', 'editExpr', 'delExpr', 'approveUpgrade', 'rejectUpgrade', 'toggleVendor', 'changeBizTier', 'toggleBizStatus', 'adminEditBizData', 'adminSaveBizData', 'salesmanNewBiz', 'salesmanUpgrade', 'vendorTab', 'saveVendorProfile', 'saveVendorSections', 'vendorReqUpgrade', 'vdStart', 'vdEnd', 'vdOver', 'vdLeave', 'vdDrop', 'resetAllData', 'fullBackup', 'restoreBackup', 'exportExcelBusinesses', 'exportExcelVendors', 'exportExcelPolicies', 'exportExcelDefinitions', 'exportExcelFormTemplates', 'exportExcelSettings', 'importDefinitions', 'importBusinessesCSV'];
