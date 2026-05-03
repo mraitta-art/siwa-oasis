@@ -20,7 +20,8 @@ interface Slide {
 }
 
 interface AdvancedCarouselProps {
-  slides: Slide[];
+  slides?: Slide[];
+  carouselName?: string;
   autoPlayInterval?: number;
   showIndicators?: boolean;
   showArrows?: boolean;
@@ -37,7 +38,8 @@ interface AdvancedCarouselProps {
 }
 
 export default function AdvancedHeroCarousel({
-  slides = [],
+  slides: initialSlides = [],
+  carouselName,
   autoPlay = true,
   autoPlayInterval = 8000,
   showIndicators = true,
@@ -47,13 +49,35 @@ export default function AdvancedHeroCarousel({
   transitionDuration = 1200,
   visualSettings = {}
 }: AdvancedCarouselProps & { autoPlay?: boolean }) {
+  const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [loading, setLoading] = useState(initialSlides.length === 0 && !!carouselName);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-fetch slides if a carouselName is provided
+  useEffect(() => {
+    if (carouselName && initialSlides.length === 0) {
+      async function fetchSlides() {
+        try {
+          const res = await fetch(`/api/jana/hero-carousel?siteId=${carouselName}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSlides(data.slides || []);
+          }
+        } catch (e) {
+          console.error('Failed to fetch named carousel:', carouselName, e);
+        } finally {
+          setLoading(false);
+        }
+      }
+      fetchSlides();
+    }
+  }, [carouselName, initialSlides]);
 
   const align = visualSettings.contentAlign || 'center';
   const titleSize = visualSettings.titleSize ? `${visualSettings.titleSize}rem` : 'clamp(2.5rem, 7vw, 5.5rem)';
@@ -101,10 +125,18 @@ export default function AdvancedHeroCarousel({
     setTimeout(() => setIsTransitioning(false), transitionDuration);
   }, [isTransitioning, currentSlide, transitionDuration]);
 
+  if (loading) {
+    return (
+      <section style={{ height, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i>
+      </section>
+    );
+  }
+
   if (!validSlides || validSlides.length === 0) {
     return (
       <section style={{ height, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: '#fff' }}><h2>Cinematic Carousel</h2></div>
+        <div style={{ textAlign: 'center', color: '#fff' }}><h2>{carouselName || 'Cinematic Carousel'}</h2></div>
       </section>
     );
   }

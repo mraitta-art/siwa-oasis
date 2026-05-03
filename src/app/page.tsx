@@ -167,10 +167,10 @@ export default function HomePage() {
       {/* 1. Header Components */}
       {pageData?.header_components?.map(renderComponent)}
 
-      {/* 2. Fallback Hero (Only if enabled and not explicitly disabled) */}
-      {showHeroCarousel && !hasHeroComponent && carouselSlides.length > 0 && (
+      {/* 2. Primary Hero (main_hero) */}
+      {showHeroCarousel && (
         <AdvancedHeroCarousel
-          slides={carouselSlides}
+          carouselName="main_hero"
           autoPlay={settings?.carousel_autoplay !== false}
           autoPlayInterval={settings?.carousel_interval || 8000}
           height="100vh"
@@ -183,6 +183,23 @@ export default function HomePage() {
       {/* 3. Main Content */}
       <main>
         {pageData?.components?.map(renderComponent)}
+        
+        {/* TEST: Secondary Carousel (main_gallery) */}
+        <section style={{ padding: '4rem 0', background: '#0f172a' }}>
+           <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 1.5rem', marginBottom: '2rem' }}>
+              <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 900 }}>CURATED GALLERIES</h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)' }}>Explore the architectural soul of the oasis.</p>
+           </div>
+           <AdvancedHeroCarousel
+             carouselName="main_gallery"
+             height="60vh"
+             autoPlay={true}
+             autoPlayInterval={10000}
+             showIndicators={false}
+             showArrows={true}
+             visualSettings={{ contentAlign: 'left' }}
+           />
+        </section>
         {!pageData?.components?.length && !pageData?.header_components?.length && (
            <div style={{ textAlign: 'center', padding: '15rem 2rem' }}>
               <div style={{ fontSize: '4rem', marginBottom: '2rem' }}>🏜️</div>
