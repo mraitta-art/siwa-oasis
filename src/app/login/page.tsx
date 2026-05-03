@@ -26,7 +26,7 @@ export default function LoginPage() {
       // Route based on role
       const role = data.user.role;
       if (['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(role)) {
-        router.push('/admin');
+        router.push('/jana');
       } else if (role === 'salesman') {
         router.push('/salesman');
       } else if (role === 'vendor') {

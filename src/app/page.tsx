@@ -160,8 +160,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', gap: '3rem', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '2px', color: '#1e293b' }}>
           <span>DISCOVER</span>
           <span>PLAN</span>
-          <span>STAY</span>
-          <Link href="/login" style={{ color: settings?.primary_color || '#D4AF37', textDecoration: 'none' }}>SIGN IN</Link>
+          <Link href="/be-a-partner" style={{ color: '#0ea5e9', textDecoration: 'none' }}>BE A PARTNER</Link>
         </div>
       </nav>
 
@@ -198,7 +197,8 @@ export default function HomePage() {
         <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h2 style={{ fontWeight: 900, fontSize: '2rem', marginBottom: '0.5rem' }}>{settings?.site_name?.toUpperCase()}</h2>
-            <p style={{ opacity: 0.6, fontSize: '1rem' }}>{settings?.footerText || 'Your premier guide to the Siwa Oasis experience.'}</p>
+            <p style={{ opacity: 0.6, fontSize: '1rem', marginBottom: '2rem' }}>{settings?.footerText || 'Your premier guide to the Siwa Oasis experience.'}</p>
+            <Link href="/be-a-partner" style={{ background: '#D4AF37', color: '#0f172a', padding: '0.75rem 1.5rem', borderRadius: '50px', fontWeight: 800, textDecoration: 'none', fontSize: '0.8rem' }}>JOIN AS PARTNER</Link>
           </div>
           <div style={{ opacity: 0.4, fontSize: '0.8rem', fontWeight: 700 }}>
             © {new Date().getFullYear()} SIWA TODAY • ALL RIGHTS RESERVED.
