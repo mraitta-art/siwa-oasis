@@ -308,7 +308,7 @@ export default function BlogLayoutDemo() {
             📖 Read Full Documentation
           </a>
           <a
-            href="/admin/blog-layout-builder"
+            href="/jana/blog-layout-builder"
             style={{
               padding: '1rem 2rem',
               background: '#fff',

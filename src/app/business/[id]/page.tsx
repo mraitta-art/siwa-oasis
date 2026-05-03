@@ -18,7 +18,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
         setBiz(data);
 
         // Fetch sections for this typology to know what to render
-        const sRes = await fetch(`/api/admin/sections?type=${data.type_id}`);
+        const sRes = await fetch(`/api/jana/sections?type=${data.type_id}`);
         const sections = await sRes.json();
         setActiveSections(sections);
       } catch (e) { console.error(e); }

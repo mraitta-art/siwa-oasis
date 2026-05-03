@@ -17,7 +17,7 @@ export default function HomePage() {
       // 1. Fetch Carousel Slides (Manual + Discovery)
       try {
         const [manualRes, featuredRes, blogRes] = await Promise.all([
-          fetch('/api/admin/hero-carousel'),
+          fetch('/api/jana/hero-carousel'),
           fetch('/api/discovery/featured'),
           fetch('/api/discovery/blog?limit=6')
         ]);
@@ -32,7 +32,7 @@ export default function HomePage() {
 
       // 2. Fetch Website Settings
       try {
-        const sRes = await fetch('/api/admin/website?type=main');
+        const sRes = await fetch('/api/jana/website?type=main');
         if (sRes.ok) {
           const sData = await sRes.json();
           const settings = sData[0]?.site_settings || {};
@@ -44,7 +44,7 @@ export default function HomePage() {
 
       // 3. Fetch Page Structure
       try {
-        const pRes = await fetch('/api/admin/website/pages?siteId=website_main');
+        const pRes = await fetch('/api/jana/website/pages?siteId=website_main');
         if (pRes.ok) {
           const pData = await pRes.json();
           const indexPage = pData.find((p: any) => p.slug === 'index' || p.slug === 'home');

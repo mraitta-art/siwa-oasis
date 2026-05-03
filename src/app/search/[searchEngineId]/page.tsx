@@ -31,7 +31,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ searchE
   }, [searchEngineId]);
 
   async function loadEngine() {
-    const res = await fetch(`/api/admin/search-engines`);
+    const res = await fetch(`/api/jana/search-engines`);
     if (res.ok) {
       const all = await res.json();
       setEngine(all.find((e: any) => e.id === searchEngineId));
@@ -39,7 +39,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ searchE
   }
 
   async function loadCardTemplates() {
-    const res = await fetch(`/api/admin/cards`);
+    const res = await fetch(`/api/jana/cards`);
     if (res.ok) setCardTemplates(await res.json());
   }
 

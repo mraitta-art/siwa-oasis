@@ -17,7 +17,7 @@ export default function CarouselPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/hero-carousel');
+      const res = await fetch('/api/jana/hero-carousel');
       if (!res.ok) throw new Error('Failed to load carousel');
       
       const data = await res.json();
@@ -106,7 +106,7 @@ export default function CarouselPage() {
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
-              href="/admin/hero-carousel"
+              href="/jana/hero-carousel"
               style={{
                 background: 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)',
                 color: '#1a1a2e',
@@ -156,7 +156,7 @@ export default function CarouselPage() {
       
       {/* Admin Quick Access Button */}
       <Link
-        href="/admin/hero-carousel"
+        href="/jana/hero-carousel"
         style={{
           position: 'fixed',
           bottom: '2rem',

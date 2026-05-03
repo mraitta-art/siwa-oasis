@@ -79,7 +79,7 @@ export interface CarouselConfig {
 /**
  * Fetch carousel slides from API
  */
-export async function fetchCarouselSlides(endpoint: string = '/api/admin/hero-carousel'): Promise<CarouselSlide[]> {
+export async function fetchCarouselSlides(endpoint: string = '/api/jana/hero-carousel'): Promise<CarouselSlide[]> {
   try {
     const res = await fetch(endpoint);
     if (res.ok) {
@@ -477,7 +477,7 @@ export const carouselPresets = {
     subtitleSize: '1.25rem',
     borderRadius: 0,
     padding: '0',
-    apiEndpoint: '/api/admin/hero-carousel',
+    apiEndpoint: '/api/jana/hero-carousel',
     title: '',
     subtitle: ''
   },
@@ -508,7 +508,7 @@ export const carouselPresets = {
     subtitleSize: '1.1rem',
     borderRadius: 16,
     padding: '2rem',
-    apiEndpoint: '/api/admin/hero-carousel',
+    apiEndpoint: '/api/jana/hero-carousel',
     title: '',
     subtitle: ''
   },
@@ -539,7 +539,7 @@ export const carouselPresets = {
     subtitleSize: '1rem',
     borderRadius: 12,
     padding: '2rem',
-    apiEndpoint: '/api/admin/hero-carousel',
+    apiEndpoint: '/api/jana/hero-carousel',
     title: '',
     subtitle: ''
   },
@@ -570,7 +570,7 @@ export const carouselPresets = {
     subtitleSize: '1rem',
     borderRadius: 12,
     padding: '2rem',
-    apiEndpoint: '/api/admin/hero-carousel',
+    apiEndpoint: '/api/jana/hero-carousel',
     title: '',
     subtitle: ''
   },
@@ -601,7 +601,7 @@ export const carouselPresets = {
     subtitleSize: '1.5rem',
     borderRadius: 0,
     padding: '0',
-    apiEndpoint: '/api/admin/hero-carousel',
+    apiEndpoint: '/api/jana/hero-carousel',
     title: '',
     subtitle: ''
   },
@@ -632,7 +632,7 @@ export const carouselPresets = {
     subtitleSize: '1rem',
     borderRadius: 16,
     padding: '2rem',
-    apiEndpoint: '/api/admin/hero-carousel',
+    apiEndpoint: '/api/jana/hero-carousel',
     title: '',
     subtitle: ''
   }

@@ -258,7 +258,7 @@ export default function CarouselLayoutDemo() {
             📖 Read Carousel Documentation
           </a>
           <a
-            href="/admin/hero-carousel"
+            href="/jana/hero-carousel"
             style={{
               padding: '1rem 2rem',
               background: '#fff',
