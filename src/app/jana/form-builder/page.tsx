@@ -58,13 +58,16 @@ export default function FormArchitectPage() {
         fetch('/api/jana/sections')
       ]);
       const typeList = await tRes.json();
-      setTypes(typeList);
-      if (typeList.length > 0) setSelectedType(typeList[0].id);
+      setTypes(Array.isArray(typeList) ? typeList : []);
+      if (Array.isArray(typeList) && typeList.length > 0) setSelectedType(typeList[0].id);
 
       const sectList = await sRes.json();
-      setSections(sectList.map((s: any) => ({ ...s, fields: [] })));
-      if (sectList.length > 0) setActiveSection(sectList[0].id);
-    } catch (e) { notify('System Sync Failed', 'error'); }
+      setSections(Array.isArray(sectList) ? sectList.map((s: any) => ({ ...s, fields: [] })) : []);
+      if (Array.isArray(sectList) && sectList.length > 0) setActiveSection(sectList[0].id);
+    } catch (e) { 
+      console.error('Sync Error:', e);
+      notify('System Sync Failed: Check Database Connection', 'error'); 
+    }
     setLoading(false);
   }
 

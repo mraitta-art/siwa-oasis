@@ -36,14 +36,30 @@ export default function BusinessTypesPage() {
 
   async function loadTypes() {
     setLoading(true);
-    const res = await fetch('/api/jana/types');
-    if (res.ok) setTypes(await res.json());
+    try {
+      const res = await fetch('/api/jana/types');
+      if (res.ok) {
+        const data = await res.json();
+        setTypes(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error('Failed to load types:', e);
+      setTypes([]);
+    }
     setLoading(false);
   }
 
   async function loadSections() {
-    const res = await fetch('/api/jana/sections');
-    if (res.ok) setSections(await res.json());
+    try {
+      const res = await fetch('/api/jana/sections');
+      if (res.ok) {
+        const data = await res.json();
+        setSections(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error('Failed to load sections:', e);
+      setSections([]);
+    }
   }
 
   const parents = types.filter(t => t.is_parent || Number(t.is_parent) === 1);
