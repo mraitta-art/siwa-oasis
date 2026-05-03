@@ -83,7 +83,7 @@ export default function AdvancedHeroCarousel({
   const titleSize = visualSettings.titleSize ? `${visualSettings.titleSize}rem` : 'clamp(2.5rem, 7vw, 5.5rem)';
   const subtitleSize = visualSettings.subtitleSize ? `${visualSettings.subtitleSize}rem` : 'clamp(1.1rem, 2.5vw, 1.6rem)';
 
-  const validSlides = slides.filter(s => s.mediaUrl && (s.title || s.subtitle));
+  const validSlides = slides.filter(s => s.mediaUrl && (s.mediaUrl.length > 0));
 
   const goToNext = useCallback(() => {
     if (isTransitioning || validSlides.length <= 1) return;
