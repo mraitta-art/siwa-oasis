@@ -48,6 +48,7 @@ export default function FormArchitectPage() {
   const [editingField, setEditingField] = useState<Partial<Field> | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewType, setPreviewType] = useState<'section' | 'full'>('section');
 
   useEffect(() => { loadData(); }, []);
 
@@ -326,18 +327,26 @@ export default function FormArchitectPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', background: '#fff', padding: '1.5rem 2rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
                <div>
                   <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{activeSect?.name} Configuration</h2>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Define the architectural fields for this DNA section.</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Define the architectural fields for this DNA section.</p>
+                    <button 
+                      onClick={() => { setPreviewType('full'); setShowPreview(true); }}
+                      style={{ background: 'none', border: 'none', color: systemColor, fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      <i className="fas fa-book-open" style={{ marginRight: '4px' }}></i> PREVIEW FULL STORYTELLER FORM
+                    </button>
+                  </div>
                </div>
                <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <button 
-                    onClick={() => setShowPreview(true)}
+                    onClick={() => { setPreviewType('section'); setShowPreview(true); }}
                     style={{ 
                       padding: '0.85rem 1.5rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', 
                       fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
                       boxShadow: '0 4px 12px rgba(30,41,59,0.2)', transition: 'all 0.2s'
                     }}
                   >
-                    <i className="fas fa-eye" style={{ color: '#D4AF37' }}></i> PREVIEW
+                    <i className="fas fa-eye" style={{ color: '#D4AF37' }}></i> CHAPTER PREVIEW
                   </button>
                  <button 
                    onClick={async () => {
@@ -565,8 +574,14 @@ export default function FormArchitectPage() {
           <div style={{ width: '100%', maxWidth: '850px', background: '#fff', borderRadius: '40px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 50px 100px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <header style={{ padding: '2.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#1e293b' }}>Vendor Storyteller Preview</h3>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Previewing chapter: <span style={{ color: systemColor, fontWeight: 800 }}>{activeSect?.name || 'Loading...'}</span></p>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#1e293b' }}>
+                  {previewType === 'full' ? 'Master Storyteller Preview' : 'Chapter Preview'}
+                </h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+                  {previewType === 'full' 
+                    ? `Full journey for ${currentType?.name || 'this industry'}` 
+                    : `Previewing chapter: ${activeSect?.name || 'Loading...'}`}
+                </p>
               </div>
               <button onClick={() => setShowPreview(false)} style={{ width: 44, height: 44, borderRadius: '14px', border: 'none', background: '#f1f5f9', color: '#1e293b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <i className="fas fa-times fa-lg"></i>
@@ -574,39 +589,50 @@ export default function FormArchitectPage() {
             </header>
             
             <div style={{ flex: 1, overflowY: 'auto', padding: '4rem' }}>
-              <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-                {!activeSect?.fields || activeSect.fields.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '4rem', background: '#f8fafc', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
-                    <i className="fas fa-ghost fa-3x" style={{ color: '#cbd5e1', marginBottom: '1.5rem' }}></i>
-                    <h4 style={{ margin: 0, color: '#64748b' }}>No fields defined in this chapter.</h4>
-                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Add fields in the Architect to see them here.</p>
-                  </div>
-                ) : activeSect.fields.sort((a,b) => a.sort_order - b.sort_order).map(f => (
-                  <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', opacity: f.vendor_editable === false ? 0.5 : 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label style={{ fontWeight: 900, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#1e293b' }}>
-                        {f.label} {f.required && <span style={{ color: '#ef4444' }}>*</span>}
-                      </label>
-                      {f.vendor_editable === false && (
-                        <span style={{ fontSize: '0.6rem', color: '#D4AF37', fontWeight: 900, padding: '4px 10px', background: 'rgba(212,175,55,0.1)', borderRadius: '6px' }}>
-                          <i className="fas fa-lock" style={{ marginRight: '4px' }}></i> ADMIN ONLY
-                        </span>
-                      )}
-                    </div>
-                    {['textarea', 'rich_text'].includes(f.field_type) ? (
-                      <div style={{ minHeight: '140px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.25rem', color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                        Narrative content for {f.label} will be entered here...
-                      </div>
-                    ) : f.field_type === 'gallery' ? (
-                      <div style={{ height: '180px', background: 'rgba(212,175,55,0.03)', border: '2px dashed #D4AF3740', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
-                        <i className="fas fa-images fa-2x" style={{ marginBottom: '1rem', opacity: 0.5 }}></i>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{f.label.toUpperCase()} COMPONENT</span>
-                      </div>
-                    ) : (
-                      <div style={{ height: '56px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '14px', padding: '0 1.25rem', display: 'flex', alignItems: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 600 }}>
-                        {f.placeholder || `Value for ${f.label}`}
+              <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+                {(previewType === 'full' ? sections : [activeSect]).map((sect, sIdx) => (
+                  <div key={sect?.id || sIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {previewType === 'full' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                         <div style={{ width: 36, height: 36, background: systemColor, color: '#fff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                           <i className={`fas ${sect?.icon || 'fa-layer-group'}`}></i>
+                         </div>
+                         <h4 style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>{sect?.name}</h4>
                       </div>
                     )}
+                    
+                    {!sect?.fields || sect.fields.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', background: '#f8fafc', borderRadius: '24px', border: '2px dashed #e2e8f0', opacity: 0.5 }}>
+                        No fields defined in {sect?.name}.
+                      </div>
+                    ) : sect.fields.sort((a,b) => a.sort_order - b.sort_order).map(f => (
+                      <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', opacity: f.vendor_editable === false ? 0.5 : 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <label style={{ fontWeight: 900, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#1e293b' }}>
+                            {f.label} {f.required && <span style={{ color: '#ef4444' }}>*</span>}
+                          </label>
+                          {f.vendor_editable === false && (
+                            <span style={{ fontSize: '0.6rem', color: '#D4AF37', fontWeight: 900, padding: '4px 10px', background: 'rgba(212,175,55,0.1)', borderRadius: '6px' }}>
+                              <i className="fas fa-lock" style={{ marginRight: '4px' }}></i> ADMIN ONLY
+                            </span>
+                          )}
+                        </div>
+                        {['textarea', 'rich_text'].includes(f.field_type) ? (
+                          <div style={{ minHeight: '100px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.25rem', color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                            Narrative content for {f.label}...
+                          </div>
+                        ) : f.field_type === 'gallery' ? (
+                          <div style={{ height: '140px', background: 'rgba(212,175,55,0.03)', border: '2px dashed #D4AF3740', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                            <i className="fas fa-images fa-lg" style={{ marginBottom: '0.5rem', opacity: 0.5 }}></i>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>{f.label.toUpperCase()} COMPONENT</span>
+                          </div>
+                        ) : (
+                          <div style={{ height: '50px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '14px', padding: '0 1.25rem', display: 'flex', alignItems: 'center', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>
+                            {f.placeholder || `Value for ${f.label}`}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
