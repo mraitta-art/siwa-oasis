@@ -415,32 +415,45 @@ function SectionsContent() {
               <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', background: '#fcfcfc' }}>
                 <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1.5rem', letterSpacing: '1px' }}>BLUEPRINT PREVIEW (Click to Edit)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {sectionFields.map(f => (
-                    <div key={f.id}
-                      className="studio-glass-panel"
-                      style={{
-                        padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        background: inspectingField?.id === f.id ? '#fff' : '#ffffff',
-                        border: inspectingField?.id === f.id ? '2px solid #D4AF37' : '1px solid #f1f5f9',
-                        cursor: 'pointer',
-                        boxShadow: inspectingField?.id === f.id ? '0 10px 15px -3px rgba(212, 175, 55, 0.1)' : 'none'
-                      }}
-                      onClick={() => setInspectingField(f)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '32px', height: '32px', background: '#f8fafc', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <i className={`fas ${fieldDefs.find(d => d.id === f.field_type)?.icon || 'fa-cube'}`} style={{ color: '#D4AF37' }}></i>
+                  {sectionFields.map(f => {
+                    const isProtected = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(f.name);
+                    return (
+                      <div key={f.id}
+                        className="studio-glass-panel"
+                        style={{
+                          padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          background: isProtected ? 'rgba(212, 175, 55, 0.05)' : (inspectingField?.id === f.id ? '#fff' : '#ffffff'),
+                          border: inspectingField?.id === f.id ? '2px solid #D4AF37' : (isProtected ? '1px dashed #D4AF37' : '1px solid #f1f5f9'),
+                          cursor: 'pointer',
+                          boxShadow: inspectingField?.id === f.id ? '0 10px 15px -3px rgba(212, 175, 55, 0.1)' : 'none'
+                        }}
+                        onClick={() => setInspectingField(f)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ width: '32px', height: '32px', background: isProtected ? 'rgba(212, 175, 55, 0.1)' : '#f8fafc', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <i className={`fas ${fieldDefs.find(d => d.id === f.field_type)?.icon || (isProtected ? 'fa-dna' : 'fa-cube')}`} style={{ color: '#D4AF37' }}></i>
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ fontWeight: 800, color: '#1e293b' }}>{f.label}</div>
+                              {isProtected && <span style={{ fontSize: '0.55rem', background: '#D4AF37', color: '#fff', padding: '1px 5px', borderRadius: '4px', fontWeight: 900 }}>DNA</span>}
+                            </div>
+                            <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' }}>{f.field_type} {isProtected && '• PROTECTED'}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 800, color: '#1e293b' }}>{f.label}</div>
-                          <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' }}>{f.field_type}</div>
-                        </div>
+                        {!isProtected && (
+                          <button className="btn btn-xs btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2' }} onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, showComponentDesigner); }}>
+                            <i className="fas fa-times"></i>
+                          </button>
+                        )}
+                        {isProtected && (
+                          <div style={{ color: '#D4AF37', fontSize: '0.8rem' }} title="Protected Component">
+                            <i className="fas fa-lock"></i>
+                          </div>
+                        )}
                       </div>
-                      <button className="btn btn-xs btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2' }} onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, showComponentDesigner); }}>
-                        <i className="fas fa-times"></i>
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {sectionFields.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '4rem', color: '#cbd5e1' }}>
                       <i className="fas fa-drafting-compass fa-3x" style={{ marginBottom: '1rem', opacity: 0.2 }}></i>
