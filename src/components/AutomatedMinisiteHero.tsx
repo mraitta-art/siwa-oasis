@@ -77,28 +77,29 @@ export default function AutomatedMinisiteHero({
       // Add photos from gallery
       photos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
+        const caption = typeof photo === 'object' ? photo.caption : '';
         
         allSlides.push({
           id: `${section.id}_img_${idx}`,
           type: 'image',
-          mediaUrl: url,
-          title: "", // NO HEADER
+          mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000', // Watermark Fallback
+          title: caption || "", // Use photo caption as title
           subtitle: miniBlog, // FULL STORY
           caption: businessName.toUpperCase(), 
-          ctaText: `READ MORE`,
+          ctaText: `VIEW ${section.name.toUpperCase()}`,
           ctaLink: `#${section.id}`,
           animation: 'kenburns'
         });
       });
 
-      // Fallback slide
+      // Fallback slide (Total Watermark)
       if (!youtubeStory && photos.length === 0) {
         allSlides.push({
           id: `${section.id}_fallback`,
           type: 'image',
-          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
-          title: "",
-          subtitle: `Welcome to ${businessName}. Discover our unique story and vision in the sections below.`,
+          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000', // SIWA WATERMARK
+          title: section.name,
+          subtitle: miniBlog || `Welcome to our ${section.name.toLowerCase()} experience. Discover our unique story and vision in the sections below.`,
           caption: businessName.toUpperCase(),
           ctaText: 'EXPLORE',
           ctaLink: `#${section.id}`,
