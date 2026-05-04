@@ -469,7 +469,6 @@ export default function FormArchitectPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                       {(!isInherited && !isUniversal) ? (
                          <>
                            <button onClick={() => setEditingField(field)} className="btn-action edit" style={{ width: 40, height: 40, borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', transition: 'all 0.2s' }}>
                              <i className="fas fa-cog"></i>
@@ -478,11 +477,6 @@ export default function FormArchitectPage() {
                              <i className="fas fa-trash-alt"></i>
                            </button>
                          </>
-                       ) : (
-                         <div style={{ width: 40, height: 40, borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1' }}>
-                           <i className="fas fa-shield-alt"></i>
-                         </div>
-                       )}
                        <div style={{ cursor: 'grab', color: '#cbd5e1', marginLeft: '0.5rem' }}>
                           <i className="fas fa-grip-vertical"></i>
                        </div>
