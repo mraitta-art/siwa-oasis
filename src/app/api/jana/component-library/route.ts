@@ -76,12 +76,12 @@ export async function POST(request: NextRequest) {
     await query(
       `INSERT INTO component_usage_log (component_library_id, action)
        VALUES (?, 'created')`,
-      [result.insertId]
+      [(result as any).insertId]
     );
 
     return NextResponse.json({
       success: true,
-      id: result.insertId,
+      id: (result as any).insertId,
       message: 'Component saved to library'
     });
   } catch (e: any) {

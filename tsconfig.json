@@ -37,6 +37,11 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "siwa-cpanel-release",
+    "deploy_bundle",
+    "deploy_bundle_cpanel",
+    "scratch",
+    "scripts"
   ]
 }

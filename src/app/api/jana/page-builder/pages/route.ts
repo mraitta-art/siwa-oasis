@@ -32,8 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const page = await createPageLayout(
-      { title, slug, description, siteType: 'main-site' },
-      'admin-user' // TODO: Get from auth context
+      { title, slug, siteType: 'main-site' }
     );
 
     return NextResponse.json(page);
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const siteType = request.nextUrl.searchParams.get('siteType') || 'main-site';
-    const pages = await getAllPages(siteType as 'main-site' | 'mini-site');
+    const pages = await getAllPages();
 
     return NextResponse.json(pages);
   } catch (error) {

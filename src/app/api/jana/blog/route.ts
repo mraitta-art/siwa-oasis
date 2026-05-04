@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       ]
     );
 
-    const postId = result.insertId;
+    const postId = (result as any).insertId;
 
     // Add tags
     if (tags.length > 0) {

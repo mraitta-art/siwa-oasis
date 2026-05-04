@@ -5,10 +5,11 @@ import { query } from '@/lib/db';
 // GET: Get all components assigned to a page
 export async function GET(
   request: NextRequest,
-  { params }: { params: { pageId: string } }
+  { params }: { params: Promise<{ pageId: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
     
     const { searchParams } = new URL(request.url);
     const pageType = searchParams.get('pageType') || 'website';
@@ -20,7 +21,7 @@ export async function GET(
        JOIN component_library cl ON pc.component_library_id = cl.id
        WHERE pc.page_id = ? AND pc.page_type = ? AND pc.is_active = TRUE
        ORDER BY pc.section, pc.position`,
-      [params.pageId, pageType]
+      [resolvedParams.pageId, pageType]
     );
 
     return NextResponse.json(components);
@@ -32,10 +33,11 @@ export async function GET(
 // POST: Assign component to page
 export async function POST(
   request: NextRequest,
-  { params }: { params: { pageId: string } }
+  { params }: { params: Promise<{ pageId: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
     const body = await request.json();
     const {
       component_library_id,
@@ -70,7 +72,7 @@ export async function POST(
       `INSERT INTO page_components 
        (page_id, page_type, component_library_id, section, position, custom_overrides)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [params.pageId, page_type, component_library_id, section, position, JSON.stringify(custom_overrides)]
+      [resolvedParams.pageId, page_type, component_library_id, section, position, JSON.stringify(custom_overrides)]
     );
 
     // Update usage count
@@ -83,12 +85,12 @@ export async function POST(
     await query(
       `INSERT INTO component_usage_log (component_library_id, page_id, action)
        VALUES (?, ?, 'assigned')`,
-      [component_library_id, params.pageId]
+      [component_library_id, resolvedParams.pageId]
     );
 
     return NextResponse.json({
       success: true,
-      id: result.insertId,
+      id: (result as any).insertId,
       message: 'Component assigned to page'
     });
   } catch (e: any) {
@@ -99,10 +101,11 @@ export async function POST(
 // PUT: Update component assignment (position, overrides)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { pageId: string } }
+  { params }: { params: Promise<{ pageId: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
     const body = await request.json();
     const { assignment_id, position, custom_overrides, section } = body;
 
@@ -138,7 +141,7 @@ export async function PUT(
 
     await query(
       `UPDATE page_components SET ${fields.join(', ')} WHERE id = ? AND page_id = ?`,
-      [...values, params.pageId]
+      [...values, resolvedParams.pageId]
     );
 
     return NextResponse.json({ success: true, message: 'Component assignment updated' });
@@ -150,10 +153,11 @@ export async function PUT(
 // DELETE: Remove component from page
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { pageId: string } }
+  { params }: { params: Promise<{ pageId: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
     
     const { searchParams } = new URL(request.url);
     const assignmentId = searchParams.get('assignmentId');
@@ -168,7 +172,7 @@ export async function DELETE(
     // Get component_library_id before deleting
     const assignment = await query(
       'SELECT component_library_id FROM page_components WHERE id = ? AND page_id = ?',
-      [assignmentId, params.pageId]
+      [assignmentId, resolvedParams.pageId]
     );
 
     if (assignment.length === 0) {
@@ -179,7 +183,7 @@ export async function DELETE(
     }
 
     // Delete assignment
-    await query('DELETE FROM page_components WHERE id = ? AND page_id = ?', [assignmentId, params.pageId]);
+    await query('DELETE FROM page_components WHERE id = ? AND page_id = ?', [assignmentId, resolvedParams.pageId]);
 
     // Update usage count
     await query(
@@ -191,7 +195,7 @@ export async function DELETE(
     await query(
       `INSERT INTO component_usage_log (component_library_id, page_id, action)
        VALUES (?, ?, 'removed')`,
-      [assignment[0].component_library_id, params.pageId]
+      [assignment[0].component_library_id, resolvedParams.pageId]
     );
 
     return NextResponse.json({ success: true, message: 'Component removed from page' });

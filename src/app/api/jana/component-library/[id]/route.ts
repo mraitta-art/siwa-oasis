@@ -5,14 +5,15 @@ import { query } from '@/lib/db';
 // GET: Get single component
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
     
     const component = await query(
       'SELECT * FROM component_library WHERE id = ?',
-      [params.id]
+      [resolvedParams.id]
     );
 
     if (component.length === 0) {
@@ -28,10 +29,11 @@ export async function GET(
 // PUT: Update component
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
     const body = await request.json();
     const { name, category, config, thumbnail, description, is_global, is_active } = body;
 
@@ -72,7 +74,7 @@ export async function PUT(
     }
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(params.id);
+    values.push(resolvedParams.id);
 
     await query(
       `UPDATE component_library SET ${fields.join(', ')} WHERE id = ?`,
@@ -83,7 +85,7 @@ export async function PUT(
     await query(
       `INSERT INTO component_usage_log (component_library_id, action)
        VALUES (?, 'updated')`,
-      [params.id]
+      [resolvedParams.id]
     );
 
     return NextResponse.json({ success: true, message: 'Component updated' });
@@ -95,12 +97,13 @@ export async function PUT(
 // DELETE: Delete component
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const resolvedParams = await params;
 
-    await query('DELETE FROM component_library WHERE id = ?', [params.id]);
+    await query('DELETE FROM component_library WHERE id = ?', [resolvedParams.id]);
 
     return NextResponse.json({ success: true, message: 'Component deleted' });
   } catch (e: any) {
