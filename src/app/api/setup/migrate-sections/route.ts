@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute } from '@/lib/db';
+import { execute, query } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const step = 'Initializing Migration';
@@ -45,9 +45,10 @@ export async function GET(request: NextRequest) {
     // 5. Materialize Structural Fields
     let sections: any[] = [];
     try {
-      [sections] = await execute('SELECT id FROM sections') as any[];
-    } catch (e) {
-      console.error('Could not fetch sections for materialization');
+      sections = await query('SELECT id FROM sections');
+      console.log(`Found ${sections.length} sections for materialization.`);
+    } catch (e: any) {
+      results.push({ label: 'Fetch sections', status: 'error', error: e.message });
     }
 
     const structuralFields = [
@@ -57,20 +58,22 @@ export async function GET(request: NextRequest) {
       { name: 'section_blog', label: 'Master Section Story (Rich Text)', type: 'rich_text', order: 1, help: 'Full rich-text story for this section.' }
     ];
 
-    for (const section of sections) {
-      for (const field of structuralFields) {
-        const fid = `auto_${section.id}_${field.name}`;
-        await safeExecute(
-          `Materialize ${field.name} for ${section.id}`,
-          `INSERT IGNORE INTO form_fields 
-          (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, sort_order, section_origin, required_feature, acl, validation)
-          VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, 0, 1, 0, ?, ?, 'template', 'hero_automation', ?, ?)`,
-          [
-            fid, section.id, field.name, field.label, field.type, field.help, field.order,
-            JSON.stringify({ read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
-            JSON.stringify({})
-          ]
-        );
+    if (sections && sections.length > 0) {
+      for (const section of sections) {
+        for (const field of structuralFields) {
+          const fid = `auto_${section.id}_${field.name}`;
+          await safeExecute(
+            `Materialize ${field.name} for ${section.id}`,
+            `INSERT IGNORE INTO form_fields 
+            (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, sort_order, section_origin, required_feature, acl, validation)
+            VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, 0, 1, 0, ?, ?, 'template', 'hero_automation', ?, ?)`,
+            [
+              fid, section.id, field.name, field.label, field.type, field.help, field.order,
+              JSON.stringify({ read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
+              JSON.stringify({})
+            ]
+          );
+        }
       }
     }
 
