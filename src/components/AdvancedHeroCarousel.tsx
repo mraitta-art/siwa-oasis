@@ -56,6 +56,7 @@ export default function AdvancedHeroCarousel({
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -246,18 +247,34 @@ export default function AdvancedHeroCarousel({
         </div>
       </a>
 
-      {showArrows && validSlides.length > 1 && (
+       {showArrows && validSlides.length > 1 && (
         <>
-          <button onClick={goToPrev} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer' }}>‹</button>
-          <button onClick={goToNext} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer' }}>›</button>
+          <button onClick={goToPrev} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+          <button onClick={goToNext} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
         </>
+      )}
+
+      {/* SOUND CONTROL */}
+      {slide.type === 'youtube' && (
+        <button 
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMuted(!isMuted); }}
+          style={{ 
+            position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 30,
+            background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)',
+            color: '#fff', padding: '0.8rem', borderRadius: '50%', cursor: 'pointer',
+            width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+          title={isMuted ? "Unmute" : "Mute"}
+        >
+          <i className={`fas ${isMuted ? 'fa-volume-mute' : 'fa-volume-up'}`}></i>
+        </button>
       )}
     </section>
   );
 }
 
-function SlideMedia({ slide, animation, isActive }: { slide: Slide; animation: string; isActive: boolean }) {
-  if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl} isActive={isActive} />;
+function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; animation: string; isActive: boolean; muted: boolean }) {
+  if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl} isActive={isActive} muted={muted} />;
   if (slide.type === 'video') return <video src={slide.mediaUrl} autoPlay muted loop style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
   return (
     <div style={{
@@ -268,12 +285,12 @@ function SlideMedia({ slide, animation, isActive }: { slide: Slide; animation: s
   );
 }
 
-function YouTubeBackground({ videoUrl, isActive }: { videoUrl: string; isActive: boolean }) {
+function YouTubeBackground({ videoUrl, isActive, muted }: { videoUrl: string; isActive: boolean; muted: boolean }) {
   const videoId = extractYouTubeId(videoUrl) || '';
   if (!videoId) return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      <YouTubeCarouselPlayer videoId={videoId} isActive={isActive} title="Video" showControls={false} autoplay={true} />
+      <YouTubeCarouselPlayer videoId={videoId} isActive={isActive} title="Video" showControls={false} autoplay={true} muted={muted} />
     </div>
   );
 }

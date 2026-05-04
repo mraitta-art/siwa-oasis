@@ -396,7 +396,9 @@ export default function HeroCarouselManager() {
                     />
                   </div>
                 </div>
-                <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Provide a URL or upload a file from your device</p>
+                <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  Provide a URL or upload files. <strong>TIP: You can select multiple images to add them all at once!</strong>
+                </p>
                 
                 {/* PREVIEW AREA */}
                 {formData.mediaUrl && (
