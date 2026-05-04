@@ -51,8 +51,31 @@ export async function POST(request: NextRequest) {
       `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0, active !== false]
     );
+
+    // --- AUTO-GENESIS: Materialize DNA Fields ---
+    const structuralFields = [
+      { name: 'feature_on_main', label: 'FEATURE ON MAIN WEBSITE', type: 'checkbox', order: -3, help: 'Toggle this to promote to homepage.' },
+      { name: 'section_news', label: 'Carousel Cinematic Teaser (Mini-Blog)', type: 'textarea', order: -2, help: 'Short text for carousel captions.' },
+      { name: 'section_gallery', label: 'Section Gallery (Serialized Captions)', type: 'gallery', order: -1, help: 'Section photos with captions.' },
+      { name: 'section_blog', label: 'Master Section Story (Rich Text)', type: 'rich_text', order: 1, help: 'Full rich-text story for this section.' }
+    ];
+
+    for (const field of structuralFields) {
+      const fid = `auto_${id}_${field.name}`;
+      await execute(
+        `INSERT IGNORE INTO form_fields 
+        (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, sort_order, section_origin, required_feature, acl, validation)
+        VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, 0, 1, 0, ?, ?, 'template', 'hero_automation', ?, ?)`,
+        [
+          fid, id, field.name, field.label, field.type, field.help, field.order,
+          JSON.stringify({ read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
+          JSON.stringify({})
+        ]
+      );
+    }
     
     invalidateCache.sections();
+    invalidateCache.formFields();
     return NextResponse.json({ id, name }, { status: 201 });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
