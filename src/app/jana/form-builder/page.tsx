@@ -557,41 +557,61 @@ export default function FormArchitectPage() {
 
       {/* ── PREVIEW MODAL ─────────────────────────────────────────── */}
       {showPreview && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div style={{ width: '100%', maxWidth: '800px', background: '#fff', borderRadius: '32px', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 50px 100px rgba(0,0,0,0.5)' }}>
-            <header style={{ padding: '2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(15px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div style={{ width: '100%', maxWidth: '850px', background: '#fff', borderRadius: '40px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 50px 100px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <header style={{ padding: '2.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900 }}>Vendor Perspective Preview</h3>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>This is exactly how the **{activeSect?.name}** chapter appears in the Vendor Studio.</p>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#1e293b' }}>Vendor Storyteller Preview</h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Previewing chapter: <span style={{ color: systemColor, fontWeight: 800 }}>{activeSect?.name || 'Loading...'}</span></p>
               </div>
-              <button onClick={() => setShowPreview(false)} style={{ width: 40, height: 40, borderRadius: '12px', border: 'none', background: '#f1f5f9', cursor: 'pointer' }}><i className="fas fa-times"></i></button>
+              <button onClick={() => setShowPreview(false)} style={{ width: 44, height: 44, borderRadius: '14px', border: 'none', background: '#f1f5f9', color: '#1e293b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-times fa-lg"></i>
+              </button>
             </header>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '3rem' }}>
-              <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-                {activeSect?.fields.sort((a,b) => a.sort_order - b.sort_order).map(f => (
-                  <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', opacity: f.vendor_editable === false ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <label style={{ fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            
+            <div style={{ flex: 1, overflowY: 'auto', padding: '4rem' }}>
+              <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                {!activeSect?.fields || activeSect.fields.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '4rem', background: '#f8fafc', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
+                    <i className="fas fa-ghost fa-3x" style={{ color: '#cbd5e1', marginBottom: '1.5rem' }}></i>
+                    <h4 style={{ margin: 0, color: '#64748b' }}>No fields defined in this chapter.</h4>
+                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Add fields in the Architect to see them here.</p>
+                  </div>
+                ) : activeSect.fields.sort((a,b) => a.sort_order - b.sort_order).map(f => (
+                  <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', opacity: f.vendor_editable === false ? 0.5 : 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={{ fontWeight: 900, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#1e293b' }}>
                         {f.label} {f.required && <span style={{ color: '#ef4444' }}>*</span>}
                       </label>
-                      {f.vendor_editable === false && <span style={{ fontSize: '0.6rem', color: '#D4AF37', fontWeight: 900 }}><i className="fas fa-lock"></i> ADMIN ONLY</span>}
+                      {f.vendor_editable === false && (
+                        <span style={{ fontSize: '0.6rem', color: '#D4AF37', fontWeight: 900, padding: '4px 10px', background: 'rgba(212,175,55,0.1)', borderRadius: '6px' }}>
+                          <i className="fas fa-lock" style={{ marginRight: '4px' }}></i> ADMIN ONLY
+                        </span>
+                      )}
                     </div>
-                    {f.field_type === 'textarea' || f.field_type === 'rich_text' ? (
-                      <div style={{ height: '120px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '12px', padding: '1rem', color: '#cbd5e1', fontSize: '0.85rem' }}>Narrative content placeholder...</div>
+                    {['textarea', 'rich_text'].includes(f.field_type) ? (
+                      <div style={{ minHeight: '140px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.25rem', color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                        Narrative content for {f.label} will be entered here...
+                      </div>
                     ) : f.field_type === 'gallery' ? (
-                      <div style={{ height: '150px', background: 'rgba(212,175,55,0.05)', border: '1.5px dashed #D4AF37', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
-                        <i className="fas fa-images fa-2x" style={{ marginBottom: '0.5rem' }}></i>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>GALLERY DNA COMPONENT</span>
+                      <div style={{ height: '180px', background: 'rgba(212,175,55,0.03)', border: '2px dashed #D4AF3740', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                        <i className="fas fa-images fa-2x" style={{ marginBottom: '1rem', opacity: 0.5 }}></i>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{f.label.toUpperCase()} COMPONENT</span>
                       </div>
                     ) : (
-                      <div style={{ height: '50px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '12px', padding: '0 1rem', display: 'flex', alignItems: 'center', color: '#cbd5e1', fontSize: '0.85rem' }}>Value placeholder...</div>
+                      <div style={{ height: '56px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '14px', padding: '0 1.25rem', display: 'flex', alignItems: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 600 }}>
+                        {f.placeholder || `Value for ${f.label}`}
+                      </div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
-            <footer style={{ padding: '1.5rem', borderTop: '1px solid #f1f5f9', textAlign: 'center', background: '#fcfcfc' }}>
-              <button onClick={() => setShowPreview(false)} className="btn btn-primary" style={{ background: '#1e293b', border: 'none', padding: '0.75rem 2rem' }}>RETURN TO ARCHITECT</button>
+            
+            <footer style={{ padding: '2rem', borderTop: '1px solid #f1f5f9', textAlign: 'center', background: '#fcfcfc' }}>
+              <button onClick={() => setShowPreview(false)} className="btn btn-primary" style={{ background: '#1e293b', border: 'none', padding: '1rem 3rem', borderRadius: '16px', fontWeight: 900 }}>
+                RETURN TO ARCHITECT
+              </button>
             </footer>
           </div>
         </div>
