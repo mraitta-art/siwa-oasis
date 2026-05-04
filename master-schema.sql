@@ -84,6 +84,7 @@ CREATE TABLE sections (
   display_order INT DEFAULT 0,
   sort_order INT DEFAULT 0,
   options JSON DEFAULT NULL,
+  active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
 
     await execute(
-      `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0]
+      `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0, active !== false]
     );
     
     invalidateCache.sections();
@@ -61,7 +61,7 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const updates = [];
@@ -79,6 +79,7 @@ export async function PUT(request: NextRequest) {
     if (inheritance_rules !== undefined) { updates.push('inheritance_rules=?'); params.push(typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)); }
     if (display_order !== undefined) { updates.push('display_order=?'); params.push(display_order); }
     if (sort_order !== undefined) { updates.push('sort_order=?'); params.push(sort_order); }
+    if (active !== undefined) { updates.push('active=?'); params.push(active); }
 
     params.push(id);
     await execute(`UPDATE sections SET ${updates.join(', ')} WHERE id=?`, params);

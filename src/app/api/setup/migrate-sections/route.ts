@@ -9,8 +9,14 @@ export async function GET(request: NextRequest) {
     const results = [];
 
     // 1. Update Sections Table
+    await execute('ALTER TABLE sections ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE');
+    results.push({ query: 'ALTER TABLE sections ADD COLUMN IF NOT EXISTS active...', status: 'success' });
+
+    await execute(`ALTER TABLE sections MODIFY COLUMN section_type ENUM('general', 'additional', 'universal', 'hidden') DEFAULT 'general'`);
+    results.push({ query: 'ALTER TABLE sections MODIFY COLUMN section_type...', status: 'success' });
+
     const sectionQueries = [
-      "ALTER TABLE sections ADD COLUMN IF NOT EXISTS section_type ENUM('general', 'additional', 'universal') DEFAULT 'general' AFTER is_universal",
+      "ALTER TABLE sections ADD COLUMN IF NOT EXISTS section_type ENUM('general', 'additional', 'universal', 'hidden') DEFAULT 'general' AFTER is_universal",
       "ALTER TABLE sections ADD COLUMN IF NOT EXISTS description TEXT AFTER section_type",
       "ALTER TABLE sections ADD COLUMN IF NOT EXISTS inheritance_rules JSON DEFAULT NULL AFTER description",
       "ALTER TABLE sections ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0 AFTER inheritance_rules",
