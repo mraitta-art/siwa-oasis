@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * GOLD STANDARD SEEDER
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         await execute(
           'INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, options, section_origin) ' +
           'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [uuidv4(), s.type, s.section, s.name, s.label, s.field_type, JSON.stringify(s.options || []), 'own']
+          [randomUUID(), s.type, s.section, s.name, s.label, s.field_type, JSON.stringify(s.options || []), 'own']
         );
         results.push({ field: s.name, status: 'Materialized' });
       } catch (e) {

@@ -107,7 +107,7 @@ export default function HeroCarouselManager() {
 
     setSaving(true);
     try {
-      const uploadResults = [];
+      const uploadResults: {url: string, name: string}[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.size > 10 * 1024 * 1024) {

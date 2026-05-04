@@ -551,12 +551,10 @@ function SectionsContent() {
                           <i className="fas fa-sync" style={{ marginRight: '0.5rem' }}></i> SYNC MISSING DNA FIELDS
                         </button>
                       )}
-                    </div>
                   </div>
-                    </div>
-                  </div>
+                </div>
 
-                  {/* CUSTOM EXTENSIONS GROUP */}
+                {/* CUSTOM EXTENSIONS GROUP */}
                   <div>
                     <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1rem', letterSpacing: '1.5px', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
                       <i className="fas fa-plus-circle" style={{ marginRight: '0.5rem' }}></i> CUSTOM EXTENSIONS (USER ADDED)

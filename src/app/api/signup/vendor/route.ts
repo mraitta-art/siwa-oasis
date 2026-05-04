@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * VENDOR REGISTRATION API
@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Prepare IDs
-    const userId = uuidv4();
-    const businessId = uuidv4();
+    const userId = randomUUID();
+    const businessId = randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 3. Create the Business Record first

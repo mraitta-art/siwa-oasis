@@ -163,7 +163,12 @@ export default function AdvancedHeroCarousel({
               transition: `opacity ${transitionDuration}ms ease-in-out`
             }}
           >
-            <SlideMedia slide={s} animation={animation} isActive={index === currentSlide} />
+            <SlideMedia 
+              slide={s} 
+              animation={String(animation)} 
+              isActive={index === currentSlide} 
+              muted={Boolean(isMuted)} 
+            />
             <div style={{
               position: 'absolute', inset: 0,
               background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.3}), rgba(0,0,0,${overlayOpacity}))`

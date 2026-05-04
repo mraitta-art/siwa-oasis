@@ -8,6 +8,7 @@ interface AutomatedMinisiteHeroProps {
   businessName: string;
   businessLogo?: string;
   customData: any;
+  curationData?: any;
   activeSections: any[];
   tierFeatures?: {
     hero_automation?: boolean;

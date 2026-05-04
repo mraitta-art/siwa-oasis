@@ -13,7 +13,7 @@ import Link from 'next/link';
 interface Field {
   id: string; name: string; label: string; field_type: string;
   section_id: string; business_type_id: string; required: boolean;
-  vendor_editable: boolean; options?: any; help_text?: string;
+  vendor_editable: boolean; show_on_public: boolean; options?: any; help_text?: string;
   placeholder?: string; sort_order: number; acl?: any;
   validation?: any; is_searchable?: boolean; is_inherited?: boolean;
 }
@@ -97,7 +97,7 @@ export default function FormArchitectPage() {
         if (!fieldsBySection[f.section_id]) fieldsBySection[f.section_id] = [];
         fieldsBySection[f.section_id].push(f);
       });
-      setSections(prev => prev.map(s => ({ ...s, fields: fieldsBySection[s.id] || [] })));
+      setSections(prev => prev.map((s: any) => ({ ...s, fields: fieldsBySection[s.id] || [] })));
     } catch (e) { console.error(e); }
   }
 
@@ -179,7 +179,7 @@ export default function FormArchitectPage() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
-      {/* ── HEADER: SYSTEM COMMAND CENTER ─────────────────────────── */}
+      {/* --- HEADER: SYSTEM COMMAND CENTER --------------------------- */}
       <header style={{ 
         background: '#0f172a', padding: '1.5rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         borderBottom: '1px solid rgba(255,255,255,0.1)', position: 'sticky', top: 0, zIndex: 100
@@ -196,7 +196,7 @@ export default function FormArchitectPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.4rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {typologies.map(t => {
+          {types.map((t: any) => {
             const isActive = selectedType === t.id;
             const isParent = !!t.is_parent;
             return (
@@ -273,7 +273,7 @@ export default function FormArchitectPage() {
         transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
         
-        {/* ── LEFT: MASTER CATEGORIES ─────────────────────────────── */}
+        {/* --- LEFT: MASTER CATEGORIES ------------------------------- */}
         <nav style={{ 
           background: '#fff', 
           borderRight: '1px solid #f1f5f9', 
@@ -296,9 +296,9 @@ export default function FormArchitectPage() {
                 <span style={{ background: 'rgba(212,175,55,0.1)', padding: '2px 8px', borderRadius: '6px' }}>{sections.length}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {sections.map(s => {
+                {sections.map((s: any) => {
                   const isActive = activeSection === s.id;
-                  const hasPropagation = s.fields.some(f => f.name === 'mini_blog');
+                  const hasPropagation = s.fields.some((f: any) => f.name === 'mini_blog');
                   return (
                     <button 
                       key={s.id}
@@ -327,7 +327,7 @@ export default function FormArchitectPage() {
           )}
           {leftCollapsed && (
             <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-              {sections.map(s => (
+              {sections.map((s: any) => (
                 <button key={s.id} onClick={() => setActiveSection(s.id)} style={{ width: 44, height: 44, borderRadius: '12px', background: activeSection === s.id ? systemColor : '#f8fafc', color: activeSection === s.id ? '#fff' : '#cbd5e1', border: activeSection === s.id ? 'none' : '1px solid #f1f5f9', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className={`fas ${s.icon}`} style={{ fontSize: '1rem' }}></i>
                 </button>
@@ -336,7 +336,7 @@ export default function FormArchitectPage() {
           )}
         </nav>
 
-        {/* ── CENTER: BLUEPRINT EDITOR ───────────────────────────── */}
+        {/* --- CENTER: BLUEPRINT EDITOR ----------------------------- */}
         <main style={{ padding: '3.5rem', overflowY: 'auto', maxHeight: 'calc(100vh - 100px)', background: '#f8fafc' }}>
           <div style={{ maxWidth: leftCollapsed && rightCollapsed ? '1200px' : '850px', margin: '0 auto', transition: 'max-width 0.3s ease' }}>
             
@@ -405,7 +405,7 @@ export default function FormArchitectPage() {
                     <i className="fas fa-folder-open fa-3x" style={{ color: '#e2e8f0', marginBottom: '1.5rem' }}></i>
                     <p style={{ fontWeight: 800, color: '#94a3b8' }}>Empty DNA Section. Add fields to start building.</p>
                  </div>
-               ) : activeSect?.fields.sort((a,b) => a.sort_order - b.sort_order).map(field => {
+               ) : activeSect?.fields.sort((a,b) => a.sort_order - b.sort_order).map((field: any) => {
                 const typeInfo = FIELD_TYPES.find(t => t.value === field.field_type);
                 const isDNA = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(field.name);
                 const isUniversal = field.business_type_id === 'SECTION_TEMPLATE';
@@ -499,8 +499,7 @@ export default function FormArchitectPage() {
                     )}
                   </div>
                 );
-              })
-
+              })}
             </div>
           </div>
         </main>
@@ -517,13 +516,20 @@ export default function FormArchitectPage() {
         }}>
            <button 
             onClick={() => setRightCollapsed(!rightCollapsed)}
-            style={{ position: 'absolute', top: '1rem', left: rightCollapsed ? '50%' : '1rem', transform: rightCollapsed ? 't             <div className="animate-in" style={{ padding: '0.5rem' }}>
+            style={{ position: 'absolute', top: '1rem', left: rightCollapsed ? '50%' : '1rem', transform: rightCollapsed ? 'translateX(-50%)' : 'none', background: '#f1f5f9', border: 'none', width: 28, height: 28, borderRadius: '8px', cursor: 'pointer', zIndex: 10 }}
+          >
+            <i className={`fas fa-chevron-${rightCollapsed ? 'left' : 'right'}`} style={{ fontSize: '0.7rem' }}></i>
+          </button>
+
+          {!rightCollapsed && (
+            <div className="animate-in" style={{ padding: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
                   <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px' }}>PROPERTY INSPECTOR</div>
                   <button onClick={() => setEditingField(null)} style={{ width: 32, height: 32, borderRadius: '10px', background: '#f8fafc', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><i className="fas fa-times"></i></button>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                {editingField ? (
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                   <div className="inspector-section">
                     <label className="f-label" style={{ marginBottom: '1.25rem', opacity: 0.5 }}>FIELD IDENTITY</label>
                     <div className="f-group">
@@ -547,7 +553,7 @@ export default function FormArchitectPage() {
                   <div className="inspector-section">
                     <label className="f-label" style={{ marginBottom: '1.25rem', opacity: 0.5 }}>DATA ARCHETYPE</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                      {FIELD_TYPES.map(t => (
+                      {FIELD_TYPES.map((t: any) => (
                         <button 
                           key={t.value}
                           onClick={() => setEditingField({...editingField, field_type: t.value})}
@@ -587,14 +593,24 @@ export default function FormArchitectPage() {
                     <button onClick={saveField} disabled={saving} style={{ flex: 1, padding: '1rem', borderRadius: '14px', border: 'none', background: '#1e293b', color: '#fff', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem', boxShadow: '0 10px 20px -5px rgba(30,41,59,0.4)' }}>COMMIT DNA</button>
                   </div>
                 </div>
-              </div>
-            ) : (
+              ) : (
              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                <div style={{ width: 70, height: 70, borderRadius: '50%', background: `${systemColor}10`, color: systemColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', fontSize: '1.8rem' }}>
                  <i className="fas fa-project-diagram"></i>
                </div>
                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem' }}>System Architect</h3>
-               <p style={{ fontSize: '0      {/* ── PREVIEW MODAL: CINEMATIC STORYTELLER ───────────────────── */}
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem', lineHeight: 1.6 }}>
+                  Select a field from the **{activeSect?.name}** blueprint to modify its architectural properties or propagation logic.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </aside>
+
+      </div>
+
+      {/* --- PREVIEW MODAL: CINEMATIC STORYTELLER --------------------- */}
       {showPreview && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(20px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
           <div style={{ width: '100%', maxWidth: '950px', background: '#fff', borderRadius: '40px', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 50px 100px rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -605,14 +621,14 @@ export default function FormArchitectPage() {
                   {previewType === 'full' ? 'Master Storyteller' : 'Chapter Preview'}
                 </h3>
               </div>
-              <button onClick={() => setShowPreview(false)} style={{ width: 54, height: 54, borderRadius: '18px', border: 'none', background: '#f8fafc', color: '#1e293b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #f1f5f9' }}>
+              <button onClick={() => setShowPreview(false)} style={{ width: 54, height: 54, borderRadius: '18px', background: '#f8fafc', color: '#1e293b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #f1f5f9' }}>
                 <i className="fas fa-times fa-lg"></i>
               </button>
             </header>
             
             <div style={{ flex: 1, overflowY: 'auto', padding: '4rem 6rem' }}>
               <div style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '5rem' }}>
-                {(previewType === 'full' ? sections : [activeSect]).map((sect, sIdx) => (
+                {(previewType === 'full' ? sections : [activeSect]).map((sect: any, sIdx: number) => (
                   <div key={sect?.id || sIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
                     {previewType === 'full' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.5rem' }}>
@@ -628,7 +644,7 @@ export default function FormArchitectPage() {
                         <i className="fas fa-ghost fa-2x" style={{ display: 'block', marginBottom: '1rem', opacity: 0.3 }}></i>
                         NO PATTERNS DEFINED
                       </div>
-                    ) : sect.fields.sort((a,b) => a.sort_order - b.sort_order).map(f => (
+                    ) : sect.fields.sort((a: any, b: any) => a.sort_order - b.sort_order).map((f: any) => (
                       <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <label style={{ fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#1e293b', opacity: 0.8 }}>

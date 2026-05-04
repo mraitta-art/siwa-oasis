@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
 export default function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
