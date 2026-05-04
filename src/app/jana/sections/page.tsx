@@ -441,9 +441,16 @@ function SectionsContent() {
       {showComponentDesigner && (
         <div className="modal-overlay" onClick={() => setShowComponentDesigner(null)}>
           <div className="card animate-in" style={{ width: inspectingField ? '1100px' : '800px', display: 'flex', flexDirection: 'column', height: '80vh', transition: 'all 0.3s' }} onClick={e => e.stopPropagation()}>
-            <div className="card-header">
-              <h3><i className="fas fa-pencil-ruler"></i> Component Blueprint: {sections.find(s => s.id === showComponentDesigner)?.name}</h3>
-              <button className="btn btn-xs btn-outline" onClick={() => setShowComponentDesigner(null)}>×</button>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0 }}><i className="fas fa-pencil-ruler"></i> Component Blueprint: {sections.find(s => s.id === showComponentDesigner)?.name}</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <a href="/jana/form-builder" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', background: '#D4AF37', color: '#1e293b', padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                   <i className="fas fa-eye"></i> PREVIEW IN ARCHITECT
+                </a>
+                <button className="btn btn-xs btn-outline" onClick={() => setShowComponentDesigner(null)}>×</button>
+              </div>
             </div>
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
               {/* Sidebar: ADD FIELD PANEL */}
@@ -611,6 +618,33 @@ function SectionsContent() {
                       value={inspectingField.label}
                       onChange={e => setInspectingField({ ...inspectingField, label: e.target.value })}
                     />
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '1.25rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.65rem' }}>DATABASE KEY</label>
+                    <input
+                      type="text" className="form-control"
+                      value={inspectingField.name}
+                      onChange={e => setInspectingField({ ...inspectingField, name: e.target.value })}
+                      disabled={['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(inspectingField.name)}
+                      style={{ opacity: ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(inspectingField.name) ? 0.5 : 1 }}
+                    />
+                  </div>
+
+                  <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>GOVERNANCE LAYER</label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
+                       <input type="checkbox" checked={inspectingField.required} onChange={e => setInspectingField({...inspectingField, required: e.target.checked})} />
+                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>MANDATORY (REQUIRED FIELD)</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
+                       <input type="checkbox" checked={inspectingField.vendor_editable} onChange={e => setInspectingField({...inspectingField, vendor_editable: e.target.checked})} />
+                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>VENDOR EDITABLE PERMISSION</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
+                       <input type="checkbox" checked={inspectingField.show_on_public} onChange={e => setInspectingField({...inspectingField, show_on_public: e.target.checked})} />
+                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>PUBLIC DISCOVERY VISIBILITY</span>
+                    </label>
                   </div>
 
                   {['select', 'checkbox_group'].includes(inspectingField.field_type) && (
