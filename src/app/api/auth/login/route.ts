@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.siwa.today' : undefined,
     });
 
     return response;
