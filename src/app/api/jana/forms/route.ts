@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // B. AUTO-INJECT Structural Defaults (Mini-Blog & Gallery) for EVERY section
+      // B. AUTO-INJECT Structural Defaults (Mini-Blog & Gallery) only if NOT already in DB
       sectionIdsArray.forEach(sid => {
         const blogKey = `${sid}:section_blog`;
         if (!fieldMap.has(blogKey)) {
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
             label: 'Master Section Story (Rich Text)',
             field_type: 'rich_text',
             required_feature: 'hero_automation',
-            sort_order: 1, // Main body
+            sort_order: 1, 
             help_text: 'Use this advanced editor to design the full story for this section on the page.'
           });
         }
@@ -141,8 +141,8 @@ export async function GET(request: NextRequest) {
             name: 'section_gallery',
             label: 'Section Gallery (Serialized Captions)',
             field_type: 'gallery',
-            required_feature: 'hero_automation', // Gate this for premium
-            sort_order: -1, // Place after news
+            required_feature: 'hero_automation', 
+            sort_order: -1, 
             help_text: 'Add photos. Each photo caption becomes a slide title in the automated carousel.'
           });
         }
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
             label: 'FEATURE ON MAIN WEBSITE',
             field_type: 'checkbox',
             required_feature: 'hero_automation',
-            sort_order: -3, // Place at the very top
+            sort_order: -3, 
             help_text: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.'
           });
         }
