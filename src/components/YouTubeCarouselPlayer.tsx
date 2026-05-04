@@ -105,6 +105,8 @@ export default function YouTubeCarouselPlayer({
         playerRef.current.mute();
       } else {
         playerRef.current.unMute();
+        playerRef.current.setVolume(100);
+        console.log("🔊 YouTube Player: unMuted and volume set to 100");
       }
     }
   }, [muted, isLoaded]);
@@ -119,9 +121,13 @@ export default function YouTubeCarouselPlayer({
     }
   };
 
-  const unmute = () => {
+  const unmute = (e?: React.MouseEvent) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     if (playerRef.current) {
       playerRef.current.unMute();
+      playerRef.current.setVolume(100);
+      setIsPlaying(true);
+      playerRef.current.playVideo();
     }
   };
 
