@@ -348,41 +348,47 @@ export default function FormArchitectPage() {
 
             {/* Field Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {activeSect?.fields.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '5rem', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
-                   <i className="fas fa-folder-open fa-3x" style={{ color: '#e2e8f0', marginBottom: '1.5rem' }}></i>
-                   <p style={{ fontWeight: 800, color: '#94a3b8' }}>Empty DNA Section. Add fields to start building.</p>
-                </div>
               ) : activeSect?.fields.sort((a,b) => a.sort_order - b.sort_order).map(field => {
                 const typeInfo = FIELD_TYPES.find(t => t.value === field.field_type);
-                const isPropagationKey = ['mini_blog', 'section_gallery', 'youtube_story'].includes(field.name);
-                const isUniversal = field.section_id === 'basic';
-                const isInherited = !!field.is_inherited;
+                const isDNA = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(field.name);
+                const isUniversal = field.business_type_id === 'SECTION_TEMPLATE';
+                const isInherited = field.business_type_id !== selectedType && !isUniversal;
                 const isDeleting = showDeleteConfirm === field.id;
 
-                const statusColor = isUniversal ? '#FCD34D' : (isInherited ? '#93C5FD' : '#6EE7B7');
-                const statusLabel = isUniversal ? 'UNIVERSAL' : (isInherited ? 'INHERITED' : 'UNIQUE');
+                let statusColor = '#6EE7B7'; // Unique
+                let statusLabel = 'UNIQUE DNA';
+                
+                if (isUniversal) {
+                  statusColor = '#D4AF37';
+                  statusLabel = 'MASTER DNA';
+                } else if (isInherited) {
+                  statusColor = '#3b82f6';
+                  statusLabel = 'INHERITED FROM PARENT';
+                }
 
                 return (
                   <div 
                     key={field.id} 
                     className="field-card" 
                     style={{ 
-                      background: '#fff', borderRadius: '20px', border: isPropagationKey ? `2px solid ${systemColor}20` : '1px solid #e2e8f0', 
+                      background: '#fff', borderRadius: '20px', border: isDNA ? `2px solid #D4AF3740` : '1px solid #e2e8f0', 
                       borderLeft: `6px solid ${statusColor}`,
                       padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s',
-                      position: 'relative', overflow: 'hidden'
+                      position: 'relative', overflow: 'hidden',
+                      opacity: isInherited ? 0.8 : 1
                     }}
                   >
-                    <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${typeInfo?.color}10`, color: typeInfo?.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
-                      <i className={`fas ${typeInfo?.icon}`}></i>
+                    <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${typeInfo?.color || '#eee'}10`, color: typeInfo?.color || '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                      <i className={`fas ${typeInfo?.icon || 'fa-cube'}`}></i>
                     </div>
                     
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>{field.label}</div>
-                        <span style={{ fontSize: '0.5rem', padding: '2px 8px', background: `${statusColor}20`, color: statusColor === '#FCD34D' ? '#92400e' : statusColor, borderRadius: '4px', fontWeight: 900 }}>{statusLabel}</span>
-                        {isPropagationKey && <span style={{ fontSize: '0.55rem', padding: '3px 8px', background: systemColor, color: '#fff', borderRadius: '50px', fontWeight: 900, letterSpacing: '0.5px' }}>PROPAGATION KEY</span>}
+                        <span style={{ fontSize: '0.55rem', padding: '2px 8px', background: `${statusColor}15`, color: statusColor, borderRadius: '6px', fontWeight: 900, border: `1px solid ${statusColor}30` }}>
+                          {statusLabel}
+                        </span>
+                        {isDNA && <i className="fas fa-dna" style={{ color: '#D4AF37', fontSize: '0.7rem' }}></i>}
                         {field.required && <span style={{ fontSize: '0.55rem', color: '#ef4444', fontWeight: 900 }}>* REQUIRED</span>}
                       </div>
                       <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px', fontWeight: 700 }}>
@@ -390,10 +396,16 @@ export default function FormArchitectPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', opacity: isDeleting ? 0.2 : 1 }}>
-                      <button onClick={() => setEditingField(field)} className="btn-action edit" title="Edit Properties"><i className="fas fa-edit"></i></button>
-                      <button onClick={() => setShowDeleteConfirm(field.id)} className="btn-action delete" title="Purge Field"><i className="fas fa-trash-alt"></i></button>
-                    </div>
+                    {!isInherited && !isUniversal ? (
+                      <div style={{ display: 'flex', gap: '0.5rem', opacity: isDeleting ? 0.2 : 1 }}>
+                        <button onClick={() => setEditingField(field)} className="btn-action edit" title="Edit Properties"><i className="fas fa-edit"></i></button>
+                        <button onClick={() => setShowDeleteConfirm(field.id)} className="btn-action delete" title="Purge Field"><i className="fas fa-trash-alt"></i></button>
+                      </div>
+                    ) : (
+                      <div style={{ color: '#cbd5e1', fontSize: '0.8rem' }} title="Managed by Parent Hierarchy">
+                        <i className="fas fa-lock"></i>
+                      </div>
+                    )}
 
                     {/* Inline Delete Confirmation */}
                     {isDeleting && (
@@ -405,7 +417,8 @@ export default function FormArchitectPage() {
                     )}
                   </div>
                 );
-              })}
+              })
+
             </div>
           </div>
         </main>
