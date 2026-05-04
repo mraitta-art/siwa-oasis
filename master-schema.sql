@@ -78,6 +78,11 @@ CREATE TABLE sections (
   is_filterable BOOLEAN DEFAULT FALSE,
   show_on_card BOOLEAN DEFAULT FALSE,
   is_universal BOOLEAN DEFAULT FALSE,
+  section_type ENUM('general', 'additional', 'universal') DEFAULT 'general',
+  description TEXT,
+  inheritance_rules JSON DEFAULT NULL,
+  display_order INT DEFAULT 0,
+  sort_order INT DEFAULT 0,
   options JSON DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -102,6 +107,7 @@ CREATE TABLE form_fields (
   name VARCHAR(100) NOT NULL,
   label VARCHAR(255) NOT NULL,
   field_type VARCHAR(50) NOT NULL,
+  section_origin ENUM('inherited', 'own', 'template') DEFAULT 'own',
   required BOOLEAN DEFAULT FALSE,
   vendor_editable BOOLEAN DEFAULT TRUE,
   searchable BOOLEAN DEFAULT FALSE,
@@ -112,6 +118,7 @@ CREATE TABLE form_fields (
   acl JSON DEFAULT (JSON_OBJECT()),
   default_value TEXT,
   sort_order INT DEFAULT 0,
+  required_feature VARCHAR(100) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (business_type_id) REFERENCES business_types(id) ON DELETE CASCADE,
   FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
