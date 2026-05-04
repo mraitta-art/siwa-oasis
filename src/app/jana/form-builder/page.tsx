@@ -47,6 +47,7 @@ export default function FormArchitectPage() {
 
   const [editingField, setEditingField] = useState<Partial<Field> | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -329,6 +330,12 @@ export default function FormArchitectPage() {
                </div>
                <div style={{ display: 'flex', gap: '0.75rem' }}>
                  <button 
+                   onClick={() => setShowPreview(true)}
+                   style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', border: 'none', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                 >
+                   <i className="fas fa-eye"></i> PREVIEW
+                 </button>
+                 <button 
                    onClick={async () => {
                      if (window.confirm('Inject Gold Standards for this industry?')) {
                        const r = await fetch('/api/setup/seed-standards');
@@ -504,14 +511,18 @@ export default function FormArchitectPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <label className="toggle-btn">
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                    <label className="toggle-btn" style={{ flex: 1, minWidth: '100px' }}>
                        <input type="checkbox" checked={editingField.required} onChange={e => setEditingField({...editingField, required: e.target.checked})} />
                        MANDATORY
                     </label>
-                    <label className="toggle-btn">
+                    <label className="toggle-btn" style={{ flex: 1, minWidth: '130px' }}>
                        <input type="checkbox" checked={editingField.vendor_editable} onChange={e => setEditingField({...editingField, vendor_editable: e.target.checked})} />
                        VENDOR EDITABLE
+                    </label>
+                    <label className="toggle-btn" style={{ flex: 1, minWidth: '130px' }}>
+                       <input type="checkbox" checked={editingField.show_on_public} onChange={e => setEditingField({...editingField, show_on_public: e.target.checked})} />
+                       SHOW ON PUBLIC
                     </label>
                   </div>
 
@@ -543,6 +554,48 @@ export default function FormArchitectPage() {
         </aside>
 
       </div>
+
+      {/* ── PREVIEW MODAL ─────────────────────────────────────────── */}
+      {showPreview && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div style={{ width: '100%', maxWidth: '800px', background: '#fff', borderRadius: '32px', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 50px 100px rgba(0,0,0,0.5)' }}>
+            <header style={{ padding: '2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 900 }}>Vendor Perspective Preview</h3>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>This is exactly how the **{activeSect?.name}** chapter appears in the Vendor Studio.</p>
+              </div>
+              <button onClick={() => setShowPreview(false)} style={{ width: 40, height: 40, borderRadius: '12px', border: 'none', background: '#f1f5f9', cursor: 'pointer' }}><i className="fas fa-times"></i></button>
+            </header>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '3rem' }}>
+              <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                {activeSect?.fields.sort((a,b) => a.sort_order - b.sort_order).map(f => (
+                  <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', opacity: f.vendor_editable === false ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <label style={{ fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {f.label} {f.required && <span style={{ color: '#ef4444' }}>*</span>}
+                      </label>
+                      {f.vendor_editable === false && <span style={{ fontSize: '0.6rem', color: '#D4AF37', fontWeight: 900 }}><i className="fas fa-lock"></i> ADMIN ONLY</span>}
+                    </div>
+                    {f.field_type === 'textarea' || f.field_type === 'rich_text' ? (
+                      <div style={{ height: '120px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '12px', padding: '1rem', color: '#cbd5e1', fontSize: '0.85rem' }}>Narrative content placeholder...</div>
+                    ) : f.field_type === 'gallery' ? (
+                      <div style={{ height: '150px', background: 'rgba(212,175,55,0.05)', border: '1.5px dashed #D4AF37', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                        <i className="fas fa-images fa-2x" style={{ marginBottom: '0.5rem' }}></i>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>GALLERY DNA COMPONENT</span>
+                      </div>
+                    ) : (
+                      <div style={{ height: '50px', background: '#f8fafc', border: '1.5px solid #f1f5f9', borderRadius: '12px', padding: '0 1rem', display: 'flex', alignItems: 'center', color: '#cbd5e1', fontSize: '0.85rem' }}>Value placeholder...</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <footer style={{ padding: '1.5rem', borderTop: '1px solid #f1f5f9', textAlign: 'center', background: '#fcfcfc' }}>
+              <button onClick={() => setShowPreview(false)} className="btn btn-primary" style={{ background: '#1e293b', border: 'none', padding: '0.75rem 2rem' }}>RETURN TO ARCHITECT</button>
+            </footer>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .btn-glass { padding: 0.75rem 1.5rem; border-radius: 14px; border: 1px solid #e2e8f0; background: #fff; color: #1e293b; text-decoration: none; font-size: 0.8rem; font-weight: 800; transition: all 0.2s; }
