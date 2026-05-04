@@ -77,6 +77,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // FINAL CLEANUP: Ensure all SECTION_TEMPLATE fields have the correct section_origin
+    await safeExecute('Finalize template origin', "UPDATE form_fields SET section_origin = 'template' WHERE business_type_id = 'SECTION_TEMPLATE'");
+
     return NextResponse.json({ 
       success: true, 
       message: 'Bulletproof Migration Completed', 
