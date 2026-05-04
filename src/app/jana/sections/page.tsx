@@ -23,6 +23,21 @@ const SECTION_ICONS = [
   'fa-route', 'fa-hourglass', 'fa-language', 'fa-tags', 'fa-water', 'fa-landmark'
 ];
 
+const DNA_FIELDS = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'];
+
+const FIELD_LIBRARY = [
+  { id: 'text', name: 'Short Text', icon: 'fa-font', color: '#3b82f6' },
+  { id: 'textarea', name: 'Long Text / Teaser', icon: 'fa-align-left', color: '#8b5cf6' },
+  { id: 'rich_text', name: 'Rich Text Blog', icon: 'fa-paragraph', color: '#7c3aed' },
+  { id: 'number', name: 'Number / Price', icon: 'fa-hashtag', color: '#10b981' },
+  { id: 'select', name: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
+  { id: 'checkbox', name: 'Yes/No Toggle', icon: 'fa-check-square', color: '#06b6d4' },
+  { id: 'gallery', name: 'Image Gallery', icon: 'fa-images', color: '#ec4899' },
+  { id: 'url', name: 'Link / URL', icon: 'fa-link', color: '#64748b' },
+  { id: 'email', name: 'Email Address', icon: 'fa-envelope', color: '#0ea5e9' },
+  { id: 'phone', name: 'Phone Number', icon: 'fa-phone', color: '#16a34a' },
+];
+
 function SectionsContent() {
   const { notify } = useAdmin();
   const searchParams = useSearchParams();
@@ -41,6 +56,9 @@ function SectionsContent() {
   const [fieldDefs, setFieldDefs] = useState<any[]>([]);
   const [editingSection, setEditingSection] = useState<Partial<Section> | null>(null);
   const [inspectingField, setInspectingField] = useState<any | null>(null);
+  const [addingField, setAddingField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldType, setNewFieldType] = useState('text');
 
   // --- AUTO-ASSIGN LOGIC (THE "MANIPULATION" FIX) ---
   async function assignAndReturn(sectionId: string) {
@@ -110,33 +128,45 @@ function SectionsContent() {
   }
 
   async function loadSectionFields(sid: string) {
+    setSectionFields([]);
     const res = await fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${sid}`);
     if (res.ok) setSectionFields(await res.json());
   }
 
-  async function addFieldToSection(sid: string, defId: string) {
-    const def = fieldDefs.find(d => d.id === defId);
-    if (!def) return;
+  async function addFieldToSection(sid: string) {
+    if (!newFieldLabel.trim()) { notify('Please enter a field label', 'error'); return; }
+    const name = newFieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
     const res = await fetch('/api/jana/forms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         business_type_id: 'SECTION_TEMPLATE',
         section_id: sid,
-        name: def.id + '_' + Date.now().toString().slice(-4),
-        label: def.name,
-        field_type: def.id
+        name,
+        label: newFieldLabel,
+        field_type: newFieldType
       })
     });
     if (res.ok) {
-      notify(`${def.name} added to blueprint.`, 'success');
+      notify(`"${newFieldLabel}" added to blueprint.`, 'success');
+      setAddingField(false);
+      setNewFieldLabel('');
+      setNewFieldType('text');
       loadSectionFields(sid);
+    } else {
+      const err = await res.json();
+      notify(err.error || 'Failed to add field', 'error');
     }
   }
 
   async function removeFieldFromSection(fid: string, sid: string) {
-    await fetch(`/api/jana/forms?id=${fid}`, { method: 'DELETE' });
-    loadSectionFields(sid);
+    const res = await fetch(`/api/jana/forms?id=${fid}`, { method: 'DELETE' });
+    if (res.ok) {
+      loadSectionFields(sid);
+    } else {
+      const err = await res.json();
+      notify(err.error || 'Cannot delete this field', 'error');
+    }
   }
 
   async function updateFieldInSection() {
@@ -415,16 +445,57 @@ function SectionsContent() {
               <button className="btn btn-xs btn-outline" onClick={() => setShowComponentDesigner(null)}>×</button>
             </div>
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              {/* Sidebar (Elements) */}
-              <div style={{ width: '240px', background: '#f8fafc', padding: '1.5rem', borderRight: '1px solid #e2e8f0', overflowY: 'auto' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1rem', letterSpacing: '1px' }}>LIBRARY ELEMENTS</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {fieldDefs.map(def => (
-                    <div key={def.id} className="field-pill" style={{ cursor: 'pointer', padding: '0.6rem' }} onClick={() => addFieldToSection(showComponentDesigner, def.id)}>
-                      <i className={`fas ${def.icon}`} style={{ color: '#D4AF37' }}></i>
-                      {def.name}
+              {/* Sidebar: ADD FIELD PANEL */}
+              <div style={{ width: '240px', background: '#f8fafc', padding: '1.5rem', borderRight: '1px solid #e2e8f0', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>ADD CUSTOM FIELD</div>
+                
+                {!addingField ? (
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', background: '#1e293b', borderColor: '#1e293b', fontSize: '0.75rem' }}
+                    onClick={() => setAddingField(true)}
+                  >
+                    <i className="fas fa-plus" style={{ marginRight: '0.5rem' }}></i> NEW FIELD
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Field Label (e.g. Bed Count)"
+                      value={newFieldLabel}
+                      onChange={e => setNewFieldLabel(e.target.value)}
+                      style={{ fontSize: '0.8rem' }}
+                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                      {FIELD_LIBRARY.map(t => (
+                        <button key={t.id}
+                          onClick={() => setNewFieldType(t.id)}
+                          style={{
+                            padding: '0.5rem 0.25rem', borderRadius: '8px', border: newFieldType === t.id ? `2px solid ${t.color}` : '1px solid #e2e8f0',
+                            background: newFieldType === t.id ? `${t.color}10` : '#fff', cursor: 'pointer', fontSize: '0.6rem', fontWeight: 800, textAlign: 'center'
+                          }}
+                        >
+                          <i className={`fas ${t.icon}`} style={{ display: 'block', color: t.color, marginBottom: '2px' }}></i>
+                          {t.name}
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', fontSize: '0.7rem', background: '#D4AF37', borderColor: '#D4AF37', color: '#1e293b' }}
+                        onClick={() => addFieldToSection(showComponentDesigner!)}>
+                        SAVE
+                      </button>
+                      <button className="btn btn-outline" style={{ fontSize: '0.7rem' }} onClick={() => { setAddingField(false); setNewFieldLabel(''); setNewFieldType('text'); }}>
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(212,175,55,0.05)', borderRadius: '8px', border: '1px dashed rgba(212,175,55,0.3)', fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                  <i className="fas fa-dna" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
+                  <strong style={{ color: '#D4AF37' }}>DNA fields</strong> (Gallery, Blog, Teaser) are permanent and built-in to every section automatically.
                 </div>
               </div>
 
