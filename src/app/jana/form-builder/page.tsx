@@ -244,17 +244,17 @@ export default function FormArchitectPage() {
               <div style={{ padding: '3rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
                 <div style={{ padding: '2rem', borderRadius: '24px', background: '#fef3c7', border: '1px solid #fcd34d' }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#92400e', letterSpacing: '1px', marginBottom: '1rem' }}>UNIVERSAL DNA (GOLD)</div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>{sections.reduce((acc, s) => acc + s.fields.filter(f => !f.is_inherited && f.section_id === 'basic').length, 0)}</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>{sections.reduce((acc, s) => acc + (s.fields || []).filter((f: any) => !f.is_inherited && f.section_id === 'basic').length, 0)}</div>
                   <p style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.5rem', fontWeight: 600 }}>Standard fields applied across the entire Siwa Oasis ecosystem.</p>
                 </div>
                 <div style={{ padding: '2rem', borderRadius: '24px', background: '#dbeafe', border: '1px solid #93c5fd' }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#1e40af', letterSpacing: '1px', marginBottom: '1rem' }}>COMMON DNA (BLUE)</div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>{sections.reduce((acc, s) => acc + s.fields.filter(f => f.is_inherited).length, 0)}</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>{sections.reduce((acc, s) => acc + (s.fields || []).filter((f: any) => f.is_inherited).length, 0)}</div>
                   <p style={{ fontSize: '0.75rem', color: '#1d4ed8', marginTop: '0.5rem', fontWeight: 600 }}>Inherited fields shared with parents and siblings in this system.</p>
                 </div>
                 <div style={{ padding: '2rem', borderRadius: '24px', background: '#d1fae5', border: '1px solid #6ee7b7' }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#065f46', letterSpacing: '1px', marginBottom: '1rem' }}>UNIQUE DNA (GREEN)</div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>{sections.reduce((acc, s) => acc + s.fields.filter(f => !f.is_inherited && f.section_id !== 'basic').length, 0)}</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>{sections.reduce((acc, s) => acc + (s.fields || []).filter((f: any) => !f.is_inherited && f.section_id !== 'basic').length, 0)}</div>
                   <p style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.5rem', fontWeight: 600 }}>Type-specific fields that define the unique identity of this business.</p>
                 </div>
               </div>
@@ -299,7 +299,7 @@ export default function FormArchitectPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {sections.map((s: any) => {
                   const isActive = activeSection === s.id;
-                  const hasPropagation = s.fields.some((f: any) => f.name === 'mini_blog');
+                  const hasPropagation = s.fields?.some((f: any) => f.name === 'mini_blog');
                   return (
                     <button 
                       key={s.id}
@@ -317,7 +317,7 @@ export default function FormArchitectPage() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ marginBottom: '2px' }}>{s.name}</div>
-                        <div style={{ fontSize: '0.6rem', opacity: 0.4, fontWeight: 800 }}>{s.fields.length} DNA PATTERNS</div>
+                        <div style={{ fontSize: '0.6rem', opacity: 0.4, fontWeight: 800 }}>{s.fields?.length || 0} DNA PATTERNS</div>
                       </div>
                       {hasPropagation && <i className="fas fa-magic" style={{ fontSize: '0.7rem', color: isActive ? systemColor : '#cbd5e1', opacity: 0.5 }}></i>}
                     </button>
