@@ -18,15 +18,19 @@ export const ROLES = {
 export type RoleKey = keyof typeof ROLES;
 
 export const FIELD_TYPES = {
-  text:           { name: 'Text Input',       icon: 'fa-font',         hasOptions: false },
-  checkbox_group: { name: 'Multiple Choice',   icon: 'fa-check-double', hasOptions: true  },
-  select:         { name: 'Dropdown Menu',     icon: 'fa-caret-down',   hasOptions: true  },
-  url:            { name: 'Web Link',          icon: 'fa-link',         hasOptions: false },
+  text:           { name: 'Short Text',         icon: 'fa-font',         hasOptions: false },
+  rich_text:      { name: 'Advanced Narrative', icon: 'fa-feather',      hasOptions: false },
+  checkbox_group: { name: 'Multiple Choice',    icon: 'fa-check-double', hasOptions: true  },
+  select:         { name: 'Dropdown Menu',      icon: 'fa-caret-down',   hasOptions: true  },
+  url:            { name: 'Web Link',           icon: 'fa-link',         hasOptions: false },
   map:            { name: 'Location & Altitude', icon: 'fa-map-marker-alt', hasOptions: false },
-  gallery:        { name: 'Media Gallery',    icon: 'fa-images',       hasOptions: true  },
-  narrative:      { name: 'Narrative Story',  icon: 'fa-feather',      hasOptions: false },
-  tel:            { name: 'Telephone',        icon: 'fa-phone',        hasOptions: false },
-  email:          { name: 'Email Address',    icon: 'fa-envelope',     hasOptions: false },
+  gallery:        { name: 'Media Gallery',      icon: 'fa-images',       hasOptions: true  },
+  youtube:        { name: 'YouTube Cinematic',  icon: 'fa-video',        hasOptions: false },
+  action_button:  { name: 'Call to Action',     icon: 'fa-bolt',         hasOptions: false },
+  star_rating:    { name: 'Star Rating',        icon: 'fa-star',         hasOptions: false },
+  boolean:        { name: 'Binary Toggle',      icon: 'fa-toggle-on',    hasOptions: false },
+  tel:            { name: 'Telephone',          icon: 'fa-phone',        hasOptions: false },
+  email:          { name: 'Email Address',      icon: 'fa-envelope',     hasOptions: false },
 } as const;
 
 export type FieldTypeKey = keyof typeof FIELD_TYPES;

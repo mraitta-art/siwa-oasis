@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import DynamicForm from '@/components/DynamicForm';
 
 /**
  * MASTER FORM ARCHITECT (PREMIUM v5.0)
@@ -21,15 +22,17 @@ interface Field {
 
 interface Section { id: string; name: string; icon: string; fields: Field[]; }
 
-interface BusinessType { id: string; name: string; icon: string; is_parent: boolean; parent_id?: string; icon_color?: string; }
+interface BusinessType { id: string; name: string; icon: string; is_parent: boolean; parent_id?: string; icon_color?: string; sections?: string[]; own_sections?: string[]; }
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Short Text', icon: 'fa-font', color: '#3b82f6' },
-  { value: 'textarea', label: 'Long Narrative', icon: 'fa-align-left', color: '#8b5cf6' },
-  { value: 'number', label: 'Numeric Value', icon: 'fa-hashtag', color: '#10b981' },
-  { value: 'select', label: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
+  { value: 'rich_text', label: 'Advanced Narrative', icon: 'fa-feather', color: '#8b5cf6' },
   { value: 'gallery', label: 'Media Gallery', icon: 'fa-images', color: '#ec4899' },
-  { value: 'checkbox', label: 'Binary Toggle', icon: 'fa-check-square', color: '#06b6d4' },
+  { value: 'youtube', label: 'YouTube Story', icon: 'fa-video', color: '#ef4444' },
+  { value: 'action_button', label: 'Call to Action', icon: 'fa-bolt', color: '#D4AF37' },
+  { value: 'select', label: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
+  { value: 'star_rating', label: 'Star Rating', icon: 'fa-star', color: '#fbbf24' },
+  { value: 'boolean', label: 'Binary Toggle', icon: 'fa-toggle-on', color: '#10b981' },
 ];
 
 export default function FormArchitectPage() {
@@ -50,6 +53,14 @@ export default function FormArchitectPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewType, setPreviewType] = useState<'section' | 'full'>('section');
+  const [previewData, setPreviewData] = useState<any>({});
+  const [newBizName, setNewBizName] = useState('');
+  const [targetTypeId, setTargetTypeId] = useState('');
+  const [canvasMode, setCanvasMode] = useState<'blueprint' | 'preview'>('blueprint');
+
+  useEffect(() => {
+    if (selectedType) setTargetTypeId(selectedType);
+  }, [selectedType]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -89,15 +100,19 @@ export default function FormArchitectPage() {
     }
   }, [selectedType, types]);
 
+  const activeBlueprint = sections.find(s => s.id === activeSection);
+
   async function loadFields() {
     try {
       const res = await fetch(`/api/jana/forms?type=${selectedType}`);
       const fields = await res.json();
       const fieldsBySection: any = {};
-      fields.forEach((f: any) => {
-        if (!fieldsBySection[f.section_id]) fieldsBySection[f.section_id] = [];
-        fieldsBySection[f.section_id].push(f);
-      });
+      if (Array.isArray(fields)) {
+        fields.forEach((f: any) => {
+          if (!fieldsBySection[f.section_id]) fieldsBySection[f.section_id] = [];
+          fieldsBySection[f.section_id].push(f);
+        });
+      }
       setSections(prev => prev.map((s: any) => ({ ...s, fields: fieldsBySection[s.id] || [] })));
     } catch (e) { console.error(e); }
   }
@@ -174,8 +189,8 @@ export default function FormArchitectPage() {
 
   if (loading) return <div className="loader-screen">RECONSTRUCTING DNA...</div>;
 
-  const systemColor = parentType?.icon_color || '#D4AF37';
-  const activeSect = sections.find(s => s.id === activeSection);
+  const themeColor = parentType?.icon_color || '#D4AF37';
+
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -197,9 +212,8 @@ export default function FormArchitectPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.4rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {types.map((t: any) => {
+          {types.filter(t => t.is_parent || Number(t.is_parent) === 1).map((t: any) => {
             const isActive = selectedType === t.id;
-            const isParent = !!t.is_parent;
             return (
               <button
                 key={t.id}
@@ -214,7 +228,7 @@ export default function FormArchitectPage() {
               >
                 <i className={`fas ${t.icon}`} style={{ fontSize: '0.9rem' }}></i>
                 {t.name.toUpperCase()}
-                {isParent && <div style={{ width: 6, height: 6, borderRadius: '50%', background: isActive ? '#0f172a' : '#D4AF37' }}></div>}
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: isActive ? '#0f172a' : '#D4AF37' }}></div>
               </button>
             );
           })}
@@ -297,7 +311,7 @@ export default function FormArchitectPage() {
                 <span style={{ background: 'rgba(212,175,55,0.1)', padding: '2px 8px', borderRadius: '6px' }}>{sections.length}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {sections.map((s: any) => {
+                {sections.filter(s => currentType?.sections?.includes(s.id) || currentType?.own_sections?.includes(s.id)).map((s: any) => {
                   const isActive = activeSection === s.id;
                   const hasPropagation = s.fields?.some((f: any) => f.name === 'mini_blog');
                   return (
@@ -305,21 +319,21 @@ export default function FormArchitectPage() {
                       key={s.id}
                       onClick={() => setActiveSection(s.id)}
                       style={{ 
-                        textAlign: 'left', padding: '1rem', borderRadius: '18px', border: isActive ? `1.5px solid ${systemColor}20` : '1px solid transparent',
-                        background: isActive ? `${systemColor}05` : 'transparent',
+                        textAlign: 'left', padding: '1rem', borderRadius: '18px', border: isActive ? `1.5px solid ${themeColor}20` : '1px solid transparent',
+                        background: isActive ? `${themeColor}05` : 'transparent',
                         color: isActive ? '#1e293b' : '#64748b',
                         fontWeight: isActive ? 900 : 700, fontSize: '0.85rem', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: '1.25rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                       }}
                     >
-                      <div style={{ width: 42, height: 42, borderRadius: '12px', background: isActive ? systemColor : '#f8fafc', color: isActive ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', border: isActive ? 'none' : '1px solid #f1f5f9' }}>
+                      <div style={{ width: 42, height: 42, borderRadius: '12px', background: isActive ? themeColor : '#f8fafc', color: isActive ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', border: isActive ? 'none' : '1px solid #f1f5f9' }}>
                         <i className={`fas ${s.icon}`}></i>
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ marginBottom: '2px' }}>{s.name}</div>
                         <div style={{ fontSize: '0.6rem', opacity: 0.4, fontWeight: 800 }}>{s.fields?.length || 0} DNA PATTERNS</div>
                       </div>
-                      {hasPropagation && <i className="fas fa-magic" style={{ fontSize: '0.7rem', color: isActive ? systemColor : '#cbd5e1', opacity: 0.5 }}></i>}
+                      {hasPropagation && <i className="fas fa-magic" style={{ fontSize: '0.7rem', color: isActive ? themeColor : '#cbd5e1', opacity: 0.5 }}></i>}
                     </button>
                   );
                 })}
@@ -328,9 +342,9 @@ export default function FormArchitectPage() {
           )}
           {leftCollapsed && (
             <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-              {sections.map((s: any) => (
-                <button key={s.id} onClick={() => setActiveSection(s.id)} style={{ width: 44, height: 44, borderRadius: '12px', background: activeSection === s.id ? systemColor : '#f8fafc', color: activeSection === s.id ? '#fff' : '#cbd5e1', border: activeSection === s.id ? 'none' : '1px solid #f1f5f9', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className={`fas ${s.icon}`} style={{ fontSize: '1rem' }}></i>
+              {(sections || []).filter(s => currentType?.sections?.includes(s.id) || currentType?.own_sections?.includes(s.id)).map((s: any) => (
+                <button key={s.id} onClick={() => setActiveSection(s.id)} style={{ width: 44, height: 44, borderRadius: '12px', background: activeSection === s.id ? themeColor : '#f8fafc', color: activeSection === s.id ? '#fff' : '#cbd5e1', border: activeSection === s.id ? 'none' : '1px solid #f1f5f9', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className={`fas ${s.icon || 'fa-layer-group'}`} style={{ fontSize: '1rem' }}></i>
                 </button>
               ))}
             </div>
@@ -338,54 +352,93 @@ export default function FormArchitectPage() {
         </nav>
 
         {/* --- CENTER: BLUEPRINT EDITOR ----------------------------- */}
-        <main style={{ padding: '3.5rem', overflowY: 'auto', maxHeight: 'calc(100vh - 100px)', background: '#f8fafc' }}>
-          <div style={{ maxWidth: leftCollapsed && rightCollapsed ? '1200px' : '850px', margin: '0 auto', transition: 'max-width 0.3s ease' }}>
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', borderRight: '1px solid #f1f5f9', position: 'relative' }}>
+          <header style={{ padding: '1.5rem 2rem', background: '#fff', borderBottom: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+            <div>
+              <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '0.3rem' }}>ACTIVE BLUEPRINT</div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#1e293b' }}>{activeBlueprint?.name || 'SELECT A CHAPTER'}</h2>
+            </div>
             
-            {/* Action Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', background: '#fff', padding: '1.5rem 2rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-               <div>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Architectural Layer</div>
-                  <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: '#1e293b' }}>{activeSect?.name} <span style={{ opacity: 0.3, fontWeight: 300 }}>/</span> Blueprints</h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
-                    <button 
-                      onClick={() => { setPreviewType('full'); setShowPreview(true); }}
-                      style={{ background: 'none', border: 'none', color: '#1e293b', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.6 }}
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px', gap: '4px' }}>
+              <button 
+                onClick={() => setCanvasMode('blueprint')}
+                style={{ 
+                  padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', 
+                  background: canvasMode === 'blueprint' ? '#fff' : 'transparent',
+                  color: canvasMode === 'blueprint' ? '#1e293b' : '#64748b',
+                  fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer',
+                  boxShadow: canvasMode === 'blueprint' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                BLUEPRINT
+              </button>
+              <button 
+                onClick={() => setCanvasMode('preview')}
+                style={{ 
+                  padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', 
+                  background: canvasMode === 'preview' ? '#fff' : 'transparent',
+                  color: canvasMode === 'preview' ? '#1e293b' : '#64748b',
+                  fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer',
+                  boxShadow: canvasMode === 'preview' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                LIVE FILL
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => { setPreviewType('full'); setShowPreview(true); }} className="btn-glass" style={{ color: '#D4AF37', borderColor: '#D4AF3740' }}>
+                <i className="fas fa-rocket" style={{ marginRight: '8px' }}></i> DEPLOYMENT PREVIEW
+              </button>
+            </div>
+          </header>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '2.5rem' }}>
+            {canvasMode === 'preview' ? (
+              <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', padding: '3rem', borderRadius: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                <div style={{ marginBottom: '3rem', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.5rem' }}>
+                  <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#1e293b' }}>Live Data Prototyping</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.5rem' }}>Fill in this chapter to see how it renders for vendors.</p>
+                </div>
+                <DynamicForm 
+                  fields={activeBlueprint?.fields?.map((f: any) => ({ ...f, section_id: activeBlueprint?.id })) || []}
+                  data={previewData}
+                  onChange={(sid, name, val) => {
+                    setPreviewData((prev: any) => ({
+                      ...prev,
+                      [sid]: { ...(prev[sid] || {}), [name]: val }
+                    }));
+                  }}
+                  sections={activeBlueprint ? [activeBlueprint] : []}
+                />
+              </div>
+            ) : (
+            <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                   <button 
+                      onClick={async () => {
+                        if (window.confirm('Inject Gold Standards for this industry?')) {
+                          const r = await fetch('/api/setup/seed-standards');
+                          if (r.ok) { notify('Standards Injected Successfully!', 'success'); window.location.reload(); }
+                        }
+                      }}
+                      style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1.5px solid #D4AF37', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
                     >
-                      <i className="fas fa-expand-arrows-alt" style={{ color: '#D4AF37' }}></i> PREVIEW FULL JOURNEY
+                      <i className="fas fa-magic"></i> STANDARDIZE
                     </button>
-                  </div>
-               </div>
-               <div style={{ display: 'flex', gap: '1.25rem' }}>
-                  <button 
-                    onClick={() => { setPreviewType('section'); setShowPreview(true); }}
-                    style={{ 
-                      padding: '0.85rem 1.5rem', borderRadius: '12px', background: '#f8fafc', color: '#1e293b', 
-                      border: '1px solid #e2e8f0', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', 
-                      display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s'
-                    }}
-                  >
-                    <i className="fas fa-eye" style={{ color: '#D4AF37' }}></i> CHAPTER PREVIEW
-                  </button>
-                 <button 
-                   onClick={async () => {
-                     if (window.confirm('Inject Gold Standards for this industry?')) {
-                       const r = await fetch('/api/setup/seed-standards');
-                       if (r.ok) { notify('Standards Injected Successfully!', 'success'); window.location.reload(); }
-                     }
-                   }}
-                   style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1.5px solid #D4AF37', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-                 >
-                   <i className="fas fa-magic"></i> STANDARDIZE
-                 </button>
-                 {!activeSect?.fields.some(f => f.name === 'mini_blog') && (
-                    <button 
-                      onClick={() => handlePreWireNarrative(activeSection)}
-                      className="btn-wire"
-                      style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-                    >
-                      <i className="fas fa-bolt"></i> PRE-WIRE
-                    </button>
-                 )}
+                    {!activeBlueprint?.fields.some(f => f.name === 'mini_blog') && (
+                       <button 
+                         onClick={() => handlePreWireNarrative(activeSection)}
+                         className="btn-wire"
+                         style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                       >
+                         <i className="fas fa-bolt"></i> PRE-WIRE
+                       </button>
+                    )}
+                 </div>
                  <button 
                     onClick={() => handleAddField(activeSection)}
                     style={{ 
@@ -397,31 +450,30 @@ export default function FormArchitectPage() {
                    <i className="fas fa-plus"></i> ADD FIELD
                  </button>
                </div>
-            </div>
 
             {/* Field Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {!activeSect?.fields || activeSect.fields.length === 0 ? (
+              {!activeBlueprint?.fields || activeBlueprint.fields.length === 0 ? (
                  <div style={{ textAlign: 'center', padding: '5rem', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
                     <i className="fas fa-folder-open fa-3x" style={{ color: '#e2e8f0', marginBottom: '1.5rem' }}></i>
                     <p style={{ fontWeight: 800, color: '#94a3b8' }}>Empty DNA Section. Add fields to start building.</p>
                  </div>
-               ) : [...activeSect.fields].sort((a,b) => a.sort_order - b.sort_order).map((field: any) => {
+               ) : [...(activeBlueprint?.fields || [])].sort((a,b) => a.sort_order - b.sort_order).map((field: any) => {
                 const typeInfo = FIELD_TYPES.find(t => t.value === field.field_type);
-                const isDNA = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(field.name);
+                const isStandard = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(field.name);
                 const isUniversal = field.business_type_id === 'SECTION_TEMPLATE';
                 const isInherited = field.business_type_id !== selectedType && !isUniversal;
                 const isDeleting = showDeleteConfirm === field.id;
 
                 let statusColor = '#6EE7B7'; // Unique
-                let statusLabel = 'UNIQUE DNA';
+                let statusLabel = 'UNIQUE';
                 
                 if (isUniversal) {
                   statusColor = '#D4AF37';
-                  statusLabel = 'MASTER DNA';
+                  statusLabel = isStandard ? 'STANDARD' : 'UNIVERSAL';
                 } else if (isInherited) {
                   statusColor = '#3b82f6';
-                  statusLabel = 'INHERITED FROM PARENT';
+                  statusLabel = 'INHERITED';
                 }
 
                 return (
@@ -430,7 +482,7 @@ export default function FormArchitectPage() {
                     className="field-card" 
                     style={{ 
                       background: '#fff', borderRadius: '24px', 
-                      border: isDNA ? `2.5px solid ${statusColor}40` : '1px solid #f1f5f9', 
+                      border: isStandard ? `2.5px solid ${statusColor}40` : '1px solid #f1f5f9', 
                       padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', gap: '2rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       position: 'relative', overflow: 'hidden',
                       boxShadow: '0 4px 6px rgba(0,0,0,0.02)',
@@ -453,7 +505,7 @@ export default function FormArchitectPage() {
                              {statusLabel}
                            </span>
                            {field.required && <span style={{ fontSize: '0.55rem', padding: '4px 10px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', borderRadius: '8px', fontWeight: 900, border: '1px solid rgba(239,68,68,0.1)' }}>REQUIRED</span>}
-                           {!field.vendor_editable && <span style={{ fontSize: '0.55rem', padding: '4px 10px', background: 'rgba(212,175,55,0.08)', color: '#D4AF37', borderRadius: '8px', fontWeight: 900, border: '1px solid rgba(212,175,55,0.1)' }}>LOCKED</span>}
+                           {!field.vendor_editable && <span style={{ fontSize: '0.55rem', padding: '4px 10px', background: 'rgba(212,175,55,0.08)', color: '#D4AF37', borderRadius: '8px', fontWeight: 900, border: '1px solid rgba(212,175,55,0.1)' }}>ADMIN ONLY</span>}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.6rem' }}>
@@ -496,6 +548,8 @@ export default function FormArchitectPage() {
                 );
               })}
             </div>
+            </div>
+            )}
           </div>
         </main>
 
@@ -530,14 +584,14 @@ export default function FormArchitectPage() {
                     <div className="f-group">
                       <label className="f-label" style={{ fontSize: '0.6rem' }}>LABEL</label>
                       <input 
-                        type="text" className="f-input" value={editingField.label} 
+                        type="text" className="f-input" value={editingField.label || ''} 
                         onChange={e => setEditingField({...editingField, label: e.target.value})} 
                       />
                     </div>
                     <div className="f-group" style={{ marginTop: '1.25rem' }}>
                       <label className="f-label" style={{ fontSize: '0.6rem' }}>DATABASE KEY</label>
                       <input 
-                        type="text" className="f-input" value={editingField.name} 
+                        type="text" className="f-input" value={editingField.name || ''} 
                         onChange={e => setEditingField({...editingField, name: e.target.value})} 
                         disabled={!!editingField.id}
                         style={{ opacity: editingField.id ? 0.4 : 1, background: editingField.id ? '#f1f5f9' : '#fff' }}
@@ -590,12 +644,12 @@ export default function FormArchitectPage() {
                 </div>
               ) : (
              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-               <div style={{ width: 70, height: 70, borderRadius: '50%', background: `${systemColor}10`, color: systemColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', fontSize: '1.8rem' }}>
+               <div style={{ width: 70, height: 70, borderRadius: '50%', background: `${themeColor}10`, color: themeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', fontSize: '1.8rem' }}>
                  <i className="fas fa-project-diagram"></i>
                </div>
                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem' }}>System Architect</h3>
                 <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem', lineHeight: 1.6 }}>
-                  Select a field from the **{activeSect?.name}** blueprint to modify its architectural properties or propagation logic.
+                  Select a field from the **{activeBlueprint?.name}** blueprint to modify its architectural properties or propagation logic.
                 </p>
               </div>
             )}
@@ -622,69 +676,91 @@ export default function FormArchitectPage() {
             </header>
             
             <div style={{ flex: 1, overflowY: 'auto', padding: '4rem 6rem' }}>
-              <div style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '5rem' }}>
-                {(previewType === 'full' ? sections : [activeSect]).map((sect: any, sIdx: number) => (
-                  <div key={sect?.id || sIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-                    {previewType === 'full' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.5rem' }}>
-                         <div style={{ width: 48, height: 48, background: '#1e293b', color: '#D4AF37', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
-                           <i className={`fas ${sect?.icon || 'fa-layer-group'}`}></i>
-                         </div>
-                         <h4 style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '1rem', color: '#1e293b' }}>{sect?.name}</h4>
-                      </div>
-                    )}
-                    
-                    {!sect?.fields || sect.fields.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '32px', border: '2px dashed #e2e8f0', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 800 }}>
-                        <i className="fas fa-ghost fa-2x" style={{ display: 'block', marginBottom: '1rem', opacity: 0.3 }}></i>
-                        NO PATTERNS DEFINED
-                      </div>
-                    ) : sect.fields.sort((a: any, b: any) => a.sort_order - b.sort_order).map((f: any) => (
-                      <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <label style={{ fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#1e293b', opacity: 0.8 }}>
-                            {f.label} {f.required && <span style={{ color: '#ef4444' }}>*</span>}
-                          </label>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                             {f.vendor_editable === false && (
-                               <span style={{ fontSize: '0.55rem', color: '#D4AF37', fontWeight: 900, padding: '5px 12px', background: 'rgba(212,175,55,0.08)', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.1)' }}>
-                                 <i className="fas fa-lock" style={{ marginRight: '6px' }}></i> ADMIN SOVEREIGN
-                               </span>
-                             )}
-                             {!f.show_on_public && (
-                               <span style={{ fontSize: '0.55rem', color: '#64748b', fontWeight: 900, padding: '5px 12px', background: '#f1f5f9', borderRadius: '8px' }}>
-                                 INTERNAL
-                               </span>
-                             )}
-                          </div>
-                        </div>
+              <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+                <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '24px', marginBottom: '3rem', border: '1px solid #e2e8f0' }}>
+                   <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1.5rem' }}>BUSINESS IDENTITY</div>
+                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                     <div>
+                       <label className="f-label">BUSINESS NAME</label>
+                       <input 
+                         type="text" className="f-input" placeholder="e.g. Siwa Eco Lodge" 
+                         value={newBizName || ''} onChange={e => setNewBizName(e.target.value)}
+                       />
+                     </div>
+                     <div>
+                       <label className="f-label">DEPLOYMENT TYPOLOGY</label>
+                       <select 
+                         className="f-input" value={targetTypeId || ''} 
+                         onChange={e => setTargetTypeId(e.target.value)}
+                       >
+                         {types.map(t => (
+                           <option key={t.id} value={t.id}>{t.name}</option>
+                         ))}
+                       </select>
+                     </div>
+                   </div>
+                </div>
 
-                        {['textarea', 'rich_text'].includes(f.field_type) ? (
-                          <div style={{ minHeight: '140px', background: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '24px', padding: '2rem', color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.8, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                            <div style={{ height: 12, width: '80%', background: '#f8fafc', borderRadius: 4, marginBottom: 12 }}></div>
-                            <div style={{ height: 12, width: '95%', background: '#f8fafc', borderRadius: 4, marginBottom: 12 }}></div>
-                            <div style={{ height: 12, width: '60%', background: '#f8fafc', borderRadius: 4 }}></div>
-                          </div>
-                        ) : f.field_type === 'gallery' ? (
-                          <div style={{ height: '180px', background: 'linear-gradient(135deg, rgba(212,175,55,0.05), rgba(212,175,55,0.02))', border: '2px dashed #D4AF3750', borderRadius: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
-                            <i className="fas fa-images fa-2x" style={{ marginBottom: '1rem', opacity: 0.4 }}></i>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 900, letterSpacing: '2px' }}>{f.label.toUpperCase()} STUDIO</span>
-                          </div>
-                        ) : (
-                          <div style={{ height: '64px', background: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '18px', padding: '0 1.5rem', display: 'flex', alignItems: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                            {f.placeholder || `Prototype value for ${f.label}`}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '2rem', textAlign: 'center' }}>FIELD DATA ENTRY</div>
+                
+                <DynamicForm 
+                  fields={(previewType === 'full' ? sections : (activeBlueprint ? [activeBlueprint] : [])).flatMap((s: any) => s?.fields?.map((f: any) => ({ ...f, section_id: s?.id })) || [])}
+                  data={previewData}
+                  onChange={(sid, name, val) => {
+                    setPreviewData((prev: any) => ({
+                      ...prev,
+                      [sid]: { ...(prev[sid] || {}), [name]: val }
+                    }));
+                  }}
+                  sections={previewType === 'full' ? sections : (activeBlueprint ? [activeBlueprint] : [])}
+                />
               </div>
             </div>
             
-            <footer style={{ padding: '2.5rem', borderTop: '1px solid #f1f5f9', textAlign: 'center', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)' }}>
-              <button onClick={() => setShowPreview(false)} style={{ background: '#1e293b', border: 'none', padding: '1.1rem 4rem', borderRadius: '20px', color: '#fff', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 15px 30px rgba(30,41,59,0.3)', transition: 'all 0.3s' }}>
-                RETURN TO ARCHITECT
+            <footer style={{ padding: '2rem 3rem', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '2rem', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', alignItems: 'center' }}>
+              <div style={{ textAlign: 'left', flex: 1 }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>PROTOTYPE READINESS</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', marginTop: '0.2rem' }}>You can deploy this mockup as a live business directly from here.</div>
+              </div>
+              <button onClick={() => setShowPreview(false)} style={{ background: '#f1f5f9', border: 'none', padding: '1.1rem 2rem', borderRadius: '20px', color: '#1e293b', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer' }}>
+                CLOSE PREVIEW
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!newBizName) return notify('Please enter a business name', 'error');
+                  setSaving(true);
+                  try {
+                    const res = await fetch('/api/jana/businesses', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        name: newBizName, 
+                        type_id: targetTypeId, 
+                        custom_data: previewData,
+                        status: 'active'
+                      })
+                    });
+                    if (res.ok) {
+                      const newBiz = await res.json();
+                      notify(`Business "${newBizName}" created successfully!`, 'success');
+                      setShowPreview(false);
+                      setNewBizName('');
+                      setPreviewData({});
+                      // Redirect to the live view
+                      window.open(`/business/${newBiz.id}`, '_blank');
+                    } else {
+                      throw new Error('Deployment failed');
+                    }
+                  } catch (e: any) {
+                    notify(e.message, 'error');
+                  }
+                  setSaving(false);
+                }} 
+                disabled={saving}
+                style={{ background: '#1e293b', border: 'none', padding: '1.1rem 3rem', borderRadius: '20px', color: '#fff', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer', boxShadow: '0 15px 30px rgba(30,41,59,0.3)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+              >
+                <i className="fas fa-rocket" style={{ color: '#D4AF37' }}></i>
+                {saving ? 'DEPLOYING...' : 'DEPLOY LIVE TO OASIS'}
               </button>
             </footer>
           </div>
@@ -696,7 +772,7 @@ export default function FormArchitectPage() {
         .btn-glass { padding: 0.75rem 1.5rem; border-radius: 14px; border: 1px solid #e2e8f0; background: #fff; color: #1e293b; text-decoration: none; font-size: 0.8rem; font-weight: 800; transition: all 0.2s; }
         .btn-glass:hover { background: #f8fafc; border-color: #cbd5e1; transform: translateY(-1px); }
         
-        .field-card:hover { transform: translateY(-3px); border-color: ${systemColor}50 !important; box-shadow: 0 10px 20px rgba(0,0,0,0.02); }
+        .field-card:hover { transform: translateY(-3px); border-color: ${themeColor}50 !important; box-shadow: 0 10px 20px rgba(0,0,0,0.02); }
         
         .btn-action { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #f1f5f9; background: #fff; cursor: pointer; transition: all 0.2s; display: flex; alignItems: center; justifyContent: center; }
         .btn-action.edit:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
@@ -704,7 +780,7 @@ export default function FormArchitectPage() {
 
         .f-label { display: block; fontSize: 0.7rem; fontWeight: 900; color: #64748b; marginBottom: 0.6rem; letterSpacing: 0.5px; }
         .f-input { width: 100%; padding: 0.9rem 1.1rem; border-radius: 12px; border: 1.5px solid #f1f5f9; background: #f8fafc; outline: none; font-weight: 700; font-size: 0.9rem; color: #1e293b; transition: all 0.2s; }
-        .f-input:focus { border-color: ${systemColor}; background: #fff; box-shadow: 0 0 0 4px ${systemColor}15; }
+        .f-input:focus { border-color: ${themeColor}; background: #fff; box-shadow: 0 0 0 4px ${themeColor}15; }
         
         .toggle-btn { flex: 1; padding: 0.75rem; border-radius: 12px; background: #f8fafc; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 0.75rem; font-size: 0.7rem; fontWeight: 800; cursor: pointer; transition: all 0.2s; }
         .toggle-btn:has(input:checked) { background: #fff; border-color: #D4AF37; }

@@ -22,19 +22,23 @@ export async function GET(request: NextRequest) {
       Object.keys(data || {}).forEach(sid => {
         const section = data[sid] || {};
         
-        // If a section has a mini-blog story, treat it as a blog post
-        if (section.mini_blog && section.mini_blog.length > 50) {
-          const photos = section.section_gallery || [];
+        // If a section has a story, treat it as a blog post
+        const story = section.section_blog || section.mini_blog;
+        if (story && story.length > 50) {
+          const gallery = section.section_gallery || [];
+          const photos = Array.isArray(gallery) ? gallery : [];
+          const firstPhoto = photos[0];
+          const imageUrl = typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto;
           
           posts.push({
             id: `post_${biz.id}_${sid}`,
             businessId: biz.id,
             businessName: biz.name,
             sectionName: sid.toUpperCase().replace('_DNA', '').replace('_', ' '),
-            title: section.blog_title || `${biz.name}: ${sid.replace('_dna', '')}`,
-            excerpt: section.mini_blog.substring(0, 150) + '...',
-            content: section.mini_blog,
-            image: photos[0]?.url || photos[0] || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=800',
+            title: section.blog_title || `${biz.name}: ${sid.replace('_dna', '').replace('_', ' ')}`,
+            excerpt: story.replace(/<[^>]*>/g, '').substring(0, 150) + '...',
+            content: story,
+            image: imageUrl || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=800',
             date: biz.updated_at,
             slug: `/business/${biz.id}#${sid}`
           });

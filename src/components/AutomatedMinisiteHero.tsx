@@ -55,7 +55,7 @@ export default function AutomatedMinisiteHero({
     activeSections.forEach(section => {
       const sectionData = customData[section.id] || {};
       // SMART FALLBACK: Look for any narrative field
-      const miniBlog = sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${section.name.toLowerCase()} DNA.`;
+      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${section.name.toLowerCase()} DNA.`;
       const youtubeStory = sectionData.youtube_story;
       const gallery = sectionData.section_gallery || [];
       const photos = Array.isArray(gallery) ? gallery : [gallery].filter(Boolean);
@@ -83,24 +83,24 @@ export default function AutomatedMinisiteHero({
         allSlides.push({
           id: `${section.id}_img_${idx}`,
           type: 'image',
-          mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000', // Watermark Fallback
-          title: caption || "", // Use photo caption as title
-          subtitle: miniBlog, // FULL STORY
+          mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
+          title: caption || section.name, // Photo caption is the primary story
+          subtitle: `DISCOVER THE ${section.name.toUpperCase()} EXPERIENCE`, // Narrative hook
           caption: businessName.toUpperCase(), 
-          ctaText: `VIEW ${section.name.toUpperCase()}`,
+          ctaText: `READ FULL STORY`,
           ctaLink: `#${section.id}`,
           animation: 'kenburns'
         });
       });
 
-      // Fallback slide (Total Watermark)
+      // Fallback slide
       if (!youtubeStory && photos.length === 0) {
         allSlides.push({
           id: `${section.id}_fallback`,
           type: 'image',
-          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000', // SIWA WATERMARK
+          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
           title: section.name,
-          subtitle: miniBlog || `Welcome to our ${section.name.toLowerCase()} experience. Discover our unique story and vision in the sections below.`,
+          subtitle: `EXPLORE OUR UNIQUE NARRATIVE`,
           caption: businessName.toUpperCase(),
           ctaText: 'EXPLORE',
           ctaLink: `#${section.id}`,

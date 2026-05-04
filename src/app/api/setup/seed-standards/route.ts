@@ -8,11 +8,50 @@ import { randomUUID } from 'crypto';
  */
 export async function GET(req: NextRequest) {
   try {
+    // 1. Ensure Sections exist
+    const sectionDefinitions = [
+      { id: 'facilities', name: 'Amenities & Features', icon: 'fa-swimming-pool' },
+      { id: 'star_rating', name: 'Industry Rating', icon: 'fa-star' },
+      { id: 'room_types', name: 'Room & Stay Options', icon: 'fa-bed' },
+      { id: 'business_metrics', name: 'Business Metrics', icon: 'fa-chart-line', vendor_editable: true, show_on_public: false },
+      { id: 'verification', name: 'Admin Verification', icon: 'fa-shield-alt', vendor_editable: false, show_on_public: false }
+    ];
+
+    for (const s of sectionDefinitions) {
+      await execute(
+        'INSERT IGNORE INTO sections (id, name, icon, vendor_editable, show_on_public) VALUES (?, ?, ?, ?, ?)',
+        [s.id, s.name, s.icon, s.vendor_editable ?? true, s.show_on_public ?? true]
+      );
+    }
+
+    // 2. Update Parent Typology Section Mappings
+    await execute(
+      'UPDATE business_types SET sections = ? WHERE id = ?',
+      [JSON.stringify(["basic", "location", "contact", "facilities", "star_rating", "room_types", "business_metrics", "verification"]), 'accommodation']
+    );
+
     const standards = [
       // 🏨 ACCOMMODATION STANDARDS
+      { type: 'accommodation', section: 'basic', name: 'description_narrative', label: 'Property Story (Narrative)', field_type: 'rich_text' },
       { type: 'accommodation', section: 'basic', name: 'price_range', label: 'Standard Price Range', field_type: 'select', options: ['Budget','Mid-range','Luxury','Elite'] },
-      { type: 'accommodation', section: 'facilities', name: 'amenities', label: 'Standard Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service'] },
       { type: 'accommodation', section: 'basic', name: 'check_policy', label: 'Check-in/Out Policy', field_type: 'textarea' },
+      { type: 'accommodation', section: 'facilities', name: 'amenities', label: 'Property Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service', 'Spa', 'Desert View'] },
+      { type: 'accommodation', section: 'facilities', name: 'total_rooms', label: 'Total Rooms', field_type: 'text' },
+      { type: 'accommodation', section: 'room_types', name: 'room_options', label: 'Available Room Types', field_type: 'checkbox', options: ['Single','Double','Suite','Family','Siwan Traditional Room'] },
+      { type: 'accommodation', section: 'star_rating', name: 'stars', label: 'Industry Star Rating', field_type: 'star_rating' },
+      { type: 'accommodation', section: 'contact', name: 'booking_link', label: 'Direct Booking URL', field_type: 'text' },
+      
+      // 📊 BUSINESS METRICS (Internal)
+      { type: 'accommodation', section: 'business_metrics', name: 'avg_revenue', label: 'Avg Monthly Revenue', field_type: 'text' },
+      { type: 'accommodation', section: 'business_metrics', name: 'occupancy_rate', label: 'Occupancy Rate %', field_type: 'text' },
+      { type: 'accommodation', section: 'business_metrics', name: 'employee_count', label: 'Total Employee Count', field_type: 'text' },
+      
+      // 🛡️ ADMIN VERIFICATION (Admin Only)
+      { type: 'accommodation', section: 'verification', name: 'verification_status', label: 'Verification Status', field_type: 'select', options: ['Pending','Verified','Rejected','Suspended'] },
+      { type: 'accommodation', section: 'verification', name: 'quality_rating', label: 'Quality Audit Rating (1-10)', field_type: 'text' },
+      { type: 'accommodation', section: 'verification', name: 'priority_listing', label: 'Priority Search Listing', field_type: 'boolean' },
+      { type: 'accommodation', section: 'verification', name: 'admin_notes', label: 'Internal Admin Notes', field_type: 'textarea' },
+
       
       // 🍽️ FOOD & BEVERAGE STANDARDS
       { type: 'food', section: 'menu', name: 'cuisine_standard', label: 'Primary Cuisine Style', field_type: 'select', options: ['Traditional Siwan','Egyptian','Mediterranean','International'] },
@@ -40,7 +79,12 @@ export async function GET(req: NextRequest) {
         );
         results.push({ field: s.name, status: 'Materialized' });
       } catch (e) {
-        results.push({ field: s.name, status: 'Already Exists or Error' });
+        // If already exists, update the field type and options to match gold standard
+        await execute(
+          'UPDATE form_fields SET field_type = ?, options = ? WHERE business_type_id = ? AND name = ?',
+          [s.field_type, JSON.stringify(s.options || []), s.type, s.name]
+        );
+        results.push({ field: s.name, status: 'Updated to Standard' });
       }
     }
 
@@ -55,3 +99,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to seed standards' }, { status: 500 });
   }
 }
+

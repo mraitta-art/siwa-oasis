@@ -18,10 +18,11 @@ const NAV_GROUPS = [
     collapsible: false,
     items: [
       { name: '1. Foundation Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
-      { name: '2. Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
-      { name: '3. Business Registry', path: '/jana/businesses', icon: 'fa-briefcase' },
-      { name: '4. Visual Orchestrator', path: '/jana/website', icon: 'fa-palette' },
-      { name: '5. Data Manager', path: '/jana/data-manager', icon: 'fa-server' },
+      { name: '2. Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt', exact: true },
+      { name: '3. Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
+      { name: '4. Business Registry', path: '/jana/businesses', icon: 'fa-briefcase' },
+      { name: '5. Visual Orchestrator', path: '/jana/website', icon: 'fa-palette' },
+      { name: '6. Data Manager', path: '/jana/data-manager', icon: 'fa-server' },
     ]
   },
   {

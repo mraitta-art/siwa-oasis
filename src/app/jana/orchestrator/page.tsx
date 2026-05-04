@@ -161,7 +161,7 @@ function OrchestratorContent() {
                  <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>ENTITY NAME</label>
                  <input 
                    type="text" 
-                   value={state.businessName} 
+                   value={state.businessName || ''} 
                    onChange={e => updateState({ businessName: e.target.value })}
                    style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '2.5rem', fontWeight: 900, padding: '1rem 0', outline: 'none' }}
                    placeholder="Siwa Oasis Sands..."

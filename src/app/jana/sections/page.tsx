@@ -24,7 +24,8 @@ const SECTION_ICONS = [
   'fa-route', 'fa-hourglass', 'fa-language', 'fa-tags', 'fa-water', 'fa-landmark'
 ];
 
-const DNA_FIELDS = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'];
+// Standard foundation fields — auto-created with every new section, fully editable
+const STANDARD_FIELD_NAMES = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'];
 
 const FIELD_LIBRARY = [
   { id: 'text', name: 'Short Text', icon: 'fa-font', color: '#3b82f6' },
@@ -365,7 +366,7 @@ function SectionsContent() {
                 <label className="form-label required">Block Name</label>
                 <input
                   type="text" className="form-control" placeholder="e.g. Wellness Spa"
-                  value={editingSection.name}
+                  value={editingSection.name || ''}
                   onChange={e => {
                     setEditingSection({ ...editingSection, name: e.target.value });
                     generateId(e.target.value);
@@ -377,7 +378,7 @@ function SectionsContent() {
                 <label className="form-label">Database Identity (Slug)</label>
                 <input
                   type="text" className="form-control" style={{ background: '#f8fafc', fontFamily: 'monospace' }}
-                  value={editingSection.id}
+                  value={editingSection.id || ''}
                   readOnly={!isNew}
                   onChange={e => setEditingSection({ ...editingSection, id: e.target.value })}
                 />
@@ -446,6 +447,9 @@ function SectionsContent() {
                 <h3 style={{ margin: 0 }}><i className="fas fa-pencil-ruler"></i> Component Blueprint: {sections.find(s => s.id === showComponentDesigner)?.name}</h3>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <a href={`/jana/fast-track?sectionId=${showComponentDesigner}`} style={{ textDecoration: 'none', background: '#10b981', color: '#fff', padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                   <i className="fas fa-bolt"></i> FAST-FILL SECTION
+                </a>
                 <a href="/jana/form-builder" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', background: '#D4AF37', color: '#1e293b', padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                    <i className="fas fa-eye"></i> PREVIEW IN ARCHITECT
                 </a>
@@ -471,7 +475,7 @@ function SectionsContent() {
                       type="text"
                       className="form-control"
                       placeholder="Field Label (e.g. Bed Count)"
-                      value={newFieldLabel}
+                      value={newFieldLabel || ''}
                       onChange={e => setNewFieldLabel(e.target.value)}
                       style={{ fontSize: '0.8rem' }}
                     />
@@ -502,104 +506,69 @@ function SectionsContent() {
                 )}
 
                 <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(212,175,55,0.05)', borderRadius: '8px', border: '1px dashed rgba(212,175,55,0.3)', fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.6 }}>
-                  <i className="fas fa-dna" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
-                  <strong style={{ color: '#D4AF37' }}>DNA fields</strong> (Gallery, Blog, Teaser) are permanent and built-in to every section automatically.
+                  <i className="fas fa-cubes" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
+                  <strong style={{ color: '#D4AF37' }}>Standard fields</strong> (Gallery, Blog, Teaser, Feature Toggle) are auto-created with every new section. Fully editable.
                 </div>
               </div>
 
               {/* Canvas */}
               <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', background: '#fcfcfc' }}>
                 <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1.5rem', letterSpacing: '1px' }}>BLUEPRINT PREVIEW (Click to Edit)</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {/* MASTER DNA GROUP — always rendered statically */}
-                  <div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', marginBottom: '1rem', letterSpacing: '1.5px', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '0.5rem' }}>
-                      <i className="fas fa-dna" style={{ marginRight: '0.5rem' }}></i> MASTER DNA (BUILT-IN · ALWAYS PRESENT)
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {/* ALL FIELDS — unified list, standard + custom treated equally */}
+                  {sectionFields.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '3rem', border: '2px dashed #f1f5f9', borderRadius: '12px', color: '#cbd5e1', fontSize: '0.75rem' }}>
+                      No fields yet. Standard fields will appear when synced.
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {[
-                        { name: 'feature_on_main', label: 'Feature on Main Website',       type: 'checkbox',  icon: 'fa-toggle-on'  },
-                        { name: 'section_news',    label: 'Carousel Cinematic Teaser',      type: 'textarea',  icon: 'fa-align-left' },
-                        { name: 'section_gallery', label: 'Section Gallery (with Captions)',type: 'gallery',   icon: 'fa-images'     },
-                        { name: 'section_blog',    label: 'Master Section Story (Blog)',    type: 'rich_text', icon: 'fa-paragraph'  },
-                      ].map(dna => {
-                        const dbField = sectionFields.find(f => f.name === dna.name);
-                        return (
-                          <div key={dna.name}
-                            style={{
-                              padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              background: 'rgba(212,175,55,0.04)', borderRadius: '10px',
-                              border: inspectingField?.id === dbField?.id ? '2px solid #D4AF37' : '1px solid rgba(212,175,55,0.25)',
-                              cursor: dbField ? 'pointer' : 'default'
-                            }}
-                            onClick={() => dbField && setInspectingField(dbField)}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: '36px', height: '36px', background: 'rgba(212,175,55,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <i className={`fas ${dna.icon}`} style={{ color: '#D4AF37' }}></i>
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>{dna.label}</div>
-                                <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase' }}>{dna.type} · PERMANENT DNA</div>
-                              </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              {dbField
-                                ? <span style={{ fontSize: '0.55rem', background: '#d1fae5', color: '#065f46', padding: '2px 7px', borderRadius: '4px', fontWeight: 900 }}>✓ ACTIVE</span>
-                                : <span style={{ fontSize: '0.55rem', background: '#fef3c7', color: '#92400e', padding: '2px 7px', borderRadius: '4px', fontWeight: 900 }}>NEEDS SYNC</span>
-                              }
-                              <i className="fas fa-lock" style={{ color: '#D4AF37', opacity: 0.4, fontSize: '0.7rem' }}></i>
+                  )}
+                  {sectionFields.map(f => {
+                    const isStandard = STANDARD_FIELD_NAMES.includes(f.name);
+                    const fieldLib = FIELD_LIBRARY.find(d => d.id === f.field_type);
+                    const defIcon = fieldDefs.find(d => d.id === f.field_type);
+                    const iconToUse = fieldLib?.icon || defIcon?.icon || 'fa-cube';
+                    const colorToUse = fieldLib?.color || '#64748b';
+                    return (
+                      <div key={f.id}
+                        style={{
+                          padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          background: isStandard ? 'rgba(212,175,55,0.03)' : '#fff',
+                          borderRadius: '10px',
+                          border: inspectingField?.id === f.id ? '2px solid #D4AF37' : isStandard ? '1px solid rgba(212,175,55,0.2)' : '1px solid #f1f5f9',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => setInspectingField(f)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ width: '36px', height: '36px', background: isStandard ? 'rgba(212,175,55,0.1)' : '#f8fafc', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <i className={`fas ${iconToUse}`} style={{ color: isStandard ? '#D4AF37' : colorToUse }}></i>
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>{f.label}</div>
+                            <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase' }}>
+                              {f.field_type}{isStandard ? ' · STANDARD' : ''}
                             </div>
                           </div>
-                        );
-                      })}
-                      {sectionFields.filter(f => ['feature_on_main','section_news','section_gallery','section_blog'].includes(f.name)).length < 4 && (
-                        <button style={{ background: '#1e293b', color: '#D4AF37', border: 'none', borderRadius: '8px', padding: '0.65rem 1rem', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', width: '100%', marginTop: '0.25rem' }}
-                          onClick={async () => { const r = await fetch('/api/setup/migrate-sections'); if (r.ok) { notify('DNA Sync complete!', 'success'); loadSectionFields(showComponentDesigner!); } }}>
-                          <i className="fas fa-sync" style={{ marginRight: '0.5rem' }}></i> SYNC MISSING DNA FIELDS
-                        </button>
-                      )}
-                  </div>
-                </div>
-
-                {/* CUSTOM EXTENSIONS GROUP */}
-                  <div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1rem', letterSpacing: '1.5px', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
-                      <i className="fas fa-plus-circle" style={{ marginRight: '0.5rem' }}></i> CUSTOM EXTENSIONS (USER ADDED)
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {sectionFields.filter(f => !['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(f.name)).map(f => (
-                        <div key={f.id}
-                          className="studio-glass-panel"
-                          style={{
-                            padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            background: inspectingField?.id === f.id ? '#fff' : '#ffffff',
-                            border: inspectingField?.id === f.id ? '2px solid #D4AF37' : '1px solid #f1f5f9',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setInspectingField(f)}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '32px', height: '32px', background: '#f8fafc', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <i className={`fas ${fieldDefs.find(d => d.id === f.field_type)?.icon || 'fa-cube'}`} style={{ color: '#64748b' }}></i>
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>{f.label}</div>
-                              <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' }}>{f.field_type}</div>
-                            </div>
-                          </div>
-                          <button className="btn btn-xs btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2' }} onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, showComponentDesigner); }}>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {isStandard && (
+                            <span style={{ fontSize: '0.55rem', background: 'rgba(212,175,55,0.08)', color: '#D4AF37', padding: '2px 7px', borderRadius: '4px', fontWeight: 900 }}>STANDARD</span>
+                          )}
+                          <button className="btn btn-xs btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2', padding: '4px 6px' }} onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, showComponentDesigner); }}>
                             <i className="fas fa-times"></i>
                           </button>
                         </div>
-                      ))}
-                      {sectionFields.filter(f => !['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(f.name)).length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed #f1f5f9', borderRadius: '12px', color: '#cbd5e1', fontSize: '0.75rem' }}>
-                          Add custom fields from the library if needed.
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* SYNC BUTTON — if any standard fields are missing, offer to create them */}
+                  {sectionFields.filter(f => STANDARD_FIELD_NAMES.includes(f.name)).length < 4 && (
+                    <button style={{ background: '#1e293b', color: '#D4AF37', border: 'none', borderRadius: '8px', padding: '0.65rem 1rem', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', width: '100%', marginTop: '0.5rem' }}
+                      onClick={async () => { const r = await fetch('/api/setup/migrate-sections'); if (r.ok) { notify('Standard fields synced!', 'success'); loadSectionFields(showComponentDesigner!); } }}>
+                      <i className="fas fa-sync" style={{ marginRight: '0.5rem' }}></i> SYNC MISSING STANDARD FIELDS
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -615,7 +584,7 @@ function SectionsContent() {
                     <label className="form-label" style={{ fontSize: '0.65rem' }}>DISPLAY LABEL</label>
                     <input
                       type="text" className="form-control"
-                      value={inspectingField.label}
+                      value={inspectingField.label || ''}
                       onChange={e => setInspectingField({ ...inspectingField, label: e.target.value })}
                     />
                   </div>
@@ -624,10 +593,8 @@ function SectionsContent() {
                     <label className="form-label" style={{ fontSize: '0.65rem' }}>DATABASE KEY</label>
                     <input
                       type="text" className="form-control"
-                      value={inspectingField.name}
+                      value={inspectingField.name || ''}
                       onChange={e => setInspectingField({ ...inspectingField, name: e.target.value })}
-                      disabled={['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(inspectingField.name)}
-                      style={{ opacity: ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(inspectingField.name) ? 0.5 : 1 }}
                     />
                   </div>
 

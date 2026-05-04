@@ -266,13 +266,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true, deleted: 'all fields for type' });
     }
     if (id) {
-      // PROTECTED FIELDS LOCK: Do not allow deletion of structural DNA
-      const [field] = await query('SELECT name FROM form_fields WHERE id = ?', [id]);
-      const protectedNames = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'];
-      if (field && protectedNames.includes(field.name)) {
-        return NextResponse.json({ error: 'This is a protected structural field and cannot be deleted. You can hide or deactivate it instead.' }, { status: 403 });
-      }
-
+      // Standard fields (including DNA foundation fields) are fully deletable.
+      // DNA fields are auto-created with every new section, so they are always
+      // available as the standard foundation — no need for deletion locks.
       await execute('DELETE FROM form_fields WHERE id = ?', [id]);
       return NextResponse.json({ success: true });
     }

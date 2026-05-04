@@ -101,30 +101,155 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           </div>
         )}
 
-        {field.field_type === 'textarea' || field.field_type === 'richtext' ? (
-          <div style={{ position: 'relative' }}>
-            <textarea
-              className="form-control" 
-              rows={['mini_blog', 'description', 'narrative'].includes(field.name) ? 12 : 6} 
-              value={value}
-              onChange={e => handleChange(e.target.value)} 
-              readOnly={isFieldLocked}
-              placeholder={`Enter the ${field.label.toLowerCase()} content here...`}
-              style={{ fontSize: '1rem', lineHeight: '1.6', padding: '1.5rem', width: '100%', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+        {field.field_type === 'rich_text' || field.field_type === 'richtext' || field.field_type === 'narrative' ? (
+          <div className="rich-text-container" style={{ position: 'relative', background: '#fff', borderRadius: '24px', border: '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+            <div className="editor-toolbar" style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <button onClick={() => document.execCommand('bold')} className="editor-tool-btn" title="Bold"><i className="fas fa-bold"></i></button>
+                  <button onClick={() => document.execCommand('italic')} className="editor-tool-btn" title="Italic"><i className="fas fa-italic"></i></button>
+                  <button onClick={() => document.execCommand('formatBlock', false, 'h3')} className="editor-tool-btn" title="Heading"><i className="fas fa-heading"></i></button>
+                  <button onClick={() => document.execCommand('insertUnorderedList')} className="editor-tool-btn" title="List"><i className="fas fa-list-ul"></i></button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.25rem', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                   {!isFieldLocked && (
+                     <label className="editor-tool-btn" style={{ cursor: 'pointer', color: '#D4AF37' }} title="Insert Image">
+                       <i className="fas fa-image"></i>
+                       <input 
+                         type="file" 
+                         hidden 
+                         accept="image/*" 
+                         onChange={async (e) => {
+                           const file = e.target.files?.[0];
+                           if (!file) return;
+                           const formData = new FormData();
+                           formData.append('file', file);
+                           formData.append('upload_preset', 'siwa_standard'); // Assuming preset exists
+                           try {
+                             const res = await fetch(`https://api.cloudinary.com/v1_1/siwatoday/image/upload`, { method: 'POST', body: formData });
+                             const data = await res.json();
+                             document.execCommand('insertImage', false, data.secure_url);
+                           } catch (err) { console.error("Upload failed", err); }
+                         }}
+                       />
+                     </label>
+                   )}
+                </div>
+
+                <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }}></div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>CINEMATIC NARRATIVE STUDIO</div>
+                
+                {!isFieldLocked && (
+                  <button 
+                    onClick={(e) => {
+                      const editor = e.currentTarget.parentElement?.nextElementSibling as HTMLElement;
+                      if (document.fullscreenElement) document.exitFullscreen();
+                      else editor.requestFullscreen();
+                    }}
+                    style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    <i className="fas fa-expand-arrows-alt" style={{ marginRight: '0.5rem' }}></i> ZEN MODE
+                  </button>
+                )}
+            </div>
+            
+            <div
+              contentEditable={!isFieldLocked}
+              onBlur={e => handleChange(e.currentTarget.innerHTML)}
+              dangerouslySetInnerHTML={{ __html: value || '' }}
+              style={{ 
+                minHeight: '400px', padding: '3rem', fontSize: '1.2rem', lineHeight: '1.8', 
+                color: '#334155', fontFamily: 'Inter, serif', outline: 'none', background: '#fff',
+                overflowY: 'auto'
+              }}
+              className="narrative-canvas"
             />
-            {!isFieldLocked && (
-              <button 
-                onClick={(e) => {
-                  const ta = e.currentTarget.previousElementSibling as HTMLTextAreaElement;
-                  if (document.fullscreenElement) document.exitFullscreen();
-                  else ta.requestFullscreen();
-                }}
-                style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(255,255,255,0.8)', border: '1px solid #eee', borderRadius: '8px', padding: '5px 10px', fontSize: '0.7rem', cursor: 'pointer' }}
-              >
-                <i className="fas fa-expand"></i> ZEN MODE
-              </button>
-            )}
           </div>
+        ) : field.field_type === 'map' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ 
+              height: '180px', background: '#f1f5f9', borderRadius: '16px', overflow: 'hidden', 
+              position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid #e2e8f0'
+            }}>
+              {value && value.includes(',') ? (
+                <iframe
+                  width="100%" height="100%" frameBorder="0" style={{ border: 0 }}
+                  src={`https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_API_KEY&q=${value}`}
+                  allowFullScreen
+                ></iframe>
+              ) : (
+                <div style={{ textAlign: 'center', opacity: 0.5 }}>
+                  <i className="fas fa-map-marked-alt fa-3x" style={{ color: '#D4AF37', marginBottom: '1rem' }}></i>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800 }}>ENTER COORDINATES TO PREVIEW</div>
+                </div>
+              )}
+              {value && (
+                <a 
+                  href={`https://www.google.com/maps?q=${value}`} target="_blank" rel="noopener noreferrer"
+                  style={{ position: 'absolute', bottom: '10px', right: '10px', background: '#fff', padding: '5px 12px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 900, color: '#1e293b', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', textDecoration: 'none' }}
+                >
+                  <i className="fas fa-external-link-alt" style={{ marginRight: '5px' }}></i> OPEN IN GOOGLE MAPS
+                </a>
+              )}
+            </div>
+            <div style={{ position: 'relative' }}>
+              <i className="fas fa-crosshairs" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
+              <input 
+                type="text" className="form-control" placeholder="Latitude, Longitude (e.g. 29.2023, 25.5244)" 
+                value={value || ''} onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+          </div>
+        ) : field.field_type === 'youtube' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ position: 'relative', height: '200px', background: '#000', borderRadius: '16px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {value ? (
+                <img src={`https://img.youtube.com/vi/${value.split('v=')[1]?.split('&')[0] || value.split('/').pop()}/maxresdefault.jpg`} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
+              ) : (
+                <i className="fab fa-youtube fa-4x" style={{ color: '#ff0000' }}></i>
+              )}
+              <div style={{ position: 'absolute', zIndex: 1, textAlign: 'center', color: '#fff' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.7rem', letterSpacing: '2px', marginBottom: '0.5rem' }}>CINEMATIC PREVIEW</div>
+                <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>{value ? 'READY TO STREAM' : 'NO VIDEO LINK'}</div>
+              </div>
+            </div>
+            <input 
+              type="text" className="form-control" placeholder="Paste YouTube URL or ID..." 
+              value={value} onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
+            />
+          </div>
+        ) : field.field_type === 'star_rating' ? (
+          <div style={{ display: 'flex', gap: '0.5rem', padding: '1rem', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            {[1,2,3,4,5].map(star => (
+              <button 
+                key={star}
+                onClick={() => !isFieldLocked && handleChange(star)}
+                style={{ background: 'none', border: 'none', cursor: isFieldLocked ? 'default' : 'pointer', fontSize: '1.5rem', color: star <= (parseInt(value) || 0) ? '#D4AF37' : '#e2e8f0', transition: 'all 0.2s' }}
+              >
+                <i className={`fa${star <= (parseInt(value) || 0) ? 's' : 'r'} fa-star`}></i>
+              </button>
+            ))}
+            <span style={{ marginLeft: '1rem', fontWeight: 800, color: '#64748b', alignSelf: 'center' }}>{value || 0} / 5</span>
+          </div>
+        ) : field.field_type === 'boolean' ? (
+          <label style={{ 
+            display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', 
+            background: value ? 'rgba(34,197,94,0.05)' : '#f8fafc', 
+            borderRadius: '16px', border: value ? '1px solid #22c55e40' : '1px solid #e2e8f0', 
+            cursor: isFieldLocked ? 'default' : 'pointer', transition: 'all 0.3s' 
+          }}>
+            <input 
+              type="checkbox" checked={!!value} 
+              onChange={e => handleChange(e.target.checked)} 
+              disabled={isFieldLocked} 
+              style={{ width: '20px', height: '20px', accentColor: '#22c55e' }}
+            />
+            <span style={{ fontWeight: 800, color: value ? '#166534' : '#64748b', fontSize: '0.85rem' }}>
+              {value ? 'ENABLED / ACTIVE' : 'DISABLED / INACTIVE'}
+            </span>
+          </label>
         ) : isSelect ? (
           <select
             className="form-control" value={value}
@@ -161,47 +286,58 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             })()}
           </div>
         ) : field.field_type === 'gallery' ? (
-          <div className="gallery-manager">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem' }}>
+          <div className="premium-gallery-manager" style={{ background: '#f8fafc', padding: '2rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem' }}>
               {(Array.isArray(value) ? value : []).map((item: any, i: number) => (
-                <div key={i} className="gallery-item-card" style={{ background: '#fff', borderRadius: '8px', border: '1px solid #eee', overflow: 'hidden' }}>
-                  <div style={{ height: '100px', position: 'relative' }}>
+                <div key={i} className="gallery-item-card animate-in" style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <div style={{ height: '140px', position: 'relative' }}>
                     <img src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     {!isFieldLocked && (
                       <button onClick={() => {
                         const next = [...value]; next.splice(i, 1); handleChange(next);
-                      }} style={{ position: 'absolute', top: 5, right: 5, background: 'red', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20 }}>×</button>
+                      }} style={{ position: 'absolute', top: 10, right: 10, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(239,68,68,0.3)' }}>
+                        <i className="fas fa-trash-alt" style={{ fontSize: '0.8rem' }}></i>
+                      </button>
                     )}
+                    <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800 }}>
+                      SLIDE {i + 1}
+                    </div>
                   </div>
-                  <div style={{ padding: '0.5rem' }}>
-                    <input
-                      type="text" placeholder="Caption..." value={item.caption || ''}
+                  <div style={{ padding: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', marginBottom: '0.4rem', letterSpacing: '0.5px' }}>SLIDE CAPTION</label>
+                    <textarea
+                      placeholder="Story for this slide..." value={item.caption || ''}
                       onChange={e => {
                         const next = [...value]; next[i] = { ...item, caption: e.target.value };
                         handleChange(next);
                       }}
                       readOnly={isFieldLocked}
-                      style={{ width: '100%', fontSize: '0.7rem', border: 'none', outline: 'none' }}
+                      style={{ width: '100%', fontSize: '0.8rem', border: 'none', outline: 'none', background: '#fcfcfc', borderRadius: '8px', padding: '0.5rem', resize: 'none', minHeight: '60px', color: '#475569', fontWeight: 600 }}
                     />
                   </div>
                 </div>
               ))}
               {!isFieldLocked && (
-                <label className="upload-btn" style={{ 
-                  height: '135px', border: '2px dashed #ccc', display: 'flex', 
+                <label className="upload-dropzone hover-lift" style={{ 
+                  height: '240px', border: '2px dashed #D4AF3740', display: 'flex', 
                   flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                  cursor: 'pointer', borderRadius: '8px', gap: '0.5rem',
-                  background: '#f8fafc', transition: 'all 0.2s'
+                  cursor: 'pointer', borderRadius: '20px', gap: '1rem',
+                  background: 'rgba(212,175,55,0.03)', transition: 'all 0.3s'
                 }}>
-                   <i className="fas fa-images fa-2x" style={{ opacity: 0.3 }}></i>
-                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>BATCH UPLOAD</span>
+                   <div style={{ width: 60, height: 60, background: 'rgba(212,175,55,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                     <i className="fas fa-cloud-upload-alt fa-2x"></i>
+                   </div>
+                   <div style={{ textAlign: 'center' }}>
+                     <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>UPLOAD MEDIA</div>
+                     <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.25rem' }}>JPEG, PNG, WEBP (MAX 10MB)</div>
+                   </div>
                    <input type="file" multiple style={{ display: 'none' }} onChange={async (e) => {
                      const files = Array.from(e.target.files || []); if (files.length === 0) return;
                      
-                     const btn = e.target.parentElement;
-                     if (btn) {
-                       btn.style.opacity = '0.5';
-                       btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span style="font-size: 0.6rem">UPLOADING ${files.length}...</span>`;
+                     const dropzone = e.target.parentElement;
+                     if (dropzone) {
+                       dropzone.style.opacity = '0.5';
+                       dropzone.innerHTML = `<i class="fas fa-circle-notch fa-spin fa-2x" style="color: #D4AF37"></i><div style="font-weight: 900; font-size: 0.7rem; color: #1e293b">UPLOADING ${files.length}...</div>`;
                      }
 
                      try {
@@ -216,9 +352,9 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                      } catch (err) {
                        console.error("Batch upload failed", err);
                      } finally {
-                       if (btn) {
-                         btn.style.opacity = '1';
-                         btn.innerHTML = '<i class="fas fa-images fa-2x" style="opacity: 0.3"></i><span style="font-size: 0.7rem; font-weight: 700; color: #64748b">BATCH UPLOAD</span>';
+                       if (dropzone) {
+                         dropzone.style.opacity = '1';
+                         dropzone.innerHTML = `<div style="width: 60px; height: 60px; background: rgba(212,175,55,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #D4AF37"><i class="fas fa-cloud-upload-alt fa-2x"></i></div><div style="text-align: center"><div style="font-size: 0.8rem; font-weight: 900; color: #1e293b">UPLOAD MEDIA</div><div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.25rem">JPEG, PNG, WEBP (MAX 10MB)</div></div><input type="file" multiple style={{ display: 'none' }} />`;
                        }
                      }
                    }} />

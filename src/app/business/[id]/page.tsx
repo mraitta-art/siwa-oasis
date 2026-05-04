@@ -11,6 +11,13 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
   const [biz, setBiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeSections, setActiveSections] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeSections.length > 0 && !activeTab) {
+      setActiveTab(activeSections[0].id);
+    }
+  }, [activeSections, activeTab]);
 
   useEffect(() => {
     async function loadData() {
@@ -58,10 +65,19 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>{biz.name.toUpperCase()}</div>
           <div style={{ display: 'flex', gap: '2rem' }}>
-            {activeSections.slice(0, 5).map(s => (
-              <a key={s.id} href={`#${s.id}`} style={{ textDecoration: 'none', color: '#64748b', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px' }}>
+            {activeSections.map(s => (
+              <button 
+                key={s.id} 
+                onClick={() => setActiveTab(s.id)}
+                style={{ 
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: activeTab === s.id ? '#D4AF37' : '#64748b', 
+                  fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1px',
+                  borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
+                  paddingBottom: '0.5rem', transition: 'all 0.3s'
+                }}>
                 {s.name.toUpperCase()}
-              </a>
+              </button>
             ))}
           </div>
           <Link href="/" className="btn btn-sm btn-outline gold-border">SIWA TODAY</Link>
@@ -97,66 +113,153 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
           /* FALLBACK: Original Automatic Section Rendering */
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '4rem' }}>
             <main>
-              {activeSections.map(section => {
+              {activeSections.filter(s => s.id === activeTab).map(section => {
                 const secData = data[section.id];
-                if (!secData) return null;
+                if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {section.name}.</div>;
 
                 return (
-                  <section key={section.id} id={section.id} style={{ marginBottom: '6rem', scrollMarginTop: '100px' }}>
+                  <section key={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                       <div style={{ width: '48px', height: '48px', background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
                         <i className={`fas ${section.icon || 'fa-layer-group'}`}></i>
                       </div>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#1e293b' }}>{section.name}</h2>
                         <div style={{ height: '3px', width: '40px', background: '#D4AF37', marginTop: '0.5rem' }}></div>
                       </div>
                     </div>
 
-                    {secData.mini_blog ? (
-                      <div 
-                        className="rich-content" 
-                        dangerouslySetInnerHTML={{ __html: secData.mini_blog }} 
-                        style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }}
-                      />
-                    ) : (
-                      <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
-                        {secData.section_news || secData.description || `Experience the finest of ${section.name} at our establishment.`}
-                      </div>
-                    )}
+                    <div>
+                        {secData.section_blog ? (
+                          <div 
+                            className="rich-content" 
+                            dangerouslySetInnerHTML={{ __html: secData.section_blog }} 
+                            style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }}
+                          />
+                        ) : secData.mini_blog ? (
+                          <div 
+                            className="rich-content" 
+                            dangerouslySetInnerHTML={{ __html: secData.mini_blog }} 
+                            style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
+                            {secData.section_news || secData.description || `Experience the finest of ${section.name} at our establishment.`}
+                          </div>
+                        )}
 
-                    {/* Secondary Data Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                      {Object.entries(secData).map(([key, val]) => {
-                        if (['section_news', 'section_gallery', 'mini_blog'].includes(key)) return null;
-                        return (
-                          <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{key.replace('_', ' ').toUpperCase()}</div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>
-                              {Array.isArray(val) ? val.join(', ') : String(val)}
+                        {/* Secondary Data Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                          {Object.entries(secData).map(([key, val]) => {
+                            if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description'].includes(key)) return null;
+                            return (
+                              <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{key.replace('_', ' ').toUpperCase()}</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>
+                                  {Array.isArray(val) ? val.join(', ') : String(val)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Local Gallery (If not handled by hero) */}
+                        {secData.section_gallery && Array.isArray(secData.section_gallery) && (
+                          <div style={{ marginTop: '2.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                              {secData.section_gallery.map((item: any, i: number) => {
+                                const imgUrl = typeof item === 'object' ? item.url : item;
+                                const caption = typeof item === 'object' ? item.caption : '';
+                                return (
+                                  <div key={i} style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ height: '180px', overflow: 'hidden' }}>
+                                      <img 
+                                        src={imgUrl} 
+                                        alt={caption || `${section.name} gallery ${i + 1}`} 
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }} 
+                                      />
+                                    </div>
+                                    {caption && (
+                                      <div style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', color: '#475569', fontWeight: 600, lineHeight: 1.5, borderTop: '1px solid #f8fafc' }}>
+                                        {caption}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                        );
-                      })}
+                        )}
                     </div>
-
-                    {/* Local Gallery (If not handled by hero) */}
-                    {secData.section_gallery && Array.isArray(secData.section_gallery) && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '2.5rem' }}>
-                        {secData.section_gallery.map((item: any, i: number) => (
-                          <div key={i} style={{ height: '150px', borderRadius: '12px', overflow: 'hidden' }}>
-                            <img 
-                              src={typeof item === 'object' ? item.url : item} 
-                              alt={`${section.name} gallery`} 
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </section>
                 );
               })}
+
+              {/* RELATED STORIES — Accumulated Section Blogs */}
+              {(() => {
+                const stories = activeSections
+                  .filter(s => {
+                    const sd = data[s.id];
+                    return sd && (sd.section_blog || sd.mini_blog);
+                  })
+                  .map(s => ({
+                    sectionId: s.id,
+                    sectionName: s.name,
+                    sectionIcon: s.icon,
+                    content: data[s.id].section_blog || data[s.id].mini_blog,
+                    image: Array.isArray(data[s.id].section_gallery) && data[s.id].section_gallery[0]
+                      ? (typeof data[s.id].section_gallery[0] === 'object' ? data[s.id].section_gallery[0].url : data[s.id].section_gallery[0])
+                      : null
+                  }));
+
+                if (stories.length === 0) return null;
+
+                return (
+                  <section style={{ marginTop: '4rem', scrollMarginTop: '100px' }} id="stories">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+                      <div style={{ width: '48px', height: '48px', background: '#1e293b', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                        <i className="fas fa-newspaper"></i>
+                      </div>
+                      <div>
+                        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#1e293b' }}>Related Stories</h2>
+                        <div style={{ height: '3px', width: '40px', background: '#D4AF37', marginTop: '0.5rem' }}></div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                      {stories.map(story => (
+                        <Link key={story.sectionId} href={`/business/${id}/stories/${story.sectionId}`}
+                          style={{
+                            background: '#fff', borderRadius: '20px', overflow: 'hidden',
+                            border: '1px solid #f1f5f9', textDecoration: 'none', color: 'inherit',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.04)', transition: 'all 0.3s',
+                            display: 'flex', flexDirection: 'column'
+                          }}
+                        >
+                          {story.image && (
+                            <div style={{ height: '160px', overflow: 'hidden' }}>
+                              <img src={story.image} alt={story.sectionName}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                          )}
+                          <div style={{ padding: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                              <i className={`fas ${story.sectionIcon || 'fa-feather'}`} style={{ color: '#D4AF37', fontSize: '0.8rem' }}></i>
+                              <span style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '1px', color: '#D4AF37', textTransform: 'uppercase' }}>{story.sectionName}</span>
+                            </div>
+                            <h4 style={{ margin: '0 0 0.5rem', fontWeight: 800, fontSize: '1rem', color: '#1e293b' }}>
+                              {biz.name}: {story.sectionName}
+                            </h4>
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+                              {story.content.replace(/<[^>]*>/g, '').substring(0, 120)}...
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })()}
             </main>
             
             <aside>

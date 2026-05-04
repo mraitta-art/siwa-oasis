@@ -125,6 +125,17 @@ export default function BusinessTypesPage() {
     setEditingType({ ...editingType, sections: updated });
   };
 
+  const moveSection = (index: number, direction: 'up' | 'down') => {
+    if (!editingType || !editingType.sections) return;
+    const current = [...editingType.sections];
+    if (direction === 'up' && index > 0) {
+      [current[index - 1], current[index]] = [current[index], current[index - 1]];
+    } else if (direction === 'down' && index < current.length - 1) {
+      [current[index + 1], current[index]] = [current[index], current[index + 1]];
+    }
+    setEditingType({ ...editingType, sections: current });
+  };
+
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
 
   return (
@@ -200,7 +211,7 @@ export default function BusinessTypesPage() {
                 <label className="form-label required">Display Name</label>
                 <input 
                   type="text" className="form-control" placeholder="e.g. Siwa Eco Lodge" 
-                  value={editingType.name} 
+                  value={editingType.name || ''} 
                   onChange={e => {
                     setEditingType({...editingType, name: e.target.value});
                     generateId(e.target.value);
@@ -212,7 +223,7 @@ export default function BusinessTypesPage() {
                 <label className="form-label">Database ID (Auto-Generated)</label>
                 <input 
                   type="text" className="form-control" style={{ background: '#f8fafc', fontFamily: 'monospace' }} 
-                  value={editingType.id} 
+                  value={editingType.id || ''} 
                   readOnly={!isNew}
                   onChange={e => setEditingType({...editingType, id: e.target.value})} 
                 />
@@ -253,14 +264,44 @@ export default function BusinessTypesPage() {
               </div>
 
               <div style={{ marginTop: '2rem' }}>
-                <label className="form-label">Data Section Inheritance (Presets)</label>
-                <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  {sections.map(s => (
-                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.25rem 0', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={editingType.sections?.includes(s.id)} onChange={() => toggleSection(s.id)} />
-                      <span style={{ fontSize: '0.8rem' }}>{s.name} <small style={{ color: '#9ca3af' }}>({s.id})</small></span>
-                    </label>
-                  ))}
+                <label className="form-label">Data Section Inheritance (Check to Add)</label>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  {/* Left: Available Sections to Check */}
+                  <div style={{ flex: 1, maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    {sections.map(s => (
+                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={editingType.sections?.includes(s.id)} onChange={() => toggleSection(s.id)} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: editingType.sections?.includes(s.id) ? 800 : 400, color: editingType.sections?.includes(s.id) ? '#D4AF37' : '#1e293b' }}>
+                          {s.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Right: Ordered Selected Sections */}
+                  <div style={{ flex: 1, maxHeight: '200px', overflowY: 'auto', background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid #D4AF37', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', marginBottom: '1rem', letterSpacing: '1px' }}>DNA SEQUENCE (LEFT TO RIGHT)</div>
+                    {(editingType.sections || []).length === 0 ? (
+                       <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Check sections on the left to add them to the sequence.</div>
+                    ) : (
+                      (editingType.sections || []).map((secId, index) => {
+                        const sec = sections.find(s => s.id === secId);
+                        if (!sec) return null;
+                        return (
+                          <div key={secId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', marginBottom: '0.4rem', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ background: '#1e293b', color: '#fff', fontSize: '0.6rem', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>{index + 1}</div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b' }}>{sec.name}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.2rem' }}>
+                              <button type="button" onClick={() => moveSection(index, 'up')} disabled={index === 0} style={{ border: 'none', background: 'none', cursor: index === 0 ? 'not-allowed' : 'pointer', color: index === 0 ? '#cbd5e1' : '#64748b' }}><i className="fas fa-chevron-up"></i></button>
+                              <button type="button" onClick={() => moveSection(index, 'down')} disabled={index === (editingType.sections || []).length - 1} style={{ border: 'none', background: 'none', cursor: index === (editingType.sections || []).length - 1 ? 'not-allowed' : 'pointer', color: index === (editingType.sections || []).length - 1 ? '#cbd5e1' : '#64748b' }}><i className="fas fa-chevron-down"></i></button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

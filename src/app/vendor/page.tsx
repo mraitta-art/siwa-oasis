@@ -21,6 +21,8 @@ interface Section {
   fields: Field[];
 }
 
+import DynamicForm from '@/components/DynamicForm';
+
 export default function VendorStudio() {
   const notify = (msg: string, type: string = 'info') => console.log(type, msg);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ export default function VendorStudio() {
       const initialData: Record<string, any> = {};
       data.structure.forEach((s: Section) => {
         initialData[s.id] = {};
-        s.fields.forEach((f: Field) => {
+        s.fields.forEach((f: any) => {
           initialData[s.id][f.name] = f.value;
         });
       });
@@ -93,6 +95,9 @@ export default function VendorStudio() {
   if (loading) return <div className="studio-loader">Preparing your Storyteller Studio...</div>;
 
   const currentSection = sections.find(s => s.id === activeSection);
+  
+  // Flatten fields for DynamicForm
+  const allFields = sections.flatMap(s => s.fields.map(f => ({ ...f, section_id: s.id })));
 
   return (
     <div className="studio-container">
@@ -143,59 +148,13 @@ export default function VendorStudio() {
 
         <section className="editor-canvas">
           <div className="form-stack">
-            {currentSection?.fields.map(f => (
-              <div key={f.id} className="field-group">
-                <div className="field-label-row">
-                  <label>{f.label}</label>
-                  {f.help_text && <span className="help-icon" title={f.help_text}>?</span>}
-                </div>
-
-                {/* DYNAMIC FIELD RENDERING */}
-                {f.field_type === 'textarea' || f.field_type === 'rich_text' ? (
-                  <textarea 
-                    className="studio-input"
-                    value={formData[activeSection!]?.[f.name] || ''}
-                    onChange={(e) => handleInputChange(activeSection!, f.name, e.target.value)}
-                    placeholder={`Tell your story for ${f.label.toLowerCase()}...`}
-                    rows={8}
-                  />
-                ) : f.field_type === 'gallery' ? (
-                  <div className="gallery-placeholder">
-                    <i className="fas fa-images"></i>
-                    <p>Gallery system integrated. Click to manage images.</p>
-                    <input 
-                       type="text" 
-                       className="studio-input" 
-                       placeholder="Paste image URLs separated by comma (for now)" 
-                       value={formData[activeSection!]?.[f.name] || ''}
-                       onChange={(e) => handleInputChange(activeSection!, f.name, e.target.value)}
-                    />
-                  </div>
-                ) : f.field_type === 'checkbox' ? (
-                  <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      checked={formData[activeSection!]?.[f.name] === 'true' || formData[activeSection!]?.[f.name] === true}
-                      onChange={(e) => handleInputChange(activeSection!, f.name, e.target.checked)}
-                    />
-                    <span className="slider"></span>
-                  </label>
-                ) : (
-                  <input 
-                    type="text" 
-                    className="studio-input"
-                    value={formData[activeSection!]?.[f.name] || ''}
-                    onChange={(e) => handleInputChange(activeSection!, f.name, e.target.value)}
-                  />
-                )}
-                
-                {['section_news', 'section_gallery', 'section_blog'].includes(f.name) && (
-                  <div className="dna-badge">
-                    <i className="fas fa-dna"></i> PLATFORM NARRATIVE DNA
-                  </div>
-                )}
-              </div>
-            ))}
+            <DynamicForm 
+              fields={allFields.filter(f => f.section_id === activeSection)}
+              data={formData}
+              onChange={handleInputChange}
+              userRole="vendor"
+              sections={sections}
+            />
           </div>
         </section>
       </main>

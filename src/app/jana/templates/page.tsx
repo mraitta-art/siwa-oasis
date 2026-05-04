@@ -136,7 +136,7 @@ export default function TemplateArchitect() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>TEMPLATE ID (No spaces)</label>
                 <input 
-                  value={editingTemplate.id} 
+                  value={editingTemplate.id || ''} 
                   onChange={e => setEditingTemplate({...editingTemplate, id: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
                   placeholder="e.g. hotel_premium"
                   style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '2px solid #e2e8f0', outline: 'none' }}
@@ -145,7 +145,7 @@ export default function TemplateArchitect() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>PUBLIC NAME</label>
                 <input 
-                  value={editingTemplate.name} 
+                  value={editingTemplate.name || ''} 
                   onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})}
                   placeholder="e.g. Eco-Resort Premium Template"
                   style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '2px solid #e2e8f0', outline: 'none' }}
@@ -175,7 +175,7 @@ export default function TemplateArchitect() {
                           {c.type === 'hero_carousel' && (
                             <input 
                               placeholder="Carousel Name (e.g. home_hero)" 
-                              value={c.props?.carouselName}
+                              value={c.props?.carouselName || ''}
                               onChange={e => {
                                 const newLayout = [...(editingTemplate.layout || [])];
                                 newLayout[i].props.carouselName = e.target.value;
@@ -216,7 +216,7 @@ export default function TemplateArchitect() {
                     <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', cursor: 'pointer' }}>
                       <input 
                         type="checkbox" 
-                        checked={editingTemplate.features?.[f.id]} 
+                        checked={!!editingTemplate.features?.[f.id]} 
                         onChange={e => setEditingTemplate({
                           ...editingTemplate, 
                           features: { ...editingTemplate.features, [f.id]: e.target.checked }

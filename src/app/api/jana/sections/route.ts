@@ -27,8 +27,12 @@ export async function GET(request: NextRequest) {
       if (sectionIds.length === 0) return NextResponse.json([]);
 
       const placeholders = sectionIds.map(() => '?').join(',');
-      const sections = await query(`SELECT * FROM sections WHERE id IN (${placeholders}) ORDER BY display_order ASC`, sectionIds);
-      return NextResponse.json(sections);
+      const sections = await query(`SELECT * FROM sections WHERE id IN (${placeholders})`, sectionIds);
+      
+      // Enforce DNA Order: Sort sections exactly as they are ordered in the parent's JSON array
+      const sortedSections = sections.sort((a: any, b: any) => sectionIds.indexOf(a.id) - sectionIds.indexOf(b.id));
+      
+      return NextResponse.json(sortedSections);
     }
 
     // 2. Otherwise, require admin to see all sections
@@ -54,8 +58,8 @@ export async function POST(request: NextRequest) {
 
     // --- AUTO-GENESIS: Materialize DNA Fields ---
     const structuralFields = [
-      { name: 'feature_on_main', label: 'FEATURE ON MAIN WEBSITE', type: 'checkbox', order: -3, help: 'Toggle this to promote to homepage.' },
-      { name: 'section_news', label: 'Carousel Cinematic Teaser (Mini-Blog)', type: 'textarea', order: -2, help: 'Short text for carousel captions.' },
+      { name: 'feature_on_main', label: 'FEATURE ON MAIN WEBSITE', type: 'boolean', order: -3, help: 'Toggle this to promote to homepage.' },
+      { name: 'section_news', label: 'Carousel Cinematic Teaser', type: 'text', order: -2, help: 'Short text for carousel captions.' },
       { name: 'section_gallery', label: 'Section Gallery (Serialized Captions)', type: 'gallery', order: -1, help: 'Section photos with captions.' },
       { name: 'section_blog', label: 'Master Section Story (Rich Text)', type: 'rich_text', order: 1, help: 'Full rich-text story for this section.' }
     ];

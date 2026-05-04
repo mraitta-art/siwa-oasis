@@ -35,6 +35,14 @@ export default async function AdminDashboardPage() {
         <a href="/jana/orchestrator" className="btn btn-primary" style={{ padding: '0.75rem 2rem', textDecoration: 'none', fontWeight: 800 }}>LAUNCH WIZARD</a>
       </div>
 
+      <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', padding: '1.5rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+           <h3 style={{ margin: 0, fontWeight: 900 }}><i className="fas fa-bolt"></i> FAST-TRACK STUDIO</h3>
+           <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9, fontSize: '0.85rem' }}>The high-speed bridge between architecture and live minisite generation.</p>
+        </div>
+        <a href="/jana/fast-track" className="btn" style={{ padding: '0.75rem 2rem', textDecoration: 'none', fontWeight: 800, background: '#fff', color: '#059669', borderRadius: '0.5rem' }}>OPEN STUDIO</a>
+      </div>
+
       <div style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', padding: '1.5rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
            <h3 style={{ margin: 0, fontWeight: 900 }}><i className="fas fa-tools"></i> SIMPLE FORM BUILDER</h3>
