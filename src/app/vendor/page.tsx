@@ -2,7 +2,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
-import { useAdmin } from '@/context/AdminContext';
 import Link from 'next/link';
 
 interface Field {
@@ -23,7 +22,7 @@ interface Section {
 }
 
 export default function VendorStudio() {
-  const { notify } = useAdmin();
+  const notify = (msg: string, type: string = 'info') => console.log(type, msg);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [business, setBusiness] = useState<any>(null);
