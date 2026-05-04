@@ -329,12 +329,16 @@ export default function FormArchitectPage() {
                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Define the architectural fields for this DNA section.</p>
                </div>
                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                 <button 
-                   onClick={() => setShowPreview(true)}
-                   style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', border: 'none', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-                 >
-                   <i className="fas fa-eye"></i> PREVIEW
-                 </button>
+                  <button 
+                    onClick={() => setShowPreview(true)}
+                    style={{ 
+                      padding: '0.85rem 1.5rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', 
+                      fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      boxShadow: '0 4px 12px rgba(30,41,59,0.2)', transition: 'all 0.2s'
+                    }}
+                  >
+                    <i className="fas fa-eye" style={{ color: '#D4AF37' }}></i> PREVIEW
+                  </button>
                  <button 
                    onClick={async () => {
                      if (window.confirm('Inject Gold Standards for this industry?')) {
