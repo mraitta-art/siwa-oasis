@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
 
       // Combine both sections and own_sections arrays
       const sectionIds = [
-        ...JSON.parse(typeData.sections || '[]'),
-        ...JSON.parse(typeData.own_sections || '[]')
+        ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
+        ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
       ];
       
       if (sectionIds.length === 0) return NextResponse.json([]);
