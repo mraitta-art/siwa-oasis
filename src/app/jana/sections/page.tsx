@@ -503,35 +503,56 @@ function SectionsContent() {
               <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', background: '#fcfcfc' }}>
                 <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1.5rem', letterSpacing: '1px' }}>BLUEPRINT PREVIEW (Click to Edit)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {/* MASTER DNA GROUP */}
+                  {/* MASTER DNA GROUP — always rendered statically */}
                   <div>
                     <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', marginBottom: '1rem', letterSpacing: '1.5px', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '0.5rem' }}>
-                      <i className="fas fa-dna" style={{ marginRight: '0.5rem' }}></i> MASTER DNA (BUILT-IN)
+                      <i className="fas fa-dna" style={{ marginRight: '0.5rem' }}></i> MASTER DNA (BUILT-IN · ALWAYS PRESENT)
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {sectionFields.filter(f => ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(f.name)).map(f => (
-                        <div key={f.id}
-                          className="studio-glass-panel"
-                          style={{
-                            padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            background: 'rgba(212, 175, 55, 0.03)',
-                            border: inspectingField?.id === f.id ? '2px solid #D4AF37' : '1px solid rgba(212, 175, 55, 0.2)',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setInspectingField(f)}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '32px', height: '32px', background: 'rgba(212, 175, 55, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <i className="fas fa-dna" style={{ color: '#D4AF37', fontSize: '0.8rem' }}></i>
+                      {[
+                        { name: 'feature_on_main', label: 'Feature on Main Website',       type: 'checkbox',  icon: 'fa-toggle-on'  },
+                        { name: 'section_news',    label: 'Carousel Cinematic Teaser',      type: 'textarea',  icon: 'fa-align-left' },
+                        { name: 'section_gallery', label: 'Section Gallery (with Captions)',type: 'gallery',   icon: 'fa-images'     },
+                        { name: 'section_blog',    label: 'Master Section Story (Blog)',    type: 'rich_text', icon: 'fa-paragraph'  },
+                      ].map(dna => {
+                        const dbField = sectionFields.find(f => f.name === dna.name);
+                        return (
+                          <div key={dna.name}
+                            style={{
+                              padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              background: 'rgba(212,175,55,0.04)', borderRadius: '10px',
+                              border: inspectingField?.id === dbField?.id ? '2px solid #D4AF37' : '1px solid rgba(212,175,55,0.25)',
+                              cursor: dbField ? 'pointer' : 'default'
+                            }}
+                            onClick={() => dbField && setInspectingField(dbField)}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div style={{ width: '36px', height: '36px', background: 'rgba(212,175,55,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className={`fas ${dna.icon}`} style={{ color: '#D4AF37' }}></i>
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>{dna.label}</div>
+                                <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase' }}>{dna.type} · PERMANENT DNA</div>
+                              </div>
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>{f.label}</div>
-                              <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' }}>{f.field_type} • PERMANENT DNA</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {dbField
+                                ? <span style={{ fontSize: '0.55rem', background: '#d1fae5', color: '#065f46', padding: '2px 7px', borderRadius: '4px', fontWeight: 900 }}>✓ ACTIVE</span>
+                                : <span style={{ fontSize: '0.55rem', background: '#fef3c7', color: '#92400e', padding: '2px 7px', borderRadius: '4px', fontWeight: 900 }}>NEEDS SYNC</span>
+                              }
+                              <i className="fas fa-lock" style={{ color: '#D4AF37', opacity: 0.4, fontSize: '0.7rem' }}></i>
                             </div>
                           </div>
-                          <div style={{ color: '#D4AF37', opacity: 0.5 }}><i className="fas fa-lock"></i></div>
-                        </div>
-                      ))}
+                        );
+                      })}
+                      {sectionFields.filter(f => ['feature_on_main','section_news','section_gallery','section_blog'].includes(f.name)).length < 4 && (
+                        <button style={{ background: '#1e293b', color: '#D4AF37', border: 'none', borderRadius: '8px', padding: '0.65rem 1rem', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', width: '100%', marginTop: '0.25rem' }}
+                          onClick={async () => { const r = await fetch('/api/setup/migrate-sections'); if (r.ok) { notify('DNA Sync complete!', 'success'); loadSectionFields(showComponentDesigner!); } }}>
+                          <i className="fas fa-sync" style={{ marginRight: '0.5rem' }}></i> SYNC MISSING DNA FIELDS
+                        </button>
+                      )}
+                    </div>
+                  </div>
                     </div>
                   </div>
 
