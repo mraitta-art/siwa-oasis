@@ -241,62 +241,79 @@ function SectionsContent() {
 
       <div className="grid-2" style={{ marginTop: '2rem' }}>
         {sections.map(s => (
-          <div key={s.id} className="card h-full" style={{ borderLeft: `4px solid ${s.is_universal ? '#10b981' : '#D4AF37'}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', position: 'relative' }}>
-            <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '45px', height: '45px', background: '#f3f4f6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', color: '#1a1a2e' }}>
+          <div key={s.id} className="card h-full" 
+            style={{ 
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderTop: `4px solid ${s.is_universal ? '#D4AF37' : '#1e293b'}`, 
+              boxShadow: '0 4px 20px -5px rgba(0,0,0,0.05)', 
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              borderRadius: '16px',
+              overflow: 'hidden'
+            }}>
+            
+            {s.is_universal && (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <i className="fas fa-dna"></i> MASTER DNA
+              </div>
+            )}
+
+            <div style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <div style={{ 
+                    width: '50px', height: '50px', 
+                    background: s.is_universal ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : '#f8fafc', 
+                    borderRadius: '14px', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                    fontSize: '1.4rem', 
+                    color: s.is_universal ? '#D4AF37' : '#1e293b',
+                    boxShadow: s.is_universal ? '0 10px 15px -3px rgba(0,0,0,0.2)' : 'none'
+                  }}>
                     <i className={`fas ${s.icon}`}></i>
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, color: '#1a1a2e' }}>{s.name}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>ID: {s.id}</div>
+                    <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.1rem', letterSpacing: '-0.5px' }}>{s.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>BLOCK_ID: {s.id}</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <button className="btn btn-xs btn-outline" onClick={() => openEditor(s)}><i className="fas fa-edit"></i></button>
-                  <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteSection(s.id)}><i className="fas fa-trash"></i></button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-xs btn-outline" style={{ border: 'none', background: '#f8fafc' }} onClick={() => openEditor(s)}><i className="fas fa-cog" style={{ color: '#64748b' }}></i></button>
+                  <button className="btn btn-xs btn-outline" style={{ border: 'none', background: '#fef2f2' }} onClick={() => deleteSection(s.id)}><i className="fas fa-trash" style={{ color: '#ef4444' }}></i></button>
                 </div>
               </div>
 
-              {/* ACTIONABLE ASSIGN BUTTON (WIZARD ONLY) */}
-              {typeId && (
-                <button
-                  className="btn btn-sm btn-primary"
-                  style={{ width: '100%', marginTop: '1rem', background: '#0f172a', borderColor: '#0f172a' }}
-                  onClick={() => assignAndReturn(s.id)}
-                >
-                  <i className="fas fa-check-circle" style={{ marginRight: '0.5rem' }}></i> SELECT & ASSIGN
-                </button>
-              )}
-
-              <div className="governance-matrix" style={{ marginTop: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                <div title="Mandatory" style={{ fontSize: '0.65rem', padding: '0.4rem', borderRadius: '4px', background: s.required ? '#fee2e2' : '#f3f4f6', color: s.required ? '#991b1b' : '#6b7280', textAlign: 'center' }}>
-                  <i className={`fas ${s.required ? 'fa-lock' : 'fa-lock-open'}`}></i> REQ
+              <div className="governance-matrix" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                <div title="Mandatory" style={{ fontSize: '0.65rem', padding: '0.6rem', borderRadius: '8px', background: s.required ? 'rgba(239, 68, 68, 0.05)' : '#f8fafc', color: s.required ? '#ef4444' : '#94a3b8', textAlign: 'center', border: s.required ? '1px solid rgba(239, 68, 68, 0.1)' : '1px solid #f1f5f9', fontWeight: 800 }}>
+                  <i className={`fas ${s.required ? 'fa-lock' : 'fa-lock-open'}`} style={{ marginRight: '4px' }}></i> REQ
                 </div>
-                <div title="Vendor Editable" style={{ fontSize: '0.65rem', padding: '0.4rem', borderRadius: '4px', background: s.vendor_editable ? '#d1fae5' : '#fef3c7', color: s.vendor_editable ? '#065f46' : '#92400e', textAlign: 'center' }}>
-                  <i className={`fas ${s.vendor_editable ? 'fa-edit' : 'fa-user-shield'}`}></i> {s.vendor_editable ? 'VNDR' : 'ADM'}
+                <div title="Vendor Editable" style={{ fontSize: '0.65rem', padding: '0.6rem', borderRadius: '8px', background: s.vendor_editable ? 'rgba(16, 185, 129, 0.05)' : '#f8fafc', color: s.vendor_editable ? '#10b981' : '#94a3b8', textAlign: 'center', border: s.vendor_editable ? '1px solid rgba(16, 185, 129, 0.1)' : '1px solid #f1f5f9', fontWeight: 800 }}>
+                  <i className={`fas ${s.vendor_editable ? 'fa-user-edit' : 'fa-user-shield'}`} style={{ marginRight: '4px' }}></i> {s.vendor_editable ? 'VNDR' : 'ADM'}
                 </div>
-                <div title="Public Visibility" style={{ fontSize: '0.65rem', padding: '0.4rem', borderRadius: '4px', background: s.show_on_public ? '#dbeafe' : '#f3f4f6', color: s.show_on_public ? '#1e40af' : '#6b7280', textAlign: 'center' }}>
-                  <i className={`fas ${s.show_on_public ? 'fa-eye' : 'fa-eye-slash'}`}></i> PUB
-                </div>
-                <div title="Search Filter" style={{ fontSize: '0.65rem', padding: '0.4rem', borderRadius: '4px', background: s.is_filterable ? '#ede9fe' : '#f3f4f6', color: s.is_filterable ? '#5b21b6' : '#6b7280', textAlign: 'center' }}>
-                  <i className="fas fa-search"></i> FLTR
-                </div>
-                <div title="Show on Card" style={{ fontSize: '0.65rem', padding: '0.4rem', borderRadius: '4px', background: s.show_on_card ? '#fae8ff' : '#f3f4f6', color: s.show_on_card ? '#86198f' : '#6b7280', textAlign: 'center' }}>
-                  <i className="fas fa-id-card"></i> CARD
-                </div>
-                <div title="Universal Usage" style={{ fontSize: '0.65rem', padding: '0.4rem', borderRadius: '4px', background: s.is_universal ? '#ecfdf5' : '#f3f4f6', color: s.is_universal ? '#065f46' : '#6b7280', textAlign: 'center' }}>
-                  <i className="fas fa-globe-africa"></i> UNIV
+                <div title="Public Visibility" style={{ fontSize: '0.65rem', padding: '0.6rem', borderRadius: '8px', background: s.show_on_public ? 'rgba(59, 130, 246, 0.05)' : '#f8fafc', color: s.show_on_public ? '#3b82f6' : '#94a3b8', textAlign: 'center', border: s.show_on_public ? '1px solid rgba(59, 130, 246, 0.1)' : '1px solid #f1f5f9', fontWeight: 800 }}>
+                  <i className={`fas ${s.show_on_public ? 'fa-eye' : 'fa-eye-slash'}`} style={{ marginRight: '4px' }}></i> PUB
                 </div>
               </div>
 
               <button
-                className="btn btn-sm btn-outline"
-                style={{ width: '100%', marginTop: '1.5rem', fontWeight: 800, color: '#D4AF37', borderColor: '#D4AF37' }}
+                className="btn btn-sm btn-primary"
+                style={{ 
+                  width: '100%', 
+                  marginTop: '1.5rem', 
+                  fontWeight: 900, 
+                  background: s.is_universal ? '#D4AF37' : '#1e293b', 
+                  borderColor: s.is_universal ? '#D4AF37' : '#1e293b',
+                  color: s.is_universal ? '#1e293b' : '#fff',
+                  borderRadius: '12px',
+                  padding: '0.8rem',
+                  fontSize: '0.75rem',
+                  letterSpacing: '1px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
                 onClick={() => { setShowComponentDesigner(s.id); loadSectionFields(s.id); }}
               >
-                <i className="fas fa-pencil-ruler" style={{ marginRight: '0.5rem' }}></i> DESIGN COMPONENTS
+                <i className="fas fa-pencil-ruler" style={{ marginRight: '0.75rem' }}></i> DESIGN BLUEPRINT
               </button>
             </div>
           </div>
