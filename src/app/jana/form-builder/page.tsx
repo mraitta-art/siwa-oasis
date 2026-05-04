@@ -401,12 +401,12 @@ export default function FormArchitectPage() {
 
             {/* Field Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {activeSect?.fields.length === 0 ? (
+              {!activeSect?.fields || activeSect.fields.length === 0 ? (
                  <div style={{ textAlign: 'center', padding: '5rem', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
                     <i className="fas fa-folder-open fa-3x" style={{ color: '#e2e8f0', marginBottom: '1.5rem' }}></i>
                     <p style={{ fontWeight: 800, color: '#94a3b8' }}>Empty DNA Section. Add fields to start building.</p>
                  </div>
-               ) : activeSect?.fields.sort((a,b) => a.sort_order - b.sort_order).map((field: any) => {
+               ) : [...activeSect.fields].sort((a,b) => a.sort_order - b.sort_order).map((field: any) => {
                 const typeInfo = FIELD_TYPES.find(t => t.value === field.field_type);
                 const isDNA = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'].includes(field.name);
                 const isUniversal = field.business_type_id === 'SECTION_TEMPLATE';
