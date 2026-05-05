@@ -41,7 +41,8 @@ export default function HomePage() {
           subtitle: "Journey into a land where time stands still and heritage breathes.",
           caption: "SIWA TODAY",
           ctaText: "BEGIN JOURNEY",
-          ctaLink: "#discovery"
+          ctaLink: "#discovery",
+          showControls: false // ACTIVATES THE CINEMATIC SHIELD
         };
 
         setCarouselSlides([siwaIntroVideo, ...manual, ...featured]);

@@ -171,9 +171,18 @@ export default function YouTubeCarouselPlayer({
         width: '120vw', 
         height: '120vh', 
         transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
+        pointerEvents: 'none', // PREVENT USER INTERFERENCE
         filter: showUpgradeOverlay ? 'blur(10px) brightness(0.4)' : 'none',
         transition: 'filter 0.8s ease'
+      }}></div>
+
+      {/* 🛡️ CINEMATIC SHIELD: Prevents YouTube UI from being clickable */}
+      <div style={{ 
+        position: 'absolute', 
+        inset: 0, 
+        zIndex: 5, 
+        cursor: 'default',
+        pointerEvents: showControls ? 'none' : 'auto' 
       }}></div>
 
       {showUpgradeOverlay && (
