@@ -56,13 +56,16 @@ export default function YouTubeCarouselPlayer({
         rel: 0,
         showinfo: 0,
         iv_load_policy: 3,
-        mute: 1, // Must be muted for autoplay
+        mute: 1, // REQUIRED for autoplay in all modern browsers
+        enablejsapi: 1,
+        origin: typeof window !== 'undefined' ? window.location.origin : '',
         playsinline: 1
       },
       events: {
         onReady: (event: any) => {
           setIsLoaded(true);
           if (isActive && autoplay) {
+            event.target.mute(); // Double-ensure mute
             event.target.playVideo();
             setIsPlaying(true);
           }
@@ -70,6 +73,10 @@ export default function YouTubeCarouselPlayer({
         onStateChange: (event: any) => {
           if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
           if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
+          // Auto-loop for cinematic background effect
+          if (event.data === window.YT.PlayerState.ENDED) {
+             event.target.playVideo();
+          }
         }
       }
     });
