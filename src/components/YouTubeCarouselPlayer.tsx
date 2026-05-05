@@ -1,4 +1,5 @@
 'use client';
+// ELITE REBUILD: 2026-05-05-23:55 (Cache Purge)
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 
