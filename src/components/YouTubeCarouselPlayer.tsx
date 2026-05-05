@@ -262,57 +262,6 @@ export default function YouTubeCarouselPlayer({
         </div>
       )}
 
-      {/* PULSING UNMUTE OVERLAY */}
-      {isLoaded && isActive && muted && (
-        <div 
-          onClick={unmute}
-          style={{
-            position: 'absolute',
-            bottom: '40%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 40,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            cursor: 'pointer',
-            animation: 'pulse-sound 2.5s infinite'
-          }}
-        >
-          <div style={{
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            background: 'rgba(212,175,55,0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '0.5rem',
-            boxShadow: '0 0 20px rgba(212,175,55,0.4)'
-          }}>
-            <i className="fas fa-volume-up" style={{ color: '#1a1a2e', fontSize: '1.2rem' }}></i>
-          </div>
-          <span style={{ 
-            color: '#fff', 
-            fontSize: '0.7rem', 
-            fontWeight: 800, 
-            letterSpacing: '2px',
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-            background: 'rgba(0,0,0,0.3)',
-            padding: '4px 12px',
-            borderRadius: '20px'
-          }}>
-            CLICK FOR SOUND
-          </span>
-          <style>{`
-            @keyframes pulse-sound {
-              0% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-              50% { transform: translateX(-50%) scale(1.1); opacity: 1; }
-              100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-            }
-          `}</style>
-        </div>
-      )}
     </div>
   );
 }
