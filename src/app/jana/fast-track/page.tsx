@@ -195,7 +195,21 @@ function FastTrackContent() {
              <i className="fas fa-circle" style={{ fontSize: '0.4rem', marginRight: '0.5rem', verticalAlign: 'middle' }}></i> LIVE SYNC ACTIVE
            </div>
            {selectedBizId && (
-             <a href={`/business/${selectedBizId}`} target="_blank" className="btn btn-xs" style={{ background: '#D4AF37', color: '#1a1a2e', fontWeight: 900 }}>VIEW PUBLIC SITE</a>
+             <div style={{ display: 'flex', gap: '0.5rem' }}>
+               <button 
+                 onClick={() => {
+                   const slug = businesses.find(b => b.id === selectedBizId)?.slug || selectedBizId;
+                   const url = `${window.location.origin}/${slug}`;
+                   navigator.clipboard.writeText(url);
+                   notify('Premium Link Copied!', 'success');
+                 }}
+                 className="btn btn-xs" 
+                 style={{ background: '#1e293b', color: '#fff', fontWeight: 900, border: '1px solid #D4AF37' }}
+               >
+                 <i className="fas fa-copy" style={{ marginRight: '0.5rem' }}></i> COPY LINK
+               </button>
+               <a href={`/${businesses.find(b => b.id === selectedBizId)?.slug || selectedBizId}`} target="_blank" className="btn btn-xs" style={{ background: '#D4AF37', color: '#1a1a2e', fontWeight: 900 }}>VIEW PUBLIC SITE</a>
+             </div>
            )}
         </div>
 
