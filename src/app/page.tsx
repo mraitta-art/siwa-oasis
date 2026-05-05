@@ -142,124 +142,99 @@ export default function HomePage() {
         />
       </section>
 
-      {/* 🔍 DISCOVERY DNA SEARCH (Positioned BELOW Hero) */}
+      {/* 🔍 DISCOVERY DNA SEARCH (Elite Glass Redesign) */}
       <section id="discovery" style={{ 
-        background: '#0f172a', padding: '6rem 4rem', borderBottom: '1px solid rgba(255,255,255,0.05)'
+        background: '#0a0f1d', padding: '6rem 4rem', position: 'relative', overflow: 'hidden'
       }}>
+        {/* Decorative Background Glow */}
+        <div style={{ position: 'absolute', top: '-10%', left: '20%', width: '400px', height: '400px', background: 'rgba(212,175,55,0.05)', filter: 'blur(150px)', pointerEvents: 'none' }}></div>
+        
         <div style={{ 
-          width: 'min(100%, 1200px)', margin: '0 auto', background: 'rgba(255,255,255,0.03)', 
-          padding: '3rem', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 50px 100px -20px rgba(0,0,0,0.5)'
+          width: 'min(100%, 1200px)', margin: '0 auto', background: 'rgba(255,255,255,0.02)', 
+          backdropFilter: 'blur(40px)', padding: '3.5rem', borderRadius: '40px', 
+          border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)'
         }}>
-          <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              <div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '4px', marginBottom: '0.75rem' }}>ELITE DISCOVERY</div>
-                <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>FIND YOUR <span style={{ color: '#D4AF37' }}>SOUL</span> IN SIWA</h2>
+                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '6px', marginBottom: '1rem', textTransform: 'uppercase' }}>Architectural Search</div>
+                <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-2px' }}>DISCOVER YOUR <span style={{ fontStyle: 'italic', fontWeight: 300, color: '#D4AF37' }}>SPACE</span></h2>
              </div>
              <button 
                onClick={handleSearch}
                disabled={isSearching}
+               className="gold-pulse"
                style={{ 
-                 background: '#D4AF37', color: '#1a1a2e', border: 'none', padding: '1.2rem 4.5rem', borderRadius: '14px', 
-                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.3s', fontSize: '0.85rem', letterSpacing: '1px'
+                 background: '#D4AF37', color: '#0a0f1d', border: 'none', padding: '1.25rem 4rem', borderRadius: '16px', 
+                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.4s ease', fontSize: '0.9rem', letterSpacing: '2px',
+                 boxShadow: '0 10px 30px rgba(212,175,55,0.3)'
                }}
              >
-               {isSearching ? 'FINDING...' : 'DISCOVER EXPERIENCE'}
+               {isSearching ? 'SEEKING...' : 'DISCOVER'}
              </button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
-             <div className="dna-filter">
-                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>HISTORICAL ERA</label>
-                <select 
-                  value={filters.era} 
-                  onChange={e => setFilters({...filters, era: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
-                >
-                   <option value="">Any Era</option>
-                   <option value="Ancient">Ancient Shali</option>
-                   <option value="Traditional">Traditional Siwan</option>
-                   <option value="Modern">Modern Luxury</option>
-                </select>
-             </div>
-             <div className="dna-filter">
-                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>CONSTRUCTION MATERIAL</label>
-                <select 
-                  value={filters.material} 
-                  onChange={e => setFilters({...filters, material: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
-                >
-                   <option value="">Any Material</option>
-                   <option value="Kershef">Kershef (Salt Brick)</option>
-                   <option value="Stone">Limestone</option>
-                   <option value="Mud">Mud/Clay</option>
-                </select>
-             </div>
-             <div className="dna-filter">
-                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>JOURNEY VIBE</label>
-                <select 
-                  value={filters.vibe} 
-                  onChange={e => setFilters({...filters, vibe: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
-                >
-                   <option value="">Any Vibe</option>
-                   <option value="Spiritual">Spiritual Retreat</option>
-                   <option value="Adventure">Desert Adventure</option>
-                   <option value="Peaceful">Peaceful Sanctuary</option>
-                </select>
-             </div>
-             <div className="dna-filter">
-                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>EXPERIENCE TYPE</label>
-                <select 
-                  value={filters.experience} 
-                  onChange={e => setFilters({...filters, experience: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
-                >
-                   <option value="">Any Type</option>
-                   <option value="Honeymoon">Honeymoon</option>
-                   <option value="Family">Family Escape</option>
-                   <option value="Nomad">Digital Nomad</option>
-                </select>
-             </div>
+             {[
+               { label: 'ERA', state: 'era', options: ['Ancient', 'Traditional', 'Modern'] },
+               { label: 'MATERIAL', state: 'material', options: ['Kershef', 'Stone', 'Mud'] },
+               { label: 'VIBE', state: 'vibe', options: ['Spiritual', 'Adventure', 'Peaceful'] },
+               { label: 'EXPERIENCE', state: 'experience', options: ['Honeymoon', 'Family', 'Nomad'] }
+             ].map((f) => (
+               <div key={f.state} style={{ position: 'relative' }}>
+                  <label style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', fontWeight: 900, letterSpacing: '2px', display: 'block', marginBottom: '1rem' }}>{f.label}</label>
+                  <select 
+                    value={(filters as any)[f.state]} 
+                    onChange={e => setFilters({...filters, [f.state]: e.target.value})}
+                    style={{ 
+                      width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', 
+                      color: '#fff', padding: '0.5rem 0', fontSize: '1rem', fontWeight: 500, cursor: 'pointer', outline: 'none',
+                      appearance: 'none'
+                    }}
+                  >
+                     <option value="" style={{ background: '#0a0f1d' }}>Any {f.label}</option>
+                     {f.options.map(opt => <option key={opt} value={opt} style={{ background: '#0a0f1d' }}>{opt}</option>)}
+                  </select>
+                  <i className="fas fa-chevron-down" style={{ position: 'absolute', right: 0, bottom: '1rem', fontSize: '0.7rem', color: '#D4AF37', pointerEvents: 'none' }}></i>
+               </div>
+             ))}
           </div>
         </div>
       </section>
 
-      {/* 💎 RESULTS / CURATED DISCOVERY */}
-      <section id="results" style={{ padding: '10rem 4rem', background: '#fff' }}>
-        <div style={{ textAlign: 'center', marginBottom: '6rem' }}>
-           <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '6px', marginBottom: '1.5rem' }}>CURATED DISCOVERY</div>
-           <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-2px' }}>THE SOUL OF THE <span style={{ color: '#D4AF37' }}>OASIS</span></h2>
-           <p style={{ color: '#64748b', fontSize: '1.25rem', maxWidth: '750px', margin: '2rem auto 0', lineHeight: 1.8 }}>Hand-picked Siwan establishments verified for their architectural soul and heritage excellence.</p>
+      {/* 💎 RESULTS / FLOATING GALLERY */}
+      <section id="results" style={{ padding: '12rem 4rem', background: '#fff' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8rem' }}>
+           <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '8px', marginBottom: '2rem' }}>THE COLLECTION</div>
+           <h2 style={{ fontSize: '4rem', fontWeight: 900, color: '#0a0f1d', letterSpacing: '-3px' }}>CURATED <span style={{ color: '#D4AF37' }}>LANDMARKS</span></h2>
+           <div style={{ width: '60px', height: '2px', background: '#D4AF37', margin: '2rem auto' }}></div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '4rem', maxWidth: 1400, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '5rem', maxWidth: 1500, margin: '0 auto' }}>
            {(searchResults.length > 0 ? searchResults : carouselSlides.filter(s => s.id !== 'siwa_intro').slice(0, 3)).map((item: any, i: number) => {
              const name = item.name || item.title || 'Siwa Boutique';
              const image = item.mediaUrl || (item.custom_data ? Object.values(item.custom_data).find((v:any) => v.section_gallery)?.[0]?.url : 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62');
              const slug = item.slug || item.id;
 
              return (
-              <Link href={`/${slug}`} key={i} style={{ textDecoration: 'none' }}>
-                <div style={{ background: '#fff', borderRadius: '40px', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-                  <div style={{ height: '350px', overflow: 'hidden', position: 'relative' }}>
-                    <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <div style={{ position: 'absolute', top: 30, right: 30, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(10px)', color: '#D4AF37', padding: '0.6rem 1.25rem', borderRadius: '50px', fontSize: '0.65rem', fontWeight: 900, border: '1px solid rgba(212,175,55,0.3)', letterSpacing: '1px' }}>
-                      <i className="fas fa-crown" style={{ marginRight: '0.6rem' }}></i> PREMIER CHOICE
+              <Link href={`/${slug}`} key={i} style={{ textDecoration: 'none' }} className="gallery-card-link">
+                <div className="gallery-card" style={{ transition: 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)' }}>
+                  <div style={{ height: '500px', overflow: 'hidden', position: 'relative', borderRadius: '40px', boxShadow: '0 30px 60px -20px rgba(0,0,0,0.1)' }}>
+                    <img src={image} alt={name} className="card-image" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 1.2s ease' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,15,29,0.4), transparent)' }}></div>
+                    <div style={{ position: 'absolute', top: 35, right: 35, background: 'rgba(255,255,255,0.95)', color: '#0a0f1d', padding: '0.75rem 1.5rem', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 900, letterSpacing: '2px' }}>
+                      PREMIER
                     </div>
                   </div>
-                  <div style={{ padding: '3rem' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                        <span style={{ background: '#f8fafc', padding: '5px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, color: '#64748b', letterSpacing: '1px' }}>HERITAGE</span>
-                        <span style={{ background: '#f8fafc', padding: '5px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, color: '#64748b', letterSpacing: '1px' }}>TRADITIONAL</span>
+                  <div style={{ padding: '2.5rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>CHAPTER 01-08</span>
+                        <div style={{ flexGrow: 1, height: '1px', background: '#f1f5f9' }}></div>
                     </div>
-                    <h3 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', marginBottom: '1.25rem', letterSpacing: '-0.5px' }}>{name}</h3>
-                    <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2.5rem', opacity: 0.8 }}>Explore the architectural mastery and deep silence of this Siwan landmark.</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2rem', borderTop: '1px solid #f1f5f9' }}>
-                       <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>EXPLORE STORY <i className="fas fa-arrow-right" style={{ marginLeft: '0.75rem' }}></i></span>
-                       <div style={{ display: 'flex', gap: '-8px' }}>
-                          {[1,2,3,4].map(n => <div key={n} style={{ width: 34, height: 34, borderRadius: '50%', background: '#f1f5f9', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: '#94a3b8' }}><i className="fas fa-check"></i></div>)}
-                       </div>
+                    <h3 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#0a0f1d', marginBottom: '1rem', letterSpacing: '-1px' }}>{name}</h3>
+                    <p style={{ color: '#64748b', fontSize: '1.1rem', lineHeight: 1.8, maxWidth: '90%' }}>A narrative journey through the architectural heritage of the Siwa Oasis.</p>
+                    <div style={{ marginTop: '2.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                       <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0a0f1d', letterSpacing: '1px' }}>RESERVE EXPERIENCE</span>
+                       <i className="fas fa-arrow-right" style={{ fontSize: '0.8rem', color: '#D4AF37' }}></i>
                     </div>
                   </div>
                 </div>
@@ -267,6 +242,20 @@ export default function HomePage() {
              );
            })}
         </div>
+
+        {/* CSS INJECTIONS FOR MODERN HOVERS */}
+        <style jsx global>{`
+          .gallery-card:hover {
+            transform: translateY(-15px);
+          }
+          .gallery-card:hover .card-image {
+            transform: scale(1.08);
+          }
+          .gold-pulse:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(212,175,55,0.4);
+          }
+        `}</style>
       </section>
 
       {/* 🌍 FOOTER */}
