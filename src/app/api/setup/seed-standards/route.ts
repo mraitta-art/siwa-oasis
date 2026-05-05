@@ -49,6 +49,16 @@ export async function GET(req: NextRequest) {
       { type: 'accommodation', section: 'sec_4_facilities', name: 'amenities', label: 'Property Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service', 'Spa', 'Desert View'] },
       { type: 'accommodation', section: 'sec_4_facilities', name: 'total_rooms', label: 'Total Rooms', field_type: 'text' },
       
+      // BLOCK 5: CONNECTIVITY & CONTACTS
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'whatsapp_number', label: 'WhatsApp for Business', field_type: 'text' },
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'official_website', label: 'Primary Website URL', field_type: 'text' },
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'social_presence', label: 'Social Media Channels', field_type: 'checkbox_group', options: ['Instagram','Facebook','TikTok','TripAdvisor','YouTube'] },
+      
+      // BLOCK 6: GEOGRAPHIC INTELLIGENCE
+      { type: 'accommodation', section: 'sec_6_geographic', name: 'map_coordinates', label: 'GPS Coordinates (Lat, Lng)', field_type: 'map' },
+      { type: 'accommodation', section: 'sec_6_geographic', name: 'proximity_landmarks', label: 'Nearby Historical Landmarks', field_type: 'checkbox_group', options: ['Shali Fortress','Temple of the Oracle','Cleopatra Spring','Mountain of the Dead','Fatnas Island'] },
+      { type: 'accommodation', section: 'sec_6_geographic', name: 'access_instructions', label: 'Driving/Access Instructions', field_type: 'textarea' },
+
       // BLOCK 7: INVESTMENT & GROWTH
       { type: 'accommodation', section: 'sec_7_investment', name: 'investment_models', label: 'Investment & Partnership Models', field_type: 'checkbox_group', options: ['Time-Share','Long-Term Lease','Seasonal Ownership','Expansion Partnership','Direct Investment'] },
       { type: 'accommodation', section: 'sec_7_investment', name: 'group_capability', label: 'Group & Tour Capabilities', field_type: 'checkbox_group', options: ['Corporate Retreats','Private Tours','Workshop Hosting','Large Group Catering'] },
