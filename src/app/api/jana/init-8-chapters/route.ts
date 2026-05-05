@@ -15,14 +15,14 @@ export async function GET(request: NextRequest) {
 
     // 2. DEFINE THE 8 GOLDEN CHAPTERS
     const chapters = [
-      { id: 'sec_1_identity',     name: 'Welcome & Identity',         icon: 'fa-landmark',        order: 1 },
+      { id: 'sec_1_identity',     name: 'General Identity',           icon: 'fa-landmark',        order: 1 },
       { id: 'sec_2_ambience',     name: 'Ambience & Style',           icon: 'fa-sun',             order: 2 },
       { id: 'sec_3_services',     name: 'Core Services',              icon: 'fa-hotel',           order: 3 },
       { id: 'sec_4_facilities',   name: 'Facilities & Amenities',     icon: 'fa-swimming-pool',   order: 4 },
       { id: 'sec_5_connectivity', name: 'Connectivity & Contacts',    icon: 'fa-wifi',            order: 5 },
       { id: 'sec_6_geographic',   name: 'Geographic Intelligence',    icon: 'fa-map-marked-alt',  order: 6 },
       { id: 'sec_7_authority',    name: 'Legal Authority',            icon: 'fa-shield-halved',   order: 7 },
-      { id: 'sec_8_investment',   name: 'Investment Opportunity',     icon: 'fa-chart-line',      order: 8 },
+      { id: 'sec_8_rates_offers', name: 'Rates, Discounts & Offers',  icon: 'fa-tags',            order: 8 },
     ];
 
     // 3. INJECT SECTIONS

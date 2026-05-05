@@ -15,9 +15,24 @@ export default function UpgradesPage() {
     setLoading(false);
   }
 
-  async function approve(id: string) {
-    // In real app, this would update the business tier as well
-    alert('Processing approval for ' + id);
+  async function approve(requestId: string) {
+    if (!confirm('Approve this upgrade and grant higher access?')) return;
+    try {
+      const res = await fetch('/api/jana/upgrades/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId })
+      });
+      if (res.ok) {
+        alert('Upgrade successful! Features are now unlocked for this vendor.');
+        loadRequests();
+      } else {
+        const d = await res.json();
+        alert('Error: ' + d.error);
+      }
+    } catch (e) {
+      alert('Network error');
+    }
   }
 
   if (loading) return <p>Loading...</p>;

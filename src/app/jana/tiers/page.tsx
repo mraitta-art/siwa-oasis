@@ -4,19 +4,23 @@ import React, { useState, useEffect } from 'react';
 
 export default function InteractiveTiersPage() {
   const [tiers, setTiers] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
 
-  useEffect(() => { loadTiers(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  async function loadTiers() {
+  async function loadData() {
     setLoading(true);
-    const res = await fetch('/api/jana/upgrades'); // We use this or a general tiers fetch
-    // Actually using a direct query or new api/jana/tiers
     const res2 = await fetch('/api/jana/data-manager/export'); 
     const data = await res2.json();
     setTiers(data.subscription_tiers || []);
+    
+    const res3 = await fetch('/api/jana/sections');
+    const sectionsData = await res3.json();
+    setSections(sectionsData);
+    
     setLoading(false);
   }
 
@@ -100,6 +104,68 @@ export default function InteractiveTiersPage() {
                         <input type="number" className="form-control btn-xs" value={editData.features.maxCustomBlocks} onChange={e => setEditData({...editData, features: {...editData.features, maxCustomBlocks: parseInt(e.target.value)}})} />
                     </div>
                   </div>
+                  
+                  <h4 style={{ fontSize: '0.8rem', marginTop: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>PREMIUM FEATURES</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.features.remove_watermark || false}
+                        onChange={e => setEditData({...editData, features: {...editData.features, remove_watermark: e.target.checked}})}
+                      />
+                      Remove "Siwa Today" Watermark
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.features.allow_direct_contact || false}
+                        onChange={e => setEditData({...editData, features: {...editData.features, allow_direct_contact: e.target.checked}})}
+                      />
+                      Allow Direct Contact (Show Phone/Email/WhatsApp)
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.features.allow_custom_logo || false}
+                        onChange={e => setEditData({...editData, features: {...editData.features, allow_custom_logo: e.target.checked}})}
+                      />
+                      Allow Custom Business Logo in Hero
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.features.show_verified_badge || false}
+                        onChange={e => setEditData({...editData, features: {...editData.features, show_verified_badge: e.target.checked}})}
+                      />
+                      Show "SIWA TRUST VERIFIED" Badge
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.features.allow_youtube_story || false}
+                        onChange={e => setEditData({...editData, features: {...editData.features, allow_youtube_story: e.target.checked}})}
+                      />
+                      Allow Cinematic YouTube Integration
+                    </label>
+                  </div>
+
+                  <h4 style={{ fontSize: '0.8rem', marginTop: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>PUBLIC VISIBILITY SECTIONS</h4>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
+                    {sections.map(s => (
+                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.25rem 0', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={(editData.features.allowed_public_sections || []).includes(s.id)}
+                          onChange={e => {
+                            const current = editData.features.allowed_public_sections || [];
+                            const next = e.target.checked ? [...current, s.id] : current.filter((id: string) => id !== s.id);
+                            setEditData({...editData, features: {...editData.features, allowed_public_sections: next}});
+                          }}
+                        />
+                        {s.name}
+                      </label>
+                    ))}
+                  </div>
 
                   <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                     <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={save}>Save Changes</button>
@@ -130,8 +196,37 @@ export default function InteractiveTiersPage() {
                       <strong>{features.maxSlides} slides</strong>
                     </div>
                     <div className="permission-item">
+                      <span>Watermark</span>
+                      <strong>{features.remove_watermark ? 'Removed' : 'Required'}</strong>
+                    </div>
+                    <div className="permission-item">
+                      <span>Direct Contact</span>
+                      <strong>{features.allow_direct_contact ? 'Yes' : 'Hidden'}</strong>
+                    </div>
+                    <div className="permission-item">
+                      <span>Custom Logo</span>
+                      <strong>{features.allow_custom_logo ? 'Yes' : 'Text Only'}</strong>
+                    </div>
+                    <div className="permission-item">
+                      <span>Verified Badge</span>
+                      <strong>{features.show_verified_badge ? 'Yes' : 'No'}</strong>
+                    </div>
+                    <div className="permission-item">
                       <span>Storage (Dynamic)</span>
                       <strong>{features.maxStorageMB} MB</strong>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '1rem', borderTop: '1px dashed #eee', paddingTop: '1rem' }}>
+                    <h5 style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Public Sections</h5>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      {(features.allowed_public_sections || []).length > 0 ? (
+                        features.allowed_public_sections.map((sid: string) => (
+                          <span key={sid} style={{ fontSize: '0.6rem', background: '#f1f5f9', color: '#475569', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{sid}</span>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '0.6rem', color: '#cbd5e1' }}>None selected</span>
+                      )}
                     </div>
                   </div>
                 </>

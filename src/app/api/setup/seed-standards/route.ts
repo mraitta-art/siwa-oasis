@@ -32,14 +32,23 @@ export async function GET(req: NextRequest) {
 
     const standards = [
       // 🏨 ACCOMMODATION STANDARDS
-      { type: 'accommodation', section: 'basic', name: 'description_narrative', label: 'Property Story (Narrative)', field_type: 'rich_text' },
-      { type: 'accommodation', section: 'basic', name: 'price_range', label: 'Standard Price Range', field_type: 'select', options: ['Budget','Mid-range','Luxury','Elite'] },
-      { type: 'accommodation', section: 'basic', name: 'check_policy', label: 'Check-in/Out Policy', field_type: 'textarea' },
-      { type: 'accommodation', section: 'facilities', name: 'amenities', label: 'Property Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service', 'Spa', 'Desert View'] },
-      { type: 'accommodation', section: 'facilities', name: 'total_rooms', label: 'Total Rooms', field_type: 'text' },
-      { type: 'accommodation', section: 'room_types', name: 'room_options', label: 'Available Room Types', field_type: 'checkbox', options: ['Single','Double','Suite','Family','Siwan Traditional Room'] },
-      { type: 'accommodation', section: 'star_rating', name: 'stars', label: 'Industry Star Rating', field_type: 'star_rating' },
-      { type: 'accommodation', section: 'contact', name: 'booking_link', label: 'Direct Booking URL', field_type: 'text' },
+      // BLOCK 1: GENERAL IDENTITY
+      { type: 'accommodation', section: 'sec_1_identity', name: 'display_name', label: 'Official Business Name', field_type: 'text' },
+      { type: 'accommodation', section: 'sec_1_identity', name: 'establishment_info', label: 'Establishment Date/Era', field_type: 'text' },
+      
+      // BLOCK 2: CONSTRUCTION & HERITAGE
+      { type: 'accommodation', section: 'sec_2_ambience', name: 'construction_materials', label: 'Primary Construction Materials', field_type: 'checkbox_group', options: ['Kershef (Salt Brick)','Palm Wood','Mud/Clay','Stone','Modern Materials'] },
+      { type: 'accommodation', section: 'sec_2_ambience', name: 'construction_era', label: 'Historical Era', field_type: 'select', options: ['Ancient','Traditional Siwan','Modern','Contemporary'] },
+      { type: 'accommodation', section: 'sec_2_ambience', name: 'property_philosophy', label: 'Architectural Philosophy', field_type: 'textarea' },
+      
+      // BLOCK 4: FACILITIES
+      { type: 'accommodation', section: 'sec_4_facilities', name: 'amenities', label: 'Property Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service', 'Spa', 'Desert View'] },
+      { type: 'accommodation', section: 'sec_4_facilities', name: 'total_rooms', label: 'Total Rooms', field_type: 'text' },
+      
+      // BLOCK 8: RATES & OFFERS
+      { type: 'accommodation', section: 'sec_8_rates_offers', name: 'price_standard', label: 'Standard Room Rate', field_type: 'text' },
+      { type: 'accommodation', section: 'sec_8_rates_offers', name: 'active_discounts', label: 'Active Discounts & Deals', field_type: 'checkbox_group', options: ['Early Bird (15%)', 'Long Stay (20%)', 'Last Minute', 'Siwan Resident Discount'] },
+      { type: 'accommodation', section: 'sec_8_rates_offers', name: 'special_conditions', label: 'Booking Conditions', field_type: 'textarea' },
       
       // 📊 BUSINESS METRICS (Internal)
       { type: 'accommodation', section: 'business_metrics', name: 'avg_revenue', label: 'Avg Monthly Revenue', field_type: 'text' },

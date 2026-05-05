@@ -68,14 +68,20 @@ export async function GET(req: NextRequest) {
       });
     });
 
+    // 6. Fetch Tier Features
+    const tierResult = (await query('SELECT features FROM subscription_tiers WHERE id = ?', [biz.subscription_tier])) as any[];
+    const tierFeatures = tierResult.length > 0 ? (typeof tierResult[0].features === 'string' ? JSON.parse(tierResult[0].features) : tierResult[0].features) : {};
+
     return NextResponse.json({
       business: {
         id: biz.id,
         name: biz.name,
         type_id: biz.type_id,
         status: biz.status,
-        published: biz.published
+        published: biz.published,
+        tier: biz.subscription_tier
       },
+      tierFeatures,
       structure: Object.values(sections)
     });
 

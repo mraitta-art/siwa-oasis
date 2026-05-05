@@ -23,12 +23,19 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
     async function loadData() {
       try {
         const bRes = await fetch(`/api/businesses/${id}`);
-        const data = await bRes.json();
-        setBiz(data);
+        const bizData = await bRes.json();
+        setBiz(bizData);
 
-        // Fetch sections for this typology to know what to render
-        const sRes = await fetch(`/api/jana/sections?type=${data.type_id}`);
-        const sections = await sRes.json();
+        // Fetch sections for this typology
+        const sRes = await fetch(`/api/jana/sections?type=${bizData.type_id}`);
+        let sections = await sRes.json();
+
+        // TIER-BASED FILTERING: Only show sections allowed by the tier
+        const allowed = bizData.tier_features?.allowed_public_sections;
+        if (allowed && Array.isArray(allowed)) {
+           sections = sections.filter((s: any) => allowed.includes(s.id));
+        }
+
         setActiveSections(sections);
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -48,22 +55,34 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
 
+  // DYNAMIC HUNT: Find contact info and logo either at the root or nested inside any dynamic section
+  const sectionValues = Object.values(data) as any[];
+  const dynamicPhone = data.phone || sectionValues.find(s => s?.phone)?.phone || '+20 (12) SIWA-OASIS';
+  const dynamicEmail = data.email || sectionValues.find(s => s?.email)?.email || '';
+  const dynamicAddress = data.address || sectionValues.find(s => s?.address)?.address || 'Siwa Oasis, Matrouh, Egypt';
+  const dynamicLogo = data.business_logo || data.logo || sectionValues.find(s => s?.business_logo || s?.logo)?.business_logo || sectionValues.find(s => s?.logo)?.logo || undefined;
+
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '5rem' }}>
       
       {/* 1. CINEMATIC AUTOMATED HERO */}
       <AutomatedMinisiteHero 
         businessName={biz.name}
+        businessLogo={biz.tier_features?.allow_custom_logo ? dynamicLogo : undefined}
         activeSections={activeSections}
         customData={data}
         curationData={curation}
-        tierFeatures={{ hero_automation: true }} // Assumed for the demo profile
+        tierFeatures={{ 
+          hero_automation: true, 
+          remove_watermark: biz.tier_features?.remove_watermark,
+          allow_youtube_story: biz.tier_features?.allow_youtube_story 
+        }}
       />
 
       {/* 2. NAVIGATION BAR (Sticky) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>{biz.name.toUpperCase()}</div>
+          <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>{(biz?.name || '').toUpperCase()}</div>
           <div style={{ display: 'flex', gap: '2rem' }}>
             {activeSections.map(s => (
               <button 
@@ -76,7 +95,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                   borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
                   paddingBottom: '0.5rem', transition: 'all 0.3s'
                 }}>
-                {s.name.toUpperCase()}
+                {(s?.name || '').toUpperCase()}
               </button>
             ))}
           </div>
@@ -154,7 +173,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                             if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description'].includes(key)) return null;
                             return (
                               <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{key.replace('_', ' ').toUpperCase()}</div>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{(key || '').replace(/_/g, ' ').toUpperCase()}</div>
                                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>
                                   {Array.isArray(val) ? val.join(', ') : String(val)}
                                 </div>
@@ -172,12 +191,17 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                                 const caption = typeof item === 'object' ? item.caption : '';
                                 return (
                                   <div key={i} style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px rgba(0,0,0,0.04)' }}>
-                                    <div style={{ height: '180px', overflow: 'hidden' }}>
+                                    <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
                                       <img 
                                         src={imgUrl} 
                                         alt={caption || `${section.name} gallery ${i + 1}`} 
                                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }} 
                                       />
+                                      {!biz.tier_features?.remove_watermark && (
+                                        <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(15,23,42,0.6)', color: 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 900, letterSpacing: '1px', pointerEvents: 'none', backdropFilter: 'blur(2px)' }}>
+                                          SIWA TODAY
+                                        </div>
+                                      )}
                                     </div>
                                     {caption && (
                                       <div style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', color: '#475569', fontWeight: 600, lineHeight: 1.5, borderTop: '1px solid #f8fafc' }}>
@@ -237,9 +261,14 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                           }}
                         >
                           {story.image && (
-                            <div style={{ height: '160px', overflow: 'hidden' }}>
+                            <div style={{ height: '160px', overflow: 'hidden', position: 'relative' }}>
                               <img src={story.image} alt={story.sectionName}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              {!biz.tier_features?.remove_watermark && (
+                                <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(15,23,42,0.6)', color: 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 900, letterSpacing: '1px', pointerEvents: 'none', backdropFilter: 'blur(2px)' }}>
+                                  SIWA TODAY
+                                </div>
+                              )}
                             </div>
                           )}
                           <div style={{ padding: '1.5rem' }}>
@@ -271,27 +300,37 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       <div style={{ color: '#D4AF37' }}><i className="fas fa-phone-alt"></i></div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>+20 (12) SIWA-OASIS</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>
+                        {biz.tier_features?.allow_direct_contact ? dynamicPhone : '+20 (12) SIWA-OASIS'}
+                      </div>
                     </div>
+                    {biz.tier_features?.allow_direct_contact && dynamicEmail && (
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <div style={{ color: '#D4AF37' }}><i className="fas fa-envelope"></i></div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{dynamicEmail}</div>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       <div style={{ color: '#D4AF37' }}><i className="fas fa-map-marker-alt"></i></div>
-                      <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Siwa Oasis, Matrouh, Egypt</div>
+                      <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{dynamicAddress}</div>
                     </div>
                   </div>
 
                   <button className="btn btn-primary" style={{ width: '100%', padding: '1rem', borderRadius: '12px', fontWeight: 900, boxShadow: '0 10px 15px -3px rgba(212, 175, 55, 0.4)' }}>
-                    ENQUIRE NOW
+                    {biz.tier_features?.allow_direct_contact ? 'CONTACT VENDOR' : 'ENQUIRE NOW'}
                   </button>
                 </div>
 
                 {/* Verified Badge */}
-                <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem', background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
-                   <div style={{ color: '#22c55e', fontSize: '1.5rem' }}><i className="fas fa-check-circle"></i></div>
-                   <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.75rem', color: '#1e293b' }}>SIWA TRUST VERIFIED</div>
-                      <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Inspected and certified heritage unit.</div>
-                   </div>
-                </div>
+                {biz.tier_features?.show_verified_badge && (
+                  <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem', background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+                     <div style={{ color: '#22c55e', fontSize: '1.5rem' }}><i className="fas fa-check-circle"></i></div>
+                     <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.75rem', color: '#1e293b' }}>SIWA TRUST VERIFIED</div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Inspected and certified heritage unit.</div>
+                     </div>
+                  </div>
+                )}
               </div>
             </aside>
           </div>

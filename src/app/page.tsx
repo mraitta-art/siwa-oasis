@@ -159,10 +159,18 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
       <nav style={{ padding: '1.5rem 3rem', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1000 }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>
-          <i className="fas fa-sun" style={{ color: settings?.primary_color || '#D4AF37', marginRight: '0.75rem' }}></i>
-          {settings?.site_name?.toUpperCase() || 'SIWA TODAY'}
-        </h1>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>
+            {settings?.logo_url ? (
+              <img src={settings.logo_url} alt={settings.site_name || 'Logo'} style={{ maxHeight: '40px', objectFit: 'contain' }} />
+            ) : (
+              <>
+                <i className="fas fa-sun" style={{ color: settings?.primary_color || '#D4AF37', marginRight: '0.75rem' }}></i>
+                {settings?.site_name?.toUpperCase() || 'SIWA TODAY'}
+              </>
+            )}
+          </h1>
+        </Link>
         <div style={{ display: 'flex', gap: '3rem', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '2px', color: '#1e293b' }}>
           <span>DISCOVER</span>
           <span>PLAN</span>
@@ -219,7 +227,11 @@ export default function HomePage() {
       <footer style={{ background: '#0f172a', color: '#fff', padding: '6rem 3rem' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: '2rem', marginBottom: '0.5rem' }}>{settings?.site_name?.toUpperCase()}</h2>
+            {settings?.logo_url ? (
+               <img src={settings.logo_url} alt={settings.site_name || 'Logo'} style={{ maxHeight: '40px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'brightness(0) invert(1)' }} />
+            ) : (
+               <h2 style={{ fontWeight: 900, fontSize: '2rem', marginBottom: '0.5rem' }}>{settings?.site_name?.toUpperCase()}</h2>
+            )}
             <p style={{ opacity: 0.6, fontSize: '1rem', marginBottom: '2rem' }}>{settings?.footerText || 'Your premier guide to the Siwa Oasis experience.'}</p>
             <Link href="/be-a-partner" style={{ background: '#D4AF37', color: '#0f172a', padding: '0.75rem 1.5rem', borderRadius: '50px', fontWeight: 800, textDecoration: 'none', fontSize: '0.8rem' }}>JOIN AS PARTNER</Link>
           </div>

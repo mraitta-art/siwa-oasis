@@ -31,6 +31,7 @@ export default function VendorStudio() {
   const [sections, setSections] = useState<Section[]>([]);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [tierFeatures, setTierFeatures] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadStory();
@@ -44,6 +45,7 @@ export default function VendorStudio() {
 
       setBusiness(data.business);
       setSections(data.structure);
+      setTierFeatures(data.tierFeatures || {});
       if (data.structure.length > 0) setActiveSection(data.structure[0].id);
 
       // Initialize form data
@@ -154,6 +156,7 @@ export default function VendorStudio() {
               onChange={handleInputChange}
               userRole="vendor"
               sections={sections}
+              tierFeatures={tierFeatures}
             />
           </div>
         </section>

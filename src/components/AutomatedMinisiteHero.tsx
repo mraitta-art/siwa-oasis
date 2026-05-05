@@ -54,29 +54,34 @@ export default function AutomatedMinisiteHero({
 
     activeSections.forEach(section => {
       const sectionData = customData[section.id] || {};
-      // SMART FALLBACK: Look for any narrative field
       const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${section.name.toLowerCase()} DNA.`;
-      const youtubeStory = sectionData.youtube_story;
+      
+      // TIER CHECK: Is YouTube allowed?
+      const allowedMedia = tierFeatures.allowedMediaTypes || ['image'];
+      const youtubeStory = (allowedMedia.includes('youtube') && sectionData.youtube_story) ? sectionData.youtube_story : null;
+      
       const gallery = sectionData.section_gallery || [];
       const photos = Array.isArray(gallery) ? gallery : [gallery].filter(Boolean);
 
-      // Rule: Each section gets at least one slide. 
+      // CURATION FILTER: Only show photos marked as "is_hero"
+      const featuredPhotos = photos.filter((p: any) => p && p.is_hero);
+
       if (youtubeStory) {
         allSlides.push({
           id: `${section.id}_yt`,
           type: 'youtube',
           mediaUrl: youtubeStory,
-          title: "", // NO HEADER
-          subtitle: miniBlog, // FULL STORY
-          caption: businessName.toUpperCase(), 
+          title: "", 
+          subtitle: miniBlog,
+          caption: (businessName || '').toUpperCase(), 
           ctaText: `READ MORE`,
           ctaLink: `#${section.id}`,
           animation: 'fade'
         });
       }
 
-      // Add photos from gallery
-      photos.forEach((photo: any, idx: number) => {
+      // Add ONLY featured photos from gallery
+      featuredPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
         
@@ -84,24 +89,25 @@ export default function AutomatedMinisiteHero({
           id: `${section.id}_img_${idx}`,
           type: 'image',
           mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
-          title: caption || section.name, // Photo caption is the primary story
-          subtitle: `DISCOVER THE ${section.name.toUpperCase()} EXPERIENCE`, // Narrative hook
-          caption: businessName.toUpperCase(), 
+          title: caption || section.name,
+          subtitle: `DISCOVER THE ${(section.name || '').toUpperCase()} EXPERIENCE`,
+          caption: (businessName || '').toUpperCase(), 
           ctaText: `READ FULL STORY`,
           ctaLink: `#${section.id}`,
           animation: 'kenburns'
         });
       });
 
-      // Fallback slide
-      if (!youtubeStory && photos.length === 0) {
+      // Fallback slide (if NOTHING is featured, show the first photo as a courtesy)
+      if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
+        const firstPhoto = photos[0];
         allSlides.push({
-          id: `${section.id}_fallback`,
+          id: `${section.id}_img_first`,
           type: 'image',
-          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
-          title: section.name,
+          mediaUrl: (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
+          title: (typeof firstPhoto === 'object' ? firstPhoto.caption : '') || section.name,
           subtitle: `EXPLORE OUR UNIQUE NARRATIVE`,
-          caption: businessName.toUpperCase(),
+          caption: (businessName || '').toUpperCase(),
           ctaText: 'EXPLORE',
           ctaLink: `#${section.id}`,
           animation: 'kenburns'
@@ -109,8 +115,10 @@ export default function AutomatedMinisiteHero({
       }
     });
 
-    return allSlides;
-  }, [customData, activeSections, businessName, settings]);
+    // FINAL QUOTA CAP: Enforce absolute maximum slides from tier
+    const finalLimit = tierFeatures.maxSlides || 5;
+    return allSlides.slice(0, finalLimit);
+  }, [customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
 
   const visual = customData.visual_dna || {};
 
@@ -144,32 +152,30 @@ export default function AutomatedMinisiteHero({
         }}>SIWA TODAY</span>
       </Link>
 
-      {/* MODERN BUSINESS LOGO OVERLAY (Optional) */}
-      {settings.showLogoInHero && (
-        <div style={{
-          position: 'absolute',
-          top: '2rem',
-          right: '2rem', // Moved to right to avoid collision with master logo
-          zIndex: 1000,
-          pointerEvents: 'none'
-        }}>
-          {businessLogo ? (
-            <img src={businessLogo} alt={businessName} style={{ height: '50px', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.3))' }} />
-          ) : (
-            <div style={{
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: '1.25rem',
-              letterSpacing: '4px',
-              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-              borderLeft: `3px solid ${settings.primaryColor || '#D4AF37'}`,
-              paddingLeft: '1rem'
-            }}>
-              {businessName.toUpperCase()}
-            </div>
-          )}
-        </div>
-      )}
+      {/* MODERN BUSINESS LOGO OVERLAY */}
+      <div style={{
+        position: 'absolute',
+        top: '2rem',
+        right: '2rem', // Moved to right to avoid collision with master logo
+        zIndex: 1000,
+        pointerEvents: 'none'
+      }}>
+        {businessLogo ? (
+          <img src={businessLogo} alt={businessName} style={{ height: '50px', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.3))', objectFit: 'contain' }} />
+        ) : (
+          <div style={{
+            color: '#fff',
+            fontWeight: 900,
+            fontSize: '1.25rem',
+            letterSpacing: '4px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            borderLeft: `3px solid ${settings.primaryColor || '#D4AF37'}`,
+            paddingLeft: '1rem'
+          }}>
+            {(businessName || '').toUpperCase()}
+          </div>
+        )}
+      </div>
 
       {/* THE CINEMATIC CAROUSEL */}
       <AdvancedHeroCarousel
@@ -180,6 +186,28 @@ export default function AutomatedMinisiteHero({
         showProgress={true}
         showIndicators={true}
       />
+
+      {/* FREEMIUM WATERMARK OVERLAY */}
+      {!tierFeatures.remove_watermark && (
+        <div style={{
+          position: 'absolute',
+          bottom: '3rem',
+          right: '2rem',
+          zIndex: 1000,
+          background: 'rgba(15,23,42,0.6)',
+          color: 'rgba(255,255,255,0.9)',
+          padding: '4px 12px',
+          borderRadius: '6px',
+          fontSize: '0.65rem',
+          fontWeight: 900,
+          letterSpacing: '2px',
+          pointerEvents: 'none',
+          backdropFilter: 'blur(4px)',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          POWERED BY SIWA TODAY
+        </div>
+      )}
 
       {/* BOTTOM SCROLL INDICATOR */}
       <div style={{

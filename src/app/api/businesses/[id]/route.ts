@@ -9,7 +9,12 @@ export async function GET(
   try {
     const { id } = await params;
     await requireAuth();
-    const biz = await queryOne('SELECT * FROM businesses WHERE id = ?', [id]);
+    const biz = await queryOne(`
+      SELECT b.*, t.features as tier_features 
+      FROM businesses b
+      LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+      WHERE b.id = ?
+    `, [id]);
     if (!biz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     
     // Parse JSON
@@ -17,6 +22,7 @@ export async function GET(
       ...biz,
       custom_data: typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data || {},
       draft_data: typeof biz.draft_data === 'string' ? JSON.parse(biz.draft_data) : biz.draft_data || {},
+      tier_features: typeof biz.tier_features === 'string' ? JSON.parse(biz.tier_features) : biz.tier_features || {},
     });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }

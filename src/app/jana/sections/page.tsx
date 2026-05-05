@@ -403,27 +403,27 @@ function SectionsContent() {
                 <label className="form-label" style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'block' }}>Governance Matrix Configuration</label>
                 <div className="grid-2">
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={editingSection.required} onChange={e => setEditingSection({ ...editingSection, required: e.target.checked })} />
+                    <input type="checkbox" checked={!!editingSection.required} onChange={e => setEditingSection({ ...editingSection, required: e.target.checked })} />
                     <span style={{ fontSize: '0.85rem' }}>Required (Mandatory Data)</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={editingSection.vendor_editable} onChange={e => setEditingSection({ ...editingSection, vendor_editable: e.target.checked })} />
+                    <input type="checkbox" checked={!!editingSection.vendor_editable} onChange={e => setEditingSection({ ...editingSection, vendor_editable: e.target.checked })} />
                     <span style={{ fontSize: '0.85rem' }}>Vendor Editable Permissions</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={editingSection.show_on_public} onChange={e => setEditingSection({ ...editingSection, show_on_public: e.target.checked })} />
+                    <input type="checkbox" checked={!!editingSection.show_on_public} onChange={e => setEditingSection({ ...editingSection, show_on_public: e.target.checked })} />
                     <span style={{ fontSize: '0.85rem' }}>Active on Public Pages</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={editingSection.is_filterable} onChange={e => setEditingSection({ ...editingSection, is_filterable: e.target.checked })} />
+                    <input type="checkbox" checked={!!editingSection.is_filterable} onChange={e => setEditingSection({ ...editingSection, is_filterable: e.target.checked })} />
                     <span style={{ fontSize: '0.85rem' }}>Enable as Search Filter</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={editingSection.show_on_card} onChange={e => setEditingSection({ ...editingSection, show_on_card: e.target.checked })} />
+                    <input type="checkbox" checked={!!editingSection.show_on_card} onChange={e => setEditingSection({ ...editingSection, show_on_card: e.target.checked })} />
                     <span style={{ fontSize: '0.85rem' }}>Display on Mini-Cards</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={editingSection.is_universal} onChange={e => setEditingSection({ ...editingSection, is_universal: e.target.checked })} />
+                    <input type="checkbox" checked={!!editingSection.is_universal} onChange={e => setEditingSection({ ...editingSection, is_universal: e.target.checked })} />
                     <span style={{ fontSize: '0.85rem' }}>Universal (Apply to ALL)</span>
                   </label>
                 </div>
@@ -601,15 +601,15 @@ function SectionsContent() {
                   <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <label className="form-label" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>GOVERNANCE LAYER</label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
-                       <input type="checkbox" checked={inspectingField.required} onChange={e => setInspectingField({...inspectingField, required: e.target.checked})} />
+                       <input type="checkbox" checked={!!inspectingField.required} onChange={e => setInspectingField({...inspectingField, required: e.target.checked})} />
                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>MANDATORY (REQUIRED FIELD)</span>
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
-                       <input type="checkbox" checked={inspectingField.vendor_editable} onChange={e => setInspectingField({...inspectingField, vendor_editable: e.target.checked})} />
+                       <input type="checkbox" checked={!!inspectingField.vendor_editable} onChange={e => setInspectingField({...inspectingField, vendor_editable: e.target.checked})} />
                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>VENDOR EDITABLE PERMISSION</span>
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
-                       <input type="checkbox" checked={inspectingField.show_on_public} onChange={e => setInspectingField({...inspectingField, show_on_public: e.target.checked})} />
+                       <input type="checkbox" checked={!!inspectingField.show_on_public} onChange={e => setInspectingField({...inspectingField, show_on_public: e.target.checked})} />
                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>PUBLIC DISCOVERY VISIBILITY</span>
                     </label>
                   </div>

@@ -623,15 +623,15 @@ export default function FormArchitectPage() {
                     <label className="f-label" style={{ marginBottom: '1.25rem', opacity: 0.5 }}>GOVERNANCE LAYER</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                       <label className="toggle-btn">
-                         <input type="checkbox" checked={editingField.required} onChange={e => setEditingField({...editingField, required: e.target.checked})} />
+                         <input type="checkbox" checked={!!editingField.required} onChange={e => setEditingField({...editingField, required: e.target.checked})} />
                          MANDATORY (REQUIRED FIELD)
                       </label>
                       <label className="toggle-btn">
-                         <input type="checkbox" checked={editingField.vendor_editable} onChange={e => setEditingField({...editingField, vendor_editable: e.target.checked})} />
+                         <input type="checkbox" checked={!!editingField.vendor_editable} onChange={e => setEditingField({...editingField, vendor_editable: e.target.checked})} />
                          VENDOR EDITABLE PERMISSION
                       </label>
                       <label className="toggle-btn">
-                         <input type="checkbox" checked={editingField.show_on_public} onChange={e => setEditingField({...editingField, show_on_public: e.target.checked})} />
+                         <input type="checkbox" checked={!!editingField.show_on_public} onChange={e => setEditingField({...editingField, show_on_public: e.target.checked})} />
                          PUBLIC DISCOVERY VISIBILITY
                       </label>
                     </div>

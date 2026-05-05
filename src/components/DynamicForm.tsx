@@ -29,14 +29,12 @@ interface Section {
   icon: string;
 }
 
-interface DynamicFormProps {
-  fields: Field[];
-  data: Record<string, Record<string, any>>; // Changed: Now expects { section_id: { field_name: value } }
-  onChange: (sectionId: string, name: string, value: any) => void; // Changed: Pass sectionId
-  readOnly?: boolean;
-  userRole?: string;
-  sections?: Section[];
-  tierFeatures?: Record<string, boolean>;
+  tierFeatures?: {
+    maxSlides?: number;
+    maxImages?: number;
+    allowedMediaTypes?: string[]; // ['image', 'youtube', 'video']
+    [key: string]: any;
+  };
 }
 
 export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {} }: DynamicFormProps) {
@@ -75,6 +73,13 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     const vendorCanEdit = field.vendor_editable !== false;
 
     const isFieldLocked = readOnly || !hasWriteAccess || (userRole === 'vendor' && !vendorCanEdit) || featureMissing;
+
+    // TIER RECONCILIATION: Check media type allowance
+    const isMediaAllowed = (type: string) => {
+      if (isAdmin) return true;
+      const allowed = tierFeatures.allowedMediaTypes || ['image'];
+      return allowed.includes(type);
+    };
 
     const handleChange = (val: any) => onChange(sectionId, field.name, val);
 
@@ -206,18 +211,23 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ position: 'relative', height: '200px', background: '#000', borderRadius: '16px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {value ? (
-                <img src={`https://img.youtube.com/vi/${value.split('v=')[1]?.split('&')[0] || value.split('/').pop()}/maxresdefault.jpg`} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
+                <img src={`https://img.youtube.com/vi/${value.split('v=')[1]?.split('&')[0] || value.split('/').pop()}/maxresdefault.jpg`} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} alt="Preview" />
               ) : (
                 <i className="fab fa-youtube fa-4x" style={{ color: '#ff0000' }}></i>
               )}
               <div style={{ position: 'absolute', zIndex: 1, textAlign: 'center', color: '#fff' }}>
                 <div style={{ fontWeight: 900, fontSize: '0.7rem', letterSpacing: '2px', marginBottom: '0.5rem' }}>CINEMATIC PREVIEW</div>
                 <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>{value ? 'READY TO STREAM' : 'NO VIDEO LINK'}</div>
+                {!isMediaAllowed('youtube') && (
+                  <div style={{ background: '#D4AF37', color: '#000', padding: '4px 10px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900, marginTop: '1rem' }}>
+                    <i className="fas fa-lock"></i> UPGRADE FOR YOUTUBE
+                  </div>
+                )}
               </div>
             </div>
             <input 
-              type="text" className="form-control" placeholder="Paste YouTube URL or ID..." 
-              value={value} onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
+              type="text" className="form-control" placeholder={isMediaAllowed('youtube') ? "Paste YouTube URL or ID..." : "YouTube locked for this tier"}
+              value={value || ''} onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked || !isMediaAllowed('youtube')}
             />
           </div>
         ) : field.field_type === 'star_rating' ? (
@@ -252,7 +262,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           </label>
         ) : isSelect ? (
           <select
-            className="form-control" value={value}
+            className="form-control" value={value || ''}
             onChange={e => handleChange(e.target.value)} disabled={isFieldLocked}
           >
             {(() => {
@@ -299,8 +309,35 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                         <i className="fas fa-trash-alt" style={{ fontSize: '0.8rem' }}></i>
                       </button>
                     )}
+                    
+                    {/* HERO PROMOTION TOGGLE */}
+                    <button 
+                      onClick={() => {
+                        if (isFieldLocked) return;
+                        const featuredCount = value.filter((p: any) => p.is_hero).length;
+                        if (!item.is_hero && featuredCount >= (tierFeatures.maxSlides || 3) && !isAdmin) {
+                          alert(`Hero Slide Limit Reached (${tierFeatures.maxSlides || 3} max). Please upgrade or unselect another photo.`);
+                          return;
+                        }
+                        const next = [...value]; 
+                        next[i] = { ...item, is_hero: !item.is_hero }; 
+                        handleChange(next);
+                      }}
+                      style={{ 
+                        position: 'absolute', top: 10, left: 10, 
+                        background: item.is_hero ? '#D4AF37' : 'rgba(255,255,255,0.8)', 
+                        color: item.is_hero ? '#fff' : '#64748b',
+                        border: 'none', borderRadius: '8px', padding: '4px 8px', 
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                        fontSize: '0.6rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <i className={`fa${item.is_hero ? 's' : 'r'} fa-star`}></i>
+                      {item.is_hero ? 'FEATURED IN HERO' : 'PROMOTE TO HERO'}
+                    </button>
+
                     <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800 }}>
-                      SLIDE {i + 1}
+                      SLOT {i + 1}
                     </div>
                   </div>
                   <div style={{ padding: '1rem' }}>
@@ -370,7 +407,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             </a>
             {!isFieldLocked && (
               <input 
-                type="text" placeholder="Paste URL here..." value={value} 
+                type="text" placeholder="Paste URL here..." value={value || ''} 
                 onChange={e => handleChange(e.target.value)}
                 style={{ marginLeft: 'auto', padding: '0.4rem', borderRadius: '6px', border: '1px solid #eee', fontSize: '0.7rem' }}
               />
@@ -382,11 +419,11 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}
           >
             <i className="fas fa-bolt" style={{ color: '#D4AF37' }}></i>
-            {field.label.toUpperCase()}
+            {(field.label || '').toUpperCase()}
           </button>
         ) : (
           <input
-            type="text" className="form-control" value={value}
+            type="text" className="form-control" value={value || ''}
             onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
           />
         )}
@@ -402,7 +439,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         <section key={sid} style={{ marginBottom: '4rem' }}>
           <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '0.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1rem', color: '#1e293b' }}>
             <i className={`fas ${sections?.find(s => s.id === sid)?.icon || 'fa-tag'}`} style={{ color: '#D4AF37' }}></i>
-            {sections?.find(s => s.id === sid)?.name || sid.toUpperCase()}
+            {sections?.find(s => s.id === sid)?.name || (sid || '').toUpperCase()}
           </h3>
           <div className="grid-2">
             {groupedFields[sid].map(f => renderField(f, sid))}

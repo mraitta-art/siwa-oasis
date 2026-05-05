@@ -164,6 +164,15 @@ export default function BusinessRegistryPage() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                       <button className="btn btn-xs btn-outline" style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }} title="Manage Tier & Vendor" onClick={() => {
+                          const newTier = prompt('Enter new Tier ID (e.g., free, pro, premium):', b.subscription_tier);
+                          if (newTier && newTier !== b.subscription_tier) {
+                            fetch('/api/jana/businesses', { method: 'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: b.id, subscription_tier: newTier })})
+                            .then(() => loadBusinesses());
+                          }
+                       }}>
+                         <i className="fas fa-crown"></i> MANAGE TIER
+                       </button>
                        <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
                          <i className="fas fa-magic"></i> CURATE
                        </Link>

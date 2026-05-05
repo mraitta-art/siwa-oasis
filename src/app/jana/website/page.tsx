@@ -28,13 +28,22 @@ export default function SiteBuilderPage() {
   const [activeZone, setActiveZone] = useState<Zone>('body');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [siteSettings, setSiteSettings] = useState({ 
+  const [siteSettings, setSiteSettings] = useState<{
+    site_name: string;
+    primary_color: string;
+    tagline: string;
+    show_logo_in_hero: boolean;
+    carousel_autoplay: boolean;
+    carousel_interval: number;
+    logo_url?: string;
+  }>({ 
     site_name: 'Siwa Today', 
     primary_color: '#D4AF37', 
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false,
     carousel_autoplay: true,
-    carousel_interval: 8000
+    carousel_interval: 8000,
+    logo_url: ''
   });
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
@@ -172,6 +181,7 @@ export default function SiteBuilderPage() {
             <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>ms</span>
           </div>
           <input value={siteSettings.site_name} onChange={e => setSiteSettings(s => ({...s, site_name: e.target.value}))} placeholder="Site Name" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700, width: 140 }} />
+          <input value={siteSettings.logo_url || ''} onChange={e => setSiteSettings(s => ({...s, logo_url: e.target.value}))} placeholder="Logo Image URL (e.g. /logo.png)" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700, width: 200 }} />
           <input type="color" value={siteSettings.primary_color} onChange={e => setSiteSettings(s => ({...s, primary_color: e.target.value}))} style={{ width: 36, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer' }} title="Brand Color" />
         </div>
       </div>
