@@ -14,9 +14,10 @@ export async function GET(req: NextRequest) {
         features: { 
           maxSlides: 2, 
           maxImages: 5, 
-          allowedMediaTypes: ['image'], 
+          allowedMediaTypes: ['image', 'youtube'], 
+          max_youtube_duration: 30, // 30 second limit
           remove_watermark: false, 
-          allow_youtube_story: false, 
+          allow_youtube_story: true, 
           allow_custom_logo: false, 
           allowed_public_sections: ['sec_1_identity', 'sec_3_services', 'sec_5_connectivity'] 
         } 

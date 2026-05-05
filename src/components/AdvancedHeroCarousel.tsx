@@ -17,6 +17,7 @@ interface Slide {
   overlayOpacity?: number;
   animation?: 'fade' | 'zoom' | 'slide' | 'kenburns';
   transitionDuration?: number;
+  maxDuration?: number;
 }
 
 interface AdvancedCarouselProps {
@@ -279,7 +280,7 @@ export default function AdvancedHeroCarousel({
 }
 
 function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; animation: string; isActive: boolean; muted: boolean }) {
-  if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl} isActive={isActive} muted={muted} />;
+  if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl} isActive={isActive} muted={muted} maxDuration={slide.maxDuration} />;
   if (slide.type === 'video') return <video src={slide.mediaUrl} autoPlay muted loop style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
   return (
     <div style={{
@@ -290,12 +291,12 @@ function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; anima
   );
 }
 
-function YouTubeBackground({ videoUrl, isActive, muted }: { videoUrl: string; isActive: boolean; muted: boolean }) {
+function YouTubeBackground({ videoUrl, isActive, muted, maxDuration }: { videoUrl: string; isActive: boolean; muted: boolean; maxDuration?: number }) {
   const videoId = extractYouTubeId(videoUrl) || '';
   if (!videoId) return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      <YouTubeCarouselPlayer videoId={videoId} isActive={isActive} title="Video" showControls={false} autoplay={true} muted={muted} />
+      <YouTubeCarouselPlayer videoId={videoId} isActive={isActive} title="Video" showControls={false} autoplay={true} muted={muted} maxDuration={maxDuration} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ interface YouTubeCarouselPlayerProps {
   showControls?: boolean;
   autoplay?: boolean;
   muted?: boolean;
+  maxDuration?: number;
 }
 
 declare global {
@@ -25,6 +26,7 @@ export default function YouTubeCarouselPlayer({
   showControls = true,
   autoplay = true,
   muted = true,
+  maxDuration,
 }: YouTubeCarouselPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -131,6 +133,26 @@ export default function YouTubeCarouselPlayer({
     }
   };
 
+  const [showUpgradeOverlay, setShowUpgradeOverlay] = useState(false);
+  const timeCheckInterval = useRef<any>(null);
+
+  useEffect(() => {
+    if (isPlaying && maxDuration && playerRef.current) {
+      timeCheckInterval.current = setInterval(() => {
+        const currentTime = playerRef.current.getCurrentTime();
+        if (currentTime >= maxDuration) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+          setShowUpgradeOverlay(true);
+          clearInterval(timeCheckInterval.current);
+        }
+      }, 1000);
+    } else {
+      clearInterval(timeCheckInterval.current);
+    }
+    return () => clearInterval(timeCheckInterval.current);
+  }, [isPlaying, maxDuration]);
+
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
   return (
@@ -142,8 +164,37 @@ export default function YouTubeCarouselPlayer({
         width: '120vw', 
         height: '120vh', 
         transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none' // We use our own controls
+        pointerEvents: 'none',
+        filter: showUpgradeOverlay ? 'blur(10px) brightness(0.4)' : 'none',
+        transition: 'filter 0.8s ease'
       }}></div>
+
+      {showUpgradeOverlay && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ 
+            background: '#1e293b', padding: '3rem', borderRadius: '24px', border: '1px solid #D4AF37', 
+            textAlign: 'center', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            animation: 'slide-up-fade 0.5s ease-out'
+          }}>
+            <div style={{ width: '60px', height: '60px', background: 'rgba(212,175,55,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#D4AF37' }}>
+              <i className="fas fa-crown fa-2x"></i>
+            </div>
+            <h3 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 900, marginBottom: '1rem' }}>TEASER COMPLETE</h3>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+              You are experiencing a 30-second Free Trial preview. Upgrade to **Gold Premier** to unlock full-length cinematic stories.
+            </p>
+            <button style={{ background: '#D4AF37', color: '#1a1a2e', border: 'none', padding: '1rem 2rem', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', width: '100%', fontSize: '0.8rem', letterSpacing: '1px' }}>
+              UPGRADE TO GOLD
+            </button>
+          </div>
+          <style>{`
+            @keyframes slide-up-fade {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
 
       {!isLoaded && (
         <div style={{ position: 'absolute', inset: 0, background: `url(${thumbnailUrl}) center/cover`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

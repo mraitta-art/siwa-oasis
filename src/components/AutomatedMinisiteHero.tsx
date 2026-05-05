@@ -71,6 +71,7 @@ export default function AutomatedMinisiteHero({
           id: `${section.id}_yt`,
           type: 'youtube',
           mediaUrl: youtubeStory,
+          maxDuration: tierFeatures.max_youtube_duration,
           title: "", 
           subtitle: miniBlog,
           caption: (businessName || '').toUpperCase(), 
