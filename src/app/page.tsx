@@ -22,16 +22,25 @@ export default function HomePage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  const [carouselInterval, setCarouselInterval] = useState(8000);
+
   useEffect(() => {
     async function init() {
       try {
-        const [manualRes, featuredRes] = await Promise.all([
+        const [manualRes, featuredRes, configRes] = await Promise.all([
           fetch('/api/jana/hero-carousel'),
-          fetch('/api/discovery/featured')
+          fetch('/api/discovery/featured'),
+          fetch('/api/jana/hero-carousel?siteId=main_hero') // Fetching config
         ]);
         const manual = manualRes.ok ? (await manualRes.json()).slides || [] : [];
         const featured = featuredRes.ok ? (await featuredRes.json()).slides || [] : [];
+        const configData = configRes.ok ? await configRes.json() : {};
         
+        // Dynamic Interval from Admin
+        if (configData.config?.autoPlayInterval) {
+          setCarouselInterval(configData.config.autoPlayInterval);
+        }
+
         // 1. MASTER INTRO VIDEO (Pure Cinema - No Text)
         const siwaIntroVideo = {
           id: 'siwa_intro',
@@ -123,12 +132,12 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* 🎬 CINEMATIC HERO (Pure Cinema - No Text) */}
       <section style={{ height: '85vh', position: 'relative' }}>
         <AdvancedHeroCarousel
           slides={carouselSlides}
           height="85vh"
           autoPlay={true}
+          autoPlayInterval={carouselInterval}
           showIndicators={true}
           showArrows={true}
         />
