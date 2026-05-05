@@ -32,16 +32,16 @@ export default function HomePage() {
         const manual = manualRes.ok ? (await manualRes.json()).slides || [] : [];
         const featured = featuredRes.ok ? (await featuredRes.json()).slides || [] : [];
         
-        // 1. MASTER INTRO VIDEO
+        // 1. MASTER INTRO VIDEO (Pure Cinema - No Text)
         const siwaIntroVideo = {
           id: 'siwa_intro',
           type: 'youtube',
           mediaUrl: 'https://www.youtube.com/watch?v=k1nfk9KeJlU',
-          title: "THE LAST AUTHENTIC OASIS",
-          subtitle: "Journey into a land where time stands still and heritage breathes.",
-          caption: "SIWA TODAY",
-          ctaText: "BEGIN JOURNEY",
-          ctaLink: "#discovery",
+          title: "",
+          subtitle: "",
+          caption: "",
+          ctaText: "",
+          ctaLink: "",
           showControls: false
         };
 
