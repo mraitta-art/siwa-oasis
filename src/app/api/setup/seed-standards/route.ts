@@ -41,6 +41,10 @@ export async function GET(req: NextRequest) {
       { type: 'accommodation', section: 'sec_2_ambience', name: 'construction_era', label: 'Historical Era', field_type: 'select', options: ['Ancient','Traditional Siwan','Modern','Contemporary'] },
       { type: 'accommodation', section: 'sec_2_ambience', name: 'property_philosophy', label: 'Architectural Philosophy', field_type: 'textarea' },
       
+      // BLOCK 3: EXPERIENCE & VIBE
+      { type: 'accommodation', section: 'sec_3_services', name: 'experience_focus', label: 'Experience Focus (Multiselect)', field_type: 'checkbox_group', options: ['Honeymoon','Desert Adventure','Spiritual Retreat','Family Escape','Digital Nomad Friendly'] },
+      { type: 'accommodation', section: 'sec_3_services', name: 'view_types', label: 'Surroundings & Views (Multiselect)', field_type: 'checkbox_group', options: ['Great Sand Sea Dunes','Salt Lake View','Palm Groves','Ancient Ruins','Temple Proximity'] },
+      
       // BLOCK 4: FACILITIES
       { type: 'accommodation', section: 'sec_4_facilities', name: 'amenities', label: 'Property Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service', 'Spa', 'Desert View'] },
       { type: 'accommodation', section: 'sec_4_facilities', name: 'total_rooms', label: 'Total Rooms', field_type: 'text' },
