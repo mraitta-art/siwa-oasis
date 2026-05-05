@@ -125,56 +125,61 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', background: '#0f172a' }}>
       
       {/* 🏛️ ELITE NAVIGATION (Brand Signature Only) */}
-      <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, padding: '3rem 4rem', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' }}>
-        <div style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+      <nav style={{ 
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, 
+        padding: 'clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 5vw, 4rem)', 
+        display: 'flex', justifyContent: 'flex-start', alignItems: 'center', 
+        background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' 
+      }}>
+        <div style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <i className="fas fa-sun" style={{ color: '#D4AF37', fontSize: '1.5rem' }}></i>
           <span>SIWA.<span style={{ color: '#D4AF37' }}>TODAY</span></span>
         </div>
       </nav>
 
-      <section style={{ height: '85vh', position: 'relative' }}>
+      <section style={{ height: '75vh', minHeight: '500px', position: 'relative' }}>
         <AdvancedHeroCarousel
           slides={carouselSlides}
-          height="85vh"
+          height="75vh"
           autoPlay={true}
           autoPlayInterval={carouselInterval}
           showIndicators={true}
-          showArrows={true}
+          showArrows={false}
         />
       </section>
 
-      {/* 🔍 DISCOVERY DNA SEARCH (Elite Glass Redesign) */}
+      {/* 🔍 DISCOVERY DNA SEARCH (Elite Glass Redesign - RESPONSIVE) */}
       <section id="discovery" style={{ 
-        background: '#0a0f1d', padding: '6rem 4rem', position: 'relative', overflow: 'hidden'
+        background: '#0a0f1d', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative', overflow: 'hidden'
       }}>
         {/* Decorative Background Glow */}
         <div style={{ position: 'absolute', top: '-10%', left: '20%', width: '400px', height: '400px', background: 'rgba(212,175,55,0.05)', filter: 'blur(150px)', pointerEvents: 'none' }}></div>
         
-        <div style={{ 
+        <div className="search-container" style={{ 
           width: 'min(100%, 1200px)', margin: '0 auto', background: 'rgba(255,255,255,0.02)', 
-          backdropFilter: 'blur(40px)', padding: '3.5rem', borderRadius: '40px', 
+          backdropFilter: 'blur(40px)', padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
           border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)'
         }}>
-          <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
              <div>
                 <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '6px', marginBottom: '1rem', textTransform: 'uppercase' }}>Architectural Search</div>
-                <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-2px' }}>DISCOVER YOUR <span style={{ fontStyle: 'italic', fontWeight: 300, color: '#D4AF37' }}>SPACE</span></h2>
+                <h2 style={{ color: '#fff', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 900, margin: 0, letterSpacing: '-2px' }}>DISCOVER YOUR <span style={{ fontStyle: 'italic', fontWeight: 300, color: '#D4AF37' }}>SPACE</span></h2>
              </div>
              <button 
                onClick={handleSearch}
                disabled={isSearching}
                className="gold-pulse"
                style={{ 
-                 background: '#D4AF37', color: '#0a0f1d', border: 'none', padding: '1.25rem 4rem', borderRadius: '16px', 
-                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.4s ease', fontSize: '0.9rem', letterSpacing: '2px',
-                 boxShadow: '0 10px 30px rgba(212,175,55,0.3)'
+                 background: '#D4AF37', color: '#0a0f1d', border: 'none', padding: '1.25rem 3rem', borderRadius: '16px', 
+                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.4s ease', fontSize: '0.8rem', letterSpacing: '2px',
+                 boxShadow: '0 10px 30px rgba(212,175,55,0.3)', width: 'auto'
                }}
              >
                {isSearching ? 'SEEKING...' : 'DISCOVER'}
              </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
+          <div className="filter-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
              {[
                { label: 'ERA', state: 'era', options: ['Ancient', 'Traditional', 'Modern'] },
                { label: 'MATERIAL', state: 'material', options: ['Kershef', 'Stone', 'Mud'] },
@@ -202,15 +207,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 💎 RESULTS / FLOATING GALLERY */}
-      <section id="results" style={{ padding: '12rem 4rem', background: '#fff' }}>
-        <div style={{ textAlign: 'center', marginBottom: '8rem' }}>
+      {/* 💎 RESULTS / FLOATING GALLERY - RESPONSIVE */}
+      <section id="results" style={{ padding: 'clamp(4rem, 12vw, 12rem) clamp(1rem, 5vw, 4rem)', background: '#fff' }}>
+        <div style={{ textAlign: 'center', marginBottom: 'clamp(4rem, 10vw, 8rem)' }}>
            <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '8px', marginBottom: '2rem' }}>THE COLLECTION</div>
-           <h2 style={{ fontSize: '4rem', fontWeight: 900, color: '#0a0f1d', letterSpacing: '-3px' }}>CURATED <span style={{ color: '#D4AF37' }}>LANDMARKS</span></h2>
+           <h2 style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 900, color: '#0a0f1d', letterSpacing: '-3px' }}>CURATED <span style={{ color: '#D4AF37' }}>LANDMARKS</span></h2>
            <div style={{ width: '60px', height: '2px', background: '#D4AF37', margin: '2rem auto' }}></div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '5rem', maxWidth: 1500, margin: '0 auto' }}>
+        <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 450px), 1fr))', gap: 'clamp(3rem, 8vw, 6rem)', maxWidth: 1500, margin: '0 auto' }}>
            {(searchResults.length > 0 ? searchResults : carouselSlides.filter(s => s.id !== 'siwa_intro').slice(0, 3)).map((item: any, i: number) => {
              const name = item.name || item.title || 'Siwa Boutique';
              const image = item.mediaUrl || (item.custom_data ? Object.values(item.custom_data).find((v:any) => v.section_gallery)?.[0]?.url : 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62');
@@ -219,23 +224,23 @@ export default function HomePage() {
              return (
               <Link href={`/${slug}`} key={i} style={{ textDecoration: 'none' }} className="gallery-card-link">
                 <div className="gallery-card" style={{ transition: 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)' }}>
-                  <div style={{ height: '500px', overflow: 'hidden', position: 'relative', borderRadius: '40px', boxShadow: '0 30px 60px -20px rgba(0,0,0,0.1)' }}>
+                  <div className="card-media-container" style={{ height: 'clamp(350px, 40vw, 500px)', overflow: 'hidden', position: 'relative', borderRadius: '40px', boxShadow: '0 30px 60px -20px rgba(0,0,0,0.1)' }}>
                     <img src={image} alt={name} className="card-image" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 1.2s ease' }} />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,15,29,0.4), transparent)' }}></div>
-                    <div style={{ position: 'absolute', top: 35, right: 35, background: 'rgba(255,255,255,0.95)', color: '#0a0f1d', padding: '0.75rem 1.5rem', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 900, letterSpacing: '2px' }}>
+                    <div className="premier-badge" style={{ position: 'absolute', top: 30, right: 30, background: 'rgba(255,255,255,0.95)', color: '#0a0f1d', padding: '0.6rem 1.2rem', borderRadius: '50px', fontSize: '0.55rem', fontWeight: 900, letterSpacing: '2px' }}>
                       PREMIER
                     </div>
                   </div>
-                  <div style={{ padding: '2.5rem 1rem' }}>
+                  <div style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem) 0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>CHAPTER 01-08</span>
+                        <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>CHAPTER 01-08</span>
                         <div style={{ flexGrow: 1, height: '1px', background: '#f1f5f9' }}></div>
                     </div>
-                    <h3 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#0a0f1d', marginBottom: '1rem', letterSpacing: '-1px' }}>{name}</h3>
-                    <p style={{ color: '#64748b', fontSize: '1.1rem', lineHeight: 1.8, maxWidth: '90%' }}>A narrative journey through the architectural heritage of the Siwa Oasis.</p>
+                    <h3 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', fontWeight: 900, color: '#0a0f1d', marginBottom: '1rem', letterSpacing: '-1px' }}>{name}</h3>
+                    <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.8, maxWidth: '95%' }}>A narrative journey through the architectural heritage of the Siwa Oasis.</p>
                     <div style={{ marginTop: '2.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                       <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0a0f1d', letterSpacing: '1px' }}>RESERVE EXPERIENCE</span>
-                       <i className="fas fa-arrow-right" style={{ fontSize: '0.8rem', color: '#D4AF37' }}></i>
+                       <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#0a0f1d', letterSpacing: '1px' }}>RESERVE EXPERIENCE</span>
+                       <i className="fas fa-arrow-right" style={{ fontSize: '0.7rem', color: '#D4AF37' }}></i>
                     </div>
                   </div>
                 </div>
@@ -244,17 +249,32 @@ export default function HomePage() {
            })}
         </div>
 
-        {/* CSS INJECTIONS FOR MODERN HOVERS */}
+        {/* CSS INJECTIONS FOR MODERN HOVERS & RESPONSIVENESS */}
         <style jsx global>{`
           .gallery-card:hover {
-            transform: translateY(-15px);
+            transform: translateY(-10px);
           }
           .gallery-card:hover .card-image {
-            transform: scale(1.08);
+            transform: scale(1.05);
           }
           .gold-pulse:hover {
             transform: translateY(-2px);
             box-shadow: 0 15px 40px rgba(212,175,55,0.4);
+          }
+          @media (max-width: 768px) {
+            .filter-grid {
+              grid-template-columns: 1fr !important;
+              gap: 1.5rem !important;
+            }
+            .search-container {
+              border-radius: 24px !important;
+            }
+            .gallery-card-link {
+              width: 100%;
+            }
+            .results-grid {
+               gap: 4rem !important;
+            }
           }
         `}</style>
       </section>
