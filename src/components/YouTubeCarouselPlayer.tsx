@@ -178,14 +178,33 @@ export default function YouTubeCarouselPlayer({
         transition: 'filter 0.8s ease'
       }}></div>
 
-      {/* 🛡️ CINEMATIC SHIELD: Prevents YouTube UI from being clickable */}
-      <div style={{ 
-        position: 'absolute', 
-        inset: 0, 
-        zIndex: 5, 
-        cursor: 'default',
-        pointerEvents: showControls ? 'none' : 'auto' 
-      }}></div>
+      {/* 🔇 MINIMALIST AUDIO CONTROL (Bottom Right) */}
+      {!showUpgradeOverlay && (
+        <div 
+          onClick={unmute}
+          style={{ 
+            position: 'absolute', 
+            bottom: '40px', 
+            right: '40px', 
+            zIndex: 100, 
+            cursor: 'pointer',
+            background: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(10px)',
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(255,255,255,0.2)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+        >
+          <i className="fas fa-volume-up" style={{ color: '#fff', fontSize: '0.8rem' }}></i>
+        </div>
+      )}
 
       {showUpgradeOverlay && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }}>
