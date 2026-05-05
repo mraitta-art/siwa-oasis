@@ -45,6 +45,14 @@ interface DynamicFormProps {
 }
 
 export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {} }: DynamicFormProps) {
+  const [currentLang, setCurrentLang] = React.useState('en');
+  const languages = [
+    { code: 'en', label: 'English', icon: '🇬🇧' },
+    { code: 'zh', label: 'Chinese', icon: '🇨🇳' },
+    { code: 'ko', label: 'Korean', icon: '🇰🇷' },
+    { code: 'fr', label: 'French', icon: '🇫🇷' }
+  ];
+
   // 1. Group fields by section
   const groupedFields: Record<string, Field[]> = {};
   const sectionOrder: string[] = [];
@@ -441,7 +449,27 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   if (!fields || fields.length === 0) return <p>No fields.</p>;
 
   return (
-    <div>
+    <div className="dynamic-form">
+      {/* GLOBAL LANGUAGE SWITCHER */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', background: '#f1f5f9', padding: '0.5rem', borderRadius: '12px' }}>
+        {languages.map(lang => (
+          <button
+            key={lang.code}
+            onClick={() => setCurrentLang(lang.code)}
+            style={{
+              flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              background: currentLang === lang.code ? '#1e293b' : 'transparent',
+              color: currentLang === lang.code ? '#fff' : '#64748b',
+              fontSize: '0.65rem', fontWeight: 900, transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}
+          >
+            <span>{lang.icon}</span>
+            <span>{lang.label.toUpperCase()}</span>
+          </button>
+        ))}
+      </div>
+
       {sectionOrder.map(sid => (
         <section key={sid} style={{ marginBottom: '4rem' }}>
           <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '0.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1rem', color: '#1e293b' }}>
