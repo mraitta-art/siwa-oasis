@@ -29,6 +29,13 @@ interface Section {
   icon: string;
 }
 
+interface DynamicFormProps {
+  fields: Field[];
+  data: any;
+  onChange: (sectionId: string, fieldName: string, value: any) => void;
+  readOnly?: boolean;
+  userRole?: string;
+  sections: Section[];
   tierFeatures?: {
     maxSlides?: number;
     maxImages?: number;
