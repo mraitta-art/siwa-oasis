@@ -115,23 +115,15 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a' }}>
       
-      {/* 🏛️ ELITE NAVIGATION */}
-      <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, padding: '2.5rem 4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' }}>
-        <div style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
-          <span>SIWA <span style={{ color: '#D4AF37' }}>TODAY</span></span>
-        </div>
-        <div style={{ display: 'flex', gap: '3.5rem', alignItems: 'center' }}>
-           <div style={{ display: 'flex', gap: '2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px' }}>
-              <span>EXPLORE</span>
-              <span>JOURNEY</span>
-              <span>LOGISTICS</span>
-           </div>
-           <Link href="/be-a-partner" style={{ background: '#D4AF37', color: '#1a1a2e', padding: '0.8rem 2rem', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 900, textDecoration: 'none', boxShadow: '0 10px 20px rgba(212,175,55,0.2)' }}>PARTNER WITH US</Link>
+      {/* 🏛️ ELITE NAVIGATION (Brand Signature Only) */}
+      <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, padding: '3rem 4rem', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' }}>
+        <div style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <i className="fas fa-sun" style={{ color: '#D4AF37', fontSize: '1.5rem' }}></i>
+          <span>SIWA.<span style={{ color: '#D4AF37' }}>TODAY</span></span>
         </div>
       </nav>
 
-      {/* 🎬 CINEMATIC HERO (Video + Multi-Images) */}
+      {/* 🎬 CINEMATIC HERO (Pure Cinema - No Text) */}
       <section style={{ height: '85vh', position: 'relative' }}>
         <AdvancedHeroCarousel
           slides={carouselSlides}
@@ -258,10 +250,31 @@ export default function HomePage() {
         `}</style>
       </section>
 
-      {/* 🌍 FOOTER */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '6rem 4rem', textAlign: 'center', background: '#0a0f1d' }}>
-         <div style={{ fontWeight: 900, letterSpacing: '12px', fontSize: '1.75rem', color: '#fff', marginBottom: '1.5rem' }}>SIWA TODAY</div>
-         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', letterSpacing: '1px' }}>The Gold Standard of Siwa Oasis Experiences.</p>
+      {/* 🌍 FOOTER (Global Navigation) */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8rem 4rem', background: '#0a0f1d', color: '#fff' }}>
+         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '4rem' }}>
+            <div>
+               <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#fff', marginBottom: '1.5rem' }}>SIWA.TODAY</div>
+               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '6rem' }}>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
+                  <Link href="/logistics" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Elite Logistics</Link>
+                  <Link href="/expeditions" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Curated Tours</Link>
+                  <Link href="/concierge" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Siwan Concierge</Link>
+               </div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>PARTNERSHIP</span>
+                  <Link href="/be-a-partner" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Become a Partner</Link>
+                  <Link href="/investment" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
+                  <Link href="/admin" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Partner Login</Link>
+               </div>
+            </div>
+         </div>
+         <div style={{ marginTop: '6rem', paddingTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', opacity: 0.3, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px' }}>
+            © {new Date().getFullYear()} SIWA.TODAY • ALL RIGHTS RESERVED.
+         </div>
       </footer>
     </div>
   );
