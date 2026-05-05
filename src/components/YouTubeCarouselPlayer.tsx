@@ -242,27 +242,6 @@ export default function YouTubeCarouselPlayer({
         </div>
       )}
 
-      {showControls && isLoaded && (
-        <div 
-          onClick={togglePlay}
-          style={{ 
-            position: 'absolute', 
-            inset: 0, 
-            cursor: 'pointer', 
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          {!isPlaying && (
-             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(212,175,55,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="fas fa-play" style={{ fontSize: '2rem', color: '#1a1a2e', marginLeft: '5px' }}></i>
-             </div>
-          )}
-        </div>
-      )}
-
     </div>
   );
 }
