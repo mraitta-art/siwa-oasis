@@ -6,7 +6,7 @@ import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
 /**
  * SIWA OASIS — ELITE CONCIERGE HOME PAGE
- * Premium "Discovery DNA" Engine for high-end travelers.
+ * Invisible Excellence & DNA Discovery.
  */
 export default function HomePage() {
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
@@ -31,7 +31,20 @@ export default function HomePage() {
         ]);
         const manual = manualRes.ok ? (await manualRes.json()).slides || [] : [];
         const featured = featuredRes.ok ? (await featuredRes.json()).slides || [] : [];
-        setCarouselSlides([...manual, ...featured]);
+        
+        // Ensure a high-fidelity YouTube video of Siwa is the first slide
+        const siwaIntroVideo = {
+          id: 'siwa_intro',
+          type: 'youtube',
+          mediaUrl: 'https://www.youtube.com/watch?v=kY_uAn3V8Bw', // Cinematic Siwa Intro
+          title: "THE LAST AUTHENTIC OASIS",
+          subtitle: "Journey into a land where time stands still and heritage breathes.",
+          caption: "SIWA TODAY",
+          ctaText: "BEGIN JOURNEY",
+          ctaLink: "#discovery"
+        };
+
+        setCarouselSlides([siwaIntroVideo, ...manual, ...featured]);
       } catch (e) { console.error('Hero init fail:', e); }
       setLoading(false);
     }
@@ -46,6 +59,8 @@ export default function HomePage() {
       const res = await fetch(`/api/discovery/search?${params.toString()}`);
       const data = await res.json();
       setSearchResults(data.results || []);
+      // Smooth scroll to results
+      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
     } catch (e) { console.error('Search error:', e); }
     setIsSearching(false);
   };
@@ -53,7 +68,7 @@ export default function HomePage() {
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
        <i className="fas fa-sun fa-spin fa-4x" style={{ color: '#D4AF37', marginBottom: '2rem' }}></i>
-       <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.7rem' }}>CURATING YOUR EXPERIENCE...</div>
+       <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.7rem' }}>CURATING EXPERIENCE...</div>
     </div>
   );
 
@@ -61,7 +76,7 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', background: '#0f172a' }}>
       
       {/* 🏛️ ELITE NAVIGATION */}
-      <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, padding: '2.5rem 4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, padding: '2.5rem 4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' }}>
         <div style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
           <span>SIWA <span style={{ color: '#D4AF37' }}>TODAY</span></span>
@@ -69,55 +84,57 @@ export default function HomePage() {
         <div style={{ display: 'flex', gap: '3.5rem', alignItems: 'center' }}>
            <div style={{ display: 'flex', gap: '2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px' }}>
               <span>EXPLORE</span>
-              <span>HERITAGE</span>
+              <span>JOURNEY</span>
               <span>LOGISTICS</span>
            </div>
            <Link href="/be-a-partner" style={{ background: '#D4AF37', color: '#1a1a2e', padding: '0.8rem 2rem', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 900, textDecoration: 'none', boxShadow: '0 10px 20px rgba(212,175,55,0.2)' }}>PARTNER WITH US</Link>
         </div>
       </nav>
 
-      {/* 🎬 CINEMATIC HERO */}
-      <section style={{ height: '100vh', position: 'relative' }}>
+      {/* 🎬 CINEMATIC HERO (Video + Multi-Images) */}
+      <section style={{ height: '85vh', position: 'relative' }}>
         <AdvancedHeroCarousel
           slides={carouselSlides}
-          height="100vh"
+          height="85vh"
           autoPlay={true}
           showIndicators={true}
           showArrows={true}
         />
+      </section>
 
-        {/* 🔍 DISCOVERY DNA SEARCH (Floating) */}
+      {/* 🔍 DISCOVERY DNA SEARCH (Positioned BELOW Hero) */}
+      <section id="discovery" style={{ 
+        background: '#0f172a', padding: '6rem 4rem', borderBottom: '1px solid rgba(255,255,255,0.05)'
+      }}>
         <div style={{ 
-          position: 'absolute', bottom: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: 100, 
-          width: 'min(90%, 1100px)', background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(30px)', 
-          padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)',
+          width: 'min(100%, 1200px)', margin: '0 auto', background: 'rgba(255,255,255,0.03)', 
+          padding: '3rem', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.1)',
           boxShadow: '0 50px 100px -20px rgba(0,0,0,0.5)'
         }}>
-          <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
              <div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>DISCOVERY DNA</div>
-                <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>FIND YOUR <span style={{ color: '#D4AF37' }}>SOUL</span> IN SIWA</h2>
+                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '4px', marginBottom: '0.75rem' }}>ELITE DISCOVERY</div>
+                <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>FIND YOUR <span style={{ color: '#D4AF37' }}>SOUL</span> IN SIWA</h2>
              </div>
              <button 
                onClick={handleSearch}
                disabled={isSearching}
                style={{ 
-                 background: '#D4AF37', color: '#1a1a2e', border: 'none', padding: '1rem 3rem', borderRadius: '12px', 
-                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.3s' 
+                 background: '#D4AF37', color: '#1a1a2e', border: 'none', padding: '1.2rem 4.5rem', borderRadius: '14px', 
+                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.3s', fontSize: '0.85rem', letterSpacing: '1px'
                }}
              >
                {isSearching ? 'FINDING...' : 'DISCOVER EXPERIENCE'}
              </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
-             {/* ERA FILTER */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
              <div className="dna-filter">
-                <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '0.75rem' }}>HISTORICAL ERA</label>
+                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>HISTORICAL ERA</label>
                 <select 
                   value={filters.era} 
                   onChange={e => setFilters({...filters, era: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
                    <option value="">Any Era</option>
                    <option value="Ancient">Ancient Shali</option>
@@ -125,13 +142,12 @@ export default function HomePage() {
                    <option value="Modern">Modern Luxury</option>
                 </select>
              </div>
-             {/* MATERIAL FILTER */}
              <div className="dna-filter">
-                <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '0.75rem' }}>CONSTRUCTION MATERIAL</label>
+                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>CONSTRUCTION MATERIAL</label>
                 <select 
                   value={filters.material} 
                   onChange={e => setFilters({...filters, material: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
                    <option value="">Any Material</option>
                    <option value="Kershef">Kershef (Salt Brick)</option>
@@ -139,13 +155,12 @@ export default function HomePage() {
                    <option value="Mud">Mud/Clay</option>
                 </select>
              </div>
-             {/* VIBE FILTER */}
              <div className="dna-filter">
-                <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '0.75rem' }}>JOURNEY VIBE</label>
+                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>JOURNEY VIBE</label>
                 <select 
                   value={filters.vibe} 
                   onChange={e => setFilters({...filters, vibe: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
                    <option value="">Any Vibe</option>
                    <option value="Spiritual">Spiritual Retreat</option>
@@ -153,13 +168,12 @@ export default function HomePage() {
                    <option value="Peaceful">Peaceful Sanctuary</option>
                 </select>
              </div>
-             {/* EXPERIENCE FILTER */}
              <div className="dna-filter">
-                <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '0.75rem' }}>EXPERIENCE TYPE</label>
+                <label style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: '1rem' }}>EXPERIENCE TYPE</label>
                 <select 
                   value={filters.experience} 
                   onChange={e => setFilters({...filters, experience: e.target.value})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '1.1rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
                    <option value="">Any Type</option>
                    <option value="Honeymoon">Honeymoon</option>
@@ -172,39 +186,39 @@ export default function HomePage() {
       </section>
 
       {/* 💎 RESULTS / CURATED DISCOVERY */}
-      <section style={{ padding: '8rem 4rem', background: '#fff' }}>
-        <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
-           <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '5px', marginBottom: '1rem' }}>PREMIER COLLECTION</div>
-           <h2 style={{ fontSize: '3rem', fontWeight: 900, color: '#0f172a' }}>THE SOUL OF THE <span style={{ color: '#D4AF37' }}>OASIS</span></h2>
-           <p style={{ color: '#64748b', fontSize: '1.2rem', maxWidth: '700px', margin: '1.5rem auto 0' }}>Discover hand-picked establishments that define the Siwan Gold Standard.</p>
+      <section id="results" style={{ padding: '10rem 4rem', background: '#fff' }}>
+        <div style={{ textAlign: 'center', marginBottom: '6rem' }}>
+           <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '6px', marginBottom: '1.5rem' }}>CURATED DISCOVERY</div>
+           <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-2px' }}>THE SOUL OF THE <span style={{ color: '#D4AF37' }}>OASIS</span></h2>
+           <p style={{ color: '#64748b', fontSize: '1.25rem', maxWidth: '750px', margin: '2rem auto 0', lineHeight: 1.8 }}>Hand-picked Siwan establishments verified for their architectural soul and heritage excellence.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '3rem', maxWidth: 1400, margin: '0 auto' }}>
-           {(searchResults.length > 0 ? searchResults : carouselSlides.slice(0, 3)).map((item: any, i: number) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '4rem', maxWidth: 1400, margin: '0 auto' }}>
+           {(searchResults.length > 0 ? searchResults : carouselSlides.filter(s => s.id !== 'siwa_intro').slice(0, 3)).map((item: any, i: number) => {
              const name = item.name || item.title || 'Siwa Boutique';
              const image = item.mediaUrl || (item.custom_data ? Object.values(item.custom_data).find((v:any) => v.section_gallery)?.[0]?.url : 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62');
              const slug = item.slug || item.id;
 
              return (
               <Link href={`/${slug}`} key={i} style={{ textDecoration: 'none' }}>
-                <div style={{ background: '#fff', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.06)', border: '1px solid #f1f5f9', transition: 'all 0.4s' }}>
-                  <div style={{ height: '320px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ background: '#fff', borderRadius: '40px', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+                  <div style={{ height: '350px', overflow: 'hidden', position: 'relative' }}>
                     <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <div style={{ position: 'absolute', top: 25, right: 25, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(10px)', color: '#D4AF37', padding: '0.5rem 1rem', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 900, border: '1px solid rgba(212,175,55,0.3)' }}>
-                      <i className="fas fa-crown" style={{ marginRight: '0.5rem' }}></i> PREMIER CHOICE
+                    <div style={{ position: 'absolute', top: 30, right: 30, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(10px)', color: '#D4AF37', padding: '0.6rem 1.25rem', borderRadius: '50px', fontSize: '0.65rem', fontWeight: 900, border: '1px solid rgba(212,175,55,0.3)', letterSpacing: '1px' }}>
+                      <i className="fas fa-crown" style={{ marginRight: '0.6rem' }}></i> PREMIER CHOICE
                     </div>
                   </div>
-                  <div style={{ padding: '2.5rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                        <span style={{ background: '#f8fafc', padding: '4px 10px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800, color: '#64748b' }}>HERITAGE</span>
-                        <span style={{ background: '#f8fafc', padding: '4px 10px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800, color: '#64748b' }}>TRADITIONAL</span>
+                  <div style={{ padding: '3rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                        <span style={{ background: '#f8fafc', padding: '5px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, color: '#64748b', letterSpacing: '1px' }}>HERITAGE</span>
+                        <span style={{ background: '#f8fafc', padding: '5px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, color: '#64748b', letterSpacing: '1px' }}>TRADITIONAL</span>
                     </div>
-                    <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e293b', marginBottom: '1rem' }}>{name}</h3>
-                    <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.7, marginBottom: '2rem' }}>Experience the absolute silence and architectural mastery of this Siwa Oasis landmark.</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#D4AF37' }}>EXPLORE CHAPTERS <i className="fas fa-arrow-right" style={{ marginLeft: '0.5rem' }}></i></span>
-                       <div style={{ display: 'flex', gap: '-5px' }}>
-                          {[1,2,3,4].map(n => <div key={n} style={{ width: 30, height: 30, borderRadius: '50%', background: '#f1f5f9', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#94a3b8' }}><i className="fas fa-check"></i></div>)}
+                    <h3 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', marginBottom: '1.25rem', letterSpacing: '-0.5px' }}>{name}</h3>
+                    <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2.5rem', opacity: 0.8 }}>Explore the architectural mastery and deep silence of this Siwan landmark.</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2rem', borderTop: '1px solid #f1f5f9' }}>
+                       <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>EXPLORE STORY <i className="fas fa-arrow-right" style={{ marginLeft: '0.75rem' }}></i></span>
+                       <div style={{ display: 'flex', gap: '-8px' }}>
+                          {[1,2,3,4].map(n => <div key={n} style={{ width: 34, height: 34, borderRadius: '50%', background: '#f1f5f9', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: '#94a3b8' }}><i className="fas fa-check"></i></div>)}
                        </div>
                     </div>
                   </div>
@@ -215,52 +229,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 🏛️ THE 8 GOLD STANDARDS (Showing "We Care") */}
-      <section style={{ padding: '8rem 4rem', background: '#0f172a', color: '#fff' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
-             <div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '5px', marginBottom: '1.5rem' }}>THE SIWA STANDARD</div>
-                <h2 style={{ fontSize: '3.5rem', fontWeight: 900, marginBottom: '2rem', lineHeight: 1.1 }}>WE CARE ABOUT EVERY <span style={{ color: '#D4AF37' }}>DETAIL</span></h2>
-                <p style={{ fontSize: '1.2rem', opacity: 0.6, lineHeight: 1.8, marginBottom: '3rem' }}>
-                  Our platform is built on an immutable 8-chapter governance framework. We don't just list businesses; we curate their DNA. From the era of construction to the salt-density of the walls, we ensure your experience is authentic.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                   <div>
-                      <h4 style={{ color: '#D4AF37', fontWeight: 900, marginBottom: '1rem' }}>Heritage Control</h4>
-                      <p style={{ fontSize: '0.85rem', opacity: 0.5 }}>Verified historical eras and materials for every establishment.</p>
-                   </div>
-                   <div>
-                      <h4 style={{ color: '#D4AF37', fontWeight: 900, marginBottom: '1rem' }}>Full Service</h4>
-                      <p style={{ fontSize: '0.85rem', opacity: 0.5 }}>Integrated logistics and 24/7 Siwan concierge support.</p>
-                   </div>
-                </div>
-             </div>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                {[
-                  { n: 'IDENTITY', i: 'fa-landmark' },
-                  { n: 'AMBIENCE', i: 'fa-sun' },
-                  { n: 'SERVICES', i: 'fa-hotel' },
-                  { n: 'FACILITIES', i: 'fa-swimming-pool' },
-                  { n: 'CONTACTS', i: 'fa-wifi' },
-                  { n: 'GEOGRAPHY', i: 'fa-map-marked-alt' },
-                  { n: 'INVESTMENT', i: 'fa-chart-line' },
-                  { n: 'OFFERS', i: 'fa-tags' }
-                ].map((s, idx) => (
-                  <div key={idx} style={{ background: 'rgba(255,255,255,0.03)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                     <i className={`fas ${s.i}`} style={{ fontSize: '1.5rem', color: '#D4AF37', marginBottom: '1rem' }}></i>
-                     <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '2px' }}>{s.n}</div>
-                  </div>
-                ))}
-             </div>
-          </div>
-        </div>
-      </section>
-
       {/* 🌍 FOOTER */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '5rem 4rem', textAlign: 'center' }}>
-         <div style={{ fontWeight: 900, letterSpacing: '10px', fontSize: '1.5rem', color: '#fff', marginBottom: '1rem' }}>SIWA TODAY</div>
-         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>The Gold Standard of Siwa Oasis Governance & Storytelling.</p>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '6rem 4rem', textAlign: 'center', background: '#0a0f1d' }}>
+         <div style={{ fontWeight: 900, letterSpacing: '12px', fontSize: '1.75rem', color: '#fff', marginBottom: '1.5rem' }}>SIWA TODAY</div>
+         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', letterSpacing: '1px' }}>The Gold Standard of Siwa Oasis Experiences.</p>
       </footer>
     </div>
   );
