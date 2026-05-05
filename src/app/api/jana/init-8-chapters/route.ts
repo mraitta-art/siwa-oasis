@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       { id: 'sec_4_facilities',   name: 'Facilities & Amenities',     icon: 'fa-swimming-pool',   order: 4 },
       { id: 'sec_5_connectivity', name: 'Connectivity & Contacts',    icon: 'fa-wifi',            order: 5 },
       { id: 'sec_6_geographic',   name: 'Geographic Intelligence',    icon: 'fa-map-marked-alt',  order: 6 },
-      { id: 'sec_7_authority',    name: 'Legal Authority',            icon: 'fa-shield-halved',   order: 7 },
+      { id: 'sec_7_investment',   name: 'Investment & Growth',        icon: 'fa-chart-line',      order: 7 },
       { id: 'sec_8_rates_offers', name: 'Rates, Discounts & Offers',  icon: 'fa-tags',            order: 8 },
     ];
 

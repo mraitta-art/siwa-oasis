@@ -49,6 +49,11 @@ export async function GET(req: NextRequest) {
       { type: 'accommodation', section: 'sec_4_facilities', name: 'amenities', label: 'Property Amenities', field_type: 'checkbox', options: ['WiFi','Pool','Air Conditioning','Traditional Breakfast','Shuttle Service', 'Spa', 'Desert View'] },
       { type: 'accommodation', section: 'sec_4_facilities', name: 'total_rooms', label: 'Total Rooms', field_type: 'text' },
       
+      // BLOCK 7: INVESTMENT & GROWTH
+      { type: 'accommodation', section: 'sec_7_investment', name: 'investment_models', label: 'Investment & Partnership Models', field_type: 'checkbox_group', options: ['Time-Share','Long-Term Lease','Seasonal Ownership','Expansion Partnership','Direct Investment'] },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'group_capability', label: 'Group & Tour Capabilities', field_type: 'checkbox_group', options: ['Corporate Retreats','Private Tours','Workshop Hosting','Large Group Catering'] },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'expansion_roadmap', label: 'Expansion Roadmap (Narrative)', field_type: 'textarea' },
+
       // BLOCK 8: RATES & OFFERS
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'price_standard', label: 'Standard Room Rate', field_type: 'text' },
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'active_discounts', label: 'Active Discounts & Deals', field_type: 'checkbox_group', options: ['Early Bird (15%)', 'Long Stay (20%)', 'Last Minute', 'Siwan Resident Discount'] },
