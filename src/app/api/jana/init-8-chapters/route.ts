@@ -13,6 +13,11 @@ export async function GET(request: NextRequest) {
     await execute("DELETE FROM form_fields WHERE section_id IN (SELECT id FROM sections)");
     await execute("DELETE FROM sections");
 
+    // 1.5 ENSURE VITAL TYPOLOGIES EXIST
+    await execute(
+      "INSERT IGNORE INTO business_types (id, name, is_parent, active) VALUES ('SECTION_TEMPLATE', 'System Template', 0, 1)"
+    );
+
     // 2. DEFINE THE 8 GOLDEN CHAPTERS
     const chapters = [
       { id: 'sec_1_identity',     name: 'General Identity',           icon: 'fa-landmark',        order: 1 },
