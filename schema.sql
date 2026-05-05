@@ -293,11 +293,11 @@ INSERT INTO profiles (id, email, password_hash, role, display_name, subscription
 
 -- Default Subscription Tiers
 INSERT INTO subscription_tiers (id, name, price_amount, features) VALUES
-('free', 'Free', 0, '{"maxBusinesses":1,"canPublishMinisite":false,"canCustomizeTemplate":false,"maxImages":5,"maxSlides":3,"maxStorageMB":10,"maxCustomBlocks":2}'),
-('basic', 'Basic', 9.99, '{"maxBusinesses":3,"canPublishMinisite":true,"canCustomizeTemplate":false,"maxImages":15,"maxSlides":10,"maxStorageMB":50,"maxCustomBlocks":5}'),
-('premium', 'Premium', 29.99, '{"maxBusinesses":10,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":50,"maxSlides":20,"maxStorageMB":250,"maxCustomBlocks":15}'),
-('gold', 'Gold VIP', 79.99, '{"maxBusinesses":50,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":100,"maxSlides":50,"maxStorageMB":1000,"maxCustomBlocks":50}'),
-('vip', 'Enterprise/VIP', 199.99, '{"maxBusinesses":999,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":999,"maxSlides":999,"maxStorageMB":10000,"maxCustomBlocks":999}');
+('free', 'Free', 0, '{"maxBusinesses":1,"canPublishMinisite":false,"canCustomizeTemplate":false,"maxImages":5,"maxSlides":3,"maxStorageMB":10,"maxCustomBlocks":2,"allowedMediaTypes":["image"]}'),
+('basic', 'Basic', 9.99, '{"maxBusinesses":3,"canPublishMinisite":true,"canCustomizeTemplate":false,"maxImages":15,"maxSlides":10,"maxStorageMB":50,"maxCustomBlocks":5,"allowedMediaTypes":["image","youtube"]}'),
+('premium', 'Premium', 29.99, '{"maxBusinesses":10,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":50,"maxSlides":20,"maxStorageMB":250,"maxCustomBlocks":15,"allowedMediaTypes":["image","youtube","video"]}'),
+('gold', 'Gold VIP', 79.99, '{"maxBusinesses":50,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":100,"maxSlides":50,"maxStorageMB":1000,"maxCustomBlocks":50,"allowedMediaTypes":["image","youtube","video"]}'),
+('vip', 'Enterprise/VIP', 199.99, '{"maxBusinesses":999,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":999,"maxSlides":999,"maxStorageMB":10000,"maxCustomBlocks":999,"allowedMediaTypes":["image","youtube","video"]}');
 
 -- Default Business Types
 -- 1. PARENTS
