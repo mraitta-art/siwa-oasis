@@ -80,6 +80,16 @@ export async function GET(req: NextRequest) {
       { type: 'adventure', section: 'sec_4_facilities', name: 'gear_provided', label: 'Equipment & Gear Included', field_type: 'checkbox_group', options: ['4x4 Vehicle','Camping Gear','Sandboards','Helmets','Water/Snacks'] },
       { type: 'adventure', section: 'sec_8_rates_offers', name: 'group_discounts', label: 'Group & Seasonal Rates', field_type: 'textarea' },
 
+      // 🏺 TRADE & CRAFTS STANDARDS (Shops)
+      { type: 'crafts', section: 'sec_3_services', name: 'product_categories', label: 'Product Categories', field_type: 'checkbox_group', options: ['Dates & Olives','Siwan Embroidery','Salt Lamps','Traditional Jewelry','Handmade Pottery'] },
+      { type: 'crafts', section: 'sec_4_facilities', name: 'store_services', label: 'Store Capabilities', field_type: 'checkbox_group', options: ['International Shipping','Custom Orders','Wholesale Available','Gift Wrapping'] },
+      { type: 'crafts', section: 'sec_8_rates_offers', name: 'shipping_info', label: 'Shipping & Bulk Rates', field_type: 'textarea' },
+
+      // 🛺 LOGISTICS & TRANSPORT STANDARDS
+      { type: 'logistics', section: 'sec_3_services', name: 'vehicle_types', label: 'Fleet & Vehicle Types', field_type: 'checkbox_group', options: ['4x4 Desert Jeep','Local Tuk-Tuk','Private Mini-Bus','Bicycle/Scooter Rental'] },
+      { type: 'logistics', section: 'sec_4_facilities', name: 'coverage_area', label: 'Service Coverage', field_type: 'checkbox_group', options: ['Within Siwa Oasis','Airport Transfers (Cairo/Alex)','Desert Rescue/Retrieval','Cross-Country Trips'] },
+      { type: 'logistics', section: 'sec_8_rates_offers', name: 'transport_rates', label: 'Standard Trip Tariffs', field_type: 'textarea' },
+
       // 📊 BUSINESS METRICS (Internal)
       { type: 'accommodation', section: 'business_metrics', name: 'avg_revenue', label: 'Avg Monthly Revenue', field_type: 'text' },
       { type: 'accommodation', section: 'business_metrics', name: 'occupancy_rate', label: 'Occupancy Rate %', field_type: 'text' },
