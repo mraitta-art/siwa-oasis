@@ -36,7 +36,7 @@ export default function HomePage() {
         const siwaIntroVideo = {
           id: 'siwa_intro',
           type: 'youtube',
-          mediaUrl: 'https://www.youtube.com/watch?v=kY_uAn3V8Bw', // Cinematic Siwa Intro
+          mediaUrl: 'https://www.youtube.com/watch?v=k1nfk9KeJlU', // RESTORED WORKING VIDEO
           title: "THE LAST AUTHENTIC OASIS",
           subtitle: "Journey into a land where time stands still and heritage breathes.",
           caption: "SIWA TODAY",

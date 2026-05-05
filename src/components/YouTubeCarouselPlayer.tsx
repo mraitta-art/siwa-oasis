@@ -144,8 +144,10 @@ export default function YouTubeCarouselPlayer({
   const timeCheckInterval = useRef<any>(null);
 
   useEffect(() => {
-    if (isPlaying && maxDuration && playerRef.current) {
+    // Only enforce the limit if maxDuration is a positive number
+    if (isPlaying && maxDuration && maxDuration > 0 && playerRef.current) {
       timeCheckInterval.current = setInterval(() => {
+        if (!playerRef.current || !playerRef.current.getCurrentTime) return;
         const currentTime = playerRef.current.getCurrentTime();
         if (currentTime >= maxDuration) {
           playerRef.current.pauseVideo();
