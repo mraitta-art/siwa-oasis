@@ -8,28 +8,9 @@ import { randomUUID } from 'crypto';
  */
 export async function GET(req: NextRequest) {
   try {
-    // 1. Ensure Sections exist
-    const sectionDefinitions = [
-      { id: 'facilities', name: 'Amenities & Features', icon: 'fa-swimming-pool' },
-      { id: 'star_rating', name: 'Industry Rating', icon: 'fa-star' },
-      { id: 'room_types', name: 'Room & Stay Options', icon: 'fa-bed' },
-      { id: 'business_metrics', name: 'Business Metrics', icon: 'fa-chart-line', vendor_editable: true, show_on_public: false },
-      { id: 'verification', name: 'Admin Verification', icon: 'fa-shield-alt', vendor_editable: false, show_on_public: false }
-    ];
-
-    for (const s of sectionDefinitions) {
-      await execute(
-        'INSERT IGNORE INTO sections (id, name, icon, vendor_editable, show_on_public) VALUES (?, ?, ?, ?, ?)',
-        [s.id, s.name, s.icon, s.vendor_editable ?? true, s.show_on_public ?? true]
-      );
-    }
-
-    // 2. Update Parent Typology Section Mappings
-    await execute(
-      'UPDATE business_types SET sections = ? WHERE id = ?',
-      [JSON.stringify(["basic", "location", "contact", "facilities", "star_rating", "room_types", "business_metrics", "verification"]), 'accommodation']
-    );
-
+    // 1. We no longer define sections here. 
+    // They are exclusively governed by /api/jana/init-8-chapters
+    
     const standards = [
       // 🏨 ACCOMMODATION STANDARDS
       // BLOCK 1: GENERAL IDENTITY
@@ -88,33 +69,10 @@ export async function GET(req: NextRequest) {
       // 🛺 LOGISTICS & TRANSPORT STANDARDS
       { type: 'logistics', section: 'sec_3_services', name: 'vehicle_types', label: 'Fleet & Vehicle Types', field_type: 'checkbox_group', options: ['4x4 Desert Jeep','Local Tuk-Tuk','Private Mini-Bus','Bicycle/Scooter Rental'] },
       { type: 'logistics', section: 'sec_4_facilities', name: 'coverage_area', label: 'Service Coverage', field_type: 'checkbox_group', options: ['Within Siwa Oasis','Airport Transfers (Cairo/Alex)','Desert Rescue/Retrieval','Cross-Country Trips'] },
-      { type: 'logistics', section: 'sec_8_rates_offers', name: 'transport_rates', label: 'Standard Trip Tariffs', field_type: 'textarea' },
-
-      // 📊 BUSINESS METRICS (Internal)
-      { type: 'accommodation', section: 'business_metrics', name: 'avg_revenue', label: 'Avg Monthly Revenue', field_type: 'text' },
-      { type: 'accommodation', section: 'business_metrics', name: 'occupancy_rate', label: 'Occupancy Rate %', field_type: 'text' },
-      { type: 'accommodation', section: 'business_metrics', name: 'employee_count', label: 'Total Employee Count', field_type: 'text' },
       
-      // 🛡️ ADMIN VERIFICATION (Admin Only)
-      { type: 'accommodation', section: 'verification', name: 'verification_status', label: 'Verification Status', field_type: 'select', options: ['Pending','Verified','Rejected','Suspended'] },
-      { type: 'accommodation', section: 'verification', name: 'quality_rating', label: 'Quality Audit Rating (1-10)', field_type: 'text' },
-      { type: 'accommodation', section: 'verification', name: 'priority_listing', label: 'Priority Search Listing', field_type: 'boolean' },
-      { type: 'accommodation', section: 'verification', name: 'admin_notes', label: 'Internal Admin Notes', field_type: 'textarea' },
-
-      
-      // 🍽️ FOOD & BEVERAGE STANDARDS
-      { type: 'food', section: 'menu', name: 'cuisine_standard', label: 'Primary Cuisine Style', field_type: 'select', options: ['Traditional Siwan','Egyptian','Mediterranean','International'] },
-      { type: 'food', section: 'basic', name: 'dietary', label: 'Dietary Options', field_type: 'checkbox', options: ['Vegan','Vegetarian','Gluten-Free','Halal'] },
-      { type: 'food', section: 'basic', name: 'seating', label: 'Seating Capacity', field_type: 'text' },
-
-      // 🐪 ADVENTURE STANDARDS
-      { type: 'adventure', section: 'schedule', name: 'difficulty', label: 'Difficulty Level', field_type: 'select', options: ['Easy','Moderate','Challenging','Extreme'] },
-      { type: 'adventure', section: 'basic', name: 'duration_std', label: 'Typical Duration', field_type: 'text' },
-      { type: 'adventure', section: 'basic', name: 'gear', label: 'Gear Provided', field_type: 'checkbox', options: ['Helmet','Water','Camping Gear','Sandboards'] },
-
-      // 🎨 CRAFTS STANDARDS
-      { type: 'crafts', section: 'products', name: 'origin', label: 'Material Origin', field_type: 'select', options: ['Siwa Oasis','Matrouh Region','Lower Egypt','Imported'] },
-      { type: 'crafts', section: 'basic', name: 'method', label: 'Production Method', field_type: 'select', options: ['Handmade','Machine-assisted','Bespoke'] }
+      // BLOCK 7: INVESTMENT & GROWTH
+      { type: 'accommodation', section: 'sec_7_investment', name: 'admin_verification_status', label: 'ADMIN: Verification Status', field_type: 'select', options: ['Pending','Verified','Rejected','Suspended'] },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'quality_audit_score', label: 'ADMIN: Quality Audit (1-10)', field_type: 'text' }
     ];
 
     const results = [];
