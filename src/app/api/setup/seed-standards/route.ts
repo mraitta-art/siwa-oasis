@@ -68,7 +68,18 @@ export async function GET(req: NextRequest) {
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'price_standard', label: 'Standard Room Rate', field_type: 'text' },
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'active_discounts', label: 'Active Discounts & Deals', field_type: 'checkbox_group', options: ['Early Bird (15%)', 'Long Stay (20%)', 'Last Minute', 'Siwan Resident Discount'] },
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'special_conditions', label: 'Booking Conditions', field_type: 'textarea' },
-      
+
+      // 🍽️ FOOD & BEVERAGE STANDARDS (Mapping to the same 8 Blocks)
+      { type: 'food', section: 'sec_1_identity', name: 'restaurant_logo', label: 'Restaurant Branding/Logo', field_type: 'gallery' },
+      { type: 'food', section: 'sec_3_services', name: 'cuisine_style', label: 'Cuisine Style', field_type: 'checkbox_group', options: ['Traditional Siwan','Egyptian','Mediterranean','International'] },
+      { type: 'food', section: 'sec_4_facilities', name: 'seating_type', label: 'Seating Style', field_type: 'checkbox_group', options: ['Floor Seating (Traditional)','Table Seating','Outdoor Terrace','Sunset View Table'] },
+      { type: 'food', section: 'sec_8_rates_offers', name: 'avg_meal_price', label: 'Average Meal Price', field_type: 'text' },
+
+      // 🐪 ADVENTURE & SAFARI STANDARDS (Mapping to the same 8 Blocks)
+      { type: 'adventure', section: 'sec_3_services', name: 'activity_difficulty', label: 'Difficulty Level', field_type: 'select', options: ['Easy','Moderate','Challenging','Extreme'] },
+      { type: 'adventure', section: 'sec_4_facilities', name: 'gear_provided', label: 'Equipment & Gear Included', field_type: 'checkbox_group', options: ['4x4 Vehicle','Camping Gear','Sandboards','Helmets','Water/Snacks'] },
+      { type: 'adventure', section: 'sec_8_rates_offers', name: 'group_discounts', label: 'Group & Seasonal Rates', field_type: 'textarea' },
+
       // 📊 BUSINESS METRICS (Internal)
       { type: 'accommodation', section: 'business_metrics', name: 'avg_revenue', label: 'Avg Monthly Revenue', field_type: 'text' },
       { type: 'accommodation', section: 'business_metrics', name: 'occupancy_rate', label: 'Occupancy Rate %', field_type: 'text' },
