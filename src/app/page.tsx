@@ -32,20 +32,59 @@ export default function HomePage() {
         const manual = manualRes.ok ? (await manualRes.json()).slides || [] : [];
         const featured = featuredRes.ok ? (await featuredRes.json()).slides || [] : [];
         
-        // Ensure a high-fidelity YouTube video of Siwa is the first slide
+        // 1. MASTER INTRO VIDEO
         const siwaIntroVideo = {
           id: 'siwa_intro',
           type: 'youtube',
-          mediaUrl: 'https://www.youtube.com/watch?v=k1nfk9KeJlU', // RESTORED WORKING VIDEO
+          mediaUrl: 'https://www.youtube.com/watch?v=k1nfk9KeJlU',
           title: "THE LAST AUTHENTIC OASIS",
           subtitle: "Journey into a land where time stands still and heritage breathes.",
           caption: "SIWA TODAY",
           ctaText: "BEGIN JOURNEY",
           ctaLink: "#discovery",
-          showControls: false // ACTIVATES THE CINEMATIC SHIELD
+          showControls: false
         };
 
-        setCarouselSlides([siwaIntroVideo, ...manual, ...featured]);
+        // 2. ELITE LOGISTICS
+        const logisticsSlide = {
+          id: 'service_logistics',
+          type: 'image',
+          mediaUrl: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
+          title: "ELITE LOGISTICS",
+          subtitle: "Seamless private transitions from Cairo to the heart of the Oasis.",
+          caption: "FULL SERVICE",
+          ctaText: "VIEW TRANSFERS",
+          ctaLink: "/logistics",
+          animation: 'kenburns'
+        };
+
+        // 3. CURATED EXPEDITIONS
+        const toursSlide = {
+          id: 'service_tours',
+          type: 'image',
+          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
+          title: "CURATED EXPEDITIONS",
+          subtitle: "Narrative-driven desert safaris and salt-lake therapies.",
+          caption: "DISCOVERY",
+          ctaText: "EXPLORE TOURS",
+          ctaLink: "/expeditions",
+          animation: 'kenburns'
+        };
+
+        // 4. SIWAN CONCIERGE
+        const conciergeSlide = {
+          id: 'service_concierge',
+          type: 'image',
+          mediaUrl: 'https://images.unsplash.com/photo-1540979388789-6ece48a17499?q=80&w=2000',
+          title: "SIWAN CONCIERGE",
+          subtitle: "24/7 Personal assistants dedicated to your oasis mastery.",
+          caption: "WE CARE",
+          ctaText: "MEET YOUR GUIDE",
+          ctaLink: "/concierge",
+          animation: 'kenburns'
+        };
+
+        setCarouselSlides([siwaIntroVideo, logisticsSlide, toursSlide, conciergeSlide, ...manual, ...featured]);
       } catch (e) { console.error('Hero init fail:', e); }
       setLoading(false);
     }
