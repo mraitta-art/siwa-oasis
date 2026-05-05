@@ -88,7 +88,64 @@ import HeritageCard from '@/components/HeritageCard';
           animation: 'kenburns'
         };
 
-        setCarouselSlides([siwaIntroVideo, logisticsSlide, toursSlide, conciergeSlide, ...manual, ...featured]);
+        // 5. FAIL-SAFE ELITE DEMO SUITE (Guarantees the demo works even if DB build lags)
+        const demoLandmarks = [
+          {
+            id: 'adrere-amellal',
+            name: 'Adrere Amellal Eco-Lodge',
+            slug: 'adrere-amellal',
+            description: 'The world\'s most famous eco-luxury retreat, built entirely of Kershef and stone.',
+            subscription_tier: 'gold',
+            custom_data: {
+              era: 'Traditional',
+              material: 'Kershef',
+              vibe: 'Spiritual',
+              experience: 'Honeymoon',
+              story: 'A masterpiece of architectural heritage, Adrere Amellal offers an experience completely off the grid.'
+            },
+            mediaUrl: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62'
+          },
+          {
+            id: 'shali-citadel',
+            name: 'The Shali Fortress',
+            slug: 'shali-citadel',
+            description: 'The 13th-century heart of Siwa Oasis. A labyrinth of mud-brick architecture.',
+            subscription_tier: 'gold',
+            custom_data: {
+              era: 'Ancient',
+              material: 'Mud',
+              vibe: 'Peaceful',
+              experience: 'Nomad',
+              story: 'Walking through Shali is like stepping back 800 years.'
+            },
+            mediaUrl: 'https://images.unsplash.com/photo-1540979388789-6ece48a17499'
+          },
+          {
+            id: 'fatnas-island',
+            name: 'Fatnas Island Retreat',
+            slug: 'fatnas-island',
+            description: 'Modern luxury meets ancient salt-lake therapies in a stone-built sanctuary.',
+            subscription_tier: 'gold',
+            custom_data: {
+              era: 'Modern',
+              material: 'Stone',
+              vibe: 'Adventure',
+              experience: 'Family',
+              story: 'Located on the edge of the lake, Fatnas Island is the ultimate sunset destination.'
+            },
+            mediaUrl: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470'
+          }
+        ];
+
+        setCarouselSlides([
+          siwaIntroVideo, 
+          logisticsSlide, 
+          toursSlide, 
+          conciergeSlide, 
+          ...manual, 
+          ...featured,
+          ...demoLandmarks // Injecting the fail-safe demo entries
+        ]);
       } catch (e) { console.error('Hero init fail:', e); }
       setLoading(false);
     }
