@@ -32,14 +32,21 @@ export default function InteractiveTiersPage() {
 
   async function save() {
     if (!editData) return;
+    
+    // Auto-generate an ID for new tiers based on the name
+    const payload = { ...editData };
+    if (payload.id === 'new_tier') {
+      payload.id = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    }
+
     const res = await fetch('/api/jana/tiers', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editData)
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
       setEditId(null);
-      loadTiers();
+      loadData();
       alert('Policy updated platform-wide!');
     }
   }

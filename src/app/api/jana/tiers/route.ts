@@ -31,9 +31,12 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, name, price_amount, price_period, features } = body;
     
+    // UPSERT: Create if it doesn't exist, update if it does.
     await query(
-      'UPDATE subscription_tiers SET name = ?, price_amount = ?, price_period = ?, features = ? WHERE id = ?',
-      [name, price_amount, price_period, JSON.stringify(features), id]
+      `INSERT INTO subscription_tiers (id, name, price_amount, price_period, features) 
+       VALUES (?, ?, ?, ?, ?) 
+       ON DUPLICATE KEY UPDATE name = VALUES(name), price_amount = VALUES(price_amount), price_period = VALUES(price_period), features = VALUES(features)`,
+      [id, name, price_amount, price_period, JSON.stringify(features)]
     );
     
     return NextResponse.json({ success: true });
