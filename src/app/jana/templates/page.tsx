@@ -6,6 +6,10 @@ import Link from 'next/link';
 interface Template {
   id: string;
   name: string;
+  type_id: string;
+  type_name?: string;
+  type_icon?: string;
+  type_icon_color?: string;
   description: string;
   layout: any[];
   features: any;
@@ -13,12 +17,14 @@ interface Template {
 
 export default function TemplateArchitect() {
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [businessTypes, setBusinessTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<Partial<Template> | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     fetchTemplates();
+    fetch('/api/jana/types').then(r => r.json()).then(data => setBusinessTypes(Array.isArray(data) ? data : []));
   }, []);
 
   async function fetchTemplates() {
@@ -47,6 +53,10 @@ export default function TemplateArchitect() {
   async function handleSave() {
     if (!editingTemplate?.id || !editingTemplate?.name) {
       showMessage('error', 'ID and Name are required');
+      return;
+    }
+    if (!editingTemplate?.type_id) {
+      showMessage('error', '⚠️ A Parent Business Type must be selected. Templates cannot be standalone.');
       return;
     }
 
@@ -113,7 +123,7 @@ export default function TemplateArchitect() {
           </div>
           {!editingTemplate && (
             <button 
-              onClick={() => setEditingTemplate({ id: '', name: '', description: '', layout: [], features: {} })}
+              onClick={() => setEditingTemplate({ id: '', name: '', type_id: '', description: '', layout: [], features: {} })}
               className="btn btn-primary"
               style={{ background: '#D4AF37', border: 'none', padding: '1rem 2rem', borderRadius: '12px', fontWeight: 800, color: '#fff', cursor: 'pointer' }}
             >
@@ -132,6 +142,21 @@ export default function TemplateArchitect() {
           <div style={{ background: '#fff', borderRadius: '24px', padding: '3rem', border: '1px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.05)' }}>
             <h2 style={{ fontWeight: 900, marginBottom: '2rem' }}>{editingTemplate.id ? 'Edit Blueprint' : 'New Blueprint'}</h2>
             
+            {/* GOVERNANCE: Parent Business Type is MANDATORY */}
+            <div style={{ marginBottom: '2rem', padding: '1.25rem', borderRadius: '16px', background: '#fffbeb', border: '2px solid #D4AF37' }}>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#92400e', marginBottom: '0.75rem' }}>⚠️ PARENT BUSINESS TYPE — REQUIRED (Templates cannot be standalone)</label>
+              <select
+                value={editingTemplate.type_id || ''}
+                onChange={e => setEditingTemplate({...editingTemplate, type_id: e.target.value})}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: `2px solid ${editingTemplate.type_id ? '#10b981' : '#ef4444'}`, outline: 'none', fontSize: '0.9rem', fontWeight: 700, background: '#fff' }}
+              >
+                <option value="">-- Select Parent Business Type --</option>
+                {businessTypes.map((bt: any) => (
+                  <option key={bt.id} value={bt.id}>{bt.name} {bt.is_parent ? '(Parent Category)' : ''}</option>
+                ))}
+              </select>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '3rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>TEMPLATE ID (No spaces)</label>
@@ -238,9 +263,12 @@ export default function TemplateArchitect() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '2rem' }}>
             {templates.map(t => (
-              <div key={t.id} style={{ background: '#fff', borderRadius: '24px', padding: '2rem', border: '1px solid #e2e8f0', position: 'relative' }}>
+              <div key={t.id} style={{ background: '#fff', borderRadius: '24px', padding: '2rem', border: `2px solid ${t.type_icon_color || '#e2e8f0'}`, position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                   <div style={{ background: '#D4AF37', color: '#fff', padding: '4px 12px', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 800 }}>MASTER BLUEPRINT</div>
+                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                     <div style={{ background: '#D4AF37', color: '#fff', padding: '4px 12px', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 800 }}>MASTER BLUEPRINT</div>
+                     {t.type_name && <div style={{ background: t.type_icon_color || '#8b5cf6', color: '#fff', padding: '4px 12px', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 800 }}><i className={t.type_icon} style={{ marginRight: '4px' }}></i>{t.type_name}</div>}
+                   </div>
                    <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button onClick={() => setEditingTemplate(t)} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}>EDIT</button>
                       <button onClick={() => handleDelete(t.id)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}>DEL</button>
