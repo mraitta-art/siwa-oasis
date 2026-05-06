@@ -118,22 +118,33 @@ export default function BusinessTypesPage() {
 
   const toggleSection = (sectionId: string) => {
     if (!editingType) return;
-    const current = editingType.sections || [];
+    // For parents: toggles own sections
+    // For children: toggles own_sections (extras on top of inherited)
+    const field = editingType.is_parent ? 'sections' : 'own_sections';
+    const current = (editingType[field] as string[]) || [];
     const updated = current.includes(sectionId)
       ? current.filter(id => id !== sectionId)
       : [...current, sectionId];
-    setEditingType({ ...editingType, sections: updated });
+    setEditingType({ ...editingType, [field]: updated });
   };
 
   const moveSection = (index: number, direction: 'up' | 'down') => {
-    if (!editingType || !editingType.sections) return;
-    const current = [...editingType.sections];
+    if (!editingType) return;
+    const field = editingType.is_parent ? 'sections' : 'own_sections';
+    const current = [...((editingType[field] as string[]) || [])];
     if (direction === 'up' && index > 0) {
       [current[index - 1], current[index]] = [current[index], current[index - 1]];
     } else if (direction === 'down' && index < current.length - 1) {
       [current[index + 1], current[index]] = [current[index], current[index + 1]];
     }
-    setEditingType({ ...editingType, sections: current });
+    setEditingType({ ...editingType, [field]: current });
+  };
+
+  // Get the sections assigned to the parent of a child type
+  const getParentSections = (parentId: string | null | undefined): string[] => {
+    if (!parentId) return [];
+    const parent = types.find(t => t.id === parentId);
+    return parent?.sections || [];
   };
 
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
@@ -263,46 +274,109 @@ export default function BusinessTypesPage() {
                 </div>
               </div>
 
+              {/* ── SECTION INHERITANCE PANEL ── */}
               <div style={{ marginTop: '2rem' }}>
-                <label className="form-label">Data Section Inheritance (Check to Add)</label>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  {/* Left: Available Sections to Check */}
-                  <div style={{ flex: 1, maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    {sections.map(s => (
-                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={editingType.sections?.includes(s.id)} onChange={() => toggleSection(s.id)} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: editingType.sections?.includes(s.id) ? 800 : 400, color: editingType.sections?.includes(s.id) ? '#D4AF37' : '#1e293b' }}>
-                          {s.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                {editingType.is_parent ? (
+                  // PARENT: Assign its own 8 sections
+                  <>
+                    <label className="form-label">🧬 Own Sections (Will be inherited by all children)</label>
+                    <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.75rem' }}>Select up to 8 sections. These will be <strong>locked and inherited</strong> by all child typologies under this parent.</p>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <div style={{ flex: 1, maxHeight: '220px', overflowY: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        {sections.map(s => (
+                          <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={editingType.sections?.includes(s.id)} onChange={() => toggleSection(s.id)} />
+                            <span style={{ fontSize: '0.8rem', fontWeight: editingType.sections?.includes(s.id) ? 800 : 400, color: editingType.sections?.includes(s.id) ? '#D4AF37' : '#1e293b' }}>
+                              {s.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div style={{ flex: 1, maxHeight: '220px', overflowY: 'auto', background: '#fff', padding: '1rem', borderRadius: '8px', border: '2px solid #D4AF37' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#D4AF37', marginBottom: '0.75rem', letterSpacing: '1px' }}>DNA SEQUENCE ({(editingType.sections||[]).length}/8)</div>
+                        {(editingType.sections || []).length === 0 ? (
+                          <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Check sections on the left to build the sequence.</div>
+                        ) : (
+                          (editingType.sections || []).map((secId, index) => {
+                            const sec = sections.find(s => s.id === secId);
+                            if (!sec) return null;
+                            return (
+                              <div key={secId} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.5rem', background:'#f8fafc', borderRadius:'6px', marginBottom:'0.4rem', border:'1px solid #e2e8f0' }}>
+                                <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                                  <div style={{ background:'#D4AF37', color:'#fff', fontSize:'0.6rem', width:'18px', height:'18px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>{index+1}</div>
+                                  <span style={{ fontSize:'0.75rem', fontWeight:700 }}>{sec.name}</span>
+                                </div>
+                                <div style={{ display:'flex', gap:'0.2rem' }}>
+                                  <button type="button" onClick={() => moveSection(index, 'up')} disabled={index===0} style={{ border:'none', background:'none', cursor:index===0?'not-allowed':'pointer', color:index===0?'#cbd5e1':'#64748b' }}><i className="fas fa-chevron-up"></i></button>
+                                  <button type="button" onClick={() => moveSection(index, 'down')} disabled={index===(editingType.sections||[]).length-1} style={{ border:'none', background:'none', cursor:index===(editingType.sections||[]).length-1?'not-allowed':'pointer', color:index===(editingType.sections||[]).length-1?'#cbd5e1':'#64748b' }}><i className="fas fa-chevron-down"></i></button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // CHILD: Show parent's sections as locked + allow extra own sections
+                  <>
+                    {/* Locked inherited sections */}
+                    <label className="form-label">🔒 Inherited from Parent (Read-Only)</label>
+                    <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:'8px', padding:'0.75rem', marginBottom:'1.25rem' }}>
+                      {getParentSections(editingType.parent_id).length === 0 ? (
+                        <span style={{ fontSize:'0.78rem', color:'#94a3b8' }}>Parent has no sections assigned yet. Assign sections to the parent first.</span>
+                      ) : (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'0.4rem' }}>
+                          {getParentSections(editingType.parent_id).map((secId, i) => {
+                            const sec = sections.find(s => s.id === secId);
+                            return sec ? (
+                              <span key={secId} style={{ background:'#dcfce7', color:'#166534', padding:'3px 10px', borderRadius:'50px', fontSize:'0.7rem', fontWeight:700, display:'flex', alignItems:'center', gap:'4px' }}>
+                                <span style={{ opacity:0.6 }}>#{i+1}</span> {sec.name} <i className="fas fa-lock" style={{ fontSize:'0.55rem' }}></i>
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Right: Ordered Selected Sections */}
-                  <div style={{ flex: 1, maxHeight: '200px', overflowY: 'auto', background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid #D4AF37', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', marginBottom: '1rem', letterSpacing: '1px' }}>DNA SEQUENCE (LEFT TO RIGHT)</div>
-                    {(editingType.sections || []).length === 0 ? (
-                       <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Check sections on the left to add them to the sequence.</div>
-                    ) : (
-                      (editingType.sections || []).map((secId, index) => {
-                        const sec = sections.find(s => s.id === secId);
-                        if (!sec) return null;
-                        return (
-                          <div key={secId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', marginBottom: '0.4rem', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <div style={{ background: '#1e293b', color: '#fff', fontSize: '0.6rem', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>{index + 1}</div>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b' }}>{sec.name}</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.2rem' }}>
-                              <button type="button" onClick={() => moveSection(index, 'up')} disabled={index === 0} style={{ border: 'none', background: 'none', cursor: index === 0 ? 'not-allowed' : 'pointer', color: index === 0 ? '#cbd5e1' : '#64748b' }}><i className="fas fa-chevron-up"></i></button>
-                              <button type="button" onClick={() => moveSection(index, 'down')} disabled={index === (editingType.sections || []).length - 1} style={{ border: 'none', background: 'none', cursor: index === (editingType.sections || []).length - 1 ? 'not-allowed' : 'pointer', color: index === (editingType.sections || []).length - 1 ? '#cbd5e1' : '#64748b' }}><i className="fas fa-chevron-down"></i></button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
+                    {/* Own extra sections */}
+                    <label className="form-label">➕ Additional Own Sections (Optional)</label>
+                    <p style={{ fontSize:'0.72rem', color:'#64748b', marginBottom:'0.75rem' }}>Add sections specific to this child type only. These are on top of the inherited ones.</p>
+                    <div style={{ display:'flex', gap:'1rem' }}>
+                      <div style={{ flex:1, maxHeight:'160px', overflowY:'auto', background:'#f8fafc', padding:'1rem', borderRadius:'8px', border:'1px solid #e2e8f0' }}>
+                        {sections.filter(s => !getParentSections(editingType.parent_id).includes(s.id)).map(s => (
+                          <label key={s.id} style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'0.4rem 0', cursor:'pointer' }}>
+                            <input type="checkbox" checked={editingType.own_sections?.includes(s.id)} onChange={() => toggleSection(s.id)} />
+                            <span style={{ fontSize:'0.8rem', fontWeight: editingType.own_sections?.includes(s.id) ? 800 : 400, color: editingType.own_sections?.includes(s.id) ? '#8b5cf6' : '#1e293b' }}>{s.name}</span>
+                          </label>
+                        ))}
+                        {sections.filter(s => !getParentSections(editingType.parent_id).includes(s.id)).length === 0 && (
+                          <div style={{ fontSize:'0.78rem', color:'#94a3b8' }}>All sections are already inherited from the parent.</div>
+                        )}
+                      </div>
+                      <div style={{ flex:1, maxHeight:'160px', overflowY:'auto', background:'#fff', padding:'1rem', borderRadius:'8px', border:'2px solid #8b5cf6' }}>
+                        <div style={{ fontSize:'0.65rem', fontWeight:800, color:'#8b5cf6', marginBottom:'0.5rem' }}>OWN EXTRAS</div>
+                        {(editingType.own_sections||[]).length === 0 ? (
+                          <div style={{ fontSize:'0.78rem', color:'#94a3b8', fontStyle:'italic' }}>None added yet.</div>
+                        ) : (
+                          (editingType.own_sections||[]).map((secId, index) => {
+                            const sec = sections.find(s => s.id === secId);
+                            if (!sec) return null;
+                            return (
+                              <div key={secId} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.4rem', background:'#f5f3ff', borderRadius:'6px', marginBottom:'0.3rem', border:'1px solid #ddd6fe' }}>
+                                <span style={{ fontSize:'0.75rem', fontWeight:700, color:'#5b21b6' }}>{sec.name}</span>
+                                <div style={{ display:'flex', gap:'0.2rem' }}>
+                                  <button type="button" onClick={() => moveSection(index, 'up')} disabled={index===0} style={{ border:'none', background:'none', cursor:index===0?'not-allowed':'pointer', color:index===0?'#cbd5e1':'#64748b' }}><i className="fas fa-chevron-up"></i></button>
+                                  <button type="button" onClick={() => moveSection(index, 'down')} disabled={index===(editingType.own_sections||[]).length-1} style={{ border:'none', background:'none', cursor:'pointer', color:'#64748b' }}><i className="fas fa-chevron-down"></i></button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
