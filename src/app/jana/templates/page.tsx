@@ -6,6 +6,7 @@ import Link from 'next/link';
 interface Template {
   id: string;
   name: string;
+  level: string;
   type_id: string;
   type_name?: string;
   type_icon?: string;
@@ -21,11 +22,25 @@ export default function TemplateArchitect() {
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<Partial<Template> | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [formStep, setFormStep] = useState(1); // 1=Parent, 2=Name+Level, 3=Components
+
+  // Derived: only top-level parents for step 1
+  const parentTypes = businessTypes.filter((t: any) => t.is_parent);
+  // Children of the currently selected parent
+  const childTypes = editingTemplate?.type_id
+    ? businessTypes.filter((t: any) => t.parent_id === editingTemplate.type_id || t.id === editingTemplate.type_id)
+    : [];
 
   useEffect(() => {
     fetchTemplates();
     fetch('/api/jana/types').then(r => r.json()).then(data => setBusinessTypes(Array.isArray(data) ? data : []));
   }, []);
+
+  // Reset step when opening form
+  function openNewForm() {
+    setEditingTemplate({ id: '', name: '', level: 'standard', type_id: '', description: '', layout: [], features: {} });
+    setFormStep(1);
+  }
 
   async function fetchTemplates() {
     try {
@@ -51,13 +66,19 @@ export default function TemplateArchitect() {
   }
 
   async function handleSave() {
-    if (!editingTemplate?.id || !editingTemplate?.name) {
-      showMessage('error', 'ID and Name are required');
-      return;
-    }
     if (!editingTemplate?.type_id) {
-      showMessage('error', '⚠️ A Parent Business Type must be selected. Templates cannot be standalone.');
-      return;
+      showMessage('error', '⚠️ Step 1: Select a Parent Business Type first.');
+      setFormStep(1); return;
+    }
+    if (!editingTemplate?.name) {
+      showMessage('error', '⚠️ Step 2: Template Name is required.');
+      setFormStep(2); return;
+    }
+    if (!editingTemplate?.id) {
+      // Auto-generate ID from name
+      const autoId = editingTemplate.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      setEditingTemplate(prev => ({ ...prev, id: autoId }));
+      editingTemplate.id = autoId;
     }
 
     try {
@@ -123,7 +144,7 @@ export default function TemplateArchitect() {
           </div>
           {!editingTemplate && (
             <button 
-              onClick={() => setEditingTemplate({ id: '', name: '', type_id: '', description: '', layout: [], features: {} })}
+              onClick={openNewForm}
               className="btn btn-primary"
               style={{ background: '#D4AF37', border: 'none', padding: '1rem 2rem', borderRadius: '12px', fontWeight: 800, color: '#fff', cursor: 'pointer' }}
             >
@@ -139,154 +160,218 @@ export default function TemplateArchitect() {
         )}
 
         {editingTemplate ? (
-          <div style={{ background: '#fff', borderRadius: '24px', padding: '3rem', border: '1px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.05)' }}>
-            <h2 style={{ fontWeight: 900, marginBottom: '2rem' }}>{editingTemplate.id ? 'Edit Blueprint' : 'New Blueprint'}</h2>
-            
-            {/* GOVERNANCE: Parent Business Type is MANDATORY */}
-            <div style={{ marginBottom: '2rem', padding: '1.25rem', borderRadius: '16px', background: '#fffbeb', border: '2px solid #D4AF37' }}>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#92400e', marginBottom: '0.75rem' }}>⚠️ PARENT BUSINESS TYPE — REQUIRED (Templates cannot be standalone)</label>
-              <select
-                value={editingTemplate.type_id || ''}
-                onChange={e => setEditingTemplate({...editingTemplate, type_id: e.target.value})}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '10px', border: `2px solid ${editingTemplate.type_id ? '#10b981' : '#ef4444'}`, outline: 'none', fontSize: '0.9rem', fontWeight: 700, background: '#fff' }}
-              >
-                <option value="">-- Select Parent Business Type --</option>
-                {businessTypes.map((bt: any) => (
-                  <option key={bt.id} value={bt.id}>{bt.name} {bt.is_parent ? '(Parent Category)' : ''}</option>
-                ))}
-              </select>
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.05)' }}>
+
+            {/* ── STEP INDICATOR ── */}
+            <div style={{ display: 'flex', gap: '0', marginBottom: '2.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              {[{n:1,label:'1. Select Parent'},{n:2,label:'2. Name & Level'},{n:3,label:'3. Components'}].map(s => (
+                <button key={s.n} onClick={() => setFormStep(s.n)}
+                  style={{ flex:1, padding:'0.75rem', fontWeight:800, fontSize:'0.75rem', border:'none', cursor:'pointer',
+                    background: formStep === s.n ? '#D4AF37' : formStep > s.n ? '#10b981' : '#f8fafc',
+                    color: formStep >= s.n ? '#fff' : '#94a3b8' }}>
+                  {formStep > s.n ? '✓ ' : ''}{s.label}
+                </button>
+              ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '3rem' }}>
+            {/* ── STEP 1: SELECT PARENT TYPE ── */}
+            {formStep === 1 && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>TEMPLATE ID (No spaces)</label>
-                <input 
-                  value={editingTemplate.id || ''} 
-                  onChange={e => setEditingTemplate({...editingTemplate, id: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
-                  placeholder="e.g. hotel_premium"
-                  style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '2px solid #e2e8f0', outline: 'none' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>PUBLIC NAME</label>
-                <input 
-                  value={editingTemplate.name || ''} 
-                  onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})}
-                  placeholder="e.g. Eco-Resort Premium Template"
-                  style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '2px solid #e2e8f0', outline: 'none' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '4rem' }}>
-              
-              {/* Layout Builder */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontWeight: 900, fontSize: '1.2rem' }}>Component Layout</h3>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => addComponent('hero_carousel')} style={{ fontSize: '0.7rem', fontWeight: 800, background: '#f1f5f9', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer' }}>+ CAROUSEL</button>
-                    <button onClick={() => addComponent('blog')} style={{ fontSize: '0.7rem', fontWeight: 800, background: '#f1f5f9', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer' }}>+ BLOG FEED</button>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {editingTemplate.layout?.map((c, i) => (
-                    <div key={c.id} style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <div style={{ width: '32px', height: '32px', background: '#D4AF37', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.8rem' }}>{i + 1}</div>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{c.type.toUpperCase()}</div>
-                          {c.type === 'hero_carousel' && (
-                            <input 
-                              placeholder="Carousel Name (e.g. home_hero)" 
-                              value={c.props?.carouselName || ''}
-                              onChange={e => {
-                                const newLayout = [...(editingTemplate.layout || [])];
-                                newLayout[i].props.carouselName = e.target.value;
-                                setEditingTemplate({...editingTemplate, layout: newLayout});
-                              }}
-                              style={{ fontSize: '0.7rem', border: 'none', background: 'transparent', color: '#D4AF37', fontWeight: 700, outline: 'none' }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          const newLayout = editingTemplate.layout?.filter((_, idx) => idx !== i);
-                          setEditingTemplate({...editingTemplate, layout: newLayout});
-                        }}
-                        style={{ color: '#ef4444', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 800 }}
-                      >REMOVE</button>
-                    </div>
-                  ))}
-                  {editingTemplate.layout?.length === 0 && (
-                    <div style={{ padding: '3rem', border: '2px dashed #e2e8f0', borderRadius: '16px', textAlign: 'center', color: '#94a3b8' }}>
-                      Add components to define the visual flow.
+                <h2 style={{ fontWeight:900, marginBottom:'0.5rem', color:'#0f172a' }}>Step 1 — Select Parent Business Type</h2>
+                <p style={{ color:'#64748b', marginBottom:'2rem', fontSize:'0.85rem' }}>This template will be available to <strong>all children</strong> of the parent you select. Only top-level parent types are shown.</p>
+                
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'1rem', marginBottom:'2rem' }}>
+                  {parentTypes.length === 0 && (
+                    <div style={{ gridColumn:'1/-1', padding:'2rem', background:'#fef9c3', borderRadius:'12px', color:'#92400e', fontWeight:700 }}>
+                      ⚠️ No parent types found. Go to Business Types and mark at least one as a Parent.
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* Feature Toggles */}
-              <div>
-                <h3 style={{ fontWeight: 900, fontSize: '1.2rem', marginBottom: '1.5rem' }}>Feature DNA</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {[
-                    { id: 'captions', name: 'Enable Image Captions' },
-                    { id: 'booking', name: 'Enable Global Booking Button' },
-                    { id: 'verification', name: 'Show Heritage Verified Badge' },
-                    { id: 'youtube_bg', name: 'Automated YouTube Backgrounds' }
-                  ].map(f => (
-                    <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', cursor: 'pointer' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={!!editingTemplate.features?.[f.id]} 
-                        onChange={e => setEditingTemplate({
-                          ...editingTemplate, 
-                          features: { ...editingTemplate.features, [f.id]: e.target.checked }
-                        })}
-                      />
-                      <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{f.name}</span>
-                    </label>
+                  {parentTypes.map((pt: any) => (
+                    <div key={pt.id}
+                      onClick={() => setEditingTemplate({...editingTemplate, type_id: pt.id})}
+                      style={{ padding:'1.25rem', borderRadius:'12px', cursor:'pointer', border:`2px solid ${editingTemplate?.type_id === pt.id ? pt.icon_color || '#D4AF37' : '#e2e8f0'}`,
+                        background: editingTemplate?.type_id === pt.id ? '#fffbeb' : '#f8fafc', transition:'all 0.15s' }}>
+                      <i className={pt.icon || 'fas fa-folder'} style={{ color: pt.icon_color || '#D4AF37', fontSize:'1.5rem', marginBottom:'0.5rem', display:'block' }}></i>
+                      <div style={{ fontWeight:800, fontSize:'0.9rem' }}>{pt.name}</div>
+                      <div style={{ fontSize:'0.65rem', color:'#94a3b8', marginTop:'0.25rem' }}>
+                        {businessTypes.filter((c: any) => c.parent_id === pt.id).length} child types
+                      </div>
+                    </div>
                   ))}
                 </div>
+
+                {editingTemplate?.type_id && (
+                  <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'1rem', marginBottom:'1.5rem' }}>
+                    <div style={{ fontWeight:800, fontSize:'0.75rem', color:'#166534', marginBottom:'0.5rem' }}>✅ WILL BE INHERITED BY:</div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
+                      {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).map((c: any) => (
+                        <span key={c.id} style={{ background:'#dcfce7', color:'#166534', padding:'3px 10px', borderRadius:'50px', fontSize:'0.7rem', fontWeight:700 }}>
+                          <i className={c.icon || 'fas fa-tag'} style={{ marginRight:'4px' }}></i>{c.name}
+                        </span>
+                      ))}
+                      {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).length === 0 && (
+                        <span style={{ color:'#94a3b8', fontSize:'0.75rem' }}>No child types yet — children you add later will inherit this template.</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <button disabled={!editingTemplate?.type_id}
+                  onClick={() => setFormStep(2)}
+                  style={{ background: editingTemplate?.type_id ? '#D4AF37' : '#cbd5e1', color:'#fff', border:'none', padding:'0.85rem 2.5rem', borderRadius:'12px', fontWeight:800, cursor: editingTemplate?.type_id ? 'pointer' : 'not-allowed' }}>
+                  NEXT: Set Name & Level →
+                </button>
               </div>
+            )}
 
-            </div>
+            {/* ── STEP 2: NAME & LEVEL ── */}
+            {formStep === 2 && (
+              <div>
+                <h2 style={{ fontWeight:900, marginBottom:'0.5rem', color:'#0f172a' }}>Step 2 — Template Name & Level</h2>
+                <p style={{ color:'#64748b', marginBottom:'2rem', fontSize:'0.85rem' }}>Give this blueprint a clear name and assign its governance level.</p>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.5rem', marginBottom:'2rem' }}>
+                  <div>
+                    <label style={{ display:'block', fontSize:'0.7rem', fontWeight:800, color:'#64748b', marginBottom:'0.5rem' }}>TEMPLATE NAME *</label>
+                    <input value={editingTemplate?.name || ''}
+                      onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})}
+                      placeholder="e.g. Eco-Lodge Heritage Standard"
+                      style={{ width:'100%', padding:'0.9rem 1rem', borderRadius:'10px', border:`2px solid ${editingTemplate?.name ? '#10b981' : '#e2e8f0'}`, outline:'none', fontSize:'0.9rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display:'block', fontSize:'0.7rem', fontWeight:800, color:'#64748b', marginBottom:'0.5rem' }}>GOVERNANCE LEVEL</label>
+                    <select value={(editingTemplate as any)?.level || 'standard'}
+                      onChange={e => setEditingTemplate({...editingTemplate, ...(editingTemplate as any), level: e.target.value} as any)}
+                      style={{ width:'100%', padding:'0.9rem 1rem', borderRadius:'10px', border:'2px solid #e2e8f0', outline:'none', fontSize:'0.9rem', fontWeight:700 }}>
+                      <option value="basic">Basic — Minimal layout for free tier</option>
+                      <option value="standard">Standard — Default layout for most vendors</option>
+                      <option value="premium">Premium — Full cinematic experience</option>
+                      <option value="enterprise">Enterprise — White-label / custom branding</option>
+                    </select>
+                  </div>
+                  <div style={{ gridColumn:'1/-1' }}>
+                    <label style={{ display:'block', fontSize:'0.7rem', fontWeight:800, color:'#64748b', marginBottom:'0.5rem' }}>DESCRIPTION (optional)</label>
+                    <textarea value={editingTemplate?.description || ''}
+                      onChange={e => setEditingTemplate({...editingTemplate, description: e.target.value})}
+                      placeholder="What makes this template unique..."
+                      rows={2}
+                      style={{ width:'100%', padding:'0.9rem 1rem', borderRadius:'10px', border:'2px solid #e2e8f0', outline:'none', fontSize:'0.85rem', resize:'none' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:'1rem' }}>
+                  <button onClick={() => setFormStep(1)} style={{ background:'#f1f5f9', border:'none', padding:'0.85rem 2rem', borderRadius:'12px', fontWeight:800, cursor:'pointer' }}>← BACK</button>
+                  <button disabled={!editingTemplate?.name} onClick={() => setFormStep(3)}
+                    style={{ background: editingTemplate?.name ? '#D4AF37' : '#cbd5e1', color:'#fff', border:'none', padding:'0.85rem 2.5rem', borderRadius:'12px', fontWeight:800, cursor: editingTemplate?.name ? 'pointer' : 'not-allowed' }}>
+                    NEXT: Add Components →
+                  </button>
+                </div>
+              </div>
+            )}
 
-            <div style={{ marginTop: '4rem', display: 'flex', gap: '1rem' }}>
-              <button onClick={handleSave} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '1rem 3rem', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>SAVE BLUEPRINT</button>
-              <button onClick={() => setEditingTemplate(null)} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '1rem 3rem', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
-            </div>
+            {/* ── STEP 3: COMPONENTS & FEATURES ── */}
+            {formStep === 3 && (
+              <div>
+                <h2 style={{ fontWeight:900, marginBottom:'0.5rem', color:'#0f172a' }}>Step 3 — Components & Feature DNA</h2>
+                <p style={{ color:'#64748b', marginBottom:'2rem', fontSize:'0.85rem' }}>Define the visual blocks and feature gates for this template.</p>
+                <div style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:'3rem' }}>
+                  <div>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
+                      <h3 style={{ fontWeight:900, margin:0 }}>Layout Components</h3>
+                      <div style={{ display:'flex', gap:'0.5rem' }}>
+                        <button onClick={() => addComponent('hero_carousel')} style={{ fontSize:'0.7rem', fontWeight:800, background:'#f1f5f9', border:'none', padding:'0.4rem 0.8rem', borderRadius:'8px', cursor:'pointer' }}>+ CAROUSEL</button>
+                        <button onClick={() => addComponent('gallery')} style={{ fontSize:'0.7rem', fontWeight:800, background:'#f1f5f9', border:'none', padding:'0.4rem 0.8rem', borderRadius:'8px', cursor:'pointer' }}>+ GALLERY</button>
+                        <button onClick={() => addComponent('blog')} style={{ fontSize:'0.7rem', fontWeight:800, background:'#f1f5f9', border:'none', padding:'0.4rem 0.8rem', borderRadius:'8px', cursor:'pointer' }}>+ BLOG</button>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                      {editingTemplate?.layout?.map((c, i) => (
+                        <div key={c.id} style={{ background:'#f8fafc', padding:'1rem', borderRadius:'12px', border:'1px solid #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                          <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
+                            <div style={{ width:'28px', height:'28px', background:'#D4AF37', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:'0.75rem', fontWeight:800 }}>{i+1}</div>
+                            <div style={{ fontWeight:800, fontSize:'0.85rem' }}>{c.type.toUpperCase()}</div>
+                          </div>
+                          <button onClick={() => { const nl = editingTemplate.layout?.filter((_:any,idx:number)=>idx!==i); setEditingTemplate({...editingTemplate,layout:nl}); }}
+                            style={{ color:'#ef4444', border:'none', background:'transparent', cursor:'pointer', fontWeight:800, fontSize:'0.75rem' }}>REMOVE</button>
+                        </div>
+                      ))}
+                      {(!editingTemplate?.layout || editingTemplate.layout.length === 0) && (
+                        <div style={{ padding:'2rem', border:'2px dashed #e2e8f0', borderRadius:'12px', textAlign:'center', color:'#94a3b8', fontSize:'0.85rem' }}>Add components above to define the visual flow.</div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 style={{ fontWeight:900, margin:'0 0 1rem 0' }}>Feature DNA</h3>
+                    <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                      {[
+                        { id:'captions', name:'Enable Image Captions' },
+                        { id:'booking', name:'Enable Booking Button' },
+                        { id:'verification', name:'Show Heritage Verified Badge' },
+                        { id:'youtube_bg', name:'YouTube Cinematic Background' },
+                        { id:'direct_contact', name:'Allow Direct Contact' },
+                        { id:'custom_logo', name:'Custom Business Logo' },
+                      ].map(f => (
+                        <label key={f.id} style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'0.75rem', background:'#f8fafc', borderRadius:'10px', cursor:'pointer', fontSize:'0.82rem', fontWeight:700 }}>
+                          <input type="checkbox" checked={!!editingTemplate?.features?.[f.id]}
+                            onChange={e => setEditingTemplate({...editingTemplate, features:{...editingTemplate?.features,[f.id]:e.target.checked}})} />
+                          {f.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop:'2rem', display:'flex', gap:'1rem' }}>
+                  <button onClick={() => setFormStep(2)} style={{ background:'#f1f5f9', border:'none', padding:'0.85rem 2rem', borderRadius:'12px', fontWeight:800, cursor:'pointer' }}>← BACK</button>
+                  <button onClick={handleSave} style={{ background:'#10b981', color:'#fff', border:'none', padding:'0.85rem 3rem', borderRadius:'12px', fontWeight:800, cursor:'pointer' }}>💾 SAVE BLUEPRINT</button>
+                  <button onClick={() => setEditingTemplate(null)} style={{ background:'#64748b', color:'#fff', border:'none', padding:'0.85rem 2rem', borderRadius:'12px', fontWeight:800, cursor:'pointer' }}>CANCEL</button>
+                </div>
+              </div>
+            )}
+
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '2rem' }}>
-            {templates.map(t => (
-              <div key={t.id} style={{ background: '#fff', borderRadius: '24px', padding: '2rem', border: `2px solid ${t.type_icon_color || '#e2e8f0'}`, position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                     <div style={{ background: '#D4AF37', color: '#fff', padding: '4px 12px', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 800 }}>MASTER BLUEPRINT</div>
-                     {t.type_name && <div style={{ background: t.type_icon_color || '#8b5cf6', color: '#fff', padding: '4px 12px', borderRadius: '50px', fontSize: '0.6rem', fontWeight: 800 }}><i className={t.type_icon} style={{ marginRight: '4px' }}></i>{t.type_name}</div>}
-                   </div>
-                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => setEditingTemplate(t)} style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}>EDIT</button>
-                      <button onClick={() => handleDelete(t.id)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}>DEL</button>
-                   </div>
+          // ── LISTING: grouped by parent type ──
+          <div>
+            {parentTypes.map((pt: any) => {
+              const ptTemplates = templates.filter(t => t.type_id === pt.id);
+              if (ptTemplates.length === 0) return null;
+              return (
+                <div key={pt.id} style={{ marginBottom:'3rem' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'1rem', paddingBottom:'0.5rem', borderBottom:`3px solid ${pt.icon_color || '#D4AF37'}` }}>
+                    <i className={pt.icon || 'fas fa-folder'} style={{ color: pt.icon_color || '#D4AF37', fontSize:'1.2rem' }}></i>
+                    <h2 style={{ margin:0, fontSize:'1.1rem', fontWeight:900, color:'#0f172a' }}>{pt.name}</h2>
+                    <span style={{ fontSize:'0.65rem', background:'#f1f5f9', padding:'2px 8px', borderRadius:'50px', color:'#64748b', fontWeight:700 }}>{ptTemplates.length} blueprint{ptTemplates.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:'1.25rem' }}>
+                    {ptTemplates.map(t => (
+                      <div key={t.id} style={{ background:'#fff', borderRadius:'16px', padding:'1.5rem', border:`2px solid ${pt.icon_color || '#e2e8f0'}` }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'0.75rem' }}>
+                          <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+                            <span style={{ background:'#D4AF37', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>BLUEPRINT</span>
+                            {(t as any).level && <span style={{ background:'#1e293b', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>{((t as any).level || '').toUpperCase()}</span>}
+                          </div>
+                          <div style={{ display:'flex', gap:'0.4rem' }}>
+                            <button onClick={() => { setEditingTemplate(t); setFormStep(2); }} style={{ background:'#f1f5f9', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>EDIT</button>
+                            <button onClick={() => handleDelete(t.id)} style={{ background:'#fee2e2', color:'#991b1b', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>DEL</button>
+                          </div>
+                        </div>
+                        <h3 style={{ fontWeight:900, fontSize:'1.1rem', marginBottom:'0.25rem' }}>{t.name}</h3>
+                        <p style={{ color:'#94a3b8', fontSize:'0.7rem', marginBottom:'0.75rem' }}>ID: {t.id}</p>
+                        <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+                          {t.layout.map((c: any, i: number) => (
+                            <span key={i} style={{ background:'#f8fafc', padding:'2px 7px', borderRadius:'6px', fontSize:'0.6rem', fontWeight:800, color:'#64748b' }}>{c.type.toUpperCase()}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <h3 style={{ fontWeight: 900, fontSize: '1.5rem', marginBottom: '0.5rem' }}>{t.name}</h3>
-                <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1.5rem' }}>ID: {t.id}</p>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {t.layout.map((c: any, i: number) => (
-                    <span key={i} style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, color: '#64748b' }}>{c.type.toUpperCase()}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {templates.length === 0 && !loading && (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10rem', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
-                <h3>No Master Blueprints Found</h3>
-                <p>Start by creating your first template to define your ecosystem's DNA.</p>
+              <div style={{ textAlign:'center', padding:'6rem', background:'#fff', borderRadius:'24px', border:'2px dashed #e2e8f0' }}>
+                <h3>No Blueprints Yet</h3>
+                <p style={{ color:'#94a3b8' }}>Click "Create Master Blueprint" and follow the 3-step governance flow.</p>
               </div>
             )}
           </div>
@@ -296,3 +381,4 @@ export default function TemplateArchitect() {
     </div>
   );
 }
+

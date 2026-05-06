@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
           id VARCHAR(100) PRIMARY KEY,
           type_id VARCHAR(100) NOT NULL,
           name VARCHAR(255) NOT NULL,
+          level VARCHAR(50) DEFAULT 'standard',
           description TEXT,
           layout JSON,
           features JSON,
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, type_id, description, layout, features } = body;
+    const { id, name, type_id, level, description, layout, features } = body;
 
     if (!id || !name) {
       return NextResponse.json({ error: 'ID and Name are required' }, { status: 400 });
@@ -55,15 +56,16 @@ export async function POST(request: NextRequest) {
     }
 
     await execute(`
-      INSERT INTO website_templates (id, type_id, name, description, layout, features)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO website_templates (id, type_id, name, level, description, layout, features)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       type_id = VALUES(type_id),
       name = VALUES(name),
+      level = VALUES(level),
       description = VALUES(description),
       layout = VALUES(layout),
       features = VALUES(features)
-    `, [id, type_id, name, description, JSON.stringify(layout || []), JSON.stringify(features || {})]);
+    `, [id, type_id, name, level || 'standard', description, JSON.stringify(layout || []), JSON.stringify(features || {})]);
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
