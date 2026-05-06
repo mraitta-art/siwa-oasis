@@ -35,6 +35,7 @@ const NAV_GROUPS = [
       { name: 'Data Sections', path: '/jana/sections', icon: 'fa-columns' },
       { name: 'Form Fields', path: '/jana/form-builder', icon: 'fa-list-check' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
+      { name: 'Subscription Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
     ]
   },
   {
