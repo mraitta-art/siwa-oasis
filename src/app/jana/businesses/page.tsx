@@ -164,15 +164,30 @@ export default function BusinessRegistryPage() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                       <button className="btn btn-xs btn-outline" style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }} title="Manage Tier & Vendor" onClick={() => {
-                          const newTier = prompt('Enter new Tier ID (e.g., free, pro, premium):', b.subscription_tier);
-                          if (newTier && newTier !== b.subscription_tier) {
-                            fetch('/api/jana/businesses', { method: 'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: b.id, subscription_tier: newTier })})
-                            .then(() => loadBusinesses());
-                          }
-                       }}>
-                         <i className="fas fa-crown"></i> MANAGE TIER
-                       </button>
+                       <select 
+                         className="btn btn-xs btn-outline" 
+                         style={{ color: '#8b5cf6', borderColor: '#8b5cf6', background: 'transparent', cursor: 'pointer', padding: '0.2rem 0.5rem', appearance: 'auto' }}
+                         value={b.subscription_tier}
+                         onChange={(e) => {
+                           const newTier = e.target.value;
+                           if (newTier && newTier !== b.subscription_tier) {
+                             fetch('/api/jana/businesses', { method: 'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: b.id, subscription_tier: newTier })})
+                             .then(() => loadBusinesses());
+                           }
+                         }}
+                         title="Change Subscription Tier"
+                       >
+                         {tiers.length > 0 ? tiers.map(t => (
+                           <option key={t.id} value={t.id} style={{color: '#000'}}>{t.name}</option>
+                         )) : (
+                           <>
+                             <option value="free" style={{color: '#000'}}>Free</option>
+                             <option value="pro" style={{color: '#000'}}>Pro</option>
+                             <option value="gold" style={{color: '#000'}}>Gold</option>
+                             <option value="premium" style={{color: '#000'}}>Premium</option>
+                           </>
+                         )}
+                       </select>
                        <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
                          <i className="fas fa-magic"></i> CURATE
                        </Link>
