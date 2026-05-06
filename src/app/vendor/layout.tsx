@@ -26,9 +26,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       ]
     },
     {
-      title: 'SUBSCRIPTION',
+      title: 'VENDOR TIERS',
       items: [
-        { name: 'My Tier & Policy', href: '/vendor/tier', icon: 'fa-gem' },
+        { name: 'My Vendor Tier', href: '/vendor/tier', icon: 'fa-gem' },
         { name: 'Request Upgrade', href: '/vendor/upgrade', icon: 'fa-arrow-up text-brand-400' }
       ]
     }
