@@ -56,7 +56,7 @@ export default function InteractiveTiersPage() {
   return (
     <>
       <div className="card-header">
-        <h3><i className="fas fa-shield-alt"></i> Dynamic Policy & Tier Manager</h3>
+        <h3><i className="fas fa-shield-alt"></i> Vendor Tiers Manager</h3>
         {!editId && <button className="btn btn-primary btn-sm" onClick={() => startEdit({ id: 'new_tier', name: 'New Tier', price_amount: 0, features: {} })}><i className="fas fa-plus"></i> Create Tier</button>}
       </div>
 
