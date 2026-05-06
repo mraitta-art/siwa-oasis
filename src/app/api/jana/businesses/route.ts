@@ -32,14 +32,22 @@ export async function GET(request: NextRequest) {
 
     const businesses = await query(`
       SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
-             p.email as vendor_email, p.display_name as vendor_name
+             p.email as vendor_email, p.display_name as vendor_name,
+             wt.name as template_name
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
       LEFT JOIN profiles p ON b.vendor_id = p.id
+      LEFT JOIN website_templates wt ON b.template_id = wt.id
       ORDER BY b.created_at DESC
     `);
     return NextResponse.json(businesses);
   } catch (e: any) {
+    // Auto-heal: add template_id if missing
+    if (e.message.includes("template_id") || e.message.includes("website_templates")) {
+      await execute(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS template_id VARCHAR(100) DEFAULT NULL`);
+      const businesses = await query(`SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color, p.email as vendor_email FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id LEFT JOIN profiles p ON b.vendor_id = p.id ORDER BY b.created_at DESC`);
+      return NextResponse.json(businesses);
+    }
     return NextResponse.json({ error: e.message }, { status: e.message.includes('authenticated') ? 401 : 500 });
   }
 }
@@ -49,19 +57,23 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    let { name, type_id, subscription_tier = 'free', vendor_id = null, custom_data = {}, status = 'active' } = body;
+    let { name, type_id, subscription_tier = 'free', vendor_id = null, template_id = null, custom_data = {}, status = 'active' } = body;
 
     // Sanitize: Treat empty string as null for foreign key compliance
     if (vendor_id === '') vendor_id = null;
+    if (template_id === '') template_id = null;
 
     if (!name || !type_id) {
       return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
     }
+    if (!template_id) {
+      return NextResponse.json({ error: 'A Template must be assigned. Vendors cannot go live without a template.' }, { status: 400 });
+    }
 
     const id = crypto.randomUUID();
     await execute(
-      `INSERT INTO businesses (id, name, type_id, subscription_tier, vendor_id, custom_data, status, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, type_id, subscription_tier, vendor_id, JSON.stringify(custom_data), status, 1]
+      `INSERT INTO businesses (id, name, type_id, subscription_tier, vendor_id, template_id, custom_data, status, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, type_id, subscription_tier, vendor_id, template_id, JSON.stringify(custom_data), status, 1]
     );
 
     // Background Logging (Non-blocking)
@@ -118,7 +130,7 @@ export async function PUT(request: NextRequest) {
     const sets: string[] = [];
     const params: any[] = [];
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor'].includes(key)) {
+      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id'].includes(key)) {
         sets.push(`${key} = ?`);
         params.push(value);
       }

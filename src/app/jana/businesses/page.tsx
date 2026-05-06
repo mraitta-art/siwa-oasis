@@ -7,7 +7,7 @@ import DynamicForm from '@/components/DynamicForm';
 interface Business {
   id: string; name: string; type_id: string; type_name: string; type_icon: string;
   type_icon_color: string; status: string; subscription_tier: string; vendor_email: string | null;
-  vendor_id: string | null; approved_by_vendor: boolean; views: number;
+  vendor_id: string | null; approved_by_vendor: boolean; views: number; template_name?: string;
 }
 
 export default function BusinessRegistryPage() {
@@ -20,12 +20,15 @@ export default function BusinessRegistryPage() {
   const [types, setTypes] = useState<any[]>([]);
   const [tiers, setTiers] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
   
   const [newBiz, setNewBiz] = useState({
     name: '',
     type_id: '',
     subscription_tier: 'free',
     vendor_id: '',
+    template_id: '',
     custom_data: {} as Record<string, any>
   });
   
@@ -48,14 +51,16 @@ export default function BusinessRegistryPage() {
 
   async function fetchMetadata() {
     try {
-      const [tRes, sRes, vRes] = await Promise.all([
+      const [tRes, sRes, vRes, tmplRes] = await Promise.all([
         fetch('/api/jana/types'),
         fetch('/api/jana/tiers'),
-        fetch('/api/jana/vendors')
+        fetch('/api/jana/vendors'),
+        fetch('/api/jana/templates'),
       ]);
       if (tRes.ok) setTypes(await tRes.json());
       if (sRes.ok) setTiers(await sRes.json());
       if (vRes.ok) setVendors(await vRes.json());
+      if (tmplRes.ok) setTemplates(await tmplRes.json());
     } catch (e) { console.error(e); }
   }
 
@@ -97,8 +102,12 @@ export default function BusinessRegistryPage() {
       if (res.ok) {
         setShowWizard(false);
         setWizardStep(1);
-        setNewBiz({ name: '', type_id: '', subscription_tier: 'free', vendor_id: '', custom_data: {} });
+        setNewBiz({ name: '', type_id: '', subscription_tier: 'free', vendor_id: '', template_id: '', custom_data: {} });
+        setFilteredTemplates([]);
         await loadBusinesses();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to register business');
       }
     } catch (e) { console.error(e); }
     setIsSyncing(false);
@@ -113,10 +122,70 @@ export default function BusinessRegistryPage() {
           <h3 style={{ marginBottom: '0.25rem' }}><i className="fas fa-building"></i> Business Registry</h3>
           <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>Register and manage governed business entities.</p>
         </div>
-        <Link href="/jana/forms" className="btn btn-primary">
-          <i className="fas fa-plus"></i> ONBOARD BUSINESS
-        </Link>
+        <button className="btn btn-primary" onClick={() => setShowWizard(!showWizard)}>
+          <i className={`fas ${showWizard ? 'fa-times' : 'fa-plus'}`}></i> {showWizard ? 'CANCEL' : 'REGISTER BUSINESS'}
+        </button>
       </div>
+
+      {/* ── INLINE QUICK-REGISTER PANEL ── */}
+      {showWizard && (
+        <div style={{ background: '#fffbeb', border: '2px solid #D4AF37', borderRadius: '12px', padding: '1.5rem', marginTop: '1rem' }}>
+          <h4 style={{ margin: '0 0 1rem 0', color: '#92400e' }}><i className="fas fa-magic"></i> Register New Business Entity</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            {/* Name */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS NAME *</label>
+              <input className="form-control" placeholder="e.g. Great Sand Sea Expedition"
+                value={newBiz.name} onChange={e => setNewBiz({...newBiz, name: e.target.value})} />
+            </div>
+            {/* Business Type */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS TYPE *</label>
+              <select className="form-control" value={newBiz.type_id}
+                onChange={e => {
+                  const tid = e.target.value;
+                  setNewBiz({...newBiz, type_id: tid, template_id: ''});
+                  setFilteredTemplates(templates.filter((t: any) => t.type_id === tid));
+                }}>
+                <option value="">-- Select Type --</option>
+                {types.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            {/* Template — MANDATORY, filtered by type */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#ef4444', display: 'block', marginBottom: '0.3rem' }}>TEMPLATE * (required)</label>
+              <select className="form-control" value={newBiz.template_id}
+                style={{ borderColor: newBiz.template_id ? '#10b981' : '#ef4444' }}
+                onChange={e => setNewBiz({...newBiz, template_id: e.target.value})}
+                disabled={!newBiz.type_id}>
+                <option value="">{newBiz.type_id ? '-- Select Template --' : '-- Pick a Type first --'}</option>
+                {filteredTemplates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {newBiz.type_id && filteredTemplates.length === 0 && <option disabled>No templates for this type yet</option>}
+              </select>
+            </div>
+            {/* Tier */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>SUBSCRIPTION TIER</label>
+              <select className="form-control" value={newBiz.subscription_tier}
+                onChange={e => setNewBiz({...newBiz, subscription_tier: e.target.value})}>
+                {tiers.length > 0 ? tiers.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>) : (
+                  <><option value="free">Free</option><option value="gold">Gold</option></>
+                )}
+              </select>
+            </div>
+          </div>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button className="btn btn-primary" onClick={submitRegistration} disabled={isSyncing || !newBiz.name || !newBiz.type_id || !newBiz.template_id}>
+              {isSyncing ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-save"></i> REGISTER &amp; PUBLISH</>}
+            </button>
+            {!newBiz.template_id && newBiz.type_id && (
+              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>
+                ⚠️ A template must be assigned before registering
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: '2rem' }}>
         <table>
@@ -124,9 +193,9 @@ export default function BusinessRegistryPage() {
             <tr>
               <th>Business Entity</th>
               <th>Typology</th>
+              <th>Template</th>
               <th>Status / Tier</th>
               <th>Vendor Link</th>
-              <th>Analytics</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -142,6 +211,12 @@ export default function BusinessRegistryPage() {
                     <i className={b.type_icon} style={{ color: b.type_icon_color }}></i>
                     {b.type_name}
                   </span>
+                </td>
+                <td>
+                  {b.template_name
+                    ? <span style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#475569' }}><i className="fas fa-layer-group" style={{ marginRight: '4px', color: '#D4AF37' }}></i>{b.template_name}</span>
+                    : <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700 }}>⚠️ No Template</span>
+                  }
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
