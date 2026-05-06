@@ -122,12 +122,12 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    const [usage] = await query('SELECT COUNT(*) as count FROM form_fields WHERE section_id = ?', [id]);
-    if ((usage as any).count > 0) {
-      return NextResponse.json({ error: `Cannot delete section: It contains ${(usage as any).count} fields.` }, { status: 400 });
-    }
+    // CASCADING DELETE: Automatically clean up fields before deleting the section
+    await execute('DELETE FROM form_fields WHERE section_id = ?', [id]);
 
+    // Delete the section itself
     await execute('DELETE FROM sections WHERE id = ?', [id]);
+    
     invalidateCache.sections();
     return NextResponse.json({ success: true });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
