@@ -85,10 +85,16 @@ export default function SearchEnginesPage() {
 
       <div className="grid-2">
         {engines.map(engine => (
-          <div key={engine.id} className="card" style={{ borderLeft: '3px solid #D4AF37' }}>
+          <div key={engine.id} className="card" style={{ 
+            borderLeft: engine.validation?.isValid ? '3px solid #D4AF37' : '3px solid #ef4444',
+            opacity: engine.active ? 1 : 0.7 
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <h4 style={{ color: '#1a1a2e' }}>{engine.name}</h4>
+                <h4 style={{ color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {engine.name}
+                  {!engine.validation?.isValid && <span title="Integrity Issue Detected" style={{ fontSize: '1rem', cursor: 'help' }}>⚠️</span>}
+                </h4>
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>ID: <code>{engine.id}</code> · {engine.active ? '🟢 Active' : '🔴 Inactive'}</div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -96,11 +102,24 @@ export default function SearchEnginesPage() {
                 <button className="btn btn-xs btn-danger" onClick={() => deleteEngine(engine.id)}>×</button>
               </div>
             </div>
+
+            {!engine.validation?.isValid && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' }}>
+                 <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#991b1b', textTransform: 'uppercase', marginBottom: '0.4rem' }}>⚠️ Validation Errors</div>
+                 {engine.validation?.brokenFields?.map((f: string) => (
+                   <div key={f} style={{ fontSize: '0.65rem', color: '#b91c1c' }}>• Missing Field: <b>{f}</b> (Deleted from Form Builder?)</div>
+                 ))}
+                 {engine.validation?.missingSections?.map((s: string) => (
+                   <div key={s} style={{ fontSize: '0.65rem', color: '#b91c1c' }}>• Missing Section: <b>{s}</b></div>
+                 ))}
+              </div>
+            )}
+
             <div style={{ marginTop: '1rem' }}>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Searchable Fields</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                 {engine.allowed_fields.map(f => (
-                  <span key={f} className="badge badge-info">{f}</span>
+                  <span key={f} className={`badge ${engine.validation?.brokenFields?.includes(f) ? 'badge-danger' : 'badge-info'}`}>{f}</span>
                 ))}
                 {engine.allowed_fields.length === 0 && <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>No fields defined</span>}
               </div>

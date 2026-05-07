@@ -3,22 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
-import HeritageCard from '@/components/HeritageCard';
+import VibeSearch from '@/components/VibeSearch';
 
 export default function Home() {
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Search State
-  const [filters, setFilters] = useState({
-    era: '',
-    material: '',
-    vibe: '',
-    experience: ''
-  });
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
   const [carouselInterval, setCarouselInterval] = useState(8000);
 
   useEffect(() => {
@@ -90,83 +79,19 @@ export default function Home() {
           animation: 'kenburns'
         };
 
-        // 5. FAIL-SAFE ELITE DEMO SUITE (Guarantees the demo works even if DB build lags)
-        const demoLandmarks = [
-          {
-            id: 'adrere-amellal',
-            name: 'Adrere Amellal Eco-Lodge',
-            slug: 'adrere-amellal',
-            description: 'The world\'s most famous eco-luxury retreat, built entirely of Kershef and stone.',
-            subscription_tier: 'gold',
-            custom_data: {
-              era: 'Traditional',
-              material: 'Kershef',
-              vibe: 'Spiritual',
-              experience: 'Honeymoon',
-              story: 'A masterpiece of architectural heritage, Adrere Amellal offers an experience completely off the grid.'
-            },
-            mediaUrl: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62'
-          },
-          {
-            id: 'shali-citadel',
-            name: 'The Shali Fortress',
-            slug: 'shali-citadel',
-            description: 'The 13th-century heart of Siwa Oasis. A labyrinth of mud-brick architecture.',
-            subscription_tier: 'gold',
-            custom_data: {
-              era: 'Ancient',
-              material: 'Mud',
-              vibe: 'Peaceful',
-              experience: 'Nomad',
-              story: 'Walking through Shali is like stepping back 800 years.'
-            },
-            mediaUrl: 'https://images.unsplash.com/photo-1540979388789-6ece48a17499'
-          },
-          {
-            id: 'fatnas-island',
-            name: 'Fatnas Island Retreat',
-            slug: 'fatnas-island',
-            description: 'Modern luxury meets ancient salt-lake therapies in a stone-built sanctuary.',
-            subscription_tier: 'gold',
-            custom_data: {
-              era: 'Modern',
-              material: 'Stone',
-              vibe: 'Adventure',
-              experience: 'Family',
-              story: 'Located on the edge of the lake, Fatnas Island is the ultimate sunset destination.'
-            },
-            mediaUrl: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470'
-          }
-        ];
-
         setCarouselSlides([
           siwaIntroVideo, 
           logisticsSlide, 
           toursSlide, 
           conciergeSlide, 
           ...manual, 
-          ...featured,
-          ...demoLandmarks // Injecting the fail-safe demo entries
+          ...featured
         ]);
       } catch (e) { console.error('Hero init fail:', e); }
       setLoading(false);
     }
     init();
   }, []);
-
-  const handleSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setIsSearching(true);
-    try {
-      const params = new URLSearchParams(filters);
-      const res = await fetch(`/api/discovery/search?${params.toString()}`);
-      const data = await res.json();
-      setSearchResults(data.results || []);
-      // Smooth scroll to results
-      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
-    } catch (e) { console.error('Search error:', e); }
-    setIsSearching(false);
-  };
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
@@ -191,10 +116,10 @@ export default function Home() {
         </div>
       </nav>
 
-      <section style={{ height: '75vh', minHeight: '500px', position: 'relative' }}>
+      <section style={{ height: '85vh', minHeight: '500px', position: 'relative' }}>
         <AdvancedHeroCarousel
           slides={carouselSlides}
-          height="75vh"
+          height="85vh"
           autoPlay={true}
           autoPlayInterval={carouselInterval}
           showIndicators={true}
@@ -202,98 +127,20 @@ export default function Home() {
         />
       </section>
 
-      {/* 🔍 DISCOVERY DNA SEARCH (Elite Glass Redesign - RESPONSIVE) */}
+      {/* 🔍 DISCOVERY DNA SEARCH (New Dynamic Vibe Search) */}
       <section id="discovery" style={{ 
         background: '#0a0f1d', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative', overflow: 'hidden'
       }}>
         {/* Decorative Background Glow */}
         <div style={{ position: 'absolute', top: '-10%', left: '20%', width: '400px', height: '400px', background: 'rgba(212,175,55,0.05)', filter: 'blur(150px)', pointerEvents: 'none' }}></div>
         
-        <div className="search-container" style={{ 
-          width: 'min(100%, 1200px)', margin: '0 auto', background: 'rgba(255,255,255,0.02)', 
+        <div className="container" style={{ 
+          maxWidth: '1200px', margin: '0 auto', background: 'rgba(255,255,255,0.02)', 
           backdropFilter: 'blur(40px)', padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
           border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)'
         }}>
-          <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
-             <div>
-                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '6px', marginBottom: '1rem', textTransform: 'uppercase' }}>Architectural Search</div>
-                <h2 style={{ color: '#fff', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 900, margin: 0, letterSpacing: '-2px' }}>DISCOVER YOUR <span style={{ fontStyle: 'italic', fontWeight: 300, color: '#D4AF37' }}>SPACE</span></h2>
-             </div>
-             <button 
-               onClick={handleSearch}
-               disabled={isSearching}
-               className="gold-pulse"
-               style={{ 
-                 background: '#D4AF37', color: '#0a0f1d', border: 'none', padding: '1.25rem 3rem', borderRadius: '16px', 
-                 fontWeight: 900, cursor: 'pointer', transition: 'all 0.4s ease', fontSize: '0.8rem', letterSpacing: '2px',
-                 boxShadow: '0 10px 30px rgba(212,175,55,0.3)', width: 'auto'
-               }}
-             >
-               {isSearching ? 'SEEKING...' : 'DISCOVER'}
-             </button>
-          </div>
-
-          <div className="filter-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
-             {[
-               { label: 'ERA', state: 'era', options: ['Ancient', 'Traditional', 'Modern'] },
-               { label: 'MATERIAL', state: 'material', options: ['Kershef', 'Stone', 'Mud'] },
-               { label: 'VIBE', state: 'vibe', options: ['Spiritual', 'Adventure', 'Peaceful'] },
-               { label: 'EXPERIENCE', state: 'experience', options: ['Honeymoon', 'Family', 'Nomad'] }
-             ].map((f) => (
-               <div key={f.state} style={{ position: 'relative' }}>
-                  <label style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', fontWeight: 900, letterSpacing: '2px', display: 'block', marginBottom: '1rem' }}>{f.label}</label>
-                  <select 
-                    value={(filters as any)[f.state]} 
-                    onChange={e => setFilters({...filters, [f.state]: e.target.value})}
-                    style={{ 
-                      width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', 
-                      color: '#fff', padding: '0.5rem 0', fontSize: '1rem', fontWeight: 500, cursor: 'pointer', outline: 'none',
-                      appearance: 'none'
-                    }}
-                  >
-                     <option value="" style={{ background: '#0a0f1d' }}>Any {f.label}</option>
-                     {f.options.map(opt => <option key={opt} value={opt} style={{ background: '#0a0f1d' }}>{opt}</option>)}
-                  </select>
-                  <i className="fas fa-chevron-down" style={{ position: 'absolute', right: 0, bottom: '1rem', fontSize: '0.7rem', color: '#D4AF37', pointerEvents: 'none' }}></i>
-               </div>
-             ))}
-          </div>
+          <VibeSearch />
         </div>
-      </section>
-
-      {/* 💎 RESULTS / FLOATING GALLERY - RESPONSIVE */}
-      <section id="results" style={{ padding: 'clamp(4rem, 12vw, 12rem) clamp(1rem, 5vw, 4rem)', background: '#fff' }}>
-        <div style={{ textAlign: 'center', marginBottom: 'clamp(4rem, 10vw, 8rem)' }}>
-           <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '8px', marginBottom: '2rem' }}>THE COLLECTION</div>
-           <h2 style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 900, color: '#0a0f1d', letterSpacing: '-3px' }}>CURATED <span style={{ color: '#D4AF37' }}>LANDMARKS</span></h2>
-           <div style={{ width: '60px', height: '2px', background: '#D4AF37', margin: '2rem auto' }}></div>
-        </div>
-
-        <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 450px), 1fr))', gap: 'clamp(3rem, 8vw, 6rem)', maxWidth: 1500, margin: '0 auto' }}>
-           {(searchResults.length > 0 ? searchResults : carouselSlides.filter(s => s.id !== 'siwa_intro').slice(0, 3)).map((item: any, i: number) => (
-             <HeritageCard key={i} item={item} />
-           ))}
-        </div>
-
-        {/* CSS INJECTIONS FOR MODERN HOVERS & RESPONSIVENESS */}
-        <style jsx global>{`
-          .gold-pulse:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(212,175,55,0.4);
-          }
-          @media (max-width: 768px) {
-            .filter-grid {
-              grid-template-columns: 1fr !important;
-              gap: 1.5rem !important;
-            }
-            .search-container {
-              border-radius: 24px !important;
-            }
-            .results-grid {
-               gap: 4rem !important;
-            }
-          }
-        `}</style>
       </section>
 
       {/* 🌍 FOOTER (Global Navigation) */}
@@ -307,7 +154,7 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
                <Link href="#discovery" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage DNA</Link>
-               <Link href="#results" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
+               <Link href="/search/vibe" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

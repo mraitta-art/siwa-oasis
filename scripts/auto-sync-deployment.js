@@ -276,14 +276,20 @@ if (isWatchMode) {
   console.log('🔍 Checking for changes...');
   const { changedFiles, currentHashes, previousHashes } = checkForChanges();
   
-  if (changedFiles.length === 0) {
+  const isForceMode = process.argv.includes('--force');
+  
+  if (changedFiles.length === 0 && !isForceMode) {
     console.log('✅ No changes detected since last sync.');
     console.log('   To force regeneration, run with --force flag');
   } else {
-    console.log(`🔄 Detected ${changedFiles.length} changed file(s):`);
-    changedFiles.forEach(file => {
-      console.log(`   • ${path.relative(rootDir, file)}`);
-    });
+    if (isForceMode && changedFiles.length === 0) {
+      console.log('🚀 Force mode enabled. Regenerating bundles...');
+    } else {
+      console.log(`🔄 Detected ${changedFiles.length} changed file(s):`);
+      changedFiles.forEach(file => {
+        console.log(`   • ${path.relative(rootDir, file)}`);
+      });
+    }
     console.log();
     console.log('Generating updated deployment bundles...');
     generateBundles();

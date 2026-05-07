@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
+import { validateSearchEngine } from '@/lib/governance/search-validator';
 
 export async function GET() {
   try {
     await requireAdmin();
     const engines = await query('SELECT * FROM search_engines ORDER BY name');
-    return NextResponse.json(engines.map((e: any) => ({
-      ...e,
-      allowed_fields: typeof e.allowed_fields === 'string' ? JSON.parse(e.allowed_fields) : e.allowed_fields || [],
-      filters: typeof e.filters === 'string' ? JSON.parse(e.filters) : e.filters || [],
-    })));
+    
+    // Enrich with validation reports
+    const enriched = await Promise.all(engines.map(async (e: any) => {
+      const allowed_fields = typeof e.allowed_fields === 'string' ? JSON.parse(e.allowed_fields) : e.allowed_fields || [];
+      const validation = await validateSearchEngine(allowed_fields);
+      
+      return {
+        ...e,
+        allowed_fields,
+        filters: typeof e.filters === 'string' ? JSON.parse(e.filters) : e.filters || [],
+        validation
+      };
+    }));
+
+    return NextResponse.json(enriched);
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
 

@@ -12,19 +12,27 @@
  * 3. Reports the actual exit code from `next build`
  */
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 
 // Memory limit — adjust based on your cPanel plan (512MB is safe for most shared plans)
 const MEMORY_LIMIT = process.env.BUILD_MEMORY || '1024';
 
 console.log('=== cPanel Build Script ===');
-console.log(`Memory limit: ${MEMORY_LIMIT}MB`);
-console.log(`Node version: ${process.version}`);
-console.log(`Working directory: ${process.cwd()}`);
-console.log('');
 
-// Use the actual next CLI entry point (works on both Windows and Linux)
+// --- INTEGRITY CHECK ---
+try {
+  console.log('🛡️ Running Governance Integrity Check...');
+  execSync('node scripts/pre-deployment-health-check.js', { stdio: 'inherit' });
+  console.log('✅ Integrity Check Passed.');
+} catch (e) {
+  console.error('❌ DEPLOYMENT BLOCKED: Health check found critical issues.');
+  console.error('Please fix the "ALARMS" before building for production.');
+  process.exit(1);
+}
+// -----------------------
+
+console.log(`Memory limit: ${MEMORY_LIMIT}MB`);
 const nextCli = path.join(process.cwd(), 'node_modules', 'next', 'dist', 'bin', 'next');
 
 const child = spawn('node', [
