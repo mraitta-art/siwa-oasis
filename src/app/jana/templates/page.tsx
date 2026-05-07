@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAdmin } from '@/context/AdminContext';
 
 interface Template {
   id: string;
@@ -17,11 +18,11 @@ interface Template {
 }
 
 export default function TemplateArchitect() {
+  const { notify } = useAdmin();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [businessTypes, setBusinessTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<Partial<Template> | null>(null);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [formStep, setFormStep] = useState(1); // 1=Parent, 2=Name+Level, 3=Components
 
   // Derived: only top-level parents for step 1
@@ -60,18 +61,14 @@ export default function TemplateArchitect() {
     }
   }
 
-  function showMessage(type: string, text: string) {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-  }
 
   async function handleSave() {
     if (!editingTemplate?.type_id) {
-      showMessage('error', '⚠️ Step 1: Select a Parent Business Type first.');
+      notify('Step 1: Select a Parent Business Type first.', 'error', true);
       setFormStep(1); return;
     }
     if (!editingTemplate?.name) {
-      showMessage('error', '⚠️ Step 2: Template Name is required.');
+      notify('Step 2: Template Name is required.', 'error', true);
       setFormStep(2); return;
     }
     if (!editingTemplate?.id) {
@@ -85,19 +82,22 @@ export default function TemplateArchitect() {
       const res = await fetch('/api/jana/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingTemplate)
+        body: JSON.stringify({
+          ...editingTemplate,
+          type_id: editingTemplate.type_id === 'universal' ? null : editingTemplate.type_id
+        })
       });
 
       if (res.ok) {
-        showMessage('success', 'Template saved to library');
+        notify('Template saved to library', 'success');
         fetchTemplates();
         setEditingTemplate(null);
       } else {
         const data = await res.json();
-        showMessage('error', data.error || 'Failed to save');
+        notify(data.error || 'Failed to save', 'error', true);
       }
     } catch (e) {
-      showMessage('error', 'Error saving template');
+      notify('Error saving template', 'error', true);
     }
   }
 
@@ -106,11 +106,14 @@ export default function TemplateArchitect() {
     try {
       const res = await fetch(`/api/jana/templates?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
-        showMessage('success', 'Template deleted');
+        notify('Template deleted', 'success');
         fetchTemplates();
+      } else {
+        const data = await res.json();
+        notify(data.error || 'Delete failed — this template might be in use by businesses or tiers.', 'error', true);
       }
     } catch (e) {
-      showMessage('error', 'Delete failed');
+      notify('Delete failed', 'error', true);
     }
   }
 
@@ -153,11 +156,6 @@ export default function TemplateArchitect() {
           )}
         </div>
 
-        {message.text && (
-          <div style={{ padding: '1rem', borderRadius: '12px', marginBottom: '2rem', background: message.type === 'error' ? '#fee2e2' : '#dcfce7', color: message.type === 'error' ? '#991b1b' : '#166534', border: `1px solid ${message.type === 'error' ? '#fecaca' : '#bbf7d0'}` }}>
-            {message.text}
-          </div>
-        )}
 
         {editingTemplate ? (
           <div style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.05)' }}>
@@ -186,6 +184,18 @@ export default function TemplateArchitect() {
                       ⚠️ No parent types found. Go to Business Types and mark at least one as a Parent.
                     </div>
                   )}
+                  {/* 🌍 UNIVERSAL OPTION */}
+                  <div 
+                    onClick={() => setEditingTemplate({...editingTemplate, type_id: 'universal'})}
+                    style={{ padding:'1.25rem', borderRadius:'12px', cursor:'pointer', border:`2px solid ${editingTemplate?.type_id === 'universal' ? '#D4AF37' : '#e2e8f0'}`,
+                      background: editingTemplate?.type_id === 'universal' ? '#fffbeb' : '#f8fafc', transition:'all 0.15s' }}>
+                    <i className="fas fa-globe" style={{ color: '#D4AF37', fontSize:'1.5rem', marginBottom:'0.5rem', display:'block' }}></i>
+                    <div style={{ fontWeight:800, fontSize:'0.9rem' }}>Universal Template</div>
+                    <div style={{ fontSize:'0.65rem', color:'#94a3b8', marginTop:'0.25rem' }}>
+                      Valid for ALL parent types
+                    </div>
+                  </div>
+
                   {parentTypes.map((pt: any) => (
                     <div key={pt.id}
                       onClick={() => setEditingTemplate({...editingTemplate, type_id: pt.id})}
@@ -201,16 +211,24 @@ export default function TemplateArchitect() {
                 </div>
 
                 {editingTemplate?.type_id && (
-                  <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'1rem', marginBottom:'1.5rem' }}>
-                    <div style={{ fontWeight:800, fontSize:'0.75rem', color:'#166534', marginBottom:'0.5rem' }}>✅ WILL BE INHERITED BY:</div>
+                  <div style={{ background: editingTemplate.type_id === 'universal' ? '#eff6ff' : '#f0fdf4', border: `1px solid ${editingTemplate.type_id === 'universal' ? '#93c5fd' : '#86efac'}`, borderRadius:'12px', padding:'1rem', marginBottom:'1.5rem' }}>
+                    <div style={{ fontWeight:800, fontSize:'0.75rem', color: editingTemplate.type_id === 'universal' ? '#1e40af' : '#166534', marginBottom:'0.5rem' }}>
+                      {editingTemplate.type_id === 'universal' ? '🌐 GLOBAL AVAILABILITY:' : '✅ WILL BE INHERITED BY:'}
+                    </div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
-                      {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).map((c: any) => (
-                        <span key={c.id} style={{ background:'#dcfce7', color:'#166534', padding:'3px 10px', borderRadius:'50px', fontSize:'0.7rem', fontWeight:700 }}>
-                          <i className={c.icon || 'fas fa-tag'} style={{ marginRight:'4px' }}></i>{c.name}
-                        </span>
-                      ))}
-                      {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).length === 0 && (
-                        <span style={{ color:'#94a3b8', fontSize:'0.75rem' }}>No child types yet — children you add later will inherit this template.</span>
+                      {editingTemplate.type_id === 'universal' ? (
+                        <span style={{ color:'#1e40af', fontSize:'0.75rem', fontWeight:700 }}>This template will be available for selection by ALL business types.</span>
+                      ) : (
+                        <>
+                          {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).map((c: any) => (
+                            <span key={c.id} style={{ background:'#dcfce7', color:'#166534', padding:'3px 10px', borderRadius:'50px', fontSize:'0.7rem', fontWeight:700 }}>
+                              <i className={c.icon || 'fas fa-tag'} style={{ marginRight:'4px' }}></i>{c.name}
+                            </span>
+                          ))}
+                          {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).length === 0 && (
+                            <span style={{ color:'#94a3b8', fontSize:'0.75rem' }}>No child types yet — children you add later will inherit this template.</span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -289,7 +307,7 @@ export default function TemplateArchitect() {
                         <div key={c.id} style={{ background:'#f8fafc', padding:'1rem', borderRadius:'12px', border:'1px solid #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                           <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
                             <div style={{ width:'28px', height:'28px', background:'#D4AF37', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:'0.75rem', fontWeight:800 }}>{i+1}</div>
-                            <div style={{ fontWeight:800, fontSize:'0.85rem' }}>{c.type.toUpperCase()}</div>
+                            <div style={{ fontWeight:800, fontSize:'0.85rem' }}>{(c.type || 'unknown').toUpperCase()}</div>
                           </div>
                           <button onClick={() => { const nl = editingTemplate.layout?.filter((_:any,idx:number)=>idx!==i); setEditingTemplate({...editingTemplate,layout:nl}); }}
                             style={{ color:'#ef4444', border:'none', background:'transparent', cursor:'pointer', fontWeight:800, fontSize:'0.75rem' }}>REMOVE</button>
@@ -330,8 +348,49 @@ export default function TemplateArchitect() {
 
           </div>
         ) : (
-          // ── LISTING: grouped by parent type ──
+          // ── LISTING: Universal + grouped by parent type ──
           <div>
+            {/* ── UNIVERSAL TEMPLATES (no type_id) ── */}
+            {(() => {
+              const universalTemplates = templates.filter(t => !t.type_id);
+              if (universalTemplates.length === 0) return null;
+              return (
+                <div style={{ marginBottom:'3rem' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'1rem', paddingBottom:'0.5rem', borderBottom:'3px solid #10b981' }}>
+                    <i className="fas fa-globe" style={{ color: '#10b981', fontSize:'1.2rem' }}></i>
+                    <h2 style={{ margin:0, fontSize:'1.1rem', fontWeight:900, color:'#0f172a' }}>Universal Templates</h2>
+                    <span style={{ fontSize:'0.65rem', background:'#dcfce7', padding:'2px 8px', borderRadius:'50px', color:'#166534', fontWeight:700 }}>{universalTemplates.length} blueprint{universalTemplates.length !== 1 ? 's' : ''}</span>
+                    <span style={{ fontSize:'0.6rem', background:'#f0fdf4', color:'#15803d', padding:'2px 8px', borderRadius:'50px', fontWeight:600 }}>Available for ALL business types</span>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:'1.25rem' }}>
+                    {universalTemplates.map(t => (
+                      <div key={t.id} style={{ background:'#fff', borderRadius:'16px', padding:'1.5rem', border:'2px solid #10b981', position:'relative' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'0.75rem' }}>
+                          <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+                            <span style={{ background:'#10b981', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>🌐 UNIVERSAL</span>
+                            {(t as any).level && <span style={{ background:'#1e293b', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>{(t.level || '').toUpperCase()}</span>}
+                          </div>
+                          <div style={{ display:'flex', gap:'0.4rem' }}>
+                            <button onClick={() => { setEditingTemplate(t); setFormStep(2); }} style={{ background:'#f1f5f9', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>EDIT</button>
+                            <button onClick={() => handleDelete(t.id)} style={{ background:'#fee2e2', color:'#991b1b', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>DEL</button>
+                          </div>
+                        </div>
+                        <h3 style={{ fontWeight:900, fontSize:'1.1rem', marginBottom:'0.25rem' }}>{t.name}</h3>
+                        <p style={{ color:'#64748b', fontSize:'0.7rem', marginBottom:'0.5rem' }}>{t.description}</p>
+                        <p style={{ color:'#94a3b8', fontSize:'0.65rem', marginBottom:'0.75rem' }}>ID: {t.id}</p>
+                        <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+                          {t.layout.map((c: any, i: number) => (
+                            <span key={i} style={{ background:'#f0fdf4', padding:'2px 7px', borderRadius:'6px', fontSize:'0.6rem', fontWeight:800, color:'#166534' }}>{(c.type || 'unknown').toUpperCase()}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── TYPE-SPECIFIC TEMPLATES ── */}
             {parentTypes.map((pt: any) => {
               const ptTemplates = templates.filter(t => t.type_id === pt.id);
               if (ptTemplates.length === 0) return null;
@@ -348,7 +407,7 @@ export default function TemplateArchitect() {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'0.75rem' }}>
                           <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
                             <span style={{ background:'#D4AF37', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>BLUEPRINT</span>
-                            {(t as any).level && <span style={{ background:'#1e293b', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>{((t as any).level || '').toUpperCase()}</span>}
+                            {(t as any).level && <span style={{ background:'#1e293b', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>{(t.level || '').toUpperCase()}</span>}
                           </div>
                           <div style={{ display:'flex', gap:'0.4rem' }}>
                             <button onClick={() => { setEditingTemplate(t); setFormStep(2); }} style={{ background:'#f1f5f9', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>EDIT</button>
@@ -359,7 +418,7 @@ export default function TemplateArchitect() {
                         <p style={{ color:'#94a3b8', fontSize:'0.7rem', marginBottom:'0.75rem' }}>ID: {t.id}</p>
                         <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
                           {t.layout.map((c: any, i: number) => (
-                            <span key={i} style={{ background:'#f8fafc', padding:'2px 7px', borderRadius:'6px', fontSize:'0.6rem', fontWeight:800, color:'#64748b' }}>{c.type.toUpperCase()}</span>
+                            <span key={i} style={{ background:'#f8fafc', padding:'2px 7px', borderRadius:'6px', fontSize:'0.6rem', fontWeight:800, color:'#64748b' }}>{(c.type || 'unknown').toUpperCase()}</span>
                           ))}
                         </div>
                       </div>

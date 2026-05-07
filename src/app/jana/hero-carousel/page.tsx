@@ -493,7 +493,7 @@ export default function HeroCarouselManager() {
                   <p style={{ color: '#64748b', fontSize: '0.9rem' }}>{slide.subtitle || 'No subtitle'}</p>
                   <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem' }}>
                     <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', background: '#fef3c7', padding: '0.2rem 0.6rem', borderRadius: '10px' }}>
-                      {slide.type.toUpperCase()}
+                      {(slide.type || 'IMAGE').toUpperCase()}
                     </span>
                     {slide.ctaText && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>CTA: {slide.ctaText}</span>}
                   </div>

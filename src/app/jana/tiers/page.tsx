@@ -5,21 +5,25 @@ import React, { useState, useEffect } from 'react';
 export default function InteractiveTiersPage() {
   const [tiers, setTiers] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
-    const res2 = await fetch('/api/jana/data-manager/export'); 
-    const data = await res2.json();
-    setTiers(data.subscription_tiers || []);
+    const [tiersRes, sectionsRes, templatesRes] = await Promise.all([
+      fetch('/api/jana/tiers'),
+      fetch('/api/jana/sections'),
+      fetch('/api/jana/templates'),
+    ]);
     
-    const res3 = await fetch('/api/jana/sections');
-    const sectionsData = await res3.json();
-    setSections(sectionsData);
+    if (tiersRes.ok) setTiers(await tiersRes.json());
+    if (sectionsRes.ok) setSections(await sectionsRes.json());
+    if (templatesRes.ok) setTemplates(await templatesRes.json());
     
     setLoading(false);
   }
@@ -27,7 +31,7 @@ export default function InteractiveTiersPage() {
   function startEdit(tier: any) {
     setEditId(tier.id);
     const features = typeof tier.features === 'string' ? JSON.parse(tier.features) : tier.features;
-    setEditData({ ...tier, features });
+    setEditData({ ...tier, features, default_template_id: tier.default_template_id || '' });
   }
 
   async function save() {
@@ -51,17 +55,81 @@ export default function InteractiveTiersPage() {
     }
   }
 
+  async function seedEssentials() {
+    setSeeding(true);
+    try {
+      const res = await fetch('/api/setup/seed-essentials');
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Essentials Template Pipeline Complete!\n\n' + data.steps.join('\n'));
+        loadData();
+      } else {
+        alert('Error: ' + (data.error || 'Unknown'));
+      }
+    } catch (e) {
+      alert('Failed to seed essentials');
+    }
+    setSeeding(false);
+  }
+
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin"></i></div>;
+
+  // Check if Essentials template exists
+  const hasEssentials = templates.some((t: any) => t.id === 'essentials_free');
+  const freeTier = tiers.find(t => t.id === 'free');
+  const freeTierLinked = freeTier?.default_template_id === 'essentials_free';
 
   return (
     <>
       <div className="card-header">
         <h3><i className="fas fa-shield-alt"></i> Vendor Tiers Manager</h3>
-        {!editId && <button className="btn btn-primary btn-sm" onClick={() => startEdit({ id: 'new_tier', name: 'New Tier', price_amount: 0, features: {} })}><i className="fas fa-plus"></i> Create Tier</button>}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {!hasEssentials && !editId && (
+            <button className="btn btn-sm" onClick={seedEssentials} disabled={seeding}
+              style={{ background: '#10b981', color: '#fff', border: 'none', fontWeight: 700 }}>
+              <i className={`fas ${seeding ? 'fa-spinner fa-spin' : 'fa-magic'}`}></i> Seed Essentials Template
+            </button>
+          )}
+          {!editId && <button className="btn btn-primary btn-sm" onClick={() => startEdit({ id: 'new_tier', name: 'New Tier', price_amount: 0, features: {} })}><i className="fas fa-plus"></i> Create Tier</button>}
+        </div>
       </div>
 
+      {/* ── ESSENTIALS STATUS BANNER ── */}
+      {!hasEssentials ? (
+        <div style={{ 
+          padding: '1rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+          border: '1px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '1rem'
+        }}>
+          <i className="fas fa-exclamation-triangle" style={{ color: '#d97706', fontSize: '1.25rem' }}></i>
+          <div>
+            <div style={{ fontWeight: 800, color: '#92400e', fontSize: '0.85rem' }}>Essentials Template Not Found</div>
+            <div style={{ fontSize: '0.75rem', color: '#a16207' }}>Click "Seed Essentials Template" above to create the free template and auto-link it to the Free tier. This allows free vendors to get a working minisite immediately.</div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ 
+          padding: '1rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
+          background: freeTierLinked ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' : '#fffbeb',
+          border: `1px solid ${freeTierLinked ? '#86efac' : '#fbbf24'}`, 
+          display: 'flex', alignItems: 'center', gap: '1rem'
+        }}>
+          <i className={`fas ${freeTierLinked ? 'fa-check-circle' : 'fa-info-circle'}`} style={{ color: freeTierLinked ? '#16a34a' : '#d97706', fontSize: '1.25rem' }}></i>
+          <div>
+            <div style={{ fontWeight: 800, color: freeTierLinked ? '#166534' : '#92400e', fontSize: '0.85rem' }}>
+              {freeTierLinked ? '✅ Essentials Template Active' : '⚠️ Essentials Template exists but not linked to Free tier'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: freeTierLinked ? '#15803d' : '#a16207' }}>
+              {freeTierLinked 
+                ? 'Free vendors will automatically receive the Essentials template on registration.' 
+                : 'Edit the Free tier below and set "Essentials" as the default template.'}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="notification-banner">
-        <i className="fas fa-info-circle"></i> Define the rules and limits for your marketplace levels. Changes here are enforced strictly across the platform.
+        <i className="fas fa-info-circle"></i> Define the rules and limits for your marketplace levels. Each tier can have a default template that auto-assigns to vendors.
       </div>
 
       <div className="grid-3">
@@ -90,6 +158,30 @@ export default function InteractiveTiersPage() {
                         <option value="once">One-time</option>
                       </select>
                     </div>
+                  </div>
+
+                  {/* ── DEFAULT TEMPLATE ASSIGNMENT ── */}
+                  <h4 style={{ fontSize: '0.8rem', marginTop: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem', color: '#D4AF37' }}>
+                    <i className="fas fa-layer-group" style={{ marginRight: '0.3rem' }}></i> DEFAULT TEMPLATE
+                  </h4>
+                  <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.65rem' }}>Auto-assign to vendors on this tier</label>
+                    <select className="form-control" 
+                      value={editData.default_template_id || ''}
+                      onChange={e => setEditData({...editData, default_template_id: e.target.value || null})}
+                      style={{ borderColor: editData.default_template_id ? '#10b981' : '#f59e0b' }}>
+                      <option value="">-- No Default (Manual Assignment) --</option>
+                      {templates.map((tmpl: any) => (
+                        <option key={tmpl.id} value={tmpl.id}>
+                          {tmpl.name} {tmpl.level ? `(${tmpl.level})` : ''} {!tmpl.type_id ? '🌐 Universal' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {!editData.default_template_id && (
+                      <div style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 600, marginTop: '0.25rem' }}>
+                        ⚠️ Without a default template, vendors on this tier must be manually assigned a template.
+                      </div>
+                    )}
                   </div>
                   
                   <h4 style={{ fontSize: '0.8rem', marginTop: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>RESOURCE LIMITS</h4>
@@ -189,6 +281,24 @@ export default function InteractiveTiersPage() {
                     <span style={{ fontSize: '2rem', fontWeight: 800, color: '#D4AF37' }}>${t.price_amount}</span>
                     <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>/{t.price_period}</span>
                   </div>
+
+                  {/* ── DEFAULT TEMPLATE BADGE ── */}
+                  <div style={{ 
+                    marginBottom: '1rem', padding: '0.5rem 0.75rem', borderRadius: '8px',
+                    background: t.default_template_id ? '#f0fdf4' : '#fef9c3',
+                    border: `1px solid ${t.default_template_id ? '#86efac' : '#fde68a'}`,
+                    display: 'flex', alignItems: 'center', gap: '0.5rem'
+                  }}>
+                    <i className={`fas ${t.default_template_id ? 'fa-layer-group' : 'fa-exclamation-circle'}`} 
+                       style={{ color: t.default_template_id ? '#16a34a' : '#d97706', fontSize: '0.85rem' }}></i>
+                    <div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase' }}>Default Template</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: t.default_template_id ? '#166534' : '#92400e' }}>
+                        {t.default_template_name || (t.default_template_id ? t.default_template_id : 'Not Set')}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="permission-matrix" style={{ fontSize: '0.75rem' }}>
                     <div className="permission-item">
                       <span>Max Businesses</span>

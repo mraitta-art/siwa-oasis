@@ -349,7 +349,7 @@ export default function EnhancedFormBuilder() {
                               className="text-[10px] px-2 py-0.5 rounded-full text-white font-semibold"
                               style={{ backgroundColor: sectionColor }}
                             >
-                              {section.section_type.toUpperCase()}
+                              {(section.section_type || '').toUpperCase()}
                             </span>
                           )}
                         </div>

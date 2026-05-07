@@ -145,23 +145,48 @@ export default function BusinessRegistryPage() {
                 onChange={e => {
                   const tid = e.target.value;
                   setNewBiz({...newBiz, type_id: tid, template_id: ''});
-                  setFilteredTemplates(templates.filter((t: any) => t.type_id === tid));
+                  // Show all templates: type-specific + universal (type_id = null)
+                  setFilteredTemplates(templates.filter((t: any) => t.type_id === tid || !t.type_id));
                 }}>
                 <option value="">-- Select Type --</option>
                 {types.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
-            {/* Template — MANDATORY, filtered by type */}
+            {/* Template — auto-resolves from tier when not set */}
             <div>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#ef4444', display: 'block', marginBottom: '0.3rem' }}>TEMPLATE * (required)</label>
-              <select className="form-control" value={newBiz.template_id}
-                style={{ borderColor: newBiz.template_id ? '#10b981' : '#ef4444' }}
-                onChange={e => setNewBiz({...newBiz, template_id: e.target.value})}
-                disabled={!newBiz.type_id}>
-                <option value="">{newBiz.type_id ? '-- Select Template --' : '-- Pick a Type first --'}</option>
-                {filteredTemplates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                {newBiz.type_id && filteredTemplates.length === 0 && <option disabled>No templates for this type yet</option>}
-              </select>
+              {(() => {
+                const selectedTier = tiers.find((t: any) => t.id === newBiz.subscription_tier);
+                const tierHasDefault = selectedTier?.default_template_id;
+                const tierDefaultName = selectedTier?.default_template_name || selectedTier?.default_template_id;
+                return (
+                  <>
+                    <label style={{ fontSize: '0.65rem', fontWeight: 800, color: tierHasDefault ? '#6b7280' : '#ef4444', display: 'block', marginBottom: '0.3rem' }}>
+                      TEMPLATE {tierHasDefault ? '(optional — tier has default)' : '* (required)'}
+                    </label>
+                    <select className="form-control" value={newBiz.template_id}
+                      style={{ borderColor: newBiz.template_id ? '#10b981' : tierHasDefault ? '#d97706' : '#ef4444' }}
+                      onChange={e => setNewBiz({...newBiz, template_id: e.target.value})}
+                      disabled={!newBiz.type_id}>
+                      <option value="">
+                        {!newBiz.type_id 
+                          ? '-- Pick a Type first --'
+                          : tierHasDefault
+                            ? `Will use: ${tierDefaultName} (from ${selectedTier?.name} tier)`
+                            : '-- Select Template --'}
+                      </option>
+                      {filteredTemplates.map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.name} {!t.type_id ? '🌐 Universal' : ''}</option>
+                      ))}
+                      {newBiz.type_id && filteredTemplates.length === 0 && !tierHasDefault && <option disabled>No templates available</option>}
+                    </select>
+                    {tierHasDefault && !newBiz.template_id && (
+                      <div style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 600, marginTop: '0.25rem' }}>
+                        ✅ Auto-assigns "{tierDefaultName}" from {selectedTier?.name} tier
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             {/* Tier */}
             <div>
@@ -175,14 +200,23 @@ export default function BusinessRegistryPage() {
             </div>
           </div>
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button className="btn btn-primary" onClick={submitRegistration} disabled={isSyncing || !newBiz.name || !newBiz.type_id || !newBiz.template_id}>
-              {isSyncing ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-save"></i> REGISTER &amp; PUBLISH</>}
-            </button>
-            {!newBiz.template_id && newBiz.type_id && (
-              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>
-                ⚠️ A template must be assigned before registering
-              </span>
-            )}
+            {(() => {
+              const selectedTier = tiers.find((t: any) => t.id === newBiz.subscription_tier);
+              const tierHasDefault = selectedTier?.default_template_id;
+              const canSubmit = !isSyncing && newBiz.name && newBiz.type_id && (newBiz.template_id || tierHasDefault);
+              return (
+                <>
+                  <button className="btn btn-primary" onClick={submitRegistration} disabled={!canSubmit}>
+                    {isSyncing ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-save"></i> REGISTER &amp; PUBLISH</>}
+                  </button>
+                  {!newBiz.template_id && newBiz.type_id && !tierHasDefault && (
+                    <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>
+                      ⚠️ A template must be assigned, or set a default template on the tier
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -220,8 +254,8 @@ export default function BusinessRegistryPage() {
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span className={`badge badge-${b.status === 'active' ? 'success' : 'warning'}`}>{b.status.toUpperCase()}</span>
-                    <span className="subscription-badge">{b.subscription_tier.toUpperCase()}</span>
+                    <span className={`badge badge-${b.status === 'active' ? 'success' : 'warning'}`}>{(b.status || 'inactive').toUpperCase()}</span>
+                    <span className="subscription-badge">{(b.subscription_tier || 'free').toUpperCase()}</span>
                   </div>
                 </td>
                 <td>

@@ -33,17 +33,17 @@ export async function GET(request: NextRequest) {
     const businesses = await query(`
       SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
              p.email as vendor_email, p.display_name as vendor_name,
-             wt.name as template_name
+             mt.name as template_name
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
       LEFT JOIN profiles p ON b.vendor_id = p.id
-      LEFT JOIN website_templates wt ON b.template_id = wt.id
+      LEFT JOIN minisite_templates mt ON b.template_id = mt.id
       ORDER BY b.created_at DESC
     `);
     return NextResponse.json(businesses);
   } catch (e: any) {
     // Auto-heal: add template_id if missing
-    if (e.message.includes("template_id") || e.message.includes("website_templates")) {
+    if (e.message.includes("template_id") || e.message.includes("minisite_templates")) {
       await execute(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS template_id VARCHAR(100) DEFAULT NULL`);
       const businesses = await query(`SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color, p.email as vendor_email FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id LEFT JOIN profiles p ON b.vendor_id = p.id ORDER BY b.created_at DESC`);
       return NextResponse.json(businesses);
@@ -66,8 +66,19 @@ export async function POST(request: NextRequest) {
     if (!name || !type_id) {
       return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
     }
+    // AUTO-RESOLVE: If no template provided, get the default from the subscription tier
     if (!template_id) {
-      return NextResponse.json({ error: 'A Template must be assigned. Vendors cannot go live without a template.' }, { status: 400 });
+      try {
+        const tierRow = await queryOne('SELECT default_template_id FROM subscription_tiers WHERE id = ?', [subscription_tier]) as any;
+        if (tierRow?.default_template_id) {
+          template_id = tierRow.default_template_id;
+        }
+      } catch (e) {
+        // Column may not exist yet — ignore silently
+      }
+    }
+    if (!template_id) {
+      return NextResponse.json({ error: 'A Template must be assigned. Set a default template on the subscription tier or select one manually.' }, { status: 400 });
     }
 
     const id = crypto.randomUUID();

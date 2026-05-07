@@ -67,6 +67,23 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(item.path);
   };
 
+  // AUTO-EXPAND: Ensure any collapsible group containing the active page is expanded
+  useEffect(() => {
+    NAV_GROUPS.forEach(group => {
+      if (group.collapsible && group.items.some(item => isActive(item))) {
+        setCollapsedGroups(prev => {
+          if (prev[group.id]) return { ...prev, [group.id]: false };
+          return prev;
+        });
+      }
+    });
+    // Auto-scroll active sidebar item into view
+    setTimeout(() => {
+      const activeEl = document.querySelector('[data-sidebar-active="true"]');
+      if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 100);
+  }, [pathname]);
+
   // Contextual guidance based on current page
   const getPageGuide = () => {
     if (pathname === '/jana') return { title: 'Governance Dashboard', tip: 'Overview of your marketplace ecosystem. Start the Foundation Architect for blueprint setup.' };
@@ -185,6 +202,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.path}
                       href={item.path}
+                      data-sidebar-active={active ? 'true' : undefined}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '0.75rem',
                         padding: sidebarCollapsed ? '0.6rem' : '0.55rem 0.75rem 0.55rem 1.25rem',
