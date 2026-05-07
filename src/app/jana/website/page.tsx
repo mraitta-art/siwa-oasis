@@ -4,18 +4,18 @@ import Link from 'next/link';
 
 // ── Component catalogue: type → display info + manager route ──────────────────
 const PALETTE = [
-  { zone: 'header', key: 'navigation',   name: 'Navigation Bar',         icon: '🧭', manager: null,                        color: '#6366f1' },
-  { zone: 'header', key: 'hero_carousel',name: 'Static Hero Carousel',   icon: '🎬', manager: '/jana/hero-carousel',       color: '#D4AF37' },
-  { zone: 'header', key: 'search_bar',   name: 'Search Bar',             icon: '🔍', manager: '/jana/search-engines',      color: '#0ea5e9' },
-  { zone: 'body',   key: 'blog',         name: 'Master Blog / Articles', icon: '📰', manager: '/jana/blog',                color: '#8b5cf6' },
-  { zone: 'body',   key: 'services',     name: 'Business Listings',      icon: '🏢', manager: '/jana/businesses',          color: '#10b981' },
-  { zone: 'body',   key: 'testimonials', name: 'Testimonials',           icon: '💬', manager: '/jana/data-manager',        color: '#f59e0b' },
-  { zone: 'body',   key: 'map',          name: 'Interactive Map',        icon: '🗺️', manager: null,                        color: '#14b8a6' },
-  { zone: 'body',   key: 'cta_banner',   name: 'Call-to-Action Banner',  icon: '📣', manager: null,                        color: '#ef4444' },
-  { zone: 'body',   key: 'features',     name: 'Feature Highlights',     icon: '⭐', manager: null,                        color: '#84cc16' },
-  { zone: 'footer', key: 'contact',      name: 'Contact Info',           icon: '📞', manager: null,                        color: '#64748b' },
-  { zone: 'footer', key: 'social',       name: 'Social Media Links',     icon: '🔗', manager: null,                        color: '#1d4ed8' },
-  { zone: 'footer', key: 'copyright',    name: 'Copyright Bar',          icon: '©️', manager: null,                        color: '#475569' },
+  { zone: 'header', key: 'navigation', name: 'Navigation Bar', icon: '🧭', manager: null, color: '#6366f1' },
+  { zone: 'header', key: 'hero_carousel', name: 'Static Hero Carousel', icon: '🎬', manager: '/jana/hero-carousel', color: '#D4AF37' },
+  { zone: 'header', key: 'search_bar', name: 'Search Bar', icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9' },
+  { zone: 'body', key: 'blog', name: 'Master Blog / Articles', icon: '📰', manager: '/jana/blog', color: '#8b5cf6' },
+  { zone: 'body', key: 'services', name: 'Business Listings', icon: '🏢', manager: '/jana/businesses', color: '#10b981' },
+  { zone: 'body', key: 'testimonials', name: 'Testimonials', icon: '💬', manager: '/jana/data-manager', color: '#f59e0b' },
+  { zone: 'body', key: 'map', name: 'Interactive Map', icon: '🗺️', manager: null, color: '#14b8a6' },
+  { zone: 'body', key: 'cta_banner', name: 'Call-to-Action Banner', icon: '📣', manager: null, color: '#ef4444' },
+  { zone: 'body', key: 'features', name: 'Feature Highlights', icon: '⭐', manager: null, color: '#84cc16' },
+  { zone: 'footer', key: 'contact', name: 'Contact Info', icon: '📞', manager: null, color: '#64748b' },
+  { zone: 'footer', key: 'social', name: 'Social Media Links', icon: '🔗', manager: null, color: '#1d4ed8' },
+  { zone: 'footer', key: 'copyright', name: 'Copyright Bar', icon: '©️', manager: null, color: '#475569' },
 ];
 
 const zoneColors: Record<string, string> = { header: '#D4AF37', body: '#10b981', footer: '#64748b' };
@@ -45,9 +45,9 @@ export default function MultiPageSiteBuilder() {
     carousel_autoplay: boolean;
     carousel_interval: number;
     logo_url?: string;
-  }>({ 
-    site_name: 'Siwa Today', 
-    primary_color: '#D4AF37', 
+  }>({
+    site_name: 'Siwa Today',
+    primary_color: '#D4AF37',
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false,
     carousel_autoplay: true,
@@ -62,7 +62,7 @@ export default function MultiPageSiteBuilder() {
   useEffect(() => {
     fetch('/api/jana/website/list').then(r => r.json()).then(data => {
       if (Array.isArray(data)) setPages(data.map(p => p.type.replace('website_', '')));
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   // Load specific page layout
@@ -76,21 +76,21 @@ export default function MultiPageSiteBuilder() {
       }
       if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
       const all: Slot[] = [
-        ...(t.header_components || []).map((c: any) => ({ 
-          id: c.id, key: c.type, zone: 'header' as Zone, label: c.name, 
-          engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id 
+        ...(t.header_components || []).map((c: any) => ({
+          id: c.id, key: c.type, zone: 'header' as Zone, label: c.name,
+          engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id
         })),
-        ...(t.body_components   || []).map((c: any) => ({ 
-          id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name,
-          engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id 
+        ...(t.body_components || []).map((c: any) => ({
+          id: c.id, key: c.type, zone: 'body' as Zone, label: c.name,
+          engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id
         })),
-        ...(t.footer_components || []).map((c: any) => ({ 
+        ...(t.footer_components || []).map((c: any) => ({
           id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name,
-          engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id 
+          engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id
         })),
       ];
       setSlots(all);
-    }).catch(() => {});
+    }).catch(() => { });
 
     // Fetch dynamic Data-Bound components
     fetch('/api/jana/component-library').then(r => r.json()).then(data => {
@@ -104,17 +104,17 @@ export default function MultiPageSiteBuilder() {
         isDynamic: true
       }));
       setDynamicComponents(dynamicPalettes);
-    }).catch(() => {});
+    }).catch(() => { });
 
     // Fetch search engines for dropdowns
     fetch('/api/jana/search-engines').then(r => r.json()).then(data => {
       setSearchEngines(Array.isArray(data) ? data : []);
-    }).catch(() => {});
+    }).catch(() => { });
 
     // Fetch business types for Template Mode
     fetch('/api/jana/types').then(r => r.json()).then(data => {
       setTypes(Array.isArray(data) ? data : []);
-    }).catch(() => {});
+    }).catch(() => { });
   }, [currentPage, mode]);
 
   const [searchEngines, setSearchEngines] = useState<any[]>([]);
@@ -141,17 +141,17 @@ export default function MultiPageSiteBuilder() {
 
   const save = async () => {
     setSaving(true);
-    const toComp = (s: Slot) => ({ 
-      id: s.id, 
-      type: s.key, 
-      name: s.label, 
-      props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id } 
+    const toComp = (s: Slot) => ({
+      id: s.id,
+      type: s.key,
+      name: s.label,
+      props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id }
     });
     const configId = mode === 'TEMPLATES' ? `template_${currentPage}` : `website_${currentPage}`;
     const body = {
       id: configId,
       header_components: slots.filter(s => s.zone === 'header').map(toComp),
-      body_components:   slots.filter(s => s.zone === 'body').map(toComp),
+      body_components: slots.filter(s => s.zone === 'body').map(toComp),
       footer_components: slots.filter(s => s.zone === 'footer').map(toComp),
       site_settings: siteSettings,
     };
@@ -173,11 +173,11 @@ export default function MultiPageSiteBuilder() {
 
   const FULL_PALETTE = [...PALETTE, ...dynamicComponents];
   const palettFor = (zone: Zone) => FULL_PALETTE.filter(p => p.zone === zone);
-  const slotsFor  = (zone: Zone) => slots.filter(s => s.zone === zone);
+  const slotsFor = (zone: Zone) => slots.filter(s => s.zone === zone);
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
-      
+
       {/* ── Top Bar ─────────────────────────────────────────────── */}
       <div style={{ background: '#0f172a', color: '#fff', padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 200, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
@@ -190,24 +190,24 @@ export default function MultiPageSiteBuilder() {
           </div>
 
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
-             <button 
-               onClick={() => { setMode('PAGES'); setCurrentPage('main'); }}
-               style={{ padding: '0.4rem 1.25rem', border: 'none', borderRadius: '7px', background: mode === 'PAGES' ? '#D4AF37' : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === 'PAGES' ? '#1a1a2e' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}>
-               GLOBAL PAGES
-             </button>
-             <button 
-               onClick={() => { setMode('TEMPLATES'); setCurrentPage(types[0]?.id || ''); }}
-               style={{ padding: '0.4rem 1.25rem', border: 'none', borderRadius: '7px', background: mode === 'TEMPLATES' ? '#10b981' : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === 'TEMPLATES' ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}>
-               BLUEPRINTS
-             </button>
+            <button
+              onClick={() => { setMode('PAGES'); setCurrentPage('main'); }}
+              style={{ padding: '0.4rem 1.25rem', border: 'none', borderRadius: '7px', background: mode === 'PAGES' ? '#D4AF37' : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === 'PAGES' ? '#1a1a2e' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}>
+              GLOBAL PAGES
+            </button>
+            <button
+              onClick={() => { setMode('TEMPLATES'); setCurrentPage(types[0]?.id || ''); }}
+              style={{ padding: '0.4rem 1.25rem', border: 'none', borderRadius: '7px', background: mode === 'TEMPLATES' ? '#10b981' : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === 'TEMPLATES' ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}>
+              BLUEPRINTS
+            </button>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {mode === 'PAGES' && (
             <>
-              <select 
-                value={currentPage} 
+              <select
+                value={currentPage}
                 onChange={e => setCurrentPage(e.target.value)}
                 style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700 }}
               >
@@ -218,13 +218,13 @@ export default function MultiPageSiteBuilder() {
           )}
 
           {mode === 'TEMPLATES' && (
-             <select 
-               value={currentPage} 
-               onChange={e => setCurrentPage(e.target.value)}
-               style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700 }}
-             >
-               {types.map(t => <option key={t.id} value={t.id} style={{ color: '#000' }}>{t.name.toUpperCase()} BLUEPRINT</option>)}
-             </select>
+            <select
+              value={currentPage}
+              onChange={e => setCurrentPage(e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700 }}
+            >
+              {types.map(t => <option key={t.id} value={t.id} style={{ color: '#000' }}>{t.name.toUpperCase()} BLUEPRINT</option>)}
+            </select>
           )}
 
           <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', margin: '0 0.5rem' }}></div>
@@ -237,10 +237,10 @@ export default function MultiPageSiteBuilder() {
 
       {/* ── Settings Bar ────────────────────────────────────────── */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '0.5rem 2rem', overflowX: 'auto' }}>
-          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>CONFIG</div>
-          <input value={siteSettings.site_name} onChange={e => setSiteSettings(s => ({...s, site_name: e.target.value}))} placeholder="Title" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: 140 }} />
-          <input value={siteSettings.tagline} onChange={e => setSiteSettings(s => ({...s, tagline: e.target.value}))} placeholder="Description" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, flex: 1 }} />
-          <input type="color" value={siteSettings.primary_color} onChange={e => setSiteSettings(s => ({...s, primary_color: e.target.value}))} style={{ width: 30, height: 30, border: 'none', borderRadius: 6, cursor: 'pointer' }} />
+        <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>CONFIG</div>
+        <input value={siteSettings.site_name} onChange={e => setSiteSettings(s => ({ ...s, site_name: e.target.value }))} placeholder="Title" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: 140 }} />
+        <input value={siteSettings.tagline} onChange={e => setSiteSettings(s => ({ ...s, tagline: e.target.value }))} placeholder="Description" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, flex: 1 }} />
+        <input type="color" value={siteSettings.primary_color} onChange={e => setSiteSettings(s => ({ ...s, primary_color: e.target.value }))} style={{ width: 30, height: 30, border: 'none', borderRadius: 6, cursor: 'pointer' }} />
       </div>
 
       {/* ── Main Layout: Palette | Canvas ───────────────────────── */}
@@ -272,11 +272,11 @@ export default function MultiPageSiteBuilder() {
         <div style={{ padding: '2rem', overflowY: 'auto', background: '#f8fafc' }}>
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             {slotsFor(activeZone).length === 0 ? (
-               <div style={{ textAlign: 'center', padding: '6rem 2rem', border: '2px dashed #cbd5e1', borderRadius: 20, color: '#94a3b8' }}>
-                 <div style={{ fontSize: '3rem' }}>＋</div>
-                 <div style={{ fontWeight: 800 }}>No {activeZone} blocks added</div>
-                 <div style={{ fontSize: '0.7rem' }}>Select a component from the left to start building</div>
-               </div>
+              <div style={{ textAlign: 'center', padding: '6rem 2rem', border: '2px dashed #cbd5e1', borderRadius: 20, color: '#94a3b8' }}>
+                <div style={{ fontSize: '3rem' }}>＋</div>
+                <div style={{ fontWeight: 800 }}>No {activeZone} blocks added</div>
+                <div style={{ fontSize: '0.7rem' }}>Select a component from the left to start building</div>
+              </div>
             ) : (
               slotsFor(activeZone).map((slot, idx) => {
                 const def = FULL_PALETTE.find(p => p.key === slot.key);
@@ -299,12 +299,12 @@ export default function MultiPageSiteBuilder() {
                       <div style={{ flex: 1, height: '40px', background: `${color}05`, borderRadius: 6, border: `1px dashed ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: color, fontWeight: 700 }}>
                         PREVIEW OF {slot.key.toUpperCase()}
                       </div>
-                      
+
                       {slot.key === 'search_bar' && (
                         <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                           <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>LINKED SEARCH ENGINE</label>
-                          <select 
-                            value={slot.engine_id || ''} 
+                          <select
+                            value={slot.engine_id || ''}
                             onChange={e => {
                               const next = [...slots];
                               const i = next.findIndex(s => s.id === slot.id);
@@ -329,8 +329,8 @@ export default function MultiPageSiteBuilder() {
                       {slot.key === 'hero_carousel' && (
                         <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                           <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>CAROUSEL CONTENT ID</label>
-                          <input 
-                            value={slot.carousel_id || ''} 
+                          <input
+                            value={slot.carousel_id || ''}
                             onChange={e => {
                               const next = [...slots];
                               const i = next.findIndex(s => s.id === slot.id);
@@ -347,12 +347,12 @@ export default function MultiPageSiteBuilder() {
                       )}
 
                       {def?.manager && (
-                         <Link 
-                           href={`${def.manager}${slot.carousel_id ? `?siteId=${slot.carousel_id}` : ''}`} 
-                           style={{ alignSelf: 'flex-start', padding: '0.5rem 1rem', background: color, color: '#fff', textDecoration: 'none', borderRadius: 8, fontSize: '0.65rem', fontWeight: 800 }}
-                         >
-                           MANAGE CONTENT
-                         </Link>
+                        <Link
+                          href={`${def.manager}${slot.carousel_id ? `?siteId=${slot.carousel_id}` : ''}`}
+                          style={{ alignSelf: 'flex-start', padding: '0.5rem 1rem', background: color, color: '#fff', textDecoration: 'none', borderRadius: 8, fontSize: '0.65rem', fontWeight: 800 }}
+                        >
+                          MANAGE CONTENT
+                        </Link>
                       )}
                     </div>
                   </div>
@@ -367,13 +367,13 @@ export default function MultiPageSiteBuilder() {
       {showNewPageModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', padding: '2.5rem', borderRadius: 24, width: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-             <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900 }}>Create New Page</h3>
-             <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.8rem', color: '#64748b' }}>Enter a name for your custom website page.</p>
-             <input autoFocus value={newPageName} onChange={e => setNewPageName(e.target.value)} placeholder="e.g. About Us" style={{ width: '100%', padding: '1rem', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: '1rem', marginBottom: '1.5rem' }} />
-             <div style={{ display: 'flex', gap: '1rem' }}>
-               <button onClick={() => setShowNewPageModal(false)} style={{ flex: 1, padding: '1rem', border: 'none', borderRadius: 12, fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
-               <button onClick={createPage} style={{ flex: 2, padding: '1rem', background: '#D4AF37', border: 'none', borderRadius: 12, color: '#1a1a2e', fontWeight: 900, cursor: 'pointer' }}>Create Page</button>
-             </div>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900 }}>Create New Page</h3>
+            <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.8rem', color: '#64748b' }}>Enter a name for your custom website page.</p>
+            <input autoFocus value={newPageName} onChange={e => setNewPageName(e.target.value)} placeholder="e.g. About Us" style={{ width: '100%', padding: '1rem', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: '1rem', marginBottom: '1.5rem' }} />
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button onClick={() => setShowNewPageModal(false)} style={{ flex: 1, padding: '1rem', border: 'none', borderRadius: 12, fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={createPage} style={{ flex: 2, padding: '1rem', background: '#D4AF37', border: 'none', borderRadius: 12, color: '#1a1a2e', fontWeight: 900, cursor: 'pointer' }}>Create Page</button>
+            </div>
           </div>
         </div>
       )}

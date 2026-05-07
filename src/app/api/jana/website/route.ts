@@ -8,18 +8,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'main';
     const configId = `website_${type}`;
-    
+
     const results = await query(
       'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
       [configId]
     );
-    
+
     if (results.length === 0) {
       return NextResponse.json([]);
     }
-    
-    const config = typeof results[0].config === 'string' 
-      ? JSON.parse(results[0].config) 
+
+    const config = typeof results[0].config === 'string'
+      ? JSON.parse(results[0].config)
       : results[0].config;
 
     return NextResponse.json([{ id: configId, ...config }]);
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO website_configs (type, config) VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)`,
       [id, config]
     );
-    
+
     invalidateCache.websiteSettings();
     return NextResponse.json({ id }, { status: 201 });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
