@@ -64,6 +64,22 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '5rem' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": biz.name,
+          "description": biz.name + " in Siwa Oasis",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Siwa Oasis",
+            "addressRegion": "Matrouh",
+            "addressCountry": "EG"
+          },
+          "url": `https://siwa.today/business/${id}`
+        }) }}
+      />
       
       {/* 1. CINEMATIC AUTOMATED HERO */}
       <AutomatedMinisiteHero 
