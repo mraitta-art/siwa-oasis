@@ -78,6 +78,9 @@ export default function AdvancedHeroCarousel({
         }
       }
       fetchSlides();
+    } else if (initialSlides.length > 0) {
+      setSlides(initialSlides);
+      setLoading(false);
     }
   }, [carouselName, initialSlides]);
 

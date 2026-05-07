@@ -15,6 +15,13 @@ interface Section {
   is_filterable: boolean;
   show_on_card: boolean;
   is_universal: boolean;
+  business_type_id?: string | null;
+}
+
+interface BusinessType {
+  id: string;
+  name: string;
+  parent_id: string | null;
 }
 
 const SECTION_ICONS = [
@@ -47,6 +54,7 @@ function SectionsContent() {
   const typeId = searchParams.get('typeId'); // The typology we are adding to
 
   const [sections, setSections] = useState<Section[]>([]);
+  const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAssigning, setIsAssigning] = useState(false);
 
@@ -122,9 +130,13 @@ function SectionsContent() {
 
   async function loadSections() {
     setLoading(true);
-    const res = await fetch('/api/jana/sections');
-    if (res.ok) setSections(await res.json());
-    const fdRes = await fetch('/api/jana/field-definitions');
+    const [secRes, typesRes, fdRes] = await Promise.all([
+      fetch('/api/jana/sections'),
+      fetch('/api/jana/types'),
+      fetch('/api/jana/field-definitions')
+    ]);
+    if (secRes.ok) setSections(await secRes.json());
+    if (typesRes.ok) setBusinessTypes(await typesRes.json());
     if (fdRes.ok) setFieldDefs(await fdRes.json());
     setLoading(false);
   }
@@ -193,7 +205,8 @@ function SectionsContent() {
       setEditingSection({
         id: '', name: '', icon: 'fa-info-circle',
         required: false, vendor_editable: true, show_on_public: true,
-        is_filterable: false, show_on_card: false, is_universal: false
+        is_filterable: false, show_on_card: false, is_universal: false,
+        business_type_id: null
       });
       setIsNew(true);
     }
@@ -207,7 +220,14 @@ function SectionsContent() {
   };
 
   async function saveSection() {
-    if (!editingSection?.id || !editingSection?.name) return;
+    if (!editingSection?.id || !editingSection?.name) {
+      notify('Block Name and ID are required.', 'error'); return;
+    }
+    // ENFORCE: non-universal sections MUST have a parent
+    if (!editingSection.is_universal && !editingSection.business_type_id) {
+      notify('A Master Parent business type is required. If this section applies to ALL types, toggle "Universal".', 'error');
+      return;
+    }
     const method = isNew ? 'POST' : 'PUT';
     const res = await fetch('/api/jana/sections', {
       method,
@@ -218,6 +238,9 @@ function SectionsContent() {
       notify(`Block architected successfully.`, 'success');
       setShowModal(false);
       loadSections();
+    } else {
+      const err = await res.json();
+      notify(err.error || 'Failed to save section.', 'error');
     }
   }
 
@@ -264,11 +287,35 @@ function SectionsContent() {
       <div className="card-header">
         <div>
           <h3><i className="fas fa-layer-group"></i> Section Architect</h3>
-          <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>Define and govern informational blocks for your business ecosystem.</p>
+          <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>Every section must declare a Master Parent — no orphan sections allowed.</p>
         </div>
         <button className="btn btn-primary" onClick={() => openEditor(null)}>
           <i className="fas fa-plus"></i> CREATE NEW SECTION
         </button>
+      </div>
+
+      {/* STATS BAR */}
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37' }}>
+          <i className="fas fa-globe" style={{ marginRight: '0.5rem' }}></i>
+          {sections.filter(s => s.is_universal).length} UNIVERSAL
+        </div>
+        {Array.from(new Set(sections.filter(s => !s.is_universal && s.business_type_id).map(s => s.business_type_id))).map(tid => {
+          const type = businessTypes.find(t => t.id === tid);
+          const count = sections.filter(s => s.business_type_id === tid).length;
+          return (
+            <div key={tid} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 900, color: '#1e293b' }}>
+              <i className="fas fa-sitemap" style={{ marginRight: '0.5rem', color: '#64748b' }}></i>
+              {type?.name || tid}: {count}
+            </div>
+          );
+        })}
+        {sections.filter(s => !s.is_universal && !s.business_type_id).length > 0 && (
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 900, color: '#ef4444' }}>
+            <i className="fas fa-exclamation-triangle" style={{ marginRight: '0.5rem' }}></i>
+            {sections.filter(s => !s.is_universal && !s.business_type_id).length} ORPHANED
+          </div>
+        )}
       </div>
 
       <div className="grid-2" style={{ marginTop: '2rem' }}>
@@ -276,8 +323,8 @@ function SectionsContent() {
           <div key={s.id} className="card h-full" 
             style={{ 
               background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderTop: `4px solid ${s.is_universal ? '#D4AF37' : '#1e293b'}`, 
+              border: `1px solid ${!s.is_universal && !s.business_type_id ? 'rgba(239,68,68,0.3)' : '#e2e8f0'}`,
+              borderTop: `4px solid ${s.is_universal ? '#D4AF37' : !s.business_type_id ? '#ef4444' : '#1e293b'}`, 
               boxShadow: '0 4px 20px -5px rgba(0,0,0,0.05)', 
               position: 'relative',
               transition: 'all 0.3s ease',
@@ -285,9 +332,17 @@ function SectionsContent() {
               overflow: 'hidden'
             }}>
             
-            {s.is_universal && (
+            {s.is_universal ? (
               <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <i className="fas fa-dna"></i> MASTER DNA
+                <i className="fas fa-globe"></i> UNIVERSAL
+              </div>
+            ) : s.business_type_id ? (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(30,41,59,0.06)', color: '#1e293b', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <i className="fas fa-sitemap"></i> {businessTypes.find(t => t.id === s.business_type_id)?.name || s.business_type_id}
+              </div>
+            ) : (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <i className="fas fa-exclamation-triangle"></i> NO PARENT
               </div>
             )}
 
@@ -397,6 +452,37 @@ function SectionsContent() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* MASTER PARENT SELECTOR */}
+              <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', border: !editingSection.is_universal && !editingSection.business_type_id ? '2px solid rgba(239,68,68,0.4)' : '1px solid #e2e8f0', background: !editingSection.is_universal && !editingSection.business_type_id ? 'rgba(239,68,68,0.02)' : '#f9fafb' }}>
+                <label className="form-label" style={{ fontSize: '0.7rem', color: editingSection.is_universal ? '#94a3b8' : '#1e293b' }}>
+                  <i className="fas fa-sitemap" style={{ marginRight: '0.5rem', color: '#D4AF37' }}></i>
+                  MASTER PARENT BUSINESS TYPE {!editingSection.is_universal && <span style={{ color: '#ef4444' }}>*</span>}
+                </label>
+                <select
+                  className="form-control"
+                  style={{ marginTop: '0.5rem', opacity: editingSection.is_universal ? 0.4 : 1 }}
+                  disabled={!!editingSection.is_universal}
+                  value={editingSection.business_type_id || ''}
+                  onChange={e => setEditingSection({ ...editingSection, business_type_id: e.target.value || null })}
+                >
+                  <option value="">— Select Parent Type —</option>
+                  {businessTypes.filter(t => !t.parent_id).map(t => (
+                    <optgroup key={t.id} label={t.name}>
+                      <option value={t.id}>{t.name} (parent)</option>
+                      {businessTypes.filter(c => c.parent_id === t.id).map(c => (
+                        <option key={c.id} value={c.id}>  ↳ {c.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                {editingSection.is_universal && (
+                  <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.4rem' }}>Universal sections apply to ALL types — no parent needed.</div>
+                )}
+                {!editingSection.is_universal && !editingSection.business_type_id && (
+                  <div style={{ fontSize: '0.65rem', color: '#ef4444', marginTop: '0.4rem' }}><i className="fas fa-exclamation-triangle" style={{ marginRight: '0.25rem' }}></i>Parent required. Cannot save without assigning a parent type.</div>
+                )}
               </div>
 
               <div style={{ marginTop: '2rem' }}>

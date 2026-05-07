@@ -9,6 +9,7 @@ interface Field {
   name: string;
   label: string;
   field_type: string;
+  required: boolean;
   value: any;
   options?: any;
   help_text?: string;
@@ -97,9 +98,9 @@ export default function VendorStudio() {
   if (loading) return <div className="studio-loader">Preparing your Storyteller Studio...</div>;
 
   const currentSection = sections.find(s => s.id === activeSection);
-  
+
   // Flatten fields for DynamicForm
-  const allFields = sections.flatMap(s => s.fields.map(f => ({ ...f, section_id: s.id })));
+  const allFields = sections.flatMap(s => s.fields.map(f => ({ ...f, section_id: s.id, required: !!f.required })));
 
   return (
     <div className="studio-container">
@@ -109,12 +110,12 @@ export default function VendorStudio() {
           <i className="fas fa-sun"></i>
           <span>SIWA STUDIO</span>
         </div>
-        
+
         <nav className="studio-nav">
           <div className="nav-label">STORY CHAPTERS</div>
           {sections.map(s => (
-            <button 
-              key={s.id} 
+            <button
+              key={s.id}
               className={`nav-item ${activeSection === s.id ? 'active' : ''}`}
               onClick={() => setActiveSection(s.id)}
             >
@@ -150,7 +151,7 @@ export default function VendorStudio() {
 
         <section className="editor-canvas">
           <div className="form-stack">
-            <DynamicForm 
+            <DynamicForm
               fields={allFields.filter(f => f.section_id === activeSection)}
               data={formData}
               onChange={handleInputChange}

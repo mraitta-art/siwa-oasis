@@ -48,12 +48,16 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
+    // Enforce: non-universal sections must have a parent
+    if (!is_universal && !business_type_id) {
+      return NextResponse.json({ error: 'A Master Parent business type is required for non-universal sections.' }, { status: 400 });
+    }
 
     await execute(
-      `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0, active !== false]
+      `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0, active !== false, business_type_id || null]
     );
 
     // --- AUTO-GENESIS: Materialize DNA Fields ---
@@ -88,11 +92,11 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const updates = [];
-    const params = [];
+    const params: any[] = [];
     if (name !== undefined) { updates.push('name=?'); params.push(name); }
     if (icon !== undefined) { updates.push('icon=?'); params.push(icon); }
     if (required !== undefined) { updates.push('required=?'); params.push(required); }
@@ -107,6 +111,7 @@ export async function PUT(request: NextRequest) {
     if (display_order !== undefined) { updates.push('display_order=?'); params.push(display_order); }
     if (sort_order !== undefined) { updates.push('sort_order=?'); params.push(sort_order); }
     if (active !== undefined) { updates.push('active=?'); params.push(active); }
+    if (business_type_id !== undefined) { updates.push('business_type_id=?'); params.push(business_type_id || null); }
 
     params.push(id);
     await execute(`UPDATE sections SET ${updates.join(', ')} WHERE id=?`, params);

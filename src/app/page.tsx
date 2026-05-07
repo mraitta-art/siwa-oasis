@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import HeritageCard from '@/components/HeritageCard';
+
+export default function Home() {
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
