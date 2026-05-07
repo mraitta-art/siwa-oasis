@@ -256,6 +256,8 @@ export default function BusinessEditPage() {
                 sections={[section]}
                 userRole="admin"
                 tierFeatures={tier?.features || {}}
+                businessName={biz.name}
+                typology={parentType?.name}
               />
             </div>
           ))}

@@ -42,9 +42,11 @@ interface DynamicFormProps {
     allowedMediaTypes?: string[]; // ['image', 'youtube', 'video']
     [key: string]: any;
   };
+  businessName?: string;
+  typology?: string;
 }
 
-export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {} }: DynamicFormProps) {
+export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {}, businessName, typology }: DynamicFormProps) {
   const [currentLang, setCurrentLang] = React.useState('en');
   const languages = [
     { code: 'en', label: 'English', icon: '🇬🇧' },
@@ -158,6 +160,34 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
               <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }}></div>
               <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>CINEMATIC NARRATIVE STUDIO</div>
+
+              {isAdmin && !isFieldLocked && (
+                <button
+                  onClick={async (e) => {
+                    const btn = e.currentTarget;
+                    const editor = btn.parentElement?.nextElementSibling as HTMLElement;
+                    btn.innerHTML = '<i class="fas fa-magic fa-spin"></i> GENERATING...';
+                    btn.style.opacity = '0.5';
+                    try {
+                      const res = await fetch('/api/jana/ai-generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ businessName, sectionName: field.label, typology })
+                      });
+                      const json = await res.json();
+                      if (json.story) {
+                        editor.innerHTML = json.story;
+                        handleChange(json.story);
+                      }
+                    } catch (err) { console.error(err); }
+                    btn.innerHTML = '<i class="fas fa-magic"></i> AI MAGIC';
+                    btn.style.opacity = '1';
+                  }}
+                  style={{ marginLeft: '1rem', background: '#1e293b', border: 'none', color: '#D4AF37', padding: '4px 12px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                >
+                  <i className="fas fa-magic"></i> AI MAGIC
+                </button>
+              )}
 
               {!isFieldLocked && (
                 <button
