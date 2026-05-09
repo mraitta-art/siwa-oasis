@@ -4,6 +4,7 @@ import { getWebsiteTemplate } from '@/lib/cache';
 import DynamicForm from '@/components/DynamicForm';
 import MasterCard from '@/components/MasterCard';
 import VibeSearch from '@/components/VibeSearch';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
 /**
  * SEO ENGINE FOR CUSTOM PAGES
@@ -48,10 +49,10 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
     const { header_components = [], body_components = [], footer_components = [], site_settings = {} } = page;
 
     const renderComponent = (c: any) => {
-      switch(c.type) {
-        case 'navigation': 
+      switch (c.type) {
+        case 'navigation':
           return (
-            <nav key={c.id} style={{ 
+            <nav key={c.id} style={{
               padding: '1.5rem 4rem', background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(10px)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1000,
               borderBottom: '1px solid rgba(255,255,255,0.05)'
@@ -62,17 +63,17 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
               <Link href="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800 }}>BACK HOME</Link>
             </nav>
           );
-        
-        case 'hero_carousel': 
+
+        case 'hero_carousel':
           return (
-            <AdvancedHeroCarousel 
-              key={c.id} 
-              carouselName={c.props?.carousel_id || 'main'} 
-              height="80vh" 
+            <AdvancedHeroCarousel
+              key={c.id}
+              carouselName={c.props?.carousel_id || 'main'}
+              height="80vh"
             />
           );
-        
-        case 'search_bar': 
+
+        case 'search_bar':
           return (
             <section key={c.id} style={{ background: '#0a0f1d', padding: '4rem 2rem' }}>
               <div style={{ maxWidth: 1000, margin: '0 auto', background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: 40, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -90,10 +91,10 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
                   {site_settings.site_name || 'Registry'}
                 </h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '2rem' }}>
-                   {/* Placeholder for business list - will be fetched client-side in the component */}
-                   <div style={{ color: 'rgba(255,255,255,0.2)', textAlign: 'center', gridColumn: '1/-1', padding: '4rem' }}>
-                      Discovery Engine Active...
-                   </div>
+                  {/* Placeholder for business list - will be fetched client-side in the component */}
+                  <div style={{ color: 'rgba(255,255,255,0.2)', textAlign: 'center', gridColumn: '1/-1', padding: '4rem' }}>
+                    Discovery Engine Active...
+                  </div>
                 </div>
               </div>
             </section>
@@ -110,7 +111,7 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
             </section>
           );
 
-        default: 
+        default:
           return (
             <div key={c.id} style={{ padding: '4rem 2rem', textAlign: 'center', background: '#fff', color: '#0f172a' }}>
               <h3 style={{ fontWeight: 900 }}>{c.name || c.type.toUpperCase()}</h3>

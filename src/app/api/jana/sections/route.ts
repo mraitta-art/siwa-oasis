@@ -27,10 +27,24 @@ export async function GET(request: NextRequest) {
       if (sectionIds.length === 0) return NextResponse.json([]);
 
       const placeholders = sectionIds.map(() => '?').join(',');
-      const sections = await query(`SELECT * FROM sections WHERE id IN (${placeholders})`, sectionIds);
+      const sections = await query(`SELECT * FROM sections WHERE id IN (${placeholders}) OR is_universal = 1 ORDER BY sort_order ASC, name ASC`, sectionIds);
       
-      // Enforce DNA Order: Sort sections exactly as they are ordered in the parent's JSON array
-      const sortedSections = sections.sort((a: any, b: any) => sectionIds.indexOf(a.id) - sectionIds.indexOf(b.id));
+      // Enforce global order: Sort sections by their explicit sort_order first, then fallback to JSON index
+      const sortedSections = sections.sort((a: any, b: any) => {
+        const orderA = typeof a.sort_order === 'number' ? a.sort_order : 9999;
+        const orderB = typeof b.sort_order === 'number' ? b.sort_order : 9999;
+        
+        if (orderA !== orderB) {
+           return orderA - orderB;
+        }
+
+        // Fallback to DNA Array order if sort_orders are identical or 0
+        const indexA = sectionIds.indexOf(a.id);
+        const indexB = sectionIds.indexOf(b.id);
+        const safeIndexA = indexA === -1 ? 9999 : indexA;
+        const safeIndexB = indexB === -1 ? 9999 : indexB;
+        return safeIndexA - safeIndexB;
+      });
       
       return NextResponse.json(sortedSections);
     }
@@ -50,15 +64,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
-    // Enforce: non-universal sections must have a parent
-    if (!is_universal && !business_type_id) {
-      return NextResponse.json({ error: 'A Master Parent business type is required for non-universal sections.' }, { status: 400 });
-    }
+    console.log('[SECTIONS POST] Attempting to create section:', { id, name, business_type_id, is_universal });
 
-    await execute(
-      `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0, active !== false, business_type_id || null]
-    );
+    try {
+      await execute(
+        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, display_order || 0, sort_order || 0, active !== false, business_type_id || null]
+      );
+      console.log('[SECTIONS POST] Section created successfully');
+    } catch (dbErr: any) {
+      console.error('[SECTIONS POST DB ERROR]', dbErr);
+      return NextResponse.json({ error: `Database Error: ${dbErr.message}` }, { status: 500 });
+    }
 
     // --- AUTO-GENESIS: Materialize DNA Fields ---
     const structuralFields = [
@@ -113,8 +130,16 @@ export async function PUT(request: NextRequest) {
     if (active !== undefined) { updates.push('active=?'); params.push(active); }
     if (business_type_id !== undefined) { updates.push('business_type_id=?'); params.push(business_type_id || null); }
 
+    console.log('[SECTIONS PUT] Attempting to update section:', { id, updates: updates.length });
+
     params.push(id);
-    await execute(`UPDATE sections SET ${updates.join(', ')} WHERE id=?`, params);
+    try {
+      await execute(`UPDATE sections SET ${updates.join(', ')} WHERE id=?`, params);
+      console.log('[SECTIONS PUT] Section updated successfully');
+    } catch (dbErr: any) {
+      console.error('[SECTIONS PUT DB ERROR]', dbErr);
+      return NextResponse.json({ error: `Database Error: ${dbErr.message}` }, { status: 500 });
+    }
     invalidateCache.sections();
     return NextResponse.json({ success: true });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }

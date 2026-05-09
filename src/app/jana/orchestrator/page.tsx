@@ -11,15 +11,21 @@ import { useAdmin } from '@/context/AdminContext';
  * The world-class onboarding engine for Siwa Oasis entities.
  */
 
-type Step = 'ARCHITECTURE' | 'IDENTITY' | 'AMBIENCE' | 'AUTHORITY' | 'SUCCESS';
+type Step = 'ARCHITECTURE' | 'AESTHETICS' | 'DNA_CONFIG' | 'AUTHORITY' | 'DEPLOYMENT';
 
 interface WizardState {
-  step: Step; selectedType: string; businessName: string;
-  selectedVendor: string; businessData: Record<string, any>;
-  minisiteTemplate: string; fields: any[];
+  step: Step;
+  selectedParent: string;
+  selectedType: string;
+  businessName: string;
+  selectedVendor: string;
+  businessData: Record<string, any>;
+  minisiteTemplate: string;
+  fields: any[];
 }
 
 const STORAGE_KEY = 'siwa_governance_wizard_state';
+const STEPS: Step[] = ['ARCHITECTURE', 'AESTHETICS', 'DNA_CONFIG', 'AUTHORITY', 'DEPLOYMENT'];
 
 function OrchestratorContent() {
   const { notify } = useAdmin();
@@ -32,6 +38,7 @@ function OrchestratorContent() {
 
   const [state, setState] = useState<WizardState>({
     step: 'ARCHITECTURE',
+    selectedParent: '',
     selectedType: searchParams.get('type') || '',
     businessName: '',
     selectedVendor: '',
@@ -46,15 +53,24 @@ function OrchestratorContent() {
       try {
         const parsed = JSON.parse(saved);
         if (searchParams.get('type')) parsed.selectedType = searchParams.get('type');
-        setState(parsed);
+        if (searchParams.get('template')) parsed.minisiteTemplate = searchParams.get('template');
+        
+        // Auto-fix for old cached states (e.g., if step was 'IDENTITY' or 'AMBIENCE')
+        if (parsed.step && !STEPS.includes(parsed.step)) {
+          parsed.step = 'ARCHITECTURE';
+        }
+        
+        setState(prev => ({ ...prev, ...parsed }));
       } catch (e) {}
+    } else if (searchParams.get('template')) {
+      setState(prev => ({ ...prev, minisiteTemplate: searchParams.get('template') || prev.minisiteTemplate }));
     }
 
     Promise.all([
       fetch('/api/jana/types').then(res => res.json()),
       fetch('/api/jana/vendors').then(res => res.json()),
       fetch('/api/jana/sections').then(res => res.json()),
-      fetch('/api/jana/website/templates').then(res => res.json()).catch(() => [])
+      fetch('/api/jana/templates').then(res => res.json()).catch(() => [])
     ]).then(([types, vendorList, sectionsList, visualList]) => {
       setTypologies(Array.isArray(types) ? types : []);
       setVendors(Array.isArray(vendorList) ? vendorList : []);
@@ -62,7 +78,7 @@ function OrchestratorContent() {
       setVisualTemplates(Array.isArray(visualList) ? visualList : []);
       setLoading(false);
     });
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -96,151 +112,239 @@ function OrchestratorContent() {
       });
       if (bizRes.ok) {
         localStorage.removeItem(STORAGE_KEY);
-        updateState({ step: 'SUCCESS' });
-        notify('Entity Synchronized', 'success');
+        updateState({ step: 'DEPLOYMENT' });
+        notify('Entity Synthesized Successfully', 'success');
       }
     } catch (err) { notify('Orchestration Failed', 'error'); }
     setLoading(false);
   };
 
+  const nextStep = () => {
+    if (state.step === 'AUTHORITY') return handleFinalize();
+    const idx = STEPS.indexOf(state.step);
+    if (idx < STEPS.length - 1) updateState({ step: STEPS[idx + 1] });
+  };
+
+  const prevStep = () => {
+    const idx = STEPS.indexOf(state.step);
+    if (idx > 0) updateState({ step: STEPS[idx - 1] });
+  };
+
   if (loading) return <div className="loader-screen">ORCHESTRATING...</div>;
 
+  const parentTypologies = typologies.filter(t => t.is_parent || !t.parent_id);
+  const childTypologies = state.selectedParent ? typologies.filter(t => t.parent_id === state.selectedParent) : [];
+
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#fff', padding: '4rem 2rem' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        
-        {/* Header */}
-        <header style={{ textAlign: 'center', marginBottom: '5rem' }}>
-           <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '4px', marginBottom: '1rem' }}>SYSTEM INITIATION</div>
-           <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-2px' }}>GOVERNANCE <span style={{ color: '#D4AF37' }}>ORCHESTRATOR</span></h1>
-           <p style={{ opacity: 0.5, fontSize: '0.9rem', maxWidth: '500px', margin: '1rem auto' }}>Establish a new high-fidelity entity in the Siwa Oasis marketplace registry.</p>
+    <div className="orchestrator-container">
+      <div className="bg-glow"></div>
+      
+      <div className="wizard-wrapper">
+        {/* Wizard Header */}
+        <header className="wizard-header">
+           <div className="sub-badge">SYSTEM INITIATION</div>
+           <h1 className="title">GOVERNANCE <span className="highlight">ORCHESTRATOR</span></h1>
+           <p className="subtitle">Architect and deploy high-fidelity entities into the Siwa Oasis registry.</p>
         </header>
 
-        {/* Progress */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '4rem' }}>
-           {['ARCHITECTURE', 'IDENTITY', 'AMBIENCE', 'AUTHORITY'].map((s, i) => {
+        {/* Progress Tracker */}
+        <div className="progress-tracker">
+           {STEPS.map((s, i) => {
              const active = state.step === s;
-             const passed = ['ARCHITECTURE', 'IDENTITY', 'AMBIENCE', 'AUTHORITY', 'SUCCESS'].indexOf(state.step) > i;
+             const passed = STEPS.indexOf(state.step) > i;
              return (
-               <div key={s} style={{ flex: 1 }}>
-                 <div style={{ height: '4px', background: active || passed ? '#D4AF37' : 'rgba(255,255,255,0.1)', borderRadius: '2px', marginBottom: '1rem' }}></div>
-                 <div style={{ fontSize: '0.6rem', fontWeight: 900, opacity: active ? 1 : 0.4 }}>{s}</div>
+               <div key={s} className="progress-step">
+                 <div className={`progress-bar ${active || passed ? 'active' : ''}`}></div>
+                 <div className={`progress-label ${active ? 'active-text' : passed ? 'passed-text' : ''}`}>{s.replace('_', ' ')}</div>
                </div>
              );
            })}
         </div>
 
-        <div className="glass-card animate-in" style={{ padding: '4rem', borderRadius: '32px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)' }}>
+        {/* Active Phase Glass Card */}
+        <div className="glass-card animate-in">
           
+          {/* STEP 1: ARCHITECTURE */}
           {state.step === 'ARCHITECTURE' && (
             <div className="phase-content">
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '2rem' }}>Define Typology</h2>
-              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                {typologies.map(t => (
-                  <button 
-                    key={t.id} 
-                    onClick={() => updateState({ selectedType: t.id })}
-                    style={{ 
-                      padding: '2rem', borderRadius: '20px', border: state.selectedType === t.id ? '2px solid #D4AF37' : '1px solid rgba(255,255,255,0.1)',
-                      background: state.selectedType === t.id ? 'rgba(212,175,55,0.1)' : 'transparent',
-                      color: '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
-                    }}
-                  >
-                    <i className={`fas ${t.icon || 'fa-layer-group'}`} style={{ fontSize: '1.5rem', color: '#D4AF37', marginBottom: '1rem', display: 'block' }}></i>
-                    <div style={{ fontWeight: 800, fontSize: '0.8rem' }}>{t.name}</div>
+              <div className="phase-header">
+                <h2>{state.selectedParent ? 'Select Child Typology' : 'Define Master Typology'}</h2>
+                {state.selectedParent && (
+                  <button onClick={() => updateState({ selectedParent: '', selectedType: '' })} className="btn-undo">
+                    <i className="fas fa-undo-alt"></i> CHANGE PARENT
                   </button>
-                ))}
+                )}
               </div>
+              
+              {!state.selectedParent ? (
+                <div className="grid-selection">
+                  {parentTypologies.map(t => (
+                    <button 
+                      key={t.id} 
+                      onClick={() => updateState({ selectedParent: t.id, selectedType: t.id })}
+                      className={`selection-card ${state.selectedParent === t.id ? 'selected' : ''}`}
+                    >
+                      <i className={`fas ${t.icon || 'fa-layer-group'} icon`}></i>
+                      <div className="name">{t.name}</div>
+                      <div className="tag">PARENT CATEGORY</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid-selection">
+                  {childTypologies.length === 0 ? (
+                    <div className="empty-state">
+                      <i className="fas fa-info-circle"></i>
+                      <div>No sub-typologies found. You can proceed with the primary category.</div>
+                    </div>
+                  ) : childTypologies.map(t => (
+                    <button 
+                      key={t.id} 
+                      onClick={() => updateState({ selectedType: t.id })}
+                      className={`selection-card child ${state.selectedType === t.id ? 'selected' : ''}`}
+                    >
+                      <i className={`fas ${t.icon || 'fa-sitemap'} icon`}></i>
+                      <div className="name">{t.name}</div>
+                      <div className="tag success">CHILD TYPOLOGY</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {state.step === 'IDENTITY' && (
+          {/* STEP 2: AESTHETICS */}
+          {state.step === 'AESTHETICS' && (
+             <div className="phase-content">
+                <div className="phase-header">
+                   <h2>Visual Blueprint Selection</h2>
+                </div>
+                <div className="grid-selection templates">
+                   {visualTemplates.length > 0 ? visualTemplates.map(t => (
+                     <div 
+                        key={t.id} 
+                        onClick={() => updateState({ minisiteTemplate: t.id })}
+                        className={`template-card ${state.minisiteTemplate === t.id ? 'selected' : ''}`}
+                     >
+                        <div className="preview-window">
+                           <i className={`fas ${t.type_icon || 'fa-magic'} icon`}></i>
+                        </div>
+                        <div className="info">
+                           <div className="name">{t.name?.toUpperCase() || t.id}</div>
+                           <div className="tag">{t.type_name ? t.type_name.toUpperCase() : 'UNIVERSAL MINISITE'}</div>
+                        </div>
+                     </div>
+                   )) : (
+                     <div className="empty-state">
+                       <i className="fas fa-palette"></i>
+                       <div>No specific visual templates found. Using 'desert_luxury_v1' fallback.</div>
+                     </div>
+                   )}
+                </div>
+             </div>
+          )}
+
+          {/* STEP 3: DNA_CONFIG (IDENTITY) */}
+          {state.step === 'DNA_CONFIG' && (
             <div className="phase-content">
-               <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '2rem' }}>Identity DNA</h2>
-               <div className="form-group" style={{ marginBottom: '3rem' }}>
-                 <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>ENTITY NAME</label>
+               <div className="phase-header">
+                 <h2>Entity DNA & Content</h2>
+               </div>
+               
+               <div className="form-group main-name-input">
+                 <label>PRIMARY ENTITY NAME</label>
                  <input 
                    type="text" 
                    value={state.businessName || ''} 
                    onChange={e => updateState({ businessName: e.target.value })}
-                   style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '2.5rem', fontWeight: 900, padding: '1rem 0', outline: 'none' }}
-                   placeholder="Siwa Oasis Sands..."
+                   placeholder="e.g. Adrère Amellal Resort..."
+                   autoFocus
                  />
                </div>
 
-               <DynamicForm 
-                 fields={state.fields}
-                 data={state.businessData}
-                 sections={allSections}
-                 userRole="admin"
-                 onChange={(sid, name, val) => updateState({ businessData: { ...state.businessData, [sid]: { ...(state.businessData[sid] || {}), [name]: val } } })}
-               />
+               <div className="dna-form-wrapper">
+                 <DynamicForm 
+                   fields={state.fields}
+                   data={state.businessData}
+                   sections={allSections}
+                   userRole="admin"
+                   onChange={(sid, name, val) => updateState({ businessData: { ...state.businessData, [sid]: { ...(state.businessData[sid] || {}), [name]: val } } })}
+                 />
+               </div>
             </div>
           )}
 
-          {state.step === 'AMBIENCE' && (
-             <div className="phase-content">
-                <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '2rem' }}>Atmosphere Archetype</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '2rem' }}>
-                   {visualTemplates.map(t => (
-                     <div 
-                        key={t.id} 
-                        onClick={() => updateState({ minisiteTemplate: t.id })}
-                        style={{ 
-                          borderRadius: '24px', overflow: 'hidden', border: state.minisiteTemplate === t.id ? '3px solid #D4AF37' : '1px solid rgba(255,255,255,0.1)',
-                          cursor: 'pointer', transition: 'all 0.3s'
-                        }}
-                     >
-                        <div style={{ height: '140px', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                           <i className="fas fa-magic fa-2x" style={{ opacity: 0.2 }}></i>
-                        </div>
-                        <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.05)' }}>
-                           <div style={{ fontWeight: 900, fontSize: '0.8rem' }}>{t.name?.toUpperCase() || t.id}</div>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-             </div>
+          {/* STEP 4: AUTHORITY (VENDOR MAPPING) */}
+          {state.step === 'AUTHORITY' && (
+            <div className="phase-content">
+               <div className="phase-header">
+                 <h2>Vendor Authority & Ownership</h2>
+               </div>
+               <p style={{ opacity: 0.6, marginBottom: '2rem', fontSize: '0.9rem' }}>
+                 Assign an external vendor to manage this entity, or leave it blank if internally managed.
+               </p>
+               
+               <div className="grid-selection">
+                 <button 
+                   onClick={() => updateState({ selectedVendor: '' })}
+                   className={`selection-card ${!state.selectedVendor ? 'selected' : ''}`}
+                 >
+                   <i className="fas fa-shield-alt icon" style={{ color: '#10b981' }}></i>
+                   <div className="name">Internal Management</div>
+                   <div className="tag">SIWA GOVERNANCE</div>
+                 </button>
+                 
+                 {vendors.map(v => (
+                   <button 
+                     key={v.id} 
+                     onClick={() => updateState({ selectedVendor: v.id })}
+                     className={`selection-card ${state.selectedVendor === v.id ? 'selected' : ''}`}
+                   >
+                     <i className="fas fa-user-tie icon" style={{ color: '#3b82f6' }}></i>
+                     <div className="name">{v.display_name || v.email}</div>
+                     <div className="tag">VENDOR ACCOUNT</div>
+                   </button>
+                 ))}
+               </div>
+            </div>
           )}
 
-          {state.step === 'SUCCESS' && (
-             <div style={{ textAlign: 'center' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem', fontSize: '2rem' }}>
+          {/* STEP 5: DEPLOYMENT (SUCCESS) */}
+          {state.step === 'DEPLOYMENT' && (
+             <div className="success-content">
+                <div className="check-ring">
                   <i className="fas fa-check"></i>
                 </div>
-                <h2 style={{ fontSize: '2.5rem', fontWeight: 900 }}>Orchestration Complete</h2>
-                <div style={{ marginTop: '3rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                   <Link href="/jana/businesses" className="btn-premium">REGISTRY</Link>
-                   <button onClick={() => window.location.reload()} className="btn-outline">NEW START</button>
+                <h2>Deployment Synchronized</h2>
+                <p>The entity has been permanently written to the Siwa Registry.</p>
+                
+                <div className="actions">
+                   <Link href="/jana/businesses" className="btn-premium">ENTER REGISTRY</Link>
+                   <button onClick={() => {
+                     localStorage.removeItem(STORAGE_KEY);
+                     window.location.reload();
+                   }} className="btn-outline">ORCHESTRATE NEW ENTITY</button>
                 </div>
              </div>
           )}
 
-          {/* Controls */}
-          {state.step !== 'SUCCESS' && (
-            <div style={{ marginTop: '4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button 
-                onClick={() => {
-                  const steps: Step[] = ['ARCHITECTURE', 'IDENTITY', 'AMBIENCE', 'AUTHORITY'];
-                  const idx = steps.indexOf(state.step);
-                  if (idx > 0) updateState({ step: steps[idx-1] });
-                }} 
-                style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem' }}
-              >
-                <i className="fas fa-chevron-left"></i> PREVIOUS PHASE
+          {/* Persistent Controls */}
+          {state.step !== 'DEPLOYMENT' && (
+            <div className="wizard-controls">
+              <button onClick={prevStep} className="btn-ghost" disabled={state.step === 'ARCHITECTURE'}>
+                <i className="fas fa-chevron-left"></i> PREVIOUS
               </button>
+              
               <button 
-                onClick={() => {
-                  if (state.step === 'AMBIENCE') handleFinalize();
-                  else {
-                    const steps: Step[] = ['ARCHITECTURE', 'IDENTITY', 'AMBIENCE', 'AUTHORITY'];
-                    const idx = steps.indexOf(state.step);
-                    updateState({ step: steps[idx+1] });
-                  }
-                }}
-                className="btn-premium"
+                onClick={nextStep}
+                className="btn-premium next-btn"
+                disabled={
+                  (state.step === 'ARCHITECTURE' && !state.selectedType) ||
+                  (state.step === 'DNA_CONFIG' && !state.businessName)
+                }
               >
-                {state.step === 'AMBIENCE' ? 'FINALIZE' : 'NEXT PHASE'} <i className="fas fa-chevron-right" style={{ marginLeft: '1rem' }}></i>
+                {state.step === 'AUTHORITY' ? 'SYNTHESIZE & DEPLOY' : 'PROCEED'} 
+                <i className={state.step === 'AUTHORITY' ? "fas fa-rocket" : "fas fa-chevron-right"}></i>
               </button>
             </div>
           )}
@@ -249,16 +353,238 @@ function OrchestratorContent() {
 
       <style jsx>{`
         .loader-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #D4AF37; font-weight: 900; letter-spacing: 5px; }
+        
+        .orchestrator-container {
+          min-height: 100vh;
+          background: #090e17;
+          color: #fff;
+          padding: 4rem 2rem;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .bg-glow {
+          position: absolute;
+          top: -20%; left: 50%;
+          transform: translateX(-50%);
+          width: 800px; height: 800px;
+          background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, rgba(15,23,42,0) 70%);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .wizard-wrapper {
+          max-width: 1050px;
+          margin: 0 auto;
+          position: relative;
+          z-index: 10;
+        }
+
+        .wizard-header {
+          text-align: center;
+          margin-bottom: 4rem;
+        }
+        
+        .sub-badge {
+          font-size: 0.7rem; font-weight: 900; color: #D4AF37; 
+          letter-spacing: 4px; margin-bottom: 1rem;
+          text-transform: uppercase;
+        }
+
+        .title {
+          font-size: 3rem; font-weight: 900; letter-spacing: -1.5px;
+          margin: 0; text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .highlight { color: #D4AF37; }
+
+        .subtitle {
+          opacity: 0.6; font-size: 1rem; max-width: 500px; 
+          margin: 1.5rem auto 0; line-height: 1.6;
+        }
+
+        .progress-tracker {
+          display: flex; gap: 1.5rem; margin-bottom: 3.5rem;
+        }
+
+        .progress-step { flex: 1; }
+
+        .progress-bar {
+          height: 4px; border-radius: 4px;
+          background: rgba(255,255,255,0.05);
+          margin-bottom: 1rem; transition: all 0.4s ease;
+        }
+
+        .progress-bar.active {
+          background: linear-gradient(90deg, #D4AF37, #F5E6AD);
+          box-shadow: 0 0 15px rgba(212,175,55,0.4);
+        }
+
+        .progress-label {
+          font-size: 0.65rem; font-weight: 900; letter-spacing: 1px;
+          opacity: 0.3; transition: all 0.4s ease;
+        }
+
+        .progress-label.active-text { opacity: 1; color: #D4AF37; }
+        .progress-label.passed-text { opacity: 0.8; }
+
+        .glass-card {
+          padding: 4rem; border-radius: 32px;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.05);
+          backdrop-filter: blur(40px);
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .phase-header {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 2.5rem;
+        }
+
+        .phase-header h2 {
+          font-size: 2.2rem; font-weight: 900; margin: 0;
+          letter-spacing: -1px;
+        }
+
+        .btn-undo {
+          background: rgba(212,175,55,0.1); color: #D4AF37;
+          border: 1px solid rgba(212,175,55,0.2); cursor: pointer;
+          font-weight: 900; font-size: 0.7rem; padding: 0.6rem 1.2rem;
+          border-radius: 50px; transition: all 0.2s;
+        }
+        .btn-undo:hover { background: rgba(212,175,55,0.2); }
+
+        .grid-selection {
+          display: grid; 
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+          gap: 1.5rem;
+        }
+
+        .selection-card {
+          padding: 2.5rem 1.5rem; border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.01);
+          color: #fff; cursor: pointer; text-align: center;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .selection-card:hover {
+          background: rgba(255,255,255,0.04);
+          transform: translateY(-4px);
+        }
+
+        .selection-card.selected {
+          border-color: #D4AF37;
+          background: rgba(212,175,55,0.08);
+          box-shadow: 0 15px 30px rgba(212,175,55,0.1);
+          transform: translateY(-4px);
+        }
+
+        .selection-card .icon {
+          font-size: 2rem; color: #D4AF37; 
+          margin-bottom: 1.5rem; display: block;
+        }
+
+        .selection-card.child .icon { color: #10b981; }
+
+        .selection-card .name { font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; }
+        .selection-card .tag { font-size: 0.55rem; color: rgba(255,255,255,0.4); font-weight: 900; letter-spacing: 1px; }
+        .selection-card .tag.success { color: #10b981; }
+
+        .empty-state {
+          grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;
+          background: rgba(255,255,255,0.02); border-radius: 24px;
+          border: 1px dashed rgba(255,255,255,0.1);
+        }
+        .empty-state i { font-size: 2.5rem; color: rgba(255,255,255,0.2); margin-bottom: 1rem; }
+        .empty-state div { color: rgba(255,255,255,0.5); font-weight: 600; font-size: 0.9rem; }
+
+        .template-card {
+          border-radius: 24px; overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.08);
+          cursor: pointer; transition: all 0.3s;
+        }
+        .template-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.3); }
+        .template-card.selected { border: 2px solid #D4AF37; box-shadow: 0 20px 40px rgba(212,175,55,0.15); transform: translateY(-5px); }
+        
+        .template-card .preview-window {
+          height: 160px; background: #0f172a; 
+          display: flex; align-items: center; justify-content: center;
+        }
+        .template-card .preview-window .icon { font-size: 2.5rem; opacity: 0.2; }
+        .template-card .info { padding: 1.5rem; background: rgba(255,255,255,0.03); }
+        .template-card .info .name { font-weight: 900; font-size: 0.9rem; margin-bottom: 0.25rem; }
+        .template-card .info .tag { font-size: 0.6rem; color: #D4AF37; font-weight: 900; letter-spacing: 1px; }
+
+        .main-name-input { margin-bottom: 4rem; }
+        .main-name-input label {
+          font-size: 0.7rem; font-weight: 900; color: #D4AF37; 
+          letter-spacing: 2px; display: block; margin-bottom: 1rem;
+        }
+        .main-name-input input {
+          width: 100%; background: transparent; border: none;
+          border-bottom: 2px solid rgba(255,255,255,0.1); color: #fff;
+          font-size: 3rem; font-weight: 900; padding: 1rem 0; outline: none;
+          transition: all 0.3s;
+        }
+        .main-name-input input:focus { border-bottom-color: #D4AF37; }
+        .main-name-input input::placeholder { color: rgba(255,255,255,0.1); }
+
+        .dna-form-wrapper {
+          background: rgba(0,0,0,0.2);
+          padding: 2rem; border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .success-content { text-align: center; padding: 2rem 0; }
+        .check-ring {
+          width: 100px; height: 100px; border-radius: 50%;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #fff; display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 2.5rem; font-size: 2.5rem;
+          box-shadow: 0 0 50px rgba(16, 185, 129, 0.4);
+        }
+        .success-content h2 { font-size: 3rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 1rem; }
+        .success-content p { font-size: 1.1rem; opacity: 0.6; margin-bottom: 4rem; }
+        .success-content .actions { display: flex; gap: 1.5rem; justify-content: center; }
+
+        .wizard-controls {
+          margin-top: 5rem; padding-top: 2rem;
+          border-top: 1px solid rgba(255,255,255,0.05);
+          display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .btn-ghost {
+          background: transparent; border: none; color: rgba(255,255,255,0.4);
+          font-weight: 900; font-size: 0.8rem; cursor: pointer;
+          letter-spacing: 1px; transition: color 0.2s;
+        }
+        .btn-ghost:hover:not(:disabled) { color: #fff; }
+        .btn-ghost:disabled { opacity: 0.2; cursor: not-allowed; }
+
         .btn-premium { 
-          padding: 1.25rem 3.5rem; border-radius: 3rem; background: #D4AF37; color: #fff; 
+          padding: 1.25rem 3.5rem; border-radius: 50px; 
+          background: linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%); 
+          color: #1a1a2e; text-decoration: none; display: inline-block;
           border: none; font-weight: 900; letter-spacing: 1px; cursor: pointer;
-          box-shadow: 0 20px 40px -10px rgba(212,175,55,0.4); transition: all 0.2s;
+          box-shadow: 0 20px 40px -10px rgba(212,175,55,0.5); 
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .btn-premium:hover { transform: translateY(-3px); box-shadow: 0 25px 50px -12px rgba(212,175,55,0.5); }
+        .btn-premium:hover:not(:disabled) { 
+          transform: translateY(-3px); 
+          box-shadow: 0 25px 50px -12px rgba(212,175,55,0.6); 
+        }
+        .btn-premium:disabled { background: #334155; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
+
+        .btn-premium.next-btn { display: flex; align-items: center; gap: 1rem; }
+
         .btn-outline { 
-          padding: 1.25rem 3.5rem; border-radius: 3rem; background: transparent; color: #fff; 
-          border: 2px solid rgba(255,255,255,0.1); font-weight: 900; cursor: pointer;
+          padding: 1.25rem 3.5rem; border-radius: 50px; 
+          background: transparent; color: #fff; text-decoration: none;
+          border: 2px solid rgba(255,255,255,0.1); 
+          font-weight: 900; cursor: pointer; transition: all 0.3s;
         }
+        .btn-outline:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
       `}</style>
     </div>
   );
@@ -266,7 +592,7 @@ function OrchestratorContent() {
 
 export default function GovernanceWizardPage() {
   return (
-    <Suspense fallback={<div className="loader-screen">LOADING...</div>}>
+    <Suspense fallback={<div className="loader-screen">INITIALIZING PROTOCOLS...</div>}>
       <OrchestratorContent />
     </Suspense>
   );

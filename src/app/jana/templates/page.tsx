@@ -371,6 +371,9 @@ export default function TemplateArchitect() {
                             {(t as any).level && <span style={{ background:'#1e293b', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>{(t.level || '').toUpperCase()}</span>}
                           </div>
                           <div style={{ display:'flex', gap:'0.4rem' }}>
+                            <Link href={`/jana/orchestrator?template=${t.id}`} style={{ textDecoration: 'none' }}>
+                              <button style={{ background:'#dbeafe', color:'#1e40af', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>BUILD SITE</button>
+                            </Link>
                             <button onClick={() => { setEditingTemplate(t); setFormStep(2); }} style={{ background:'#f1f5f9', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>EDIT</button>
                             <button onClick={() => handleDelete(t.id)} style={{ background:'#fee2e2', color:'#991b1b', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>DEL</button>
                           </div>
@@ -410,6 +413,9 @@ export default function TemplateArchitect() {
                             {(t as any).level && <span style={{ background:'#1e293b', color:'#fff', padding:'2px 8px', borderRadius:'50px', fontSize:'0.55rem', fontWeight:800 }}>{(t.level || '').toUpperCase()}</span>}
                           </div>
                           <div style={{ display:'flex', gap:'0.4rem' }}>
+                            <Link href={`/jana/orchestrator?template=${t.id}&type=${pt.id}`} style={{ textDecoration: 'none' }}>
+                              <button style={{ background:'#dbeafe', color:'#1e40af', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>BUILD SITE</button>
+                            </Link>
                             <button onClick={() => { setEditingTemplate(t); setFormStep(2); }} style={{ background:'#f1f5f9', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>EDIT</button>
                             <button onClick={() => handleDelete(t.id)} style={{ background:'#fee2e2', color:'#991b1b', border:'none', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.65rem', fontWeight:800 }}>DEL</button>
                           </div>

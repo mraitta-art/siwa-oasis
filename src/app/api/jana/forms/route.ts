@@ -201,21 +201,39 @@ export async function POST(request: NextRequest) {
     const id = crypto.randomUUID();
     const [maxOrder] = await query('SELECT COALESCE(MAX(sort_order), 0) as m FROM form_fields WHERE business_type_id = ? AND section_id = ?', [business_type_id, section_id]);
 
-    await execute(
-      `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, business_type_id, section_id, name, label, field_type,
-       required ? 1 : 0, vendor_editable ?? 1, searchable ? 1 : 0, help_text || null,
-       options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null,
-       JSON.stringify(validation || {}),
-       JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
-       default_value || null, sort_order ?? (((maxOrder as any)?.m || 0) + 1), required_feature || null]
-    );
+    const finalSortOrder = sort_order ?? (((maxOrder as any)?.m || 0) + 1);
+    const finalAcl = typeof acl === 'string' ? acl : JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] });
+    const finalValidation = typeof validation === 'string' ? validation : JSON.stringify(validation || {});
+    const finalOptions = options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null;
+
+    console.log('[FORMS POST] Creating field with params:', {
+      id, business_type_id, section_id, name, label, field_type, 
+      required: required ? 1 : 0, vendor_editable: vendor_editable ?? 1,
+      sort_order: finalSortOrder
+    });
+
+    try {
+      await execute(
+        `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id, business_type_id, section_id, name, label, field_type,
+          required ? 1 : 0, vendor_editable ?? 1, searchable ? 1 : 0, help_text || null,
+          finalOptions, finalValidation, finalAcl,
+          default_value || null, finalSortOrder, required_feature || null,
+          body.section_origin || 'own'
+        ]
+      );
+      console.log('[FORMS POST] Field created successfully');
+    } catch (dbErr: any) {
+      console.error('[FORMS POST DB ERROR]', dbErr);
+      return NextResponse.json({ error: `Database Error: ${dbErr.message}` }, { status: 500 });
+    }
 
     return NextResponse.json({ id }, { status: 201 });
   } catch (e: any) { 
     console.error('[FORMS POST ERROR]', e);
-    return NextResponse.json({ error: e.message }, { status: 500 }); 
+    return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 }); 
   }
 }
 
@@ -243,7 +261,33 @@ export async function PUT(request: NextRequest) {
 
     if (updates.length > 0) {
       params.push(id);
-      await execute(`UPDATE form_fields SET ${updates.join(',')} WHERE id=?`, params);
+      const result = await execute(`UPDATE form_fields SET ${updates.join(',')} WHERE id=?`, params);
+      
+      // SELF-HEALING: If no rows were updated and it's an auto-generated ID, materialize it now!
+      if (result.affectedRows === 0 && id.startsWith('auto-')) {
+        console.log(`[FORMS PUT] Virtual ID ${id} detected. Materializing...`);
+        const name = body.name || id.split('-').pop(); // Extract name from auto-blog-sid
+        await execute(
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature)
+           VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'template', ?)`,
+          [
+            id, 
+            section_id || 'basic', 
+            name, 
+            label || name, 
+            field_type || 'text',
+            required ? 1 : 0, 
+            vendor_editable ?? 1, 
+            searchable ? 1 : 0, 
+            help_text || null,
+            options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null,
+            JSON.stringify(validation || {}),
+            JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
+            sort_order || 0,
+            required_feature || null
+          ]
+        );
+      }
     }
 
     return NextResponse.json({ success: true });

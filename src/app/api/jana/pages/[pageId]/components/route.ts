@@ -10,7 +10,7 @@ export async function GET(
   try {
     await requireAdmin();
     const resolvedParams = await params;
-    
+
     const { searchParams } = new URL(request.url);
     const pageType = searchParams.get('pageType') || 'website';
 
@@ -158,7 +158,7 @@ export async function DELETE(
   try {
     await requireAdmin();
     const resolvedParams = await params;
-    
+
     const { searchParams } = new URL(request.url);
     const assignmentId = searchParams.get('assignmentId');
 

@@ -29,12 +29,15 @@ if (process.env.NODE_ENV === 'production') {
       port: parseInt(process.env.DB_PORT || '3306'),
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'test_siwa',
+      database: process.env.DB_NAME || 'siwa_oasis',
       waitForConnections: true,
-      connectionLimit: 5, // Reduced for dev
+      connectionLimit: 5,
       queueLimit: 0,
       charset: 'utf8mb4',
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      ssl: {
+        minVersion: 'TLSv1.2',
+        rejectUnauthorized: true
+      },
     });
   }
   pool = (global as any).dbPool;

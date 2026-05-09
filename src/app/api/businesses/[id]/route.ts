@@ -8,7 +8,6 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    await requireAuth();
     const biz = await queryOne(`
       SELECT b.*, t.features as tier_features 
       FROM businesses b

@@ -299,7 +299,7 @@ export default function BusinessEditPage() {
                    Automated Story Propagation Active
                 </div>
                 
-                <Link href={`/business/${id}`} target="_blank" style={{ display: 'block', marginTop: '1.5rem', textAlign: 'center', textDecoration: 'none', padding: '0.75rem', background: '#1e293b', color: '#fff', borderRadius: '12px', fontWeight: 800, fontSize: '0.7rem' }}>
+                <Link href={`/${biz.slug || biz.id}`} target="_blank" style={{ display: 'block', marginTop: '1.5rem', textAlign: 'center', textDecoration: 'none', padding: '0.75rem', background: '#1e293b', color: '#fff', borderRadius: '12px', fontWeight: 800, fontSize: '0.7rem' }}>
                   VIEW FULL MINISITE
                 </Link>
               </div>

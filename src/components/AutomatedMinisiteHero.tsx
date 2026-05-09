@@ -51,8 +51,10 @@ export default function AutomatedMinisiteHero({
   const slides = useMemo(() => {
     const allSlides: any[] = [];
     const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
+    const capturedSectionIds = new Set<string>();
 
     activeSections.forEach(section => {
+      capturedSectionIds.add(section.id);
       const sectionData = customData[section.id] || {};
       const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${section.name.toLowerCase()} DNA.`;
       
@@ -95,7 +97,10 @@ export default function AutomatedMinisiteHero({
           caption: (businessName || '').toUpperCase(), 
           ctaText: `READ FULL STORY`,
           ctaLink: `#${section.id}`,
-          animation: 'kenburns'
+          animation: 'kenburns',
+          displayMode: photo.display_mode || 'image',
+          showCaption: photo.show_caption !== false,
+          bgColor: photo.bg_color || null
         });
       });
 
@@ -116,8 +121,42 @@ export default function AutomatedMinisiteHero({
       }
     });
 
+    // ═══════════════════════════════════════════════════════════════
+    // SECOND PASS: Scan customData directly for any hero photos that
+    // weren't picked up by the activeSections loop (e.g. typology-
+    // specific sections not yet registered in the sections registry).
+    // This makes the carousel fully data-driven.
+    // ═══════════════════════════════════════════════════════════════
+    Object.entries(customData).forEach(([sectionKey, sectionData]: [string, any]) => {
+      if (capturedSectionIds.has(sectionKey)) return; // Already processed
+      if (!sectionData || typeof sectionData !== 'object') return;
+      
+      const gallery = sectionData.section_gallery || [];
+      const photos = Array.isArray(gallery) ? gallery : [];
+      const heroPhotos = photos.filter((p: any) => p && p.is_hero);
+      
+      heroPhotos.forEach((photo: any, idx: number) => {
+        const url = typeof photo === 'object' ? photo.url : photo;
+        const caption = typeof photo === 'object' ? photo.caption : '';
+        allSlides.push({
+          id: `${sectionKey}_direct_${idx}`,
+          type: 'image',
+          mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
+          title: caption || sectionKey.replace(/_/g, ' ').toUpperCase(),
+          subtitle: `DISCOVER MORE`,
+          caption: (businessName || '').toUpperCase(),
+          ctaText: 'READ FULL STORY',
+          ctaLink: `#${sectionKey}`,
+          animation: 'kenburns',
+          displayMode: photo.display_mode || 'image',
+          showCaption: photo.show_caption !== false,
+          bgColor: photo.bg_color || null
+        });
+      });
+    });
+
     // FINAL QUOTA CAP: Enforce absolute maximum slides from tier
-    const finalLimit = tierFeatures.maxSlides || 5;
+    const finalLimit = tierFeatures.maxSlides || 10;
     return allSlides.slice(0, finalLimit);
   }, [customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
 

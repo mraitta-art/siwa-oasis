@@ -34,6 +34,8 @@ const NAV_GROUPS = [
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Data Sections', path: '/jana/sections', icon: 'fa-columns' },
       { name: 'Form Fields', path: '/jana/form-builder', icon: 'fa-list-check' },
+      { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
+      { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
       { name: 'Vendor Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
     ]

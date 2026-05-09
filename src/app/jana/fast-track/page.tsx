@@ -176,6 +176,7 @@ function FastTrackContent() {
                 fields={fields}
                 data={businessData}
                 sections={sections}
+                userRole="admin"
                 onChange={(sid, name, val) => setBusinessData({ ...businessData, [sid]: { ...(businessData[sid] || {}), [name]: val } })}
               />
             </div>

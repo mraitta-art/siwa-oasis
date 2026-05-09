@@ -5,7 +5,7 @@ import Link from 'next/link';
 import DynamicForm from '@/components/DynamicForm';
 
 interface Business {
-  id: string; name: string; type_id: string; type_name: string; type_icon: string;
+  id: string; name: string; slug: string; type_id: string; type_name: string; type_icon: string;
   type_icon_color: string; status: string; subscription_tier: string; vendor_email: string | null;
   vendor_id: string | null; approved_by_vendor: boolean; views: number; template_name?: string;
 }
@@ -100,11 +100,9 @@ export default function BusinessRegistryPage() {
         body: JSON.stringify(newBiz),
       });
       if (res.ok) {
-        setShowWizard(false);
-        setWizardStep(1);
-        setNewBiz({ name: '', type_id: '', subscription_tier: 'free', vendor_id: '', template_id: '', custom_data: {} });
-        setFilteredTemplates([]);
-        await loadBusinesses();
+        const newBusiness = await res.json();
+        // Redirect immediately to the DNA Editor (Data Feed) page
+        window.location.href = `/jana/businesses/${newBusiness.id}/edit`;
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to register business');
@@ -297,12 +295,15 @@ export default function BusinessRegistryPage() {
                            </>
                          )}
                        </select>
-                       <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
-                         <i className="fas fa-magic"></i> CURATE
-                       </Link>
-                       <Link href={`/jana/businesses/${b.id}/edit`} className="btn btn-xs btn-outline" title="Edit Business DNA">
-                         <i className="fas fa-dna"></i> EDIT DNA
-                       </Link>
+                        <Link href={`/${b.slug || b.id}`} target="_blank" className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="View Public Minisite">
+                          <i className="fas fa-external-link-alt"></i> VIEW SITE
+                        </Link>
+                        <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
+                          <i className="fas fa-magic"></i> CURATE
+                        </Link>
+                        <Link href={`/jana/businesses/${b.id}/edit`} className="btn btn-xs btn-outline" title="Edit Business DNA">
+                          <i className="fas fa-dna"></i> EDIT DNA
+                        </Link>
                        <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteBiz(b.id, b.name)}><i className="fas fa-trash"></i></button>
                     </div>
                 </td>

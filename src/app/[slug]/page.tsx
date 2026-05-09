@@ -1,15 +1,28 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 
 /**
- * SERVER-SIDE SEO ENGINE
+ * SERVER-SIDE SEO ENGINE & REDIRECT HANDLER
  */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const bRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/by-slug/${slug}`);
+    // Check if it's a UUID (36 chars with dashes)
+    const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+    
+    let url = `${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/by-slug/${slug}`;
+    if (isId) {
+       // Fetch by ID to get the slug for redirection (PUBLIC SAFE)
+       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/${slug}`);
+       const biz = await res.json();
+       if (biz && biz.slug) return { title: `Redirecting to ${biz.name}...` };
+    }
+
+    const bRes = await fetch(url);
     const biz = await bRes.json();
+// ... (rest of the metadata logic remains similar)
     
     if (!biz || biz.error) return { title: 'Business Not Found - Siwa Today' };
 
@@ -43,8 +56,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function VanityBusinessPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   
+  // Check if it's a UUID (36 chars with dashes)
+  const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+  
   try {
-    const bRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/by-slug/${slug}`, { cache: 'no-store' });
+    let fetchUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/by-slug/${slug}`;
+    
+    if (isId) {
+      // It's an ID — let's find the slug and redirect! (PUBLIC SAFE)
+      const idRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/${slug}`, { cache: 'no-store' });
+      const bizById = await idRes.json();
+      if (bizById && bizById.slug) {
+        redirect(`/${bizById.slug}`);
+      }
+    }
+
+    const bRes = await fetch(fetchUrl, { cache: 'no-store' });
     const biz = await bRes.json();
 
     if (!biz || biz.error) {

@@ -31,6 +31,7 @@ export const FIELD_TYPES = {
   boolean:        { name: 'Binary Toggle',      icon: 'fa-toggle-on',    hasOptions: false },
   tel:            { name: 'Telephone',          icon: 'fa-phone',        hasOptions: false },
   email:          { name: 'Email Address',      icon: 'fa-envelope',     hasOptions: false },
+  component:      { name: 'Interactive Component', icon: 'fa-cube',       hasOptions: true  },
 } as const;
 
 export type FieldTypeKey = keyof typeof FIELD_TYPES;
@@ -126,4 +127,31 @@ export const SIWA_DEFS = {
     { id: 'sunset_view', name: 'Sunset View',  icon: 'fa-sun'      },
     { id: 'star_gazing', name: 'Star Gazing',  icon: 'fa-star'     },
   ],
+  sectionStandards: [
+    { name: 'section_gallery', label: 'Visual Gallery',        field_type: 'gallery',   sort_order: 0 },
+    { name: 'section_blog',    label: 'Section Blog / Story',   field_type: 'rich_text', sort_order: 1 },
+    { name: 'feature_on_main', label: 'Feature on Main Page',  field_type: 'boolean',   sort_order: 2 },
+    { name: 'section_news',    label: 'Latest News Teaser',     field_type: 'textarea',  sort_order: 3 },
+  ],
+  sectionIcons: [
+    'fa-cubes', 'fa-map', 'fa-info-circle', 'fa-camera-retro', 'fa-hotel', 'fa-concierge-bell',
+    'fa-box', 'fa-star', 'fa-bed', 'fa-wifi', 'fa-campground', 'fa-fire',
+    'fa-cube', 'fa-clock', 'fa-feather', 'fa-utensils', 'fa-chair', 'fa-mug-hot',
+    'fa-route', 'fa-hourglass', 'fa-language', 'fa-tags', 'fa-water', 'fa-landmark'
+  ],
+  fieldLibrary: [
+    { id: 'text', name: 'Short Text', icon: 'fa-font', color: '#3b82f6' },
+    { id: 'textarea', name: 'Long Text / Teaser', icon: 'fa-align-left', color: '#8b5cf6' },
+    { id: 'rich_text', name: 'Rich Text Blog', icon: 'fa-paragraph', color: '#7c3aed' },
+    { id: 'number', name: 'Number / Price', icon: 'fa-hashtag', color: '#10b981' },
+    { id: 'select', name: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
+    { id: 'multiselect', name: 'Multi-Select Tags', icon: 'fa-tasks', color: '#d946ef' },
+    { id: 'checkbox_group', name: 'Checkbox Group', icon: 'fa-check-double', color: '#8b5cf6' },
+    { id: 'checkbox', name: 'Yes/No Toggle', icon: 'fa-check-square', color: '#06b6d4' },
+    { id: 'gallery', name: 'Image Gallery', icon: 'fa-images', color: '#ec4899' },
+    { id: 'url', name: 'Link / URL', icon: 'fa-link', color: '#64748b' },
+    { id: 'email', name: 'Email Address', icon: 'fa-envelope', color: '#0ea5e9' },
+    { id: 'phone', name: 'Phone Number', icon: 'fa-phone', color: '#16a34a' },
+    { id: 'component', name: 'Interactive Component', icon: 'fa-cube', color: '#6366f1' }
+  ]
 } as const;

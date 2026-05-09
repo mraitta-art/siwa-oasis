@@ -51,7 +51,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url });
   } catch (err: any) {
-    console.error('[UPLOAD ERROR]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('❌ [UPLOAD API ERROR]:', err);
+    return NextResponse.json({ 
+      error: 'Upload operation failed', 
+      details: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+    }, { status: 500 });
   }
 }

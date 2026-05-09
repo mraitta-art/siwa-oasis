@@ -18,6 +18,9 @@ interface Slide {
   animation?: 'fade' | 'zoom' | 'slide' | 'kenburns';
   transitionDuration?: number;
   maxDuration?: number;
+  displayMode?: 'image' | 'text_only';
+  bgColor?: string;
+  showCaption?: boolean;
 }
 
 interface AdvancedCarouselProps {
@@ -205,7 +208,7 @@ export default function AdvancedHeroCarousel({
           transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
           transition: 'all 0.6s ease-out'
         }}>
-          {slide.caption && (
+          {slide.showCaption !== false && slide.caption && (
             <div style={{
               display: 'inline-block', 
               background: 'rgba(212, 175, 55, 0.9)', 
@@ -285,6 +288,17 @@ export default function AdvancedHeroCarousel({
 function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; animation: string; isActive: boolean; muted: boolean }) {
   if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl} isActive={isActive} muted={muted} maxDuration={slide.maxDuration} />;
   if (slide.type === 'video') return <video src={slide.mediaUrl} autoPlay muted loop style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
+  
+  if (slide.displayMode === 'text_only') {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: slide.bgColor || '#1e293b',
+        transition: 'background 1s ease'
+      }} />
+    );
+  }
+
   return (
     <div style={{
       position: 'absolute', inset: 0, backgroundImage: `url(${slide.mediaUrl})`,

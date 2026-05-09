@@ -9,9 +9,33 @@ import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
  * Handles the interactive minisite UI.
  */
 export default function VanityBusinessClient({ slug, initialData, sections }: { slug: string, initialData: any, sections: any[] }) {
-  const [biz] = useState<any>(initialData);
-  const [activeSections] = useState<any[]>(sections);
-  const [activeTab, setActiveTab] = useState<string | null>(sections[0]?.id || null);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  // Sync active tab when sections change or on mount
+  useEffect(() => {
+    if (sections && sections.length > 0) {
+      // Check for hash link first
+      const hash = window.location.hash.replace('#', '');
+      const hasMatchingSection = sections.some(s => s.id === hash);
+      
+      if (hasMatchingSection) {
+        setActiveTab(hash);
+      } else {
+        setActiveTab(sections[0].id);
+      }
+    }
+
+    // Listen for hash changes (for carousel jumps)
+    const handleHash = () => {
+      const h = window.location.hash.replace('#', '');
+      if (sections.some(s => s.id === h)) setActiveTab(h);
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [slug, sections]);
+
+  const biz = initialData;
+  const activeSections = sections;
 
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
@@ -43,7 +67,10 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
             {activeSections.map(s => (
               <button 
                 key={s.id} 
-                onClick={() => setActiveTab(s.id)}
+                onClick={() => {
+                  window.location.hash = s.id;
+                  setActiveTab(s.id);
+                }}
                 style={{ 
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: activeTab === s.id ? '#D4AF37' : '#64748b', 
@@ -67,7 +94,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
               if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {section.name}.</div>;
 
               return (
-                <section key={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem' }}>
+                <section key={section.id} id={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem', scrollMarginTop: '100px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                     <div style={{ width: '48px', height: '48px', background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
                       <i className={`fas ${section.icon || 'fa-layer-group'}`}></i>

@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
     `);
     return NextResponse.json(businesses);
   } catch (e: any) {
-    // Auto-heal: add template_id if missing
-    if (e.message.includes("template_id") || e.message.includes("minisite_templates")) {
+    // Auto-heal: add template_id and is_standalone if missing
+    if (e.message.includes("template_id") || e.message.includes("minisite_templates") || e.message.includes("is_standalone")) {
       await execute(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS template_id VARCHAR(100) DEFAULT NULL`);
+      await execute(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_standalone BOOLEAN DEFAULT FALSE`);
       const businesses = await query(`SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color, p.email as vendor_email FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id LEFT JOIN profiles p ON b.vendor_id = p.id ORDER BY b.created_at DESC`);
       return NextResponse.json(businesses);
     }
@@ -52,12 +53,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Helper to create URL-friendly slugs
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')     // Replace spaces with -
+    .replace(/[^\w-]+/g, '')  // Remove all non-word chars
+    .replace(/--+/g, '-');    // Replace multiple - with single -
+}
+
 // POST create a new business
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    let { name, type_id, subscription_tier = 'free', vendor_id = null, template_id = null, custom_data = {}, status = 'active' } = body;
+    let { name, type_id, subscription_tier = 'free', vendor_id = null, template_id = null, custom_data = {}, status = 'active', is_standalone = false } = body;
 
     // Sanitize: Treat empty string as null for foreign key compliance
     if (vendor_id === '') vendor_id = null;
@@ -66,6 +78,10 @@ export async function POST(request: NextRequest) {
     if (!name || !type_id) {
       return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
     }
+
+    // Generate Slug
+    const slug = slugify(name);
+
     // AUTO-RESOLVE: If no template provided, get the default from the subscription tier
     if (!template_id) {
       try {
@@ -73,33 +89,20 @@ export async function POST(request: NextRequest) {
         if (tierRow?.default_template_id) {
           template_id = tierRow.default_template_id;
         }
-      } catch (e) {
-        // Column may not exist yet — ignore silently
-      }
+      } catch (e) {}
     }
-    if (!template_id) {
-      return NextResponse.json({ error: 'A Template must be assigned. Set a default template on the subscription tier or select one manually.' }, { status: 400 });
+    
+    if (!template_id && !is_standalone) {
+      return NextResponse.json({ error: 'A Template must be assigned unless creating a Standalone Minisite.' }, { status: 400 });
     }
 
     const id = crypto.randomUUID();
     await execute(
-      `INSERT INTO businesses (id, name, type_id, subscription_tier, vendor_id, template_id, custom_data, status, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, type_id, subscription_tier, vendor_id, template_id, JSON.stringify(custom_data), status, 1]
+      `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone ? 1 : 0, JSON.stringify(custom_data), status, 1]
     );
 
-    // Background Logging (Non-blocking)
-    try {
-      await execute('INSERT INTO activity_log (message, user_email) VALUES (?, ?)', [
-        `Business created: ${name}`, user.email
-      ]);
-      await execute('INSERT INTO audit_log (id, user_id, user_email, user_role, action, details) VALUES (?, ?, ?, ?, ?, ?)', [
-        crypto.randomUUID(), user.id, user.email, user.role, 'create_business', `Created business: ${name} (${type_id})`
-      ]);
-    } catch (logErr) {
-      console.warn('Logging failure, but business was created:', logErr);
-    }
-
-    return NextResponse.json({ id, name, type_id }, { status: 201 });
+    return NextResponse.json({ id, name, slug, type_id }, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
@@ -141,9 +144,15 @@ export async function PUT(request: NextRequest) {
     const sets: string[] = [];
     const params: any[] = [];
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id'].includes(key)) {
+      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone'].includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(value);
+        params.push(key === 'is_standalone' ? (value ? 1 : 0) : value);
+        
+        // Also update slug if name is changed
+        if (key === 'name' && typeof value === 'string') {
+          sets.push(`slug = ?`);
+          params.push(slugify(value));
+        }
       }
       if (['custom_data', 'draft_data'].includes(key)) {
         sets.push(`${key} = ?`);

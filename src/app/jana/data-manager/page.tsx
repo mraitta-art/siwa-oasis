@@ -112,6 +112,7 @@ export default function DataManagerPage() {
                 <option value="locations">🗺️ Locations</option>
                 <option value="profiles">👤 User Profiles</option>
                 <option value="subscription_tiers">💎 Sub Tiers</option>
+                <option value="website_configs">🌐 Website Configs</option>
              </select>
              <button className="btn btn-primary" onClick={async () => {
                 const table = (document.getElementById('csvTable') as HTMLSelectElement).value;

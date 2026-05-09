@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table');
 
-    const allowedTables = ['business_types', 'sections', 'form_fields', 'profiles', 'businesses', 'locations', 'subscription_tiers'];
+    const allowedTables = ['business_types', 'sections', 'form_fields', 'profiles', 'businesses', 'locations', 'subscription_tiers', 'website_configs'];
     if (!table || !allowedTables.includes(table)) {
       return NextResponse.json({ error: 'Invalid table selection' }, { status: 400 });
     }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const table = formData.get('table') as string;
 
-    const allowedTables = ['business_types', 'sections', 'form_fields', 'profiles', 'businesses', 'locations', 'subscription_tiers'];
+    const allowedTables = ['business_types', 'sections', 'form_fields', 'profiles', 'businesses', 'locations', 'subscription_tiers', 'website_configs'];
     if (!table || !allowedTables.includes(table)) {
       return NextResponse.json({ error: 'Invalid table selection' }, { status: 400 });
     }

@@ -6,7 +6,7 @@ import { query } from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
-    
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'all';
     const category = searchParams.get('category');
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       for (const tagName of tags) {
         // Find or create tag
         let tag = await query('SELECT id FROM blog_tags WHERE name = ?', [tagName]);
-        
+
         if (tag.length === 0) {
           const tagSlug = tagName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
           await query(

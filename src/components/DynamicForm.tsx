@@ -48,6 +48,7 @@ interface DynamicFormProps {
 
 export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {}, businessName, typology }: DynamicFormProps) {
   const [currentLang, setCurrentLang] = React.useState('en');
+  const [uploadingFields, setUploadingFields] = React.useState<Record<string, boolean>>({});
   const languages = [
     { code: 'en', label: 'English', icon: '🇬🇧' },
     { code: 'zh', label: 'Chinese', icon: '🇨🇳' },
@@ -135,23 +136,27 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
               <div style={{ display: 'flex', gap: '0.25rem', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 {!isFieldLocked && (
-                  <label className="editor-tool-btn" style={{ cursor: 'pointer', color: '#D4AF37' }} title="Insert Image">
-                    <i className="fas fa-image"></i>
+                  <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title="Insert Image">
+                    {uploadingFields[`${field.id}-img`] ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-image"></i>}
                     <input
                       type="file"
                       hidden
                       accept="image/*"
+                      disabled={uploadingFields[`${field.id}-img`]}
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
                         const formData = new FormData();
                         formData.append('file', file);
-                        formData.append('upload_preset', 'siwa_standard'); // Assuming preset exists
                         try {
-                          const res = await fetch(`https://api.cloudinary.com/v1_1/siwatoday/image/upload`, { method: 'POST', body: formData });
+                          const res = await fetch(`/api/upload`, { method: 'POST', body: formData });
                           const data = await res.json();
-                          document.execCommand('insertImage', false, data.secure_url);
+                          if (data.url) {
+                            document.execCommand('insertImage', false, data.url);
+                          }
                         } catch (err) { console.error("Upload failed", err); }
+                        finally { setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: false })); }
                       }}
                     />
                   </label>
@@ -163,11 +168,9 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
               {isAdmin && !isFieldLocked && (
                 <button
-                  onClick={async (e) => {
-                    const btn = e.currentTarget;
-                    const editor = btn.parentElement?.nextElementSibling as HTMLElement;
-                    btn.innerHTML = '<i class="fas fa-magic fa-spin"></i> GENERATING...';
-                    btn.style.opacity = '0.5';
+                  disabled={uploadingFields[`${field.id}-ai`]}
+                  onClick={async () => {
+                    setUploadingFields(prev => ({ ...prev, [`${field.id}-ai`]: true }));
                     try {
                       const res = await fetch('/api/jana/ai-generate', {
                         method: 'POST',
@@ -176,16 +179,15 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                       });
                       const json = await res.json();
                       if (json.story) {
-                        editor.innerHTML = json.story;
                         handleChange(json.story);
                       }
-                    } catch (err) { console.error(err); }
-                    btn.innerHTML = '<i class="fas fa-magic"></i> AI MAGIC';
-                    btn.style.opacity = '1';
+                    } catch (e) { console.error("AI Generation failed", e); }
+                    finally { setUploadingFields(prev => ({ ...prev, [`${field.id}-ai`]: false })); }
                   }}
                   style={{ marginLeft: '1rem', background: '#1e293b', border: 'none', color: '#D4AF37', padding: '4px 12px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
                 >
-                  <i className="fas fa-magic"></i> AI MAGIC
+                  {uploadingFields[`${field.id}-ai`] ? <i className="fas fa-magic fa-spin"></i> : <i className="fas fa-magic"></i>}
+                  {uploadingFields[`${field.id}-ai`] ? 'GENERATING...' : 'AI MAGIC'}
                 </button>
               )}
 
@@ -306,39 +308,90 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             </span>
           </label>
         ) : isSelect ? (
-          <select
-            className="form-control" value={value || ''}
-            onChange={e => handleChange(e.target.value)} disabled={isFieldLocked}
-          >
-            {(() => {
-              try {
-                const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
-                return Array.isArray(opts) ? opts.map(opt => <option key={opt} value={opt}>{opt}</option>) : null;
-              } catch (e) { return null; }
-            })()}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <select
+              className="form-control"
+              value={value || ''}
+              onChange={e => handleChange(e.target.value)}
+              disabled={isFieldLocked}
+              style={{
+                appearance: 'none',
+                paddingRight: '2.5rem',
+                background: isFieldLocked ? '#f8fafc' : '#fff',
+                fontWeight: 700,
+                color: value ? '#1e293b' : '#94a3b8',
+              }}
+            >
+              <option value="">— Select an option —</option>
+              {(() => {
+                try {
+                  const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
+                  return Array.isArray(opts) ? opts.map(opt => <option key={opt} value={opt}>{opt}</option>) : null;
+                } catch (e) { return null; }
+              })()}
+            </select>
+            {/* Custom chevron */}
+            <i className="fas fa-chevron-down" style={{
+              position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)',
+              color: '#94a3b8', fontSize: '0.7rem', pointerEvents: 'none'
+            }}></i>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem' }}>
+              <i className="fas fa-shield-alt" style={{ fontSize: '0.55rem', color: '#D4AF37' }}></i>
+              <span style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>Options defined by admin • Admin-locked choices</span>
+            </div>
+          </div>
         ) : isMulti ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
-            {(() => {
-              const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
-              if (!Array.isArray(opts)) return null;
-              const items = Array.isArray(value) ? value : [];
-              return opts.map(opt => {
-                const isChecked = items.includes(opt);
-                return (
-                  <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isFieldLocked ? 'default' : 'pointer' }}>
-                    <input
-                      type="checkbox" checked={isChecked} disabled={isFieldLocked}
-                      onChange={() => {
-                        const next = isChecked ? items.filter((i: any) => i !== opt) : [...items, opt];
-                        handleChange(next);
-                      }}
-                    />
-                    <span style={{ fontSize: '0.8rem' }}>{opt}</span>
-                  </label>
-                );
-              });
-            })()}
+          <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', padding: '1rem', background: '#f8fafc', borderRadius: '16px', border: '1.5px solid #e2e8f0', minHeight: '60px' }}>
+              {(() => {
+                try {
+                  const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
+                  if (!Array.isArray(opts) || opts.length === 0) return (
+                    <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 700, alignSelf: 'center' }}>No options defined by admin yet.</div>
+                  );
+                  const selected: string[] = Array.isArray(value) ? value : [];
+                  return opts.map((opt: string) => {
+                    const isChecked = selected.includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        disabled={isFieldLocked}
+                        onClick={() => {
+                          if (isFieldLocked) return;
+                          const next = isChecked
+                            ? selected.filter(i => i !== opt)
+                            : [...selected, opt];
+                          handleChange(next);
+                        }}
+                        style={{
+                          padding: '0.4rem 0.9rem',
+                          borderRadius: '8px',
+                          border: isChecked ? '2px solid #1e293b' : '1.5px solid #e2e8f0',
+                          background: isChecked ? '#1e293b' : '#fff',
+                          color: isChecked ? '#fff' : '#475569',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          cursor: isFieldLocked ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          boxShadow: isChecked ? '0 4px 10px rgba(30,41,59,0.2)' : 'none',
+                        }}
+                      >
+                        {isChecked && <i className="fas fa-check" style={{ fontSize: '0.6rem', color: '#D4AF37' }}></i>}
+                        {opt}
+                      </button>
+                    );
+                  });
+                } catch (e) { return null; }
+              })()}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem' }}>
+              <i className="fas fa-shield-alt" style={{ fontSize: '0.55rem', color: '#D4AF37' }}></i>
+              <span style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>Options defined by admin • Click to toggle selections</span>
+            </div>
           </div>
         ) : field.field_type === 'gallery' ? (
           <div className="premium-gallery-manager" style={{ background: '#f8fafc', padding: '2rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
@@ -385,8 +438,62 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                       SLOT {i + 1}
                     </div>
                   </div>
-                  <div style={{ padding: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', marginBottom: '0.4rem', letterSpacing: '0.5px' }}>SLIDE CAPTION</label>
+                    <div style={{ padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px' }}>SLIDE SETTINGS</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          title="Display Mode"
+                          onClick={() => {
+                            const next = [...value];
+                            next[i] = { ...item, display_mode: item.display_mode === 'text_only' ? 'image' : 'text_only' };
+                            handleChange(next);
+                          }}
+                          style={{ background: item.display_mode === 'text_only' ? '#1e293b' : 'transparent', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '2px 6px', fontSize: '0.6rem', cursor: 'pointer' }}
+                        >
+                          <i className={item.display_mode === 'text_only' ? 'fas fa-font' : 'fas fa-image'}></i>
+                        </button>
+                        <button 
+                          title="Show Caption"
+                          onClick={() => {
+                            const next = [...value];
+                            next[i] = { ...item, show_caption: item.show_caption === false ? true : false };
+                            handleChange(next);
+                          }}
+                          style={{ background: item.show_caption !== false ? '#1e293b' : 'transparent', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '2px 6px', fontSize: '0.6rem', cursor: 'pointer', color: item.show_caption !== false ? '#fff' : '#64748b' }}
+                        >
+                          <i className="fas fa-closed-captioning"></i>
+                        </button>
+                        {item.display_mode === 'text_only' && (
+                          <input 
+                            type="color" 
+                            value={item.bg_color || '#1e293b'}
+                            onChange={(e) => {
+                              const next = [...value];
+                              next[i] = { ...item, bg_color: e.target.value };
+                              handleChange(next);
+                            }}
+                            style={{ width: '20px', height: '20px', border: 'none', borderRadius: '4px', padding: 0, cursor: 'pointer' }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.55rem', fontWeight: 900, color: '#cbd5e1', marginBottom: '0.2rem' }}>IMAGE URL (EXTERNAL)</label>
+                      <input 
+                        type="text"
+                        placeholder="Paste image link here..."
+                        value={item.url || ''}
+                        onChange={e => {
+                          const next = [...value];
+                          next[i] = { ...item, url: e.target.value };
+                          handleChange(next);
+                        }}
+                        style={{ width: '100%', fontSize: '0.65rem', border: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '6px', padding: '4px 8px', color: '#64748b' }}
+                      />
+                    </div>
+
                     <textarea
                       placeholder="Story for this slide..." value={item.caption || ''}
                       onChange={e => {
@@ -403,43 +510,60 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 <label className="upload-dropzone hover-lift" style={{
                   height: '240px', border: '2px dashed #D4AF3740', display: 'flex',
                   flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', borderRadius: '20px', gap: '1rem',
-                  background: 'rgba(212,175,55,0.03)', transition: 'all 0.3s'
+                  cursor: uploadingFields[field.id] ? 'wait' : 'pointer', borderRadius: '20px', gap: '1rem',
+                  background: 'rgba(212,175,55,0.03)', transition: 'all 0.3s',
+                  opacity: uploadingFields[field.id] ? 0.6 : 1
                 }}>
-                  <div style={{ width: 60, height: 60, background: 'rgba(212,175,55,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
-                    <i className="fas fa-cloud-upload-alt fa-2x"></i>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>UPLOAD MEDIA</div>
-                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.25rem' }}>JPEG, PNG, WEBP (MAX 10MB)</div>
-                  </div>
-                  <input type="file" multiple style={{ display: 'none' }} onChange={async (e) => {
-                    const files = Array.from(e.target.files || []); if (files.length === 0) return;
+                  {uploadingFields[field.id] ? (
+                    <>
+                      <i className="fas fa-circle-notch fa-spin fa-2x" style={{ color: '#D4AF37' }}></i>
+                      <div style={{ fontWeight: 900, fontSize: '0.7rem', color: '#1e293b' }}>UPLOADING DNA...</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ width: 60, height: 60, background: 'rgba(212,175,55,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                        <i className="fas fa-cloud-upload-alt fa-2x"></i>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>UPLOAD MEDIA</div>
+                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.25rem' }}>JPEG, PNG, WEBP (MAX 10MB)</div>
+                      </div>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    multiple 
+                    style={{ display: 'none' }} 
+                    disabled={uploadingFields[field.id]}
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []); 
+                      if (files.length === 0) return;
 
-                    const dropzone = e.target.parentElement;
-                    if (dropzone) {
-                      dropzone.style.opacity = '0.5';
-                      dropzone.innerHTML = `<i class="fas fa-circle-notch fa-spin fa-2x" style="color: #D4AF37"></i><div style="font-weight: 900; font-size: 0.7rem; color: #1e293b">UPLOADING ${files.length}...</div>`;
-                    }
+                      setUploadingFields(prev => ({ ...prev, [field.id]: true }));
 
-                    try {
-                      const newItems = [...(Array.isArray(value) ? value : [])];
-                      for (const file of files) {
-                        const fd = new FormData(); fd.append('file', file);
-                        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                        const json = await res.json();
-                        if (json.url) newItems.push({ url: json.url, caption: '' });
+                      try {
+                        const newItems = [...(Array.isArray(value) ? value : [])];
+                        for (const file of files) {
+                          const fd = new FormData(); 
+                          fd.append('file', file);
+                          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                          const json = await res.json();
+                          if (json.url) {
+                            newItems.push({ url: json.url, caption: '', is_hero: false });
+                          } else {
+                            console.error("Upload failed for file:", file.name, json.error);
+                          }
+                        }
+                        handleChange(newItems);
+                      } catch (err) {
+                        console.error("Batch upload failed", err);
+                      } finally {
+                        setUploadingFields(prev => ({ ...prev, [field.id]: false }));
+                        // Reset input value so same file can be uploaded again if needed
+                        e.target.value = '';
                       }
-                      handleChange(newItems);
-                    } catch (err) {
-                      console.error("Batch upload failed", err);
-                    } finally {
-                      if (dropzone) {
-                        dropzone.style.opacity = '1';
-                        dropzone.innerHTML = `<div style="width: 60px; height: 60px; background: rgba(212,175,55,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #D4AF37"><i class="fas fa-cloud-upload-alt fa-2x"></i></div><div style="text-align: center"><div style="font-size: 0.8rem; font-weight: 900; color: #1e293b">UPLOAD MEDIA</div><div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.25rem">JPEG, PNG, WEBP (MAX 10MB)</div></div><input type="file" multiple style={{ display: 'none' }} />`;
-                      }
-                    }
-                  }} />
+                    }} 
+                  />
                 </label>
               )}
             </div>
@@ -466,6 +590,28 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             <i className="fas fa-bolt" style={{ color: '#D4AF37' }}></i>
             {(field.label || '').toUpperCase()}
           </button>
+        ) : field.field_type === 'component' ? (
+          <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #6366f140', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '10px', background: '#6366f1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <i className="fas fa-cube"></i>
+            </div>
+            <div style={{ flex: 1 }}>
+               <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
+                 {(field as any).options?.component_id ? `Linked Component ID: ${(field as any).options.component_id}` : 'No Component Linked'}
+               </div>
+               <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.2rem' }}>
+                 This component will be rendered on the public site.
+               </div>
+            </div>
+            <button 
+              type="button" 
+              className="btn btn-sm btn-outline-primary" 
+              style={{ fontSize: '0.6rem', fontWeight: 900 }}
+              onClick={() => window.open(`/jana/component-library`, '_blank')}
+            >
+              OPEN LIBRARY
+            </button>
+          </div>
         ) : (
           <input
             type="text" className="form-control" value={value || ''}

@@ -4,6 +4,12 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { useSearchParams } from 'next/navigation';
+import TagInput from '@/components/TagInput';
+import { SIWA_DEFS } from '@/lib/governance/constants';
+
+const SECTION_ICONS = SIWA_DEFS.sectionIcons;
+const FIELD_LIBRARY = SIWA_DEFS.fieldLibrary;
+const STANDARD_FIELD_NAMES = SIWA_DEFS.sectionStandards.map(s => s.name);
 
 interface Section {
   id: string;
@@ -24,28 +30,6 @@ interface BusinessType {
   parent_id: string | null;
 }
 
-const SECTION_ICONS = [
-  'fa-info-circle', 'fa-map-marker-alt', 'fa-phone', 'fa-list', 'fa-calendar',
-  'fa-box', 'fa-star', 'fa-bed', 'fa-wifi', 'fa-campground', 'fa-fire',
-  'fa-cube', 'fa-clock', 'fa-feather', 'fa-utensils', 'fa-chair', 'fa-mug-hot',
-  'fa-route', 'fa-hourglass', 'fa-language', 'fa-tags', 'fa-water', 'fa-landmark'
-];
-
-// Standard foundation fields — auto-created with every new section, fully editable
-const STANDARD_FIELD_NAMES = ['feature_on_main', 'section_news', 'section_gallery', 'section_blog'];
-
-const FIELD_LIBRARY = [
-  { id: 'text', name: 'Short Text', icon: 'fa-font', color: '#3b82f6' },
-  { id: 'textarea', name: 'Long Text / Teaser', icon: 'fa-align-left', color: '#8b5cf6' },
-  { id: 'rich_text', name: 'Rich Text Blog', icon: 'fa-paragraph', color: '#7c3aed' },
-  { id: 'number', name: 'Number / Price', icon: 'fa-hashtag', color: '#10b981' },
-  { id: 'select', name: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
-  { id: 'checkbox', name: 'Yes/No Toggle', icon: 'fa-check-square', color: '#06b6d4' },
-  { id: 'gallery', name: 'Image Gallery', icon: 'fa-images', color: '#ec4899' },
-  { id: 'url', name: 'Link / URL', icon: 'fa-link', color: '#64748b' },
-  { id: 'email', name: 'Email Address', icon: 'fa-envelope', color: '#0ea5e9' },
-  { id: 'phone', name: 'Phone Number', icon: 'fa-phone', color: '#16a34a' },
-];
 
 function SectionsContent() {
   const { notify } = useAdmin();
@@ -61,14 +45,19 @@ function SectionsContent() {
   // Editor State
   const [showModal, setShowModal] = useState(false);
   const [isNew, setIsNew] = useState(true);
-  const [showComponentDesigner, setShowComponentDesigner] = useState<string | null>(null);
-  const [sectionFields, setSectionFields] = useState<any[]>([]);
+  // Inline blueprint designer — replaces modal
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [sectionFieldsMap, setSectionFieldsMap] = useState<Record<string, any[]>>({});
   const [fieldDefs, setFieldDefs] = useState<any[]>([]);
+  const [libraryComponents, setLibraryComponents] = useState<any[]>([]);
   const [editingSection, setEditingSection] = useState<Partial<Section> | null>(null);
   const [inspectingField, setInspectingField] = useState<any | null>(null);
   const [addingField, setAddingField] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldType, setNewFieldType] = useState('text');
+  // Link to Types
+  const [linkingSection, setLinkingSection] = useState<string | null>(null);
+  const [selectedLinkTypes, setSelectedLinkTypes] = useState<string[]>([]);
 
   // --- AUTO-ASSIGN LOGIC (THE "MANIPULATION" FIX) ---
   async function assignAndReturn(sectionId: string) {
@@ -130,21 +119,26 @@ function SectionsContent() {
 
   async function loadSections() {
     setLoading(true);
-    const [secRes, typesRes, fdRes] = await Promise.all([
+    const [secRes, typesRes, fdRes, libRes] = await Promise.all([
       fetch('/api/jana/sections'),
       fetch('/api/jana/types'),
-      fetch('/api/jana/field-definitions')
+      fetch('/api/jana/field-definitions'),
+      fetch('/api/jana/component-library')
     ]);
     if (secRes.ok) setSections(await secRes.json());
     if (typesRes.ok) setBusinessTypes(await typesRes.json());
     if (fdRes.ok) setFieldDefs(await fdRes.json());
+    if (libRes.ok) setLibraryComponents(await libRes.json());
     setLoading(false);
   }
 
   async function loadSectionFields(sid: string) {
-    setSectionFields([]);
     const res = await fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${sid}`);
-    if (res.ok) setSectionFields(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`[BLUEPRINT] Loaded ${data.length} fields for section ${sid}:`, data);
+      setSectionFieldsMap(prev => ({ ...prev, [sid]: data }));
+    }
   }
 
   async function addFieldToSection(sid: string) {
@@ -183,7 +177,7 @@ function SectionsContent() {
     }
   }
 
-  async function updateFieldInSection() {
+  async function updateFieldInSection(sid: string) {
     if (!inspectingField) return;
     const res = await fetch('/api/jana/forms', {
       method: 'PUT',
@@ -191,8 +185,8 @@ function SectionsContent() {
       body: JSON.stringify(inspectingField)
     });
     if (res.ok) {
-      notify('Component updated in blueprint.', 'success');
-      loadSectionFields(showComponentDesigner!);
+      notify('Field updated.', 'success');
+      loadSectionFields(sid);
       setInspectingField(null);
     }
   }
@@ -235,8 +229,21 @@ function SectionsContent() {
       body: JSON.stringify(editingSection),
     });
     if (res.ok) {
-      notify(`Block architected successfully.`, 'success');
+      notify('Block architected successfully.', 'success');
       setShowModal(false);
+      // ── AUTO-INJECT STANDARD DNA FIELDS on new section ──
+      if (isNew && editingSection.id) {
+        const sid = editingSection.id;
+        const standardFields = SIWA_DEFS.sectionStandards;
+        await Promise.all(standardFields.map(f =>
+          fetch('/api/jana/forms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...f, business_type_id: 'SECTION_TEMPLATE', section_id: sid, required: false, vendor_editable: true })
+          })
+        ));
+        notify('Standard DNA fields auto-injected ✓', 'success');
+      }
       loadSections();
     } else {
       const err = await res.json();
@@ -250,10 +257,41 @@ function SectionsContent() {
     loadSections();
   }
 
+  async function moveSection(id: string, direction: number) {
+    const currentIndex = sections.findIndex(s => s.id === id);
+    if (currentIndex === -1) return;
+    
+    const newIndex = currentIndex + direction;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+    
+    const newSections = [...sections];
+    const temp = newSections[currentIndex];
+    newSections[currentIndex] = newSections[newIndex];
+    newSections[newIndex] = temp;
+    
+    setSections(newSections);
+    
+    try {
+      // Re-index sequentially to prevent SQLite locks (SQLITE_BUSY) or Failed to fetch errors
+      for (let index = 0; index < newSections.length; index++) {
+        const sec = newSections[index];
+        await fetch('/api/jana/sections', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: sec.id, sort_order: index + 1 })
+        });
+      }
+      notify('Order synchronized successfully.', 'success');
+    } catch (e) {
+      notify('Failed to update order', 'error');
+      loadSections();
+    }
+  }
+
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
 
   return (
-    <div className="animate-in">
+    <div className="animate-in" style={{ paddingBottom: '5rem' }}>
       {isAssigning && (
         <div className="modal-overlay" style={{ background: 'rgba(255,255,255,0.8)', zIndex: 9999 }}>
           <div style={{ textAlign: 'center' }}>
@@ -284,446 +322,473 @@ function SectionsContent() {
         </div>
       )}
 
-      <div className="card-header">
+      <div className="card-header" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h3><i className="fas fa-layer-group"></i> Section Architect</h3>
-          <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>Every section must declare a Master Parent — no orphan sections allowed.</p>
+          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <i className="fas fa-layer-group" style={{ color: '#1e293b' }}></i> Section Architect
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>Architect the DNA of your platform. Universal blocks apply to all businesses.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => openEditor(null)}>
-          <i className="fas fa-plus"></i> CREATE NEW SECTION
+        <button className="btn btn-primary" onClick={() => openEditor(null)} style={{ background: '#1e293b', border: 'none', borderRadius: '12px', padding: '0.75rem 1.5rem', fontWeight: 900 }}>
+          <i className="fas fa-plus" style={{ marginRight: '0.5rem' }}></i> NEW BLOCK
         </button>
       </div>
 
-      {/* STATS BAR */}
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37' }}>
+      {/* STATS & FILTERS */}
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+        <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '0.6rem 1.25rem', fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37' }}>
           <i className="fas fa-globe" style={{ marginRight: '0.5rem' }}></i>
           {sections.filter(s => s.is_universal).length} UNIVERSAL
         </div>
         {Array.from(new Set(sections.filter(s => !s.is_universal && s.business_type_id).map(s => s.business_type_id))).map(tid => {
           const type = businessTypes.find(t => t.id === tid);
-          const count = sections.filter(s => s.business_type_id === tid).length;
           return (
-            <div key={tid} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 900, color: '#1e293b' }}>
-              <i className="fas fa-sitemap" style={{ marginRight: '0.5rem', color: '#64748b' }}></i>
-              {type?.name || tid}: {count}
+            <div key={tid} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.6rem 1.25rem', fontSize: '0.75rem', fontWeight: 900, color: '#1e293b' }}>
+              <i className="fas fa-sitemap" style={{ marginRight: '0.5rem', color: '#94a3b8' }}></i>
+              {type?.name || tid}
             </div>
           );
         })}
-        {sections.filter(s => !s.is_universal && !s.business_type_id).length > 0 && (
-          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 900, color: '#ef4444' }}>
-            <i className="fas fa-exclamation-triangle" style={{ marginRight: '0.5rem' }}></i>
-            {sections.filter(s => !s.is_universal && !s.business_type_id).length} ORPHANED
-          </div>
-        )}
       </div>
 
-      <div className="grid-2" style={{ marginTop: '2rem' }}>
-        {sections.map(s => (
-          <div key={s.id} className="card h-full" 
-            style={{ 
-              background: '#fff',
-              border: `1px solid ${!s.is_universal && !s.business_type_id ? 'rgba(239,68,68,0.3)' : '#e2e8f0'}`,
-              borderTop: `4px solid ${s.is_universal ? '#D4AF37' : !s.business_type_id ? '#ef4444' : '#1e293b'}`, 
-              boxShadow: '0 4px 20px -5px rgba(0,0,0,0.05)', 
-              position: 'relative',
-              transition: 'all 0.3s ease',
-              borderRadius: '16px',
+      {/* SECTIONS LIST (INLINE ARCHITECTURE) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {sections.map(s => {
+          const isExpanded = expandedSection === s.id;
+          const fields = sectionFieldsMap[s.id] || [];
+          
+          return (
+            <div key={s.id} style={{ 
+              background: '#fff', 
+              borderRadius: '24px', 
+              border: isExpanded ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+              boxShadow: isExpanded ? '0 20px 40px -10px rgba(212,175,55,0.15)' : '0 4px 6px -1px rgba(0,0,0,0.05)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               overflow: 'hidden'
             }}>
-            
-            {s.is_universal ? (
-              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <i className="fas fa-globe"></i> UNIVERSAL
-              </div>
-            ) : s.business_type_id ? (
-              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(30,41,59,0.06)', color: '#1e293b', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <i className="fas fa-sitemap"></i> {businessTypes.find(t => t.id === s.business_type_id)?.name || s.business_type_id}
-              </div>
-            ) : (
-              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '4px 8px', borderRadius: '20px', fontSize: '0.6rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <i className="fas fa-exclamation-triangle"></i> NO PARENT
-              </div>
-            )}
+              {/* HEADER ROW */}
+              <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <div style={{ 
+                  width: '56px', height: '56px', 
+                  background: s.is_universal ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : '#f8fafc', 
+                  borderRadius: '16px', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  fontSize: '1.5rem', 
+                  color: s.is_universal ? '#D4AF37' : '#1e293b',
+                  flexShrink: 0
+                }}>
+                  <i className={`fas ${s.icon}`}></i>
+                </div>
 
-            <div style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                  <div style={{ 
-                    width: '50px', height: '50px', 
-                    background: s.is_universal ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : '#f8fafc', 
-                    borderRadius: '14px', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    fontSize: '1.4rem', 
-                    color: s.is_universal ? '#D4AF37' : '#1e293b',
-                    boxShadow: s.is_universal ? '0 10px 15px -3px rgba(0,0,0,0.2)' : 'none'
-                  }}>
-                    <i className={`fas ${s.icon}`}></i>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{s.name}</h3>
+                    {s.is_universal && <span style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '6px', letterSpacing: '0.5px' }}>UNIVERSAL</span>}
+                    {s.required && <span style={{ color: '#ef4444', fontSize: '0.6rem' }}><i className="fas fa-lock"></i> REQ</span>}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.1rem', letterSpacing: '-0.5px' }}>{s.name}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>BLOCK_ID: {s.id}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.25rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>{s.id}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
+                      <i className="fas fa-cubes" style={{ marginRight: '0.4rem', color: '#D4AF37' }}></i>
+                      {fields.length} Blueprint Fields
+                    </span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-xs btn-outline" style={{ border: 'none', background: '#f8fafc' }} onClick={() => openEditor(s)}><i className="fas fa-cog" style={{ color: '#64748b' }}></i></button>
-                  <button className="btn btn-xs btn-outline" style={{ border: 'none', background: '#fef2f2' }} onClick={() => deleteSection(s.id)}><i className="fas fa-trash" style={{ color: '#ef4444' }}></i></button>
+
+                {/* ACTIONS */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginRight: '0.5rem' }}>
+                    <button onClick={() => moveSection(s.id, -1)} className="btn-icon" style={{ fontSize: '0.7rem', padding: '0.2rem' }} title="Move Up"><i className="fas fa-chevron-up"></i></button>
+                    <button onClick={() => moveSection(s.id, 1)} className="btn-icon" style={{ fontSize: '0.7rem', padding: '0.2rem' }} title="Move Down"><i className="fas fa-chevron-down"></i></button>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      if (isExpanded) setExpandedSection(null);
+                      else { setExpandedSection(s.id); loadSectionFields(s.id); }
+                      setInspectingField(null);
+                    }}
+                    style={{ 
+                      padding: '0.6rem 1.25rem', 
+                      borderRadius: '12px', 
+                      background: isExpanded ? '#D4AF37' : '#1e293b',
+                      color: isExpanded ? '#1e293b' : '#fff',
+                      border: 'none',
+                      fontWeight: 900,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '0.6rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <i className={`fas ${isExpanded ? 'fa-chevron-up' : 'fa-pencil-ruler'}`}></i>
+                    {isExpanded ? 'HIDE DESIGNER' : 'DESIGN BLUEPRINT'}
+                  </button>
+
+                  <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }}></div>
+
+                  <button onClick={() => openEditor(s)} className="btn-icon" title="Edit Metadata"><i className="fas fa-cog"></i></button>
+                  <button 
+                    onClick={() => {
+                      setLinkingSection(s.id);
+                      const linked = businessTypes.filter(t => (t as any).sections?.includes(s.id)).map(t => t.id);
+                      setSelectedLinkTypes(linked);
+                    }} 
+                    className="btn-icon" title="Link to Typologies" style={{ color: '#3b82f6' }}
+                  >
+                    <i className="fas fa-link"></i>
+                  </button>
+                  {returnTo && (
+                    <button 
+                      onClick={() => assignAndReturn(s.id)}
+                      style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1rem', borderRadius: '10px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
+                    >
+                      ASSIGN
+                    </button>
+                  )}
+                  <button onClick={() => deleteSection(s.id)} className="btn-icon" style={{ color: '#ef4444' }}><i className="fas fa-trash"></i></button>
                 </div>
               </div>
 
-              <div className="governance-matrix" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                <div title="Mandatory" style={{ fontSize: '0.65rem', padding: '0.6rem', borderRadius: '8px', background: s.required ? 'rgba(239, 68, 68, 0.05)' : '#f8fafc', color: s.required ? '#ef4444' : '#94a3b8', textAlign: 'center', border: s.required ? '1px solid rgba(239, 68, 68, 0.1)' : '1px solid #f1f5f9', fontWeight: 800 }}>
-                  <i className={`fas ${s.required ? 'fa-lock' : 'fa-lock-open'}`} style={{ marginRight: '4px' }}></i> REQ
-                </div>
-                <div title="Vendor Editable" style={{ fontSize: '0.65rem', padding: '0.6rem', borderRadius: '8px', background: s.vendor_editable ? 'rgba(16, 185, 129, 0.05)' : '#f8fafc', color: s.vendor_editable ? '#10b981' : '#94a3b8', textAlign: 'center', border: s.vendor_editable ? '1px solid rgba(16, 185, 129, 0.1)' : '1px solid #f1f5f9', fontWeight: 800 }}>
-                  <i className={`fas ${s.vendor_editable ? 'fa-user-edit' : 'fa-user-shield'}`} style={{ marginRight: '4px' }}></i> {s.vendor_editable ? 'VNDR' : 'ADM'}
-                </div>
-                <div title="Public Visibility" style={{ fontSize: '0.65rem', padding: '0.6rem', borderRadius: '8px', background: s.show_on_public ? 'rgba(59, 130, 246, 0.05)' : '#f8fafc', color: s.show_on_public ? '#3b82f6' : '#94a3b8', textAlign: 'center', border: s.show_on_public ? '1px solid rgba(59, 130, 246, 0.1)' : '1px solid #f1f5f9', fontWeight: 800 }}>
-                  <i className={`fas ${s.show_on_public ? 'fa-eye' : 'fa-eye-slash'}`} style={{ marginRight: '4px' }}></i> PUB
-                </div>
-              </div>
+              {/* EXPANDED BLUEPRINT DESIGNER */}
+              {isExpanded && (
+                <div style={{ borderTop: '1px solid #f1f5f9', background: '#fcfcfc', display: 'flex', height: '550px' }} className="animate-in">
+                  {/* LEFT: FIELD LIBRARY / ADD */}
+                  <div style={{ width: '280px', borderRight: '1px solid #e2e8f0', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: '#f8fafc' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>ADD TO BLUEPRINT</div>
+                    
+                    {!addingField ? (
+                      <button 
+                        onClick={() => setAddingField(true)}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                      >
+                        <i className="fas fa-plus"></i> NEW CUSTOM FIELD
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }} className="animate-in">
+                        <input 
+                          type="text" className="form-control" placeholder="Field Label..." 
+                          value={newFieldLabel} onChange={e => setNewFieldLabel(e.target.value)}
+                          autoFocus
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                          {FIELD_LIBRARY.map(t => (
+                            <button key={t.id} onClick={() => setNewFieldType(t.id)} style={{
+                              padding: '0.5rem 0.25rem', borderRadius: '8px', border: newFieldType === t.id ? `2px solid ${t.color}` : '1px solid #e2e8f0',
+                              background: newFieldType === t.id ? `${t.color}10` : '#fff', cursor: 'pointer', fontSize: '0.6rem', fontWeight: 800
+                            }}>
+                              <i className={`fas ${t.icon}`} style={{ color: t.color, display: 'block', marginBottom: '2px' }}></i>
+                              {t.name}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => addFieldToSection(s.id)} style={{ flex: 1, background: '#D4AF37', color: '#1e293b', border: 'none', borderRadius: '8px', fontWeight: 900, padding: '0.6rem', fontSize: '0.75rem' }}>SAVE</button>
+                          <button onClick={() => setAddingField(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '0.6rem', cursor: 'pointer' }}>✕</button>
+                        </div>
+                      </div>
+                    )}
 
-              <button
-                className="btn btn-sm btn-primary"
-                style={{ 
-                  width: '100%', 
-                  marginTop: '1.5rem', 
-                  fontWeight: 900, 
-                  background: s.is_universal ? '#D4AF37' : '#1e293b', 
-                  borderColor: s.is_universal ? '#D4AF37' : '#1e293b',
-                  color: s.is_universal ? '#1e293b' : '#fff',
-                  borderRadius: '12px',
-                  padding: '0.8rem',
-                  fontSize: '0.75rem',
-                  letterSpacing: '1px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-                onClick={() => { setShowComponentDesigner(s.id); loadSectionFields(s.id); }}
-              >
-                <i className="fas fa-pencil-ruler" style={{ marginRight: '0.75rem' }}></i> DESIGN BLUEPRINT
-              </button>
+                    <div style={{ marginTop: 'auto', padding: '1rem', background: 'rgba(212,175,55,0.05)', borderRadius: '12px', border: '1px dashed rgba(212,175,55,0.3)', fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                      <i className="fas fa-shield-alt" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
+                      <strong style={{ color: '#D4AF37' }}>Standard Foundation:</strong> Gallery, Blog, Teasers and Status toggles are automatically injected into all new section blueprints.
+                    </div>
+                  </div>
+
+                  {/* CENTER: PREVIEW / CANVAS */}
+                  <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1.5rem', letterSpacing: '1px' }}>ACTIVE BLUEPRINT DNA (CLICK TO INSPECT)</div>
+                    
+                    {(() => {
+                      const standards = SIWA_DEFS.sectionStandards;
+                      const missing = standards.filter(st => !fields.some((f: any) => f.name === st.name));
+                      
+                      if (missing.length > 0) {
+                        return (
+                          <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#fff9e6', borderRadius: '16px', border: '1.5px solid #ffcc0040', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ffcc0020', color: '#856404', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="fas fa-exclamation-triangle"></i>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#856404' }}>FOUNDATION INCOMPLETE</div>
+                                <div style={{ fontSize: '0.65rem', color: '#856404', opacity: 0.8 }}>Missing {missing.length} standard fields: {missing.map(m => m.label).join(', ')}</div>
+                              </div>
+                            </div>
+                            <button 
+                              className="btn btn-xs btn-primary"
+                              onClick={async () => {
+                                setIsAssigning(true);
+                                try {
+                                  await Promise.all(missing.map(f => 
+                                    fetch('/api/jana/forms', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ 
+                                        name: f.name, 
+                                        label: f.label, 
+                                        field_type: f.field_type, 
+                                        business_type_id: 'SECTION_TEMPLATE', 
+                                        section_id: s.id, 
+                                        required: false, 
+                                        vendor_editable: true,
+                                        sort_order: 99
+                                      })
+                                    })
+                                  ));
+                                  notify('Foundation DNA Repaired ✓', 'success');
+                                  loadSectionFields(s.id);
+                                } finally {
+                                  setIsAssigning(false);
+                                }
+                              }}
+                            >
+                              <i className="fas fa-magic" style={{ marginRight: '0.5rem' }}></i> REPAIR DNA
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '16px', border: '1.5px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
+                            <i className="fas fa-check-circle"></i>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#166534' }}>SECTION FOUNDATION IS HEALTHY & COMPLIANT</div>
+                        </div>
+                      );
+                    })()}
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {fields.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '4rem', border: '2px dashed #f1f5f9', borderRadius: '16px', color: '#cbd5e1' }}>
+                          No custom fields in this blueprint yet.
+                        </div>
+                      )}
+                      {fields.map((f: any) => {
+                        const isStd = STANDARD_FIELD_NAMES.includes(f.name);
+                        const lib = FIELD_LIBRARY.find(l => l.id === f.field_type);
+                        const isInspecting = inspectingField?.id === f.id;
+
+                        return (
+                          <div 
+                            key={f.id} 
+                            onClick={() => setInspectingField(isInspecting ? null : f)}
+                            style={{ 
+                              padding: '1rem 1.25rem', 
+                              background: isInspecting ? 'rgba(212,175,55,0.04)' : isStd ? 'rgba(212,175,55,0.015)' : '#fff',
+                              border: isInspecting ? '2px solid #D4AF37' : isStd ? '1px solid rgba(212,175,55,0.2)' : '1px solid #f1f5f9',
+                              borderRadius: '12px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              cursor: 'pointer', transition: 'all 0.2s'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div style={{ width: '40px', height: '40px', background: isStd ? 'rgba(212,175,55,0.1)' : '#f8fafc', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className={`fas ${lib?.icon || 'fa-cube'}`} style={{ color: isStd ? '#D4AF37' : lib?.color || '#64748b' }}></i>
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{f.label}</div>
+                                <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{f.field_type} {isStd ? '• STANDARD' : ''}</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              {isStd && <span style={{ fontSize: '0.55rem', background: 'rgba(212,175,55,0.08)', color: '#D4AF37', padding: '2px 6px', borderRadius: '4px', fontWeight: 900 }}>FOUNDATION</span>}
+                              <button onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, s.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', opacity: 0.5 }}><i className="fas fa-times"></i></button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* RIGHT: INSPECTOR */}
+                  {inspectingField && (
+                    <div style={{ width: '340px', borderLeft: '1px solid #e2e8f0', padding: '1.5rem', background: '#fff', overflowY: 'auto' }} className="animate-in">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>PROPERTY INSPECTOR</div>
+                        <button onClick={() => setInspectingField(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><i className="fas fa-times"></i></button>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.6rem' }}>DISPLAY LABEL</label>
+                        <input type="text" className="form-control" value={inspectingField.label || ''} onChange={e => setInspectingField({ ...inspectingField, label: e.target.value })} />
+                      </div>
+
+                      <div className="form-group" style={{ marginTop: '1rem' }}>
+                        <label className="form-label" style={{ fontSize: '0.6rem' }}>DATABASE KEY (SLUG)</label>
+                        <input type="text" className="form-control" value={inspectingField.name || ''} onChange={e => setInspectingField({ ...inspectingField, name: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: '#f8fafc' }} />
+                      </div>
+
+                      <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label className="form-label" style={{ fontSize: '0.6rem' }}>GOVERNANCE FLAGS</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                          <input type="checkbox" checked={!!inspectingField.required} onChange={e => setInspectingField({ ...inspectingField, required: e.target.checked })} /> MANDATORY
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                          <input type="checkbox" checked={!!inspectingField.vendor_editable} onChange={e => setInspectingField({ ...inspectingField, vendor_editable: e.target.checked })} /> VENDOR EDITABLE
+                        </label>
+                      </div>
+
+                      {inspectingField.field_type === 'component' && (
+                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f0f4ff', borderRadius: '12px', border: '1px solid #dbeafe' }}>
+                          <label className="form-label" style={{ fontSize: '0.6rem', color: '#3b82f6' }}>LIBRARY COMPONENT BINDING</label>
+                          <select 
+                            className="form-control"
+                            style={{ marginTop: '0.5rem' }}
+                            value={inspectingField.options?.component_id || ''}
+                            onChange={e => setInspectingField({ ...inspectingField, options: { ...inspectingField.options, component_id: e.target.value } })}
+                          >
+                            <option value="">-- Select Component --</option>
+                            {libraryComponents.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      )}
+
+                      {['select', 'multiselect', 'checkbox_group'].includes(inspectingField.field_type) && (
+                        <div style={{ marginTop: '1.5rem' }}>
+                          <TagInput 
+                            value={Array.isArray(inspectingField.options) ? inspectingField.options : []}
+                            onChange={tags => setInspectingField({ ...inspectingField, options: tags })}
+                          />
+                        </div>
+                      )}
+
+                      <button 
+                        onClick={() => updateFieldInSection(s.id)}
+                        style={{ width: '100%', marginTop: '2rem', padding: '0.8rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}
+                      >
+                        APPLY CHANGES
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* EDITOR MODAL */}
+      {/* --- MODALS --- */}
+
+      {/* METADATA EDITOR MODAL */}
       {showModal && editingSection && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="card animate-in" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div className="card-header">
-              <h3>{isNew ? 'Define New Block' : 'Architect Data Block'}</h3>
-              <button className="btn btn-xs btn-outline" onClick={() => setShowModal(false)}>×</button>
+              <h3>{isNew ? 'Create New Block' : 'Edit Block Metadata'}</h3>
+              <button className="btn btn-xs btn-outline" onClick={() => setShowModal(false)}>✕</button>
             </div>
-
             <div style={{ padding: '2rem' }}>
               <div className="form-group">
-                <label className="form-label required">Block Name</label>
-                <input
-                  type="text" className="form-control" placeholder="e.g. Wellness Spa"
-                  value={editingSection.name || ''}
-                  onChange={e => {
-                    setEditingSection({ ...editingSection, name: e.target.value });
-                    generateId(e.target.value);
-                  }}
-                />
+                <label className="form-label required">Display Name</label>
+                <input type="text" className="form-control" value={editingSection.name || ''} onChange={e => { setEditingSection({...editingSection, name: e.target.value}); generateId(e.target.value); }} />
               </div>
-
               <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label className="form-label">Database Identity (Slug)</label>
-                <input
-                  type="text" className="form-control" style={{ background: '#f8fafc', fontFamily: 'monospace' }}
-                  value={editingSection.id || ''}
-                  readOnly={!isNew}
-                  onChange={e => setEditingSection({ ...editingSection, id: e.target.value })}
-                />
+                <label className="form-label">Database ID (Slug)</label>
+                <input type="text" className="form-control" value={editingSection.id || ''} readOnly={!isNew} onChange={e => setEditingSection({...editingSection, id: e.target.value})} style={{ background: '#f8fafc', fontFamily: 'monospace' }} />
               </div>
-
+              
               <div style={{ marginTop: '1.5rem' }}>
-                <label className="form-label">Visual Icon Binder</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '100px', overflowY: 'auto', background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <label className="form-label">Visual Icon</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', maxHeight: '100px', overflowY: 'auto' }}>
                   {SECTION_ICONS.map(icon => (
-                    <div
-                      key={icon}
-                      onClick={() => setEditingSection({ ...editingSection, icon })}
-                      style={{ width: '36px', height: '36px', borderRadius: '6px', border: editingSection.icon === icon ? '2px solid #D4AF37' : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: editingSection.icon === icon ? '#fff' : 'transparent' }}
+                    <div 
+                      key={icon} 
+                      onClick={() => setEditingSection({...editingSection, icon})}
+                      style={{ width: '36px', height: '36px', borderRadius: '8px', border: editingSection.icon === icon ? '2px solid #D4AF37' : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: editingSection.icon === icon ? '#fff' : 'transparent' }}
                     >
-                      <i className={`fas ${icon}`} style={{ color: editingSection.icon === icon ? '#D4AF37' : '#6b7280' }}></i>
+                      <i className={`fas ${icon}`} style={{ color: editingSection.icon === icon ? '#D4AF37' : '#64748b' }}></i>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* MASTER PARENT SELECTOR */}
-              <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', border: !editingSection.is_universal && !editingSection.business_type_id ? '2px solid rgba(239,68,68,0.4)' : '1px solid #e2e8f0', background: !editingSection.is_universal && !editingSection.business_type_id ? 'rgba(239,68,68,0.02)' : '#f9fafb' }}>
-                <label className="form-label" style={{ fontSize: '0.7rem', color: editingSection.is_universal ? '#94a3b8' : '#1e293b' }}>
-                  <i className="fas fa-sitemap" style={{ marginRight: '0.5rem', color: '#D4AF37' }}></i>
-                  MASTER PARENT BUSINESS TYPE {!editingSection.is_universal && <span style={{ color: '#ef4444' }}>*</span>}
-                </label>
-                <select
-                  className="form-control"
-                  style={{ marginTop: '0.5rem', opacity: editingSection.is_universal ? 0.4 : 1 }}
-                  disabled={!!editingSection.is_universal}
-                  value={editingSection.business_type_id || ''}
-                  onChange={e => setEditingSection({ ...editingSection, business_type_id: e.target.value || null })}
-                >
-                  <option value="">— Select Parent Type —</option>
-                  {businessTypes.filter(t => !t.parent_id).map(t => (
-                    <optgroup key={t.id} label={t.name}>
-                      <option value={t.id}>{t.name} (parent)</option>
-                      {businessTypes.filter(c => c.parent_id === t.id).map(c => (
-                        <option key={c.id} value={c.id}>  ↳ {c.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                {editingSection.is_universal && (
-                  <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.4rem' }}>Universal sections apply to ALL types — no parent needed.</div>
-                )}
-                {!editingSection.is_universal && !editingSection.business_type_id && (
-                  <div style={{ fontSize: '0.65rem', color: '#ef4444', marginTop: '0.4rem' }}><i className="fas fa-exclamation-triangle" style={{ marginRight: '0.25rem' }}></i>Parent required. Cannot save without assigning a parent type.</div>
-                )}
-              </div>
-
-              <div style={{ marginTop: '2rem' }}>
-                <label className="form-label" style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'block' }}>Governance Matrix Configuration</label>
+              <div style={{ marginTop: '1.5rem' }}>
+                <label className="form-label">Governance Flags</label>
                 <div className="grid-2">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.required} onChange={e => setEditingSection({ ...editingSection, required: e.target.checked })} />
-                    <span style={{ fontSize: '0.85rem' }}>Required (Mandatory Data)</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!editingSection.is_universal} onChange={e => setEditingSection({...editingSection, is_universal: e.target.checked})} /> UNIVERSAL
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.vendor_editable} onChange={e => setEditingSection({ ...editingSection, vendor_editable: e.target.checked })} />
-                    <span style={{ fontSize: '0.85rem' }}>Vendor Editable Permissions</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.show_on_public} onChange={e => setEditingSection({ ...editingSection, show_on_public: e.target.checked })} />
-                    <span style={{ fontSize: '0.85rem' }}>Active on Public Pages</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.is_filterable} onChange={e => setEditingSection({ ...editingSection, is_filterable: e.target.checked })} />
-                    <span style={{ fontSize: '0.85rem' }}>Enable as Search Filter</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.show_on_card} onChange={e => setEditingSection({ ...editingSection, show_on_card: e.target.checked })} />
-                    <span style={{ fontSize: '0.85rem' }}>Display on Mini-Cards</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.is_universal} onChange={e => setEditingSection({ ...editingSection, is_universal: e.target.checked })} />
-                    <span style={{ fontSize: '0.85rem' }}>Universal (Apply to ALL)</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!editingSection.required} onChange={e => setEditingSection({...editingSection, required: e.target.checked})} /> MANDATORY
                   </label>
                 </div>
               </div>
             </div>
-
-            <div style={{ padding: '1.5rem 2rem', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <div className="card-footer" style={{ justifyContent: 'flex-end', gap: '1rem' }}>
               <button className="btn btn-outline" onClick={() => setShowModal(false)}>CANCEL</button>
-              <button className="btn btn-primary" onClick={saveSection}>ARCHITECT BLOCK</button>
+              <button className="btn btn-primary" onClick={saveSection}>SAVE ARCHITECTURE</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* COMPONENT DESIGNER MODAL */}
-      {showComponentDesigner && (
-        <div className="modal-overlay" onClick={() => setShowComponentDesigner(null)}>
-          <div className="card animate-in" style={{ width: inspectingField ? '1100px' : '800px', display: 'flex', flexDirection: 'column', height: '80vh', transition: 'all 0.3s' }} onClick={e => e.stopPropagation()}>
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h3 style={{ margin: 0 }}><i className="fas fa-pencil-ruler"></i> Component Blueprint: {sections.find(s => s.id === showComponentDesigner)?.name}</h3>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <a href={`/jana/fast-track?sectionId=${showComponentDesigner}`} style={{ textDecoration: 'none', background: '#10b981', color: '#fff', padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <i className="fas fa-bolt"></i> FAST-FILL SECTION
-                </a>
-                <a href="/jana/form-builder" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', background: '#D4AF37', color: '#1e293b', padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <i className="fas fa-eye"></i> PREVIEW IN ARCHITECT
-                </a>
-                <button className="btn btn-xs btn-outline" onClick={() => setShowComponentDesigner(null)}>×</button>
+      {/* LINKING MODAL */}
+      {linkingSection && (
+        <div className="modal-overlay" onClick={() => setLinkingSection(null)}>
+          <div className="card animate-in" style={{ width: '500px' }} onClick={e => e.stopPropagation()}>
+            <div className="card-header">
+              <h3><i className="fas fa-link"></i> Link to Business Types</h3>
+              <button className="btn btn-xs btn-outline" onClick={() => setLinkingSection(null)}>✕</button>
+            </div>
+            <div style={{ padding: '2rem' }}>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>Select which business typologies should inherit this section blueprint.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
+                {businessTypes.map(t => (
+                  <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedLinkTypes.includes(t.id)} 
+                      onChange={e => {
+                        if (e.target.checked) setSelectedLinkTypes([...selectedLinkTypes, t.id]);
+                        else setSelectedLinkTypes(selectedLinkTypes.filter(id => id !== t.id));
+                      }}
+                    />
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{t.name}</span>
+                  </label>
+                ))}
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              {/* Sidebar: ADD FIELD PANEL */}
-              <div style={{ width: '240px', background: '#f8fafc', padding: '1.5rem', borderRight: '1px solid #e2e8f0', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>ADD CUSTOM FIELD</div>
-                
-                {!addingField ? (
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', background: '#1e293b', borderColor: '#1e293b', fontSize: '0.75rem' }}
-                    onClick={() => setAddingField(true)}
-                  >
-                    <i className="fas fa-plus" style={{ marginRight: '0.5rem' }}></i> NEW FIELD
-                  </button>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Field Label (e.g. Bed Count)"
-                      value={newFieldLabel || ''}
-                      onChange={e => setNewFieldLabel(e.target.value)}
-                      style={{ fontSize: '0.8rem' }}
-                    />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
-                      {FIELD_LIBRARY.map(t => (
-                        <button key={t.id}
-                          onClick={() => setNewFieldType(t.id)}
-                          style={{
-                            padding: '0.5rem 0.25rem', borderRadius: '8px', border: newFieldType === t.id ? `2px solid ${t.color}` : '1px solid #e2e8f0',
-                            background: newFieldType === t.id ? `${t.color}10` : '#fff', cursor: 'pointer', fontSize: '0.6rem', fontWeight: 800, textAlign: 'center'
-                          }}
-                        >
-                          <i className={`fas ${t.icon}`} style={{ display: 'block', color: t.color, marginBottom: '2px' }}></i>
-                          {t.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', fontSize: '0.7rem', background: '#D4AF37', borderColor: '#D4AF37', color: '#1e293b' }}
-                        onClick={() => addFieldToSection(showComponentDesigner!)}>
-                        SAVE
-                      </button>
-                      <button className="btn btn-outline" style={{ fontSize: '0.7rem' }} onClick={() => { setAddingField(false); setNewFieldLabel(''); setNewFieldType('text'); }}>
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                )}
+            <div className="card-footer">
+              <button 
+                className="btn btn-primary" 
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={async () => {
+                  setIsAssigning(true);
+                  try {
+                    const updates = businessTypes.map(async (t) => {
+                      const shouldBeLinked = selectedLinkTypes.includes(t.id);
+                      const currentSections = Array.isArray((t as any).sections) ? (t as any).sections : [];
+                      
+                      let newSections;
+                      if (shouldBeLinked && !currentSections.includes(linkingSection)) {
+                        newSections = [...currentSections, linkingSection];
+                      } else if (!shouldBeLinked && currentSections.includes(linkingSection)) {
+                        newSections = currentSections.filter((id: string) => id !== linkingSection);
+                      } else {
+                        return; // No change needed
+                      }
 
-                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(212,175,55,0.05)', borderRadius: '8px', border: '1px dashed rgba(212,175,55,0.3)', fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.6 }}>
-                  <i className="fas fa-cubes" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
-                  <strong style={{ color: '#D4AF37' }}>Standard fields</strong> (Gallery, Blog, Teaser, Feature Toggle) are auto-created with every new section. Fully editable.
-                </div>
-              </div>
+                      return fetch('/api/jana/types', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...t, sections: newSections })
+                      });
+                    });
 
-              {/* Canvas */}
-              <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', background: '#fcfcfc' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', marginBottom: '1.5rem', letterSpacing: '1px' }}>BLUEPRINT PREVIEW (Click to Edit)</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {/* ALL FIELDS — unified list, standard + custom treated equally */}
-                  {sectionFields.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '3rem', border: '2px dashed #f1f5f9', borderRadius: '12px', color: '#cbd5e1', fontSize: '0.75rem' }}>
-                      No fields yet. Standard fields will appear when synced.
-                    </div>
-                  )}
-                  {sectionFields.map(f => {
-                    const isStandard = STANDARD_FIELD_NAMES.includes(f.name);
-                    const fieldLib = FIELD_LIBRARY.find(d => d.id === f.field_type);
-                    const defIcon = fieldDefs.find(d => d.id === f.field_type);
-                    const iconToUse = fieldLib?.icon || defIcon?.icon || 'fa-cube';
-                    const colorToUse = fieldLib?.color || '#64748b';
-                    return (
-                      <div key={f.id}
-                        style={{
-                          padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          background: isStandard ? 'rgba(212,175,55,0.03)' : '#fff',
-                          borderRadius: '10px',
-                          border: inspectingField?.id === f.id ? '2px solid #D4AF37' : isStandard ? '1px solid rgba(212,175,55,0.2)' : '1px solid #f1f5f9',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onClick={() => setInspectingField(f)}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ width: '36px', height: '36px', background: isStandard ? 'rgba(212,175,55,0.1)' : '#f8fafc', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <i className={`fas ${iconToUse}`} style={{ color: isStandard ? '#D4AF37' : colorToUse }}></i>
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>{f.label}</div>
-                            <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase' }}>
-                              {f.field_type}{isStandard ? ' · STANDARD' : ''}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {isStandard && (
-                            <span style={{ fontSize: '0.55rem', background: 'rgba(212,175,55,0.08)', color: '#D4AF37', padding: '2px 7px', borderRadius: '4px', fontWeight: 900 }}>STANDARD</span>
-                          )}
-                          <button className="btn btn-xs btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2', padding: '4px 6px' }} onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, showComponentDesigner); }}>
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* SYNC BUTTON — if any standard fields are missing, offer to create them */}
-                  {sectionFields.filter(f => STANDARD_FIELD_NAMES.includes(f.name)).length < 4 && (
-                    <button style={{ background: '#1e293b', color: '#D4AF37', border: 'none', borderRadius: '8px', padding: '0.65rem 1rem', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', width: '100%', marginTop: '0.5rem' }}
-                      onClick={async () => { const r = await fetch('/api/setup/migrate-sections'); if (r.ok) { notify('Standard fields synced!', 'success'); loadSectionFields(showComponentDesigner!); } }}>
-                      <i className="fas fa-sync" style={{ marginRight: '0.5rem' }}></i> SYNC MISSING STANDARD FIELDS
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Inspector (Right Sidebar) */}
-              {inspectingField && (
-                <div style={{ width: '320px', background: '#fff', padding: '1.5rem', borderLeft: '1px solid #e2e8f0', overflowY: 'auto' }} className="animate-in">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>COMPONENT SETTINGS</div>
-                    <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }} onClick={() => setInspectingField(null)}><i className="fas fa-times"></i></button>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.65rem' }}>DISPLAY LABEL</label>
-                    <input
-                      type="text" className="form-control"
-                      value={inspectingField.label || ''}
-                      onChange={e => setInspectingField({ ...inspectingField, label: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginTop: '1.25rem' }}>
-                    <label className="form-label" style={{ fontSize: '0.65rem' }}>DATABASE KEY</label>
-                    <input
-                      type="text" className="form-control"
-                      value={inspectingField.name || ''}
-                      onChange={e => setInspectingField({ ...inspectingField, name: e.target.value })}
-                    />
-                  </div>
-
-                  <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <label className="form-label" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>GOVERNANCE LAYER</label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
-                       <input type="checkbox" checked={!!inspectingField.required} onChange={e => setInspectingField({...inspectingField, required: e.target.checked})} />
-                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>MANDATORY (REQUIRED FIELD)</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
-                       <input type="checkbox" checked={!!inspectingField.vendor_editable} onChange={e => setInspectingField({...inspectingField, vendor_editable: e.target.checked})} />
-                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>VENDOR EDITABLE PERMISSION</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f1f5f9' }}>
-                       <input type="checkbox" checked={!!inspectingField.show_on_public} onChange={e => setInspectingField({...inspectingField, show_on_public: e.target.checked})} />
-                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>PUBLIC DISCOVERY VISIBILITY</span>
-                    </label>
-                  </div>
-
-                  {['select', 'checkbox_group'].includes(inspectingField.field_type) && (
-                    <div className="form-group" style={{ marginTop: '1.5rem' }}>
-                      <label className="form-label" style={{ fontSize: '0.65rem' }}>OPTIONS (Comma separated)</label>
-                      <textarea
-                        className="form-control" rows={8}
-                        placeholder="Choice 1, Choice 2, Choice 3..."
-                        value={Array.isArray(inspectingField.options) ? inspectingField.options.join(', ') : ''}
-                        onChange={e => setInspectingField({ ...inspectingField, options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                      />
-                      <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.5rem' }}>Separate multiple choices with commas.</div>
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={updateFieldInSection}>
-                      <i className="fas fa-save" style={{ marginRight: '0.5rem' }}></i> APPLY CHANGES
-                    </button>
-                    <button className="btn btn-outline" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setInspectingField(null)}>CANCEL</button>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div style={{ padding: '1.5rem', background: '#f9fafb', borderTop: '1px solid #f3f4f6', textAlign: 'right' }}>
-              <button className="btn btn-primary" onClick={() => setShowComponentDesigner(null)}>SAVE BLUEPRINT</button>
+                    await Promise.all(updates);
+                    notify('Governance mapping updated successfully.', 'success');
+                    loadSections(); // Refresh local state
+                    setLinkingSection(null);
+                  } catch (e) {
+                    notify('Failed to update mapping.', 'error');
+                  } finally {
+                    setIsAssigning(false);
+                  }
+                }}
+              >
+                UPDATE MAPPING
+              </button>
             </div>
           </div>
         </div>

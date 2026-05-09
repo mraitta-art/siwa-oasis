@@ -9,6 +9,7 @@ interface SearchEngine {
   filters: any[];
   active: boolean;
   card_theme: 'standard' | 'hero' | 'compact' | 'data_rich';
+  validation?: any;
 }
 
 export default function SearchEnginesPage() {
@@ -18,7 +19,7 @@ export default function SearchEnginesPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<SearchEngine> | null>(null);
 
-  useEffect(() => { 
+  useEffect(() => {
     Promise.all([loadEngines(), loadAllFields(), loadSections()]).then(() => setLoading(false));
   }, []);
 
@@ -62,7 +63,7 @@ export default function SearchEnginesPage() {
 
   const toggleField = (fieldKey: string) => {
     const current = editing?.allowed_fields || [];
-    const next = current.includes(fieldKey) 
+    const next = current.includes(fieldKey)
       ? current.filter(k => k !== fieldKey)
       : [...current, fieldKey];
     setEditing({ ...editing, allowed_fields: next });
@@ -85,9 +86,9 @@ export default function SearchEnginesPage() {
 
       <div className="grid-2">
         {engines.map(engine => (
-          <div key={engine.id} className="card" style={{ 
+          <div key={engine.id} className="card" style={{
             borderLeft: engine.validation?.isValid ? '3px solid #D4AF37' : '3px solid #ef4444',
-            opacity: engine.active ? 1 : 0.7 
+            opacity: engine.active ? 1 : 0.7
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
@@ -105,13 +106,13 @@ export default function SearchEnginesPage() {
 
             {!engine.validation?.isValid && (
               <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' }}>
-                 <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#991b1b', textTransform: 'uppercase', marginBottom: '0.4rem' }}>⚠️ Validation Errors</div>
-                 {engine.validation?.brokenFields?.map((f: string) => (
-                   <div key={f} style={{ fontSize: '0.65rem', color: '#b91c1c' }}>• Missing Field: <b>{f}</b> (Deleted from Form Builder?)</div>
-                 ))}
-                 {engine.validation?.missingSections?.map((s: string) => (
-                   <div key={s} style={{ fontSize: '0.65rem', color: '#b91c1c' }}>• Missing Section: <b>{s}</b></div>
-                 ))}
+                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#991b1b', textTransform: 'uppercase', marginBottom: '0.4rem' }}>⚠️ Validation Errors</div>
+                {engine.validation?.brokenFields?.map((f: string) => (
+                  <div key={f} style={{ fontSize: '0.65rem', color: '#b91c1c' }}>• Missing Field: <b>{f}</b> (Deleted from Form Builder?)</div>
+                ))}
+                {engine.validation?.missingSections?.map((s: string) => (
+                  <div key={s} style={{ fontSize: '0.65rem', color: '#b91c1c' }}>• Missing Section: <b>{s}</b></div>
+                ))}
               </div>
             )}
 
@@ -135,73 +136,73 @@ export default function SearchEnginesPage() {
               <h3>{engines.find(e => e.id === editing.id) ? 'Edit Search Engine' : 'Create Search Engine'}</h3>
               <button className="btn btn-xs" onClick={() => setEditing(null)}>×</button>
             </div>
-            
+
             <div className="grid-2">
               <div className="form-group">
                 <label className="form-label">Engine ID</label>
-                <input type="text" className="form-control" value={editing.id} onChange={e => setEditing({...editing, id: e.target.value})} placeholder="e.g. hotel_luxury_search" disabled={!!engines.find(e => e.id === editing.id)} />
+                <input type="text" className="form-control" value={editing.id} onChange={e => setEditing({ ...editing, id: e.target.value })} placeholder="e.g. hotel_luxury_search" disabled={!!engines.find(e => e.id === editing.id)} />
               </div>
               <div className="form-group">
                 <label className="form-label">Display Name</label>
-                <input type="text" className="form-control" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} placeholder="e.g. Premium Hotels Search" />
+                <input type="text" className="form-control" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. Premium Hotels Search" />
               </div>
             </div>
 
             <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label className="form-label">Result Card Characteristic (Visual Theme)</label>
-                <select className="form-control" value={editing.card_theme || 'standard'} onChange={e => setEditing({...editing, card_theme: e.target.value as any})}>
-                   <option value="standard">Standard (Balanced)</option>
-                   <option value="hero">Hero (Large Visuals, Immersive)</option>
-                   <option value="compact">Compact (List Style, Space Efficient)</option>
-                   <option value="data_rich">Data-Rich (Highlight Tags & Features)</option>
-                </select>
-                <div style={{ fontSize: '0.65rem', color: '#9ca3af', marginTop: '0.5rem' }}>
-                   Determines how business cards appear when results are generated by this specific search engine.
-                </div>
+              <label className="form-label">Result Card Characteristic (Visual Theme)</label>
+              <select className="form-control" value={editing.card_theme || 'standard'} onChange={e => setEditing({ ...editing, card_theme: e.target.value as any })}>
+                <option value="standard">Standard (Balanced)</option>
+                <option value="hero">Hero (Large Visuals, Immersive)</option>
+                <option value="compact">Compact (List Style, Space Efficient)</option>
+                <option value="data_rich">Data-Rich (Highlight Tags & Features)</option>
+              </select>
+              <div style={{ fontSize: '0.65rem', color: '#9ca3af', marginTop: '0.5rem' }}>
+                Determines how business cards appear when results are generated by this specific search engine.
+              </div>
             </div>
 
             <div style={{ marginTop: '1rem' }}>
               <label className="form-label">Define Searchable Criteria</label>
-              <div style={{ 
-                maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', 
-                borderRadius: '0.5rem', padding: '1rem', background: '#f9fafb' 
+              <div style={{
+                maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb',
+                borderRadius: '0.5rem', padding: '1rem', background: '#f9fafb'
               }}>
                 <div className="section-groups">
                   {sections.map(sec => {
                     const secFields = Array.from(new Map(fields.filter(f => f.section_id === sec.id).map(f => [f.name, f])).values());
                     if (secFields.length === 0) return null;
-                    
+
                     const allSelected = secFields.every(f => editing.allowed_fields?.includes(f.name));
-                    
+
                     return (
                       <div key={sec.id} style={{ marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                               <i className={`fas ${sec.icon}`} style={{ color: '#D4AF37' }}></i>
-                               {sec.name.toUpperCase()} MODULE
-                            </div>
-                            <button 
-                              className="btn btn-xs btn-outline" 
-                              onClick={() => {
-                                const fieldNames = secFields.map(f => f.name);
-                                const current = editing.allowed_fields || [];
-                                const next = allSelected 
-                                  ? current.filter(f => !fieldNames.includes(f))
-                                  : Array.from(new Set([...current, ...fieldNames]));
-                                setEditing({...editing, allowed_fields: next});
-                              }}
-                            >
-                              {allSelected ? 'DISABLE MODULE' : 'ENABLE MODULE'}
-                            </button>
-                         </div>
-                         <div className="permission-matrix">
-                           {secFields.map(f => (
-                             <label key={f.name} className="permission-item" style={{ cursor: 'pointer' }}>
-                               <input type="checkbox" checked={editing.allowed_fields?.includes(f.name)} onChange={() => toggleField(f.name)} />
-                               <span>{f.label} <small>({f.name})</small></span>
-                             </label>
-                           ))}
-                         </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className={`fas ${sec.icon}`} style={{ color: '#D4AF37' }}></i>
+                            {sec.name.toUpperCase()} MODULE
+                          </div>
+                          <button
+                            className="btn btn-xs btn-outline"
+                            onClick={() => {
+                              const fieldNames = secFields.map(f => f.name);
+                              const current = editing.allowed_fields || [];
+                              const next = allSelected
+                                ? current.filter(f => !fieldNames.includes(f))
+                                : Array.from(new Set([...current, ...fieldNames]));
+                              setEditing({ ...editing, allowed_fields: next });
+                            }}
+                          >
+                            {allSelected ? 'DISABLE MODULE' : 'ENABLE MODULE'}
+                          </button>
+                        </div>
+                        <div className="permission-matrix">
+                          {secFields.map(f => (
+                            <label key={f.name} className="permission-item" style={{ cursor: 'pointer' }}>
+                              <input type="checkbox" checked={editing.allowed_fields?.includes(f.name)} onChange={() => toggleField(f.name)} />
+                              <span>{f.label} <small>({f.name})</small></span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                     );
                   })}

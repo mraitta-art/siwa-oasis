@@ -6,7 +6,7 @@ import { query } from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
-    
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const category = searchParams.get('category');

@@ -619,6 +619,20 @@ export default function FormArchitectPage() {
                     </div>
                   </div>
 
+                  {(editingField.field_type === 'select' || editingField.field_type === 'checkbox_group') && (
+                    <div className="inspector-section" style={{ marginTop: '1.5rem' }}>
+                      <label className="f-label" style={{ marginBottom: '0.5rem', opacity: 0.5 }}>FIELD OPTIONS (COMMA SEPARATED)</label>
+                      <textarea 
+                        className="f-input" 
+                        placeholder="e.g. Private Pool, WiFi, Free Parking"
+                        value={Array.isArray(editingField.options) ? editingField.options.join(', ') : editingField.options || ''} 
+                        onChange={e => setEditingField({...editingField, options: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                        style={{ minHeight: '80px', resize: 'vertical' }}
+                      />
+                      <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.5rem' }}>Type the options separated by commas. These will appear in the form.</div>
+                    </div>
+                  )}
+
                   <div className="inspector-section">
                     <label className="f-label" style={{ marginBottom: '1.25rem', opacity: 0.5 }}>GOVERNANCE LAYER</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
