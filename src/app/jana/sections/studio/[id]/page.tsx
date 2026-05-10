@@ -313,6 +313,36 @@ export default function SectionStudioPage() {
           {activeTab === 'items' && (
             <div className="animate-in" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
                <div>
+                 {/* STUDIO HEADER */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                        <Link href="/jana/sections" style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.9rem' }}>
+                          <i className="fas fa-arrow-left"></i> Architect Dashboard
+                        </Link>
+                        <span style={{ 
+                          background: '#D4AF37', 
+                          color: '#fff', 
+                          fontSize: '0.65rem', 
+                          fontWeight: 900, 
+                          padding: '4px 12px', 
+                          borderRadius: '20px', 
+                          letterSpacing: '1px',
+                          boxShadow: '0 4px 10px rgba(212,175,55,0.3)'
+                        }}>
+                          <i className="fas fa-microchip" style={{ marginRight: '0.5rem' }}></i>
+                          ORCHESTRATION MODE
+                        </span>
+                      </div>
+                      <h1 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, color: '#1e293b', letterSpacing: '-1px' }}>
+                        {section?.name.toUpperCase()} <span style={{ color: '#D4AF37' }}>STUDIO</span>
+                      </h1>
+                      <p style={{ color: '#64748b', marginTop: '0.5rem' }}>
+                        Orchestrating the DNA, Blueprint, and Global Feed for the <strong>{section?.name}</strong> ecosystem.
+                      </p>
+                    </div>
+                  </div>
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Atomic Blueprint</h2>
                     <button onClick={() => setAddingField(true)} style={{ background: '#1e293b', color: '#fff', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '10px', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>+ ADD FIELD</button>

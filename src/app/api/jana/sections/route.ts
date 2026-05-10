@@ -11,8 +11,16 @@ import { getSections, invalidateCache } from '@/lib/cache';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const typeId = searchParams.get('type');
+  const id = searchParams.get('id');
 
   try {
+    // If ID is provided, return a single section
+    if (id) {
+      const [section] = await query('SELECT * FROM sections WHERE id = ?', [id]);
+      if (!section) return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+      return NextResponse.json(section);
+    }
+
     // 1. If typeId is provided, fetch sections mapped to that typology (Public)
     if (typeId) {
       const [typeData] = await query('SELECT sections, own_sections FROM business_types WHERE id = ?', [typeId]);
