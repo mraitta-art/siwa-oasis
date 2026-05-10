@@ -675,7 +675,10 @@ export default function SectionStudioPage() {
                  <i className="fas fa-tools fa-3x" style={{ color: '#cbd5e1', marginBottom: '2rem' }}></i>
                  <h3 style={{ color: '#1e293b' }}>Section-Specific Logic Orchestrator</h3>
                  <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto' }}>This layer allows you to attach functional logic (YouTube, Price Calculators, Booking Widgets) specifically to this section's public minisite page.</p>
-                 <button style={{ marginTop: '2rem', padding: '1rem 2.5rem', borderRadius: '12px', border: 'none', background: '#1e293b', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                 <button 
+                   onClick={() => window.open('/jana/component-library', '_blank')}
+                   style={{ marginTop: '2rem', padding: '1rem 2.5rem', borderRadius: '12px', border: 'none', background: '#1e293b', color: '#fff', fontWeight: 900, cursor: 'pointer' }}
+                 >
                     OPEN COMPONENT LIBRARY
                  </button>
               </div>
