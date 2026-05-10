@@ -39,7 +39,8 @@ export default function SectionStudioPage() {
   async function loadBusinesses() {
     try {
       // Fetch businesses with their type metadata for governance checks
-      const res = await fetch('/api/jana/businesses?includeType=true');
+      const t = Date.now();
+      const res = await fetch(`/api/jana/businesses?includeType=true&t=${t}`);
       if (res.ok) {
         const allBiz = await res.json();
         
@@ -104,10 +105,11 @@ export default function SectionStudioPage() {
   async function loadData() {
     setLoading(true);
     try {
+      const t = Date.now();
       const [secRes, fieldsRes, typesRes] = await Promise.all([
-        fetch(`/api/jana/sections?id=${id}`),
-        fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${id}`),
-        fetch(`/api/jana/types`)
+        fetch(`/api/jana/sections?id=${id}&t=${t}`),
+        fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${id}&t=${t}`),
+        fetch(`/api/jana/types?t=${t}`)
       ]);
       
       if (secRes.ok) setSection(await secRes.json());
