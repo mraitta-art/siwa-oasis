@@ -111,7 +111,17 @@ export default function SectionStudioPage() {
       ]);
       
       if (secRes.ok) setSection(await secRes.json());
-      if (fieldsRes.ok) setFields(await fieldsRes.json());
+      if (fieldsRes.ok) {
+        const fieldData = await fieldsRes.json();
+        setFields(fieldData);
+        
+        // ATOMIC DEEP-LINK: If a field is specified in URL, inspect it immediately
+        const targetField = searchParams.get('field');
+        if (targetField) {
+          const found = fieldData.find((f: any) => f.name === targetField || f.id === targetField);
+          if (found) setInspectingField(found);
+        }
+      }
       if (typesRes.ok) setBusinessTypes(await typesRes.json());
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -492,7 +502,16 @@ export default function SectionStudioPage() {
                       <th style={{ padding: '1.25rem', borderBottom: '1px solid #e2e8f0', width: '250px' }}>BUSINESS</th>
                       {fields.map(f => (
                         <th key={f.id} style={{ padding: '1.25rem', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 900 }}>{f.label.toUpperCase()}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 900 }}>{f.label.toUpperCase()}</div>
+                            <Link 
+                              href={`/jana/sections/studio/${id}?tab=items&field=${f.name}`}
+                              style={{ color: '#cbd5e1', fontSize: '0.6rem', textDecoration: 'none' }}
+                              title="Edit Field Blueprint"
+                            >
+                              <i className="fas fa-pencil-ruler"></i>
+                            </Link>
+                          </div>
                         </th>
                       ))}
                     </tr>
