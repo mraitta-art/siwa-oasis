@@ -66,9 +66,16 @@ export default function YouTubeCarouselPlayer({
         onReady: (event: any) => {
           setIsLoaded(true);
           if (isActive && autoplay) {
-            event.target.mute(); // Double-ensure mute
+            event.target.mute();
             event.target.playVideo();
             setIsPlaying(true);
+          } else {
+            // SILENT PRE-WARM: Play for 1ms and pause to force buffering
+            event.target.mute();
+            event.target.playVideo();
+            setTimeout(() => {
+              if (!isActive) event.target.pauseVideo();
+            }, 100);
           }
         },
         onStateChange: (event: any) => {

@@ -267,7 +267,7 @@ export default function HeroCarouselManager() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '2rem' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3rem' }}>
           <div>
             <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 800 }}>
               ← ADMIN DASHBOARD
@@ -278,6 +278,16 @@ export default function HeroCarouselManager() {
             <p style={{ color: '#64748b' }}>Manage cinematic slides for your marketplace and minisites</p>
           </div>
           
+          <div style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.2)', padding: '1.25rem', borderRadius: '16px', maxWidth: '350px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <i className="fas fa-lightbulb" style={{ color: '#D4AF37' }}></i>
+                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>CINEMATIC STRATEGY</span>
+             </div>
+             <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5 }}>
+                <strong style={{ color: '#1e293b' }}>Pro Tip:</strong> Place YouTube videos on the <strong style={{ color: '#D4AF37' }}>2nd or 3rd slide</strong>. This gives the system time to silently buffer the video while the user views the first image, ensuring an instant, lag-free transition.
+             </p>
+          </div>
+
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <div style={{ background: '#fff', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>CAROUSEL ID / NAME:</label>
