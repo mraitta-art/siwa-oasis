@@ -13,9 +13,10 @@ export async function GET(
     const { slug } = await params;
     
     const [biz] = await query(
-      `SELECT b.*, t.features as tier_features 
+      `SELECT b.*, t.features as tier_features, mt.features as template_features 
        FROM businesses b 
        LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id 
+       LEFT JOIN minisite_templates mt ON b.template_id = mt.id
        WHERE b.slug = ?`,
       [slug]
     );
@@ -29,6 +30,7 @@ export async function GET(
     try {
       if (typeof result.custom_data === 'string') result.custom_data = JSON.parse(result.custom_data);
       if (typeof result.tier_features === 'string') result.tier_features = JSON.parse(result.tier_features);
+      if (typeof result.template_features === 'string') result.template_features = JSON.parse(result.template_features);
     } catch (e) {
       console.warn('JSON parsing failed for business:', slug, e);
     }

@@ -319,22 +319,56 @@ export default function TemplateArchitect() {
                     </div>
                   </div>
                   <div>
-                    <h3 style={{ fontWeight:900, margin:'0 0 1rem 0' }}>Feature DNA</h3>
-                    <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                    <h3 style={{ fontWeight: 900, margin: '0 0 1rem 0' }}>Feature DNA</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       {[
-                        { id:'captions', name:'Enable Image Captions' },
-                        { id:'booking', name:'Enable Booking Button' },
-                        { id:'verification', name:'Show Heritage Verified Badge' },
-                        { id:'youtube_bg', name:'YouTube Cinematic Background' },
-                        { id:'direct_contact', name:'Allow Direct Contact' },
-                        { id:'custom_logo', name:'Custom Business Logo' },
+                        { id: 'captions', name: 'Enable Image Captions' },
+                        { id: 'booking', name: 'Enable Booking Button' },
+                        { id: 'verification', name: 'Show Heritage Verified Badge' },
+                        { id: 'youtube_bg', name: 'YouTube Cinematic Background' },
+                        { id: 'direct_contact', name: 'Allow Direct Contact' },
+                        { id: 'custom_logo', name: 'Custom Business Logo' },
                       ].map(f => (
-                        <label key={f.id} style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'0.75rem', background:'#f8fafc', borderRadius:'10px', cursor:'pointer', fontSize:'0.82rem', fontWeight:700 }}>
+                        <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '10px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
                           <input type="checkbox" checked={!!editingTemplate?.features?.[f.id]}
-                            onChange={e => setEditingTemplate({...editingTemplate, features:{...editingTemplate?.features,[f.id]:e.target.checked}})} />
+                            onChange={e => setEditingTemplate({ ...editingTemplate, features: { ...editingTemplate?.features, [f.id]: e.target.checked } })} />
                           {f.name}
                         </label>
                       ))}
+                    </div>
+
+                    <h3 style={{ fontWeight: 900, margin: '2rem 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <i className="fas fa-eye-slash" style={{ fontSize: '0.9rem', color: '#64748b' }}></i>
+                      Section Governance
+                    </h3>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', padding: '0.5rem', letterSpacing: '0.5px' }}>HIDE SECTIONS FOR THIS BLUEPRINT</div>
+                      {(() => {
+                        // Fetch sections if we haven't already (already done in parent or similar)
+                        // For now we assume sections are loaded or use a placeholder if not
+                        // Let's add a quick state to hold sections in this component
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {businessTypes.find(t => t.id === editingTemplate?.type_id)?.sections?.map((sid: string) => (
+                              <label key={sid} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', border: '1px solid #f1f5f9' }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={!!editingTemplate?.features?.hidden_sections?.includes(sid)}
+                                  onChange={e => {
+                                    const current = editingTemplate?.features?.hidden_sections || [];
+                                    const next = e.target.checked ? [...current, sid] : current.filter((id: string) => id !== sid);
+                                    setEditingTemplate({ ...editingTemplate, features: { ...editingTemplate?.features, hidden_sections: next } });
+                                  }} 
+                                />
+                                <span style={{ fontWeight: 700 }}>{sid.replace(/_/g, ' ').toUpperCase()}</span>
+                              </label>
+                            ))}
+                            {(!businessTypes.find(t => t.id === editingTemplate?.type_id)?.sections || businessTypes.find(t => t.id === editingTemplate?.type_id)?.sections?.length === 0) && (
+                              <div style={{ padding: '1rem', fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>No sections linked to this type.</div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

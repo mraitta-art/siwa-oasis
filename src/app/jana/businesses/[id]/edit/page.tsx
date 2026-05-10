@@ -227,6 +227,44 @@ export default function BusinessEditPage() {
 
         {/* ── CENTER: THE FORM ────────────────────────────────────── */}
         <div ref={scrollContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          {/* NAVIGATION BRANDING (LABEL OVERRIDES) */}
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '3rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', color: '#6366f1' }}>
+                <i className="fas fa-tags"></i>
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>Navigation Branding</h2>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Override default section labels for bespoke branding.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              {sections.map(s => (
+                <div key={s.id}>
+                  <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.5rem' }}>
+                    {s.name.toUpperCase()} TAB LABEL
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder={s.name}
+                    value={biz.custom_data?.section_labels?.[s.id] || ''}
+                    onChange={(e) => {
+                      const nextLabels = { ...biz.custom_data?.section_labels || {} };
+                      nextLabels[s.id] = e.target.value;
+                      setBiz((prev: any) => ({
+                        ...prev,
+                        custom_data: { ...prev.custom_data, section_labels: nextLabels }
+                      }));
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           {sections.map(section => (
             <div 
               key={section.id} 

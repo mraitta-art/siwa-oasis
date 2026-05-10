@@ -301,8 +301,8 @@ export default function BusinessRegistryPage() {
                         <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
                           <i className="fas fa-magic"></i> CURATE
                         </Link>
-                        <Link href={`/jana/businesses/${b.id}/edit`} className="btn btn-xs btn-outline" title="Edit Business DNA">
-                          <i className="fas fa-dna"></i> EDIT DNA
+                        <Link href={`/jana/businesses/${b.id}/orchestrate`} className="btn btn-xs btn-premium" title="Orchestrate Unified DNA">
+                          <i className="fas fa-wand-sparkles"></i> ORCHESTRATE
                         </Link>
                        <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteBiz(b.id, b.name)}><i className="fas fa-trash"></i></button>
                     </div>

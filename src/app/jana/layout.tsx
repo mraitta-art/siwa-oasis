@@ -12,43 +12,47 @@ import { AdminProvider, useAdmin } from '@/context/AdminContext';
    ───────────────────────────────────────────────────────── */
 const NAV_GROUPS = [
   {
-    id: 'pipeline',
-    title: '🛡️ GOVERNANCE PIPELINE',
-    subtitle: 'Binary Structural Steps',
+    id: 'architect',
+    title: '🏗️ ARCHITECT & BUILDING',
+    subtitle: 'Blueprint & Structure',
     collapsible: false,
     items: [
-      { name: '1. Foundation Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
-      { name: '2. Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt', exact: true },
-      { name: '3. Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
-      { name: '4. Business Registry', path: '/jana/businesses', icon: 'fa-briefcase' },
-      { name: '5. Visual Orchestrator', path: '/jana/website', icon: 'fa-palette' },
-      { name: '6. Data Manager', path: '/jana/data-manager', icon: 'fa-server' },
-    ]
-  },
-  {
-    id: 'architect',
-    title: '🏗️ MASTER ARCHITECT',
-    subtitle: 'Blueprint Control',
-    collapsible: true,
-    items: [
+      { name: 'Foundation Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Data Sections', path: '/jana/sections', icon: 'fa-columns' },
-      { name: 'Form Fields', path: '/jana/form-builder', icon: 'fa-list-check' },
-      { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
-      { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
+      { name: 'Form Builder', path: '/jana/form-builder', icon: 'fa-list-check' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
       { name: 'Vendor Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
+      { name: 'Vibe Expressions', path: '/jana/expressions', icon: 'fa-wand-magic-sparkles' },
+      { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
     ]
   },
   {
-    id: 'components',
-    title: '📦 COMPONENTS',
-    subtitle: 'Library & Builders',
+    id: 'operations',
+    title: '🚗 DRIVING & OPERATIONS',
+    subtitle: 'Filling & Management',
+    collapsible: false,
+    items: [
+      { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
+      { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-briefcase' },
+      { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
+      { name: 'Visual Orchestrator', path: '/jana/website', icon: 'fa-palette' },
+      { name: 'Blog Manager', path: '/jana/blog', icon: 'fa-newspaper' },
+      { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
+      { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
+    ]
+  },
+  {
+    id: 'settings',
+    title: '⚙️ SETTINGS & MAINTENANCE',
+    subtitle: 'System & Backups',
     collapsible: true,
     items: [
-      { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
-      { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
-      { name: 'Blog Manager', path: '/jana/blog', icon: 'fa-newspaper' },
+      { name: 'Data Manager (Backups)', path: '/jana/data-manager', icon: 'fa-server' },
+      { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
+      { name: 'System Diagnostic', path: '/jana/diagnostic', icon: 'fa-stethoscope' },
+      { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
+      { name: 'Curation Control', path: '/jana/curation', icon: 'fa-filter' },
     ]
   }
 ];

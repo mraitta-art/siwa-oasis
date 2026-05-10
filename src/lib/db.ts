@@ -24,21 +24,27 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   // In development, use a global variable so that the pool is not recreated on every HMR
   if (!(global as any).dbPool) {
-    (global as any).dbPool = mysql.createPool({
-      host: process.env.DB_HOST || 'localhost',
+    const dbConfig: any = {
+      host: process.env.DB_HOST || '127.0.0.1',
       port: parseInt(process.env.DB_PORT || '3306'),
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'siwa_oasis',
       waitForConnections: true,
-      connectionLimit: 5,
+      connectionLimit: 10,
       queueLimit: 0,
       charset: 'utf8mb4',
-      ssl: {
+    };
+
+    if (process.env.DB_SSL === 'true') {
+      dbConfig.ssl = {
         minVersion: 'TLSv1.2',
         rejectUnauthorized: true
-      },
-    });
+      };
+    }
+
+    console.log('[DB] Initializing dev pool with:', JSON.stringify({ ...dbConfig, password: '***' }));
+    (global as any).dbPool = mysql.createPool(dbConfig);
   }
   pool = (global as any).dbPool;
 }

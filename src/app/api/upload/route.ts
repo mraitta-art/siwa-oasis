@@ -17,14 +17,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
+    // Extract folder context
+    const bizName = formData.get('businessName') as string;
+    const sectionName = formData.get('sectionName') as string;
+    let cloudFolder = 'siwa-uploads';
+
+    if (bizName) {
+      const safeBiz = bizName.toLowerCase().replace(/\s+/g, '-');
+      const safeSec = (sectionName || 'general').toLowerCase().replace(/\s+/g, '-');
+      cloudFolder = `siwa-oasis/businesses/${safeBiz}/${safeSec}`;
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
     // 1. Try Cloudinary if configured
     if (process.env.CLOUDINARY_CLOUD_NAME) {
       try {
-        const result: any = await uploadToCloudinary(buffer, 'siwa-uploads');
-        return NextResponse.json({ url: result.secure_url });
+        const result: any = await uploadToCloudinary(buffer, cloudFolder);
+        return NextResponse.json({ url: result.secure_url, folder: cloudFolder });
       } catch (cloudErr: any) {
         console.error('[CLOUDINARY ERROR]', cloudErr);
         // Continue to local fallback if in development

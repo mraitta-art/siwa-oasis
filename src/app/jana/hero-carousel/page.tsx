@@ -8,7 +8,7 @@ interface CarouselSlide {
   title: string;
   subtitle?: string;
   mediaUrl: string;
-  type: 'image' | 'youtube';
+  type: 'image' | 'youtube' | 'video';
   ctaText?: string;
   ctaLink?: string;
   displayOrder: number;
@@ -34,7 +34,6 @@ export default function HeroCarouselManager() {
 
   // Fetch slides on mount
   useEffect(() => {
-    // Restore siteId from session storage if available
     const savedSiteId = sessionStorage.getItem('siwa_carousel_siteId');
     if (savedSiteId && savedSiteId !== siteId) {
       setSiteId(savedSiteId);
@@ -54,7 +53,6 @@ export default function HeroCarouselManager() {
       const res = await fetch(`/api/jana/hero-carousel?siteId=${siteId}`);
       if (res.ok) {
         const data = await res.json();
-        // The API returns { slides: [...] }
         const fetchedSlides = data.slides || [];
         setSlides(fetchedSlides.sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0)));
       }
@@ -72,7 +70,6 @@ export default function HeroCarouselManager() {
   }
 
   function resetForm() {
-    // Calculate next display order correctly
     const nextOrder = slides.length > 0 
       ? Math.max(...slides.map(s => s.displayOrder || 0)) + 1 
       : 0;
@@ -107,16 +104,19 @@ export default function HeroCarouselManager() {
 
     setSaving(true);
     try {
-      const uploadResults: {url: string, name: string}[] = [];
+      const uploadResults: {url: string, name: string, isVideo: boolean}[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.size > 10 * 1024 * 1024) {
-          showMessage('error', `File ${file.name} too large (max 10MB)`);
+        if (file.size > 50 * 1024 * 1024) { // 50MB limit
+          showMessage('error', `File ${file.name} too large (max 50MB)`);
           continue;
         }
 
         const uploadFormData = new FormData();
         uploadFormData.append('file', file);
+        const bizContext = siteId === 'main' ? 'General' : siteId;
+        uploadFormData.append('businessName', bizContext);
+        uploadFormData.append('sectionName', 'Hero');
 
         const res = await fetch('/api/jana/media/upload', {
           method: 'POST',
@@ -125,50 +125,55 @@ export default function HeroCarouselManager() {
 
         if (res.ok) {
           const data = await res.json();
-          uploadResults.push({ url: data.url, name: file.name });
+          uploadResults.push({ 
+            url: data.url, 
+            name: file.name, 
+            isVideo: file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.mp4') || file.name.toLowerCase().endsWith('.mov')
+          });
         }
       }
 
-      if (uploadResults.length > 0) {
-        // If only one file, update current form
-        if (uploadResults.length === 1) {
-          setFormData(prev => ({ ...prev, mediaUrl: uploadResults[0].url, type: 'image' }));
-          showMessage('success', 'Image uploaded!');
-        } else {
-          // If multiple, auto-create slides for others and update local list
-          const newSlides: CarouselSlide[] = [];
-          let currentMaxOrder = slides.length > 0 ? Math.max(...slides.map(s => s.displayOrder || 0)) : -1;
-          
-          uploadResults.forEach((result, idx) => {
-            newSlides.push({
-              id: `slide_${Date.now()}_${idx}`,
-              title: result.name.split('.')[0].replace(/[-_]/g, ' '),
-              mediaUrl: result.url,
-              type: 'image',
-              displayOrder: currentMaxOrder + idx + 1
-            });
+      if (uploadResults.length === 1) {
+        // Single upload: update current form
+        setFormData(prev => ({ 
+          ...prev, 
+          mediaUrl: uploadResults[0].url, 
+          type: uploadResults[0].isVideo ? 'video' : 'image' 
+        }));
+        showMessage('success', `${uploadResults[0].isVideo ? 'Video' : 'Image'} uploaded!`);
+      } else if (uploadResults.length > 1) {
+        // Multiple uploads: create slides for each
+        const newSlides: CarouselSlide[] = [];
+        let currentMaxOrder = slides.length > 0 ? Math.max(...slides.map(s => s.displayOrder || 0)) : -1;
+        
+        uploadResults.forEach((result, idx) => {
+          newSlides.push({
+            id: `slide_${Date.now()}_${idx}`,
+            title: result.name.split('.')[0].replace(/[-_]/g, ' '),
+            mediaUrl: result.url,
+            type: result.isVideo ? 'video' : 'image',
+            displayOrder: currentMaxOrder + idx + 1
           });
+        });
 
-          const finalSlides = [...slides, ...newSlides];
-          
-          // Save the batch immediately to the database
-          const res = await fetch('/api/jana/hero-carousel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slides: finalSlides, siteId })
-          });
+        const finalSlides = [...slides, ...newSlides];
+        const res = await fetch('/api/jana/hero-carousel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slides: finalSlides, siteId })
+        });
 
-          if (res.ok) {
-            setSlides(finalSlides);
-            showMessage('success', `Uploaded and saved ${uploadResults.length} slides!`);
-          }
+        if (res.ok) {
+          setSlides(finalSlides);
+          showMessage('success', `Uploaded and saved ${uploadResults.length} slides!`);
         }
       }
     } catch (err) {
       console.error('Upload error:', err);
-      showMessage('error', 'Failed to upload images');
+      showMessage('error', 'Failed to upload media');
     } finally {
       setSaving(false);
+      e.target.value = '';
     }
   }
 
@@ -204,7 +209,7 @@ export default function HeroCarouselManager() {
 
       if (res.ok) {
         showMessage('success', editingId ? 'Slide updated!' : 'Slide created!');
-        setSlides(updatedSlides);
+        setSlides(updatedSlides.sort((a, b) => a.displayOrder - b.displayOrder));
         resetForm();
       } else {
         const data = await res.json();
@@ -220,16 +225,13 @@ export default function HeroCarouselManager() {
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this slide?')) return;
-
     const updatedSlides = slides.filter(s => s.id !== id);
-    
     try {
       const res = await fetch('/api/jana/hero-carousel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slides: updatedSlides, siteId })
       });
-
       if (res.ok) {
         showMessage('success', 'Slide deleted');
         setSlides(updatedSlides);
@@ -244,21 +246,16 @@ export default function HeroCarouselManager() {
   async function moveSlide(index: number, direction: 'up' | 'down') {
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === slides.length - 1) return;
-
     const newSlides = [...slides];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     [newSlides[index], newSlides[targetIndex]] = [newSlides[targetIndex], newSlides[index]];
-
-    // Update displayOrder
     const finalSlides = newSlides.map((s, i) => ({ ...s, displayOrder: i }));
-
     try {
       const res = await fetch('/api/jana/hero-carousel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slides: finalSlides, siteId })
       });
-
       if (res.ok) {
         setSlides(finalSlides);
       }
@@ -270,7 +267,6 @@ export default function HeroCarouselManager() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '2rem' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
           <div>
             <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 800 }}>
@@ -289,21 +285,10 @@ export default function HeroCarouselManager() {
                 type="text"
                 value={siteId} 
                 onChange={(e) => setSiteId(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                placeholder="e.g. home_hero"
+                placeholder="e.g. adrere_amellal"
                 style={{ border: 'none', fontWeight: 700, color: '#D4AF37', outline: 'none', background: 'transparent', width: '150px' }}
               />
-              <select 
-                onChange={(e) => setSiteId(e.target.value)}
-                style={{ border: 'none', fontSize: '0.8rem', color: '#64748b', cursor: 'pointer', outline: 'none' }}
-              >
-                <option value="">-- PRESETS --</option>
-                <option value="main_hero">Main Hero</option>
-                <option value="main_gallery">Main Gallery</option>
-                <option value="hotels_hero">Hotels Hero</option>
-                <option value="partner_logos">Partner Logos</option>
-              </select>
             </div>
-
             {!showForm && (
               <button
                 onClick={() => { resetForm(); setShowForm(true); }}
@@ -318,7 +303,6 @@ export default function HeroCarouselManager() {
           </div>
         </div>
 
-        {/* Message Overlay */}
         {message.text && (
           <div style={{
             background: message.type === 'error' ? '#fee2e2' : '#dcfce7',
@@ -330,11 +314,9 @@ export default function HeroCarouselManager() {
           </div>
         )}
 
-        {/* Editor Form */}
         {showForm && (
           <div style={{ background: '#fff', padding: '2rem', borderRadius: '1rem', border: '1px solid #e2e8f0', marginBottom: '3rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '2rem' }}>{editingId ? 'Edit Slide' : 'Create New Slide'}</h2>
-            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
               <div>
                 <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>TITLE</label>
@@ -365,7 +347,8 @@ export default function HeroCarouselManager() {
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
                 >
                   <option value="image">Image</option>
-                  <option value="youtube">YouTube Video</option>
+                  <option value="video">Native Video</option>
+                  <option value="youtube">YouTube Embed</option>
                 </select>
               </div>
               <div>
@@ -385,39 +368,10 @@ export default function HeroCarouselManager() {
                     }}>
                       {saving ? '...' : 'UPLOAD'}
                     </button>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      multiple
-                      onChange={handleFileUpload} 
-                      style={{ 
-                        position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' 
-                      }} 
-                    />
+                    <input type="file" accept="image/*,video/*" multiple onChange={handleFileUpload} style={{ position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
                   </div>
                 </div>
-                <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                  Provide a URL or upload files. <strong>TIP: You can select multiple images to add them all at once!</strong>
-                </p>
-                
-                {/* PREVIEW AREA */}
-                {formData.mediaUrl && (
-                  <div style={{ marginTop: '1.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc', height: '150px' }}>
-                    {formData.type === 'image' ? (
-                      <img 
-                        src={formData.mediaUrl} 
-                        alt="Preview" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x150?text=Invalid+Image+URL'; }}
-                      />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
-                        <i className="fab fa-youtube fa-3x"></i>
-                        <span style={{ marginLeft: '1rem' }}>YouTube Preview (URL Set)</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Provide a URL or upload files. Native videos (.mp4, .mov) are supported!</p>
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>BUTTON TEXT</label>
@@ -426,7 +380,6 @@ export default function HeroCarouselManager() {
                   value={formData.ctaText}
                   onChange={handleInputChange}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                  placeholder="e.g. Explore Now"
                 />
               </div>
               <div>
@@ -436,55 +389,32 @@ export default function HeroCarouselManager() {
                   value={formData.ctaLink}
                   onChange={handleInputChange}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                  placeholder="/search or external url"
                 />
               </div>
             </div>
-
             <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  background: '#10b981', color: '#fff', border: 'none', padding: '1rem 2.5rem',
-                  borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer', opacity: saving ? 0.7 : 1
-                }}
-              >
+              <button onClick={handleSave} disabled={saving} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '1rem 2.5rem', borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'SAVING...' : 'SAVE SLIDE'}
               </button>
-              <button
-                onClick={resetForm}
-                style={{
-                  background: '#64748b', color: '#fff', border: 'none', padding: '1rem 2.5rem',
-                  borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer'
-                }}
-              >
-                CANCEL
-              </button>
+              <button onClick={resetForm} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '1rem 2.5rem', borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
             </div>
           </div>
         )}
 
-        {/* List View */}
         <div style={{ display: 'grid', gap: '1.5rem' }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '5rem' }}>Loading slides...</div>
           ) : slides.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '5rem', background: '#fff', borderRadius: '1rem', border: '2px dashed #e2e8f0' }}>
-              No slides configured. Add your first slide to populate the homepage.
-            </div>
+            <div style={{ textAlign: 'center', padding: '5rem', background: '#fff', borderRadius: '1rem', border: '2px dashed #e2e8f0' }}>No slides configured.</div>
           ) : (
             slides.map((slide, index) => (
-              <div key={slide.id} style={{
-                background: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem',
-                display: 'grid', gridTemplateColumns: '200px 1fr auto', gap: '2rem', alignItems: 'center'
-              }}>
+              <div key={slide.id} style={{ background: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem', display: 'grid', gridTemplateColumns: '200px 1fr auto', gap: '2rem', alignItems: 'center' }}>
                 <div style={{ height: '120px', borderRadius: '0.5rem', overflow: 'hidden', background: '#f1f5f9' }}>
                   {slide.type === 'image' ? (
                     <img src={slide.mediaUrl} alt={slide.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
-                      <i className="fab fa-youtube fa-2x"></i>
+                      <i className={slide.type === 'video' ? 'fas fa-video fa-2x' : 'fab fa-youtube fa-2x'}></i>
                     </div>
                   )}
                 </div>
@@ -495,7 +425,6 @@ export default function HeroCarouselManager() {
                     <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', background: '#fef3c7', padding: '0.2rem 0.6rem', borderRadius: '10px' }}>
                       {(slide.type || 'IMAGE').toUpperCase()}
                     </span>
-                    {slide.ctaText && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>CTA: {slide.ctaText}</span>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { FIELD_TYPES } from '@/lib/governance/constants';
+import { useAdmin, AdminContext } from '@/context/AdminContext';
 
 interface Field {
   id: string;
@@ -47,6 +48,9 @@ interface DynamicFormProps {
 }
 
 export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {}, businessName, typology }: DynamicFormProps) {
+  const adminCtx = React.useContext(AdminContext);
+  const notify = adminCtx?.notify || (() => {});
+  
   const [currentLang, setCurrentLang] = React.useState('en');
   const [uploadingFields, setUploadingFields] = React.useState<Record<string, boolean>>({});
   const languages = [
@@ -149,6 +153,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                         setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
                         const formData = new FormData();
                         formData.append('file', file);
+                        formData.append('businessName', businessName || 'General');
+                        const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
+                        formData.append('sectionName', sName);
+
                         try {
                           const res = await fetch(`/api/upload`, { method: 'POST', body: formData });
                           const data = await res.json();
@@ -398,8 +406,16 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem' }}>
               {(Array.isArray(value) ? value : []).map((item: any, i: number) => (
                 <div key={i} className="gallery-item-card animate-in" style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <div style={{ height: '140px', position: 'relative' }}>
-                    <img src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ height: '140px', position: 'relative', background: '#000' }}>
+                    {(() => {
+                      const url = typeof item === 'object' ? item.url : item;
+                      const isVideo = url && (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.includes('/video/upload/'));
+                      return isVideo ? (
+                        <video src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay muted loop />
+                      ) : (
+                        <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      );
+                    })()}
                     {!isFieldLocked && (
                       <button onClick={() => {
                         const next = [...value]; next.splice(i, 1); handleChange(next);
@@ -412,26 +428,30 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                     <button
                       onClick={() => {
                         if (isFieldLocked) return;
-                        const featuredCount = value.filter((p: any) => p.is_hero).length;
-                        if (!item.is_hero && featuredCount >= (tierFeatures.maxSlides || 3) && !isAdmin) {
+                        const isObj = typeof item === 'object';
+                        const itemIsHero = isObj ? !!item.is_hero : false;
+                        
+                        const featuredCount = value.filter((p: any) => typeof p === 'object' ? p.is_hero : false).length;
+                        if (!itemIsHero && featuredCount >= (tierFeatures.maxSlides || 3) && !isAdmin) {
                           alert(`Hero Slide Limit Reached (${tierFeatures.maxSlides || 3} max). Please upgrade or unselect another photo.`);
                           return;
                         }
                         const next = [...value];
-                        next[i] = { ...item, is_hero: !item.is_hero };
+                        const newItem = isObj ? { ...item, is_hero: !itemIsHero } : { url: item, is_hero: true };
+                        next[i] = newItem;
                         handleChange(next);
                       }}
                       style={{
                         position: 'absolute', top: 10, left: 10,
-                        background: item.is_hero ? '#D4AF37' : 'rgba(255,255,255,0.8)',
-                        color: item.is_hero ? '#fff' : '#64748b',
+                        background: (typeof item === 'object' && item.is_hero) ? '#D4AF37' : 'rgba(255,255,255,0.8)',
+                        color: (typeof item === 'object' && item.is_hero) ? '#fff' : '#64748b',
                         border: 'none', borderRadius: '8px', padding: '4px 8px',
                         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
                         fontSize: '0.6rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                       }}
                     >
-                      <i className={`fa${item.is_hero ? 's' : 'r'} fa-star`}></i>
-                      {item.is_hero ? 'FEATURED IN HERO' : 'PROMOTE TO HERO'}
+                      <i className={`fa${(typeof item === 'object' && item.is_hero) ? 's' : 'r'} fa-star`}></i>
+                      {(typeof item === 'object' && item.is_hero) ? 'FEATURED IN HERO' : 'PROMOTE TO HERO'}
                     </button>
 
                     <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800 }}>
@@ -484,10 +504,11 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                       <input 
                         type="text"
                         placeholder="Paste image link here..."
-                        value={item.url || ''}
+                        value={(typeof item === 'object' ? item.url : item) || ''}
                         onChange={e => {
                           const next = [...value];
-                          next[i] = { ...item, url: e.target.value };
+                          const newVal = e.target.value;
+                          next[i] = typeof item === 'object' ? { ...item, url: newVal } : newVal;
                           handleChange(next);
                         }}
                         style={{ width: '100%', fontSize: '0.65rem', border: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '6px', padding: '4px 8px', color: '#64748b' }}
@@ -546,6 +567,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                         for (const file of files) {
                           const fd = new FormData(); 
                           fd.append('file', file);
+                          fd.append('businessName', businessName || 'General');
+                          const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
+                          fd.append('sectionName', sName);
+                          
                           const res = await fetch('/api/upload', { method: 'POST', body: fd });
                           const json = await res.json();
                           if (json.url) {
@@ -555,8 +580,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           }
                         }
                         handleChange(newItems);
-                      } catch (err) {
+                        notify(`Media Synchronized: ${files.length} assets added to ${sectionId}`, 'success');
+                      } catch (err: any) {
                         console.error("Batch upload failed", err);
+                        notify(err.message || "Media Upload Failed", "error");
                       } finally {
                         setUploadingFields(prev => ({ ...prev, [field.id]: false }));
                         // Reset input value so same file can be uploaded again if needed

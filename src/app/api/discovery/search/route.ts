@@ -52,10 +52,28 @@ export async function GET(req: NextRequest) {
 
     const results = await query(sql, params);
 
+    // --- GOVERNANCE: FILTER CUSTOM DATA BY SECTION VISIBILITY ---
+    const hiddenSections = await query('SELECT id FROM sections WHERE show_on_card = 0');
+    const hiddenIds = hiddenSections.map((s: any) => s.id);
+
+    const filteredResults = results.map((biz: any) => {
+      if (!biz.custom_data) return biz;
+      try {
+        const data = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data;
+        // Remove data for sections that are hidden on cards
+        hiddenIds.forEach((id: string) => {
+          if (data[id]) delete data[id];
+        });
+        return { ...biz, custom_data: data };
+      } catch (e) {
+        return biz;
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      count: results.length,
-      results
+      count: filteredResults.length,
+      results: filteredResults
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

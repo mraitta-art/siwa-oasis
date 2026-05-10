@@ -88,11 +88,26 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     const sRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/jana/sections?type=${biz.type_id}`, { cache: 'no-store' });
     let sections = await sRes.json();
 
-    // TIER-BASED FILTERING
-    const allowed = biz.tier_features?.allowed_public_sections;
-    if (allowed && Array.isArray(allowed)) {
-       sections = sections.filter((s: any) => allowed.includes(s.id));
-    }
+    // --- MULTI-LAYERED SECTION GOVERNANCE ---
+    const tierAllowed = biz.tier_features?.allowed_public_sections;
+    const templateHidden = biz.template_features?.hidden_sections;
+
+    sections = sections.filter((s: any) => {
+      // 1. Global Governance (Admin-level toggle)
+      if (s.show_on_public === 0 || s.show_on_public === false) return false;
+
+      // 2. Tier Governance (Commercial limits)
+      if (tierAllowed && Array.isArray(tierAllowed)) {
+        if (!tierAllowed.includes(s.id)) return false;
+      }
+
+      // 3. Template Governance (Blueprint overrides)
+      if (templateHidden && Array.isArray(templateHidden)) {
+        if (templateHidden.includes(s.id)) return false;
+      }
+
+      return true;
+    });
 
     return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} />;
   } catch (e) {

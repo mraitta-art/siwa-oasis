@@ -62,22 +62,41 @@ export async function executeSearch(
     filters: typeof engine.filters === 'string' ? JSON.parse(engine.filters) : engine.filters,
   };
 
+  // 1. Fetch field-to-section mapping for deep-scan
+  const dbFields = await dbQuery('SELECT name, section_id FROM form_fields');
+  const fieldToSection: Record<string, string> = {};
+  dbFields.forEach((f: any) => {
+    if (f.section_id) fieldToSection[f.name] = f.section_id;
+  });
+
   const conditions = buildSearchQuery(se, userFilters);
   let sql = 'SELECT b.*, bt.name as type_name, bt.icon as type_icon FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id WHERE b.published = TRUE AND b.status = "active"';
   const params: any[] = [];
 
   conditions.forEach(c => {
+    // If it's a standard column, use it directly. Otherwise, check if it's a section field.
+    const standardColumns = ['name', 'slug', 'type_id', 'status', 'subscription_tier'];
+    let columnRef = `b.${c.field}`;
+    
+    if (!standardColumns.includes(c.field)) {
+      const sectionId = fieldToSection[c.field];
+      if (sectionId) {
+        // Use JSON_EXTRACT for section-based fields
+        columnRef = `JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.${sectionId}.${c.field}'))`;
+      }
+    }
+
     if (c.operator === 'ilike') {
-      sql += ` AND b.${c.field} LIKE ?`;
+      sql += ` AND ${columnRef} LIKE ?`;
       params.push(`%${c.value}%`);
     } else if (c.operator === 'eq') {
-      sql += ` AND b.${c.field} = ?`;
+      sql += ` AND ${columnRef} = ?`;
       params.push(c.value);
     } else if (c.operator === 'gte') {
-      sql += ` AND b.${c.field} >= ?`;
+      sql += ` AND ${columnRef} >= ?`;
       params.push(c.value);
     } else if (c.operator === 'lte') {
-      sql += ` AND b.${c.field} <= ?`;
+      sql += ` AND ${columnRef} <= ?`;
       params.push(c.value);
     }
   });

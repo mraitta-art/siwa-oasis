@@ -15,36 +15,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    // Validate file type (Images & Videos)
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+    ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only images are allowed.' },
+        { error: 'Invalid file type. Only images and videos are allowed.' },
         { status: 400 }
       );
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    // Validate file size (max 50MB for video support)
+    if (file.size > 50 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
+        { error: 'File too large. Maximum size is 50MB.' },
         { status: 400 }
       );
     }
+
+    // Extract folder hints (business/section)
+    const bizName = formData.get('businessName') as string || 'general';
+    const sectionName = formData.get('sectionName') as string || 'misc';
+    
+    // Construct Hierarchical Folder Path: siwa-oasis/businesses/business-name/section-name
+    const safeBizName = bizName.toLowerCase().replace(/\s+/g, '-');
+    const safeSectionName = sectionName.toLowerCase().replace(/\s+/g, '-');
+    const cloudFolder = `siwa-oasis/businesses/${safeBizName}/${safeSectionName}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // 1. Try Cloudinary (Production Storage)
     if (process.env.CLOUDINARY_CLOUD_NAME) {
       try {
-        const result: any = await uploadToCloudinary(buffer, 'siwa-admin-media');
+        const result: any = await uploadToCloudinary(buffer, cloudFolder);
         return NextResponse.json({ 
           success: true,
           url: result.secure_url,
           filename: file.name,
           size: file.size,
           type: file.type,
-          source: 'cloudinary'
+          source: 'cloudinary',
+          folder: cloudFolder
         });
       } catch (cloudErr: any) {
         console.error('[CLOUDINARY ERROR]', cloudErr);

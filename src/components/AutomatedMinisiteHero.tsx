@@ -53,6 +53,12 @@ export default function AutomatedMinisiteHero({
     const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
     const capturedSectionIds = new Set<string>();
 
+    const isHeroVideo = (url: string) => {
+      if (!url) return false;
+      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.quicktime'];
+      return videoExtensions.some(ext => url.toLowerCase().endsWith(ext)) || url.includes('/video/upload/');
+    };
+
     activeSections.forEach(section => {
       capturedSectionIds.add(section.id);
       const sectionData = customData[section.id] || {};
@@ -87,17 +93,18 @@ export default function AutomatedMinisiteHero({
       featuredPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
+        const isVid = isHeroVideo(url);
         
         allSlides.push({
           id: `${section.id}_img_${idx}`,
-          type: 'image',
+          type: isVid ? 'video' : 'image',
           mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
           title: caption || section.name,
           subtitle: `DISCOVER THE ${(section.name || '').toUpperCase()} EXPERIENCE`,
           caption: (businessName || '').toUpperCase(), 
           ctaText: `READ FULL STORY`,
           ctaLink: `#${section.id}`,
-          animation: 'kenburns',
+          animation: isVid ? 'fade' : 'kenburns',
           displayMode: photo.display_mode || 'image',
           showCaption: photo.show_caption !== false,
           bgColor: photo.bg_color || null
@@ -107,16 +114,18 @@ export default function AutomatedMinisiteHero({
       // Fallback slide (if NOTHING is featured, show the first photo as a courtesy)
       if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
         const firstPhoto = photos[0];
+        const url = (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || '';
+        const isVid = isHeroVideo(url);
         allSlides.push({
           id: `${section.id}_img_first`,
-          type: 'image',
-          mediaUrl: (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
+          type: isVid ? 'video' : 'image',
+          mediaUrl: url || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
           title: (typeof firstPhoto === 'object' ? firstPhoto.caption : '') || section.name,
           subtitle: `EXPLORE OUR UNIQUE NARRATIVE`,
           caption: (businessName || '').toUpperCase(),
           ctaText: 'EXPLORE',
           ctaLink: `#${section.id}`,
-          animation: 'kenburns'
+          animation: isVid ? 'fade' : 'kenburns'
         });
       }
     });
@@ -138,16 +147,17 @@ export default function AutomatedMinisiteHero({
       heroPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
+        const isVid = isHeroVideo(url);
         allSlides.push({
           id: `${sectionKey}_direct_${idx}`,
-          type: 'image',
+          type: isVid ? 'video' : 'image',
           mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
           title: caption || sectionKey.replace(/_/g, ' ').toUpperCase(),
           subtitle: `DISCOVER MORE`,
           caption: (businessName || '').toUpperCase(),
           ctaText: 'READ FULL STORY',
           ctaLink: `#${sectionKey}`,
-          animation: 'kenburns',
+          animation: isVid ? 'fade' : 'kenburns',
           displayMode: photo.display_mode || 'image',
           showCaption: photo.show_caption !== false,
           bgColor: photo.bg_color || null

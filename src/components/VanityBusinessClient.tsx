@@ -64,34 +64,38 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>{(biz?.name || '').toUpperCase()}</div>
           <div style={{ display: 'flex', gap: '2rem' }}>
-            {activeSections.map(s => (
-              <button 
-                key={s.id} 
-                onClick={() => {
-                  window.location.hash = s.id;
-                  setActiveTab(s.id);
-                }}
-                style={{ 
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: activeTab === s.id ? '#D4AF37' : '#64748b', 
-                  fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1px',
-                  borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
-                  paddingBottom: '0.5rem', transition: 'all 0.3s'
-                }}>
-                {(s?.name || '').toUpperCase()}
-              </button>
-            ))}
+            {activeSections.map(s => {
+              const customLabel = biz.custom_data?.section_labels?.[s.id] || s.name;
+              return (
+                <button 
+                  key={s.id} 
+                  onClick={() => {
+                    window.location.hash = s.id;
+                    setActiveTab(s.id);
+                  }}
+                  style={{ 
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: activeTab === s.id ? '#D4AF37' : '#64748b', 
+                    fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1px',
+                    borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
+                    paddingBottom: '0.5rem', transition: 'all 0.3s'
+                  }}>
+                  {(customLabel || '').toUpperCase()}
+                </button>
+              );
+            })}
           </div>
           <Link href="/" className="btn btn-sm btn-outline gold-border">SIWA TODAY</Link>
         </div>
       </nav>
 
       <div className="container" style={{ maxWidth: '1200px', padding: '4rem 1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '4rem' }}>
+        <div style={{ gridTemplateColumns: '1fr 380px', display: 'grid', gap: '4rem' }}>
           <main>
             {activeSections.filter(s => s.id === activeTab).map(section => {
               const secData = data[section.id];
-              if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {section.name}.</div>;
+              const customLabel = biz.custom_data?.section_labels?.[section.id] || section.name;
+              if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {customLabel}.</div>;
 
               return (
                 <section key={section.id} id={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem', scrollMarginTop: '100px' }}>
@@ -100,7 +104,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
                       <i className={`fas ${section.icon || 'fa-layer-group'}`}></i>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#1e293b' }}>{section.name}</h2>
+                      <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#1e293b' }}>{customLabel}</h2>
                       <div style={{ height: '3px', width: '40px', background: '#D4AF37', marginTop: '0.5rem' }}></div>
                     </div>
                   </div>
@@ -130,12 +134,18 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
                         <div style={{ marginTop: '2.5rem' }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
                             {secData.section_gallery.map((item: any, i: number) => {
-                              const imgUrl = typeof item === 'object' ? item.url : item;
+                              const mediaUrl = typeof item === 'object' ? item.url : item;
                               const caption = typeof item === 'object' ? item.caption : '';
+                              const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.mov') || mediaUrl.includes('/video/upload/'));
+                              
                               return (
                                 <div key={i} style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid #f1f5f9' }}>
-                                  <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
-                                    <img src={imgUrl} alt={caption || `${section.name} gallery ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <div style={{ height: '180px', overflow: 'hidden', position: 'relative', background: '#000' }}>
+                                    {isVideo ? (
+                                      <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <img src={mediaUrl} alt={caption || `${section.name} gallery ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    )}
                                   </div>
                                   {caption && <div style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{caption}</div>}
                                 </div>

@@ -714,6 +714,35 @@ function SectionsContent() {
                   </label>
                 </div>
               </div>
+
+              <div style={{ marginTop: '1.5rem' }}>
+                <label className="form-label">Visibility Governance</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!editingSection.show_on_public} onChange={e => setEditingSection({...editingSection, show_on_public: e.target.checked})} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0369a1' }}>Public Minisite Visibility</div>
+                      <div style={{ fontSize: '0.65rem', color: '#0369a1', opacity: 0.8 }}>Allow this section to be rendered on the vendor's public website.</div>
+                    </div>
+                  </label>
+                  
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!editingSection.is_filterable} onChange={e => setEditingSection({...editingSection, is_filterable: e.target.checked})} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#9d174d' }}>Search Engine Discovery</div>
+                      <div style={{ fontSize: '0.65rem', color: '#9d174d', opacity: 0.8 }}>Allow search engines to filter businesses by data in this section.</div>
+                    </div>
+                  </label>
+                  
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!editingSection.show_on_card} onChange={e => setEditingSection({...editingSection, show_on_card: e.target.checked})} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#065f46' }}>Result Card Display</div>
+                      <div style={{ fontSize: '0.65rem', color: '#065f46', opacity: 0.8 }}>Highlight key data from this section on search result listing cards.</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="card-footer" style={{ justifyContent: 'flex-end', gap: '1rem' }}>
               <button className="btn btn-outline" onClick={() => setShowModal(false)}>CANCEL</button>

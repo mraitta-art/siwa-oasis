@@ -29,9 +29,13 @@ export async function POST(request: Request) {
       if (engine[0]?.allowed_fields) {
         const fieldNames = typeof engine[0].allowed_fields === 'string' ? JSON.parse(engine[0].allowed_fields) : engine[0].allowed_fields;
         
-        // Fetch section_id for each field to build the JSON path
+        // Fetch section_id for each field to build the JSON path, filtered by is_filterable governance
         const fields: any[] = await query(
-          `SELECT name, section_id FROM form_fields WHERE name IN (${fieldNames.map(() => '?').join(',')})`,
+          `SELECT ff.name, ff.section_id 
+           FROM form_fields ff
+           JOIN sections s ON ff.section_id = s.id
+           WHERE ff.name IN (${fieldNames.map(() => '?').join(',')})
+           AND s.is_filterable = 1`,
           fieldNames
         );
         
@@ -61,8 +65,24 @@ export async function POST(request: Request) {
       JOIN business_types bt ON b.type_id = bt.id
       WHERE b.active = 1 AND ${conditions.join(' AND ')}
     `, params);
+    
+    // --- GOVERNANCE: FILTER CUSTOM DATA BY SECTION VISIBILITY ---
+    const hiddenSections = await query('SELECT id FROM sections WHERE show_on_card = 0');
+    const hiddenIds = hiddenSections.map((s: any) => s.id);
 
-    return NextResponse.json(results);
+    const filteredResults = results.map((biz: any) => {
+      try {
+        const data = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : (biz.custom_data || {});
+        hiddenIds.forEach((id: string) => {
+          if (data[id]) delete data[id];
+        });
+        return { ...biz, custom_data: data };
+      } catch (e) {
+        return biz;
+      }
+    });
+
+    return NextResponse.json(filteredResults);
 
   } catch (error: any) {
     console.error('Vibe Search Error:', error);
