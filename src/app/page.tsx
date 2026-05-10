@@ -56,7 +56,7 @@ export default function Home() {
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
-            <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: '40px', objectFit: 'contain' }} />
+            <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
               <i className="fas fa-sun" style={{ color: '#D4AF37', fontSize: '1.5rem' }}></i>
@@ -81,7 +81,7 @@ export default function Home() {
          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '4rem' }}>
             <div>
                {settings?.logo_url ? (
-                 <img src={settings.logo_url} alt={settings.site_name} style={{ height: '50px', marginBottom: '1.5rem', objectFit: 'contain' }} />
+                 <img src={settings.logo_url} alt={settings.site_name} style={{ height: `${(settings.logo_height || 40) * 1.2}px`, marginBottom: '1.5rem', objectFit: 'contain' }} />
                ) : (
                  <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#fff', marginBottom: '1.5rem' }}>SIWA.TODAY</div>
                )}

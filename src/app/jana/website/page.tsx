@@ -49,9 +49,9 @@ export default function MultiPageSiteBuilder() {
 
   // PAGE SETTINGS
   const [siteSettings, setSiteSettings] = useState<{
-    site_name: string; primary_color: string; tagline: string; show_logo_in_hero: boolean; carousel_autoplay: boolean; carousel_interval: number; logo_url?: string; show_watermark?: boolean;
+    site_name: string; primary_color: string; tagline: string; show_logo_in_hero: boolean; carousel_autoplay: boolean; carousel_interval: number; logo_url?: string; show_watermark?: boolean; logo_height?: number;
   }>({
-    site_name: 'Siwa Today', primary_color: '#D4AF37', tagline: 'Experience the magic of the oasis.', show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000, logo_url: '', show_watermark: true
+    site_name: 'Siwa Today', primary_color: '#D4AF37', tagline: 'Experience the magic of the oasis.', show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000, logo_url: '', show_watermark: true, logo_height: 40
   });
 
   // TEMPLATE META
@@ -329,6 +329,16 @@ export default function MultiPageSiteBuilder() {
                    />
                 </label>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37' }}>HEIGHT (PX):</span>
+              <input 
+                type="number"
+                value={siteSettings.logo_height || 40} 
+                onChange={e => setSiteSettings(s => ({ ...s, logo_height: parseInt(e.target.value) || 40 }))} 
+                style={{ padding: '0.4rem 0.5rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: 60 }} 
+              />
             </div>
 
             <div style={{ width: '1px', height: '20px', background: '#eee' }}></div>
