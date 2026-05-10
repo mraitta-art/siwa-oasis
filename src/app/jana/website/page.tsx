@@ -23,7 +23,7 @@ const PALETTE = [
 const zoneColors: Record<string, string> = { header: '#D4AF37', body: '#10b981', footer: '#64748b' };
 
 type Zone = 'header' | 'body' | 'footer';
-interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; }
+interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
 
 type Mode = 'PAGES' | 'TEMPLATES';
 
