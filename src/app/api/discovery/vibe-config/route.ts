@@ -11,18 +11,36 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const engineId = searchParams.get('engineId');
 
-    let targetFields = ["vibe_tags"]; // Default
+    let targetFields = ["vibe_tags"]; // Default baseline
 
+    // 1. DISCOVERY: Find all fields from sections marked as 'is_filterable'
+    const filterableSections: any[] = await query("SELECT id FROM sections WHERE is_filterable = 1");
+    if (filterableSections.length > 0) {
+      const sectionIds = filterableSections.map(s => s.id);
+      const sectionPlaceholders = sectionIds.map(() => '?').join(',');
+      const autoFields: any[] = await query(
+        `SELECT name FROM form_fields WHERE section_id IN (${sectionPlaceholders}) AND field_type IN ('select', 'multiselect', 'checkbox_group')`,
+        sectionIds
+      );
+      autoFields.forEach(f => {
+        if (!targetFields.includes(f.name)) targetFields.push(f.name);
+      });
+    }
+
+    // 2. SPECIFIC: Add fields allowed by the specific engine
     if (engineId) {
       const [engine]: any = await query("SELECT allowed_fields FROM search_engines WHERE id = ?", [engineId]);
       if (engine && engine.allowed_fields) {
-        targetFields = typeof engine.allowed_fields === 'string' ? JSON.parse(engine.allowed_fields) : engine.allowed_fields;
+        const engineFields = typeof engine.allowed_fields === 'string' ? JSON.parse(engine.allowed_fields) : engine.allowed_fields;
+        engineFields.forEach((f: string) => {
+          if (!targetFields.includes(f)) targetFields.push(f);
+        });
       }
     }
 
     if (targetFields.length === 0) return NextResponse.json({ options: [] });
 
-    // Fetch options for all allowed fields
+    // 3. AGGREGATION: Fetch options for all identified fields
     const placeholders = targetFields.map(() => '?').join(',');
     const fields: any[] = await query(
       `SELECT options FROM form_fields WHERE name IN (${placeholders})`,
@@ -35,8 +53,8 @@ export async function GET(request: NextRequest) {
       return Array.isArray(opts) ? opts : [];
     });
 
-    // Remove duplicates
-    const uniqueOptions = Array.from(new Set(allOptions));
+    // Remove duplicates and sort
+    const uniqueOptions = Array.from(new Set(allOptions)).sort();
 
     return NextResponse.json({ options: uniqueOptions });
   } catch (error: any) {
