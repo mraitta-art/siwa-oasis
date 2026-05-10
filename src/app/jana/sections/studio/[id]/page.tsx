@@ -102,6 +102,13 @@ export default function SectionStudioPage() {
     </div>
   );
 
+  if (!section) return (
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+       <h2 style={{ color: '#1e293b' }}>Section Architecture Not Found</h2>
+       <Link href="/jana/sections" style={{ color: '#D4AF37', fontWeight: 700, textDecoration: 'none', marginTop: '1rem' }}>RETURN TO ARCHITECT</Link>
+    </div>
+  );
+
   return (
     <main style={{ minHeight: '100vh', background: '#f1f5f9' }}>
       {/* TOP NAVIGATION BAR */}
@@ -116,7 +123,7 @@ export default function SectionStudioPage() {
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{section.name} Studio</h1>
-              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.5px' }}>{section.id.toUpperCase()} • ORCHESTRATION MODE</div>
+              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.5px' }}>{section?.id?.toUpperCase()} • ORCHESTRATION MODE</div>
             </div>
           </div>
         </div>
