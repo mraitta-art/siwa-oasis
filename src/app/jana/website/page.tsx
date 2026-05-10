@@ -465,13 +465,15 @@ export default function MultiPageSiteBuilder() {
 
                       {slot.key === 'hero_carousel' && (
                         <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                          <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>CAROUSEL CONTENT ID</label>
+                          <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>CAROUSEL CONTENT ID (UNIQUE)</label>
                           <input
-                            value={slot.carousel_id || ''}
+                            value={slot.props?.carousel_id || slot.carousel_id || ''}
                             onChange={e => {
                               const next = [...slots];
                               const i = next.findIndex(s => s.id === slot.id);
-                              next[i].carousel_id = e.target.value.toLowerCase().replace(/\s+/g, '_');
+                              const cid = e.target.value.toLowerCase().replace(/\s+/g, '_');
+                              next[i].carousel_id = cid;
+                              next[i].props = { ...(next[i].props || {}), carousel_id: cid };
                               setSlots(next);
                             }}
                             placeholder={mode === 'TEMPLATES' ? "Leave empty (uses Vendor photos)" : "e.g. main_hero"}

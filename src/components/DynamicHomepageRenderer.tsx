@@ -15,13 +15,12 @@ interface SectionProps {
 const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
   switch (type) {
     case 'hero_carousel':
-      // The hero carousel handles its own fetching based on siteId in props if needed,
-      // but here we can pass slides if we have them. 
-      // For simplicity, we'll assume the homepage layout provides the context.
+      const carouselId = props?.carousel_id || props?.siteId || 'main_hero';
       return (
         <section style={{ height: '85vh', minHeight: '500px', position: 'relative' }}>
           <AdvancedHeroCarousel 
             height="85vh" 
+            carouselName={carouselId}
             autoPlay={true} 
             autoPlayInterval={siteSettings?.carousel_interval || 8000} 
             showIndicators={true}
