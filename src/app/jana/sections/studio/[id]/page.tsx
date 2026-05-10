@@ -153,7 +153,10 @@ export default function SectionStudioPage() {
   }
 
   async function addField() {
-    if (!newFieldLabel.trim()) return;
+    if (!newFieldLabel.trim()) {
+      notify('Please enter a Field Label before saving.', 'error');
+      return;
+    }
     const name = newFieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
     try {
       const res = await fetch('/api/jana/forms', {
