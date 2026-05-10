@@ -672,6 +672,41 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
               OPEN LIBRARY
             </button>
           </div>
+        ) : field.field_type === 'boolean' || field.field_type === 'checkbox' ? (
+          <label className="switch" style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: isFieldLocked ? 'not-allowed' : 'pointer', opacity: isFieldLocked ? 0.6 : 1 }}>
+            <div style={{ position: 'relative', width: '50px', height: '28px' }}>
+              <input 
+                type="checkbox" 
+                checked={!!value} 
+                onChange={e => handleChange(e.target.checked)}
+                disabled={isFieldLocked}
+                style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+              />
+              <span style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '28px',
+                background: value ? '#D4AF37' : '#e2e8f0', transition: '0.4s',
+              }}>
+                <span style={{
+                  position: 'absolute', height: '22px', width: '22px', left: value ? '24px' : '3px', bottom: '3px',
+                  background: '#fff', borderRadius: '50%', transition: '0.4s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}></span>
+              </span>
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: value ? '#1e293b' : '#94a3b8' }}>
+              {value ? 'ENABLED' : 'DISABLED'}
+            </span>
+          </label>
+        ) : field.field_type === 'textarea' ? (
+          <textarea
+            className="form-control" value={value || ''}
+            onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
+            style={{ minHeight: '100px', resize: 'vertical' }}
+          />
+        ) : field.field_type === 'number' ? (
+          <input
+            type="number" className="form-control" value={value || ''}
+            onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
+          />
         ) : (
           <input
             type="text" className="form-control" value={value || ''}
@@ -680,6 +715,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         )}
       </div>
     );
+
   };
 
   if (!fields || fields.length === 0) return <p>No fields.</p>;

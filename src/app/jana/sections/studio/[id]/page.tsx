@@ -573,20 +573,37 @@ export default function SectionStudioPage() {
                         </td>
                         {fields.map(f => (
                           <td key={f.id} style={{ padding: '1rem', verticalAlign: 'top' }}>
-                            {f.field_type === 'boolean' ? (
-                              <input 
-                                type="checkbox" 
-                                checked={!!(multiBusinessData[biz.id]?.[f.name])}
-                                onChange={e => {
-                                  const newData = { ...multiBusinessData };
-                                  if (!newData[biz.id]) newData[biz.id] = {};
-                                  newData[biz.id][f.name] = e.target.checked;
-                                  setMultiBusinessData(newData);
-                                }}
-                              />
+                            {f.field_type === 'boolean' || f.field_type === 'checkbox' ? (
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                <div style={{ position: 'relative', width: '40px', height: '22px' }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={!!(multiBusinessData[biz.id]?.[f.name])}
+                                    onChange={e => {
+                                      const newData = { ...multiBusinessData };
+                                      if (!newData[biz.id]) newData[biz.id] = {};
+                                      newData[biz.id][f.name] = e.target.checked;
+                                      setMultiBusinessData(newData);
+                                    }}
+                                    style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                                  />
+                                  <span style={{
+                                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '22px',
+                                    background: multiBusinessData[biz.id]?.[f.name] ? '#D4AF37' : '#cbd5e1', transition: '0.3s',
+                                  }}>
+                                    <span style={{
+                                      position: 'absolute', height: '16px', width: '16px', left: multiBusinessData[biz.id]?.[f.name] ? '21px' : '3px', bottom: '3px',
+                                      background: '#fff', borderRadius: '50%', transition: '0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }}></span>
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: multiBusinessData[biz.id]?.[f.name] ? '#1e293b' : '#94a3b8' }}>
+                                  {multiBusinessData[biz.id]?.[f.name] ? 'ON' : 'OFF'}
+                                </span>
+                              </label>
                             ) : f.field_type === 'select' || f.field_type === 'multiselect' ? (
                               <select 
-                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', background: '#fff', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', outlineColor: '#3b82f6', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}
                                 value={multiBusinessData[biz.id]?.[f.name] || ''}
                                 onChange={e => {
                                   const newData = { ...multiBusinessData };
@@ -603,21 +620,20 @@ export default function SectionStudioPage() {
                             ) : f.field_type === 'gallery' ? (
                               <Link 
                                 href={`/jana/businesses/${biz.id}/orchestrate?section=${id}&field=${f.name}`}
-                                style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#D4AF37', fontSize: '0.65rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', fontSize: '0.7rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
                               >
                                 <i className="fas fa-camera"></i> GALLERY
                               </Link>
                             ) : f.field_type === 'rich_text' || f.name.includes('blog') || f.name.includes('story') ? (
                               <Link 
                                 href={`/jana/businesses/${biz.id}/orchestrate?section=${id}&field=${f.name}`}
-                                style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#3b82f6', fontSize: '0.65rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#3b82f6', fontSize: '0.7rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
                               >
-                                <i className="fas fa-feather-alt"></i> STORY
+                                <i className="fas fa-feather-alt"></i> OPEN EDITOR
                               </Link>
-                            ) : (
-                              <input 
-                                type="text"
-                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                            ) : f.field_type === 'textarea' ? (
+                              <textarea 
+                                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', background: '#fff', fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', outlineColor: '#3b82f6', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', minHeight: '60px', resize: 'vertical' }}
                                 value={multiBusinessData[biz.id]?.[f.name] || ''}
                                 onChange={e => {
                                   const newData = { ...multiBusinessData };
@@ -625,6 +641,20 @@ export default function SectionStudioPage() {
                                   newData[biz.id][f.name] = e.target.value;
                                   setMultiBusinessData(newData);
                                 }}
+                                placeholder="Enter text..."
+                              />
+                            ) : (
+                              <input 
+                                type="text"
+                                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', background: '#fff', fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', outlineColor: '#3b82f6', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}
+                                value={multiBusinessData[biz.id]?.[f.name] || ''}
+                                onChange={e => {
+                                  const newData = { ...multiBusinessData };
+                                  if (!newData[biz.id]) newData[biz.id] = {};
+                                  newData[biz.id][f.name] = e.target.value;
+                                  setMultiBusinessData(newData);
+                                }}
+                                placeholder="Enter value..."
                               />
                             )}
                           </td>
