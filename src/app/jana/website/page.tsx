@@ -448,7 +448,9 @@ export default function MultiPageSiteBuilder() {
                             onChange={e => {
                               const next = [...slots];
                               const i = next.findIndex(s => s.id === slot.id);
-                              next[i].engine_id = e.target.value;
+                              const eid = e.target.value;
+                              next[i].engine_id = eid;
+                              next[i].props = { ...(next[i].props || {}), engine_id: eid };
                               setSlots(next);
                             }}
                             style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700 }}

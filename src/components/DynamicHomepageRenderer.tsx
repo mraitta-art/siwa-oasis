@@ -29,6 +29,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       );
 
     case 'search_bar':
+      const engineId = props?.engine_id || props?.engineId || '';
       return (
         <section id="discovery" style={{ background: '#0a0f1d', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative' }}>
           <div className="container" style={{ 
@@ -36,7 +37,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
             backdropFilter: 'blur(40px)', padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
             border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)'
           }}>
-            <VibeSearch />
+            <VibeSearch engineId={engineId} />
           </div>
         </section>
       );
