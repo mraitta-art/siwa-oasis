@@ -422,6 +422,25 @@ function SectionsContent() {
                     STUDIO
                   </Link>
 
+                  <Link 
+                    href={`/jana/sections/studio/${s.id}?tab=feed`}
+                    style={{ 
+                      padding: '0.6rem 1.25rem', 
+                      borderRadius: '12px', 
+                      background: 'rgba(212,175,55,0.1)',
+                      color: '#D4AF37',
+                      textDecoration: 'none',
+                      fontWeight: 900,
+                      fontSize: '0.75rem',
+                      display: 'flex', alignItems: 'center', gap: '0.6rem',
+                      border: '1px solid rgba(212,175,55,0.2)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <i className="fas fa-server"></i>
+                    FEED
+                  </Link>
+
                   <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }}></div>
 
                   <button onClick={() => openEditor(s)} className="btn-icon" title="Edit Metadata"><i className="fas fa-cog"></i></button>

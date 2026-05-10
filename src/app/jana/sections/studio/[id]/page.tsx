@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
 import TagInput from '@/components/TagInput';
@@ -17,12 +17,15 @@ const FIELD_LIBRARY = SIWA_DEFS.fieldLibrary;
 export default function SectionStudioPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { notify } = useAdmin();
 
   const [section, setSection] = useState<any>(null);
   const [fields, setFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dna' | 'items' | 'wiring' | 'components' | 'feed'>('dna');
+  
+  const initialTab = (searchParams.get('tab') as any) || 'dna';
+  const [activeTab, setActiveTab] = useState<'dna' | 'items' | 'wiring' | 'components' | 'feed'>(initialTab);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [multiBusinessData, setMultiBusinessData] = useState<Record<string, any>>({});
 
@@ -344,7 +347,14 @@ export default function SectionStudioPage() {
                          </div>
                        )}
 
-                       <button onClick={saveField} style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900 }}>APPLY BLUEPRINT</button>
+                       <button onClick={saveField} style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}>APPLY BLUEPRINT</button>
+                       
+                       <button 
+                        onClick={() => setActiveTab('feed')}
+                        style={{ width: '100%', marginTop: '1rem', padding: '1rem', borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)', fontWeight: 900, cursor: 'pointer', fontSize: '0.75rem' }}
+                       >
+                          FEED THIS DATA →
+                       </button>
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', border: '2px dashed #f1f5f9', borderRadius: '24px' }}>
