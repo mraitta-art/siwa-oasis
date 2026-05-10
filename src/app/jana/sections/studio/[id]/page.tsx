@@ -36,8 +36,26 @@ export default function SectionStudioPage() {
 
   async function loadBusinesses() {
     try {
-      const res = await fetch('/api/jana/businesses');
-      if (res.ok) setBusinesses(await res.json());
+      // Fetch businesses with their type metadata for governance checks
+      const res = await fetch('/api/jana/businesses?includeType=true');
+      if (res.ok) {
+        const allBiz = await res.json();
+        
+        // GOVERNANCE FILTER: Only show businesses authorized for this section
+        const filtered = allBiz.filter((biz: any) => {
+          if (section?.is_universal) return true;
+          
+          // Check if the business type includes this section ID
+          const typeSections = [
+            ...(typeof biz.type_sections === 'string' ? JSON.parse(biz.type_sections || '[]') : biz.type_sections || []),
+            ...(typeof biz.type_own_sections === 'string' ? JSON.parse(biz.type_own_sections || '[]') : biz.type_own_sections || [])
+          ];
+          
+          return typeSections.includes(id);
+        });
+        
+        setBusinesses(filtered);
+      }
     } catch (e) { console.error(e); }
   }
 

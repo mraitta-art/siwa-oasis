@@ -30,8 +30,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(biz);
     }
 
+    const includeType = searchParams.get('includeType') === 'true';
     const businesses = await query(`
       SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
+             ${includeType ? 'bt.sections as type_sections, bt.own_sections as type_own_sections,' : ''}
              p.email as vendor_email, p.display_name as vendor_name,
              mt.name as template_name
       FROM businesses b
@@ -40,6 +42,14 @@ export async function GET(request: NextRequest) {
       LEFT JOIN minisite_templates mt ON b.template_id = mt.id
       ORDER BY b.created_at DESC
     `);
+
+    if (includeType) {
+      businesses.forEach((biz: any) => {
+        if (biz.type_sections) biz.type_sections = typeof biz.type_sections === 'string' ? JSON.parse(biz.type_sections) : biz.type_sections;
+        if (biz.type_own_sections) biz.type_own_sections = typeof biz.type_own_sections === 'string' ? JSON.parse(biz.type_own_sections) : biz.type_own_sections;
+      });
+    }
+
     return NextResponse.json(businesses);
   } catch (e: any) {
     // Auto-heal: add template_id and is_standalone if missing
