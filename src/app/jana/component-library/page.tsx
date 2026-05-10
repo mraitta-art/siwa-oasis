@@ -101,6 +101,8 @@ export default function ComponentLibraryPage() {
       case 'cta_section': return '📢';
       case 'features': return '⭐';
       case 'map': return '🗺️';
+      case 'timeline': return '⏳';
+      case 'audio_visual': return '🎵';
       default: return '📦';
     }
   };
@@ -114,6 +116,8 @@ export default function ComponentLibraryPage() {
       case 'cta_section': return 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)';
       case 'features': return 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)';
       case 'map': return 'linear-gradient(135deg, #14b8a6 0%, #5eead4 100%)';
+      case 'timeline': return 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)';
+      case 'audio_visual': return 'linear-gradient(135deg, #f43f5e 0%, #fb923c 100%)';
       default: return 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)';
     }
   };
