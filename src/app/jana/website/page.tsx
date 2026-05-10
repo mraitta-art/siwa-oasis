@@ -37,21 +37,25 @@ export default function MultiPageSiteBuilder() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [activeZone, setActiveZone] = useState<Zone>('body');
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [showNewPageModal, setShowNewPageModal] = useState(false);
   const [newPageName, setNewPageName] = useState('');
 
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => { 
+    setToast({ msg, type }); 
+    setTimeout(() => setToast(null), 4000); 
+  };
+  const notify = showToast; // Alias for consistency
+
   // PAGE SETTINGS
   const [siteSettings, setSiteSettings] = useState<{
-    site_name: string; primary_color: string; tagline: string; show_logo_in_hero: boolean; carousel_autoplay: boolean; carousel_interval: number; logo_url?: string;
+    site_name: string; primary_color: string; tagline: string; show_logo_in_hero: boolean; carousel_autoplay: boolean; carousel_interval: number; logo_url?: string; show_watermark?: boolean;
   }>({
-    site_name: 'Siwa Today', primary_color: '#D4AF37', tagline: 'Experience the magic of the oasis.', show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000, logo_url: ''
+    site_name: 'Siwa Today', primary_color: '#D4AF37', tagline: 'Experience the magic of the oasis.', show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000, logo_url: '', show_watermark: true
   });
 
   // TEMPLATE META
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
   const [dynamicComponents, setDynamicComponents] = useState<typeof PALETTE>([]);
   const [searchEngines, setSearchEngines] = useState<any[]>([]);
   const [tiers, setTiers] = useState<any[]>([]);
@@ -214,41 +218,41 @@ export default function MultiPageSiteBuilder() {
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Top Bar ─────────────────────────────────────────────── */}
-      <div style={{ background: '#0f172a', color: '#fff', padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 200, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div style={{ background: '#020617', color: '#fff', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 200, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#D4AF37,#F5E6AD)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#1a1a2e' }}>S</div>
+            <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg,#D4AF37,#F5E6AD)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#1a1a2e', boxShadow: '0 0 20px rgba(212,175,55,0.3)' }}>S</div>
             <div>
-              <div style={{ fontWeight: 900, fontSize: '0.9rem', letterSpacing: '-0.5px' }}>{mode === 'TEMPLATES' ? 'BLUEPRINT ARCHITECT' : 'MAIN WEBSITE BUILDER'}</div>
-              <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>Target: <span style={{ color: mode === 'TEMPLATES' ? '#10b981' : '#D4AF37', fontWeight: 900 }}>{(currentPage || '').toUpperCase()}</span></div>
+              <div style={{ fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.5px' }}>{mode === 'TEMPLATES' ? 'MINISITE GOVERNANCE' : 'PORTAL ARCHITECT'}</div>
+              <div style={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Mode: <span style={{ color: mode === 'TEMPLATES' ? '#10b981' : '#D4AF37', fontWeight: 900 }}>{mode === 'TEMPLATES' ? 'Blueprint Engineering' : 'Portal Orchestration'}</span>
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <button
               onClick={() => handleModeSwitch('PAGES')}
-              style={{ padding: '0.4rem 1.25rem', border: 'none', borderRadius: '7px', background: mode === 'PAGES' ? '#D4AF37' : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === 'PAGES' ? '#1a1a2e' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}>
-              GLOBAL PAGES
+              style={{ padding: '0.5rem 1.5rem', border: 'none', borderRadius: '8px', background: mode === 'PAGES' ? '#D4AF37' : 'transparent', fontSize: '0.7rem', fontWeight: 900, color: mode === 'PAGES' ? '#1a1a2e' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)' }}>
+              <i className="fas fa-globe" style={{ marginRight: '8px' }}></i> MAIN PORTAL
             </button>
             <button
               onClick={() => handleModeSwitch('TEMPLATES')}
-              style={{ padding: '0.4rem 1.25rem', border: 'none', borderRadius: '7px', background: mode === 'TEMPLATES' ? '#10b981' : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === 'TEMPLATES' ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}>
-              TIER BLUEPRINTS
+              style={{ padding: '0.5rem 1.5rem', border: 'none', borderRadius: '8px', background: mode === 'TEMPLATES' ? '#10b981' : 'transparent', fontSize: '0.7rem', fontWeight: 900, color: mode === 'TEMPLATES' ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)' }}>
+              <i className="fas fa-microchip" style={{ marginRight: '8px' }}></i> MINISITE BLUEPRINTS
             </button>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {mode === 'PAGES' && (
-            <>
-              <select
-                value={currentPage || ''}
-                onChange={e => setCurrentPage(e.target.value)}
-                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700 }}
-              >
-                {pages.map(p => <option key={p} value={p} style={{ color: '#000' }}>{(p || '').toUpperCase()} PAGE</option>)}
-              </select>
-            </>
+            <select
+              value={currentPage || ''}
+              onChange={e => setCurrentPage(e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700 }}
+            >
+              {pages.map(p => <option key={p} value={p} style={{ color: '#000' }}>{(p || '').toUpperCase()} PAGE</option>)}
+            </select>
           )}
 
           {mode === 'TEMPLATES' && (
@@ -276,8 +280,71 @@ export default function MultiPageSiteBuilder() {
       {mode === 'PAGES' ? (
         <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '0.5rem 2rem', overflowX: 'auto' }}>
           <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>PAGE CONFIG</div>
-          <input value={siteSettings.site_name} onChange={e => setSiteSettings(s => ({ ...s, site_name: e.target.value }))} placeholder="Title" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: 140 }} />
-          <input value={siteSettings.tagline} onChange={e => setSiteSettings(s => ({ ...s, tagline: e.target.value }))} placeholder="Description" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, flex: 1 }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>TITLE:</span>
+            <input value={siteSettings.site_name} onChange={e => setSiteSettings(s => ({ ...s, site_name: e.target.value }))} placeholder="Title" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: 140 }} />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>TAGLINE:</span>
+            <input value={siteSettings.tagline} onChange={e => setSiteSettings(s => ({ ...s, tagline: e.target.value }))} placeholder="Description" style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: '100%' }} />
+          </div>
+
+          <div style={{ width: '1px', height: '24px', background: '#eee' }}></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37' }}>PLATFORM LOGO:</span>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input 
+                  value={siteSettings.logo_url || ''} 
+                  onChange={e => setSiteSettings(s => ({ ...s, logo_url: e.target.value }))} 
+                  placeholder="Portal Logo URL" 
+                  style={{ padding: '0.4rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, width: 200 }} 
+                />
+                <label className="upload-btn-mini" style={{ cursor: 'pointer', background: '#f1f5f9', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, border: '1px solid #e2e8f0' }}>
+                   <i className="fas fa-cloud-upload-alt"></i>
+                   <input 
+                     type="file" 
+                     hidden 
+                     accept="image/*" 
+                     onChange={async (e) => {
+                       const file = e.target.files?.[0];
+                       if (!file) return;
+                       showToast('Uploading Platform Logo...');
+                       try {
+                         const fd = new FormData();
+                         fd.append('file', file);
+                         fd.append('businessName', 'Platform');
+                         fd.append('sectionName', 'branding');
+                         const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                         const data = await res.json();
+                         if (data.url) {
+                            setSiteSettings(s => ({ ...s, logo_url: data.url }));
+                            showToast('✅ Platform Logo Updated');
+                         }
+                       } catch (err) { showToast('❌ Logo Upload Failed'); }
+                     }}
+                   />
+                </label>
+              </div>
+            </div>
+
+            <div style={{ width: '1px', height: '20px', background: '#eee' }}></div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'rgba(212,175,55,0.05)', padding: '4px 10px', borderRadius: '6px' }}>
+              <input 
+                type="checkbox" 
+                checked={siteSettings.show_watermark !== false} 
+                onChange={e => setSiteSettings(s => ({ ...s, show_watermark: e.target.checked }))} 
+              />
+              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#1e293b' }}>
+                <i className="fas fa-certificate" style={{ color: '#D4AF37', marginRight: '4px' }}></i>
+                GLOBAL SIGNATURE (ADMIN ONLY)
+              </span>
+            </label>
+          </div>
         </div>
       ) : (
         <div style={{ background: '#fff', borderBottom: '1px solid #10b981', display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '0.5rem 2rem', overflowX: 'auto' }}>
@@ -483,8 +550,25 @@ export default function MultiPageSiteBuilder() {
       )}
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', background: '#0f172a', color: '#fff', padding: '1rem 2rem', borderRadius: 50, fontWeight: 700, fontSize: '0.85rem', zIndex: 9999 }}>{toast}</div>
+        <div style={{ 
+          position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', 
+          background: toast.type === 'error' ? '#ef4444' : toast.type === 'info' ? '#D4AF37' : '#0f172a', 
+          color: '#fff', padding: '1rem 2rem', borderRadius: '16px', fontWeight: 800, fontSize: '0.85rem', 
+          zIndex: 9999, boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '0.75rem',
+          animation: 'slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}>
+          <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : toast.type === 'info' ? 'fa-info-circle' : 'fa-check-circle'}`}></i>
+          {toast.msg}
+        </div>
       )}
+
+      <style jsx global>{`
+        @keyframes slideUp {
+          from { transform: translate(-50%, 100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .tab-btn.active { background: #D4AF37 !important; color: #1a1a2e !important; }
+      `}</style>
     </div>
   );
 }

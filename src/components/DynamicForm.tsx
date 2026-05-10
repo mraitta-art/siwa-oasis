@@ -409,11 +409,24 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                   <div style={{ height: '140px', position: 'relative', background: '#000' }}>
                     {(() => {
                       const url = typeof item === 'object' ? item.url : item;
+                      const isUploading = typeof item === 'object' && item.is_uploading;
                       const isVideo = url && (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.includes('/video/upload/'));
-                      return isVideo ? (
-                        <video src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay muted loop />
-                      ) : (
-                        <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      
+                      return (
+                        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                          {isVideo ? (
+                            <video src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isUploading ? 'blur(5px)' : 'none' }} autoPlay muted loop />
+                          ) : (
+                            <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isUploading ? 'blur(5px)' : 'none' }} />
+                          )}
+                          
+                          {isUploading && (
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', color: '#fff' }}>
+                              <i className="fas fa-circle-notch fa-spin fa-2x" style={{ marginBottom: '0.5rem' }}></i>
+                              <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '1px' }}>PROCESSING...</div>
+                            </div>
+                          )}
+                        </div>
                       );
                     })()}
                     {!isFieldLocked && (
@@ -562,31 +575,51 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
                       setUploadingFields(prev => ({ ...prev, [field.id]: true }));
 
+                      const currentItems = Array.isArray(value) ? [...value] : [];
+                      const optimisticItems = [...currentItems];
+                      
+                      // 1. Add Optimistic Previews
+                      const localPreviews = files.map(file => ({
+                        url: URL.createObjectURL(file),
+                        caption: 'Uploading...',
+                        is_uploading: true,
+                        file: file
+                      }));
+                      
+                      handleChange([...currentItems, ...localPreviews]);
+
                       try {
-                        const newItems = [...(Array.isArray(value) ? value : [])];
-                        for (const file of files) {
+                        const finalItems = [...currentItems];
+                        
+                        for (const localItem of localPreviews) {
                           const fd = new FormData(); 
-                          fd.append('file', file);
+                          fd.append('file', localItem.file);
                           fd.append('businessName', businessName || 'General');
                           const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
                           fd.append('sectionName', sName);
                           
                           const res = await fetch('/api/upload', { method: 'POST', body: fd });
                           const json = await res.json();
+                          
                           if (json.url) {
-                            newItems.push({ url: json.url, caption: '', is_hero: false });
-                          } else {
-                            console.error("Upload failed for file:", file.name, json.error);
+                            finalItems.push({ url: json.url, caption: '', is_hero: false });
+                            // Update UI incrementally if possible, or just build the final list
+                            handleChange([...finalItems, ...localPreviews.slice(finalItems.length - currentItems.length)]);
                           }
+                          
+                          // Revoke the object URL to free memory
+                          URL.revokeObjectURL(localItem.url);
                         }
-                        handleChange(newItems);
-                        notify(`Media Synchronized: ${files.length} assets added to ${sectionId}`, 'success');
+                        
+                        handleChange(finalItems);
+                        notify(`Media Synchronized: ${files.length} assets added`, 'success');
                       } catch (err: any) {
                         console.error("Batch upload failed", err);
                         notify(err.message || "Media Upload Failed", "error");
+                        // Fallback to original items if everything fails
+                        handleChange(currentItems);
                       } finally {
                         setUploadingFields(prev => ({ ...prev, [field.id]: false }));
-                        // Reset input value so same file can be uploaded again if needed
                         e.target.value = '';
                       }
                     }} 
@@ -654,16 +687,16 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   return (
     <div className="dynamic-form">
       {/* GLOBAL LANGUAGE SWITCHER */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', background: '#f1f5f9', padding: '0.5rem', borderRadius: '12px' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '0.4rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
         {languages.map(lang => (
           <button
             key={lang.code}
             onClick={() => setCurrentLang(lang.code)}
             style={{
-              flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
-              background: currentLang === lang.code ? '#1e293b' : 'transparent',
-              color: currentLang === lang.code ? '#fff' : '#64748b',
-              fontSize: '0.65rem', fontWeight: 900, transition: 'all 0.2s',
+              flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              background: currentLang === lang.code ? '#D4AF37' : 'transparent',
+              color: currentLang === lang.code ? '#1e293b' : 'rgba(255,255,255,0.4)',
+              fontSize: '0.6rem', fontWeight: 900, transition: 'all 0.2s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
             }}
           >
@@ -674,16 +707,114 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
       </div>
 
       {sectionOrder.map(sid => (
-        <section key={sid} style={{ marginBottom: '4rem' }}>
-          <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '0.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1rem', color: '#1e293b' }}>
-            <i className={`fas ${sections?.find(s => s.id === sid)?.icon || 'fa-tag'}`} style={{ color: '#D4AF37' }}></i>
-            {sections?.find(s => s.id === sid)?.name || (sid || '').toUpperCase()}
-          </h3>
-          <div className="grid-2">
+        <section key={sid} style={{ marginBottom: '3rem' }}>
+          <div className="grid-fit">
             {groupedFields[sid].map(f => renderField(f, sid))}
           </div>
         </section>
       ))}
+
+      <style jsx>{`
+        .dynamic-form { width: 100%; }
+        
+        .grid-fit {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+
+        @media (min-width: 1400px) {
+          .grid-fit {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          }
+        }
+
+        .form-group { margin-bottom: 0.5rem; }
+        
+        .form-label {
+          display: block;
+          font-size: 0.65rem;
+          font-weight: 900;
+          color: #D4AF37;
+          letter-spacing: 1px;
+          margin-bottom: 0.75rem;
+          text-transform: uppercase;
+        }
+
+        .help-text {
+          display: block;
+          font-size: 0.6rem;
+          color: rgba(255,255,255,0.3);
+          font-weight: 600;
+          margin-top: 0.25rem;
+          letter-spacing: 0.5px;
+          line-height: 1.4;
+        }
+
+        .form-control {
+          width: 100%;
+          background: rgba(255,255,255,0.03);
+          border: 1.2px solid rgba(255,255,255,0.08);
+          border-radius: 12px;
+          padding: 0.85rem 1.25rem;
+          color: #fff;
+          font-size: 0.9rem;
+          font-weight: 600;
+          outline: none;
+          transition: all 0.3s;
+        }
+
+        .form-control:focus {
+          border-color: #D4AF37;
+          background: rgba(212,175,55,0.04);
+          box-shadow: 0 0 15px rgba(212,175,55,0.1);
+        }
+
+        .narrative-canvas {
+          scrollbar-width: thin;
+          scrollbar-color: #D4AF37 transparent;
+        }
+
+        .editor-tool-btn {
+          background: none;
+          border: none;
+          color: #64748b;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .editor-tool-btn:hover {
+          background: #f1f5f9;
+          color: #1e293b;
+        }
+
+        .lock-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(15,23,42,0.8);
+          backdrop-filter: blur(4px);
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 12px;
+        }
+
+        .animate-in {
+          animation: slideUp 0.4s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
