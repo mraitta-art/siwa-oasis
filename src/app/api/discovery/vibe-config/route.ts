@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
 
     let targetFields = ["vibe_tags"]; // Default baseline
 
-    // 1. DISCOVERY: Find all fields from sections marked as 'is_filterable'
+    // 1. DISCOVERY: Find all fields from sections marked as 'is_filterable' AND marked as 'searchable'
     const filterableSections: any[] = await query("SELECT id FROM sections WHERE is_filterable = 1");
     if (filterableSections.length > 0) {
       const sectionIds = filterableSections.map(s => s.id);
       const sectionPlaceholders = sectionIds.map(() => '?').join(',');
       const autoFields: any[] = await query(
-        `SELECT name FROM form_fields WHERE section_id IN (${sectionPlaceholders}) AND field_type IN ('select', 'multiselect', 'checkbox_group')`,
+        `SELECT name FROM form_fields WHERE section_id IN (${sectionPlaceholders}) AND field_type IN ('select', 'multiselect', 'checkbox_group') AND searchable = 1`,
         sectionIds
       );
       autoFields.forEach(f => {

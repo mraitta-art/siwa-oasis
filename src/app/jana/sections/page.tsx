@@ -627,6 +627,9 @@ function SectionsContent() {
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
                           <input type="checkbox" checked={!!inspectingField.vendor_editable} onChange={e => setInspectingField({ ...inspectingField, vendor_editable: e.target.checked })} /> VENDOR EDITABLE
                         </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: 'rgba(212,175,55,0.05)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
+                          <input type="checkbox" checked={!!inspectingField.searchable} onChange={e => setInspectingField({ ...inspectingField, searchable: e.target.checked })} /> INCLUDE IN FILTER UI
+                        </label>
                       </div>
 
                       {inspectingField.field_type === 'component' && (
