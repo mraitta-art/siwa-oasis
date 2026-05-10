@@ -29,6 +29,7 @@ export default function SectionStudioPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [multiBusinessData, setMultiBusinessData] = useState<Record<string, any>>({});
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
+  const [businessTypes, setBusinessTypes] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) loadData();
@@ -103,13 +104,15 @@ export default function SectionStudioPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [secRes, fieldsRes] = await Promise.all([
+      const [secRes, fieldsRes, typesRes] = await Promise.all([
         fetch(`/api/jana/sections?id=${id}`),
-        fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${id}`)
+        fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${id}`),
+        fetch(`/api/jana/types`)
       ]);
       
       if (secRes.ok) setSection(await secRes.json());
       if (fieldsRes.ok) setFields(await fieldsRes.json());
+      if (typesRes.ok) setBusinessTypes(await typesRes.json());
     } catch (e) { console.error(e); }
     setLoading(false);
   }
