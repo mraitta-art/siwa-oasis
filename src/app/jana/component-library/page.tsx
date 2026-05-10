@@ -100,6 +100,7 @@ export default function ComponentLibraryPage() {
       case 'testimonials': return '💬';
       case 'cta_section': return '📢';
       case 'features': return '⭐';
+      case 'map': return '🗺️';
       default: return '📦';
     }
   };
@@ -112,6 +113,7 @@ export default function ComponentLibraryPage() {
       case 'testimonials': return 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
       case 'cta_section': return 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)';
       case 'features': return 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)';
+      case 'map': return 'linear-gradient(135deg, #14b8a6 0%, #5eead4 100%)';
       default: return 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)';
     }
   };
@@ -692,6 +694,7 @@ export default function ComponentLibraryPage() {
                     <option value="carousel">Carousel (Mixed Media: Images & Videos)</option>
                     <option value="blog">Blog (Text / Mini-Blogs)</option>
                     <option value="gallery">Gallery (Grid)</option>
+                    <option value="map">Interactive Map (Location / Google Maps)</option>
                   </select>
                 </div>
 
