@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import TagInput from '@/components/TagInput';
 import { SIWA_DEFS } from '@/lib/governance/constants';
 
@@ -402,28 +403,24 @@ function SectionsContent() {
                     <button onClick={() => moveSection(s.id, 1)} className="btn-icon" style={{ fontSize: '0.7rem', padding: '0.2rem' }} title="Move Down"><i className="fas fa-chevron-down"></i></button>
                   </div>
 
-                  <button 
-                    onClick={() => {
-                      if (isExpanded) setExpandedSection(null);
-                      else { setExpandedSection(s.id); loadSectionFields(s.id); }
-                      setInspectingField(null);
-                    }}
+                  <Link 
+                    href={`/jana/sections/studio/${s.id}`}
                     style={{ 
                       padding: '0.6rem 1.25rem', 
                       borderRadius: '12px', 
-                      background: isExpanded ? '#D4AF37' : '#1e293b',
-                      color: isExpanded ? '#1e293b' : '#fff',
-                      border: 'none',
+                      background: '#1e293b',
+                      color: '#fff',
+                      textDecoration: 'none',
                       fontWeight: 900,
                       fontSize: '0.75rem',
-                      cursor: 'pointer',
                       display: 'flex', alignItems: 'center', gap: '0.6rem',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                       transition: 'all 0.2s'
                     }}
                   >
-                    <i className={`fas ${isExpanded ? 'fa-chevron-up' : 'fa-pencil-ruler'}`}></i>
-                    {isExpanded ? 'HIDE DESIGNER' : 'DESIGN BLUEPRINT'}
-                  </button>
+                    <i className="fas fa-pencil-ruler"></i>
+                    STUDIO
+                  </Link>
 
                   <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }}></div>
 
