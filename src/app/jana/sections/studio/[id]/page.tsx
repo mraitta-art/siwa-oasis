@@ -498,6 +498,20 @@ export default function SectionStudioPage() {
                                   <option key={opt} value={opt}>{opt}</option>
                                 ))}
                               </select>
+                            ) : f.field_type === 'gallery' ? (
+                              <Link 
+                                href={`/jana/businesses/${biz.id}/orchestrate?section=${id}&field=${f.name}`}
+                                style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#D4AF37', fontSize: '0.65rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                              >
+                                <i className="fas fa-camera"></i> GALLERY
+                              </Link>
+                            ) : f.field_type === 'rich_text' || f.name.includes('blog') || f.name.includes('story') ? (
+                              <Link 
+                                href={`/jana/businesses/${biz.id}/orchestrate?section=${id}&field=${f.name}`}
+                                style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#3b82f6', fontSize: '0.65rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                              >
+                                <i className="fas fa-feather-alt"></i> STORY
+                              </Link>
                             ) : (
                               <input 
                                 type="text"

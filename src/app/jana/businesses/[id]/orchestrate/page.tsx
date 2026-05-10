@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import DynamicForm from '@/components/DynamicForm';
 import { useAdmin } from '@/context/AdminContext';
 import Link from 'next/link';
@@ -15,8 +15,9 @@ type Tab = 'IDENTITY' | 'ARCHITECTURE' | 'CONTENT' | 'BRANDING' | 'MEDIA';
 
 export default function BusinessOrchestrator() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
   const { notify } = useAdmin();
-  const [activeTab, setActiveTab] = useState<Tab>('IDENTITY');
+  const [activeTab, setActiveTab] = useState<Tab>((searchParams.get('field') ? 'CONTENT' : 'IDENTITY') as Tab);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -44,11 +45,17 @@ export default function BusinessOrchestrator() {
         const fieldData = await fieldRes.json();
         setBiz((prev: any) => ({ ...prev, fields: fieldData }));
 
-        const templateSections = bizData.template_sections || [];
-        const firstActive = secData.find((s: any) => 
-          (bizData.custom_data?.[s.id] || templateSections.includes(s.id))
-        );
-        if (firstActive) setActiveSectionId(firstActive.id);
+        // Deep Link Handling: If a section is specified in URL, activate it
+        const targetSection = searchParams.get('section');
+        if (targetSection) {
+          setActiveSectionId(targetSection);
+        } else {
+          const templateSections = bizData.template_sections || [];
+          const firstActive = secData.find((s: any) => 
+            (bizData.custom_data?.[s.id] || templateSections.includes(s.id))
+          );
+          if (firstActive) setActiveSectionId(firstActive.id);
+        }
         
       } catch (err: any) {
         notify(err.message || 'Failed to load orchestrator data', 'error');
@@ -57,7 +64,7 @@ export default function BusinessOrchestrator() {
       }
     }
     loadData();
-  }, [id, notify]);
+  }, [id, notify, searchParams]);
 
   const handleSave = async () => {
     setSaving(true);
