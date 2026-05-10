@@ -22,17 +22,61 @@ export default function SectionStudioPage() {
   const [section, setSection] = useState<any>(null);
   const [fields, setFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dna' | 'items' | 'wiring' | 'components'>('dna');
-  
+  const [activeTab, setActiveTab] = useState<'dna' | 'items' | 'wiring' | 'components' | 'feed'>('dna');
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [multiBusinessData, setMultiBusinessData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (id) loadData();
+    loadBusinesses();
+  }, [id]);
+
+  async function loadBusinesses() {
+    try {
+      const res = await fetch('/api/jana/businesses');
+      if (res.ok) setBusinesses(await res.json());
+    } catch (e) { console.error(e); }
+  }
+
+  // Fetch data for all businesses for THIS section
+  useEffect(() => {
+    if (activeTab === 'feed' && id) {
+      loadMultiFeed();
+    }
+  }, [activeTab, id]);
+
+  async function loadMultiFeed() {
+    try {
+      const res = await fetch(`/api/jana/data-feed?sectionId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Convert array to Record<business_id, Record<field_name, value>>
+        const mapping: any = {};
+        data.forEach((row: any) => {
+          if (!mapping[row.business_id]) mapping[row.business_id] = {};
+          mapping[row.business_id][row.field_name] = row.value;
+        });
+        setMultiBusinessData(mapping);
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  async function saveMultiFeed() {
+    try {
+      await fetch('/api/jana/data-feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: id, data: multiBusinessData })
+      });
+      notify('Global Data Synchronized!', 'success');
+    } catch (e) { notify('Mass Sync Failed', 'error'); }
+  }
+
   // Editor States
   const [inspectingField, setInspectingField] = useState<any | null>(null);
   const [addingField, setAddingField] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldType, setNewFieldType] = useState('text');
-
-  useEffect(() => {
-    if (id) loadData();
-  }, [id]);
 
   async function loadData() {
     setLoading(true);
@@ -143,7 +187,8 @@ export default function SectionStudioPage() {
             { id: 'dna', label: '1. GOVERNANCE DNA', icon: 'fa-dna' },
             { id: 'items', label: '2. ATOMIC BLUEPRINT', icon: 'fa-cubes' },
             { id: 'wiring', label: '3. ECOSYSTEM WIRING', icon: 'fa-project-diagram' },
-            { id: 'components', label: '4. COMPONENT LOGIC', icon: 'fa-code-branch' }
+            { id: 'components', label: '4. COMPONENT LOGIC', icon: 'fa-code-branch' },
+            { id: 'feed', label: '5. GLOBAL DATA FEED', icon: 'fa-server' }
           ].map(tab => (
             <button 
               key={tab.id}
@@ -367,6 +412,101 @@ export default function SectionStudioPage() {
                       <span className="slider round"></span>
                    </label>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: GLOBAL DATA FEED */}
+          {activeTab === 'feed' && (
+            <div className="animate-in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Global Data Feed</h2>
+                  <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Directly populate this section for multiple businesses across the oasis.</p>
+                </div>
+                <button 
+                  onClick={saveMultiFeed}
+                  style={{ background: '#1e293b', color: '#fff', border: 'none', padding: '1rem 2rem', borderRadius: '14px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                >
+                  <i className="fas fa-sync"></i>
+                  MASS SYNCHRONIZE
+                </button>
+              </div>
+
+              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '24px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                      <th style={{ padding: '1.25rem', borderBottom: '1px solid #e2e8f0', width: '250px' }}>BUSINESS</th>
+                      {fields.map(f => (
+                        <th key={f.id} style={{ padding: '1.25rem', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 900 }}>{f.label.toUpperCase()}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {businesses.map(biz => (
+                      <tr key={biz.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '1.25rem', verticalAlign: 'top' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                              {biz.logo_url ? <img src={biz.logo_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="fas fa-store" style={{ color: '#cbd5e1' }}></i>}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800 }}>{biz.name}</div>
+                              <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>ID: {biz.id}</div>
+                            </div>
+                          </div>
+                        </td>
+                        {fields.map(f => (
+                          <td key={f.id} style={{ padding: '1rem', verticalAlign: 'top' }}>
+                            {f.field_type === 'boolean' ? (
+                              <input 
+                                type="checkbox" 
+                                checked={!!(multiBusinessData[biz.id]?.[f.name])}
+                                onChange={e => {
+                                  const newData = { ...multiBusinessData };
+                                  if (!newData[biz.id]) newData[biz.id] = {};
+                                  newData[biz.id][f.name] = e.target.checked;
+                                  setMultiBusinessData(newData);
+                                }}
+                              />
+                            ) : f.field_type === 'select' || f.field_type === 'multiselect' ? (
+                              <select 
+                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                value={multiBusinessData[biz.id]?.[f.name] || ''}
+                                onChange={e => {
+                                  const newData = { ...multiBusinessData };
+                                  if (!newData[biz.id]) newData[biz.id] = {};
+                                  newData[biz.id][f.name] = e.target.value;
+                                  setMultiBusinessData(newData);
+                                }}
+                              >
+                                <option value="">Select...</option>
+                                {(Array.isArray(f.options) ? f.options : []).map((opt: string) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input 
+                                type="text"
+                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                value={multiBusinessData[biz.id]?.[f.name] || ''}
+                                onChange={e => {
+                                  const newData = { ...multiBusinessData };
+                                  if (!newData[biz.id]) newData[biz.id] = {};
+                                  newData[biz.id][f.name] = e.target.value;
+                                  setMultiBusinessData(newData);
+                                }}
+                              />
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
