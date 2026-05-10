@@ -59,6 +59,7 @@ function SectionsContent() {
   // Link to Types
   const [linkingSection, setLinkingSection] = useState<string | null>(null);
   const [selectedLinkTypes, setSelectedLinkTypes] = useState<string[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
 
   // --- AUTO-ASSIGN LOGIC (THE "MANIPULATION" FIX) ---
   async function assignAndReturn(sectionId: string) {
@@ -359,23 +360,28 @@ function SectionsContent() {
           const fields = sectionFieldsMap[s.id] || [];
           
           return (
-            <div key={s.id} style={{ 
-              background: '#fff', 
-              borderRadius: '24px', 
-              border: isExpanded ? '2px solid #D4AF37' : '1px solid #e2e8f0',
-              boxShadow: isExpanded ? '0 20px 40px -10px rgba(212,175,55,0.15)' : '0 4px 6px -1px rgba(0,0,0,0.05)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              overflow: 'hidden'
-            }}>
+            <div 
+              key={s.id} 
+              onClick={() => setSelectedSectionId(s.id)}
+              style={{ 
+                background: selectedSectionId === s.id ? 'rgba(212,175,55,0.03)' : '#fff', 
+                padding: '1.5rem 2rem', 
+                borderRadius: '24px', 
+                border: selectedSectionId === s.id ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                display: 'flex', alignItems: 'center', gap: '2rem',
+                boxShadow: selectedSectionId === s.id ? '0 10px 30px -10px rgba(212,175,55,0.2)' : '0 4px 6px -1px rgba(0,0,0,0.02)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}
+            >
               {/* HEADER ROW */}
               <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <div style={{ 
-                  width: '56px', height: '56px', 
-                  background: s.is_universal ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : '#f8fafc', 
-                  borderRadius: '16px', 
+                  width: '64px', height: '64px', borderRadius: '18px', 
+                  background: selectedSectionId === s.id ? '#D4AF37' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
                   display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  fontSize: '1.5rem', 
-                  color: s.is_universal ? '#D4AF37' : '#1e293b',
+                  color: selectedSectionId === s.id ? '#fff' : '#D4AF37', fontSize: '1.5rem',
+                  transition: 'all 0.3s ease',
                   flexShrink: 0
                 }}>
                   <i className={`fas ${s.icon}`}></i>

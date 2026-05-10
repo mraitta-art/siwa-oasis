@@ -28,6 +28,7 @@ export default function SectionStudioPage() {
   const [activeTab, setActiveTab] = useState<'dna' | 'items' | 'wiring' | 'components' | 'feed'>(initialTab);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [multiBusinessData, setMultiBusinessData] = useState<Record<string, any>>({});
+  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) loadData();
@@ -452,13 +453,33 @@ export default function SectionStudioPage() {
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Global Data Feed</h2>
                   <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Directly populate this section for multiple businesses across the oasis.</p>
                 </div>
-                <button 
-                  onClick={saveMultiFeed}
-                  style={{ background: '#1e293b', color: '#fff', border: 'none', padding: '1rem 2rem', borderRadius: '14px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-                >
-                  <i className="fas fa-sync"></i>
-                  MASS SYNCHRONIZE
-                </button>
+                
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  {/* HIERARCHY FILTER */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <i className="fas fa-filter" style={{ color: '#94a3b8', fontSize: '0.75rem' }}></i>
+                    <select 
+                      style={{ background: 'transparent', border: 'none', fontWeight: 700, fontSize: '0.75rem', color: '#1e293b', outline: 'none', cursor: 'pointer' }}
+                      value={selectedTypeId || ''}
+                      onChange={e => setSelectedTypeId(e.target.value || null)}
+                    >
+                      <option value="">ALL TYPOLOGIES</option>
+                      {businessTypes.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.parent_id ? '↳ ' : '■ '}{t.name.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button 
+                    onClick={saveMultiFeed}
+                    style={{ background: '#1e293b', color: '#fff', border: 'none', padding: '1rem 2rem', borderRadius: '14px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                  >
+                    <i className="fas fa-sync"></i>
+                    MASS SYNCHRONIZE
+                  </button>
+                </div>
               </div>
 
               <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '24px' }}>
@@ -474,7 +495,7 @@ export default function SectionStudioPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {businesses.map(biz => (
+                    {businesses.filter(biz => !selectedTypeId || biz.type_id === selectedTypeId || biz.parent_id === selectedTypeId).map(biz => (
                       <tr key={biz.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '1.25rem', verticalAlign: 'top' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
