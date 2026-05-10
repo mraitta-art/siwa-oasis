@@ -2,92 +2,38 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
-import VibeSearch from '@/components/VibeSearch';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 
 export default function Home() {
-  const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
+  const [layout, setLayout] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [carouselInterval, setCarouselInterval] = useState(8000);
 
   useEffect(() => {
     async function init() {
       try {
-        const [manualRes, featuredRes, configRes] = await Promise.all([
-          fetch('/api/jana/hero-carousel'),
-          fetch('/api/discovery/featured'),
-          fetch('/api/jana/hero-carousel?siteId=main_hero') // Fetching config
-        ]);
-        const manual = manualRes.ok ? (await manualRes.json()).slides || [] : [];
-        const featured = featuredRes.ok ? (await featuredRes.json()).slides || [] : [];
-        const configData = configRes.ok ? await configRes.json() : {};
-        
-        // Dynamic Interval from Admin
-        if (configData.config?.autoPlayInterval) {
-          setCarouselInterval(configData.config.autoPlayInterval);
+        const res = await fetch('/api/jana/website?type=main');
+        if (res.ok) {
+          const data = await res.json();
+          const config = data[0];
+          if (config && config.body_components?.length > 0) {
+            setLayout(config.body_components);
+            setSettings(config.site_settings);
+          } else {
+            // FALLBACK: Default Gold Standard Layout
+            setLayout([
+              { id: 'h1', type: 'hero_carousel', props: { siteId: 'main_hero' } },
+              { id: 'h2', type: 'search_bar', props: {} },
+              { id: 'h3', type: 'blog', props: {} },
+              { id: 'h4', type: 'services', props: {} }
+            ]);
+          }
         }
-
-        // 1. MASTER INTRO VIDEO (Pure Cinema - No Text)
-        const siwaIntroVideo = {
-          id: 'siwa_intro',
-          type: 'youtube',
-          mediaUrl: 'https://www.youtube.com/watch?v=k1nfk9KeJlU',
-          title: "",
-          subtitle: "",
-          caption: "",
-          ctaText: "",
-          ctaLink: "",
-          showControls: false
-        };
-
-        // 2. ELITE LOGISTICS
-        const logisticsSlide = {
-          id: 'service_logistics',
-          type: 'image',
-          mediaUrl: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
-          title: "ELITE LOGISTICS",
-          subtitle: "Seamless private transitions from Cairo to the heart of the Oasis.",
-          caption: "FULL SERVICE",
-          ctaText: "VIEW TRANSFERS",
-          ctaLink: "/logistics",
-          animation: 'kenburns'
-        };
-
-        // 3. CURATED EXPEDITIONS
-        const toursSlide = {
-          id: 'service_tours',
-          type: 'image',
-          mediaUrl: 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
-          title: "CURATED EXPEDITIONS",
-          subtitle: "Narrative-driven desert safaris and salt-lake therapies.",
-          caption: "DISCOVERY",
-          ctaText: "EXPLORE TOURS",
-          ctaLink: "/expeditions",
-          animation: 'kenburns'
-        };
-
-        // 4. SIWAN CONCIERGE
-        const conciergeSlide = {
-          id: 'service_concierge',
-          type: 'image',
-          mediaUrl: 'https://images.unsplash.com/photo-1540979388789-6ece48a17499?q=80&w=2000',
-          title: "SIWAN CONCIERGE",
-          subtitle: "24/7 Personal assistants dedicated to your oasis mastery.",
-          caption: "WE CARE",
-          ctaText: "MEET YOUR GUIDE",
-          ctaLink: "/concierge",
-          animation: 'kenburns'
-        };
-
-        setCarouselSlides([
-          siwaIntroVideo, 
-          logisticsSlide, 
-          toursSlide, 
-          conciergeSlide, 
-          ...manual, 
-          ...featured
-        ]);
-      } catch (e) { console.error('Hero init fail:', e); }
+      } catch (e) { 
+        console.error('Homepage init fail:', e);
+        // Absolute Fallback
+        setLayout([{ type: 'hero_carousel' }, { type: 'search_bar' }]);
+      }
       setLoading(false);
     }
     init();
@@ -103,45 +49,25 @@ export default function Home() {
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a' }}>
       
-      {/* 🏛️ ELITE NAVIGATION (Brand Signature Only) */}
+      {/* 🏛️ ELITE NAVIGATION (Global Signature) */}
       <nav style={{ 
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, 
         padding: 'clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 5vw, 4rem)', 
-        display: 'flex', justifyContent: 'flex-start', alignItems: 'center', 
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' 
       }}>
         <div style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <i className="fas fa-sun" style={{ color: '#D4AF37', fontSize: '1.5rem' }}></i>
           <span>SIWA.<span style={{ color: '#D4AF37' }}>TODAY</span></span>
         </div>
+        <div style={{ display: 'flex', gap: '2rem' }}>
+          <Link href="/blog" style={{ color: '#fff', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '2px' }}>BLOG</Link>
+          <Link href="/be-a-partner" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '2px' }}>PARTNER</Link>
+        </div>
       </nav>
 
-      <section style={{ height: '85vh', minHeight: '500px', position: 'relative' }}>
-        <AdvancedHeroCarousel
-          slides={carouselSlides}
-          height="85vh"
-          autoPlay={true}
-          autoPlayInterval={carouselInterval}
-          showIndicators={true}
-          showArrows={false}
-        />
-      </section>
-
-      {/* 🔍 DISCOVERY DNA SEARCH (New Dynamic Vibe Search) */}
-      <section id="discovery" style={{ 
-        background: '#0a0f1d', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative', overflow: 'hidden'
-      }}>
-        {/* Decorative Background Glow */}
-        <div style={{ position: 'absolute', top: '-10%', left: '20%', width: '400px', height: '400px', background: 'rgba(212,175,55,0.05)', filter: 'blur(150px)', pointerEvents: 'none' }}></div>
-        
-        <div className="container" style={{ 
-          maxWidth: '1200px', margin: '0 auto', background: 'rgba(255,255,255,0.02)', 
-          backdropFilter: 'blur(40px)', padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
-          border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)'
-        }}>
-          <VibeSearch />
-        </div>
-      </section>
+      {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING */}
+      <DynamicHomepageRenderer layout={layout} settings={settings} />
 
       {/* 🌍 FOOTER (Global Navigation) */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8rem 4rem', background: '#0a0f1d', color: '#fff' }}>

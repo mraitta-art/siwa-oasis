@@ -13,6 +13,7 @@ const PALETTE = [
   { zone: 'body', key: 'testimonials', name: 'Testimonials', icon: '💬', manager: '/jana/data-manager', color: '#f59e0b' },
   { zone: 'body', key: 'map', name: 'Interactive Map', icon: '🗺️', manager: null, color: '#14b8a6' },
   { zone: 'body', key: 'cta_banner', name: 'Call-to-Action Banner', icon: '📣', manager: null, color: '#ef4444' },
+  { zone: 'body', key: 'featured_vibe', name: 'Featured Vibe Story', icon: '🪄', manager: null, color: '#D4AF37' },
   { zone: 'body', key: 'features', name: 'Feature Highlights', icon: '⭐', manager: null, color: '#84cc16' },
   { zone: 'footer', key: 'contact', name: 'Contact Info', icon: '📞', manager: null, color: '#64748b' },
   { zone: 'footer', key: 'social', name: 'Social Media Links', icon: '🔗', manager: null, color: '#1d4ed8' },
@@ -399,6 +400,53 @@ export default function MultiPageSiteBuilder() {
                             placeholder={mode === 'TEMPLATES' ? "Leave empty (uses Vendor photos)" : "e.g. main_hero"}
                             style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700 }}
                           />
+                        </div>
+                      )}
+
+                      {slot.key === 'featured_vibe' && (
+                        <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>VIBE CATEGORY</label>
+                            <input 
+                              value={slot.props?.vibe || ''} 
+                              onChange={e => {
+                                const next = [...slots];
+                                const i = next.findIndex(s => s.id === slot.id);
+                                next[i].props = { ...(next[i].props || {}), vibe: e.target.value };
+                                setSlots(next);
+                              }}
+                              placeholder="e.g. Salt Lakes" 
+                              style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700 }} 
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>STORY TITLE</label>
+                            <input 
+                              value={slot.props?.title || ''} 
+                              onChange={e => {
+                                const next = [...slots];
+                                const i = next.findIndex(s => s.id === slot.id);
+                                next[i].props = { ...(next[i].props || {}), title: e.target.value };
+                                setSlots(next);
+                              }}
+                              placeholder="e.g. The Turquoise Miracles" 
+                              style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700 }} 
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>DESCRIPTION</label>
+                            <textarea 
+                              value={slot.props?.description || ''} 
+                              onChange={e => {
+                                const next = [...slots];
+                                const i = next.findIndex(s => s.id === slot.id);
+                                next[i].props = { ...(next[i].props || {}), description: e.target.value };
+                                setSlots(next);
+                              }}
+                              placeholder="Tell the story..." 
+                              style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, minHeight: '80px' }} 
+                            />
+                          </div>
                         </div>
                       )}
 
