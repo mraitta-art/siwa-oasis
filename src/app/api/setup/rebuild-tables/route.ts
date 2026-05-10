@@ -4,6 +4,13 @@ import fs from 'fs';
 import path from 'path';
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get('secret');
+
+  if (!secret || secret !== process.env.JWT_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized — Invalid Secret' }, { status: 401 });
+  }
+
   try {
     const schemaPath = path.join(process.cwd(), 'master-schema.sql');
     if (!fs.existsSync(schemaPath)) {
