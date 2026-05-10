@@ -156,7 +156,7 @@ export default function SectionStudioPage() {
     if (!newFieldLabel.trim()) return;
     const name = newFieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
     try {
-      await fetch('/api/jana/forms', {
+      const res = await fetch('/api/jana/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -167,11 +167,17 @@ export default function SectionStudioPage() {
           field_type: newFieldType
         })
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save field');
+      }
+
       notify('Field added to blueprint.', 'success');
       setAddingField(false);
       setNewFieldLabel('');
       loadData();
-    } catch (e) { notify('Failed to add field', 'error'); }
+    } catch (e: any) { notify(e.message || 'Failed to add field', 'error'); }
   }
 
   if (loading) return (
