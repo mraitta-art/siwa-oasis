@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
+import { query } from '@/lib/db';
 
 /**
  * SERVER-SIDE SEO ENGINE & REDIRECT HANDLER
@@ -60,57 +61,88 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
   const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
   
   try {
-    let fetchUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/by-slug/${slug}`;
-    
+    let biz: any = null;
+
     if (isId) {
-      // It's an ID — let's find the slug and redirect! (PUBLIC SAFE)
-      const idRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/${slug}`, { cache: 'no-store' });
-      const bizById = await idRes.json();
-      if (bizById && bizById.slug) {
-        redirect(`/${bizById.slug}`);
-      }
+      // It's a UUID — fetch by ID and redirect to slug
+      const [bizById] = await query<any>(
+        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+         WHERE b.id = ?`,
+        [slug]
+      );
+      if (bizById?.slug) redirect(`/${bizById.slug}`);
+    } else {
+      // Fetch by slug directly from DB (avoids SSR self-fetch issues)
+      const [row] = await query<any>(
+        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+         WHERE b.slug = ?`,
+        [slug]
+      );
+      biz = row ?? null;
     }
 
-    const bRes = await fetch(fetchUrl, { cache: 'no-store' });
-    const biz = await bRes.json();
+    // Parse JSON fields
+    if (biz) {
+      try { if (typeof biz.custom_data === 'string') biz.custom_data = JSON.parse(biz.custom_data); } catch {}
+      try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
+      try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
+    }
 
-    if (!biz || biz.error) {
-       return (
+    if (!biz) {
+      return (
         <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
           <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
-          <p style={{ opacity: 0.5 }}>The business "{slug}" was not found in our registry.</p>
+          <p style={{ opacity: 0.5 }}>The business &quot;{slug}&quot; was not found in our registry.</p>
           <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to Siwa Today</Link>
         </div>
       );
     }
 
-    // Fetch sections server-side
-    const sRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/jana/sections?type=${biz.type_id}`, { cache: 'no-store' });
-    let sections = await sRes.json();
+    // Fetch sections directly from DB
+    const [typeData] = await query<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
+    let sections: any[] = [];
+
+    if (typeData) {
+      const sectionIds = [
+        ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
+        ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
+      ];
+
+      if (sectionIds.length > 0) {
+        const placeholders = sectionIds.map(() => '?').join(',');
+        const rows = await query<any>(
+          `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
+          sectionIds
+        );
+        sections = rows;
+      }
+    }
 
     // --- MULTI-LAYERED SECTION GOVERNANCE ---
     const tierAllowed = biz.tier_features?.allowed_public_sections;
     const templateHidden = biz.template_features?.hidden_sections;
 
     sections = sections.filter((s: any) => {
-      // 1. Global Governance (Admin-level toggle)
-      if (s.show_on_public === 0 || s.show_on_public === false) return false;
-
-      // 2. Tier Governance (Commercial limits)
-      if (tierAllowed && Array.isArray(tierAllowed)) {
-        if (!tierAllowed.includes(s.id)) return false;
-      }
-
-      // 3. Template Governance (Blueprint overrides)
-      if (templateHidden && Array.isArray(templateHidden)) {
-        if (templateHidden.includes(s.id)) return false;
-      }
-
+      if (tierAllowed && Array.isArray(tierAllowed) && !tierAllowed.includes(s.id)) return false;
+      if (templateHidden && Array.isArray(templateHidden) && templateHidden.includes(s.id)) return false;
       return true;
     });
 
     return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} />;
-  } catch (e) {
-    return <div>Error loading minisite</div>;
+  } catch (e: any) {
+    console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
+    return (
+      <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
+        <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '2rem' }}>Something went wrong</h1>
+        <p style={{ opacity: 0.5 }}>{e?.message || 'Unknown error loading minisite'}</p>
+        <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to Siwa Today</Link>
+      </div>
+    );
   }
 }
