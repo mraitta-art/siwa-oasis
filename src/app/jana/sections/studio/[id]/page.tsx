@@ -30,6 +30,8 @@ export default function SectionStudioPage() {
   const [multiBusinessData, setMultiBusinessData] = useState<Record<string, any>>({});
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [businessTypes, setBusinessTypes] = useState<any[]>([]);
+  const [expressions, setExpressions] = useState<any[]>([]);
+  const [optionMode, setOptionMode] = useState<'custom' | 'expression'>('custom');
 
   useEffect(() => {
     if (id) loadData();
@@ -106,11 +108,13 @@ export default function SectionStudioPage() {
     setLoading(true);
     try {
       const t = Date.now();
-      const [secRes, fieldsRes, typesRes] = await Promise.all([
+      const [secRes, fieldsRes, typesRes, exprRes] = await Promise.all([
         fetch(`/api/jana/sections?id=${id}&t=${t}`),
         fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${id}&t=${t}`),
-        fetch(`/api/jana/types?t=${t}`)
+        fetch(`/api/jana/types?t=${t}`),
+        fetch(`/api/jana/expressions?t=${t}`)
       ]);
+      if (exprRes.ok) setExpressions(await exprRes.json());
       
       if (secRes.ok) setSection(await secRes.json());
       if (fieldsRes.ok) {
@@ -404,7 +408,7 @@ export default function SectionStudioPage() {
                           <input type="text" className="form-control" value={inspectingField.label} onChange={e => setInspectingField({...inspectingField, label: e.target.value})} />
                        </div>
                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <label className="form-label" style={{ fontSize: '0.65rem' }}>SOVEREIGN FLAGS</label>
+                          <label className="form-label" style={{ fontSize: '0.65rem' }}>PERMISSION FLAGS</label>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#fff', borderRadius: '10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}>
                              <input type="checkbox" checked={!!inspectingField.searchable} onChange={e => setInspectingField({...inspectingField, searchable: e.target.checked})} /> INCLUDE IN FILTER UI
                           </label>
