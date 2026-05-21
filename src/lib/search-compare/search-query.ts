@@ -86,6 +86,21 @@ export async function executeSearch(
       }
     }
 
+    // Handle Promotion Flags
+    const promotionFlags = ['is_recommended', 'is_trusted', 'is_featured'];
+    if (promotionFlags.includes(c.field)) {
+      sql += ` AND b.${c.field} = ?`;
+      params.push(c.value === true || c.value === 1 ? 1 : 0);
+      return;
+    }
+
+    // Special: Offers Search (Deep Scan across all section custom_data)
+    if (c.field === 'offers') {
+      sql += ` AND b.custom_data LIKE ?`;
+      params.push(`%${c.value}%`);
+      return;
+    }
+
     if (c.operator === 'ilike') {
       sql += ` AND ${columnRef} LIKE ?`;
       params.push(`%${c.value}%`);

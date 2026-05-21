@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     log(`[TYPES POST] Attempt: ${JSON.stringify(body)}`);
-    const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [] } = body;
+    const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [], blueprint = null } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
 
     await execute(
-      `INSERT INTO business_types (id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(sections), JSON.stringify(own_sections), 99]
+      `INSERT INTO business_types (id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections, blueprint, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(sections), JSON.stringify(own_sections), JSON.stringify(blueprint), 99]
     );
     
     // Invalidate cache after mutation
@@ -55,12 +55,12 @@ export async function PUT(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     log(`[TYPES PUT] Attempt: ${JSON.stringify(body)}`);
-    const { id, name, icon, icon_color, description, is_parent, parent_id, active, sections, own_sections } = body;
+    const { id, name, icon, icon_color, description, is_parent, parent_id, active, sections, own_sections, blueprint } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     await execute(
-      `UPDATE business_types SET name=?, icon=?, icon_color=?, description=?, is_parent=?, parent_id=?, active=?, sections=?, own_sections=? WHERE id=?`,
-      [name, icon, icon_color, description, is_parent ? 1 : 0, is_parent ? null : (parent_id || null), active ? 1 : 0, JSON.stringify(sections || []), JSON.stringify(own_sections || []), id]
+      `UPDATE business_types SET name=?, icon=?, icon_color=?, description=?, is_parent=?, parent_id=?, active=?, sections=?, own_sections=?, blueprint=? WHERE id=?`,
+      [name, icon, icon_color, description, is_parent ? 1 : 0, is_parent ? null : (parent_id || null), active ? 1 : 0, JSON.stringify(sections || []), JSON.stringify(own_sections || []), JSON.stringify(blueprint || null), id]
     );
     
     // Invalidate cache after mutation

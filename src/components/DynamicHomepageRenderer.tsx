@@ -4,6 +4,7 @@ import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import VibeSearch from '@/components/VibeSearch';
 import HomepageBlog from '@/components/HomepageBlog';
 import FeaturedVibe from '@/components/FeaturedVibe';
+import InvestmentMarketplaceFeed from '@/components/InvestmentMarketplaceFeed';
 import Link from 'next/link';
 
 interface SectionProps {
@@ -56,6 +57,15 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
         <section style={{ background: '#0f172a', padding: '0 2rem' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <FeaturedVibe {...props} />
+          </div>
+        </section>
+      );
+
+    case 'investment_feed':
+      return (
+        <section style={{ background: '#0f172a', padding: '6rem 2rem' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <InvestmentMarketplaceFeed />
           </div>
         </section>
       );

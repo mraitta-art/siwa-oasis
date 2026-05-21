@@ -38,11 +38,20 @@ export default function BusinessOrchestrator() {
 
         if (bizData.error) throw new Error(bizData.error);
         
-        setBiz(bizData);
+        // Fetch Typology Blueprint
+        const typeRes = await fetch(`/api/jana/business-types?id=${bizData.type_id}`);
+        const typeData = await typeRes.json();
+        const blueprint = typeData.blueprint || { hidden_sections: [], hidden_fields: [] };
+
+        setBiz({ ...bizData, blueprint });
         setSections(secData);
         
         const fieldRes = await fetch(`/api/jana/forms?type=${bizData.type_id}`);
-        const fieldData = await fieldRes.json();
+        let fieldData = await fieldRes.json();
+
+        // Apply Blueprint Filter: Remove fields hidden at the Typology level
+        fieldData = fieldData.filter((f: any) => !blueprint.hidden_fields?.includes(f.name));
+
         setBiz((prev: any) => ({ ...prev, fields: fieldData }));
 
         // Deep Link Handling: If a section is specified in URL, activate it
@@ -113,6 +122,21 @@ export default function BusinessOrchestrator() {
 
   return (
     <div className="orchestrator-page">
+      <style>{`
+        @media (max-width: 768px) {
+          .orchestrator-header { padding: 1.5rem !important; }
+          .orchestrator-header > div > div { flex-direction: column; align-items: flex-start !important; gap: 1.5rem; }
+          .orchestrator-header .btn { width: 100%; justify-content: center; }
+          .orchestrator-tabs { overflow-x: auto; white-space: nowrap; padding-bottom: 0.5rem; }
+          .tab-btn { font-size: 0.6rem !important; padding: 0.8rem 1.2rem !important; }
+          .tab-content { padding: 1rem !important; }
+          .tab-content[style*="display: flex"] { flex-direction: column !important; }
+          .dna-sidebar { width: 100% !important; position: relative !important; top: 0 !important; margin-bottom: 2rem; }
+          .grid-responsive { grid-template-columns: 1fr !important; }
+          .glass-card { border-radius: 0 !important; border: none !important; background: transparent !important; box-shadow: none !important; }
+          .section-title { font-size: 1.5rem !important; }
+        }
+      `}</style>
       <div className="orchestrator-header">
         <div className="container-fluid">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -124,6 +148,9 @@ export default function BusinessOrchestrator() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
+              <Link href={`/jana/businesses/${id}/promote`} className="btn btn-outline" style={{ borderColor: '#10b981', color: '#10b981' }}>
+                <i className="fas fa-rocket"></i> PROMOTE BLUEPRINT
+              </Link>
               <Link href={`/${biz.slug}`} target="_blank" className="btn btn-outline">
                 <i className="fas fa-external-link-alt"></i> VIEW MINISITE
               </Link>
@@ -154,7 +181,7 @@ export default function BusinessOrchestrator() {
           {/* TAB 1: IDENTITY */}
           {activeTab === 'IDENTITY' && (
             <div className="tab-content animate-in">
-              <h2 className="section-title">Core Business Principals</h2>
+              <h2 className="section-title">System Identity</h2>
               <div className="grid-responsive">
                 <div className="form-group">
                   <label className="dna-label">Business Name</label>
@@ -164,71 +191,16 @@ export default function BusinessOrchestrator() {
                   <label className="dna-label">URL Slug</label>
                   <input type="text" className="dna-input" value={biz.slug || ''} onChange={e => updateBiz({ slug: e.target.value })} />
                 </div>
-              </div>
-              <div style={{ marginTop: '3rem' }}>
-                <label className="dna-label">Minisite Logo</label>
-                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                   <div style={{ position: 'relative', width: '100px', height: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {biz.custom_data?.basic?.business_logo ? <img src={biz.custom_data.basic.business_logo} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '1rem' }} alt="Logo" /> : <i className="fas fa-image fa-2x" style={{ opacity: 0.1 }}></i>}
-                      {uploading && (
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <i className="fas fa-spinner fa-spin" style={{ color: '#D4AF37' }}></i>
-                        </div>
-                      )}
-                   </div>
-                   
-                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ display: 'flex', gap: '1rem' }}>
-                        <input 
-                          type="text" 
-                          className="dna-input" 
-                          style={{ flex: 1 }}
-                          placeholder="Paste Logo URL from Cloudinary..." 
-                          value={biz.custom_data?.basic?.business_logo || ''} 
-                          onChange={e => updateCustomData('basic', 'business_logo', e.target.value)} 
-                        />
-                        <label className="btn btn-outline" style={{ cursor: 'pointer', padding: '0.85rem 2rem', fontSize: '0.7rem', flexShrink: 0 }}>
-                           <i className="fas fa-upload"></i> UPLOAD FROM DEVICE
-                           <input 
-                             type="file" 
-                             hidden 
-                             accept="image/*" 
-                             onChange={async (e) => {
-                               const file = e.target.files?.[0];
-                               if (!file) return;
-
-                               // Optimistic Local Preview
-                               const localUrl = URL.createObjectURL(file);
-                               updateCustomData('basic', 'business_logo', localUrl);
-
-                               setUploading(true);
-                               try {
-                                 const fd = new FormData();
-                                 fd.append('file', file);
-                                 fd.append('businessName', biz.name);
-                                 fd.append('sectionName', 'branding');
-                                 const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                                 const data = await res.json();
-                                 if (data.url) {
-                                   updateCustomData('basic', 'business_logo', data.url);
-                                   notify('Logo Synchronized', 'success');
-                                 }
-                               } catch (err) {
-                                 notify('Upload Failed', 'error');
-                               } finally {
-                                 setUploading(false);
-                                 URL.revokeObjectURL(localUrl);
-                               }
-                             }}
-                           />
-                        </label>
-                      </div>
-                      <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.5px' }}>
-                        <i className="fas fa-info-circle" style={{ color: '#D4AF37', marginRight: '5px' }}></i> 
-                        PRO TIP: For best results, use a transparent PNG or SVG logo.
-                      </div>
-                   </div>
+                <div className="form-group">
+                  <label className="dna-label">Business Category (Typology)</label>
+                  <div className="dna-input" style={{ opacity: 0.6, background: 'rgba(255,255,255,0.05)' }}>
+                    {biz.type_name || 'Generic Business'}
+                  </div>
                 </div>
+              </div>
+              <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(212,175,55,0.05)', borderRadius: '16px', border: '1px dashed rgba(212,175,55,0.2)', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                <i className="fas fa-info-circle" style={{ color: '#D4AF37', marginRight: '10px' }}></i>
+                Core Brand Assets (Logo, Phone, Email, Address) have been moved to **Chapter 1: HERITAGE & IDENTITY** for cinematic centralization.
               </div>
             </div>
           )}
@@ -236,43 +208,51 @@ export default function BusinessOrchestrator() {
           {/* TAB 2: ARCHITECTURE */}
           {activeTab === 'ARCHITECTURE' && (
             <div className="tab-content animate-in">
-              <h2 className="section-title">Site Architecture</h2>
-              <div className="grid-responsive" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <h2 className="section-title">Global Architecture Governance</h2>
+              <div className="grid-responsive" style={{ gridTemplateColumns: '1fr' }}>
                 <div>
-                  <h3 style={{ fontSize: '0.65rem', fontWeight: 900, color: '#6366f1', marginBottom: '1.5rem', letterSpacing: '2px' }}>BLUEPRINT CORE</h3>
-                  <div className="section-grid-mini">
-                    {sections.filter(s => templateSections.includes(s.id)).map(s => (
-                      <div key={s.id} className="section-item-static">
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem' }}>
-                           <i className={`fas ${s.icon}`} style={{ color: '#6366f1' }}></i> {s.name}
-                        </span>
-                        <span className="badge-blue" style={{ background: '#6366f1', color: '#fff', padding: '3px 8px', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 900 }}>MANDATORY</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', marginBottom: '1.5rem', letterSpacing: '2px' }}>DNA OPPORTUNITIES</h3>
-                  <div className="section-grid-mini">
-                    {sections.filter(s => !templateSections.includes(s.id)).map(s => {
-                      const isActive = activeSectionIds.includes(s.id);
+                  <h3 style={{ fontSize: '0.65rem', fontWeight: 900, color: '#6366f1', marginBottom: '1.5rem', letterSpacing: '2px' }}>CHAPTER VISIBILITY CONTROLS</h3>
+                  <div className="section-grid-mini" style={{ display: 'grid', gap: '1rem' }}>
+                    {sections.map(s => {
+                      const isHidden = biz.custom_data?.basic?.hidden_sections?.includes(s.id);
                       return (
-                        <div key={s.id} className={`section-item-toggle ${isActive ? 'active' : ''}`} style={{ padding: '1rem' }} onClick={() => {
-                          if (isActive) {
-                            const next = { ...biz.custom_data };
-                            delete next[s.id];
-                            updateBiz({ custom_data: next });
-                          } else {
-                            updateCustomData(s.id, 'initialized', true);
-                          }
+                        <div key={s.id} className={`section-item-toggle ${!isHidden ? 'active' : ''}`} style={{ 
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(99,102,241,0.05)',
+                          border: isHidden ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(99,102,241,0.2)',
+                          padding: '1.25rem', borderRadius: '16px'
                         }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem' }}>
-                            <i className={`fas ${s.icon}`}></i> {s.name}
-                          </span>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: isActive ? '#D4AF37' : 'rgba(255,255,255,0.1)', boxShadow: isActive ? '0 0 10px rgba(212,175,55,0.4)' : 'none' }}></div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <i className={`fas ${s.icon}`} style={{ color: isHidden ? '#64748b' : '#6366f1' }}></i>
+                            <div>
+                               <div style={{ fontWeight: 800, color: isHidden ? '#64748b' : '#fff', fontSize: '0.85rem' }}>{s.name}</div>
+                               <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isHidden ? '#475569' : '#6366f1', letterSpacing: '1px' }}>
+                                 {isHidden ? 'HIDDEN FROM PUBLIC NAV' : 'VISIBLE ON MINISITE'}
+                               </div>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => {
+                              const hidden = [...(biz.custom_data?.basic?.hidden_sections || [])];
+                              const nextHidden = isHidden ? hidden.filter(id => id !== s.id) : [...hidden, s.id];
+                              updateCustomData('basic', 'hidden_sections', nextHidden);
+                            }}
+                            style={{
+                              background: isHidden ? '#334155' : '#6366f1',
+                              color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px',
+                              fontSize: '0.6rem', fontWeight: 900, cursor: 'pointer'
+                            }}
+                          >
+                            {isHidden ? 'ENABLE SECTION' : 'DISABLE / HIDE'}
+                          </button>
                         </div>
                       );
                     })}
+                  </div>
+                  <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(99,102,241,0.05)', borderRadius: '16px', border: '1px dashed rgba(99,102,241,0.2)', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                    <i className="fas fa-shield-check" style={{ color: '#6366f1', marginRight: '10px' }}></i>
+                    Architecture is inherited from **{biz.type_name || 'Typology'}**. You can hide chapters from the public, but the underlying data and structure remain synchronized for platform-wide intelligence.
                   </div>
                 </div>
               </div>
@@ -324,6 +304,28 @@ export default function BusinessOrchestrator() {
                       </h2>
                       <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>LAYER: {activeSectionId.toUpperCase()}</div>
                     </div>
+                    
+                    {searchParams.get('field') && (
+                      <div style={{ 
+                        marginBottom: '2rem', padding: '1.5rem 2rem', borderRadius: '16px', 
+                        background: 'linear-gradient(90deg, rgba(212,175,55,0.1), rgba(15,23,42,0))', 
+                        borderLeft: '4px solid #D4AF37', display: 'flex', alignItems: 'center', gap: '1.5rem'
+                      }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#D4AF37', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                          <i className="fas fa-crosshairs"></i>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '0.25rem' }}>DIRECT INJECTION ACTIVE</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+                            You are currently focused on editing the <strong style={{ color: '#D4AF37' }}>{searchParams.get('field')?.toUpperCase()}</strong> field for <strong style={{ color: '#D4AF37' }}>{biz.name}</strong>.
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                            Data uploaded here will be securely bound to the <strong>{sections.find(s => s.id === activeSectionId)?.name}</strong> section.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <DynamicForm 
                       fields={biz.fields?.filter((f: any) => (f.section_id || 'basic') === activeSectionId) || []}
                       data={biz.custom_data || {}}
@@ -331,6 +333,7 @@ export default function BusinessOrchestrator() {
                       userRole="admin"
                       onChange={updateCustomData}
                       businessName={biz.name}
+                      business={biz}
                     />
                   </div>
                 )}
@@ -341,11 +344,38 @@ export default function BusinessOrchestrator() {
           {/* TAB 4: BRANDING */}
           {activeTab === 'BRANDING' && (
             <div className="tab-content animate-in">
-              <h2 className="section-title">Navigation Branding Overrides</h2>
+              <h2 className="section-title">Minisite Navigation Branding</h2>
+              
+              {/* LIVE PREVIEW BAR */}
+              <div style={{ marginBottom: '3rem' }}>
+                <label className="dna-label">LIVE NAVIGATION PREVIEW</label>
+                <div style={{ 
+                  background: 'rgba(255,255,255,0.95)', padding: '1rem 2rem', borderRadius: '16px', 
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{ color: '#1e293b', fontWeight: 900, fontSize: '0.8rem' }}>{(biz.name || 'BUSINESS NAME').toUpperCase()}</div>
+                  <div style={{ display: 'flex', gap: '1.5rem' }}>
+                    {sections.filter(s => activeSectionIds.includes(s.id)).map(s => {
+                       const label = biz.custom_data?.basic?.section_labels?.[s.id] || s.name;
+                       return (
+                         <div key={s.id} style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', borderBottom: '2px solid #D4AF37', paddingBottom: '2px' }}>
+                           {(label || '').toUpperCase()}
+                         </div>
+                       );
+                    })}
+                  </div>
+                  <div style={{ padding: '4px 12px', border: '1px solid #D4AF37', borderRadius: '4px', color: '#D4AF37', fontSize: '0.6rem', fontWeight: 900 }}>SIWA TODAY</div>
+                </div>
+              </div>
+
               <div className="grid-responsive" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
                 {sections.filter(s => activeSectionIds.includes(s.id)).map(s => (
                   <div key={s.id} className="form-group" style={{ background: 'rgba(255,255,255,0.01)', padding: '1.5rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <label className="dna-label">{s.name.toUpperCase()} TAB LABEL</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                      <i className={`fas ${s.icon}`} style={{ color: '#94a3b8', fontSize: '0.8rem' }}></i>
+                      <label className="dna-label" style={{ margin: 0 }}>{s.name.toUpperCase()} NAVIGATION LABEL</label>
+                    </div>
                     <input 
                       type="text" 
                       className="dna-input" 
@@ -357,6 +387,7 @@ export default function BusinessOrchestrator() {
                         updateCustomData('basic', 'section_labels', next);
                       }}
                     />
+                    <div style={{ fontSize: '0.55rem', color: '#64748b', marginTop: '0.5rem', fontWeight: 700 }}>Default: {s.name}</div>
                   </div>
                 ))}
               </div>

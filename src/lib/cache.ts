@@ -131,6 +131,7 @@ export const getBusinessTypes = cache(async (activeOnly: boolean = true) => {
     ...t,
     sections: typeof t.sections === 'string' ? JSON.parse(t.sections) : t.sections || [],
     own_sections: typeof t.own_sections === 'string' ? JSON.parse(t.own_sections) : t.own_sections || [],
+    blueprint: typeof t.blueprint === 'string' ? JSON.parse(t.blueprint) : t.blueprint || null,
   }));
 
   // Store in cache
@@ -159,6 +160,7 @@ export const getBusinessTypeById = cache(async (id: string) => {
     ...data,
     sections: typeof data.sections === 'string' ? JSON.parse(data.sections) : data.sections || [],
     own_sections: typeof data.own_sections === 'string' ? JSON.parse(data.own_sections) : data.own_sections || [],
+    blueprint: typeof data.blueprint === 'string' ? JSON.parse(data.blueprint) : data.blueprint || null,
   };
 
   globalCache.set(cacheKey, parsed, CACHE_TTL.business_types);

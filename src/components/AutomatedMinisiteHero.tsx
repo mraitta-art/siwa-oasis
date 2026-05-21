@@ -93,21 +93,22 @@ export default function AutomatedMinisiteHero({
       featuredPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
-        const isVid = isHeroVideo(url);
+        const isVid = url ? isHeroVideo(url) : false;
+        const hasMedia = !!url;
         
         allSlides.push({
           id: `${section.id}_img_${idx}`,
-          type: isVid ? 'video' : 'image',
-          mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
+          type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
+          mediaUrl: url || null,
           title: caption || section.name,
           subtitle: `DISCOVER THE ${(section.name || '').toUpperCase()} EXPERIENCE`,
           caption: (businessName || '').toUpperCase(), 
           ctaText: `READ FULL STORY`,
           ctaLink: `#${section.id}`,
-          animation: isVid ? 'fade' : 'kenburns',
-          displayMode: photo.display_mode || 'image',
+          animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
+          displayMode: photo.display_mode || (hasMedia ? 'image' : 'text_only'),
           showCaption: photo.show_caption !== false,
-          bgColor: photo.bg_color || null
+          bgColor: photo.bg_color || (hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)')
         });
       });
 
@@ -115,29 +116,30 @@ export default function AutomatedMinisiteHero({
       if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
         const firstPhoto = photos[0];
         const url = (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || '';
-        const isVid = isHeroVideo(url);
+        const caption = (typeof firstPhoto === 'object' ? firstPhoto.caption : '') || '';
+        const isVid = url ? isHeroVideo(url) : false;
+        const hasMedia = !!url;
+
         allSlides.push({
           id: `${section.id}_img_first`,
-          type: isVid ? 'video' : 'image',
-          mediaUrl: url || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=2000',
-          title: (typeof firstPhoto === 'object' ? firstPhoto.caption : '') || section.name,
+          type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
+          mediaUrl: url || null,
+          title: caption || section.name,
           subtitle: `EXPLORE OUR UNIQUE NARRATIVE`,
           caption: (businessName || '').toUpperCase(),
           ctaText: 'EXPLORE',
           ctaLink: `#${section.id}`,
-          animation: isVid ? 'fade' : 'kenburns'
+          animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
+          bgColor: hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)'
         });
       }
     });
 
     // ═══════════════════════════════════════════════════════════════
-    // SECOND PASS: Scan customData directly for any hero photos that
-    // weren't picked up by the activeSections loop (e.g. typology-
-    // specific sections not yet registered in the sections registry).
-    // This makes the carousel fully data-driven.
+    // SECOND PASS: Scan customData directly...
     // ═══════════════════════════════════════════════════════════════
     Object.entries(customData).forEach(([sectionKey, sectionData]: [string, any]) => {
-      if (capturedSectionIds.has(sectionKey)) return; // Already processed
+      if (capturedSectionIds.has(sectionKey)) return; 
       if (!sectionData || typeof sectionData !== 'object') return;
       
       const gallery = sectionData.section_gallery || [];
@@ -147,20 +149,22 @@ export default function AutomatedMinisiteHero({
       heroPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
-        const isVid = isHeroVideo(url);
+        const isVid = url ? isHeroVideo(url) : false;
+        const hasMedia = !!url;
+
         allSlides.push({
           id: `${sectionKey}_direct_${idx}`,
-          type: isVid ? 'video' : 'image',
-          mediaUrl: url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=2000',
+          type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
+          mediaUrl: url || null,
           title: caption || sectionKey.replace(/_/g, ' ').toUpperCase(),
           subtitle: `DISCOVER MORE`,
           caption: (businessName || '').toUpperCase(),
           ctaText: 'READ FULL STORY',
           ctaLink: `#${sectionKey}`,
-          animation: isVid ? 'fade' : 'kenburns',
-          displayMode: photo.display_mode || 'image',
+          animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
+          displayMode: photo.display_mode || (hasMedia ? 'image' : 'text_only'),
           showCaption: photo.show_caption !== false,
-          bgColor: photo.bg_color || null
+          bgColor: photo.bg_color || (hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)')
         });
       });
     });

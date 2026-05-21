@@ -39,11 +39,13 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
 
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
-  const sectionValues = Object.values(data) as any[];
-  const dynamicPhone = data.phone || sectionValues.find(s => s?.phone)?.phone || '+20 (12) SIWA-OASIS';
-  const dynamicEmail = data.email || sectionValues.find(s => s?.email)?.email || '';
-  const dynamicAddress = data.address || sectionValues.find(s => s?.address)?.address || 'Siwa Oasis, Matrouh, Egypt';
-  const dynamicLogo = data.business_logo || data.logo || sectionValues.find(s => s?.business_logo || s?.logo)?.business_logo || sectionValues.find(s => s?.logo)?.logo || undefined;
+  
+  // Resolve Brand Assets from Chapter 1 (HERITAGE & IDENTITY)
+  const identity = data.sec_1_identity || {};
+  const dynamicPhone = identity.phone || data.phone || '+20 (12) SIWA-OASIS';
+  const dynamicEmail = identity.email || data.email || '';
+  const dynamicAddress = identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt';
+  const dynamicLogo = identity.business_logo || identity.logo || data.business_logo || data.logo || undefined;
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '5rem' }}>
@@ -132,22 +134,74 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
 
                       {secData.section_gallery && Array.isArray(secData.section_gallery) && (
                         <div style={{ marginTop: '2.5rem' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
                             {secData.section_gallery.map((item: any, i: number) => {
-                              const mediaUrl = typeof item === 'object' ? item.url : item;
-                              const caption = typeof item === 'object' ? item.caption : '';
+                              const isObj = typeof item === 'object';
+                              const mediaUrl = isObj ? item.url : item;
+                              const caption = isObj ? item.caption : '';
+                              const displayMode = isObj ? item.display_mode : 'image';
+                              const bgColor = isObj ? item.bg_color : '#fff';
                               const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.mov') || mediaUrl.includes('/video/upload/'));
                               
+                              const hasMedia = !!mediaUrl;
+                              const hasCaption = !!caption;
+
+                              if (displayMode === 'text_only' || (!hasMedia && hasCaption)) {
+                                return (
+                                  <div key={i} style={{ 
+                                    borderRadius: '20px', padding: '2.5rem', background: hasMedia ? bgColor : 'linear-gradient(135deg, #0f172a, #1e293b)', 
+                                    border: '1px solid rgba(212,175,55,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', 
+                                    justifyContent: 'center', textAlign: 'center', minHeight: '280px', position: 'relative',
+                                    boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)', gridColumn: caption?.length > 100 ? '1 / -1' : 'auto'
+                                  }}>
+                                    {/* SIWA TODAY WATERMARK FALLBACK */}
+                                    {!hasMedia && (
+                                      <div style={{ 
+                                        position: 'absolute', top: '1.5rem', fontSize: '0.6rem', fontWeight: 900, 
+                                        color: '#D4AF37', letterSpacing: '4px', opacity: 0.5 
+                                      }}>
+                                        SIWA TODAY • HERITAGE ARCHIVE
+                                      </div>
+                                    )}
+                                    
+                                    <div style={{ 
+                                      fontSize: '1.2rem', fontWeight: 700, lineHeight: 1.6, 
+                                      color: (bgColor === '#1e293b' || bgColor === '#000' || !hasMedia) ? '#fff' : '#1e293b',
+                                      fontStyle: 'italic', fontFamily: 'serif'
+                                    }}>
+                                      "{caption}"
+                                    </div>
+
+                                    {!hasMedia && (
+                                      <div style={{ 
+                                        position: 'absolute', bottom: '1.5rem', fontSize: '0.5rem', 
+                                        color: 'rgba(255,255,255,0.2)', fontWeight: 800 
+                                      }}>
+                                        VERIFIED NARRATIVE
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+
                               return (
-                                <div key={i} style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid #f1f5f9' }}>
-                                  <div style={{ height: '180px', overflow: 'hidden', position: 'relative', background: '#000' }}>
+                                <div key={i} style={{ 
+                                  borderRadius: '20px', overflow: 'hidden', background: '#fff', 
+                                  border: '1px solid #f1f5f9', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.03)',
+                                  gridColumn: caption?.length > 200 ? '1 / -1' : 'auto'
+                                }}>
+                                  <div style={{ height: '240px', overflow: 'hidden', position: 'relative', background: '#000' }}>
                                     {isVideo ? (
                                       <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                       <img src={mediaUrl} alt={caption || `${section.name} gallery ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     )}
                                   </div>
-                                  {caption && <div style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{caption}</div>}
+                                  {caption && (
+                                    <div style={{ padding: '1.5rem', fontSize: '0.95rem', color: '#475569', lineHeight: 1.7, fontWeight: 500, borderTop: '1px solid #f8fafc' }}>
+                                      {caption}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -161,20 +215,110 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
           </main>
           <aside>
             <div style={{ position: 'sticky', top: '100px' }}>
-              <div style={{ background: '#1e293b', padding: '2.5rem', borderRadius: '24px', color: '#fff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                <h3 style={{ margin: '0 0 1.5rem', fontSize: '1.25rem' }}>Book Experience</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ color: '#D4AF37' }}><i className="fas fa-phone-alt"></i></div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{dynamicPhone}</div>
+              {biz.subscription_tier === 'free' ? (
+                /* 🏛️ PLATFORM-MANAGED SIDEBAR (FREE TIER) */
+                <div style={{ background: '#1e293b', padding: '2.5rem', borderRadius: '24px', color: '#fff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', border: '1px solid rgba(212,175,55,0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', background: '#D4AF37', borderRadius: '50%' }}></div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '2px', color: '#D4AF37' }}>MANAGED BY SIWA.TODAY</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ color: '#D4AF37' }}><i className="fas fa-map-marker-alt"></i></div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{dynamicAddress}</div>
+                  
+                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem', fontWeight: 900 }}>Exclusive Offer</h3>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '2rem', lineHeight: 1.6 }}>This establishment is part of the Siwa Today Heritage Collection. Book through our platform for verified rates and premium support.</p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px' }}>
+                      <div style={{ color: '#D4AF37', fontSize: '1.2rem' }}><i className="fas fa-certificate"></i></div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>STATUS</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>Verified Heritage Site</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link 
+                    href={`/offers/${biz.slug}`} 
+                    className="btn btn-primary" 
+                    style={{ width: '100%', padding: '1.2rem', borderRadius: '12px', fontWeight: 900, textAlign: 'center', textDecoration: 'none', background: 'linear-gradient(135deg, #D4AF37, #F59E0B)', color: '#1a1a2e', boxShadow: '0 10px 20px rgba(212,175,55,0.3)' }}
+                  >
+                    VIEW SIWA TODAY OFFER
+                  </Link>
+                  
+                  <div style={{ marginTop: '1.5rem', textAlign: 'center', opacity: 0.4, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '1px' }}>
+                    SECURE BOOKING • BEST RATE GUARANTEE
                   </div>
                 </div>
-                <button className="btn btn-primary" style={{ width: '100%', padding: '1rem', borderRadius: '12px', fontWeight: 900 }}>ENQUIRE NOW</button>
-              </div>
+              ) : (
+                /* 🏨 VENDOR-DIRECT SIDEBAR (PAID TIER) */
+                <div style={{ background: '#fff', padding: '2.5rem', borderRadius: '24px', color: '#1e293b', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9' }}>
+                  <h3 style={{ margin: '0 0 1.5rem', fontSize: '1.25rem', fontWeight: 900 }}>Direct Contact</h3>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                        <i className="fas fa-phone-alt"></i>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8' }}>PHONE</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 700 }}>{dynamicPhone}</div>
+                      </div>
+                    </div>
+
+                    {dynamicEmail && (
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                          <i className="fas fa-envelope"></i>
+                        </div>
+                        <div style={{ overflow: 'hidden' }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8' }}>EMAIL</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dynamicEmail}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                        <i className="fas fa-map-marker-alt"></i>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8' }}>LOCATION</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>{dynamicAddress}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 🌍 SOCIAL CONNECT */}
+                  {(identity.instagram_handle || identity.facebook_link || identity.tiktok_handle || identity.wechat_id) && (
+                    <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1.5rem' }}>SOCIAL CONNECT</div>
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        {identity.instagram_handle && (
+                          <a href={`https://instagram.com/${identity.instagram_handle.replace('@', '')}`} target="_blank" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                            <i className="fab fa-instagram"></i>
+                          </a>
+                        )}
+                        {identity.facebook_link && (
+                          <a href={identity.facebook_link} target="_blank" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#1877F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                            <i className="fab fa-facebook-f"></i>
+                          </a>
+                        )}
+                        {identity.tiktok_handle && (
+                          <a href={`https://tiktok.com/@${identity.tiktok_handle.replace('@', '')}`} target="_blank" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                            <i className="fab fa-tiktok"></i>
+                          </a>
+                        )}
+                        {identity.wechat_id && (
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#07C160', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }} title={`WeChat ID: ${identity.wechat_id}`}>
+                            <i className="fab fa-weixin"></i>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <button className="btn btn-primary" style={{ width: '100%', padding: '1.2rem', borderRadius: '12px', fontWeight: 900, background: '#1e293b', color: '#fff', marginTop: '2.5rem' }}>ENQUIRE DIRECTLY</button>
+                </div>
+              )}
             </div>
           </aside>
         </div>

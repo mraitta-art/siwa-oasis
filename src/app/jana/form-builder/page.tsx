@@ -26,13 +26,17 @@ interface BusinessType { id: string; name: string; icon: string; is_parent: bool
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Short Text', icon: 'fa-font', color: '#3b82f6' },
-  { value: 'rich_text', label: 'Advanced Narrative', icon: 'fa-feather', color: '#8b5cf6' },
+  { value: 'textarea', label: 'Long Text / Teaser', icon: 'fa-align-left', color: '#8b5cf6' },
+  { value: 'rich_text', label: 'Advanced Narrative', icon: 'fa-feather', color: '#7c3aed' },
+  { value: 'number', label: 'Number / Price', icon: 'fa-hashtag', color: '#10b981' },
+  { value: 'select', label: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
+  { value: 'multiselect', label: 'Multi-Select Tags', icon: 'fa-tasks', color: '#d946ef' },
+  { value: 'checkbox_group', label: 'Multiple Choice', icon: 'fa-check-double', color: '#8b5cf6' },
+  { value: 'boolean', label: 'Binary Toggle', icon: 'fa-toggle-on', color: '#10b981' },
   { value: 'gallery', label: 'Media Gallery', icon: 'fa-images', color: '#ec4899' },
   { value: 'youtube', label: 'YouTube Story', icon: 'fa-video', color: '#ef4444' },
-  { value: 'action_button', label: 'Call to Action', icon: 'fa-bolt', color: '#D4AF37' },
-  { value: 'select', label: 'Dropdown List', icon: 'fa-list-ul', color: '#f59e0b' },
   { value: 'star_rating', label: 'Star Rating', icon: 'fa-star', color: '#fbbf24' },
-  { value: 'boolean', label: 'Binary Toggle', icon: 'fa-toggle-on', color: '#10b981' },
+  { value: 'action_button', label: 'Call to Action', icon: 'fa-bolt', color: '#D4AF37' },
 ];
 
 export default function FormArchitectPage() {
@@ -397,7 +401,7 @@ export default function FormArchitectPage() {
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '2.5rem' }}>
             {canvasMode === 'preview' ? (
-              <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', padding: '3rem', borderRadius: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+              <div style={{ maxWidth: '100%', margin: '0 auto', background: '#fff', padding: '3rem', borderRadius: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                 <div style={{ marginBottom: '3rem', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.5rem' }}>
                   <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#1e293b' }}>Live Data Prototyping</h3>
                   <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.5rem' }}>Fill in this chapter to see how it renders for vendors.</p>
@@ -415,10 +419,10 @@ export default function FormArchitectPage() {
                 />
               </div>
             ) : (
-            <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ maxWidth: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                   <button 
+                     <button 
                       onClick={async () => {
                         if (window.confirm('Inject Gold Standards for this industry?')) {
                           const r = await fetch('/api/setup/seed-standards');
@@ -428,6 +432,13 @@ export default function FormArchitectPage() {
                       style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1.5px solid #D4AF37', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
                     >
                       <i className="fas fa-magic"></i> STANDARDIZE
+                    </button>
+                    
+                    <button 
+                      onClick={() => window.open(`/jana/sections/studio/${activeSection}`, '_blank')}
+                      style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1.5px solid #3b82f6', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                    >
+                      <i className="fas fa-external-link-alt"></i> OPEN SECTION STUDIO
                     </button>
                     {!activeBlueprint?.fields.some(f => f.name === 'mini_blog') && (
                        <button 
@@ -521,14 +532,24 @@ export default function FormArchitectPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                         <>
-                           <button onClick={() => setEditingField(field)} className="btn-action edit" style={{ width: 40, height: 40, borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', transition: 'all 0.2s' }}>
-                             <i className="fas fa-cog"></i>
+                         {isUniversal || isInherited ? (
+                           <button 
+                             onClick={() => window.open(`/jana/sections/studio/${activeSection}?tab=items&field=${field.name}`, '_blank')} 
+                             title="Edit Blueprint in Section Studio"
+                             style={{ padding: '0 1rem', height: 40, borderRadius: '12px', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
+                           >
+                             <i className="fas fa-external-link-alt"></i> EDIT ORIGIN
                            </button>
-                           <button onClick={() => setShowDeleteConfirm(field.id)} className="btn-action delete" style={{ width: 40, height: 40, borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#ef4444', transition: 'all 0.2s' }}>
-                             <i className="fas fa-trash-alt"></i>
-                           </button>
-                         </>
+                         ) : (
+                           <>
+                             <button onClick={() => setEditingField(field)} className="btn-action edit" style={{ width: 40, height: 40, borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', transition: 'all 0.2s', cursor: 'pointer' }}>
+                               <i className="fas fa-cog"></i>
+                             </button>
+                             <button onClick={() => setShowDeleteConfirm(field.id)} className="btn-action delete" style={{ width: 40, height: 40, borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#ef4444', transition: 'all 0.2s', cursor: 'pointer' }}>
+                               <i className="fas fa-trash-alt"></i>
+                             </button>
+                           </>
+                         )}
                        <div style={{ cursor: 'grab', color: '#cbd5e1', marginLeft: '0.5rem' }}>
                           <i className="fas fa-grip-vertical"></i>
                        </div>
@@ -619,7 +640,7 @@ export default function FormArchitectPage() {
                     </div>
                   </div>
 
-                  {(editingField.field_type === 'select' || editingField.field_type === 'checkbox_group') && (
+                  {['select', 'multiselect', 'checkbox_group'].includes(editingField.field_type) && (
                     <div className="inspector-section" style={{ marginTop: '1.5rem' }}>
                       <label className="f-label" style={{ marginBottom: '0.5rem', opacity: 0.5 }}>FIELD OPTIONS (COMMA SEPARATED)</label>
                       <textarea 

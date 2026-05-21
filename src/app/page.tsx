@@ -22,7 +22,7 @@ export default function Home() {
             } else {
             // FALLBACK: Default Gold Standard Layout (Focused on Discovery)
             setLayout([
-              { id: 'h1', type: 'hero_carousel', props: { siteId: 'main_hero' } },
+              { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
               { id: 'h2', type: 'search_bar', props: {} }
             ]);
           }
@@ -30,7 +30,7 @@ export default function Home() {
       } catch (e) { 
         console.error('Homepage init fail:', e);
         // Absolute Fallback
-        setLayout([{ type: 'hero_carousel' }, { type: 'search_bar' }]);
+        setLayout([{ type: 'hero_carousel', props: { siteId: 'discovery' } }, { type: 'search_bar' }]);
       }
       setLoading(false);
     }

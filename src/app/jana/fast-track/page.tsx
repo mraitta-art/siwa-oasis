@@ -28,10 +28,11 @@ function FastTrackContent() {
   const [templateSections, setTemplateSections] = useState<string[]>([]);
 
   useEffect(() => {
+    const cb = Date.now();
     Promise.all([
-      fetch('/api/jana/sections').then(r => r.json()),
-      fetch('/api/jana/businesses').then(r => r.json()),
-      fetch('/api/jana/templates').then(r => r.json())
+      fetch(`/api/jana/sections?cb=${cb}`).then(r => r.json()),
+      fetch(`/api/jana/businesses?cb=${cb}`).then(r => r.json()),
+      fetch(`/api/jana/templates?cb=${cb}`).then(r => r.json())
     ]).then(([sData, bData, tmplData]) => {
       setSections(Array.isArray(sData) ? sData : []);
       setBusinesses(Array.isArray(bData) ? bData : []);
@@ -45,31 +46,38 @@ function FastTrackContent() {
 
   const [templates, setTemplates] = useState<any[]>([]);
 
-  // When business changes, load its data and template
+  // When business changes, load its data and typology blueprint
   useEffect(() => {
-    if (selectedBizId && Array.isArray(businesses)) {
-      const biz = businesses.find(b => b.id === selectedBizId);
-      if (biz) {
-        const data = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data || {};
-        setBusinessData(data);
-        
-        // Find Template Sections
-        const tmplId = biz.template_id;
-        const tmpl = templates.find(t => t.id === tmplId);
-        if (tmpl && Array.isArray(tmpl.layout)) {
-          // Layout is flat array of components with 'type' (which is sectionId for sections)
-          const blueprintIds = tmpl.layout.map((c: any) => c.type).filter(Boolean);
-          setTemplateSections(blueprintIds);
-        } else {
-          setTemplateSections([]);
-        }
+    async function loadBizBlueprint() {
+      if (selectedBizId && Array.isArray(businesses)) {
+        const biz = businesses.find(b => b.id === selectedBizId);
+        if (biz) {
+          const data = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data || {};
+          setBusinessData(data);
+          
+          try {
+            // Fetch Typology Blueprint instead of legacy templates
+            const typeRes = await fetch(`/api/jana/types?id=${biz.type_id}`);
+            const typeData = await typeRes.json();
+            const blueprint = typeData.blueprint || { hidden_sections: [], hidden_fields: [] };
+            
+            // Core sections are those NOT hidden in the Master Blueprint
+            const allChapterIds = ['sec_1_identity', 'sec_2_ambience', 'sec_3_facilities', 'sec_4_gastronomy', 'sec_5_experiences', 'sec_6_guardian', 'sec_7_investment', 'sec_8_rates_offers'];
+            const coreIds = allChapterIds.filter(id => !blueprint.hidden_sections?.includes(id));
+            setTemplateSections(coreIds);
+          } catch (e) {
+            console.error("Blueprint fetch failed", e);
+            setTemplateSections([]);
+          }
 
-        // Sync active sections from data keys
-        const dataKeys = Object.keys(data).filter(k => sections.some(s => s.id === k));
-        if (dataKeys.length > 0) setActiveSectionIds(dataKeys);
+          // Sync active sections from data keys
+          const dataKeys = Object.keys(data).filter(k => sections.some(s => s.id === k));
+          if (dataKeys.length > 0) setActiveSectionIds(dataKeys);
+        }
       }
     }
-  }, [selectedBizId, businesses, sections, templates]);
+    loadBizBlueprint();
+  }, [selectedBizId, businesses, sections]);
 
   // When focused section changes, load its fields
   useEffect(() => {

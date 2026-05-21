@@ -19,9 +19,12 @@ export type RoleKey = keyof typeof ROLES;
 
 export const FIELD_TYPES = {
   text:           { name: 'Short Text',         icon: 'fa-font',         hasOptions: false },
+  textarea:       { name: 'Long Text / Teaser', icon: 'fa-align-left',   hasOptions: false },
   rich_text:      { name: 'Advanced Narrative', icon: 'fa-feather',      hasOptions: false },
+  number:         { name: 'Number / Price',     icon: 'fa-hashtag',      hasOptions: false },
   checkbox_group: { name: 'Multiple Choice',    icon: 'fa-check-double', hasOptions: true  },
   select:         { name: 'Dropdown Menu',      icon: 'fa-caret-down',   hasOptions: true  },
+  multiselect:    { name: 'Multi-Select Tags',  icon: 'fa-tasks',        hasOptions: true  },
   url:            { name: 'Web Link',           icon: 'fa-link',         hasOptions: false },
   map:            { name: 'Location & Altitude', icon: 'fa-map-marker-alt', hasOptions: false },
   gallery:        { name: 'Media Gallery',      icon: 'fa-images',       hasOptions: true  },

@@ -23,6 +23,7 @@ export default function SectionStudioPage() {
   const [section, setSection] = useState<any>(null);
   const [fields, setFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
   
   const initialTab = (searchParams.get('tab') as any) || 'dna';
   const [activeTab, setActiveTab] = useState<'dna' | 'items' | 'wiring' | 'components' | 'feed'>(initialTab);
@@ -158,6 +159,20 @@ export default function SectionStudioPage() {
     } catch (e) { notify('Field Update Failed', 'error'); }
   }
 
+  async function deleteField(id: string) {
+    if (!window.confirm('Are you sure you want to permanently delete this field? This will affect all businesses using it.')) return;
+    try {
+      const res = await fetch(`/api/jana/forms?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        notify('Field Purged successfully.', 'success');
+        setInspectingField(null);
+        loadData();
+      } else {
+        notify('Failed to purge field.', 'error');
+      }
+    } catch (e) { notify('Deletion Failed', 'error'); }
+  }
+
   async function addField() {
     if (!newFieldLabel.trim()) {
       notify('Please enter a Field Label before saving.', 'error');
@@ -229,10 +244,30 @@ export default function SectionStudioPage() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: '1400px', margin: '2rem auto', padding: '0 2rem', display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
+      <div style={{ 
+        maxWidth: leftCollapsed ? '100%' : '1400px', 
+        margin: '2rem auto', 
+        padding: '0 2rem', 
+        display: 'grid', 
+        gridTemplateColumns: leftCollapsed ? '70px 1fr' : '300px 1fr', 
+        gap: '2rem',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
+      }}>
         
         {/* LEFT: LAYER NAVIGATION */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+          <button 
+            onClick={() => setLeftCollapsed(!leftCollapsed)}
+            style={{ 
+              position: 'absolute', top: '-2rem', right: 0, 
+              background: '#f8fafc', border: '1px solid #e2e8f0', 
+              width: 28, height: 28, borderRadius: '8px', cursor: 'pointer', 
+              zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' 
+            }}
+          >
+            <i className={`fas fa-chevron-${leftCollapsed ? 'right' : 'left'}`} style={{ fontSize: '0.7rem' }}></i>
+          </button>
+
           {[
             { id: 'dna', label: '1. GOVERNANCE DNA', icon: 'fa-dna' },
             { id: 'items', label: '2. ATOMIC BLUEPRINT', icon: 'fa-cubes' },
@@ -244,21 +279,26 @@ export default function SectionStudioPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               style={{ 
-                padding: '1.25rem 1.5rem', borderRadius: '16px', border: 'none', textAlign: 'left',
+                padding: leftCollapsed ? '1rem' : '1.25rem 1.5rem', 
+                borderRadius: '16px', border: 'none', 
+                textAlign: leftCollapsed ? 'center' : 'left',
                 background: activeTab === tab.id ? '#fff' : 'transparent',
                 color: activeTab === tab.id ? '#0f172a' : '#64748b',
                 fontWeight: activeTab === tab.id ? 900 : 600,
-                fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem',
+                fontSize: '0.8rem', cursor: 'pointer', display: 'flex', 
+                alignItems: 'center', justifyContent: leftCollapsed ? 'center' : 'flex-start', gap: '1rem',
                 boxShadow: activeTab === tab.id ? '0 10px 20px -5px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.2s'
               }}
+              title={tab.label}
             >
-              <i className={`fas ${tab.icon}`} style={{ color: activeTab === tab.id ? '#D4AF37' : '#cbd5e1' }}></i>
-              {tab.label}
+              <i className={`fas ${tab.icon}`} style={{ color: activeTab === tab.id ? '#D4AF37' : '#cbd5e1', fontSize: leftCollapsed ? '1.2rem' : 'inherit' }}></i>
+              {!leftCollapsed && <span>{tab.label}</span>}
             </button>
           ))}
 
-          <div style={{ marginTop: '3rem', padding: '1.5rem', background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+          {!leftCollapsed && (
+            <div className="animate-in" style={{ marginTop: '3rem', padding: '1.5rem', background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', marginBottom: '1rem' }}>ORCHESTRATION STATUS</div>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: section.propagation_hero ? 1 : 0.4 }}>
@@ -275,6 +315,7 @@ export default function SectionStudioPage() {
                 </div>
              </div>
           </div>
+          )}
         </aside>
 
         {/* RIGHT: LAYER CONTENT */}
@@ -417,14 +458,19 @@ export default function SectionStudioPage() {
                           </label>
                        </div>
 
-                       {['select', 'multiselect'].includes(inspectingField.field_type) && (
+                       {['select', 'multiselect', 'checkbox_group'].includes(inspectingField.field_type) && (
                          <div style={{ marginTop: '1.5rem' }}>
                             <label className="form-label" style={{ fontSize: '0.65rem' }}>DATA OPTIONS</label>
                             <TagInput value={Array.isArray(inspectingField.options) ? inspectingField.options : []} onChange={tags => setInspectingField({...inspectingField, options: tags})} />
                          </div>
                        )}
 
-                       <button onClick={saveField} style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}>APPLY BLUEPRINT</button>
+                       <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                         <button onClick={saveField} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}>APPLY BLUEPRINT</button>
+                         <button onClick={() => deleteField(inspectingField.id)} style={{ padding: '1rem', borderRadius: '12px', background: '#ef4444', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }} title="Delete Field">
+                           <i className="fas fa-trash-alt"></i>
+                         </button>
+                       </div>
                        
                        <button 
                         onClick={() => setActiveTab('feed')}
@@ -504,7 +550,11 @@ export default function SectionStudioPage() {
           )}
 
           {/* TAB 5: GLOBAL DATA FEED */}
-          {activeTab === 'feed' && (
+          {activeTab === 'feed' && (() => {
+            const selectedTypeObj = businessTypes.find(t => t.id === selectedTypeId);
+            const isFeedAllowed = !!(selectedTypeObj && selectedTypeObj.parent_id);
+
+            return (
             <div className="animate-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
@@ -532,7 +582,8 @@ export default function SectionStudioPage() {
 
                   <button 
                     onClick={saveMultiFeed}
-                    style={{ background: '#1e293b', color: '#fff', border: 'none', padding: '1rem 2rem', borderRadius: '14px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                    disabled={!isFeedAllowed}
+                    style={{ background: isFeedAllowed ? '#1e293b' : '#cbd5e1', color: '#fff', border: 'none', padding: '1rem 2rem', borderRadius: '14px', fontWeight: 900, cursor: isFeedAllowed ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
                   >
                     <i className="fas fa-sync"></i>
                     MASS SYNCHRONIZE
@@ -540,7 +591,19 @@ export default function SectionStudioPage() {
                 </div>
               </div>
 
-              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '24px' }}>
+              {!isFeedAllowed && (
+                <div style={{ padding: '1.5rem', background: 'rgba(239,68,68,0.05)', borderRadius: '16px', border: '1px solid rgba(239,68,68,0.2)', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <i className="fas fa-exclamation-triangle" style={{ color: '#ef4444', fontSize: '1.5rem' }}></i>
+                  <div>
+                    <div style={{ fontWeight: 900, color: '#ef4444', fontSize: '0.85rem' }}>DIRECT FEEDING LOCKED</div>
+                    <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                      To prevent feeding data to Master Blueprints or Templates, you must select a specific <strong>Child Typology</strong> (e.g. "↳ Hotel") from the filter above before you can input data.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '24px', opacity: isFeedAllowed ? 1 : 0.5, pointerEvents: isFeedAllowed ? 'auto' : 'none' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
@@ -605,7 +668,7 @@ export default function SectionStudioPage() {
                                   {multiBusinessData[biz.id]?.[f.name] ? 'ON' : 'OFF'}
                                 </span>
                               </label>
-                            ) : f.field_type === 'select' || f.field_type === 'multiselect' ? (
+                            ) : f.field_type === 'select' ? (
                               <select 
                                 style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', background: '#fff', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', outlineColor: '#3b82f6', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}
                                 value={multiBusinessData[biz.id]?.[f.name] || ''}
@@ -621,6 +684,34 @@ export default function SectionStudioPage() {
                                   <option key={opt} value={opt}>{opt}</option>
                                 ))}
                               </select>
+                            ) : (f.field_type === 'multiselect' || f.field_type === 'checkbox_group') ? (
+                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                 {(Array.isArray(f.options) ? f.options : []).map((opt: string) => {
+                                    const current = Array.isArray(multiBusinessData[biz.id]?.[f.name]) ? multiBusinessData[biz.id][f.name] : [];
+                                    const isSelected = current.includes(opt);
+                                    return (
+                                      <button 
+                                        key={opt}
+                                        onClick={() => {
+                                          const newData = { ...multiBusinessData };
+                                          if (!newData[biz.id]) newData[biz.id] = {};
+                                          const next = isSelected ? current.filter((i: string) => i !== opt) : [...current, opt];
+                                          newData[biz.id][f.name] = next;
+                                          setMultiBusinessData(newData);
+                                        }}
+                                        style={{ 
+                                          padding: '2px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800,
+                                          background: isSelected ? '#1e293b' : '#fff',
+                                          color: isSelected ? '#fff' : '#64748b',
+                                          border: isSelected ? '1px solid #1e293b' : '1px solid #cbd5e1',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                 })}
+                               </div>
                             ) : f.field_type === 'gallery' ? (
                               <Link 
                                 href={`/jana/businesses/${biz.id}/orchestrate?section=${id}&field=${f.name}`}
@@ -669,7 +760,8 @@ export default function SectionStudioPage() {
                 </table>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* TAB 4: COMPONENTS */}
           {activeTab === 'components' && (

@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import { query } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * SERVER-SIDE SEO ENGINE & REDIRECT HANDLER
  */
@@ -13,19 +15,39 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     // Check if it's a UUID (36 chars with dashes)
     const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
     
-    let url = `${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/by-slug/${slug}`;
+    let biz: any = null;
     if (isId) {
-       // Fetch by ID to get the slug for redirection (PUBLIC SAFE)
-       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/businesses/${slug}`);
-       const biz = await res.json();
-       if (biz && biz.slug) return { title: `Redirecting to ${biz.name}...` };
+      // Fetch by ID to get the slug for redirection
+      const [bizById] = await query<any>(
+        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+         WHERE b.id = ?`,
+        [slug]
+      );
+      if (bizById && bizById.slug) {
+        return { title: `Redirecting to ${bizById.name || 'Business'}...` };
+      }
+    } else {
+      // Fetch by slug directly from DB (avoids SSR self-fetch issues)
+      const [row] = await query<any>(
+        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+         WHERE b.slug = ?`,
+        [slug]
+      );
+      biz = row ?? null;
     }
 
-    const bRes = await fetch(url);
-    const biz = await bRes.json();
-// ... (rest of the metadata logic remains similar)
-    
-    if (!biz || biz.error) return { title: 'Business Not Found - Siwa Today' };
+    if (!biz) return { title: 'Business Not Found - Siwa Today' };
+
+    // Robust JSON Parsing
+    try { if (typeof biz.custom_data === 'string') biz.custom_data = JSON.parse(biz.custom_data); } catch {}
+    try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
+    try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
 
     const data = biz.custom_data || {};
     const identity = data.sec_1_identity || {};

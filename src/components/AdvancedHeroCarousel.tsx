@@ -6,8 +6,8 @@ import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';
 
 interface Slide {
   id: string;
-  type: 'image' | 'youtube' | 'video';
-  mediaUrl: string;
+  type: 'image' | 'youtube' | 'video' | 'branded';
+  mediaUrl: string | null;
   title: string;
   subtitle: string;
   caption?: string;
@@ -91,7 +91,7 @@ export default function AdvancedHeroCarousel({
   const titleSize = visualSettings.titleSize ? `${visualSettings.titleSize}rem` : 'clamp(2.5rem, 7vw, 5.5rem)';
   const subtitleSize = visualSettings.subtitleSize ? `${visualSettings.subtitleSize}rem` : 'clamp(1.1rem, 2.5vw, 1.6rem)';
 
-  const validSlides = slides.filter(s => s.mediaUrl && (s.mediaUrl.length > 0));
+  const validSlides = slides.filter(s => s.type === 'branded' || (s.mediaUrl && s.mediaUrl.length > 0));
 
   const goToNext = useCallback(() => {
     if (isTransitioning || validSlides.length <= 1) return;
@@ -289,13 +289,35 @@ function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; anima
   if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl} isActive={isActive} muted={muted} maxDuration={slide.maxDuration} />;
   if (slide.type === 'video') return <video src={slide.mediaUrl} autoPlay muted loop style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
   
-  if (slide.displayMode === 'text_only') {
+  if (slide.displayMode === 'text_only' || slide.type === 'branded') {
     return (
       <div style={{
         position: 'absolute', inset: 0,
-        background: slide.bgColor || '#1e293b',
-        transition: 'background 1s ease'
-      }} />
+        background: slide.bgColor || 'linear-gradient(135deg, #0f172a, #1e293b)',
+        transition: 'background 1s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {slide.type === 'branded' && (
+          <div style={{
+            position: 'absolute',
+            top: '40%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            fontSize: '10vw',
+            fontWeight: 900,
+            color: 'rgba(255,255,255,0.03)',
+            whiteSpace: 'nowrap',
+            letterSpacing: '2rem',
+            pointerEvents: 'none',
+            zIndex: 0
+          }}>
+            SIWA TODAY
+          </div>
+        )}
+      </div>
     );
   }
 

@@ -8,8 +8,48 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const siteId = searchParams.get('siteId') || 'main';
-    const configType = `hero_carousel_${siteId}`;
+    
+    if (siteId === 'discovery') {
+      // 🕵️ GLOBAL DISCOVERY MODE: Aggregate featured slides from all active vendors
+      const vendors = await query(
+        `SELECT id, name, slug, custom_data FROM businesses WHERE subscription_tier != 'free' OR curation_data->'$.is_featured' = true`
+      );
+      
+      const discoverySlides: any[] = [];
+      
+      vendors.forEach((biz: any) => {
+        const data = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data;
+        if (!data) return;
 
+        Object.entries(data).forEach(([secId, secData]: [string, any]) => {
+          if (!secData || !secData.section_gallery) return;
+          const photos = Array.isArray(secData.section_gallery) ? secData.section_gallery : [];
+          
+          photos.forEach((photo: any, idx: number) => {
+            if (photo && photo.is_hero) {
+              discoverySlides.push({
+                id: `disc_${biz.id}_${secId}_${idx}`,
+                type: (photo.url && photo.url.includes('/video/')) ? 'video' : 'image',
+                mediaUrl: photo.url,
+                title: (photo.caption || biz.name).toUpperCase(),
+                subtitle: `DISCOVER ${biz.name.toUpperCase()}`,
+                caption: "SIWA TODAY • VERIFIED SELECTION",
+                ctaText: "EXPLORE STORY",
+                ctaLink: `/p/${biz.slug}`,
+                animation: 'kenburns',
+                overlayOpacity: 0.4
+              });
+            }
+          });
+        });
+      });
+
+      // Shuffle and limit to 12 slides for a fresh experience
+      const shuffled = discoverySlides.sort(() => 0.5 - Math.random()).slice(0, 12);
+      return NextResponse.json({ slides: shuffled, siteId });
+    }
+
+    const configType = `hero_carousel_${siteId}`;
     const results = await query(
       `SELECT config FROM website_configs WHERE type = ? LIMIT 1`,
       [configType]

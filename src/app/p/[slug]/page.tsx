@@ -5,6 +5,9 @@ import DynamicForm from '@/components/DynamicForm';
 import MasterCard from '@/components/MasterCard';
 import VibeSearch from '@/components/VibeSearch';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+import { query } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * SEO ENGINE FOR CUSTOM PAGES
@@ -12,13 +15,25 @@ import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/jana/website?type=${slug}`);
-    const data = await res.json();
-    const config = data[0]?.site_settings || {};
+    const configId = `website_${slug}`;
+    const results = await query<any>(
+      'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
+      [configId]
+    );
+
+    if (results.length === 0) {
+      return { title: `${slug.toUpperCase()} | Siwa Oasis` };
+    }
+
+    const config = typeof results[0].config === 'string'
+      ? JSON.parse(results[0].config)
+      : results[0].config;
+
+    const settings = config?.site_settings || {};
 
     return {
-      title: `${config.site_name || slug.toUpperCase()} | Siwa Oasis`,
-      description: config.tagline || 'Discover the magic of Siwa Oasis.',
+      title: `${settings.site_name || slug.toUpperCase()} | Siwa Oasis`,
+      description: settings.tagline || 'Discover the magic of Siwa Oasis.',
     };
   } catch (e) {
     return { title: 'Siwa Today' };
@@ -32,11 +47,13 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/jana/website?type=${slug}`, { cache: 'no-store' });
-    const data = await res.json();
-    const page = data[0];
+    const configId = `website_${slug}`;
+    const results = await query<any>(
+      'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
+      [configId]
+    );
 
-    if (!page) {
+    if (results.length === 0) {
       return (
         <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
           <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
@@ -45,6 +62,10 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
         </div>
       );
     }
+
+    const page = typeof results[0].config === 'string'
+      ? JSON.parse(results[0].config)
+      : results[0].config;
 
     const { header_components = [], body_components = [], footer_components = [], site_settings = {} } = page;
 

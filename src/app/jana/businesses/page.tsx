@@ -35,10 +35,54 @@ export default function BusinessRegistryPage() {
   const [schemaFields, setSchemaFields] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   useEffect(() => { 
     loadBusinesses(); 
     fetchMetadata();
   }, []);
+
+  async function bulkAction(updates: any) {
+    if (selectedIds.length === 0) return;
+    setIsSyncing(true);
+    try {
+      await Promise.all(selectedIds.map(id => 
+        fetch('/api/jana/businesses', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, ...updates })
+        })
+      ));
+      notify(`Updated ${selectedIds.length} entities`, 'success');
+      setSelectedIds([]);
+      loadBusinesses();
+    } catch (e) {
+      notify('Bulk action failed', 'error');
+    }
+    setIsSyncing(false);
+  }
+
+  async function bulkDelete() {
+    if (!confirm(`Delete ${selectedIds.length} businesses?`)) return;
+    setIsSyncing(true);
+    try {
+      await Promise.all(selectedIds.map(id => 
+        fetch(`/api/jana/businesses?id=${id}`, { method: 'DELETE' })
+      ));
+      notify('Bulk deletion complete', 'success');
+      setSelectedIds([]);
+      loadBusinesses();
+    } catch (e) { notify('Deletion failed', 'error'); }
+    setIsSyncing(false);
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(selectedIds.length === businesses.length ? [] : businesses.map(b => b.id));
+  };
 
   async function loadBusinesses() {
     setLoading(true);
@@ -223,6 +267,7 @@ export default function BusinessRegistryPage() {
         <table>
           <thead>
             <tr>
+              <th style={{ width: '40px' }}><input type="checkbox" checked={selectedIds.length === businesses.length && businesses.length > 0} onChange={toggleSelectAll} /></th>
               <th>Business Entity</th>
               <th>Typology</th>
               <th>Template</th>
@@ -233,7 +278,8 @@ export default function BusinessRegistryPage() {
           </thead>
           <tbody>
             {businesses.map(b => (
-              <tr key={b.id}>
+              <tr key={b.id} style={{ background: selectedIds.includes(b.id) ? '#f8fafc' : 'transparent' }}>
+                <td><input type="checkbox" checked={selectedIds.includes(b.id)} onChange={() => toggleSelect(b.id)} /></td>
                 <td>
                   <div style={{ fontWeight: 800 }}>{b.name}</div>
                   <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>ID: {b.id.slice(0, 8)}...</div>
@@ -251,9 +297,47 @@ export default function BusinessRegistryPage() {
                   }
                 </td>
                 <td>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
                     <span className={`badge badge-${b.status === 'active' ? 'success' : 'warning'}`}>{(b.status || 'inactive').toUpperCase()}</span>
                     <span className="subscription-badge">{(b.subscription_tier || 'free').toUpperCase()}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                     <button 
+                       onClick={() => {
+                         fetch('/api/jana/businesses', { 
+                           method: 'PATCH', 
+                           headers: {'Content-Type':'application/json'}, 
+                           body: JSON.stringify({ id: b.id, is_recommended: !(b as any).is_recommended })
+                         }).then(() => loadBusinesses());
+                       }}
+                       style={{ background: (b as any).is_recommended ? '#dcfce7' : '#f1f5f9', color: (b as any).is_recommended ? '#166534' : '#94a3b8', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, cursor: 'pointer' }}
+                     >
+                       <i className="fas fa-thumbs-up"></i> REC
+                     </button>
+                     <button 
+                       onClick={() => {
+                         fetch('/api/jana/businesses', { 
+                           method: 'PATCH', 
+                           headers: {'Content-Type':'application/json'}, 
+                           body: JSON.stringify({ id: b.id, is_trusted: !(b as any).is_trusted })
+                         }).then(() => loadBusinesses());
+                       }}
+                       style={{ background: (b as any).is_trusted ? '#eff6ff' : '#f1f5f9', color: (b as any).is_trusted ? '#1e40af' : '#94a3b8', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, cursor: 'pointer' }}
+                     >
+                       <i className="fas fa-check-shield"></i> TRUSTED
+                     </button>
+                     <button 
+                       onClick={() => {
+                         fetch('/api/jana/businesses', { 
+                           method: 'PATCH', 
+                           headers: {'Content-Type':'application/json'}, 
+                           body: JSON.stringify({ id: b.id, is_featured: !(b as any).is_featured })
+                         }).then(() => loadBusinesses());
+                       }}
+                       style={{ background: (b as any).is_featured ? '#fffbeb' : '#f1f5f9', color: (b as any).is_featured ? '#92400e' : '#94a3b8', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, cursor: 'pointer' }}
+                     >
+                       <i className="fas fa-star"></i> FEATURED
+                     </button>
                   </div>
                 </td>
                 <td>
@@ -301,6 +385,9 @@ export default function BusinessRegistryPage() {
                         <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
                           <i className="fas fa-magic"></i> CURATE
                         </Link>
+                        <Link href={`/jana/businesses/${b.id}/promote`} className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="Promote to New Template">
+                          <i className="fas fa-rocket"></i> PROMOTE
+                        </Link>
                         <Link href={`/jana/businesses/${b.id}/orchestrate`} className="btn btn-xs btn-premium" title="Orchestrate Unified DNA">
                           <i className="fas fa-wand-sparkles"></i> ORCHESTRATE
                         </Link>
@@ -312,6 +399,32 @@ export default function BusinessRegistryPage() {
           </tbody>
         </table>
       </div>
+
+      {/* ── BULK ACTION BAR ── */}
+      {selectedIds.length > 0 && (
+        <div className="bulk-action-bar animate-in" style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', background: '#0f172a', border: '1px solid #334155', borderRadius: '50px', padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 1000 }}>
+           <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 800, borderRight: '1px solid #334155', paddingRight: '1.5rem' }}>
+              {selectedIds.length} ENTITIES SELECTED
+           </div>
+           <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn btn-xs btn-outline" style={{ color: '#22c55e', borderColor: '#22c55e' }} onClick={() => bulkAction({ is_recommended: true })}>
+                <i className="fas fa-thumbs-up"></i> RECOMMEND
+              </button>
+              <button className="btn btn-xs btn-outline" style={{ color: '#3b82f6', borderColor: '#3b82f6' }} onClick={() => bulkAction({ is_trusted: true })}>
+                <i className="fas fa-check-shield"></i> TRUST
+              </button>
+              <button className="btn btn-xs btn-outline" style={{ color: '#f59e0b', borderColor: '#f59e0b' }} onClick={() => bulkAction({ is_featured: true })}>
+                <i className="fas fa-star"></i> FEATURE
+              </button>
+              <button className="btn btn-xs btn-outline" style={{ color: '#ef4444', borderColor: '#ef4444' }} onClick={bulkDelete}>
+                <i className="fas fa-trash"></i> DELETE
+              </button>
+           </div>
+           <button style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.5rem' }} onClick={() => setSelectedIds([])}>
+              <i className="fas fa-times"></i>
+           </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -175,3 +175,102 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+// PUT: Update existing blog post
+export async function PUT(request: NextRequest) {
+  try {
+    await requireAdmin();
+    const body = await request.json();
+    const {
+      id,
+      title,
+      slug,
+      excerpt,
+      content,
+      featured_image,
+      author_id,
+      category_id,
+      status,
+      published_at,
+      meta_title,
+      meta_description,
+      meta_keywords,
+      tags = []
+    } = body;
+
+    if (!id || !title || !slug || !content) {
+      return NextResponse.json(
+        { error: 'ID, title, slug, and content are required' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate reading time
+    const wordCount = content.split(/\s+/).length;
+    const reading_time = Math.ceil(wordCount / 200);
+
+    // Update post
+    await query(
+      `UPDATE blog_posts 
+       SET title = ?, slug = ?, excerpt = ?, content = ?, featured_image = ?, 
+           author_id = ?, category_id = ?, status = ?, published_at = ?, 
+           meta_title = ?, meta_description = ?, meta_keywords = ?, reading_time = ?
+       WHERE id = ?`,
+      [
+        title,
+        slug,
+        excerpt || '',
+        content,
+        featured_image || null,
+        author_id || null,
+        category_id || null,
+        status || 'draft',
+        published_at || null,
+        meta_title || title,
+        meta_description || excerpt,
+        meta_keywords || '',
+        reading_time,
+        id
+      ]
+    );
+
+    // Handle tags (simplified: delete all and re-add)
+    await query('DELETE FROM blog_post_tags WHERE post_id = ?', [id]);
+    
+    if (tags.length > 0) {
+      for (const tagName of tags) {
+        let tag = await query('SELECT id FROM blog_tags WHERE name = ?', [tagName]);
+        if (tag.length === 0) {
+          const tagSlug = tagName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          await query('INSERT INTO blog_tags (name, slug) VALUES (?, ?)', [tagName, tagSlug]);
+          tag = await query('SELECT id FROM blog_tags WHERE slug = ?', [tagSlug]);
+        }
+        await query('INSERT IGNORE INTO blog_post_tags (post_id, tag_id) VALUES (?, ?)', [id, tag[0].id]);
+      }
+    }
+
+    return NextResponse.json({ success: true, message: 'Blog post updated successfully' });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// DELETE: Remove blog post
+export async function DELETE(request: NextRequest) {
+  try {
+    await requireAdmin();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    // Delete post-tag relationships
+    await query('DELETE FROM blog_post_tags WHERE post_id = ?', [id]);
+    
+    // Delete the post
+    await query('DELETE FROM blog_posts WHERE id = ?', [id]);
+
+    return NextResponse.json({ success: true, message: 'Blog post removed' });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}

@@ -154,9 +154,9 @@ export async function PUT(request: NextRequest) {
     const sets: string[] = [];
     const params: any[] = [];
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone'].includes(key)) {
+      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(key === 'is_standalone' ? (value ? 1 : 0) : value);
+        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key) ? (value ? 1 : 0) : value);
         
         // Also update slug if name is changed
         if (key === 'name' && typeof value === 'string') {
@@ -189,6 +189,66 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH update a business (Deep Merge for custom_data)
 export async function PATCH(request: NextRequest) {
-  return PUT(request);
+  try {
+    const user = await requireAdmin();
+    const body = await request.json();
+    const { id, ...updates } = body;
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    // 1. Fetch existing business data to perform merge
+    const existing = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [id]) as any;
+    if (!existing) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+
+    let currentData = {};
+    try {
+      currentData = typeof existing.custom_data === 'string' ? JSON.parse(existing.custom_data) : existing.custom_data || {};
+    } catch (e) { currentData = {}; }
+
+    const sets: string[] = [];
+    const params: any[] = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key)) {
+        sets.push(`${key} = ?`);
+        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key) ? (value ? 1 : 0) : value);
+        
+        if (key === 'name' && typeof value === 'string') {
+          sets.push(`slug = ?`);
+          params.push(slugify(value));
+        }
+      }
+
+      if (key === 'custom_data' && value && typeof value === 'object') {
+        // PERFORM DEEP MERGE: Merge the incoming custom_data with the existing one
+        // This ensures that "promoting" or updating one section doesn't wipe others.
+        const mergedData = { ...currentData, ...(value as object) };
+        
+        // Deep merge sections if they exist in both
+        for (const sectionId in value as object) {
+          if (currentData[sectionId] && typeof (value as any)[sectionId] === 'object') {
+            mergedData[sectionId] = { ...currentData[sectionId], ...(value as any)[sectionId] };
+          }
+        }
+
+        sets.push(`custom_data = ?`);
+        params.push(JSON.stringify(mergedData));
+      }
+      
+      if (key === 'draft_data') {
+        sets.push(`${key} = ?`);
+        params.push(JSON.stringify(value));
+      }
+    }
+
+    if (sets.length) {
+      params.push(id);
+      await execute(`UPDATE businesses SET ${sets.join(', ')} WHERE id = ?`, params);
+    }
+
+    return NextResponse.json({ success: true, message: 'Business DNA merged successfully' });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }
