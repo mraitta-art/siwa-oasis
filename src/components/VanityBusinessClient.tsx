@@ -63,9 +63,9 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
       />
 
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="container minisite-nav-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>{(biz?.name || '').toUpperCase()}</div>
-          <div style={{ display: 'flex', gap: '2rem' }}>
+          <div className="minisite-nav-tabs" style={{ display: 'flex', gap: '2rem' }}>
             {activeSections.map(s => {
               const customLabel = biz.custom_data?.section_labels?.[s.id] || s.name;
               return (
@@ -92,7 +92,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
       </nav>
 
       <div className="container" style={{ maxWidth: '1200px', padding: '4rem 1.5rem' }}>
-        <div style={{ gridTemplateColumns: '1fr 380px', display: 'grid', gap: '4rem' }}>
+        <div className="minisite-layout">
           <main>
             {activeSections.filter(s => s.id === activeTab).map(section => {
               const secData = data[section.id];
@@ -120,7 +120,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
                         </div>
                       )}
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                      <div className="grid-2">
                         {Object.entries(secData).map(([key, val]) => {
                           if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description'].includes(key)) return null;
                           return (

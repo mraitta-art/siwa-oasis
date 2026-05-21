@@ -724,3 +724,38 @@ tr:hover td { background: #f9fafb; }
     width: 100%;
   }
 }
+
+/* ---- Minisite Responsive Enhancements ---- */
+.minisite-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 4rem;
+}
+
+@media (max-width: 1024px) {
+  .minisite-layout {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+.minisite-nav-container {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.minisite-nav-tabs {
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 5px;
+}
+
+.minisite-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.minisite-nav-tabs {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
