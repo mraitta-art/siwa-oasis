@@ -210,8 +210,8 @@ export default function BusinessTypesPage() {
       </div>
 
       {showModal && editingType && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="card animate-in" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowModal(false)} style={{ padding: '1rem' }}>
+          <div className="card animate-in" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div className="card-header">
               <h3>{isNew ? 'Create New Typology' : 'Edit Typology Architect'}</h3>
               <button className="btn btn-xs btn-outline" onClick={() => setShowModal(false)}>×</button>
@@ -281,7 +281,7 @@ export default function BusinessTypesPage() {
                   <>
                     <label className="form-label">🧬 Own Sections (Will be inherited by all children)</label>
                     <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.75rem' }}>Select up to 8 sections. These will be <strong>locked and inherited</strong> by all child typologies under this parent.</p>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <div style={{ flex: 1, maxHeight: '220px', overflowY: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                         {sections.map(s => (
                           <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0', cursor: 'pointer' }}>
@@ -342,7 +342,7 @@ export default function BusinessTypesPage() {
                     {/* Own extra sections */}
                     <label className="form-label">➕ Additional Own Sections (Optional)</label>
                     <p style={{ fontSize:'0.72rem', color:'#64748b', marginBottom:'0.75rem' }}>Add sections specific to this child type only. These are on top of the inherited ones.</p>
-                    <div style={{ display:'flex', gap:'1rem' }}>
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <div style={{ flex:1, maxHeight:'160px', overflowY:'auto', background:'#f8fafc', padding:'1rem', borderRadius:'8px', border:'1px solid #e2e8f0' }}>
                         {sections.filter(s => !getParentSections(editingType.parent_id).includes(s.id)).map(s => (
                           <label key={s.id} style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'0.4rem 0', cursor:'pointer' }}>
