@@ -849,8 +849,8 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   return (
     <div className="dynamic-form">
       {/* DNA LEGEND FOR ADMINS/VENDORS */}
-      <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1rem', textTransform: 'uppercase' }}>
+      <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1rem', textTransform: 'uppercase' }}>
           <i className="fas fa-info-circle" style={{ marginRight: '0.5rem' }}></i> Data Architecture Guide
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
@@ -858,36 +858,36 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             <div style={{ width: 12, height: 12, borderRadius: '3px', background: '#D4AF37', marginTop: '3px' }}></div>
             <div>
               <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37' }}>UNIVERSAL (BLUEPRINT)</div>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem', lineHeight: 1.4 }}>Fields defined at the core platform level. Required for all businesses in this section.</div>
+              <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.2rem', lineHeight: 1.4 }}>Fields defined at the core platform level. Required for all businesses in this section.</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
             <div style={{ width: 12, height: 12, borderRadius: '3px', background: '#3b82f6', marginTop: '3px' }}></div>
             <div>
               <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6' }}>INHERITED (COMMON)</div>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem', lineHeight: 1.4 }}>Fields shared across multiple similar business types (e.g. all Accommodation types).</div>
+              <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.2rem', lineHeight: 1.4 }}>Fields shared across multiple similar business types (e.g. all Accommodation types).</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
             <div style={{ width: 12, height: 12, borderRadius: '3px', background: '#10b981', marginTop: '3px' }}></div>
             <div>
               <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981' }}>UNIQUE (TYPOLOGY)</div>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem', lineHeight: 1.4 }}>Fields built exclusively for this specific business type in the Form Architect.</div>
+              <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.2rem', lineHeight: 1.4 }}>Fields built exclusively for this specific business type in the Form Architect.</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* GLOBAL LANGUAGE SWITCHER */}
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '0.4rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: '#f8fafc', padding: '0.4rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
         {languages.map(lang => (
           <button
             key={lang.code}
             onClick={() => setCurrentLang(lang.code)}
             style={{
               flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
-              background: currentLang === lang.code ? '#D4AF37' : 'transparent',
-              color: currentLang === lang.code ? '#1e293b' : 'rgba(255,255,255,0.4)',
+              background: currentLang === lang.code ? '#1e293b' : 'transparent',
+              color: currentLang === lang.code ? '#fff' : '#64748b',
               fontSize: '0.6rem', fontWeight: 900, transition: 'all 0.2s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
             }}
@@ -900,38 +900,48 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
       {sectionOrder.map(sid => {
         const sectionFields = groupedFields[sid];
-        const birthrightFields = sectionFields.filter(f => ['section_gallery', 'section_blog', 'section_news', 'feature_on_main'].includes(f.name));
-        const strategicFields = sectionFields.filter(f => !['section_gallery', 'section_blog', 'section_news', 'feature_on_main', 'initialized'].includes(f.name));
+        
+        // Categorize Fields
+        const textFields = sectionFields.filter(f => ['text', 'textarea', 'rich_text', 'richtext', 'narrative', 'email', 'tel', 'phone'].includes(f.field_type) && f.name !== 'initialized');
+        const mediaFields = sectionFields.filter(f => ['gallery', 'image', 'video', 'youtube'].includes(f.field_type));
+        const configFields = sectionFields.filter(f => !textFields.includes(f) && !mediaFields.includes(f) && f.name !== 'initialized');
+
+        let stepCounter = 1;
+
+        const renderCategory = (fields: Field[], title: string, icon: string, color: string) => {
+          if (fields.length === 0) return null;
+          return (
+            <div style={{ marginBottom: '3rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: '8px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className={`fas ${icon}`}></i>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', letterSpacing: '2px' }}>{title.toUpperCase()}</span>
+                <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, #e2e8f0, transparent)' }}></div>
+              </div>
+              <div className="grid-fit">
+                {fields.map(f => {
+                  const fieldEl = renderField(f, sid);
+                  const currentStep = stepCounter++;
+                  return (
+                    <div key={f.name} style={{ position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: '-10px', left: '-10px', width: 24, height: 24, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900, zIndex: 5, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                        {currentStep}
+                      </div>
+                      {fieldEl}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        };
 
         return (
           <section key={sid} style={{ marginBottom: '3rem' }}>
-            {/* FOUNDATION BLOCK */}
-            {birthrightFields.length > 0 && (
-              <div style={{ marginBottom: '3rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', opacity: 0.6 }}>
-                  <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, transparent, #D4AF37, transparent)' }}></div>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px' }}>SECTIONAL FOUNDATION</span>
-                  <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, transparent, #D4AF37, transparent)' }}></div>
-                </div>
-                <div className="grid-fit">
-                  {birthrightFields.map(f => renderField(f, sid))}
-                </div>
-              </div>
-            )}
-
-            {/* STRATEGIC FIELDS BLOCK */}
-            {strategicFields.length > 0 && (
-              <div style={{ marginBottom: '3rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', opacity: 0.6 }}>
-                  <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, transparent, #6366f1, transparent)' }}></div>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#6366f1', letterSpacing: '3px' }}>STRATEGIC DNA FIELDS</span>
-                  <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, transparent, #6366f1, transparent)' }}></div>
-                </div>
-                <div className="grid-fit">
-                  {strategicFields.map(f => renderField(f, sid))}
-                </div>
-              </div>
-            )}
+            {renderCategory(textFields, 'Text & Content', 'fa-font', '#3b82f6')}
+            {renderCategory(mediaFields, 'Media Assets', 'fa-images', '#D4AF37')}
+            {renderCategory(configFields, 'Configurations & Logic', 'fa-cogs', '#10b981')}
           </section>
         );
       })}
@@ -957,7 +967,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           display: block;
           font-size: 0.65rem;
           font-weight: 900;
-          color: #D4AF37;
+          color: #0f172a;
           letter-spacing: 1px;
           margin-bottom: 0.75rem;
           text-transform: uppercase;
@@ -966,7 +976,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         .help-text {
           display: block;
           font-size: 0.6rem;
-          color: rgba(255,255,255,0.3);
+          color: #64748b;
           font-weight: 600;
           margin-top: 0.25rem;
           letter-spacing: 0.5px;
@@ -975,11 +985,11 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
         .form-control {
           width: 100%;
-          background: rgba(255,255,255,0.03);
-          border: 1.2px solid rgba(255,255,255,0.08);
+          background: #f8fafc;
+          border: 1.2px solid #e2e8f0;
           border-radius: 12px;
           padding: 0.85rem 1.25rem;
-          color: #fff;
+          color: #0f172a;
           font-size: 0.9rem;
           font-weight: 600;
           outline: none;
@@ -988,7 +998,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
         .form-control:focus {
           border-color: #D4AF37;
-          background: rgba(212,175,55,0.04);
+          background: #ffffff;
           box-shadow: 0 0 15px rgba(212,175,55,0.1);
         }
 
@@ -1019,7 +1029,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         .lock-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(15,23,42,0.8);
+          background: rgba(255,255,255,0.8);
           backdrop-filter: blur(4px);
           z-index: 10;
           display: flex;

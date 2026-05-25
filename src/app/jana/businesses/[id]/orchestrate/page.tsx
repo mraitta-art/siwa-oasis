@@ -142,8 +142,8 @@ export default function BusinessOrchestrator() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div className="badge-premium">GOVERNANCE COMMAND CENTER</div>
-              <h1 className="title">{biz.name?.toUpperCase()}</h1>
-              <p style={{ margin: '1rem 0 0', opacity: 0.5, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '1px' }}>
+              <h1 className="title" style={{ color: '#0f172a' }}>{biz.name?.toUpperCase()}</h1>
+              <p style={{ margin: '1rem 0 0', color: '#64748b', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '1px' }}>
                 <i className="fas fa-fingerprint"></i> UUID: {id}
               </p>
             </div>
@@ -193,7 +193,7 @@ export default function BusinessOrchestrator() {
                 </div>
                 <div className="form-group">
                   <label className="dna-label">Business Category (Typology)</label>
-                  <div className="dna-input" style={{ opacity: 0.6, background: 'rgba(255,255,255,0.05)' }}>
+                  <div className="dna-input" style={{ opacity: 0.6, background: '#f1f5f9' }}>
                     {biz.type_name || 'Generic Business'}
                   </div>
                 </div>
@@ -218,15 +218,15 @@ export default function BusinessOrchestrator() {
                       return (
                         <div key={s.id} className={`section-item-toggle ${!isHidden ? 'active' : ''}`} style={{ 
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(99,102,241,0.05)',
-                          border: isHidden ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(99,102,241,0.2)',
+                          background: isHidden ? '#f8fafc' : 'rgba(99,102,241,0.05)',
+                          border: isHidden ? '1px solid #e2e8f0' : '1px solid rgba(99,102,241,0.3)',
                           padding: '1.25rem', borderRadius: '16px'
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <i className={`fas ${s.icon}`} style={{ color: isHidden ? '#64748b' : '#6366f1' }}></i>
+                            <i className={`fas ${s.icon}`} style={{ color: isHidden ? '#94a3b8' : '#6366f1' }}></i>
                             <div>
-                               <div style={{ fontWeight: 800, color: isHidden ? '#64748b' : '#fff', fontSize: '0.85rem' }}>{s.name}</div>
-                               <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isHidden ? '#475569' : '#6366f1', letterSpacing: '1px' }}>
+                               <div style={{ fontWeight: 800, color: isHidden ? '#94a3b8' : '#0f172a', fontSize: '0.85rem' }}>{s.name}</div>
+                               <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isHidden ? '#94a3b8' : '#6366f1', letterSpacing: '1px' }}>
                                  {isHidden ? 'HIDDEN FROM PUBLIC NAV' : 'VISIBLE ON MINISITE'}
                                </div>
                             </div>
@@ -294,11 +294,11 @@ export default function BusinessOrchestrator() {
                 {activeSectionId && (
                   <div key={activeSectionId} className="animate-in">
                     <div style={{ 
-                      position: 'sticky', top: 0, zIndex: 10, background: 'rgba(15,23,42,0.8)', 
+                      position: 'sticky', top: 0, zIndex: 10, background: 'rgba(255,255,255,0.95)', 
                       backdropFilter: 'blur(10px)', padding: '1rem 0', marginBottom: '2rem',
-                      borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                      borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}>
-                      <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>
+                      <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0, letterSpacing: '-1px', color: '#0f172a' }}>
                         <i className={`fas ${sections.find(s => s.id === activeSectionId)?.icon}`} style={{ color: '#D4AF37', marginRight: '1rem' }}></i>
                         {sections.find(s => s.id === activeSectionId)?.name} Feeding
                       </h2>
@@ -308,15 +308,15 @@ export default function BusinessOrchestrator() {
                     {searchParams.get('field') && (
                       <div style={{ 
                         marginBottom: '2rem', padding: '1.5rem 2rem', borderRadius: '16px', 
-                        background: 'linear-gradient(90deg, rgba(212,175,55,0.1), rgba(15,23,42,0))', 
+                        background: 'linear-gradient(90deg, rgba(212,175,55,0.05), rgba(255,255,255,0))', 
                         borderLeft: '4px solid #D4AF37', display: 'flex', alignItems: 'center', gap: '1.5rem'
                       }}>
-                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#D4AF37', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#D4AF37', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                           <i className="fas fa-crosshairs"></i>
                         </div>
                         <div>
                           <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '0.25rem' }}>DIRECT INJECTION ACTIVE</div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
                             You are currently focused on editing the <strong style={{ color: '#D4AF37' }}>{searchParams.get('field')?.toUpperCase()}</strong> field for <strong style={{ color: '#D4AF37' }}>{biz.name}</strong>.
                           </div>
                           <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.25rem' }}>
@@ -371,7 +371,7 @@ export default function BusinessOrchestrator() {
 
               <div className="grid-responsive" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
                 {sections.filter(s => activeSectionIds.includes(s.id)).map(s => (
-                  <div key={s.id} className="form-group" style={{ background: 'rgba(255,255,255,0.01)', padding: '1.5rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={s.id} className="form-group" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                       <i className={`fas ${s.icon}`} style={{ color: '#94a3b8', fontSize: '0.8rem' }}></i>
                       <label className="dna-label" style={{ margin: 0 }}>{s.name.toUpperCase()} NAVIGATION LABEL</label>
@@ -418,9 +418,9 @@ export default function BusinessOrchestrator() {
 
         .orchestrator-page { 
           min-height: 100vh; 
-          background: #090e17; 
+          background: #f8fafc; 
           padding-bottom: 5rem; 
-          color: #fff; 
+          color: #0f172a; 
           font-family: 'Inter', sans-serif;
           overflow-x: hidden;
         }
@@ -433,16 +433,16 @@ export default function BusinessOrchestrator() {
         }
 
         .orchestrator-header { 
-          background: radial-gradient(circle at top right, rgba(212,175,55,0.1), transparent), #0f172a; 
+          background: radial-gradient(circle at top right, rgba(212,175,55,0.05), transparent), #ffffff; 
           padding: 6rem 0 0; 
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          border-bottom: 1px solid #e2e8f0;
         }
 
         .badge-premium { 
-          display: inline-block; background: #D4AF37; color: #1e293b; 
+          display: inline-block; background: #D4AF37; color: #fff; 
           padding: 6px 16px; borderRadius: 50px; font-size: 0.6rem; 
           font-weight: 900; letter-spacing: 2px; margin-bottom: 1.5rem;
-          box-shadow: 0 4px 20px rgba(212,175,55,0.4);
+          box-shadow: 0 4px 20px rgba(212,175,55,0.2);
           font-family: 'Outfit', sans-serif;
         }
 
@@ -450,26 +450,26 @@ export default function BusinessOrchestrator() {
           font-family: 'Outfit', sans-serif;
           font-size: clamp(2rem, 5vw, 3.5rem); 
           font-weight: 900; margin: 0; letter-spacing: -2px; 
-          text-shadow: 0 10px 40px rgba(0,0,0,0.6);
+          text-shadow: 0 10px 40px rgba(0,0,0,0.05);
           line-height: 1;
         }
         
         .orchestrator-tabs { display: flex; gap: clamp(1rem, 2vw, 3rem); margin-top: 4rem; flex-wrap: wrap; }
         .tab-btn { 
-          background: none; border: none; color: rgba(255,255,255,0.3); 
+          background: none; border: none; color: #94a3b8; 
           font-weight: 900; font-size: 0.75rem; letter-spacing: 2px; 
           padding: 1rem 0; cursor: pointer; border-bottom: 3px solid transparent; 
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           font-family: 'Outfit', sans-serif;
         }
-        .tab-btn:hover { color: #fff; }
-        .tab-btn.active { color: #D4AF37; border-bottom-color: #D4AF37; text-shadow: 0 0 15px rgba(212,175,55,0.5); }
+        .tab-btn:hover { color: #0f172a; }
+        .tab-btn.active { color: #D4AF37; border-bottom-color: #D4AF37; text-shadow: none; }
 
         .glass-card { 
-          background: rgba(255,255,255,0.02); 
+          background: #ffffff; 
           border-radius: 32px; padding: clamp(1.5rem, 3vw, 3.5rem); 
-          box-shadow: 0 30px 60px -12px rgba(0,0,0,0.7); 
-          border: 1px solid rgba(255,255,255,0.05);
+          box-shadow: 0 30px 60px -12px rgba(0,0,0,0.05); 
+          border: 1px solid #e2e8f0;
           backdrop-filter: blur(40px);
           width: 100%;
         }
@@ -477,7 +477,7 @@ export default function BusinessOrchestrator() {
         .section-title { 
           font-family: 'Outfit', sans-serif;
           font-size: 1.5rem; font-weight: 900; margin: 0 0 3rem; 
-          color: #fff; border-left: 5px solid #D4AF37; padding-left: 1.5rem;
+          color: #0f172a; border-left: 5px solid #D4AF37; padding-left: 1.5rem;
           letter-spacing: -0.5px;
         }
 
@@ -504,48 +504,48 @@ export default function BusinessOrchestrator() {
         
         .dna-input { 
           width: 100%; 
-          background: rgba(255,255,255,0.03); 
-          border: 1.2px solid rgba(255,255,255,0.08); 
-          borderRadius: 12px; padding: 1rem; color: #fff; 
+          background: #f8fafc; 
+          border: 1.2px solid #e2e8f0; 
+          borderRadius: 12px; padding: 1rem; color: #0f172a; 
           font-weight: 600; outline: none; transition: all 0.3s;
           font-size: 0.9rem;
         }
-        .dna-input:focus { border-color: #D4AF37; background: rgba(212,175,55,0.04); box-shadow: 0 0 15px rgba(212,175,55,0.1); }
+        .dna-input:focus { border-color: #D4AF37; background: #ffffff; box-shadow: 0 0 15px rgba(212,175,55,0.1); }
 
         .section-grid-mini { display: grid; gap: 0.75rem; }
         
         .section-item-static { 
-          background: rgba(255,255,255,0.02); padding: 1rem; 
+          background: #f8fafc; padding: 1rem; 
           borderRadius: 12px; display: flex; justifyContent: space-between; 
-          alignItems: center; font-weight: 800; color: #cbd5e1; font-size: 0.85rem;
-          border: 1px solid rgba(255,255,255,0.04);
+          alignItems: center; font-weight: 800; color: #64748b; font-size: 0.85rem;
+          border: 1px solid #e2e8f0;
         }
 
         .section-item-toggle { 
-          background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.06); 
+          background: #f8fafc; border: 1px solid #e2e8f0; 
           padding: 1rem; borderRadius: 12px; display: flex; justifyContent: space-between; 
-          alignItems: center; font-weight: 800; color: #94a3b8; cursor: pointer; transition: all 0.3s;
+          alignItems: center; font-weight: 800; color: #64748b; cursor: pointer; transition: all 0.3s;
         }
-        .section-item-toggle:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
-        .section-item-toggle.active { border-color: #D4AF37; background: rgba(212,175,55,0.06); color: #fff; }
+        .section-item-toggle:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
+        .section-item-toggle.active { border-color: #D4AF37; background: rgba(212,175,55,0.06); color: #0f172a; }
         
         .dna-sidebar { 
           display: flex; flexDirection: column; gap: 0.75rem; 
-          border-right: 1px solid rgba(255,255,255,0.05); padding-right: 2rem; 
+          border-right: 1px solid #e2e8f0; padding-right: 2rem; 
         }
         
         .dna-nav-btn { 
           background: transparent; border: none; text-align: left; 
           padding: 1rem; borderRadius: 12px; font-weight: 800; 
-          color: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.4s; 
+          color: #94a3b8; cursor: pointer; transition: all 0.4s; 
           display: flex; alignItems: center; gap: 1rem;
           font-family: 'Outfit', sans-serif;
         }
-        .dna-nav-btn:hover:not(.active) { background: rgba(255,255,255,0.03); color: #fff; }
+        .dna-nav-btn:hover:not(.active) { background: #f8fafc; color: #0f172a; }
         .dna-nav-btn.active { 
-          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
+          background: #ffffff; 
           color: #D4AF37; border: 1px solid rgba(212,175,55,0.2);
-          box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
 
         .btn-premium { 
@@ -562,7 +562,7 @@ export default function BusinessOrchestrator() {
         
         .btn-outline { 
           padding: 1rem 2.5rem; border-radius: 50px; 
-          background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.1); 
+          background: transparent; color: #0f172a; border: 1.5px solid #e2e8f0; 
           font-weight: 900; letter-spacing: 1.5px; cursor: pointer; transition: all 0.4s;
           display: flex; alignItems: center; gap: 0.75rem;
           font-family: 'Outfit', sans-serif;
@@ -572,7 +572,7 @@ export default function BusinessOrchestrator() {
 
         .loader-screen { 
           height: 100vh; display: flex; align-items: center; justify-content: center; 
-          background: #090e17; color: #D4AF37; font-weight: 900; letter-spacing: 10px; 
+          background: #f8fafc; color: #D4AF37; font-weight: 900; letter-spacing: 10px; 
           font-family: 'Outfit', sans-serif; font-size: 1.2rem;
         }
       `}</style>
