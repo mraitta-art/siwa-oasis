@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DynamicForm from '@/components/DynamicForm';
+import { useAdmin } from '@/context/AdminContext';
 
 interface Business {
   id: string; name: string; slug: string; type_id: string; type_name: string; type_icon: string;
@@ -11,6 +12,7 @@ interface Business {
 }
 
 export default function BusinessRegistryPage() {
+  const { notify } = useAdmin();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   

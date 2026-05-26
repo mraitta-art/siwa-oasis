@@ -106,7 +106,8 @@ export default function BusinessTypesPage() {
       setShowModal(false);
       loadTypes();
     } else {
-      notify('Failed to save typology architecture.', 'error');
+      const errData = await res.json().catch(() => null);
+      notify(errData?.error || 'Failed to save typology architecture.', 'error');
     }
   }
 

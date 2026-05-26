@@ -6,8 +6,9 @@ import { getWebsiteTemplate, invalidateCache } from '@/lib/cache';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'main';
-    const configId = `website_${type}`;
+    // Support both ?id=website_slug (builder) and ?type=slug (legacy)
+    const idParam = searchParams.get('id');
+    const configId = idParam || `website_${searchParams.get('type') || 'main'}`;
 
     const results = await query(
       'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
@@ -48,4 +49,18 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   // Use POST logic for simplicity since it has ON DUPLICATE KEY
   return POST(request);
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await requireAdmin();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    // Prevent deleting main page
+    if (id === 'website_main') return NextResponse.json({ error: 'Cannot delete the main page' }, { status: 400 });
+    await execute('DELETE FROM website_configs WHERE type = ?', [id]);
+    invalidateCache.websiteSettings();
+    return NextResponse.json({ success: true });
+  } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }

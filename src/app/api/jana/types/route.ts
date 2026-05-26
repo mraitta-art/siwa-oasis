@@ -45,8 +45,16 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ id, name }, { status: 201 });
   } catch (e: any) {
-    log(`[TYPES POST ERROR] ${e.message} ${e.stack}`);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    const errorMsg = e.message || String(e);
+    log(`[TYPES POST ERROR] ${errorMsg} ${e.stack || ''}`);
+    
+    if (errorMsg.includes('ER_DUP_ENTRY') || errorMsg.includes('Duplicate entry')) {
+      return NextResponse.json({ 
+        error: "DUPLICATE ID ALARM: This typology ID already exists! Please change the 'Database ID' manually to something unique." 
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 
@@ -68,8 +76,16 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    log(`[TYPES PUT ERROR] ${e.message} ${e.stack}`);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    const errorMsg = e.message || String(e);
+    log(`[TYPES PUT ERROR] ${errorMsg} ${e.stack || ''}`);
+    
+    if (errorMsg.includes('ER_DUP_ENTRY') || errorMsg.includes('Duplicate entry')) {
+      return NextResponse.json({ 
+        error: "DUPLICATE ID ALARM: This typology ID already exists! Please change the 'Database ID' manually to something unique." 
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 

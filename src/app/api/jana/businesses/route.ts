@@ -201,7 +201,7 @@ export async function PATCH(request: NextRequest) {
     const existing = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [id]) as any;
     if (!existing) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
 
-    let currentData = {};
+    let currentData: Record<string, any> = {};
     try {
       currentData = typeof existing.custom_data === 'string' ? JSON.parse(existing.custom_data) : existing.custom_data || {};
     } catch (e) { currentData = {}; }
@@ -223,7 +223,7 @@ export async function PATCH(request: NextRequest) {
       if (key === 'custom_data' && value && typeof value === 'object') {
         // PERFORM DEEP MERGE: Merge the incoming custom_data with the existing one
         // This ensures that "promoting" or updating one section doesn't wipe others.
-        const mergedData = { ...currentData, ...(value as object) };
+        const mergedData: Record<string, any> = { ...currentData, ...(value as object) };
         
         // Deep merge sections if they exist in both
         for (const sectionId in value as object) {

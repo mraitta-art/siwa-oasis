@@ -69,6 +69,7 @@ export default function DynamicMobileVendorDashboard() {
   });
 
   const completion = Math.round((chapters.filter(c => c.progress === 100).length / chapters.length) * 100) || 0;
+  const leadsCount = 3;
 
   return (
     <div style={{ background: '#0f172a', minHeight: '100vh', padding: '1.5rem', color: '#fff', fontFamily: 'Inter, sans-serif' }}>

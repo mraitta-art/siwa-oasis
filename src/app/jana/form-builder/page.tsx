@@ -640,7 +640,7 @@ export default function FormArchitectPage() {
                     </div>
                   </div>
 
-                  {['select', 'multiselect', 'checkbox_group'].includes(editingField.field_type) && (
+                  {['select', 'multiselect', 'checkbox_group'].includes(editingField.field_type || '') && (
                     <div className="inspector-section" style={{ marginTop: '1.5rem' }}>
                       <label className="f-label" style={{ marginBottom: '0.5rem', opacity: 0.5 }}>FIELD OPTIONS (COMMA SEPARATED)</label>
                       <textarea 

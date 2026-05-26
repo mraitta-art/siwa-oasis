@@ -105,13 +105,44 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
               const sectionValues = Object.values(data || {}) as any[];
               const image = data?.business_logo || data?.logo || sectionValues.find(s => s?.section_gallery)?.[0]?.url || 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&q=80&w=1200';
               
+              // 1. Extract dynamic hint/teaser from custom_data
+              let hint = '';
+              if (data) {
+                const basic = data.basic || {};
+                hint = basic.description || basic.summary || basic.about || '';
+                
+                if (!hint) {
+                  for (const section of Object.values(data)) {
+                    if (section && typeof section === 'object') {
+                      const text = (section as any).mini_blog || (section as any).description || (section as any).about || (section as any).summary;
+                      if (text && typeof text === 'string') {
+                        hint = text.replace(/<[^>]*>/g, '');
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+              if (!hint) {
+                hint = `Explore authentic ${biz.type_name.toLowerCase()} experiences in the historical heart of Siwa Oasis.`;
+              }
+              if (hint.length > 110) {
+                hint = hint.slice(0, 110) + '...';
+              }
+
+              // 2. Build premium category and governance badges
+              let badge = biz.type_name || '';
+              if (biz.is_featured) badge = `⭐ FEATURED • ${badge}`;
+              else if (biz.is_recommended) badge = `🏆 RECOMMENDED • ${badge}`;
+              else if (biz.is_trusted) badge = `🛡️ VERIFIED • ${badge}`;
+              
               return (
                 <MasterCard
                   key={biz.id}
                   title={biz.name}
-                  description={biz.type_name}
+                  description={hint}
                   image={image}
-                  tag={biz.type_name}
+                  tag={badge}
                   onCardClick={() => window.location.href = `/business/${biz.id}`}
                   links={[
                     { label: 'Explore Journey', icon: 'fa-arrow-right', onClick: () => window.location.href = `/business/${biz.id}` }

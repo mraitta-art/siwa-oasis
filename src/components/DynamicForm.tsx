@@ -22,6 +22,9 @@ interface Field {
     read?: string[];
     write?: string[];
   };
+  business_type_id?: string;
+  is_inherited?: boolean;
+  section_origin?: string;
 }
 
 interface Section {
@@ -60,6 +63,14 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     { code: 'ko', label: 'Korean', icon: '🇰🇷' },
     { code: 'fr', label: 'French', icon: '🇫🇷' }
   ];
+
+  const isMediaAllowed = (type: string) => {
+    if (['super_admin', 'admin', 'content_admin'].includes(userRole || 'public')) return true;
+    const isTrial = business?.subscription_tier === 'trial' || (business?.trial_expires_at && new Date(business.trial_expires_at) > new Date());
+    if (isTrial) return true;
+    if (!tierFeatures.allowedMediaTypes) return true;
+    return tierFeatures.allowedMediaTypes.includes(type);
+  };
 
   // 1. Group fields by section
   const groupedFields: Record<string, Field[]> = {};
