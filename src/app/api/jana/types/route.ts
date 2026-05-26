@@ -6,7 +6,14 @@ import fs from 'fs';
 import path from 'path';
 
 const LOG_FILE = path.join(process.cwd(), 'jana_errors.log');
-const log = (msg: string) => fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
+const log = (msg: string) => {
+  console.log(msg); // Always log to console for Vercel/Railway
+  try {
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch (e) {
+    // Ignore EROFS (Read-only file system on Vercel)
+  }
+};
 
 export async function GET(request: NextRequest) {
   try {
