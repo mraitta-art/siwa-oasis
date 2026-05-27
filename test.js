@@ -1,0 +1,1541 @@
+
+        // ================================================================
+        // MODULE 1: CONFIGURATION & CONSTANTS
+        // ================================================================
+
+
+        const FIELD_TYPES = {
+            text: { name: 'Text Input', icon: 'fa-font', hasOptions: false },
+            textarea: { name: 'Text Area', icon: 'fa-paragraph', hasOptions: false },
+            email: { name: 'Email', icon: 'fa-envelope', hasOptions: false },
+            tel: { name: 'Phone', icon: 'fa-phone', hasOptions: false },
+            number: { name: 'Number', icon: 'fa-hashtag', hasOptions: false },
+            url: { name: 'URL', icon: 'fa-link', hasOptions: false },
+            select: { name: 'Dropdown', icon: 'fa-caret-down', hasOptions: true },
+            checkbox_group: { name: 'Checkbox Group', icon: 'fa-check-double', hasOptions: true },
+            radio_group: { name: 'Radio Buttons', icon: 'fa-dot-circle', hasOptions: true },
+            date: { name: 'Date', icon: 'fa-calendar', hasOptions: false },
+            time: { name: 'Time', icon: 'fa-clock', hasOptions: false },
+            rating: { name: 'Rating', icon: 'fa-star', hasOptions: false },
+            file: { name: 'File Upload', icon: 'fa-file-upload', hasOptions: false },
+            richtext: { name: 'Rich Text', icon: 'fa-align-left', hasOptions: false },
+            gallery: { name: 'Photo Gallery', icon: 'fa-images', hasOptions: false },
+            map: { name: 'Map/Location', icon: 'fa-map', hasOptions: false },
+            video: { name: 'Video Embed', icon: 'fa-video', hasOptions: false }
+        };
+
+        const COMPONENTS = {
+            header: { navigation: { name: 'Navigation Bar', icon: 'fa-bars', editable: true }, hero: { name: 'Hero Section', icon: 'fa-image', editable: true }, logo: { name: 'Logo Area', icon: 'fa-heading', editable: true } },
+            body: { gallery: { name: 'Gallery', icon: 'fa-images', editable: true }, testimonials: { name: 'Testimonials', icon: 'fa-quote-left', editable: true }, services: { name: 'Services', icon: 'fa-briefcase', editable: true }, blog: { name: 'Blog Posts', icon: 'fa-newspaper', editable: true }, map: { name: 'Map', icon: 'fa-map', editable: true }, carousel: { name: 'Image Carousel', icon: 'fa-images', editable: true }, video: { name: 'Video Embed', icon: 'fa-video', editable: true } },
+            footer: { contact: { name: 'Contact Info', icon: 'fa-envelope', editable: true }, social: { name: 'Social Links', icon: 'fa-share-alt', editable: true }, copyright: { name: 'Copyright', icon: 'fa-copyright', editable: true } }
+        };
+
+        const CARD_LAYOUTS = {
+            compact: { id: 'compact', name: 'Compact', icon: 'fa-th-large', description: 'Minimal info' },
+            standard: { id: 'standard', name: 'Standard', icon: 'fa-th', description: 'Balanced layout' },
+            detailed: { id: 'detailed', name: 'Detailed', icon: 'fa-th-list', description: 'Full info' },
+            hero: { id: 'hero', name: 'Hero Card', icon: 'fa-image', description: 'Large image overlay' }
+        };
+
+        const CARD_FIELDS = {
+            title: { displayName: 'Title', section: 'header', defaultShow: true },
+            image: { displayName: 'Main Image', section: 'header', defaultShow: true },
+            rating: { displayName: 'Rating', section: 'header', defaultShow: true },
+            category: { displayName: 'Category', section: 'header', defaultShow: true },
+            price: { displayName: 'Price', section: 'body', defaultShow: true },
+            description: { displayName: 'Description', section: 'body', defaultShow: true },
+            location: { displayName: 'Location', section: 'body', defaultShow: false },
+            contact: { displayName: 'Contact Info', section: 'body', defaultShow: false },
+            availability: { displayName: 'Availability', section: 'body', defaultShow: false },
+            tags: { displayName: 'Tags', section: 'footer', defaultShow: false },
+            cta: { displayName: 'Call-to-Action', section: 'footer', defaultShow: true }
+        };
+
+        // Siwa-specific definitions (from backup JSON)
+        const SIWA_DEFS = {
+            propertyTypes: [
+                { id: 'luxury_hotel', name: 'Luxury Hotel', icon: 'fa-hotel', category: 'hotel' },
+                { id: 'boutique_hotel', name: 'Boutique Hotel', icon: 'fa-hotel', category: 'hotel' },
+                { id: 'private_villa', name: 'Private Villa', icon: 'fa-home', category: 'villa' },
+                { id: 'siwan_house', name: 'Traditional Siwan House', icon: 'fa-archway', category: 'traditional' },
+                { id: 'kertshef_house', name: 'Kertshef House', icon: 'fa-cube', category: 'traditional' },
+                { id: 'desert_camp', name: 'Desert Camp', icon: 'fa-campground', category: 'camp' },
+                { id: 'eco_camp', name: 'Eco Camp', icon: 'fa-leaf', category: 'camp' }
+            ],
+            architectureStyles: [
+                { id: 'traditional_kertshef', name: 'Traditional Kertshef', features: 'natural insulation,authentic' },
+                { id: 'restored_kertshef', name: 'Restored Kertshef', features: 'heritage,modern comfort' },
+                { id: 'modern_kertshef', name: 'Modern Kertshef Fusion', features: 'fusion,modern design' },
+                { id: 'contemporary_modern', name: 'Contemporary Modern', features: 'modern,minimalist' },
+                { id: 'fully_eco', name: 'Fully Eco / Off-Grid', features: 'solar,sustainable,off_grid' }
+            ],
+            experienceTypes: [
+                { id: 'romantic', name: 'Romantic / Honeymoon', icon: 'fa-heart', color: '#e74c3c' },
+                { id: 'family', name: 'Family Friendly', icon: 'fa-users', color: '#3498db' },
+                { id: 'adventure', name: 'Adventure', icon: 'fa-mountain', color: '#e67e22' },
+                { id: 'cultural', name: 'Cultural / Heritage', icon: 'fa-landmark', color: '#9b59b6' },
+                { id: 'luxury', name: 'Luxury', icon: 'fa-gem', color: '#D4AF37' },
+                { id: 'meditation', name: 'Meditation / Wellness', icon: 'fa-spa', color: '#27ae60' }
+            ],
+            amenities: [
+                { id: 'private_pool', name: 'Private Pool', icon: 'fa-swimmer' },
+                { id: 'wifi', name: 'WiFi', icon: 'fa-wifi' },
+                { id: 'parking', name: 'Parking', icon: 'fa-parking' },
+                { id: 'spa', name: 'Spa', icon: 'fa-spa' },
+                { id: 'restaurant_onsite', name: 'Restaurant', icon: 'fa-utensils' },
+                { id: 'ac', name: 'Air Conditioning', icon: 'fa-snowflake' },
+                { id: 'garden', name: 'Garden', icon: 'fa-leaf' }
+            ],
+            viewTypes: [
+                { id: 'dune_view', name: 'Dune View', icon: 'fa-mountain' },
+                { id: 'oasis_view', name: 'Oasis View', icon: 'fa-tree' },
+                { id: 'sunset_view', name: 'Sunset View', icon: 'fa-sun' },
+                { id: 'star_gazing', name: 'Star Gazing', icon: 'fa-star' }
+            ]
+        };
+
+        // ================================================================
+        // MODULE 2: DATA STORE
+        // ================================================================
+        let STORE = {
+            businessTypes: [], sections: {}, formTemplates: {}, cardTemplates: {},
+            searchPolicies: {}, websiteTemplates: {}, subscriptionTiers: {},
+            clientRequirements: [], businesses: [], vendors: [],
+            customExpressions: {}, activity: [], auditLog: [], analytics: { views: {}, searchQueries: [] }
+        };
+        let currentUser = { role: 'public', email: null, businessId: null, permissions: [], id: null };
+        let adminCurrentSection = 'overview';
+        let currentFormBizId = null, currentFormSectionId = null, draggedFieldType = null;
+        let currentCardBizId = null, selectedCardLayout = 'standard';
+        let currentWebsiteMode = 'website', draggedComponentType = null;
+        let FORM_TEMPLATES = {};
+        
+        const ROLES = {
+            super_admin: { level: 1, name: 'Super Admin', permissions: ['*'] },
+            content_admin: { level: 2, name: 'Content Admin', permissions: ['manage_types', 'manage_sections', 'manage_forms', 'manage_cards', 'manage_website', 'manage_policies'] },
+            sales_manager: { level: 3, name: 'Sales Manager', permissions: ['view_all_businesses', 'approve_upgrades', 'assign_tiers', 'create_businesses', 'view_sales_stats'] },
+            support_agent: { level: 4, name: 'Support Agent', permissions: ['view_businesses', 'edit_contact_info'] },
+            salesman: { level: 5, name: 'Salesman', permissions: ['create_free_businesses', 'submit_upgrades', 'view_own_clients'] },
+            vendor: { level: 6, name: 'Vendor', permissions: ['manage_own_business', 'request_upgrades', 'upload_images'] },
+            public: { level: 7, name: 'Public', permissions: ['browse', 'search', 'claim_businesses'] },
+            admin: { level: 1, name: 'Admin (Full Access)', permissions: ['*'] }
+        };
+
+        // ================================================================
+        // MODULE 3: UTILITIES
+        // ================================================================
+        function escapeHtml(s) { if (!s) return ''; return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) }
+
+        function showToast(msg, type = 'success') {
+            const t = document.createElement('div'); t.className = 'toast';
+            t.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b';
+            t.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${escapeHtml(msg)}`;
+            document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+        }
+
+        let modalCallback = null;
+        function showModal(title, body, onSave) {
+            modalCallback = onSave;
+            const m = document.createElement('div'); m.className = 'modal'; m.style.display = 'flex';
+            m.innerHTML = `<div class="modal-content"><div class="modal-header"><h3>${escapeHtml(title)}</h3><button class="btn btn-sm btn-outline" onclick="this.closest('.modal').remove()">✕</button></div><div>${body}</div>${onSave ? `<div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.5rem"><button class="btn btn-primary" onclick="window._saveModal()">Save</button><button class="btn btn-outline" onclick="this.closest('.modal').remove()">Cancel</button></div>` : ''}</div>`;
+            document.body.appendChild(m);
+        }
+        function closeModal() { const m = document.querySelector('.modal'); if (m) m.remove(); modalCallback = null }
+        window._saveModal = function () { if (modalCallback) modalCallback(); };
+
+        function adjustColor(hex, pct) {
+            let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            r = Math.max(0, Math.min(255, r + Math.round(r * pct / 100)));
+            g = Math.max(0, Math.min(255, g + Math.round(g * pct / 100)));
+            b = Math.max(0, Math.min(255, b + Math.round(b * pct / 100)));
+            return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+        }
+
+        // ================================================================
+        // MODULE 4: VALIDATION ENGINE
+        // ================================================================
+        const Validator = {
+            validate(value, rules, label) {
+                const errors = [];
+                if (rules.required && (!value || !String(value).trim())) errors.push(`${label} is required`);
+                if (value && rules.minLength && String(value).length < rules.minLength) errors.push(`${label} must be at least ${rules.minLength} characters`);
+                if (value && rules.maxLength && String(value).length > rules.maxLength) errors.push(`${label} must be at most ${rules.maxLength} characters`);
+                if (value && rules.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.push(`${label} must be a valid email`);
+                if (value && rules.url && !/^https?:\/\/.+/.test(value)) errors.push(`${label} must be a valid URL`);
+                if (value && rules.regex) { try { if (!new RegExp(rules.regex).test(value)) errors.push(`${label} format is invalid`) } catch (e) { } }
+                if (value && rules.min !== undefined && Number(value) < rules.min) errors.push(`${label} must be at least ${rules.min}`);
+                if (value && rules.max !== undefined && Number(value) > rules.max) errors.push(`${label} must be at most ${rules.max}`);
+                return errors;
+            },
+            validateField(input, rules, label) {
+                const errs = this.validate(input.value, rules, label);
+                const fb = input.nextElementSibling?.classList?.contains('invalid-feedback') ? input.nextElementSibling : null;
+                if (errs.length) { input.classList.add('is-invalid'); input.classList.remove('is-valid'); if (fb) { fb.textContent = errs[0]; fb.style.display = 'block' } }
+                else { input.classList.remove('is-invalid'); input.classList.add('is-valid'); if (fb) fb.style.display = 'none' }
+                return errs;
+            },
+            validateForm(formId) {
+                const form = document.getElementById(formId); if (!form) return [];
+                const inputs = form.querySelectorAll('[data-validate]'); let allErrors = [];
+                inputs.forEach(inp => {
+                    const rules = JSON.parse(inp.dataset.validate || '{}');
+                    const label = inp.dataset.label || inp.name || 'Field';
+                    allErrors = allErrors.concat(this.validateField(inp, rules, label));
+                });
+                return allErrors;
+            }
+        };
+
+        // ================================================================
+        // MODULE 5: SEARCH POLICY ENGINE
+        // ================================================================
+        function getPolicyForRole(role) {
+            const custom = Object.values(STORE.searchPolicies).find(p => p.role === role);
+            if (custom) return custom;
+            const defaults = {
+                public: { id: 'default_public', name: 'Public View Policy', allowedFields: ['name', 'description', 'stars', 'cuisine', 'category', 'price'], role: 'public' },
+                vendor: { id: 'default_vendor', name: 'Vendor View Policy', allowedFields: ['name', 'description', 'stars', 'cuisine', 'phone', 'email', 'address', 'price', 'category'], role: 'vendor' },
+                admin: { id: 'default_admin', name: 'Admin View Policy', allowedFields: ['*'], role: 'admin' }
+            };
+            if (['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(role)) return defaults.admin;
+            return defaults[role] || defaults.public;
+        }
+        function enforcePolicyOnFields(fields, userRole) {
+            const policy = getPolicyForRole(userRole);
+            if (!policy || !policy.allowedFields) return fields;
+            if (policy.allowedFields.includes('*')) return fields;
+            return fields.filter(f => policy.allowedFields.includes(f));
+        }
+
+        // ================================================================
+        // MODULE 6: PERSISTENCE
+        // ================================================================
+        function saveStore() { localStorage.setItem('siwa_master_v4', JSON.stringify(STORE)) }
+        function loadStore() {
+            const d = localStorage.getItem('siwa_master_v4');
+            if (d) { try { const p = JSON.parse(d); if (p.vendors && p.vendors.length >= 5) { Object.assign(STORE, p) } else { localStorage.removeItem('siwa_master_v4'); initDefaultData() } } catch (e) { initDefaultData() } }
+            else { initDefaultData() }
+        }
+        function addActivity(msg) { STORE.activity.unshift({ time: new Date().toLocaleString(), msg, user: currentUser.email || 'system' }); if (STORE.activity.length > 50) STORE.activity.pop(); saveStore() }
+        function addAudit(action, details) { STORE.auditLog.unshift({ ts: new Date().toISOString(), user: currentUser.email || 'anon', role: currentUser.role, action, details }); if (STORE.auditLog.length > 200) STORE.auditLog.pop(); saveStore() }
+        function hasPermission(p) { if (currentUser.permissions.includes('*')) return true; return currentUser.permissions.includes(p) }
+
+        // ================================================================
+        // MODULE 7: BUSINESS LOGIC HELPERS
+        // ================================================================
+        function getSectionsForType(bizId) {
+            const biz = STORE.businessTypes.find(b => b.id === bizId); if (!biz) return [];
+            if (biz.isParent) return [...(biz.sections || [])];
+            if (biz.parentId) { const p = STORE.businessTypes.find(x => x.id === biz.parentId); return [...(p?.sections || []), ...(biz.ownSections || [])] }
+            // Standalone type (not parent, not child) — return its own sections if any
+            if (biz.sections && biz.sections.length) return [...(biz.sections || [])];
+            // Fallback: at minimum return basic, location, contact
+            return ['basic', 'location', 'contact'];
+        }
+        // Get ALL sections: those linked to the business type first, then all others
+        function getAllSectionsForFormBuilder(bizId) {
+            const linked = getSectionsForType(bizId);
+            const allSectionIds = Object.keys(STORE.sections);
+            const unlinked = allSectionIds.filter(id => !linked.includes(id));
+            return { linked, unlinked, all: [...linked, ...unlinked] };
+        }
+        function getFieldsForSection(bizId, secId) { return STORE.formTemplates[bizId]?.[secId] || [] }
+        function getParentTypes() { return STORE.businessTypes.filter(b => b.isParent) }
+        function getChildTypes(pid) { return STORE.businessTypes.filter(b => b.parentId === pid) }
+        function getAllBusinessOptions() {
+            const opts = [];
+            getParentTypes().forEach(p => {
+                opts.push({ id: p.id, name: `📁 ${p.name} (Parent)`, indent: 0 });
+                getChildTypes(p.id).forEach(c => opts.push({ id: c.id, name: `  └─ ${c.name}`, indent: 1 }));
+            });
+            return opts;
+        }
+
+        // ================================================================
+        // MODULE 8: DEFAULT DATA
+        // ================================================================
+        function initDefaultData() {
+            STORE.businessTypes = [
+                { id: 'accommodation', name: 'Accommodation', icon: 'fas fa-bed', iconColor: '#8b5cf6', description: 'Hotels, camps, lodges', isParent: true, sections: ['basic', 'location', 'contact', 'gallery'], active: true, order: 1 },
+                { id: 'food', name: 'Food & Beverage', icon: 'fas fa-utensils', iconColor: '#f59e0b', description: 'Restaurants, cafes', isParent: true, sections: ['basic', 'location', 'contact', 'menu'], active: true, order: 2 },
+                { id: 'activities', name: 'Activities & Tours', icon: 'fas fa-hiking', iconColor: '#10b981', description: 'Tours, adventures', isParent: true, sections: ['basic', 'location', 'contact', 'schedule'], active: true, order: 3 },
+                { id: 'retail', name: 'Retail & Shops', icon: 'fas fa-store', iconColor: '#ef4444', description: 'Shops, souvenirs', isParent: true, sections: ['basic', 'location', 'contact', 'products'], active: true, order: 4 },
+                { id: 'wellness', name: 'Wellness & Spa', icon: 'fas fa-spa', iconColor: '#27ae60', description: 'Spa, wellness', isParent: true, sections: ['basic', 'location', 'contact'], active: true, order: 5 },
+                { id: 'realestate', name: 'Real Estate', icon: 'fas fa-building', iconColor: '#2c3e50', description: 'Properties for sale or rent', isParent: true, sections: ['basic', 'location', 'contact'], active: true, order: 6 },
+                { id: 'hotel', name: 'Hotel', icon: 'fas fa-hotel', iconColor: '#8b5cf6', description: 'Full-service hotels', isParent: false, parentId: 'accommodation', ownSections: ['property_details', 'room_types', 'facilities'], active: true, order: 1.1 },
+                { id: 'camp', name: 'Camp & Lodge', icon: 'fas fa-campground', iconColor: '#8b5cf6', description: 'Desert camps', isParent: false, parentId: 'accommodation', ownSections: ['property_details', 'tent_types', 'campfire'], active: true, order: 1.2 },
+                { id: 'siwa_lodge', name: 'Traditional Siwa Lodge', icon: 'fas fa-landmark', iconColor: '#D4AF37', description: 'Authentic Kershef construction', isParent: false, parentId: 'accommodation', ownSections: ['property_details', 'atmosphere'], active: true, order: 1.3 },
+                { id: 'restaurant', name: 'Restaurant', icon: 'fas fa-utensils', iconColor: '#f59e0b', description: 'Full-service restaurants', isParent: false, parentId: 'food', ownSections: ['dining_details'], active: true, order: 2.1 },
+                { id: 'cafe', name: 'Café', icon: 'fas fa-mug-hot', iconColor: '#f59e0b', description: 'Coffee shops', isParent: false, parentId: 'food', ownSections: ['dining_details'], active: true, order: 2.2 },
+                { id: 'tour', name: 'Tour Operator', icon: 'fas fa-map-marked-alt', iconColor: '#10b981', description: 'Guided tours', isParent: false, parentId: 'activities', ownSections: ['tour_details'], active: true, order: 3.1 },
+                { id: 'shop', name: 'General Shop', icon: 'fas fa-store', iconColor: '#ef4444', description: 'General merchandise', isParent: false, parentId: 'retail', ownSections: ['retail_details'], active: true, order: 4.1 }
+            ];
+            STORE.sections = {
+                basic: { id: 'basic', name: 'Basic Information', icon: 'fa-info-circle', required: true, vendorEditable: true, showOnPublic: true },
+                location: { id: 'location', name: 'Location', icon: 'fa-map-marker-alt', required: true, vendorEditable: true, showOnPublic: true },
+                contact: { id: 'contact', name: 'Contact Details', icon: 'fa-phone', required: true, vendorEditable: true, showOnPublic: true },
+                gallery: { id: 'gallery', name: 'Photo Gallery', icon: 'fa-images', required: false, vendorEditable: true, showOnPublic: true },
+                menu: { id: 'menu', name: 'Menu', icon: 'fa-list', required: false, vendorEditable: true, showOnPublic: true },
+                schedule: { id: 'schedule', name: 'Schedule', icon: 'fa-calendar', required: false, vendorEditable: true, showOnPublic: true },
+                products: { id: 'products', name: 'Products', icon: 'fa-box', required: false, vendorEditable: true, showOnPublic: true },
+                star_rating: { id: 'star_rating', name: 'Star Rating', icon: 'fa-star', required: false, vendorEditable: false, showOnPublic: true },
+                room_types: { id: 'room_types', name: 'Room Types', icon: 'fa-bed', required: false, vendorEditable: true, showOnPublic: true },
+                facilities: { id: 'facilities', name: 'Facilities', icon: 'fa-wifi', required: false, vendorEditable: true, showOnPublic: true },
+                tent_types: { id: 'tent_types', name: 'Tent Types', icon: 'fa-campground', required: false, vendorEditable: true, showOnPublic: true },
+                campfire: { id: 'campfire', name: 'Campfire', icon: 'fa-fire', required: false, vendorEditable: true, showOnPublic: true },
+                property_details: { id: 'property_details', name: 'Property Details', icon: 'fa-building', required: false, vendorEditable: true, showOnPublic: true },
+                atmosphere: { id: 'atmosphere', name: 'Atmosphere & Vibe', icon: 'fa-feather', required: false, vendorEditable: true, showOnPublic: true },
+                dining_details: { id: 'dining_details', name: 'Dining Details', icon: 'fa-utensils', required: false, vendorEditable: true, showOnPublic: true },
+                tour_details: { id: 'tour_details', name: 'Tour Details', icon: 'fa-route', required: false, vendorEditable: true, showOnPublic: true },
+                retail_details: { id: 'retail_details', name: 'Retail Details', icon: 'fa-tags', required: false, vendorEditable: true, showOnPublic: true }
+            };
+            STORE.formTemplates = {
+                hotel: {
+                    basic: [
+                        { id: 'h1', name: 'name', label: 'Hotel Name', type: 'text', required: true, searchable: true, helpText: 'Official hotel name', validation: { minLength: 3, maxLength: 100 }, permissions: { adminOnly: false, showOnPublic: true }, defaultValue: '' },
+                        { id: 'h2', name: 'description', label: 'Description', type: 'textarea', required: true, searchable: true, helpText: 'Describe your hotel', validation: { minLength: 10, maxLength: 1000 }, permissions: { adminOnly: false, showOnPublic: true }, defaultValue: '' }
+                    ],
+                    location: [{ id: 'h3', name: 'address', label: 'Street Address', type: 'text', required: true, validation: { minLength: 5 }, permissions: { showOnPublic: true } }, { id: 'h4', name: 'city', label: 'City', type: 'text', required: true, defaultValue: 'Siwa', permissions: { showOnPublic: true } }],
+                    contact: [{ id: 'h5', name: 'phone', label: 'Phone', type: 'tel', required: true, validation: { minLength: 5, maxLength: 20 }, permissions: { showOnPublic: true } }, { id: 'h6', name: 'email', label: 'Email', type: 'email', required: true, validation: { email: true }, permissions: { showOnPublic: true } }],
+                    star_rating: [{ id: 'h7', name: 'stars', label: 'Star Rating', type: 'select', searchable: true, options: ['1', '2', '3', '4', '5'], permissions: { showOnPublic: true } }]
+                },
+                restaurant: {
+                    basic: [
+                        { id: 'r1', name: 'name', label: 'Restaurant Name', type: 'text', required: true, searchable: true, validation: { minLength: 3, maxLength: 100 }, permissions: { showOnPublic: true } },
+                        { id: 'r2', name: 'description', label: 'Description', type: 'textarea', required: true, searchable: true, validation: { minLength: 10, maxLength: 1000 }, permissions: { showOnPublic: true } }
+                    ],
+                    location: [{ id: 'r3', name: 'address', label: 'Address', type: 'text', required: true, permissions: { showOnPublic: true } }],
+                    contact: [{ id: 'r4', name: 'phone', label: 'Phone', type: 'tel', required: true, permissions: { showOnPublic: true } }, { id: 'r5', name: 'email', label: 'Email', type: 'email', required: true, validation: { email: true }, permissions: { showOnPublic: true } }],
+                    dining_details: [{ id: 'r6', name: 'cuisine', label: 'Cuisine Type', type: 'select', searchable: true, options: ['Egyptian', 'International', 'Seafood', 'Vegetarian', 'Traditional Siwan'], permissions: { showOnPublic: true } }]
+                },
+                tour: {
+                    basic: [{ id: 't1', name: 'name', label: 'Tour Operator Name', type: 'text', required: true, searchable: true, validation: { minLength: 3 }, permissions: { showOnPublic: true } }, { id: 't2', name: 'description', label: 'Tour Description', type: 'textarea', required: true, searchable: true, permissions: { showOnPublic: true } }],
+                    contact: [{ id: 't3', name: 'phone', label: 'Contact Phone', type: 'tel', required: true, permissions: { showOnPublic: true } }, { id: 't4', name: 'email', label: 'Email', type: 'email', required: true, validation: { email: true }, permissions: { showOnPublic: true } }]
+                }
+            };
+            STORE.searchPolicies = {
+                public_policy: { id: 'public_policy', name: 'Public View Policy', description: 'Basic business info only', allowedFields: ['name', 'description', 'stars', 'cuisine', 'category', 'price'], role: 'public' },
+                vendor_policy: { id: 'vendor_policy', name: 'Vendor View Policy', description: 'Contact info visible to vendors', allowedFields: ['name', 'description', 'stars', 'cuisine', 'phone', 'email', 'address', 'price', 'category'], role: 'vendor' },
+                admin_policy: { id: 'admin_policy', name: 'Admin View Policy', description: 'Full access to all fields', allowedFields: ['*'], role: 'admin' }
+            };
+            STORE.cardTemplates = {
+                hotel: { layout: 'standard', fields: ['name', 'description', 'stars'], policyId: 'public_policy' },
+                restaurant: { layout: 'standard', fields: ['name', 'description', 'cuisine'], policyId: 'public_policy' }
+            };
+            STORE.websiteTemplates = { website: { header: [], body: [], footer: [] }, minisite: { header: [], body: [], footer: [] } };
+            STORE.subscriptionTiers = {
+                free: { id: 'free', name: 'Free', features: { maxBusinesses: 1, canPublishMinisite: false, canCustomizeTemplate: false, maxImages: 5, maxSlides: 3 } },
+                basic: { id: 'basic', name: 'Basic', features: { maxBusinesses: 3, canPublishMinisite: true, canCustomizeTemplate: false, maxImages: 15, maxSlides: 10 } },
+                premium: { id: 'premium', name: 'Premium', features: { maxBusinesses: 10, canPublishMinisite: true, canCustomizeTemplate: true, maxImages: 50, maxSlides: 20 } }
+            };
+            STORE.customExpressions = {
+                construction_material: { id: 'construction_material', name: 'Construction Material', type: 'select', options: ['Kershef (Salt Brick)', 'Palm Wood', 'Stone', 'Modern'], searchable: true },
+                construction_era: { id: 'construction_era', name: 'Construction Era', type: 'select', options: ['Ancient (pre-Islamic)', 'Traditional (1800-1950)', 'Modern (1950-2000)', 'Contemporary (2000+)'], searchable: true },
+                vibe: { id: 'vibe', name: 'Vibe & Atmosphere', type: 'select', options: ['Rustic', 'Authentic', 'Spiritual', 'Luxury', 'Eco-friendly'], searchable: true },
+                cuisine_type: { id: 'cuisine_type', name: 'Cuisine Type', type: 'select', options: ['Egyptian', 'International', 'Seafood', 'Vegetarian', 'Traditional Siwan'], searchable: true },
+                categories: { id: 'categories', name: 'Categories', type: 'select', options: ['Souvenirs', 'Clothing', 'Handicrafts', 'Groceries'], searchable: true },
+                star_rating: { id: 'star_rating', name: 'Star Rating', type: 'select', options: ['1', '2', '3', '4', '5'], searchable: true }
+            };
+            STORE.businesses = [
+                { id: 'b1', name: 'Siwa Paradise Hotel', type: 'hotel', published: true, subscriptionTier: 'free', status: 'active', vendorId: null, views: 1247, customData: { basic: { name: 'Siwa Paradise Hotel', description: 'Luxury desert resort with stunning views of the Great Sand Sea' }, property_details: { star_rating: '5' }, contact: { phone: '+20 123456789', email: 'info@siwaparadise.com' }, location: { address: 'Main Road, Siwa', city: 'Siwa' } } },
+                { id: 'b2', name: 'Cleopatra Restaurant', type: 'restaurant', published: true, subscriptionTier: 'free', status: 'active', vendorId: null, views: 892, customData: { basic: { name: 'Cleopatra Restaurant', description: 'Authentic Siwan cuisine in traditional setting' }, dining_details: { cuisine: 'Traditional Siwan' }, contact: { phone: '+20 123456788', email: 'info@cleopatra.com' }, location: { address: 'Market Square, Siwa' } } }
+            ];
+            STORE.vendors = [
+                { id: 'a1', email: 'super@siwa.com', password: btoa('super123'), role: 'super_admin', active: true, businessId: null, subscriptionTier: 'premium' },
+                { id: 'a2', email: 'content@siwa.com', password: btoa('content123'), role: 'content_admin', active: true, businessId: null, subscriptionTier: 'premium' },
+                { id: 'a3', email: 'salesmanager@siwa.com', password: btoa('sales123'), role: 'sales_manager', active: true, businessId: null, subscriptionTier: 'premium' },
+                { id: 'a4', email: 'support@siwa.com', password: btoa('support123'), role: 'support_agent', active: true, businessId: null, subscriptionTier: 'basic' },
+                { id: 'a5', email: 'salesman@siwa.com', password: btoa('salesman123'), role: 'salesman', active: true, businessId: null, subscriptionTier: 'free' },
+                { id: 'a6', email: 'vendor@siwa.com', password: btoa('vendor123'), role: 'vendor', active: true, businessId: 'b1', subscriptionTier: 'free' }
+            ];
+            STORE.clientRequirements = [];
+            STORE.analytics = { views: { b1: 1247, b2: 892 }, searchQueries: [] };
+            STORE.activity = [{ time: new Date().toLocaleString(), msg: 'SIWA OASIS Platform initialized', user: 'system' }];
+            STORE.auditLog = [];
+            saveStore();
+        }
+
+        // ================================================================
+        // MODULE 9: AUTHENTICATION
+        // ================================================================
+        function login(email, password) {
+            const user = STORE.vendors.find(v => v.email === email && atob(v.password) === password && v.active);
+            if (user) {
+                currentUser = { role: user.role, email: user.email, businessId: user.businessId, permissions: ROLES[user.role]?.permissions || [], id: user.id };
+                addActivity(`Login: ${email} (${user.role})`); addAudit('login', `${email} logged in`);
+                closeModal(); showToast(`Welcome ${email}!`, 'success'); renderApp(); return true;
+            }
+            showToast('Invalid credentials', 'error'); return false;
+        }
+        function logout() { addActivity(`Logout: ${currentUser.email}`); currentUser = { role: 'public', email: null, businessId: null, permissions: [], id: null }; renderApp() }
+        function showLoginModal() {
+            showModal('Login to SIWA OASIS', `
+            <div class="form-group"><label class="form-label">Email</label><input type="email" id="loginEmail" class="form-control" placeholder="super@siwa.com"></div>
+            <div class="form-group"><label class="form-label">Password</label><input type="password" id="loginPass" class="form-control" placeholder="super123"></div>
+            <div class="policy-indicator"><i class="fas fa-users"></i> Demo Accounts:<br>
+            • super@siwa.com / super123 (Super Admin)<br>
+            • content@siwa.com / content123 (Content Admin)<br>
+            • salesmanager@siwa.com / sales123 (Sales Manager)<br>
+            • salesman@siwa.com / salesman123 (Salesman)<br>
+            • vendor@siwa.com / vendor123 (Vendor)</div>
+        `, () => { const e = document.getElementById('loginEmail')?.value, p = document.getElementById('loginPass')?.value; if (e && p) login(e, p); else showToast('Enter email and password', 'error') });
+        }
+
+        // ================================================================
+        // MODULE 10: RENDER DISPATCH
+        // ================================================================
+        function renderApp() {
+            const r = currentUser.role;
+            if (['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(r)) renderAdminDashboard();
+            else if (r === 'salesman') renderSalesmanDashboard();
+            else if (r === 'vendor' && currentUser.businessId) renderVendorDashboard();
+            else renderPublicView();
+        }
+
+        // ================================================================
+        // MODULE 11: PUBLIC VIEW
+        // ================================================================
+        function renderPublicView() {
+            const biz = STORE.businesses.filter(b => b.published && b.status !== 'hidden');
+            const cats = getParentTypes();
+            document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                <h1 style="color:#D4AF37"><i class="fas fa-crown"></i> SIWA OASIS</h1>
+                <button class="btn btn-outline" onclick="showLoginModal()"><i class="fas fa-sign-in-alt"></i> Login</button>
+            </div>
+            <div class="card" style="background:linear-gradient(135deg,#1a1a2e,#2d2d44);color:#fff;text-align:center;padding:2.5rem">
+                <h2 style="font-size:1.75rem;margin-bottom:.5rem">Discover Siwa Oasis</h2>
+                <p style="opacity:.8">Explore ancient traditions, natural springs, and unforgettable experiences</p>
+                <div style="max-width:500px;margin:1.5rem auto 0;display:flex;gap:.5rem">
+                    <input type="text" id="pubSearch" class="form-control" placeholder="Search businesses..." style="background:#fff" onkeyup="pubDoSearch()">
+                    <button class="btn btn-primary" onclick="pubDoSearch()"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            <div class="card"><div class="card-header"><h3><i class="fas fa-th-large"></i> Categories</h3></div>
+                <div class="grid-4">${cats.map(c => `<div class="card" style="cursor:pointer;text-align:center" onclick="pubFilterCat('${c.id}')"><i class="${c.icon}" style="font-size:2rem;color:${c.iconColor};margin-bottom:.5rem"></i><h4>${escapeHtml(c.name)}</h4><p style="font-size:.8rem;color:#6b7280">${escapeHtml(c.description)}</p></div>`).join('')}</div>
+            </div>
+            <div class="card"><div class="card-header"><h3><i class="fas fa-fire"></i> Featured Listings</h3>
+                <div class="policy-indicator"><i class="fas fa-shield-alt"></i> ${getPolicyForRole('public').name}</div></div>
+                <div class="grid-3" id="pubGrid">${biz.slice(0, 6).map(b => renderPubCard(b)).join('')}</div>
+            </div>
+        </div>`;
+        }
+        function renderPubCard(biz) {
+            const type = STORE.businessTypes.find(t => t.id === biz.type);
+            const policy = getPolicyForRole(currentUser.role);
+            const allowed = policy.allowedFields.includes('*') ? ['name', 'description', 'stars', 'cuisine'] : policy.allowedFields;
+            let h = `<div class="card" style="cursor:pointer" onclick="viewBizDetail('${biz.id}')"><h4>${escapeHtml(biz.name)}</h4>`;
+            if (type) h += `<p style="font-size:.8rem;color:${type.iconColor}"><i class="${type.icon}"></i> ${type.name} <span class="subscription-badge">${biz.subscriptionTier || 'free'}</span></p>`;
+            if (allowed.includes('stars') && biz.customData?.star_rating?.stars) h += `<div><i class="fas fa-star" style="color:#D4AF37"></i> ${biz.customData.star_rating.stars} Stars</div>`;
+            if (allowed.includes('description') && biz.customData?.basic?.description) h += `<p style="color:#6b7280;font-size:.85rem">${escapeHtml(biz.customData.basic.description.substring(0, 80))}...</p>`;
+            if (allowed.includes('cuisine') && biz.customData?.cuisine_type?.cuisine) h += `<div><i class="fas fa-utensils"></i> ${escapeHtml(biz.customData.cuisine_type.cuisine)}</div>`;
+            return h + `<button class="btn btn-sm btn-primary" style="margin-top:.5rem">View Details →</button></div>`;
+        }
+        function pubDoSearch() { const q = (document.getElementById('pubSearch')?.value || '').toLowerCase(); const f = STORE.businesses.filter(b => b.name.toLowerCase().includes(q) && b.published && b.status !== 'hidden'); document.getElementById('pubGrid').innerHTML = f.map(b => renderPubCard(b)).join('') || '<p style="grid-column:1/-1;text-align:center">No results found</p>'; STORE.analytics.searchQueries.unshift({ term: q, ts: new Date().toISOString(), results: f.length }); saveStore() }
+        function pubFilterCat(catId) { const kids = getChildTypes(catId).map(c => c.id); const ids = [catId, ...kids]; const f = STORE.businesses.filter(b => ids.includes(b.type) && b.published && b.status !== 'hidden'); document.getElementById('pubGrid').innerHTML = f.map(b => renderPubCard(b)).join('') || '<p style="grid-column:1/-1;text-align:center">No businesses in this category</p>' }
+        function viewBizDetail(id) {
+            const biz = STORE.businesses.find(b => b.id === id); if (!biz) return;
+            biz.views = (biz.views || 0) + 1; STORE.analytics.views[id] = biz.views; saveStore();
+            const policy = getPolicyForRole(currentUser.role);
+            const sections = getSectionsForType(biz.type).filter(s => STORE.sections[s]?.showOnPublic !== false);
+            let d = `<p><strong>Type:</strong> ${STORE.businessTypes.find(t => t.id === biz.type)?.name || biz.type}</p><p><strong>Tier:</strong> <span class="subscription-badge">${biz.subscriptionTier || 'free'}</span></p><p><strong>Views:</strong> ${biz.views}</p><div class="policy-indicator"><i class="fas fa-shield-alt"></i> ${policy.name} applied</div><hr style="margin:1rem 0">`;
+            for (const s of sections) { const sec = STORE.sections[s]; const fields = getFieldsForSection(biz.type, s); const allowed = policy.allowedFields.includes('*') ? fields : fields.filter(f => policy.allowedFields.includes(f.name)); let sh = ''; for (const f of allowed) { const v = biz.customData?.[s]?.[f.name]; if (v) sh += `<div><strong>${escapeHtml(f.label)}:</strong> ${escapeHtml(String(v))}</div>` } if (sh) d += `<div style="margin-bottom:1rem"><h4><i class="fas ${sec?.icon || 'fa-info-circle'}"></i> ${sec?.name || s}</h4>${sh}</div>` }
+            if (biz.minisiteLayout && biz.minisiteLayout.length > 0) {
+                d += `<div style="margin-top:1.5rem;border-top:2px solid #e5e7eb;padding-top:1rem"><h3><i class="fas fa-globe"></i> Minisite Features</h3>`;
+                for (const comp of biz.minisiteLayout) {
+                    if ((comp.type === 'carousel' || comp.type === 'gallery') && comp.data && comp.data.length > 0) {
+                        d += `<h4><i class="fas ${comp.icon}"></i> ${escapeHtml(comp.name)}</h4><div style="display:flex;gap:1rem;overflow-x:auto;padding-bottom:1rem;margin-bottom:1rem">`;
+                        comp.data.forEach(img => d += `<img src="${escapeHtml(img)}" style="height:150px;width:auto;border-radius:0.5rem;object-fit:cover;box-shadow:0 2px 4px rgba(0,0,0,0.1)">`);
+                        d += `</div>`;
+                    } else if (comp.type === 'blog' && comp.data && comp.data.length > 0) {
+                        d += `<h4><i class="fas fa-newspaper"></i> ${escapeHtml(comp.name)}</h4>`;
+                        comp.data.forEach(p => d += `<div style="background:#f9fafb;padding:1rem;border-radius:0.5rem;margin-bottom:0.75rem"><h5>${escapeHtml(p.title)}</h5><p style="font-size:0.85rem;color:#4b5563;margin-top:0.25rem">${escapeHtml(p.body).replace(/\\n/g, '<br>')}</p></div>`);
+                    }
+                }
+                d += `</div>`;
+            }
+            if (!biz.vendorId && currentUser.role === 'public') d += `<button class="btn btn-primary" style="margin-top:1rem;width:100%" onclick="claimBiz('${biz.id}')"><i class="fas fa-hand-holding-heart"></i> Claim This Business</button>`;
+            showModal(biz.name, d);
+        }
+        function claimBiz(id) {
+            const biz = STORE.businesses.find(b => b.id === id); if (!biz) return;
+            showModal('Claim Business', `<div class="form-group"><label class="form-label">Your Email</label><input type="email" id="claimEmail" class="form-control"></div><div class="form-group"><label class="form-label">Password</label><input type="password" id="claimPass" class="form-control"></div><div class="help-text">A vendor account will be created and linked to this business.</div>`, () => {
+                const e = document.getElementById('claimEmail').value, p = document.getElementById('claimPass').value;
+                if (!e || !p) { showToast('Email and password required', 'error'); return }
+                if (STORE.vendors.find(v => v.email === e)) { showToast('Email already registered', 'error'); return }
+                const nv = { id: 'v_' + Date.now(), email: e, password: btoa(p), role: 'vendor', active: true, businessId: biz.id, subscriptionTier: 'free' };
+                STORE.vendors.push(nv); biz.vendorId = nv.id; saveStore();
+                addActivity(`Business claimed: ${biz.name} by ${e}`); showToast('Business claimed! Login with your new account.', 'success'); closeModal();
+            });
+        }
+
+        // ================================================================
+        // MODULE 12: ADMIN DASHBOARD
+        // ================================================================
+        function renderAdminDashboard() {
+            document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
+                <div><span class="badge badge-info">${currentUser.role.replace('_', ' ').toUpperCase()}</span> <span class="badge badge-success">${currentUser.email}</span> <button class="btn btn-outline btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+            </div>
+            <div class="admin-wrapper">
+                <div class="admin-sidebar">
+                    <div class="sidebar-title">Management</div>
+                    <div class="nav-item" onclick="adminNav('overview')"><i class="fas fa-chart-line"></i> Overview</div>
+                    <div class="nav-item" onclick="adminNav('types')"><i class="fas fa-sitemap"></i> Business Types</div>
+                    <div class="nav-item" onclick="adminNav('sections')"><i class="fas fa-layer-group"></i> Sections</div>
+                    <div class="nav-item" onclick="adminNav('formbuilder')"><i class="fas fa-wpforms"></i> Form Builder</div>
+                    <div class="nav-item" onclick="adminNav('cardbuilder')"><i class="fas fa-id-card"></i> Card Builder</div>
+                    <div class="nav-item" onclick="adminNav('website')"><i class="fas fa-globe"></i> Website Builder</div>
+                    <div class="nav-item" onclick="adminNav('policies')"><i class="fas fa-shield-alt"></i> Search Policies</div>
+                    <div class="nav-item" onclick="adminNav('subscriptions')"><i class="fas fa-tags"></i> Subscriptions</div>
+                    <div class="nav-item" onclick="adminNav('expressions')"><i class="fas fa-sparkles"></i> Expressions</div>
+                    <div class="nav-item" onclick="adminNav('upgrades')"><i class="fas fa-clipboard-list"></i> Upgrades</div>
+                    <div class="nav-item" onclick="adminNav('vendors')"><i class="fas fa-users"></i> Vendors</div>
+                    <div class="nav-item" onclick="adminNav('businesses')"><i class="fas fa-building"></i> Businesses</div>
+                    <div class="nav-item" onclick="adminNav('audit')"><i class="fas fa-history"></i> Audit Log</div>
+                    <div class="sidebar-title" style="margin-top:1rem">Data</div>
+                    <div class="nav-item" onclick="adminNav('datamanager')"><i class="fas fa-database"></i> Data Manager</div>
+                </div>
+                <div id="adminContent" class="card">Loading...</div>
+            </div>
+        </div>`;
+            adminNav('overview');
+        }
+        function adminNav(sec) {
+            adminCurrentSection = sec; const c = document.getElementById('adminContent');
+            document.querySelectorAll('.nav-item').forEach((n, i) => n.classList.toggle('active', n.textContent.trim().toLowerCase().includes(sec.substring(0, 4))));
+            if (sec === 'overview') renderAdminOverview(c);
+            else if (sec === 'types') renderAdminTypes(c);
+            else if (sec === 'sections') renderAdminSections(c);
+            else if (sec === 'formbuilder') renderAdminFormBuilder(c);
+            else if (sec === 'cardbuilder') renderAdminCardBuilder(c);
+            else if (sec === 'website') renderAdminWebsite(c);
+            else if (sec === 'policies') renderAdminPolicies(c);
+            else if (sec === 'subscriptions') renderAdminSubs(c);
+            else if (sec === 'expressions') renderAdminExpressions(c);
+            else if (sec === 'upgrades') renderAdminUpgrades(c);
+            else if (sec === 'vendors') renderAdminVendors(c);
+            else if (sec === 'businesses') renderAdminBusinesses(c);
+            else if (sec === 'audit') renderAdminAudit(c);
+            else if (sec === 'datamanager') renderDataManager(c);
+        }
+
+        // --- Admin: Overview ---
+        function renderAdminOverview(c) {
+            const totalFields = Object.values(STORE.formTemplates).reduce((a, b) => a + Object.values(b).reduce((x, y) => x + y.length, 0), 0);
+            const totalViews = Object.values(STORE.analytics.views).reduce((a, b) => a + b, 0);
+            c.innerHTML = `
+        <div class="stats">
+            <div class="stat" onclick="adminNav('types')"><div class="stat-value">${STORE.businessTypes.length}</div><div class="stat-label">Business Types</div></div>
+            <div class="stat" onclick="adminNav('formbuilder')"><div class="stat-value">${totalFields}</div><div class="stat-label">Form Fields</div></div>
+            <div class="stat" onclick="adminNav('businesses')"><div class="stat-value">${STORE.businesses.length}</div><div class="stat-label">Businesses</div></div>
+            <div class="stat"><div class="stat-value">${totalViews}</div><div class="stat-label">Total Views</div></div>
+        </div>
+        <h4>Recent Activity</h4>
+        <div>${STORE.activity.slice(0, 10).map(a => `<div style="padding:.5rem 0;border-bottom:1px solid #e5e7eb;font-size:.85rem">📅 ${a.time} - ${escapeHtml(a.msg)} <span style="color:#9ca3af">(${a.user || 'system'})</span></div>`).join('')}</div>`;
+        }
+
+        // --- Admin: Business Types ---
+        function renderAdminTypes(c) {
+            if (!hasPermission('manage_types')) { c.innerHTML = permDenied('manage_types'); return }
+            const parents = getParentTypes();
+            let h = `<div class="card-header"><h3><i class="fas fa-sitemap"></i> Business Types</h3><div><button class="btn btn-primary btn-sm" onclick="addBizType(true)"><i class="fas fa-plus"></i> Add Parent</button> <button class="btn btn-outline btn-sm" onclick="addBizType(false)"><i class="fas fa-code-branch"></i> Add Child</button></div></div><div class="tree">`;
+            for (const p of parents) {
+                const kids = getChildTypes(p.id);
+                h += `<div class="tree-item"><span class="tree-parent"><i class="${p.icon}" style="color:${p.iconColor}"></i> ${escapeHtml(p.name)}</span> <span class="badge badge-parent">Parent</span> <button class="btn btn-xs btn-outline" onclick="editBizType('${p.id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="delBizType('${p.id}')">Del</button><div class="tree">`;
+                for (const ch of kids) h += `<div class="tree-item"><i class="${ch.icon}" style="color:${ch.iconColor}"></i> ${escapeHtml(ch.name)} <span class="badge badge-child">Child</span> <button class="btn btn-xs btn-outline" onclick="editBizType('${ch.id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="delBizType('${ch.id}')">Del</button><div style="margin-left:1rem;font-size:.75rem;color:#6b7280">Own sections: ${(ch.ownSections || []).map(s => STORE.sections[s]?.name || s).join(', ') || 'None'}</div></div>`;
+                h += `</div></div>`;
+            }
+            c.innerHTML = h + `</div>`;
+        }
+        function addBizType(isParent) {
+            if (!hasPermission('manage_types')) return;
+            const parents = getParentTypes();
+            showModal(`Add ${isParent ? 'Parent' : 'Child'} Type`, `
+            <div class="form-group"><label class="form-label required">ID</label><input type="text" id="btId" class="form-control" placeholder="e.g. villa"><div class="invalid-feedback"></div></div>
+            <div class="form-group"><label class="form-label required">Name</label><input type="text" id="btName" class="form-control"><div class="invalid-feedback"></div></div>
+            <div class="form-group"><label class="form-label">Icon</label><input type="text" id="btIcon" class="form-control" value="fas fa-building"></div>
+            <div class="form-group"><label class="form-label">Color</label><input type="color" id="btColor" value="#8b5cf6"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea id="btDesc" class="form-control" rows="2"></textarea></div>
+            ${!isParent ? `<div class="form-group"><label class="form-label">Parent</label><select id="btParent" class="form-control">${parents.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select></div>` : ''}
+        `, () => {
+                const id = document.getElementById('btId')?.value?.trim(), name = document.getElementById('btName')?.value?.trim();
+                if (!id || !name) { showToast('ID and Name required', 'error'); return }
+                if (STORE.businessTypes.find(b => b.id === id)) { showToast('ID already exists', 'error'); return }
+                STORE.businessTypes.push({ id, name, icon: document.getElementById('btIcon').value, iconColor: document.getElementById('btColor').value, description: document.getElementById('btDesc').value, isParent, parentId: isParent ? null : document.getElementById('btParent')?.value, sections: isParent ? ['basic', 'location', 'contact'] : [], ownSections: [], active: true, order: STORE.businessTypes.length + 1 });
+                saveStore(); addActivity(`Type added: ${name}`); adminNav('types'); closeModal(); showToast('Added', 'success');
+            });
+        }
+        function editBizType(id) { if (!hasPermission('manage_types')) return; const b = STORE.businessTypes.find(x => x.id === id); if (!b) return; showModal(`Edit ${b.name}`, `<div class="form-group"><label>Name</label><input type="text" id="btName" class="form-control" value="${escapeHtml(b.name)}"></div><div class="form-group"><label>Icon</label><input type="text" id="btIcon" class="form-control" value="${b.icon}"></div><div class="form-group"><label>Color</label><input type="color" id="btColor" value="${b.iconColor}"></div><div class="form-group"><label>Description</label><textarea id="btDesc" class="form-control">${escapeHtml(b.description || '')}</textarea></div><div class="form-group"><label><input type="checkbox" id="btActive" ${b.active ? 'checked' : ''}> Active</label></div>`, () => { b.name = document.getElementById('btName').value || b.name; b.icon = document.getElementById('btIcon').value; b.iconColor = document.getElementById('btColor').value; b.description = document.getElementById('btDesc').value; b.active = document.getElementById('btActive').checked; saveStore(); addActivity(`Type updated: ${b.name}`); adminNav('types'); closeModal(); showToast('Updated', 'success') }) }
+        function delBizType(id) { if (!hasPermission('manage_types')) return; if (confirm('Delete this type?')) { STORE.businessTypes = STORE.businessTypes.filter(b => b.id !== id); saveStore(); addActivity(`Type deleted: ${id}`); adminNav('types'); showToast('Deleted', 'success') } }
+
+        // --- Admin: Sections ---
+        function renderAdminSections(c) {
+            if (!hasPermission('manage_sections')) { c.innerHTML = permDenied('manage_sections'); return }
+            c.innerHTML = `<div class="card-header"><h3><i class="fas fa-layer-group"></i> Section Definitions</h3><button class="btn btn-primary btn-sm" onclick="addSection()"><i class="fas fa-plus"></i> Add Section</button></div><div class="grid-3">${Object.entries(STORE.sections).map(([id, s]) => `<div class="card"><h4><i class="fas ${s.icon}"></i> ${escapeHtml(s.name)}</h4><p>ID: ${id}</p><p>${s.required ? '✅ Required' : '⭕ Optional'} | ${s.vendorEditable ? '✏️ Vendor Editable' : '🔒 Admin Only'}</p><div><button class="btn btn-xs btn-outline" onclick="editSection('${id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="delSection('${id}')">Del</button></div></div>`).join('')}</div>`;
+        }
+        function addSection() { if (!hasPermission('manage_sections')) return; showModal('Add Section', `<div class="form-group"><label class="form-label required">ID</label><input type="text" id="secId" class="form-control"></div><div class="form-group"><label class="form-label required">Name</label><input type="text" id="secName" class="form-control"></div><div class="form-group"><label>Icon</label><input type="text" id="secIcon" class="form-control" value="fa-info-circle"></div><div class="form-group"><label><input type="checkbox" id="secReq"> Required</label></div>`, () => { const id = document.getElementById('secId').value, name = document.getElementById('secName').value; if (!id || !name) { showToast('ID and Name required', 'error'); return } STORE.sections[id] = { id, name, icon: document.getElementById('secIcon').value, required: document.getElementById('secReq').checked, vendorEditable: true, showOnPublic: true }; saveStore(); addActivity(`Section added: ${name}`); adminNav('sections'); closeModal(); showToast('Added', 'success') }) }
+        function editSection(id) { if (!hasPermission('manage_sections')) return; const s = STORE.sections[id]; if (!s) return; showModal('Edit Section', `<div class="form-group"><label>Name</label><input type="text" id="secName" class="form-control" value="${escapeHtml(s.name)}"></div><div class="form-group"><label>Icon</label><input type="text" id="secIcon" class="form-control" value="${s.icon}"></div><div class="form-group"><label><input type="checkbox" id="secReq" ${s.required ? 'checked' : ''}> Required</label></div><div class="form-group"><label><input type="checkbox" id="secVE" ${s.vendorEditable ? 'checked' : ''}> Vendor Editable</label></div>`, () => { s.name = document.getElementById('secName').value; s.icon = document.getElementById('secIcon').value; s.required = document.getElementById('secReq').checked; s.vendorEditable = document.getElementById('secVE').checked; saveStore(); addActivity(`Section updated: ${s.name}`); adminNav('sections'); closeModal(); showToast('Updated', 'success') }) }
+        function delSection(id) { if (!hasPermission('manage_sections')) return; if (confirm('Delete?')) { delete STORE.sections[id]; saveStore(); adminNav('sections'); showToast('Deleted', 'success') } }
+        function permDenied(perm) { return `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:.75rem;padding:2rem;text-align:center"><i class="fas fa-lock" style="font-size:3rem;color:#dc2626;margin-bottom:1rem"></i><h3 style="color:#dc2626">Access Denied</h3><p>Your role <strong>${currentUser.role}</strong> lacks <strong>${perm}</strong> permission.</p></div>` }
+
+        // ================================================================
+        // MODULE 13: FORM BUILDER
+        // ================================================================
+        function renderAdminFormBuilder(c) {
+            if (!hasPermission('manage_forms')) { c.innerHTML = permDenied('manage_forms'); return }
+            const opts = getAllBusinessOptions();
+            // Build expression fields library
+            const exprFields = Object.entries(STORE.customExpressions).map(([k, v]) => `<div class="field-type" draggable="true" ondragstart="fbDragStart(event,'expr_${k}')" ondragend="fbDragEnd(event)" style="border-left:3px solid #f59e0b"><i class="fas fa-flask" style="color:#f59e0b"></i> ${escapeHtml(v.name)} <span style="font-size:.6rem;color:#9ca3af">(expr)</span></div>`).join('');
+            c.innerHTML = `<div class="card-header"><h3><i class="fas fa-wpforms"></i> Form Builder</h3><div><button class="btn btn-sm btn-outline" onclick="exportForms()"><i class="fas fa-download"></i> Export</button> <button class="btn btn-sm btn-outline" onclick="importForms()"><i class="fas fa-upload"></i> Import</button></div></div>
+        <div class="grid-2" style="margin-bottom:1rem"><div class="form-group"><label class="form-label">Business Type</label><select id="formBiz" class="form-control" onchange="onFormBizChange()"><option value="">--Select--</option>${opts.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">Section</label><select id="formSec" class="form-control" onchange="onFormSecChange()"><option value="">--Select type first--</option></select></div></div>
+        <div class="builder-layout"><div class="field-library" id="fieldLib">
+            <div class="field-category"><div class="field-category-title">Standard Fields</div>${Object.entries(FIELD_TYPES).map(([k, v]) => `<div class="field-type" draggable="true" ondragstart="fbDragStart(event,'${k}')" ondragend="fbDragEnd(event)"><i class="fas ${v.icon}"></i> ${v.name}</div>`).join('')}</div>
+            ${Object.keys(STORE.customExpressions).length ? `<div class="field-category"><div class="field-category-title" style="color:#f59e0b">⚡ Custom Expressions</div>${exprFields}</div>` : ''}
+        </div>
+        <div><div class="dropzone" id="formDropzone" ondragover="fbDragOver(event)" ondragleave="fbDragLeave(event)" ondrop="fbDrop(event)"><p style="text-align:center;color:#9ca3af">Select a business type and section, then drag fields here</p></div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content: flex-start;">
+            <button class="btn btn-primary" onclick="saveFormFields()"><i class="fas fa-save"></i> Save Form</button>
+            <button class="btn btn-outline" onclick="previewFormTemplate('admin')"><i class="fas fa-eye"></i> Preview As...</button>
+        </div></div></div>`;
+        }
+        function onFormBizChange() {
+            currentFormBizId = document.getElementById('formBiz').value;
+            const { linked, unlinked } = getAllSectionsForFormBuilder(currentFormBizId);
+            let html = `<option value="">--Select--</option>`;
+            html += `<optgroup label="Linked Sections">` + linked.map(s => `<option value="${s}">${STORE.sections[s]?.name || s}</option>`).join('') + `</optgroup>`;
+            if (unlinked.length) html += `<optgroup label="Other Sections">` + unlinked.map(s => `<option value="${s}">${STORE.sections[s]?.name || s} ⊕</option>`).join('') + `</optgroup>`;
+            document.getElementById('formSec').innerHTML = html;
+            document.getElementById('formDropzone').innerHTML = '<p style="text-align:center;color:#9ca3af">Select a section</p>';
+        }
+        function onFormSecChange() {
+            currentFormSectionId = document.getElementById('formSec').value;
+            if (!currentFormBizId || !currentFormSectionId) return;
+            renderFormFields();
+        }
+        function renderFormFields() {
+            const fields = getFieldsForSection(currentFormBizId, currentFormSectionId);
+            const dz = document.getElementById('formDropzone');
+            if (!fields.length) { dz.innerHTML = '<p style="text-align:center;color:#9ca3af">No fields yet. Drag from the left panel.</p>'; return }
+            dz.innerHTML = fields.map((f, i) => `<div class="builder-field" draggable="true"><span><i class="fas ${FIELD_TYPES[f.type]?.icon || 'fa-font'}"></i> <strong>${escapeHtml(f.label)}</strong> <span style="color:#9ca3af;font-size:.75rem">(${f.type}${f.required ? ' *required' : ''})</span></span><div><button class="btn btn-xs btn-outline" onclick="editField(${i})">Edit</button> <button class="btn btn-xs btn-outline" onclick="dupField(${i})">Dup</button> <button class="btn btn-xs btn-danger" onclick="delField(${i})">×</button></div></div>`).join('');
+        }
+        function fbDragStart(e, type) { draggedFieldType = type; e.target.style.opacity = '.5' }
+        function fbDragEnd(e) { draggedFieldType = null; e.target.style.opacity = '1' }
+        function fbDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over') }
+        function fbDragLeave(e) { e.currentTarget.classList.remove('drag-over') }
+        function fbDrop(e) {
+            e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+            if (!draggedFieldType || !currentFormBizId || !currentFormSectionId) { showToast('Select business type and section first', 'error'); return }
+            showAddFieldModal(draggedFieldType);
+        }
+        function showAddFieldModal(type) {
+            // Check if it's a custom expression (prefixed with 'expr_')
+            let isExpression = false, exprData = null, actualType = type;
+            if (type.startsWith('expr_')) {
+                isExpression = true;
+                const exprId = type.replace('expr_', '');
+                exprData = STORE.customExpressions[exprId];
+                if (!exprData) { showToast('Expression not found', 'error'); return }
+                actualType = exprData.type || 'select'; // expressions map to their type (select, checkbox_group, etc.)
+            }
+            const ft = FIELD_TYPES[actualType] || { name: actualType, icon: 'fa-flask', hasOptions: true };
+            const modalTitle = isExpression ? `Add Expression: ${exprData.name}` : (`Add ${ft.name} Field`);
+            const defaultLabel = isExpression ? exprData.name : '';
+            const defaultName = isExpression ? exprData.id : '';
+            const defaultOpts = isExpression ? (exprData.options || []).join('\n') : '';
+            const defaultSearchable = isExpression ? (exprData.searchable || false) : false;
+            const showOptsBox = ft.hasOptions || isExpression;
+            showModal(modalTitle, `
+            ${isExpression ? `<div class="notification-banner" style="background:#fef3c7"><i class="fas fa-flask" style="color:#f59e0b"></i> Using expression: <strong>${escapeHtml(exprData.name)}</strong> (${actualType}) — Options pre-filled from expression definition</div>` : ''}
+            <div class="form-group"><label class="form-label required">Field Label</label><input type="text" id="fLabel" class="form-control" value="${escapeHtml(defaultLabel)}"></div>
+            <div class="form-group"><label class="form-label required">Field Name (ID)</label><input type="text" id="fName" class="form-control" value="${escapeHtml(defaultName)}"></div>
+            <div class="form-group"><label><input type="checkbox" id="fReq"> Required</label></div>
+            <div class="form-group"><label><input type="checkbox" id="fSearch" ${defaultSearchable ? 'checked' : ''}> Searchable</label></div>
+            <div class="form-group"><label>Help Text</label><input type="text" id="fHelp" class="form-control"></div>
+            ${showOptsBox ? `<div class="form-group"><label>Options (one per line)</label><textarea id="fOpts" class="form-control" rows="4">${defaultOpts}</textarea>${isExpression ? '<div class="help-text">Pre-filled from expression. Edit freely or add more.</div>' : ''}</div>` : ''}
+            <div class="form-group"><label>Min Length</label><input type="number" id="fMinL" class="form-control" value="0"></div>
+            <div class="form-group"><label>Max Length</label><input type="number" id="fMaxL" class="form-control" value="500"></div>
+            <div class="form-group"><label>Default Value</label><input type="text" id="fDef" class="form-control"></div>
+            <div class="form-group"><label>Field Permissions (ACL)</label>
+                <div class="grid-2" style="font-size:0.85em; background:#f9fafb; padding:0.5rem; border-radius:0.5rem;">
+                    <label><input type="checkbox" id="fr_salesman" checked> Salesman Read</label>
+                    <label><input type="checkbox" id="fw_salesman" checked> Salesman Write</label>
+                    <label><input type="checkbox" id="fr_vendor" checked> Vendor Read</label>
+                    <label><input type="checkbox" id="fw_vendor" checked> Vendor Write</label>
+                    <label style="grid-column: span 2"><input type="checkbox" id="fr_public" checked> Public Read (No Write)</label>
+                </div>
+            </div>
+        `, () => {
+                const label = document.getElementById('fLabel').value, name = document.getElementById('fName').value;
+                if (!label || !name) { showToast('Label and Name required', 'error'); return }
+                if (!STORE.formTemplates[currentFormBizId]) STORE.formTemplates[currentFormBizId] = {};
+                if (!STORE.formTemplates[currentFormBizId][currentFormSectionId]) STORE.formTemplates[currentFormBizId][currentFormSectionId] = [];
+
+                const acl = { read: ['super_admin', 'content_admin'], write: ['super_admin', 'content_admin'] };
+                if (document.getElementById('fr_salesman').checked) acl.read.push('salesman');
+                if (document.getElementById('fw_salesman').checked) acl.write.push('salesman');
+                if (document.getElementById('fr_vendor').checked) acl.read.push('vendor');
+                if (document.getElementById('fw_vendor').checked) acl.write.push('vendor');
+                if (document.getElementById('fr_public').checked) acl.read.push('public');
+
+                const field = { id: 'f_' + Date.now(), name, label, type: actualType, required: document.getElementById('fReq').checked, searchable: document.getElementById('fSearch').checked, helpText: document.getElementById('fHelp').value, validation: { minLength: parseInt(document.getElementById('fMinL').value) || 0, maxLength: parseInt(document.getElementById('fMaxL').value) || 500 }, acl, defaultValue: document.getElementById('fDef').value };
+                if (isExpression) field.expressionId = type.replace('expr_', '');
+                if (showOptsBox) field.options = document.getElementById('fOpts').value.split('\n').filter(o => o.trim());
+                STORE.formTemplates[currentFormBizId][currentFormSectionId].push(field);
+                saveStore(); addActivity(`Field added: ${label}${isExpression ? ' (expression)' : ''}`); renderFormFields(); closeModal(); showToast('Field added', 'success');
+            });
+        }
+        function editField(i) {
+            const fields = STORE.formTemplates[currentFormBizId]?.[currentFormSectionId]; if (!fields || !fields[i]) return;
+            const f = fields[i]; const ft = FIELD_TYPES[f.type] || {};
+            showModal(`Edit: ${f.label}`, `
+            <div class="form-group"><label>Label</label><input type="text" id="fLabel" class="form-control" value="${escapeHtml(f.label)}"></div>
+            <div class="form-group"><label><input type="checkbox" id="fReq" ${f.required ? 'checked' : ''}> Required</label></div>
+            <div class="form-group"><label><input type="checkbox" id="fSearch" ${f.searchable ? 'checked' : ''}> Searchable</label></div>
+            <div class="form-group"><label>Help Text</label><input type="text" id="fHelp" class="form-control" value="${escapeHtml(f.helpText || '')}"></div>
+            ${ft.hasOptions ? `<div class="form-group"><label>Options</label><textarea id="fOpts" class="form-control" rows="3">${(f.options || []).join('\n')}</textarea></div>` : ''}
+            <div class="form-group"><label>Min Length</label><input type="number" id="fMinL" class="form-control" value="${f.validation?.minLength || 0}"></div>
+            <div class="form-group"><label>Max Length</label><input type="number" id="fMaxL" class="form-control" value="${f.validation?.maxLength || 500}"></div>
+            <div class="form-group"><label>Field Permissions (ACL)</label>
+                <div class="grid-2" style="font-size:0.85em; background:#f9fafb; padding:0.5rem; border-radius:0.5rem;">
+                    <label><input type="checkbox" id="efr_salesman" ${f.acl?.read?.includes('salesman') ? 'checked' : ''}> Salesman Read</label>
+                    <label><input type="checkbox" id="efw_salesman" ${f.acl?.write?.includes('salesman') ? 'checked' : ''}> Salesman Write</label>
+                    <label><input type="checkbox" id="efr_vendor" ${f.acl?.read?.includes('vendor') ? 'checked' : ''}> Vendor Read</label>
+                    <label><input type="checkbox" id="efw_vendor" ${f.acl?.write?.includes('vendor') ? 'checked' : ''}> Vendor Write</label>
+                    <label style="grid-column: span 2"><input type="checkbox" id="efr_public" ${f.acl?.read?.includes('public') ? 'checked' : ''}> Public Read</label>
+                </div>
+            </div>
+        `, () => {
+                f.label = document.getElementById('fLabel').value || f.label; f.required = document.getElementById('fReq').checked; f.searchable = document.getElementById('fSearch').checked; f.helpText = document.getElementById('fHelp').value; f.validation = { minLength: parseInt(document.getElementById('fMinL').value) || 0, maxLength: parseInt(document.getElementById('fMaxL').value) || 500 };
+
+                f.acl = { read: ['super_admin', 'content_admin'], write: ['super_admin', 'content_admin'] };
+                if (document.getElementById('efr_salesman').checked) f.acl.read.push('salesman');
+                if (document.getElementById('efw_salesman').checked) f.acl.write.push('salesman');
+                if (document.getElementById('efr_vendor').checked) f.acl.read.push('vendor');
+                if (document.getElementById('efw_vendor').checked) f.acl.write.push('vendor');
+                if (document.getElementById('efr_public').checked) f.acl.read.push('public');
+
+                if (ft.hasOptions) f.options = document.getElementById('fOpts').value.split('\n').filter(o => o.trim());
+                saveStore(); renderFormFields(); closeModal(); showToast('Updated', 'success');
+            });
+        }
+        function dupField(i) { const f = STORE.formTemplates[currentFormBizId]?.[currentFormSectionId]; if (!f || !f[i]) return; const df = { ...JSON.parse(JSON.stringify(f[i])), id: 'f_' + Date.now(), name: f[i].name + '_copy', label: f[i].label + ' (Copy)' }; f.push(df); saveStore(); renderFormFields(); showToast('Duplicated', 'success') }
+        function delField(i) { const f = STORE.formTemplates[currentFormBizId]?.[currentFormSectionId]; if (!f) return; if (confirm('Delete this field?')) { f.splice(i, 1); saveStore(); renderFormFields(); showToast('Deleted', 'success') } }
+        function saveFormFields() {
+            if (currentFormBizId && currentFormSectionId) {
+                const bizTemplate = STORE.businessTypes.find(b => b.id === currentFormBizId);
+                if (bizTemplate) {
+                    if (!bizTemplate.ownSections) bizTemplate.ownSections = [];
+                    if (!bizTemplate.sections.includes(currentFormSectionId) && !bizTemplate.ownSections.includes(currentFormSectionId)) {
+                        bizTemplate.ownSections.push(currentFormSectionId);
+                    }
+                }
+            }
+            saveStore();
+            addActivity(`Form saved: ${currentFormBizId}/${currentFormSectionId}`);
+            showToast('Form saved!', 'success');
+        }
+        function getPersonaSelectorOptions(selectedId = 'admin') {
+            let h = `<optgroup label="Generic Roles">
+                        <option value="admin" ${selectedId === 'admin' ? 'selected' : ''}>Admin (Full Access)</option>
+                        <option value="salesman" ${selectedId === 'salesman' ? 'selected' : ''}>Salesman</option>
+                        <option value="vendor" ${selectedId === 'vendor' ? 'selected' : ''}>Vendor (Owner)</option>
+                        <option value="public" ${selectedId === 'public' ? 'selected' : ''}>Public (Tourist)</option>
+                     </optgroup>
+                     <optgroup label="Specific Users">`;
+            for (const v of STORE.vendors) {
+                h += `<option value="user_${v.id}" ${selectedId === `user_${v.id}` ? 'selected' : ''}>${escapeHtml(v.email)} (${ROLES[v.role]?.name || v.role})</option>`;
+            }
+            h += `</optgroup>`;
+            return h;
+        }
+
+        function getRoleFromPersona(personaId) {
+            if (personaId.startsWith('user_')) {
+                const uid = personaId.replace('user_', '');
+                const user = STORE.vendors.find(v => v.id === uid);
+                return user ? user.role : 'public';
+            }
+            return personaId; // admin, salesman, vendor, public
+        }
+
+        function previewFormTemplate(personaId = 'admin') {
+            if (!currentFormBizId) { showToast('Select a Business Type first', 'error'); return; }
+            const typeDef = STORE.businessTypes.find(b => b.id === currentFormBizId);
+            if (!typeDef) { showToast('Business Type not found', 'error'); return; }
+            
+            const role = getRoleFromPersona(personaId);
+            const allSections = [...new Set([...(typeDef.sections || []), ...(typeDef.ownSections || [])])];
+            let h = `<div style="display:flex;justify-content:space-between;align-items:center;">
+                        <h3>Preview Form: ${escapeHtml(typeDef.name)}</h3>
+                     </div>
+                     <div class="notification-banner" style="background:#f3f4f6; margin-top:1rem;">
+                        <i class="fas fa-eye"></i> View As Persona: 
+                        <select class="form-control" style="width:250px; display:inline-block; margin-left:1rem;" onchange="previewFormTemplate(this.value)">
+                            ${getPersonaSelectorOptions(personaId)}
+                        </select>
+                     </div>
+                     <div class="help-text">Simulating form logic for: <strong>${role.toUpperCase()}</strong></div>
+                     <div style="margin-top:1rem;">`;
+
+            let hasVisibleSections = false;
+
+            for (const s of allSections) {
+                const secDef = STORE.sections[s];
+                if (!secDef) continue;
+                if (role !== 'admin' && !secDef.vendorEditable && role !== 'public') continue;
+
+                const fields = STORE.formTemplates[currentFormBizId]?.[s] || [];
+                let fh = '';
+                for (const f of fields) {
+                    const canRead = f.acl?.read?.includes(role) || role === 'admin';
+                    const canWrite = f.acl?.write?.includes(role) || role === 'admin';
+                    if (!canRead) continue;
+
+                    let inpH = `<input type="text" class="form-control" placeholder="Preview..." ${!canWrite ? 'disabled' : ''}>`;
+                    if (f.type === 'textarea') inpH = `<textarea class="form-control" rows="2" placeholder="Preview..." ${!canWrite ? 'disabled' : ''}></textarea>`;
+                    if (f.type === 'select' || (STORE.customExpressions && STORE.customExpressions[f.expressionId] && STORE.customExpressions[f.expressionId].type === 'select')) {
+                        inpH = `<select class="form-control" ${!canWrite ? 'disabled' : ''}>${(f.options || []).map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>`;
+                    }
+                    if (f.type === 'checkbox_group') {
+                        inpH = (f.options || []).map(o => `<label style="display:inline-block; margin-right:10px;"><input type="checkbox" ${!canWrite ? 'disabled' : ''}> ${escapeHtml(o)}</label>`).join('');
+                    }
+
+                    fh += `<div class="form-group" style="${!canWrite ? 'opacity: 0.7;' : ''}">
+                                <label class="form-label ${f.required ? 'required' : ''}">${escapeHtml(f.label)} ${!canWrite ? '<span class="badge badge-warning" style="font-size:0.6rem">Read-Only</span>' : ''}</label>
+                                ${inpH}
+                                ${f.helpText ? `<div class="help-text" style="color:#6b7280; font-size:0.75rem;">${escapeHtml(f.helpText)}</div>` : ''}
+                           </div>`;
+                }
+
+                if (fh) {
+                    hasVisibleSections = true;
+                    h += `<div class="section-container">
+                            <div class="section-header"><i class="fas ${secDef.icon || 'fa-info-circle'}"></i> ${escapeHtml(secDef.name)}</div>
+                            <div class="section-fields">${fh}</div>
+                          </div>`;
+                }
+            }
+
+            if (!hasVisibleSections) {
+                h += `<p style="text-align:center; padding:2rem; background:#f9fafb; border-radius:0.5rem;">No fields visible to this persona (or no fields have been created yet).</p>`;
+            }
+
+            h += `</div><button class="btn btn-outline" style="width:100%; margin-top:1rem;" onclick="closeModal()">Close Preview</button>`;
+            
+            // Re-use showModal or replace content if already testing
+            const exTitle = document.querySelector('.modal-header h2');
+            if(document.getElementById('modal').style.display === 'flex' && exTitle && exTitle.innerText.includes('Form Builder Preview')) {
+                document.getElementById('modalBody').innerHTML = h;
+            } else {
+                showModal('Form Builder Preview', h);
+            }
+        }
+        function exportForms() { const d = JSON.stringify(STORE.formTemplates, null, 2); const b = new Blob([d], { type: 'application/json' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'siwa-forms-export.json'; a.click(); showToast('Exported', 'success') }
+        function importForms() { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json'; inp.onchange = e => { const r = new FileReader(); r.onload = ev => { try { const d = JSON.parse(ev.target.result); Object.assign(STORE.formTemplates, d); saveStore(); addActivity('Forms imported'); showToast('Imported', 'success'); adminNav('formbuilder') } catch (e) { showToast('Invalid file', 'error') } }; r.readAsText(e.target.files[0]) }; inp.click() }
+
+        // ================================================================
+        // MODULE 14: CARD BUILDER (Hybrid: Policy + Visual + Live Preview)
+        // ================================================================
+        function renderAdminCardBuilder(c) {
+            if (!hasPermission('manage_cards')) { c.innerHTML = permDenied('manage_cards'); return }
+            const opts = getAllBusinessOptions();
+            c.innerHTML = `<div class="card-header"><h3><i class="fas fa-id-card"></i> Card Builder</h3></div>
+        <div class="form-group"><label class="form-label">Business Type</label><select id="cardBiz" class="form-control" onchange="onCardBizChange()"><option value="">--Select--</option>${opts.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}</select></div>
+        <div id="cardBuilderArea"></div>`;
+        }
+        function onCardBizChange(personaId = 'public') {
+            currentCardBizId = document.getElementById('cardBiz').value; if (!currentCardBizId) return;
+            const role = getRoleFromPersona(personaId);
+            const policy = getPolicyForRole(role);
+            const config = STORE.cardTemplates[currentCardBizId] || { layout: 'standard', fields: [] };
+            const allFields = [];
+            const secs = getSectionsForType(currentCardBizId);
+            secs.forEach(s => { const fields = getFieldsForSection(currentCardBizId, s); fields.forEach(f => allFields.push({ ...f, section: s })) });
+            Object.entries(CARD_FIELDS).forEach(([k, v]) => { if (!allFields.find(f => f.name === k)) allFields.push({ name: k, label: v.displayName, type: 'text', section: v.section }) });
+            
+            let h = `<div class="notification-banner" style="background:#f3f4f6; margin-top:1rem;">
+                        <i class="fas fa-eye"></i> View As Persona: 
+                        <select class="form-control" style="width:250px; display:inline-block; margin-left:1rem;" onchange="onCardBizChange(this.value)">
+                            ${getPersonaSelectorOptions(personaId)}
+                        </select>
+                     </div>`;
+            h += `<div class="policy-indicator"><i class="fas fa-shield-alt"></i> Active Policy: <strong>${policy.name}</strong> — Allowed: ${policy.allowedFields.includes('*') ? 'All fields' : policy.allowedFields.join(', ')}</div>`;
+            h += `<h4 style="margin:1rem 0 .5rem">Layout</h4><div class="grid-4">${Object.entries(CARD_LAYOUTS).map(([k, v]) => `<div class="card" style="cursor:pointer;text-align:center;${config.layout === k ? 'border:2px solid #D4AF37;background:#fffacd' : ''}" onclick="setCardLayout('${currentCardBizId}','${k}', '${personaId}')"><i class="fas ${v.icon}" style="font-size:1.5rem;color:${config.layout === k ? '#D4AF37' : '#6b7280'}"></i><div style="font-size:.85rem;font-weight:600">${v.name}</div><div style="font-size:.7rem;color:#9ca3af">${v.description}</div></div>`).join('')}</div>`;
+            h += `<h4 style="margin:1rem 0 .5rem">Fields</h4><div class="grid-2">`;
+            for (const f of allFields) {
+                const selected = (config.fields || []).includes(f.name);
+                const blocked = !policy.allowedFields.includes('*') && !policy.allowedFields.includes(f.name);
+                h += `<div class="builder-field" style="${blocked ? 'opacity:.5;border-color:#fca5a5' : ''}"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="checkbox" data-card-field="${f.name}" ${selected && !blocked ? 'checked' : ''} ${blocked ? 'disabled' : ''}> ${escapeHtml(f.label)} ${blocked ? '<span class="badge badge-danger">Blocked by Policy</span>' : ''}</label></div>`;
+            }
+            h += `</div><div style="display:flex;gap:.75rem;margin-top:1rem"><button class="btn btn-primary" onclick="saveCardConfig('${personaId}')"><i class="fas fa-save"></i> Save Card</button><button class="btn btn-outline" onclick="resetCardConfig('${personaId}')">Reset</button></div>`;
+            h += `<div class="live-preview" id="cardPreview"><h4><i class="fas fa-eye"></i> Live Preview</h4><div id="previewContent">Select fields to preview</div></div>`;
+            document.getElementById('cardBuilderArea').innerHTML = h;
+            updateCardPreview(personaId);
+        }
+        function setCardLayout(bizId, layout, personaId = 'public') { if (!STORE.cardTemplates[bizId]) STORE.cardTemplates[bizId] = { layout: 'standard', fields: [] }; STORE.cardTemplates[bizId].layout = layout; saveStore(); onCardBizChange(personaId) }
+        function saveCardConfig(personaId = 'public') {
+            if (!currentCardBizId) return;
+            const role = getRoleFromPersona(personaId);
+            const policy = getPolicyForRole(role);
+            const selected = Array.from(document.querySelectorAll('[data-card-field]:checked')).map(cb => cb.dataset.cardField);
+            const enforced = policy.allowedFields.includes('*') ? selected : selected.filter(f => policy.allowedFields.includes(f));
+            if (!STORE.cardTemplates[currentCardBizId]) STORE.cardTemplates[currentCardBizId] = {};
+            STORE.cardTemplates[currentCardBizId].fields = enforced;
+            STORE.cardTemplates[currentCardBizId].layout = STORE.cardTemplates[currentCardBizId]?.layout || 'standard';
+            saveStore(); addActivity(`Card config saved: ${currentCardBizId}`); addAudit('card_save', `Card config for ${currentCardBizId}`);
+            showToast('Card config saved!', 'success'); updateCardPreview(personaId);
+        }
+        function resetCardConfig(personaId = 'public') { if (!currentCardBizId) return; delete STORE.cardTemplates[currentCardBizId]; saveStore(); onCardBizChange(personaId); showToast('Reset', 'success') }
+        function updateCardPreview(personaId = 'public') {
+            const prev = document.getElementById('previewContent'); if (!prev) return;
+            const config = STORE.cardTemplates[currentCardBizId] || { fields: [] };
+            const biz = STORE.businesses.find(b => b.type === currentCardBizId);
+            if (!config.fields.length) { prev.innerHTML = '<p style="color:#9ca3af">No fields selected</p>'; return }
+            let h = `<div class="card" style="max-width:350px"><div style="background:linear-gradient(135deg,#1a1a2e,#2d2d44);height:80px;border-radius:.5rem .5rem 0 0;display:flex;align-items:center;justify-content:center;color:#D4AF37"><i class="fas fa-image" style="font-size:2rem"></i></div><div style="padding:.75rem">`;
+            for (const f of config.fields) {
+                const val = biz?.customData ? Object.values(biz.customData).reduce((a, s) => ({ ...a, ...s }), {})[f] || '—' : 'Sample';
+                h += `<div style="font-size:.85rem;margin:.25rem 0"><strong>${f}:</strong> ${escapeHtml(String(val))}</div>`;
+            }
+            prev.innerHTML = h + `<button class="btn btn-sm btn-primary" style="margin-top:.5rem;width:100%">View Details →</button></div></div>`;
+        }
+
+        // ================================================================
+        // MODULE 15: WEBSITE BUILDER
+        // ================================================================
+        function renderAdminWebsite(c) {
+            if (!hasPermission('manage_website')) { c.innerHTML = permDenied('manage_website'); return }
+            
+            // Generate Searching Manager Building Units from Data Sections
+            let searchComps = [];
+            Object.values(STORE.formTemplates).forEach(biz => {
+                Object.values(biz).forEach(sec => {
+                    sec.forEach(f => {
+                        if (f.searchable && !searchComps.find(x => x.id === 'search_' + f.name)) {
+                            searchComps.push({ id: 'search_' + f.name, name: f.label + ' Filter', icon: 'fa-filter', originalType: f.type });
+                        }
+                    });
+                });
+            });
+            Object.values(STORE.customExpressions).forEach(e => {
+                if (e.searchable && !searchComps.find(x => x.id === 'search_' + e.id)) {
+                    searchComps.push({ id: 'search_' + e.id, name: e.name + ' Filter', icon: 'fa-filter', originalType: e.type });
+                }
+            });
+            
+            const searchUnitsHtml = searchComps.map(sc => `<div class="field-type" style="background:#e0f2fe; border-color:#bae6fd" draggable="true" ondragstart="wbDragStart(event,'${sc.id}', true)" ondragend="wbDragEnd(event)"><i class="fas ${sc.icon}" style="color:#0284c7"></i> ${sc.name}</div>`).join('');
+
+            c.innerHTML = `<div class="card-header"><h3><i class="fas fa-globe"></i> Website & Searching Manager</h3><div><button class="btn btn-sm ${currentWebsiteMode === 'website' ? 'btn-primary' : 'btn-outline'}" onclick="setWebMode('website')">Website</button> <button class="btn btn-sm ${currentWebsiteMode === 'minisite' ? 'btn-primary' : 'btn-outline'}" onclick="setWebMode('minisite')">Minisite</button></div></div>
+        <div class="grid-2"><div><h4>Header</h4><div class="dropzone" id="webHeader" ondragover="wbDragOver(event)" ondragleave="wbDragLeave(event)" ondrop="wbDrop(event,'header')">${renderWebArea('header')}</div></div><div><h4>Body</h4><div class="dropzone" id="webBody" ondragover="wbDragOver(event)" ondragleave="wbDragLeave(event)" ondrop="wbDrop(event,'body')">${renderWebArea('body')}</div></div></div>
+        <h4 style="margin-top:1rem">Footer</h4><div class="dropzone" id="webFooter" ondragover="wbDragOver(event)" ondragleave="wbDragLeave(event)" ondrop="wbDrop(event,'footer')">${renderWebArea('footer')}</div>
+        
+        <div class="grid-2" style="margin-top:1.5rem; gap:1.5rem">
+            <div>
+                <h4>Standard Components</h4>
+                <div class="grid-2">${Object.entries({ ...COMPONENTS.header, ...COMPONENTS.body, ...COMPONENTS.footer }).map(([k, v]) => `<div class="field-type" draggable="true" ondragstart="wbDragStart(event,'${k}')" ondragend="wbDragEnd(event)"><i class="fas ${v.icon}"></i> ${v.name}</div>`).join('')}</div>
+            </div>
+            <div>
+                <h4><i class="fas fa-search"></i> Searching Manager Units</h4>
+                <p style="font-size:0.75rem; color:#6b7280; margin-bottom:0.5rem">Dynamically pulled from Data Sections (Searchable fields)</p>
+                <div class="grid-2">${searchUnitsHtml || '<p style="color:#9ca3af; font-size:0.8rem">No searchable fields defined yet.</p>'}</div>
+            </div>
+        </div>
+        
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content: flex-start;">
+            <button class="btn btn-primary" onclick="saveWebsite()"><i class="fas fa-save"></i> Save Website</button>
+            <button class="btn btn-outline" onclick="previewWebsiteTemplate('admin')"><i class="fas fa-eye"></i> Preview As...</button>
+        </div>`;
+        }
+        function renderWebArea(area) { const t = STORE.websiteTemplates[currentWebsiteMode] || {}; const comps = t[area] || []; if (!comps.length) return '<p style="text-align:center;color:#9ca3af">Drop components here</p>'; return comps.map((c, i) => `<div class="builder-field"><span><i class="fas ${c.icon || 'fa-cube'}"></i> ${escapeHtml(c.name || c.type)}</span><div><button class="btn btn-xs btn-outline" onclick="moveComp('${area}',${i},'up')">↑</button><button class="btn btn-xs btn-outline" onclick="moveComp('${area}',${i},'down')">↓</button><button class="btn btn-xs btn-danger" onclick="removeComp('${area}',${i})">×</button></div></div>`).join('') }
+        function setWebMode(m) { currentWebsiteMode = m; adminNav('website') }
+        function wbDragStart(e, type, isDynamicSearch = false) { draggedComponentType = type; draggedComponentIsSearch = isDynamicSearch; e.target.style.opacity = '.5' }
+        function wbDragEnd(e) { draggedComponentType = null; draggedComponentIsSearch = false; e.target.style.opacity = '1' }
+        function wbDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over') }
+        function wbDragLeave(e) { e.currentTarget.classList.remove('drag-over') }
+        function wbDrop(e, area) {
+            e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+            if (!draggedComponentType) return;
+            
+            let compName = "Dynamic Component", compIcon = "fa-cube";
+            
+            if (draggedComponentIsSearch) {
+                compName = draggedComponentType.replace('search_', '') + ' Filter';
+                compIcon = 'fa-filter';
+            } else {
+                const allComps = { ...COMPONENTS.header, ...COMPONENTS.body, ...COMPONENTS.footer };
+                const comp = allComps[draggedComponentType]; if (!comp) return;
+                compName = comp.name;
+                compIcon = comp.icon;
+            }
+            
+            if (!STORE.websiteTemplates[currentWebsiteMode]) STORE.websiteTemplates[currentWebsiteMode] = { header: [], body: [], footer: [] };
+            if (!STORE.websiteTemplates[currentWebsiteMode][area]) STORE.websiteTemplates[currentWebsiteMode][area] = [];
+            STORE.websiteTemplates[currentWebsiteMode][area].push({ type: draggedComponentType, name: compName, icon: compIcon, config: {} });
+            saveStore(); adminNav('website'); showToast(`Added ${compName}`, 'success');
+        }
+        function moveComp(area, i, dir) { const t = STORE.websiteTemplates[currentWebsiteMode]; if (!t || !t[area]) return; const a = t[area]; if (dir === 'up' && i > 0) [a[i - 1], a[i]] = [a[i], a[i - 1]]; if (dir === 'down' && i < a.length - 1) [a[i], a[i + 1]] = [a[i + 1], a[i]]; saveStore(); adminNav('website') }
+        function removeComp(area, i) { const t = STORE.websiteTemplates[currentWebsiteMode]; if (!t || !t[area]) return; t[area].splice(i, 1); saveStore(); adminNav('website'); showToast('Removed', 'success') }
+        function saveWebsite() { saveStore(); addActivity(`Website saved: ${currentWebsiteMode}`); showToast('Website saved!', 'success') }
+        function _renderMockUI(c, area) {
+            if (!c) return '';
+            var html = '';
+            switch(c.type) {
+                case 'navigation': html = '<div style="display:flex; justify-content:space-between; align-items:center; padding:1.5rem 2rem; background:#fff; border-bottom:1px solid #e5e7eb; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><span><i class="fas fa-leaf" style="color:#D4AF37; font-size:1.5rem;"></i> Siwa Oasis</span><span style="display:flex;gap:1.5rem;color:#4b5563"><span>Home</span><span>Search</span><span>Login</span></span></div>'; break;
+                case 'hero': html = '<div style="min-height:400px; background:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(https://images.unsplash.com/photo-1549880338-65dd4cd70087?w=1200&q=80) center/cover; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; text-align:center; padding:2rem;"><h1 style="font-size:3rem; margin-bottom:1rem; color:#D4AF37; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Discover True Magic</h1><p style="font-size:1.2rem; max-width:600px; margin-bottom:2rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">Experience the beauty, history, and healing of the oasis.</p><button class="btn btn-primary" style="font-size:1.1rem; padding:1rem 2rem; border-radius:30px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">Explore Now</button></div>'; break;
+                case 'logo': html = '<div style="padding:2rem; font-size:2rem; font-weight:800; color:#D4AF37; text-align:center; background:#1a1a2e; text-transform:uppercase; letter-spacing:2px;">Platform Logo</div>'; break;
+                case 'gallery': html = '<div style="padding:4rem 2rem; background:#fff; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:2rem; color:#1a1a2e;">Stunning Gallery</h2><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1.5rem; max-width:1200px; margin:2rem auto;"><div style="height:250px; background:url(https://images.unsplash.com/photo-1563298723-dcfebf3fc0d7?w=500&q=80) center/cover; border-radius:1rem; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"></div><div style="height:250px; background:url(https://images.unsplash.com/photo-1549880338-65dd4cd70087?w=500&q=80) center/cover; border-radius:1rem; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"></div><div style="height:250px; background:url(https://images.unsplash.com/photo-1533142273614-722a61f3de98?w=500&q=80) center/cover; border-radius:1rem; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"></div></div></div>'; break;
+                case 'testimonials': html = '<div style="padding:4rem 2rem; background:#fffbeb; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:3rem; color:#92400e;">What Travelers Say</h2><div style="max-width:800px; margin:0 auto; padding:3rem; background:#fff; border-radius:1rem; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); position:relative;"><i class="fas fa-quote-left" style="font-size:3rem; color:#fcd34d; position:absolute; top:-1.5rem; left:2rem; opacity:0.8;"></i><p style="font-style:italic; font-size:1.3rem; color:#4b5563; line-height:1.6;">"An unforgettable journey into peace and ancient heritage. The hot springs completely revitalized me."</p><div style="margin-top:2rem; font-weight:bold; color:#1a1a2e; font-size:1.1rem;">- Alex Jenkins</div></div></div>'; break;
+                case 'services': html = '<div style="padding:4rem 2rem; background:#f9fafb; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:3rem; color:#1a1a2e;">Exclusive Services</h2><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:2.5rem; max-width:1200px; margin:0 auto;"><div style="padding:3rem 2rem; background:#fff; border-radius:1rem; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"><i class="fas fa-spa" style="font-size:4rem; color:#D4AF37; margin-bottom:1.5rem;"></i><h3 style="font-size:1.8rem; margin-bottom:1rem; color:#1a1a2e;">Wellness</h3><p style="color:#6b7280; font-size:1.1rem;">Rejuvenate in natural salt lakes and soothing hot springs.</p></div><div style="padding:3rem 2rem; background:#fff; border-radius:1rem; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"><i class="fas fa-mountain" style="font-size:4rem; color:#D4AF37; margin-bottom:1.5rem;"></i><h3 style="font-size:1.8rem; margin-bottom:1rem; color:#1a1a2e;">Desert Safari</h3><p style="color:#6b7280; font-size:1.1rem;">Experience dune bashing and magical starry nights.</p></div></div></div>'; break;
+                case 'blog': html = '<div style="padding:4rem 2rem; background:#fff; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:3rem; color:#1a1a2e;">Latest News</h2><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); gap:2rem; max-width:1200px; margin:0 auto; text-align:left;"><div style="background:#fff; border-radius:1rem; overflow:hidden; border:1px solid #e5e7eb; box-shadow:0 4px 6px rgba(0,0,0,0.05);"><div style="height:200px; background:#e5e7eb;"></div><div style="padding:2rem;"><div style="color:#D4AF37; font-weight:bold; margin-bottom:0.5rem; font-size:0.9rem;">ADVENTURE</div><h3 style="font-size:1.5rem; color:#1a1a2e; margin-bottom:1rem;">The Great Sand Sea Experience</h3><p style="color:#4b5563;">Explore the majesty of infinite dunes and ancient pathways...</p></div></div><div style="background:#fff; border-radius:1rem; overflow:hidden; border:1px solid #e5e7eb; box-shadow:0 4px 6px rgba(0,0,0,0.05);"><div style="height:200px; background:#e5e7eb;"></div><div style="padding:2rem;"><div style="color:#D4AF37; font-weight:bold; margin-bottom:0.5rem; font-size:0.9rem;">CULTURE</div><h3 style="font-size:1.5rem; color:#1a1a2e; margin-bottom:1rem;">Local Harvest Festivals</h3><p style="color:#4b5563;">Join us for the harvest celebrations that bring the whole oasis together...</p></div></div></div></div>'; break;
+                case 'map': html = '<div style="padding:4rem 2rem; background:#f3f4f6; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:2rem; color:#1a1a2e;">Find Us</h2><div style="height:400px; background:url(https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&q=80) center/cover; max-width:1200px; margin:0 auto; border-radius:1rem; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"><i class="fas fa-map-marker-alt" style="font-size:5rem; color:#ef4444;"></i></div></div>'; break;
+                case 'carousel': html = '<div style="padding:4rem 2rem; background:#1a1a2e; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:3rem; color:#D4AF37;">Featured Highlights</h2><div style="position:relative; height:500px; max-width:1200px; margin:0 auto; border-radius:1rem; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); background:url(https://images.unsplash.com/photo-1549880338-65dd4cd70087?w=1200&q=80) center/cover;"><div style="position:absolute; inset:0; background:rgba(0,0,0,0.4);"></div><i class="fas fa-images" style="position:relative; font-size:5rem; color:#fff; display:block; margin:auto; margin-top:15%;"></i></div></div>'; break;
+                case 'video': html = '<div style="padding:4rem 2rem; background:#000; text-align:center;"><h2 style="font-size:2.5rem; margin-bottom:3rem; color:#fff;">Experience It Live</h2><div style="height:500px; max-width:1200px; margin:0 auto; border-radius:1rem; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#111;"><i class="fas fa-play" style="font-size:4rem; color:#D4AF37; z-index:2;"></i></div></div>'; break;
+                default:
+                    if (area === 'footer') {
+                        if (c.type === 'contact') html = '<div style="padding:2rem 0; color:#d1d5db;"><h4 style="color:#D4AF37; margin-bottom:1.5rem; font-size:1.3rem;">Contact Us</h4><p style="margin-bottom:0.5rem; font-size:1.1rem;"><i class="fas fa-envelope" style="margin-right:10px;"></i>info@siwa.today</p><p style="margin-bottom:0.5rem; font-size:1.1rem;"><i class="fas fa-phone" style="margin-right:10px;"></i>+20 123 456 7890</p></div>';
+                        else if (c.type === 'social') html = '<div style="padding:2rem 0; color:#d1d5db;"><h4 style="color:#D4AF37; margin-bottom:1.5rem; font-size:1.3rem;">Connect</h4><div style="display:flex; gap:1.5rem; justify-content:center;"><i class="fab fa-facebook-f" style="font-size:1.5rem;"></i><i class="fab fa-instagram" style="font-size:1.5rem;"></i><i class="fab fa-twitter" style="font-size:1.5rem;"></i></div></div>';
+                        else if (c.type === 'copyright') html = '<div style="padding:2rem 1rem; border-top:1px solid #374151; color:#9ca3af; margin-top:2rem; font-size:1.1rem;">&copy; 2026 Siwa Marketplace. All Rights Reserved.</div>';
+                        else html = '<div style="padding:1rem; border-top:1px solid #4b5563; text-align:center;"><h4>' + escapeHtml(c.name) + '</h4></div>';
+                    } else {
+                        html = '<div style="padding:4rem 2rem; border:2px dashed #D4AF37; margin:2rem; text-align:center; background:#fef3c7; color:#92400e; border-radius:1rem; position:relative; overflow:hidden;"><i class="fas ' + c.icon + '" style="font-size:3rem; margin-bottom:1rem; display:block;"></i><h3 style="font-size:1.8rem; margin:0;">' + escapeHtml(c.name) + '</h3><p style="opacity:0.8; margin-top:0.5rem; font-size:1.1rem;">Placeholder</p></div>';
+                    }
+            }
+            return html;
+        }
+
+        function previewWebsiteTemplate(personaId = 'admin') {
+            const role = getRoleFromPersona(personaId);
+            const t = STORE.websiteTemplates[currentWebsiteMode] || { header:[], body:[], footer:[] };
+            
+            let h = `<div style="display:flex;justify-content:space-between;align-items:center;">
+                        <h3>Preview Site: ${currentWebsiteMode.toUpperCase()}</h3>
+                     </div>
+                     <div class="notification-banner" style="background:#f3f4f6; margin-top:1rem;">
+                        <i class="fas fa-eye"></i> View As Persona: 
+                        <select class="form-control" style="width:250px; display:inline-block; margin-left:1rem;" onchange="previewWebsiteTemplate(this.value)">
+                            ${getPersonaSelectorOptions(personaId)}
+                        </select>
+                     </div>
+                     <div class="help-text" style="margin-bottom:1.5rem">Simulating visible layout blocks for: <strong>${role.toUpperCase()}</strong></div>
+                     
+                     <div style="background:#fff; border:2px solid #e5e7eb; border-radius:0.5rem; overflow:hidden;">
+                        <!-- HEADER -->
+                        <div style="background:#f9fafb; display:flex; flex-direction:column;">
+                            ${(t.header || []).length ? t.header.map(c => _renderMockUI(c, 'header')).join('') : '<div style="padding:2rem;text-align:center;color:#9ca3af">[ No Header Components Added ]</div>'}
+                        </div>
+                        
+                        <!-- BODY -->
+                        <div style="min-height:300px; display:flex; flex-direction:column; background:#fff;">
+                            ${(t.body || []).length ? t.body.map(c => _renderMockUI(c, 'body')).join('') : '<div style="padding:4rem;text-align:center;color:#9ca3af;margin:auto">[ No Body Components Added ]</div>'}
+                        </div>
+                        
+                        <!-- FOOTER -->
+                        <div style="background:#1f2937; color:#d1d5db; display:flex; flex-direction:column;">
+                            ${(t.footer || []).length ? t.footer.map(c => _renderMockUI(c, 'footer')).join('') : '<div style="padding:2rem;text-align:center;color:#6b7280">[ No Footer Components Added ]</div>'}
+                        </div>
+                     </div>
+                     
+                     <button class="btn btn-outline" style="width:100%; margin-top:1.5rem;" onclick="closeModal()">Close Preview</button>`;
+            
+            const exTitle = document.querySelector('.modal-header h2');
+            if(document.getElementById('modal').style.display === 'flex' && exTitle && exTitle.innerText.includes('Website Layout Preview')) {
+                document.getElementById('modalBody').innerHTML = h;
+            } else {
+                showModal('Website Layout Preview', h);
+            }
+        }
+
+        // ================================================================
+        // MODULE 16: SEARCH POLICIES ADMIN
+        // ================================================================
+        function renderAdminPolicies(c) {
+            if (!hasPermission('manage_policies')) { c.innerHTML = permDenied('manage_policies'); return }
+            c.innerHTML = `<div class="card-header"><h3><i class="fas fa-shield-alt"></i> Search Policies</h3><button class="btn btn-primary btn-sm" onclick="addPolicy()"><i class="fas fa-plus"></i> Add Policy</button></div>
+        <div class="grid-2">${Object.entries(STORE.searchPolicies).map(([id, p]) => `<div class="card"><h4><i class="fas fa-shield-alt"></i> ${escapeHtml(p.name)}</h4><p style="font-size:.85rem;color:#6b7280">${escapeHtml(p.description || '')}</p><p><strong>Role:</strong> ${p.role}</p><p><strong>Fields:</strong> ${p.allowedFields.join(', ')}</p><button class="btn btn-xs btn-outline" onclick="editPolicy('${id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="delPolicy('${id}')">Del</button></div>`).join('')}</div>`;
+        }
+        function addPolicy() { showModal('Add Search Policy', `<div class="form-group"><label>Name</label><input type="text" id="polName" class="form-control"></div><div class="form-group"><label>Role</label><select id="polRole" class="form-control">${Object.keys(ROLES).map(r => `<option value="${r}">${ROLES[r].name}</option>`).join('')}</select></div><div class="form-group"><label>Description</label><input type="text" id="polDesc" class="form-control"></div><div class="form-group"><label>Allowed Fields (comma-separated, * for all)</label><input type="text" id="polFields" class="form-control" value="name,description,category"></div>`, () => { const id = 'pol_' + Date.now(); STORE.searchPolicies[id] = { id, name: document.getElementById('polName').value, role: document.getElementById('polRole').value, description: document.getElementById('polDesc').value, allowedFields: document.getElementById('polFields').value.split(',').map(f => f.trim()) }; saveStore(); addActivity('Policy added'); adminNav('policies'); closeModal(); showToast('Added', 'success') }) }
+        function editPolicy(id) { const p = STORE.searchPolicies[id]; if (!p) return; showModal('Edit Policy', `<div class="form-group"><label>Name</label><input type="text" id="polName" class="form-control" value="${escapeHtml(p.name)}"></div><div class="form-group"><label>Description</label><input type="text" id="polDesc" class="form-control" value="${escapeHtml(p.description || '')}"></div><div class="form-group"><label>Allowed Fields</label><input type="text" id="polFields" class="form-control" value="${p.allowedFields.join(', ')}"></div>`, () => { p.name = document.getElementById('polName').value; p.description = document.getElementById('polDesc').value; p.allowedFields = document.getElementById('polFields').value.split(',').map(f => f.trim()); saveStore(); adminNav('policies'); closeModal(); showToast('Updated', 'success') }) }
+        function delPolicy(id) { if (confirm('Delete?')) { delete STORE.searchPolicies[id]; saveStore(); adminNav('policies'); showToast('Deleted', 'success') } }
+
+        // ================================================================
+        // MODULE 17: REMAINING ADMIN SECTIONS
+        // ================================================================
+        function renderAdminSubs(c) {
+            c.innerHTML = `<div class="card-header"><h3><i class="fas fa-tags"></i> Subscription Tiers</h3><button class="btn btn-primary btn-sm" onclick="addTier()"><i class="fas fa-plus"></i> Add Tier</button></div><div class="grid-3">${Object.entries(STORE.subscriptionTiers).map(([id, t]) => `<div class="card"><h4>${escapeHtml(t.name)}</h4><p>Max Businesses: ${t.features.maxBusinesses}</p><p>Minisite: ${t.features.canPublishMinisite ? '✅' : '❌'}</p><p>Customize: ${t.features.canCustomizeTemplate ? '✅' : '❌'}</p><p>Max Images: ${t.features.maxImages}</p><div><button class="btn btn-xs btn-outline" onclick="editTier('${id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="delTier('${id}')">Del</button></div></div>`).join('')}</div>`;
+        }
+        function addTier() { showModal('Add Tier', `<div class="form-group"><label>ID</label><input type="text" id="tId" class="form-control"></div><div class="form-group"><label>Name</label><input type="text" id="tName" class="form-control"></div><div class="form-group"><label>Max Biz</label><input type="number" id="tMax" class="form-control" value="1"></div><div class="form-group"><label><input type="checkbox" id="tMini"> Can Publish Minisite</label></div><div class="form-group"><label><input type="checkbox" id="tCust"> Can Customize</label></div><div class="form-group"><label>Max Images</label><input type="number" id="tImg" class="form-control" value="5"></div>`, () => { const id = document.getElementById('tId').value; if (!id) return; STORE.subscriptionTiers[id] = { id, name: document.getElementById('tName').value, features: { maxBusinesses: parseInt(document.getElementById('tMax').value), canPublishMinisite: document.getElementById('tMini').checked, canCustomizeTemplate: document.getElementById('tCust').checked, maxImages: parseInt(document.getElementById('tImg').value), maxSlides: 3 } }; saveStore(); adminNav('subscriptions'); closeModal(); showToast('Added', 'success') }) }
+        function editTier(id) { const t = STORE.subscriptionTiers[id]; if (!t) return; showModal(`Edit ${t.name}`, `<div class="form-group"><label>Name</label><input type="text" id="tName" class="form-control" value="${escapeHtml(t.name)}"></div><div class="form-group"><label>Max Biz</label><input type="number" id="tMax" class="form-control" value="${t.features.maxBusinesses}"></div><div class="form-group"><label><input type="checkbox" id="tMini" ${t.features.canPublishMinisite ? 'checked' : ''}> Minisite</label></div><div class="form-group"><label><input type="checkbox" id="tCust" ${t.features.canCustomizeTemplate ? 'checked' : ''}> Customize</label></div><div class="form-group"><label>Max Images</label><input type="number" id="tImg" class="form-control" value="${t.features.maxImages || 5}"></div>`, () => { t.name = document.getElementById('tName').value; t.features.maxBusinesses = parseInt(document.getElementById('tMax').value); t.features.canPublishMinisite = document.getElementById('tMini').checked; t.features.canCustomizeTemplate = document.getElementById('tCust').checked; t.features.maxImages = parseInt(document.getElementById('tImg').value); saveStore(); adminNav('subscriptions'); closeModal(); showToast('Updated', 'success') }) }
+        function delTier(id) { if (confirm('Delete?')) { delete STORE.subscriptionTiers[id]; saveStore(); adminNav('subscriptions'); showToast('Deleted', 'success') } }
+
+        function renderAdminExpressions(c) { c.innerHTML = `<div class="card-header"><h3><i class="fas fa-sparkles"></i> Custom Expressions</h3><button class="btn btn-primary btn-sm" onclick="addExpr()"><i class="fas fa-plus"></i> Add</button></div><div class="grid-3">${Object.entries(STORE.customExpressions).map(([id, e]) => `<div class="card"><h4>${escapeHtml(e.name)}</h4><p>Type: ${e.type}</p><p>Options: ${(e.options || []).join(', ')}</p><button class="btn btn-xs btn-outline" onclick="editExpr('${id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="delExpr('${id}')">Del</button></div>`).join('')}</div>` }
+        function addExpr() { showModal('Add Expression', `<div class="form-group"><label>ID</label><input type="text" id="exId" class="form-control"></div><div class="form-group"><label>Name</label><input type="text" id="exName" class="form-control"></div><div class="form-group"><label>Type</label><select id="exType" class="form-control"><option value="select">Dropdown</option><option value="checkbox">Checkbox</option></select></div><div class="form-group"><label>Options (one per line)</label><textarea id="exOpts" class="form-control" rows="3"></textarea></div>`, () => { const id = document.getElementById('exId').value, name = document.getElementById('exName').value; if (!id || !name) { showToast('Required', 'error'); return } STORE.customExpressions[id] = { id, name, type: document.getElementById('exType').value, options: document.getElementById('exOpts').value.split('\n').filter(o => o.trim()), searchable: true }; saveStore(); adminNav('expressions'); closeModal(); showToast('Added', 'success') }) }
+        function editExpr(id) { const e = STORE.customExpressions[id]; if (!e) return; showModal('Edit', `<div class="form-group"><label>Name</label><input type="text" id="exName" class="form-control" value="${escapeHtml(e.name)}"></div><div class="form-group"><label>Options</label><textarea id="exOpts" class="form-control" rows="3">${(e.options || []).join('\n')}</textarea></div>`, () => { e.name = document.getElementById('exName').value; e.options = document.getElementById('exOpts').value.split('\n').filter(o => o.trim()); saveStore(); adminNav('expressions'); closeModal(); showToast('Updated', 'success') }) }
+        function delExpr(id) { if (confirm('Delete?')) { delete STORE.customExpressions[id]; saveStore(); adminNav('expressions'); showToast('Deleted', 'success') } }
+
+        function renderAdminUpgrades(c) { const pend = STORE.clientRequirements.filter(r => r.status === 'pending'); c.innerHTML = `<div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Upgrade Requests (${pend.length})</h3></div>${pend.length === 0 ? '<p>No pending requests</p>' : `<div class="grid-2">${pend.map(r => `<div class="card"><h4>${escapeHtml(r.clientName)}</h4><p>Tier: ${r.requestedTier}</p><p>Features: ${Object.keys(r.requestedFeatures || {}).join(', ')}</p><button class="btn btn-sm btn-success" onclick="approveUpgrade('${r.id}')">Approve</button> <button class="btn btn-sm btn-danger" onclick="rejectUpgrade('${r.id}')">Reject</button></div>`).join('')}</div>`}` }
+        function approveUpgrade(id) { const r = STORE.clientRequirements.find(x => x.id === id); if (r) { const biz = STORE.businesses.find(b => b.id === r.businessId); if (biz) { biz.subscriptionTier = r.requestedTier; r.status = 'approved'; saveStore(); addActivity(`Upgrade approved: ${biz.name}`); adminNav('upgrades'); showToast('Approved', 'success') } } }
+        function rejectUpgrade(id) { const r = STORE.clientRequirements.find(x => x.id === id); if (r) { r.status = 'rejected'; saveStore(); adminNav('upgrades'); showToast('Rejected', 'warning') } }
+
+        function renderAdminVendors(c) { c.innerHTML = `<div class="card-header"><h3>Vendors</h3></div><div class="grid-2">${STORE.vendors.map(v => `<div class="card"><h4>${escapeHtml(v.email)}</h4><p>Role: ${ROLES[v.role]?.name || v.role}</p><p>Tier: ${v.subscriptionTier || 'free'}</p><p>Active: ${v.active ? '✅' : '❌'}</p><button class="btn btn-xs btn-outline" onclick="toggleVendor('${v.id}')">Toggle</button></div>`).join('')}</div>` }
+        function toggleVendor(id) { const v = STORE.vendors.find(x => x.id === id); if (v) { v.active = !v.active; saveStore(); adminNav('vendors'); showToast('Updated', 'success') } }
+
+        function renderAdminBusinesses(c) { c.innerHTML = `<div class="card-header"><h3>Businesses</h3></div><div class="grid-2">${STORE.businesses.map(b => `<div class="card"><h4>${escapeHtml(b.name)}</h4><p>Type: ${STORE.businessTypes.find(t => t.id === b.type)?.name || b.type}</p><p>Tier: <span class="subscription-badge">${b.subscriptionTier || 'free'}</span></p><p>Status: ${b.status}</p><p>Views: ${b.views || 0}</p><button class="btn btn-xs btn-primary" onclick="adminEditBizData('${b.id}')">Edit Data</button> <button class="btn btn-xs btn-outline" onclick="changeBizTier('${b.id}')">Tier</button> <button class="btn btn-xs btn-danger" onclick="toggleBizStatus('${b.id}')">Toggle</button></div>`).join('')}</div>` }
+        function changeBizTier(id) { const biz = STORE.businesses.find(b => b.id === id); if (!biz) return; showModal('Change Tier', `<select id="nTier" class="form-control">${Object.keys(STORE.subscriptionTiers).map(t => `<option value="${t}" ${biz.subscriptionTier === t ? 'selected' : ''}>${STORE.subscriptionTiers[t].name}</option>`).join('')}</select>`, () => { biz.subscriptionTier = document.getElementById('nTier').value; saveStore(); adminNav('businesses'); closeModal(); showToast('Updated', 'success') }) }
+        function toggleBizStatus(id) { const b = STORE.businesses.find(x => x.id === id); if (b) { b.status = b.status === 'active' ? 'inactive' : 'active'; saveStore(); adminNav('businesses'); showToast('Updated', 'success') } }
+        function adminEditBizData(id, personaId = 'admin') {
+            const biz = STORE.businesses.find(b => b.id === id); if (!biz) return;
+            const role = getRoleFromPersona(personaId);
+            const tier = STORE.subscriptionTiers[biz.subscriptionTier || 'free']?.name || 'Free';
+            const secs = getSectionsForType(biz.type);
+
+            let h = `<div style="display:flex;justify-content:space-between;align-items:center;">
+                        <h3>Editing Data: ${escapeHtml(biz.name)}</h3>
+                        <div>
+                            <span class="subscription-badge">${tier}</span>
+                            <span class="badge badge-${biz.status === 'active' ? 'success' : 'danger'}">${biz.status}</span>
+                        </div>
+                     </div>
+                     <div class="notification-banner" style="background:#f3f4f6; margin-top:1rem;">
+                        <i class="fas fa-eye"></i> View As Persona: 
+                        <select class="form-control" style="width:250px; display:inline-block; margin-left:1rem;" onchange="adminEditBizData('${id}', this.value)">
+                            ${getPersonaSelectorOptions(personaId)}
+                        </select>
+                     </div>
+                     <div class="help-text">Simulating form rendering for: <strong>${role.toUpperCase()}</strong>. Fields will be hidden or locked based on Field ACL.</div>`;
+
+            for (const s of secs) {
+                const sec = STORE.sections[s]; if (!sec) continue;
+                if (role !== 'admin' && !sec.vendorEditable && role !== 'public') continue;
+
+                const fields = getFieldsForSection(biz.type, s); if (!fields.length) continue;
+
+                const visibleFields = fields.filter(f => {
+                    if (role === 'admin') return true;
+                    if (!f.acl || !f.acl.read) return f.permissions?.showOnPublic !== false;
+                    return f.acl.read.includes(role);
+                });
+
+                if (!visibleFields.length) continue;
+
+                h += `<div style="margin-top:1.5rem;border-top:1px solid #e5e7eb;padding-top:1rem"><h4><i class="fas ${sec.icon}"></i> ${sec.name} ${!sec.vendorEditable ? '<span class="badge badge-danger">Admin Only</span>' : '<span class="badge badge-success">Vendor Editable</span>'}</h4>`;
+                for (const f of visibleFields) {
+                    const val = biz.customData?.[s]?.[f.name] || '';
+
+                    let canWrite = true;
+                    if (role !== 'admin') {
+                        if (f.acl && f.acl.write) canWrite = f.acl.write.includes(role);
+                        else canWrite = role === 'vendor' ? sec.vendorEditable : false;
+                    }
+
+                    const attr = canWrite ? '' : 'disabled';
+                    const lockBadge = canWrite ? '' : '<span style="font-size:0.7rem; color:#ef4444; margin-left:0.5rem;"><i class="fas fa-lock"></i> Read Only</span>';
+
+                    if (f.type === 'select' && f.options) { h += `<div class="form-group"><label class="form-label${f.required ? ' required' : ''}">${escapeHtml(f.label)} ${lockBadge}</label><select class="form-control" data-section="${s}" data-field="${f.name}" ${attr}>${f.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}</select>${f.helpText ? `<div class="help-text">${escapeHtml(f.helpText)}</div>` : ''}</div>` }
+                    else { h += `<div class="form-group"><label class="form-label${f.required ? ' required' : ''}">${escapeHtml(f.label)} ${lockBadge}</label><input type="${f.type === 'number' ? 'number' : 'text'}" class="form-control" data-section="${s}" data-field="${f.name}" value="${escapeHtml(val)}" data-validate='${JSON.stringify(f.validation || {})}' ${attr}>${f.helpText ? `<div class="help-text">${escapeHtml(f.helpText)}</div>` : ''}<div class="invalid-feedback"></div></div>` }
+                }
+                h += `</div>`;
+            }
+            document.getElementById('adminContent').innerHTML = h + `<button class="btn btn-primary" style="margin-top:1rem" onclick="adminSaveBizData('${id}')" ${role !== 'admin' ? 'disabled' : ''}>Save All Data</button> <button class="btn btn-outline" style="margin-top:1rem" onclick="adminNav('businesses')">Back</button>`;
+        }
+        function adminSaveBizData(id) {
+            const biz = STORE.businesses.find(b => b.id === id); if (!biz) return; if (!biz.customData) biz.customData = {};
+            getSectionsForType(biz.type).forEach(s => { if (!biz.customData[s]) biz.customData[s] = {}; getFieldsForSection(biz.type, s).forEach(f => { const inp = document.querySelector(`[data-section="${s}"][data-field="${f.name}"]`); if (inp) biz.customData[s][f.name] = inp.value }) });
+            saveStore(); addActivity(`Admin saved data for: ${biz.name}`); showToast('Data saved', 'success'); adminNav('businesses');
+        }
+
+        function renderAdminAudit(c) { c.innerHTML = `<div class="card-header"><h3><i class="fas fa-history"></i> Audit Log</h3><button class="btn btn-sm btn-outline" onclick="STORE.auditLog=[];saveStore();adminNav('audit')">Clear</button></div>${STORE.auditLog.length === 0 ? '<p>No audit entries</p>' : STORE.auditLog.slice(0, 30).map(a => `<div class="audit-row"><span class="audit-time">${new Date(a.ts).toLocaleString()}</span><span class="audit-user">${escapeHtml(a.user)}</span><span>${escapeHtml(a.action)}: ${escapeHtml(a.details || '')}</span></div>`).join('')}` }
+
+        // ================================================================
+        // MODULE 17B: DATA MANAGER (Backup/Restore/Excel Export/Import)
+        // ================================================================
+        function renderDataManager(c) {
+            const storeSize = new Blob([JSON.stringify(STORE)]).size;
+            const lastBackup = STORE._lastBackup || 'Never';
+            c.innerHTML = `
+        <div class="card-header"><h3><i class="fas fa-database"></i> Data Manager</h3></div>
+        <div class="notification-banner"><i class="fas fa-info-circle"></i> Manage backups, exports, and data imports. All exports open in Excel.</div>
+        <div class="stats" style="margin-bottom:1.5rem">
+            <div class="stat"><div class="stat-value">${(storeSize / 1024).toFixed(1)}KB</div><div class="stat-label">Data Size</div></div>
+            <div class="stat"><div class="stat-value">${STORE.businesses.length}</div><div class="stat-label">Businesses</div></div>
+            <div class="stat"><div class="stat-value">${STORE.vendors.length}</div><div class="stat-label">Vendors</div></div>
+            <div class="stat"><div class="stat-value">${Object.keys(STORE.searchPolicies).length}</div><div class="stat-label">Policies</div></div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card" style="border-left:4px solid #D4AF37">
+                <h4><i class="fas fa-download"></i> Full Backup (JSON)</h4>
+                <p style="font-size:.85rem;color:#6b7280">Download the entire platform data as JSON — includes ALL definitions, businesses, vendors, policies, forms, cards, templates, and settings.</p>
+                <p style="font-size:.75rem;color:#9ca3af">Last backup: ${lastBackup}</p>
+                <button class="btn btn-primary" onclick="fullBackup()"><i class="fas fa-download"></i> Download Full Backup</button>
+            </div>
+            <div class="card" style="border-left:4px solid #10b981">
+                <h4><i class="fas fa-upload"></i> Restore from Backup (JSON)</h4>
+                <p style="font-size:.85rem;color:#6b7280">Upload a previously downloaded JSON backup to restore ALL data. <strong>This will overwrite current data.</strong></p>
+                <button class="btn btn-success" onclick="restoreBackup()"><i class="fas fa-upload"></i> Upload & Restore</button>
+            </div>
+        </div>
+
+        <h4 style="margin:1.5rem 0 .75rem"><i class="fas fa-file-excel" style="color:#10b981"></i> Export to Excel (CSV)</h4>
+        <div class="grid-3">
+            <div class="card"><h4><i class="fas fa-building"></i> Businesses</h4><p style="font-size:.8rem;color:#6b7280">All businesses with type, tier, status, views, and custom data fields</p><button class="btn btn-sm btn-outline" onclick="exportExcelBusinesses()"><i class="fas fa-file-csv"></i> Export .CSV</button></div>
+            <div class="card"><h4><i class="fas fa-users"></i> Vendors / Users</h4><p style="font-size:.8rem;color:#6b7280">All vendor accounts with roles, tiers, and status</p><button class="btn btn-sm btn-outline" onclick="exportExcelVendors()"><i class="fas fa-file-csv"></i> Export .CSV</button></div>
+            <div class="card"><h4><i class="fas fa-shield-alt"></i> Search Policies</h4><p style="font-size:.8rem;color:#6b7280">All role-based field visibility policies</p><button class="btn btn-sm btn-outline" onclick="exportExcelPolicies()"><i class="fas fa-file-csv"></i> Export .CSV</button></div>
+            <div class="card"><h4><i class="fas fa-sitemap"></i> Definitions</h4><p style="font-size:.8rem;color:#6b7280">Business types, sections, subscription tiers, expressions</p><button class="btn btn-sm btn-outline" onclick="exportExcelDefinitions()"><i class="fas fa-file-csv"></i> Export .CSV</button></div>
+            <div class="card"><h4><i class="fas fa-wpforms"></i> Form Templates</h4><p style="font-size:.8rem;color:#6b7280">All form field definitions by business type and section</p><button class="btn btn-sm btn-outline" onclick="exportExcelFormTemplates()"><i class="fas fa-file-csv"></i> Export .CSV</button></div>
+            <div class="card"><h4><i class="fas fa-cog"></i> All Settings</h4><p style="font-size:.8rem;color:#6b7280">Subscription tiers, card templates, expressions, policies combined</p><button class="btn btn-sm btn-outline" onclick="exportExcelSettings()"><i class="fas fa-file-csv"></i> Export .CSV</button></div>
+        </div>
+
+        <h4 style="margin:1.5rem 0 .75rem"><i class="fas fa-file-import" style="color:#3b82f6"></i> Import / Feed Data</h4>
+        <div class="grid-2">
+            <div class="card" style="border-left:4px solid #3b82f6">
+                <h4><i class="fas fa-cogs"></i> Import Definitions (JSON)</h4>
+                <p style="font-size:.85rem;color:#6b7280">Feed business types, sections, expressions, and policies from a JSON file. Existing data is <strong>merged</strong> (not replaced).</p>
+                <button class="btn btn-outline" onclick="importDefinitions()"><i class="fas fa-file-import"></i> Import Definitions JSON</button>
+            </div>
+            <div class="card" style="border-left:4px solid #f59e0b">
+                <h4><i class="fas fa-file-csv"></i> Import Businesses from CSV</h4>
+                <p style="font-size:.85rem;color:#6b7280">Bulk-add businesses from a CSV file. Columns: name, type, tier, status, phone, email, address</p>
+                <button class="btn btn-outline" onclick="importBusinessesCSV()"><i class="fas fa-file-upload"></i> Import CSV</button>
+            </div>
+        </div>
+
+        <div style="margin-top:1.5rem;padding:1rem;background:#fee2e2;border-radius:.75rem">
+            <h4 style="color:#dc2626"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h4>
+            <p style="font-size:.85rem;color:#6b7280">Reset all data to factory defaults. This cannot be undone.</p>
+            <button class="btn btn-danger" onclick="resetAllData()"><i class="fas fa-trash"></i> Reset All Data</button>
+        </div>`;
+        }
+
+        // --- CSV Helper ---
+        function downloadCSV(filename, headers, rows) {
+            const BOM = '\uFEFF';
+            const escape = v => { const s = String(v == null ? '' : v); return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s };
+            const csv = BOM + headers.map(escape).join(',') + ('\n') + rows.map(r => r.map(escape).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+            addAudit('export', `Exported ${filename}`);
+            showToast(`Exported ${filename}`, 'success');
+        }
+
+        // --- Full Backup/Restore ---
+        function fullBackup() {
+            STORE._lastBackup = new Date().toISOString();
+            saveStore();
+            const data = JSON.stringify(STORE, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `siwa-full-backup-${Date.now()}.json`; a.click();
+            URL.revokeObjectURL(url);
+            addAudit('backup', 'Full backup downloaded');
+            showToast('Full backup downloaded!', 'success');
+            adminNav('datamanager');
+        }
+        function restoreBackup() {
+            const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
+            inp.onchange = e => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (!data.businessTypes && !data.vendors && !data.businesses) { showToast('Invalid backup file — missing required data', 'error'); return }
+                        if (!confirm('This will REPLACE all current data with the backup. Continue?')) return;
+                        Object.assign(STORE, data);
+                        saveStore();
+                        addAudit('restore', 'Data restored from backup');
+                        addActivity('Data restored from backup file');
+                        showToast('Data restored! Refreshing...', 'success');
+                        setTimeout(() => location.reload(), 500);
+                    } catch (e) { showToast('Invalid JSON file: ' + e.message, 'error') }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            inp.click();
+        }
+
+        // --- Excel Exports ---
+        function exportExcelBusinesses() {
+            const headers = ['ID', 'Name', 'Type', 'Type Name', 'Tier', 'Status', 'Views', 'Published', 'Phone', 'Email', 'Address', 'Created'];
+            const rows = STORE.businesses.map(b => {
+                const typeName = STORE.businessTypes.find(t => t.id === b.type)?.name || b.type;
+                const allData = b.customData ? Object.values(b.customData).reduce((a, s) => ({ ...a, ...s }), {}) : {};
+                return [b.id, b.name, b.type, typeName, b.subscriptionTier || 'free', b.status || 'active', b.views || 0, b.published ? 'Yes' : 'No', allData.phone || b.contact?.phone || '', allData.email || b.contact?.email || '', allData.address || '', b.createdAt || ''];
+            });
+            downloadCSV('siwa-businesses.csv', headers, rows);
+        }
+        function exportExcelVendors() {
+            const headers = ['ID', 'Email', 'Role', 'Role Name', 'Tier', 'Active', 'Business ID', 'Business Name'];
+            const rows = STORE.vendors.map(v => {
+                const biz = STORE.businesses.find(b => b.id === v.businessId);
+                return [v.id, v.email, v.role, ROLES[v.role]?.name || v.role, v.subscriptionTier || 'free', v.active ? 'Yes' : 'No', v.businessId || '', biz?.name || ''];
+            });
+            downloadCSV('siwa-vendors.csv', headers, rows);
+        }
+        function exportExcelPolicies() {
+            const headers = ['ID', 'Name', 'Description', 'Role', 'Allowed Fields'];
+            const rows = Object.values(STORE.searchPolicies).map(p => [p.id, p.name, p.description || '', p.role, p.allowedFields.join('; ')]);
+            downloadCSV('siwa-policies.csv', headers, rows);
+        }
+        function exportExcelDefinitions() {
+            const headers = ['Category', 'ID', 'Name', 'Icon', 'Color', 'Description', 'Is Parent', 'Parent ID', 'Sections', 'Own Sections', 'Active'];
+            const rows = STORE.businessTypes.map(b => ['BusinessType', b.id, b.name, b.icon, b.iconColor || '', b.description || '', b.isParent ? 'Yes' : 'No', b.parentId || '', (b.sections || []).join('; '), (b.ownSections || []).join('; '), b.active ? 'Yes' : 'No']);
+            Object.entries(STORE.sections).forEach(([id, s]) => rows.push(['Section', id, s.name, 'fas ' + s.icon, '', s.required ? 'Required' : 'Optional', '', '', '', '', s.vendorEditable ? 'Vendor Editable' : 'Admin Only']));
+            Object.entries(STORE.customExpressions).forEach(([id, e]) => rows.push(['Expression', id, e.name, e.type, '', '', (e.options || []).join('; '), '', '', '', e.searchable ? 'Searchable' : '']));
+            Object.entries(STORE.subscriptionTiers).forEach(([id, t]) => rows.push(['Tier', id, t.name, '', '', '', 'MaxBiz:' + t.features.maxBusinesses + ' Minisite:' + t.features.canPublishMinisite + ' MaxImg:' + t.features.maxImages, '', '', '', '']));
+            downloadCSV('siwa-definitions.csv', headers, rows);
+        }
+        function exportExcelFormTemplates() {
+            const headers = ['Business Type', 'Section', 'Field ID', 'Field Name', 'Label', 'Type', 'Required', 'Searchable', 'Options', 'Min Length', 'Max Length', 'Help Text', 'Show Public'];
+            const rows = [];
+            Object.entries(STORE.formTemplates).forEach(([bizId, sections]) => {
+                Object.entries(sections).forEach(([secId, fields]) => {
+                    fields.forEach(f => rows.push([bizId, secId, f.id, f.name, f.label, f.type, f.required ? 'Yes' : 'No', f.searchable ? 'Yes' : 'No', (f.options || []).join('; '), f.validation?.minLength || '', f.validation?.maxLength || '', f.helpText || '', f.permissions?.showOnPublic !== false ? 'Yes' : 'No']));
+                });
+            });
+            downloadCSV('siwa-form-templates.csv', headers, rows);
+        }
+        function exportExcelSettings() {
+            const headers = ['Setting Type', 'Key', 'Name', 'Value', 'Details'];
+            const rows = [];
+            Object.entries(STORE.subscriptionTiers).forEach(([id, t]) => rows.push(['Subscription Tier', id, t.name, JSON.stringify(t.features), '']));
+            Object.entries(STORE.cardTemplates).forEach(([id, c]) => rows.push(['Card Template', id, `Layout: ${c.layout}`, (c.fields || []).join('; '), c.policyId || '']));
+            Object.entries(STORE.searchPolicies).forEach(([id, p]) => rows.push(['Search Policy', id, p.name, p.allowedFields.join('; '), p.role]));
+            Object.entries(STORE.customExpressions).forEach(([id, e]) => rows.push(['Expression', id, e.name, (e.options || []).join('; '), e.type]));
+            rows.push(['Platform', 'version', 'SIWA OASIS', 'v4.0', 'Master Build']);
+            rows.push(['Platform', 'data_size', (new Blob([JSON.stringify(STORE)]).size / 1024).toFixed(1) + ' KB', '', '']);
+            rows.push(['Platform', 'total_businesses', '' + STORE.businesses.length, '', '']);
+            rows.push(['Platform', 'total_vendors', '' + STORE.vendors.length, '', '']);
+            downloadCSV('siwa-settings.csv', headers, rows);
+        }
+
+        // --- Import Definitions ---
+        function importDefinitions() {
+            const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
+            inp.onchange = e => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        let merged = 0;
+                        // Merge business types
+                        if (data.businessTypes || data.definitions?.businessCategories) {
+                            const src = data.businessTypes || data.definitions?.businessCategories || [];
+                            src.forEach(bt => {
+                                if (!STORE.businessTypes.find(b => b.id === bt.id)) { STORE.businessTypes.push({ id: bt.id, name: bt.name, icon: bt.icon || 'fas fa-building', iconColor: bt.iconColor || bt.color || '#8b5cf6', description: bt.description || '', isParent: !bt.parentId, parentId: bt.parentId || null, sections: bt.sections || ['basic', 'location', 'contact'], ownSections: bt.ownSections || [], active: bt.active !== false, order: bt.order || STORE.businessTypes.length + 1 }); merged++ }
+                            });
+                        }
+                        // Merge sections
+                        if (data.sections || data.definitions?.sections) {
+                            const src = data.sections || data.definitions?.sections || {};
+                            Object.entries(src).forEach(([id, s]) => { if (!STORE.sections[id]) { STORE.sections[id] = { id, ...s }; merged++ } });
+                        }
+                        // Merge expressions
+                        if (data.customExpressions || data.definitions?.customExpressions) {
+                            const src = data.customExpressions || data.definitions?.customExpressions || {};
+                            Object.entries(src).forEach(([id, e]) => { if (!STORE.customExpressions[id]) { STORE.customExpressions[id] = { id, ...e }; merged++ } });
+                        }
+                        // Merge policies
+                        if (data.searchPolicies) {
+                            Object.entries(data.searchPolicies).forEach(([id, p]) => { if (!STORE.searchPolicies[id]) { STORE.searchPolicies[id] = p; merged++ } });
+                        }
+                        // Merge subscription tiers
+                        if (data.subscriptionTiers) {
+                            Object.entries(data.subscriptionTiers).forEach(([id, t]) => { if (!STORE.subscriptionTiers[id]) { STORE.subscriptionTiers[id] = t; merged++ } });
+                        }
+                        // Merge form templates
+                        if (data.formTemplates) {
+                            Object.entries(data.formTemplates).forEach(([bizId, secs]) => {
+                                if (!STORE.formTemplates[bizId]) STORE.formTemplates[bizId] = {};
+                                Object.entries(secs).forEach(([secId, fields]) => { if (!STORE.formTemplates[bizId][secId]) { STORE.formTemplates[bizId][secId] = fields; merged++ } });
+                            });
+                        }
+                        saveStore();
+                        addAudit('import', `Imported definitions: ${merged} items merged`);
+                        addActivity(`Definitions imported: ${merged} new items`);
+                        showToast(`Imported! ${merged} new items merged.`, 'success');
+                        adminNav('datamanager');
+                    } catch (e) { showToast('Invalid JSON: ' + e.message, 'error') }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            inp.click();
+        }
+        function importBusinessesCSV() {
+            const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.csv';
+            inp.onchange = e => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const lines = ev.target.result.split('\n').filter(l => l.trim());
+                        if (lines.length < 2) { showToast('CSV must have header row + data', 'error'); return }
+                        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+                        let added = 0;
+                        for (let i = 1; i < lines.length; i++) {
+                            const vals = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                            const row = {};
+                            headers.forEach((h, j) => row[h] = vals[j] || '');
+                            if (!row.name) continue;
+                            const id = 'biz_' + Date.now() + '_' + i;
+                            STORE.businesses.push({ id, name: row.name, type: row.type || 'hotel', published: true, status: row.status || 'active', subscriptionTier: row.tier || 'free', vendorId: null, views: 0, customData: { contact: { phone: row.phone || '', email: row.email || '' }, location: { address: row.address || '' } } });
+                            added++;
+                        }
+                        saveStore();
+                        addAudit('import', `Imported ${added} businesses from CSV`);
+                        addActivity(`${added} businesses imported from CSV`);
+                        showToast(`Imported ${added} businesses!`, 'success');
+                        adminNav('datamanager');
+                    } catch (e) { showToast('Error reading CSV: ' + e.message, 'error') }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            inp.click();
+        }
+
+        // ================================================================
+        // MODULE 18: SALESMAN DASHBOARD
+        // ================================================================
+        function renderSalesmanDashboard() {
+            document.getElementById('app').innerHTML = `<div class="container"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><h1>Salesman Dashboard</h1><div><span class="badge badge-info">SALESMAN</span> <button class="btn btn-outline btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></div></div>
+        <div class="notification-banner"><i class="fas fa-lightbulb"></i> Create free businesses for clients or submit upgrade requests.</div>
+        <div class="card"><div class="card-header"><h3>Actions</h3><div><button class="btn btn-primary" onclick="salesmanNewBiz()"><i class="fas fa-plus"></i> New Business</button> <button class="btn btn-outline" onclick="salesmanUpgrade()"><i class="fas fa-arrow-up"></i> Request Upgrade</button></div></div></div>
+        <div class="card"><div class="card-header"><h3>My Clients</h3></div><div class="grid-3">${STORE.businesses.map(b => `<div class="card"><h4>${escapeHtml(b.name)}</h4><p>${STORE.businessTypes.find(t => t.id === b.type)?.name || b.type}</p><p>Tier: ${b.subscriptionTier || 'free'}</p><button class="btn btn-xs btn-outline" onclick="viewBizDetail('${b.id}')">View</button></div>`).join('')}</div></div></div>`;
+        }
+        function salesmanNewBiz() {
+            const opts = getAllBusinessOptions();
+            showModal('Create New Business', `
+            <div class="form-group"><label class="form-label required">Business Name</label><input type="text" id="snName" class="form-control"></div>
+            <div class="form-group"><label class="form-label required">Business Type</label><select id="snType" class="form-control">${opts.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}</select></div>
+            <div class="form-group"><label class="form-label">Owner Email (optional)</label><input type="email" id="snEmail" class="form-control"><div class="help-text">Leave empty for unclaimed business</div></div>
+        `, () => {
+                const name = document.getElementById('snName').value, type = document.getElementById('snType').value, email = document.getElementById('snEmail').value;
+                if (!name) { showToast('Name required', 'error'); return }
+                const id = 'biz_' + Date.now();
+                STORE.businesses.push({ id, name, type, published: true, status: 'active', subscriptionTier: 'free', vendorId: null, views: 0, customData: {} });
+                if (email) { const existing = STORE.vendors.find(v => v.email === email); if (!existing) STORE.vendors.push({ id: 'v_' + Date.now(), email, password: btoa('welcome123'), role: 'vendor', active: true, businessId: id, subscriptionTier: 'free' }) }
+                saveStore(); addActivity(`Salesman created: ${name}`); closeModal(); renderSalesmanDashboard(); showToast('Created', 'success');
+            });
+        }
+        function salesmanUpgrade() {
+            const free = STORE.businesses.filter(b => b.subscriptionTier === 'free');
+            if (!free.length) { showToast('No free businesses', 'warning'); return }
+            showModal('Request Upgrade', `<div class="form-group"><label>Business</label><select id="suBiz" class="form-control">${free.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')}</select></div><div class="form-group"><label>Tier</label><select id="suTier" class="form-control">${Object.keys(STORE.subscriptionTiers).filter(t => t !== 'free').map(t => `<option value="${t}">${STORE.subscriptionTiers[t].name}</option>`).join('')}</select></div><div class="form-group"><label>Features (comma)</label><input type="text" id="suFeat" class="form-control" placeholder="reviews,map"></div>`, () => {
+                const bizId = document.getElementById('suBiz').value, tier = document.getElementById('suTier').value;
+                const biz = STORE.businesses.find(b => b.id === bizId);
+                STORE.clientRequirements.push({ id: 'req_' + Date.now(), businessId: bizId, clientName: biz?.name, requestedTier: tier, requestedFeatures: document.getElementById('suFeat').value.split(',').reduce((a, f) => { if (f.trim()) a[f.trim()] = true; return a }, {}), status: 'pending', createdAt: new Date().toISOString() });
+                saveStore(); addActivity(`Upgrade request: ${biz?.name}`); closeModal(); showToast('Request sent', 'success');
+            });
+        }
+
+        // ================================================================
+        // MODULE 19: VENDOR DASHBOARD
+        // ================================================================
+        function renderVendorDashboard() {
+            const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz) { logout(); return }
+            const tier = STORE.subscriptionTiers[biz.subscriptionTier || 'free'];
+            document.getElementById('app').innerHTML = `<div class="container"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><h1>${escapeHtml(biz.name)}</h1><div><span class="subscription-badge">${biz.subscriptionTier || 'free'}</span> <button class="btn btn-outline btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div></div>
+        <div class="notification-banner"><i class="fas fa-info-circle"></i> Tier: ${tier?.name || 'Free'}. ${!tier?.features?.canPublishMinisite ? '<a href="#" onclick="vendorReqUpgrade()">Upgrade for minisite</a>' : ''}</div>
+        <div class="vendor-wrapper"><div class="vendor-sidebar"><div class="sidebar-title">My Business</div><div class="nav-item" onclick="vendorTab('profile')"><i class="fas fa-building"></i> Profile</div><div class="nav-item" onclick="vendorTab('sections')"><i class="fas fa-layer-group"></i> Sections</div>${tier?.features?.canPublishMinisite ? '<div class="nav-item" onclick="vendorTab(\'minisite\')"><i class="fas fa-globe"></i> Minisite</div>' : '<div class="nav-item" style="opacity:.5"><i class="fas fa-lock"></i> Minisite (Upgrade)</div>'}<div class="nav-item" onclick="vendorReqUpgrade()"><i class="fas fa-arrow-up"></i> Upgrade</div></div>
+        <div id="vendorContent" class="card">Select an option</div></div></div>`;
+            vendorTab('profile');
+        }
+        function vendorTab(tab) {
+            const biz = STORE.businesses.find(b => b.id === currentUser.businessId); const c = document.getElementById('vendorContent');
+            if (tab === 'profile') {
+                c.innerHTML = `<h3>Business Profile</h3><div class="form-group"><label class="form-label">Name</label><input type="text" id="vpName" class="form-control" value="${escapeHtml(biz.name)}"></div><div class="form-group"><label class="form-label">Phone</label><input type="tel" id="vpPhone" class="form-control" value="${escapeHtml(biz.contact?.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input type="email" id="vpEmail" class="form-control" value="${escapeHtml(biz.contact?.email || '')}"></div><button class="btn btn-primary" onclick="saveVendorProfile()">Save</button>`;
+            } else if (tab === 'sections') {
+                const secs = getSectionsForType(biz.type); let h = `<h3>Business Information</h3><div class="help-text">Complete your business details.</div>`;
+                for (const s of secs) {
+                    const sec = STORE.sections[s]; if (!sec || !sec.vendorEditable) continue; const fields = getFieldsForSection(biz.type, s); if (!fields.length) continue;
+
+                    const visibleFields = fields.filter(f => {
+                        if (!f.acl || !f.acl.read) return f.permissions?.showOnPublic !== false;
+                        return f.acl.read.includes('vendor');
+                    });
+                    if (!visibleFields.length) continue;
+
+                    h += `<div style="margin-top:1.5rem;border-top:1px solid #e5e7eb;padding-top:1rem"><h4><i class="fas ${sec.icon}"></i> ${sec.name}</h4>`;
+                    for (const f of visibleFields) {
+                        const val = biz.customData?.[s]?.[f.name] || '';
+
+                        let canWrite = true;
+                        if (f.acl && f.acl.write) canWrite = f.acl.write.includes('vendor');
+                        else canWrite = sec.vendorEditable;
+
+                        const attr = canWrite ? '' : 'disabled';
+                        const lockBadge = canWrite ? '' : '<span style="font-size:0.7rem; color:#ef4444; margin-left:0.5rem;"><i class="fas fa-lock"></i> Read Only</span>';
+
+                        if (f.type === 'select' && f.options) { h += `<div class="form-group"><label class="form-label${f.required ? ' required' : ''}">${escapeHtml(f.label)} ${lockBadge}</label><select class="form-control" data-section="${s}" data-field="${f.name}" ${attr}>${f.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}</select>${f.helpText ? `<div class="help-text">${escapeHtml(f.helpText)}</div>` : ''}</div>` }
+                        else { h += `<div class="form-group"><label class="form-label${f.required ? ' required' : ''}">${escapeHtml(f.label)} ${lockBadge}</label><input type="${f.type === 'number' ? 'number' : 'text'}" class="form-control" data-section="${s}" data-field="${f.name}" value="${escapeHtml(val)}" data-validate='${JSON.stringify(f.validation || {})}' ${attr}>${f.helpText ? `<div class="help-text">${escapeHtml(f.helpText)}</div>` : ''}<div class="invalid-feedback"></div></div>` }
+                    }
+                    h += `</div>`;
+                }
+                c.innerHTML = h + `<button class="btn btn-primary" onclick="saveVendorSections()">Save All</button>`;
+            } else if (tab === 'minisite') {
+                const biz = STORE.businesses.find(b => b.id === currentUser.businessId);
+                const layout = biz.minisiteLayout || [];
+                c.innerHTML = `<h3>Minisite Builder</h3><p>Customize your public page.</p>
+                <div class="builder-layout">
+                    <div class="field-library"><h4>Components</h4>${Object.entries(COMPONENTS.body).map(([k, v]) => `<div class="field-type" draggable="true" data-comp="${k}" ondragstart="vdStart(event)" ondragend="vdEnd(event)"><i class="fas ${v.icon}"></i> ${v.name}</div>`).join('')}</div>
+                    <div class="dropzone" id="vendorMiniArea" ondragover="vdOver(event)" ondragleave="vdLeave(event)" ondrop="vdDrop(event)">
+                        ${layout.length ? layout.map((ci, i) => vendorRenderMinisiteComp(ci, i)).join('') : '<p>Drag components here</p>'}
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="margin-top:1rem" onclick="vendorSaveMinisite()">Save Minisite</button>`;
+            }
+        }
+        function vendorRenderMinisiteComp(ci, index) { return `<div class="builder-field" style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:.75rem;margin-bottom:.5rem;border-radius:.5rem;border:1px solid #e5e7eb"><span><i class="fas ${ci.icon || 'fa-cube'}"></i> ${escapeHtml(ci.name)}</span><div>${['carousel','blog','gallery'].includes(ci.type) ? `<button class="btn btn-xs btn-primary" onclick="vendorEditComp(${index})">Configure</button> ` : ''}<button class="btn btn-xs btn-outline" onclick="vdMove(${index}, -1)">↑</button> <button class="btn btn-xs btn-outline" onclick="vdMove(${index}, 1)">↓</button> <button class="btn btn-xs btn-danger" onclick="vdRemove(${index})">×</button></div></div>`; }
+        function vendorSaveMinisite() { saveStore(); addActivity(`Vendor saved minisite`); showToast('Minisite Saved!', 'success') }
+        function vdMove(index, dir) { const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz || !biz.minisiteLayout) return; const arr = biz.minisiteLayout; if(dir === -1 && index > 0) [arr[index-1], arr[index]] = [arr[index], arr[index-1]]; if(dir === 1 && index < arr.length-1) [arr[index], arr[index+1]] = [arr[index+1], arr[index]]; vendorTab('minisite'); }
+        function vdRemove(index) { const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz || !biz.minisiteLayout) return; biz.minisiteLayout.splice(index, 1); vendorTab('minisite'); showToast('Removed', 'success') }
+        function _addCarouselImg() { document.getElementById('compDataList').insertAdjacentHTML('beforeend', `<div style="display:flex;gap:.5rem;margin-bottom:.5rem"><input type="url" class="form-control comp-img-url" placeholder="Image URL"><button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button></div>`) }
+        function _addBlogPost() { document.getElementById('compDataList').insertAdjacentHTML('beforeend', `<div style="border:1px solid #e5e7eb;padding:.5rem;margin-bottom:.5rem;border-radius:.5rem"><input type="text" class="form-control blog-title" placeholder="Post Title" style="margin-bottom:.5rem"><textarea class="form-control blog-body" placeholder="Post Content" rows="2"></textarea><button class="btn btn-sm btn-danger" style="margin-top:.5rem" onclick="this.parentElement.remove()">Remove Post</button></div>`) }
+
+        function vendorEditComp(index) {
+            const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz || !biz.minisiteLayout) return;
+            const comp = biz.minisiteLayout[index];
+            if(comp.type === 'carousel' || comp.type === 'gallery') {
+                showModal(`Configure ${comp.name}`, `<div class="notification-banner">Enter direct image URLs for the carousel.</div><div id="compDataList">${(comp.data || []).map((img) => `<div style="display:flex;gap:.5rem;margin-bottom:.5rem"><input type="url" class="form-control comp-img-url" value="${escapeHtml(img)}" placeholder="Image URL"><button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button></div>`).join('')}</div><button class="btn btn-sm btn-outline" onclick="_addCarouselImg()">+ Add Image URL</button>`, () => { comp.data = Array.from(document.querySelectorAll('.comp-img-url')).map(i => i.value).filter(v => v.trim() !== ''); saveStore(); vendorTab('minisite'); closeModal(); showToast('Carousel Updated', 'success'); });
+            } else if (comp.type === 'blog') {
+                showModal(`Configure ${comp.name}`, `<div class="notification-banner">Add blog posts or news items.</div><div id="compDataList">${(comp.data || []).map((b) => `<div style="border:1px solid #e5e7eb;padding:.5rem;margin-bottom:.5rem;border-radius:.5rem"><input type="text" class="form-control blog-title" value="${escapeHtml(b.title || '')}" placeholder="Post Title" style="margin-bottom:.5rem"><textarea class="form-control blog-body" placeholder="Post Content" rows="2">${escapeHtml(b.body || '')}</textarea><button class="btn btn-sm btn-danger" style="margin-top:.5rem" onclick="this.parentElement.remove()">Remove Post</button></div>`).join('')}</div><button class="btn btn-sm btn-outline" onclick="_addBlogPost()">+ Add Blog Post</button>`, () => { const posts = []; const items = document.getElementById('compDataList').children; for(let i=0; i<items.length; i++) { const t = items[i].querySelector('.blog-title').value; const b = items[i].querySelector('.blog-body').value; if(t || b) posts.push({title: t, body: b}); } comp.data = posts; saveStore(); vendorTab('minisite'); closeModal(); showToast('Blog Updated', 'success'); });
+            }
+        }
+        function saveVendorProfile() { const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz) return; biz.name = document.getElementById('vpName').value || biz.name; if (!biz.contact) biz.contact = {}; biz.contact.phone = document.getElementById('vpPhone').value; biz.contact.email = document.getElementById('vpEmail').value; saveStore(); addActivity(`Vendor updated: ${biz.name}`); showToast('Saved', 'success') }
+        function saveVendorSections() {
+            const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz) return; if (!biz.customData) biz.customData = {};
+            let hasErrors = false;
+            document.querySelectorAll('[data-validate]').forEach(inp => {
+                const rules = JSON.parse(inp.dataset.validate || '{}'); const errs = Validator.validateField(inp, rules, inp.previousElementSibling?.textContent || 'Field');
+                if (errs.length) hasErrors = true;
+            });
+            if (hasErrors) { showToast('Fix validation errors first', 'error'); return }
+            getSectionsForType(biz.type).forEach(s => { if (!biz.customData[s]) biz.customData[s] = {}; getFieldsForSection(biz.type, s).forEach(f => { const inp = document.querySelector(`[data-section="${s}"][data-field="${f.name}"]`); if (inp) biz.customData[s][f.name] = inp.value }) });
+            saveStore(); addActivity(`Vendor data saved: ${biz.name}`); showToast('All sections saved', 'success');
+        }
+        function vendorReqUpgrade() { const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz) return; showModal('Request Upgrade', `<div class="form-group"><label>Tier</label><select id="vuTier" class="form-control">${Object.keys(STORE.subscriptionTiers).filter(t => t !== biz.subscriptionTier).map(t => `<option value="${t}">${STORE.subscriptionTiers[t].name}</option>`).join('')}</select></div><div class="form-group"><label>Features (comma)</label><input type="text" id="vuFeat" class="form-control" placeholder="reviews,map"></div>`, () => { STORE.clientRequirements.push({ id: 'req_' + Date.now(), businessId: biz.id, clientName: biz.name, requestedTier: document.getElementById('vuTier').value, requestedFeatures: document.getElementById('vuFeat').value.split(',').reduce((a, f) => { if (f.trim()) a[f.trim()] = true; return a }, {}), status: 'pending', createdAt: new Date().toISOString() }); saveStore(); closeModal(); showToast('Request sent', 'success') }) }
+        let vdComp = null;
+        function vdStart(e) { vdComp = e.target.closest('[data-comp]')?.dataset.comp }
+        function vdEnd(e) { vdComp = null }
+        function vdOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over') }
+        function vdLeave(e) { e.currentTarget.classList.remove('drag-over') }
+        function vdDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (!vdComp) return; const ci = COMPONENTS.body[vdComp]; if (!ci) return; const biz = STORE.businesses.find(b => b.id === currentUser.businessId); if (!biz) return; if (!biz.minisiteLayout) biz.minisiteLayout = []; biz.minisiteLayout.push({ type: vdComp, name: ci.name, icon: ci.icon, data: [] }); vendorTab('minisite'); showToast('Added ' + ci.name, 'success') }
+
+        // ================================================================
+        // MODULE 20: RESET & INITIALIZATION
+        // ================================================================
+        function resetAllData() { if (confirm('Reset ALL data?')) { localStorage.removeItem('siwa_master_v4'); initDefaultData(); showToast('Data reset! Refreshing...', 'success'); setTimeout(() => location.reload(), 500) } }
+
+        // Single clean initialization
+        loadStore();
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        renderApp();
+
+        // Expose functions to HTML onclick handlers
+        const globalFns = ['showLoginModal', 'logout', 'renderApp', 'pubDoSearch', 'pubFilterCat', 'viewBizDetail', 'claimBiz', 'adminNav', 'addBizType', 'editBizType', 'delBizType', 'addSection', 'editSection', 'delSection', 'onFormBizChange', 'onFormSecChange', 'fbDragStart', 'fbDragEnd', 'fbDragOver', 'fbDragLeave', 'fbDrop', 'showAddFieldModal', 'editField', 'dupField', 'delField', 'saveFormFields', 'exportForms', 'importForms', 'onCardBizChange', 'setCardLayout', 'saveCardConfig', 'resetCardConfig', 'renderAdminWebsite', 'setWebMode', 'wbDragStart', 'wbDragEnd', 'wbDragOver', 'wbDragLeave', 'wbDrop', 'moveComp', 'removeComp', 'saveWebsite', 'addPolicy', 'editPolicy', 'delPolicy', 'addTier', 'editTier', 'delTier', 'addExpr', 'editExpr', 'delExpr', 'approveUpgrade', 'rejectUpgrade', 'toggleVendor', 'changeBizTier', 'toggleBizStatus', 'adminEditBizData', 'adminSaveBizData', 'salesmanNewBiz', 'salesmanUpgrade', 'vendorTab', 'saveVendorProfile', 'saveVendorSections', 'vendorReqUpgrade', 'vdStart', 'vdEnd', 'vdOver', 'vdLeave', 'vdDrop', 'vendorSaveMinisite', 'vendorRenderMinisiteComp', 'vdMove', 'vdRemove', 'vendorEditComp', '_addCarouselImg', '_addBlogPost', 'resetAllData', 'fullBackup', 'restoreBackup', 'exportExcelBusinesses', 'exportExcelVendors', 'exportExcelPolicies', 'exportExcelDefinitions', 'exportExcelFormTemplates', 'exportExcelSettings', 'importDefinitions', 'importBusinessesCSV'];
+        globalFns.forEach(fn => { try { window[fn] = eval(fn) } catch (e) { } });
+    

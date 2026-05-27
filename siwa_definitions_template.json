@@ -1,0 +1,85 @@
+{
+  "businessTypes": [
+    {
+      "id": "hotel",
+      "name": "Accommodations",
+      "icon": "fas fa-bed",
+      "iconColor": "#8b5cf6",
+      "description": "Hotels, camps, and lodges.",
+      "isParent": false,
+      "sections": ["basic", "location", "contact", "star_rating"],
+      "ownSections": [],
+      "active": true
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurants & Dining",
+      "icon": "fas fa-utensils",
+      "iconColor": "#e67e22",
+      "description": "Dining and food services.",
+      "isParent": false,
+      "sections": ["basic", "location", "contact", "cuisine_type"],
+      "ownSections": [],
+      "active": true
+    },
+    {
+      "id": "tour",
+      "name": "Tour Operators",
+      "icon": "fas fa-map-marked-alt",
+      "iconColor": "#1abc9c",
+      "description": "Tours, safaris, and activities.",
+      "isParent": false,
+      "sections": ["basic", "contact"],
+      "ownSections": [],
+      "active": true
+    }
+  ],
+  "sections": {
+    "basic": { "name": "Basic Info", "icon": "fa-info-circle", "required": true, "vendorEditable": true, "showOnPublic": true },
+    "location": { "name": "Location", "icon": "fa-map-marker-alt", "required": true, "vendorEditable": true, "showOnPublic": true },
+    "contact": { "name": "Contact Data", "icon": "fa-address-book", "required": true, "vendorEditable": true, "showOnPublic": false },
+    "star_rating": { "name": "Star Rating", "icon": "fa-star", "required": false, "vendorEditable": false, "showOnPublic": true },
+    "cuisine_type": { "name": "Cuisine", "icon": "fa-utensils", "required": false, "vendorEditable": true, "showOnPublic": true }
+  },
+  "customExpressions": {
+    "construction_material": {
+      "name": "Construction Material",
+      "type": "select",
+      "options": ["Kershef (Salt Brick)", "Palm Wood", "Stone", "Modern"],
+      "searchable": true
+    },
+    "vibe": {
+      "name": "Vibe & Atmosphere",
+      "type": "select",
+      "options": ["Rustic", "Authentic", "Spiritual", "Luxury", "Eco-friendly"],
+      "searchable": true
+    }
+  },
+  "searchPolicies": {
+    "public_policy": {
+      "name": "Public View Policy",
+      "description": "Controls what public users can see",
+      "allowedFields": ["name", "description", "stars", "cuisine", "category", "price"],
+      "role": "public"
+    },
+    "vendor_policy": {
+      "name": "Vendor View Policy",
+      "description": "Controls what registered vendors can see",
+      "allowedFields": ["name", "description", "stars", "cuisine", "phone", "email", "address", "price", "category"],
+      "role": "vendor"
+    }
+  },
+  "subscriptionTiers": {
+    "free": { "name": "Free Tier", "features": {"maxBusinesses": 1, "canPublishMinisite": false, "maxImages": 5} },
+    "basic": { "name": "Basic Tier", "features": {"maxBusinesses": 3, "canPublishMinisite": true, "maxImages": 15} },
+    "premium": { "name": "Premium Tier", "features": {"maxBusinesses": 10, "canPublishMinisite": true, "maxImages": 50} }
+  },
+  "formTemplates": {
+    "hotel": {
+      "basic": [
+        { "id": "f_h1", "name": "name", "label": "Hotel Name", "type": "text", "required": true, "searchable": true, "validation": {"minLength": 3, "maxLength": 100}, "permissions": {"showOnPublic": true} },
+        { "id": "f_h2", "name": "description", "label": "Description", "type": "textarea", "required": true, "searchable": true, "validation": {"minLength": 10}, "permissions": {"showOnPublic": true} }
+      ]
+    }
+  }
+}
