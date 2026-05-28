@@ -2,22 +2,41 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// ── Component catalogue ──────────────────────────────────────────────────────
-const PALETTE = [
-  { zone: 'header', key: 'navigation',    name: 'Navigation Bar',           icon: '🧭', manager: null,                  color: '#6366f1' },
-  { zone: 'header', key: 'hero_carousel', name: 'Static Hero Carousel',     icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37' },
-  { zone: 'header', key: 'search_bar',   name: 'Search Bar (Compact)',      icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9' },
-  { zone: 'body',   key: 'search_bar',   name: 'Search Engine (Full Block)',icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9' },
-  { zone: 'body',   key: 'blog',         name: 'Master Blog / Articles',    icon: '📰', manager: '/jana/blog',           color: '#8b5cf6' },
-  { zone: 'body',   key: 'services',     name: 'Business Listings',         icon: '🏢', manager: '/jana/businesses',     color: '#10b981' },
-  { zone: 'body',   key: 'testimonials', name: 'Testimonials',              icon: '💬', manager: '/jana/data-manager',   color: '#f59e0b' },
-  { zone: 'body',   key: 'map',          name: 'Interactive Map',           icon: '🗺️', manager: null,                  color: '#14b8a6' },
-  { zone: 'body',   key: 'cta_banner',   name: 'Call-to-Action Banner',     icon: '📣', manager: null,                  color: '#ef4444' },
-  { zone: 'body',   key: 'featured_vibe',name: 'Featured Vibe Story',       icon: '🪄', manager: null,                  color: '#D4AF37' },
-  { zone: 'body',   key: 'features',     name: 'Feature Highlights',        icon: '⭐', manager: null,                  color: '#84cc16' },
-  { zone: 'footer', key: 'contact',      name: 'Contact Info',              icon: '📞', manager: null,                  color: '#64748b' },
-  { zone: 'footer', key: 'social',       name: 'Social Media Links',        icon: '🔗', manager: null,                  color: '#1d4ed8' },
-  { zone: 'footer', key: 'copyright',    name: 'Copyright Bar',             icon: '©️', manager: null,                  color: '#475569' },
+interface PaletteItem {
+  zone: string;
+  key: string;
+  name: string;
+  icon: string;
+  manager: string | null;
+  color: string;
+  desc: string;
+  isDynamic?: boolean;
+}
+
+// ── Component catalogue — SYNCED with DynamicHomepageRenderer ─────────────────
+const PALETTE: PaletteItem[] = [
+  // ── Header zone ──
+  { zone: 'header', key: 'hero_carousel',  name: 'Hero Carousel',           icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
+  { zone: 'header', key: 'search_bar',     name: 'Search Bar (Compact)',    icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Compact header search widget' },
+
+  // ── Body zone ──
+  { zone: 'body',   key: 'hero_carousel',        name: 'Hero Carousel',            icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
+  { zone: 'body',   key: 'services_hub',          name: 'Services Hub',             icon: '🏛️', manager: '/jana/businesses',     color: '#6366f1', desc: 'Directory of all services & categories' },
+  { zone: 'body',   key: 'experience_categories', name: 'Experience Categories',    icon: '🎭', manager: null,                  color: '#8b5cf6', desc: 'Interactive category cards' },
+  { zone: 'body',   key: 'search_bar',            name: 'Search Engine (Full)',     icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Full-width search block' },
+  { zone: 'body',   key: 'smart_journey_planner', name: 'Journey Planner',         icon: '🗓️', manager: null,                  color: '#14b8a6', desc: 'AI-powered trip planning tool' },
+  { zone: 'body',   key: 'ecosystem_map',         name: 'Interactive Map',         icon: '🗺️', manager: null,                  color: '#10b981', desc: 'Full ecosystem map of Siwa' },
+  { zone: 'body',   key: 'local_products',        name: 'Local Products',          icon: '🫒', manager: null,                  color: '#84cc16', desc: 'Showcase of artisan & local goods' },
+  { zone: 'body',   key: 'storytelling_section',  name: 'Storytelling',            icon: '📖', manager: null,                  color: '#f59e0b', desc: 'Heritage & culture narratives' },
+  { zone: 'body',   key: 'partner_cta',           name: 'Partner CTA',             icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Call-to-action for partnerships' },
+  { zone: 'body',   key: 'blog',                  name: 'Blog / Articles',         icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Latest blog posts feed' },
+  { zone: 'body',   key: 'featured_vibe',         name: 'Featured Vibe Story',     icon: '🪄', manager: null,                  color: '#D4AF37', desc: 'Highlighted experience story' },
+  { zone: 'body',   key: 'investment_feed',       name: 'Investment Marketplace',  icon: '💎', manager: null,                  color: '#ec4899', desc: 'Heritage investment opportunities' },
+  { zone: 'body',   key: 'services',              name: 'Business Listings CTA',   icon: '🏢', manager: '/jana/businesses',     color: '#10b981', desc: 'Simple verified-businesses banner' },
+
+  // ── Footer zone ──
+  { zone: 'footer', key: 'partner_cta',    name: 'Partner CTA (Footer)',     icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Footer partnership call-to-action' },
+  { zone: 'footer', key: 'blog',           name: 'Recent Articles (Footer)', icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Blog posts in footer area' },
 ];
 
 const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981', footer: '#64748b' };
@@ -38,7 +57,7 @@ export default function MultiPageSiteBuilder() {
   const [activeZone, setActiveZone]     = useState<Zone>('body');
   const [saving, setSaving]             = useState(false);
   const [deleting, setDeleting]         = useState(false);
-  const [dynamicComponents, setDynamic] = useState<typeof PALETTE>([]);
+  const [dynamicComponents, setDynamic] = useState<PaletteItem[]>([]);
   const [searchEngines, setSearchEngines] = useState<any[]>([]);
   const [tiers, setTiers]               = useState<any[]>([]);
   const [toast, setToast]               = useState<{ msg: string; type: 'success'|'error'|'info' }|null>(null);
@@ -89,6 +108,7 @@ export default function MultiPageSiteBuilder() {
         name: `${c.name} (Data)`,
         icon: c.type === 'carousel' ? '🎠' : c.type === 'gallery' ? '🖼️' : '📰',
         manager: '/jana/component-library', color: '#ec4899', isDynamic: true,
+        desc: c.description || 'Custom dynamic component',
       })));
     }).catch(() => {});
 
@@ -97,18 +117,73 @@ export default function MultiPageSiteBuilder() {
     fetch('/api/jana/tiers').then(r => r.json()).then(d => setTiers(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
+  // Default layout seeded into the builder when no modules are saved yet
+  const DEFAULT_MAIN_SLOTS: Slot[] = [
+    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'main_hero' } },
+    { id: 'h2', key: 'services_hub',          zone: 'body', label: 'Services Hub',          props: {} },
+    { id: 'h3', key: 'experience_categories', zone: 'body', label: 'Experience Categories', props: {} },
+    { id: 'h4', key: 'search_bar',            zone: 'body', label: 'Search Engine (Full)',  props: {} },
+    { id: 'h5', key: 'smart_journey_planner', zone: 'body', label: 'Journey Planner',       props: {} },
+    { id: 'h6', key: 'ecosystem_map',         zone: 'body', label: 'Interactive Map',       props: {} },
+    { id: 'h7', key: 'local_products',        zone: 'body', label: 'Local Products',        props: {} },
+    { id: 'h8', key: 'storytelling_section',  zone: 'body', label: 'Storytelling',          props: {} },
+    { id: 'h9', key: 'partner_cta',           zone: 'body', label: 'Partner CTA',           props: {} },
+  ];
+
   // Load layout when page/template changes
   useEffect(() => {
     if (mode === 'PAGES') {
       fetch(`/api/jana/website?id=website_${currentPage}`).then(r => r.json()).then(data => {
         const t = data[0];
-        if (!t) return setSlots([]);
+        if (!t) {
+          if (currentPage === 'main') {
+            setSlots(DEFAULT_MAIN_SLOTS);
+            // Immediately persist so the builder always shows them on re-open
+            const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, ...(s.props || {}) } });
+            fetch('/api/jana/website', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: 'website_main',
+                header_components: [],
+                body_components: DEFAULT_MAIN_SLOTS.map(toComp),
+                footer_components: [],
+                site_settings: {},
+              }),
+            }).catch(() => {/* silent — user can manually save */});
+          } else {
+            setSlots([]);
+          }
+          return;
+        }
         if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
-        setSlots([
-          ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-          ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-          ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-        ]);
+
+        const allLoaded = [
+          ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+          ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+          ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+        ];
+
+        // ── Auto-seed: if the main page has no modules, inject the full default layout ──
+        if (allLoaded.length === 0 && currentPage === 'main') {
+          setSlots(DEFAULT_MAIN_SLOTS);
+          // Immediately persist so the builder always shows them on re-open
+          const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, ...(s.props || {}) } });
+          fetch('/api/jana/website', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: 'website_main',
+              header_components: [],
+              body_components: DEFAULT_MAIN_SLOTS.map(toComp),
+              footer_components: [],
+              site_settings: t.site_settings || {},
+            }),
+          }).catch(() => {/* silent — user can manually save */});
+          return;
+        }
+
+        setSlots(allLoaded);
       }).catch(() => setSlots([]));
     } else {
       const tmpl = templates.find(t => t.id === currentPage);
@@ -129,8 +204,15 @@ export default function MultiPageSiteBuilder() {
   const palettFor = (z: Zone) => FULL_PALETTE.filter(p => p.zone === z);
   const slotsFor  = (z: Zone) => slots.filter(s => s.zone === z);
 
+  const isAdded = (item: typeof PALETTE[0]) => slots.some(s => s.key === item.key && s.zone === item.zone);
   const addSlot = (item: typeof PALETTE[0]) => {
-    if (slots.find(s => s.key === item.key && s.zone === item.zone)) { notify(`${item.name} already added.`, 'info'); return; }
+    if (isAdded(item)) {
+      // Allow re-adding with a unique ID for power users
+      const count = slots.filter(s => s.key === item.key && s.zone === item.zone).length;
+      setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: `${item.name} #${count + 1}` }]);
+      notify(`✅ ${item.name} #${count + 1} added`);
+      return;
+    }
     setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: item.name }]);
     notify(`✅ ${item.name} added`);
   };
@@ -293,7 +375,7 @@ export default function MultiPageSiteBuilder() {
           <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />
 
           {mode === 'PAGES' && (
-            <a href={currentPage === 'main' ? '/' : `/${currentPage}`} target="_blank" rel="noopener noreferrer"
+            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer"
               style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
               👁 Preview
             </a>
@@ -418,7 +500,7 @@ export default function MultiPageSiteBuilder() {
                       </div>
                       {/* Quick actions */}
                       <div style={{ display:'flex', gap:'3px', flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-                        <a href={page.slug==='main'?'/':'/'+page.slug} target="_blank" rel="noopener noreferrer" title="Preview"
+                        <a href={page.slug==='main'?'/':'/p/'+page.slug} target="_blank" rel="noopener noreferrer" title="Preview"
                           style={iconBtn('#fff')}>👁</a>
                         {page.slug !== 'main' && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
@@ -471,17 +553,24 @@ export default function MultiPageSiteBuilder() {
             <div style={{ fontSize:'0.5rem', fontWeight:900, color:'#cbd5e1', letterSpacing:'1.5px', marginBottom:'0.65rem' }}>
               BLOCKS · {activeZone.toUpperCase()}
             </div>
-            {palettFor(activeZone).map(item => (
-              <button key={item.key} onClick={()=>addSlot(item)}
-                style={{ width:'100%', display:'flex', alignItems:'center', gap:'0.55rem', padding:'0.55rem', border:`1px solid ${item.color}20`, borderRadius:9, background:`${item.color}07`, marginBottom:'0.35rem', cursor:'pointer', textAlign:'left', transition:'all 0.15s' }}>
-                <span style={{ fontSize:'1rem', flexShrink:0 }}>{item.icon}</span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, fontSize:'0.68rem', color:'#0f172a' }}>{item.name}</div>
-                  {item.manager && mode==='PAGES' && <div style={{ fontSize:'0.5rem', color:item.color, fontWeight:600, marginTop:'1px' }}>Edit content →</div>}
-                </div>
-                <div style={{ width:6, height:6, borderRadius:'50%', background:item.color, flexShrink:0 }} />
-              </button>
-            ))}
+            {palettFor(activeZone).map((item, pi) => {
+              const added = isAdded(item);
+              return (
+                <button key={`${item.key}_${pi}`} onClick={()=>addSlot(item)}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:'0.55rem', padding:'0.6rem 0.65rem', border:`1px solid ${added ? item.color+'50' : item.color+'20'}`, borderRadius:10, background: added ? `${item.color}12` : `${item.color}05`, marginBottom:'0.4rem', cursor:'pointer', textAlign:'left', transition:'all 0.18s', position:'relative' }}>
+                  <span style={{ fontSize:'1.05rem', flexShrink:0, width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', background:`${item.color}15`, borderRadius:7 }}>{item.icon}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:'0.68rem', color:'#0f172a', display:'flex', alignItems:'center', gap:'0.35rem' }}>
+                      {item.name}
+                      {added && <span style={{ fontSize:'0.5rem', background:`${item.color}20`, color:item.color, padding:'1px 5px', borderRadius:4, fontWeight:900 }}>ADDED</span>}
+                    </div>
+                    <div style={{ fontSize:'0.52rem', color:'#94a3b8', fontWeight:500, marginTop:'2px', lineHeight:1.3 }}>{(item as any).desc || ''}</div>
+                    {item.manager && mode==='PAGES' && <div style={{ fontSize:'0.48rem', color:item.color, fontWeight:700, marginTop:'2px', letterSpacing:'0.3px' }}>⚙️ HAS CONTENT MANAGER</div>}
+                  </div>
+                  <div style={{ width:8, height:8, borderRadius:'50%', background: added ? item.color : `${item.color}40`, flexShrink:0, boxShadow: added ? `0 0 6px ${item.color}60` : 'none', transition:'all 0.2s' }} />
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -538,8 +627,14 @@ export default function MultiPageSiteBuilder() {
 
                     {/* Block body */}
                     <div style={{ padding:'0.85rem', display:'flex', flexDirection:'column', gap:'0.65rem' }}>
-                      <div style={{ height:32, background:`${color}06`, borderRadius:6, border:`1px dashed ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.62rem', color, fontWeight:700 }}>
-                        {mode==='TEMPLATES' ? 'VENDOR DATA AUTO-INJECTS' : `PREVIEW · ${slot.key.toUpperCase()}`}
+                      <div style={{ background:`${color}06`, borderRadius:8, border:`1px dashed ${color}25`, padding:'0.5rem 0.75rem', display:'flex', alignItems:'center', gap:'0.6rem' }}>
+                        <div style={{ fontSize:'1.2rem', flexShrink:0 }}>{def?.icon}</div>
+                        <div>
+                          <div style={{ fontSize:'0.6rem', color, fontWeight:800, letterSpacing:'0.5px' }}>
+                            {mode==='TEMPLATES' ? 'VENDOR DATA AUTO-INJECTS' : `MODULE · ${slot.key.toUpperCase()}`}
+                          </div>
+                          <div style={{ fontSize:'0.55rem', color:'#94a3b8', fontWeight:500, marginTop:'2px' }}>{(def as any)?.desc || 'Renderable homepage module'}</div>
+                        </div>
                       </div>
 
                       {/* Search engine picker */}

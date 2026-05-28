@@ -117,6 +117,15 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }
 
     if (!biz) {
+      // Check if a custom landing page exists in website_configs (saved as website_[slug])
+      const [customPage] = await query<any>(
+        'SELECT type FROM website_configs WHERE type = ? LIMIT 1',
+        [`website_${slug}`]
+      );
+      if (customPage) {
+        redirect(`/p/${slug}`);
+      }
+
       return (
         <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
           <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>

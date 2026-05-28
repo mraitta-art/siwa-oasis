@@ -1,0 +1,36 @@
+{
+  "categories": [
+    { "id": "journey", "label": "Full Journey & Tour", "desc": "Complete organized trips, safaris, and itineraries.", "icon": "fa-route" },
+    { "id": "accommodation", "label": "Accommodation", "desc": "Hotels, Ecolodges, and Desert Camps.", "icon": "fa-bed" },
+    { "id": "real_estate", "label": "Real Estate & Land", "desc": "Investment, buying, or long-term rental properties.", "icon": "fa-home" },
+    { "id": "restaurant", "label": "Dining & Restaurants", "desc": "Table reservations and authentic meals.", "icon": "fa-utensils" },
+    { "id": "shop", "label": "Local Shops & Crafts", "desc": "Handicrafts, salt lamps, and olive oil.", "icon": "fa-shopping-bag" }
+  ],
+  "vibes": {
+    "journey": [
+      { "id": "spiritual", "label": "Spiritual & Healing", "icon": "fa-heart" },
+      { "id": "adventure", "label": "Nomadic Adventure", "icon": "fa-compass" },
+      { "id": "culture", "label": "Cultural Storytelling", "icon": "fa-book-open" }
+    ],
+    "accommodation": [
+      { "id": "luxury", "label": "Luxury Ecolodge", "icon": "fa-star" },
+      { "id": "budget", "label": "Budget & Cozy", "icon": "fa-wallet" },
+      { "id": "camp", "label": "Desert Camping", "icon": "fa-campground" }
+    ],
+    "real_estate": [
+      { "id": "buy", "label": "Buy Property", "icon": "fa-key" },
+      { "id": "invest", "label": "Investment / Land", "icon": "fa-seedling" },
+      { "id": "rent", "label": "Long Term Rent", "icon": "fa-calendar-alt" }
+    ],
+    "restaurant": [
+      { "id": "traditional", "label": "Traditional Siwan", "icon": "fa-fire" },
+      { "id": "romantic", "label": "Romantic / Sunset", "icon": "fa-heart" },
+      { "id": "casual", "label": "Casual & Cafe", "icon": "fa-coffee" }
+    ],
+    "shop": [
+      { "id": "crafts", "label": "Handicrafts & Salt", "icon": "fa-hammer" },
+      { "id": "food", "label": "Dates & Olive Oil", "icon": "fa-leaf" },
+      { "id": "other", "label": "Other", "icon": "fa-box" }
+    ]
+  }
+}

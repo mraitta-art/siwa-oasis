@@ -185,79 +185,154 @@ export default function AdvancedHeroCarousel({
       </div>
 
       {/* CLICKABLE SLIDE AREA */}
-      <a 
-        href={slide.ctaLink || '#'} 
-        style={{
-          position: 'relative', 
-          zIndex: 10, 
-          height: '100%', 
-          display: 'flex',
-          flexDirection: 'column', 
-          justifyContent: 'center',
-          alignItems: align === 'center' ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end'),
-          textAlign: align, 
-          padding: '2rem 10%', 
-          color: '#fff',
-          textDecoration: 'none',
-          cursor: 'pointer'
-        }}
-      >
-        <div style={{
-          maxWidth: '1000px',
-          opacity: isTransitioning ? 0 : 1,
-          transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
-          transition: 'all 0.6s ease-out'
-        }}>
-          {slide.showCaption !== false && slide.caption && (
-            <div style={{
-              display: 'inline-block', 
-              background: 'rgba(212, 175, 55, 0.9)', 
-              color: '#1a1a2e',
-              padding: '0.5rem 1.5rem', 
-              borderRadius: '50px', 
-              fontSize: '0.8rem',
-              fontWeight: 800, 
-              letterSpacing: '2px', 
-              textTransform: 'uppercase', 
-              marginBottom: '1.5rem'
-            }}>
-              {slide.caption}
-            </div>
-          )}
-          <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#fff' }}>
-            {slide.title}
-          </h1>
-          {slide.subtitle && (
-            <p style={{ 
-              fontSize: subtitleSize, 
-              opacity: 0.95, 
-              maxWidth: '900px', 
-              margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
-              lineHeight: 1.8,
-              fontWeight: 400,
-              letterSpacing: '0.5px'
-            }}>
-              {slide.subtitle}
-            </p>
-          )}
-          {slide.ctaText && (
-            <div style={{ 
-              display: 'inline-block',
-              padding: '1rem 2.5rem', 
-              background: 'rgba(255,255,255,0.15)', 
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: '50px',
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              letterSpacing: '2px',
-              textTransform: 'uppercase'
-            }}>
-              {slide.ctaText} →
-            </div>
-          )}
+      {slide.ctaLink ? (
+        <a 
+          href={slide.ctaLink} 
+          style={{
+            position: 'relative', 
+            zIndex: 10, 
+            height: '100%', 
+            display: 'flex',
+            flexDirection: 'column', 
+            justifyContent: 'center',
+            alignItems: align === 'center' ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end'),
+            textAlign: align, 
+            padding: '2rem 10%', 
+            color: '#fff',
+            textDecoration: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{
+            maxWidth: '1000px',
+            opacity: isTransitioning ? 0 : 1,
+            transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
+            transition: 'all 0.6s ease-out'
+          }}>
+            {slide.showCaption !== false && slide.caption && (
+              <div style={{
+                display: 'inline-block', 
+                background: 'rgba(212, 175, 55, 0.9)', 
+                color: '#1a1a2e',
+                padding: '0.5rem 1.5rem', 
+                borderRadius: '50px', 
+                fontSize: '0.8rem',
+                fontWeight: 800, 
+                letterSpacing: '2px', 
+                textTransform: 'uppercase', 
+                marginBottom: '1.5rem'
+              }}>
+                {slide.caption}
+              </div>
+            )}
+            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#fff' }}>
+              {slide.title}
+            </h1>
+            {slide.subtitle && (
+              <p style={{ 
+                fontSize: subtitleSize, 
+                opacity: 0.95, 
+                maxWidth: '900px', 
+                margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
+                lineHeight: 1.8,
+                fontWeight: 400,
+                letterSpacing: '0.5px'
+              }}>
+                {slide.subtitle}
+              </p>
+            )}
+            {slide.ctaText && (
+              <div style={{ 
+                display: 'inline-block',
+                padding: '1rem 2.5rem', 
+                background: 'rgba(255,255,255,0.15)', 
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '50px',
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                letterSpacing: '2px',
+                textTransform: 'uppercase'
+              }}>
+                {slide.ctaText} →
+              </div>
+            )}
+          </div>
+        </a>
+      ) : (
+        <div 
+          style={{
+            position: 'relative', 
+            zIndex: 10, 
+            height: '100%', 
+            display: 'flex',
+            flexDirection: 'column', 
+            justifyContent: 'center',
+            alignItems: align === 'center' ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end'),
+            textAlign: align, 
+            padding: '2rem 10%', 
+            color: '#fff',
+            textDecoration: 'none',
+            cursor: 'default'
+          }}
+        >
+          <div style={{
+            maxWidth: '1000px',
+            opacity: isTransitioning ? 0 : 1,
+            transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
+            transition: 'all 0.6s ease-out'
+          }}>
+            {slide.showCaption !== false && slide.caption && (
+              <div style={{
+                display: 'inline-block', 
+                background: 'rgba(212, 175, 55, 0.9)', 
+                color: '#1a1a2e',
+                padding: '0.5rem 1.5rem', 
+                borderRadius: '50px', 
+                fontSize: '0.8rem',
+                fontWeight: 800, 
+                letterSpacing: '2px', 
+                textTransform: 'uppercase', 
+                marginBottom: '1.5rem'
+              }}>
+                {slide.caption}
+              </div>
+            )}
+            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#fff' }}>
+              {slide.title}
+            </h1>
+            {slide.subtitle && (
+              <p style={{ 
+                fontSize: subtitleSize, 
+                opacity: 0.95, 
+                maxWidth: '900px', 
+                margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
+                lineHeight: 1.8,
+                fontWeight: 400,
+                letterSpacing: '0.5px'
+              }}>
+                {slide.subtitle}
+              </p>
+            )}
+            {slide.ctaText && (
+              <div style={{ 
+                display: 'inline-block',
+                padding: '1rem 2.5rem', 
+                background: 'rgba(255,255,255,0.15)', 
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '50px',
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                letterSpacing: '2px',
+                textTransform: 'uppercase'
+              }}>
+                {slide.ctaText} →
+              </div>
+            )}
+          </div>
         </div>
-      </a>
+      )}
 
        {showArrows && validSlides.length > 1 && (
         <>

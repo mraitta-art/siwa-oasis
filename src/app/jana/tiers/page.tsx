@@ -248,6 +248,40 @@ export default function InteractiveTiersPage() {
                     </label>
                   </div>
 
+                  {/* ── JOURNEY MARKETPLACE PERMISSIONS ── */}
+                  <h4 style={{ fontSize: '0.8rem', marginTop: '1.5rem', paddingBottom: '0.25rem', borderBottom: '2px solid #D4AF37', color: '#D4AF37', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <i className="fas fa-route" /> JOURNEY MARKETPLACE
+                  </h4>
+                  <div style={{ background: '#fffbeb', borderRadius: '8px', padding: '0.5rem 0.75rem', marginTop: '0.25rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: '#92400e', border: '1px solid #fde68a' }}>
+                    Control what vendors on this tier can do inside the Journey Marketplace.
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.25rem' }}>
+                    {[
+                      { key: 'journey_marketplace_access', label: 'Access Journey Marketplace', desc: 'Can see the Journey Requests menu item', color: '#6b7280' },
+                      { key: 'journey_view_requests',      label: 'View Customer Journey Requests', desc: 'Can see the list of open journey requests', color: '#3b82f6' },
+                      { key: 'journey_submit_offer',       label: 'Submit Formal Offers', desc: 'Can send a structured offer to customers', color: '#8b5cf6' },
+                      { key: 'journey_contact_email',      label: 'Contact via Email', desc: 'Email address revealed in offers', color: '#8b5cf6' },
+                      { key: 'journey_contact_phone',      label: 'Contact via Phone', desc: 'Phone number revealed in offers', color: '#D4AF37' },
+                      { key: 'journey_contact_whatsapp',   label: 'Contact via WhatsApp', desc: 'WhatsApp link visible to customers', color: '#25D366' },
+                    ].map(({ key, label, desc, color }) => (
+                      <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', fontSize: '0.75rem', cursor: 'pointer', padding: '0.5rem 0.6rem', borderRadius: '8px', background: (editData.features[key] ? '#f0fdf4' : '#f8fafc'), border: `1px solid ${editData.features[key] ? '#86efac' : '#e2e8f0'}`, transition: 'all 0.2s' }}>
+                        <input
+                          type="checkbox"
+                          style={{ marginTop: '1px', accentColor: color }}
+                          checked={editData.features[key] || false}
+                          onChange={e => setEditData({ ...editData, features: { ...editData.features, [key]: e.target.checked } })}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+                            {label}
+                          </div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.65rem', marginTop: '0.1rem' }}>{desc}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
                   <h4 style={{ fontSize: '0.8rem', marginTop: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>PUBLIC VISIBILITY SECTIONS</h4>
                   <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
                     {sections.map(s => (
@@ -331,6 +365,33 @@ export default function InteractiveTiersPage() {
                     <div className="permission-item">
                       <span>Storage (Dynamic)</span>
                       <strong>{features.maxStorageMB} MB</strong>
+                    </div>
+                  </div>
+
+                  {/* ── JOURNEY MARKETPLACE SUMMARY ── */}
+                  <div style={{ marginTop: '1rem', borderTop: '1px dashed #eee', paddingTop: '1rem' }}>
+                    <h5 style={{ fontSize: '0.65rem', color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <i className="fas fa-route" /> Journey Marketplace
+                    </h5>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {[
+                        { key: 'journey_marketplace_access', label: 'Access',    icon: 'fa-eye' },
+                        { key: 'journey_view_requests',      label: 'View',      icon: 'fa-list' },
+                        { key: 'journey_submit_offer',       label: 'Offer',     icon: 'fa-file-invoice' },
+                        { key: 'journey_contact_email',      label: 'Email',     icon: 'fa-envelope' },
+                        { key: 'journey_contact_phone',      label: 'Phone',     icon: 'fa-phone' },
+                        { key: 'journey_contact_whatsapp',   label: 'WhatsApp',  icon: 'fab fa-whatsapp' },
+                      ].map(({ key, label, icon }) => (
+                        <span key={key} style={{
+                          fontSize: '0.62rem', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 700,
+                          background: features[key] ? '#dcfce7' : '#f1f5f9',
+                          color: features[key] ? '#166534' : '#94a3b8',
+                          border: `1px solid ${features[key] ? '#86efac' : '#e2e8f0'}`,
+                          display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                        }}>
+                          <i className={`fas ${icon}`} style={{ fontSize: '0.55rem' }} />{label} {features[key] ? '✓' : '✗'}
+                        </span>
+                      ))}
                     </div>
                   </div>
                   

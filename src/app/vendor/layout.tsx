@@ -26,6 +26,13 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       ]
     },
     {
+      title: 'MARKETPLACE',
+      items: [
+        { name: 'Marketplace Requests', href: '/vendor/journey-requests', icon: 'fa-route', badge: 'NEW' },
+        { name: 'My Submitted Offers', href: '/vendor/journey-requests/my-offers', icon: 'fa-file-invoice' }
+      ]
+    },
+    {
       title: 'VENDOR TIERS',
       items: [
         { name: 'My Vendor Tier', href: '/vendor/tier', icon: 'fa-gem' },
@@ -68,14 +75,19 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 {group.title}
               </h3>
               <nav className="space-y-1">
-                {group.items.map((item) => (
+                {group.items.map((item: any) => (
                   <Link 
                     key={item.href} 
                     href={item.href}
                     className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
                   >
                     <i className={`fas ${item.icon} w-5 text-center text-slate-400 group-hover:text-white`}></i>
-                    {item.name}
+                    <span className="flex-1">{item.name}</span>
+                    {item.badge && (
+                      <span style={{ background: '#D4AF37', color: '#1a1a2e', borderRadius: '20px', padding: '0.1rem 0.45rem', fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 ))}
               </nav>

@@ -34,8 +34,17 @@ export default function HeroCarouselManager() {
 
   // Fetch slides on mount
   useEffect(() => {
+    let initialSiteId = '';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      initialSiteId = params.get('siteId') || '';
+    }
+    
     const savedSiteId = sessionStorage.getItem('siwa_carousel_siteId');
-    if (savedSiteId && savedSiteId !== siteId) {
+    
+    if (initialSiteId) {
+      setSiteId(initialSiteId);
+    } else if (savedSiteId && savedSiteId !== siteId) {
       setSiteId(savedSiteId);
     } else {
       fetchSlides();

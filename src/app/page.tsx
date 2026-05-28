@@ -16,21 +16,59 @@ export default function Home() {
         if (res.ok) {
           const data = await res.json();
           const config = data[0];
-          if (config && config.body_components?.length > 0) {
-            setLayout(config.body_components);
-            setSettings(config.site_settings);
+          if (config) {
+            // Use the saved layout exactly as the admin configured it
+            const allComponents = [
+              ...(config.header_components || []),
+              ...(config.body_components || []),
+              ...(config.footer_components || [])
+            ];
+            if (allComponents.length > 0) {
+              setLayout(allComponents);
             } else {
-            // FALLBACK: Default Gold Standard Layout (Focused on Discovery)
+              // Config exists but has no components — use sensible defaults
+              setLayout([
+                { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
+                { id: 'h2', type: 'services_hub', props: {} },
+                { id: 'h3', type: 'experience_categories', props: {} },
+                { id: 'h4', type: 'search_bar', props: {} },
+                { id: 'h5', type: 'smart_journey_planner', props: {} },
+                { id: 'h6', type: 'ecosystem_map', props: {} },
+                { id: 'h7', type: 'local_products', props: {} },
+                { id: 'h8', type: 'storytelling_section', props: {} },
+                { id: 'h9', type: 'partner_cta', props: {} }
+              ]);
+            }
+            setSettings(config.site_settings);
+          } else {
+            // No config found at all — first-time setup defaults
             setLayout([
               { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
-              { id: 'h2', type: 'search_bar', props: {} }
+              { id: 'h2', type: 'services_hub', props: {} },
+              { id: 'h3', type: 'experience_categories', props: {} },
+              { id: 'h4', type: 'search_bar', props: {} },
+              { id: 'h5', type: 'smart_journey_planner', props: {} },
+              { id: 'h6', type: 'ecosystem_map', props: {} },
+              { id: 'h7', type: 'local_products', props: {} },
+              { id: 'h8', type: 'storytelling_section', props: {} },
+              { id: 'h9', type: 'partner_cta', props: {} }
             ]);
           }
         }
       } catch (e) { 
         console.error('Homepage init fail:', e);
         // Absolute Fallback
-        setLayout([{ type: 'hero_carousel', props: { siteId: 'discovery' } }, { type: 'search_bar' }]);
+        setLayout([
+          { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
+          { id: 'h2', type: 'services_hub', props: {} },
+          { id: 'h3', type: 'experience_categories', props: {} },
+          { id: 'h4', type: 'search_bar', props: {} },
+          { id: 'h5', type: 'smart_journey_planner', props: {} },
+          { id: 'h6', type: 'ecosystem_map', props: {} },
+          { id: 'h7', type: 'local_products', props: {} },
+          { id: 'h8', type: 'storytelling_section', props: {} },
+          { id: 'h9', type: 'partner_cta', props: {} }
+        ]);
       }
       setLoading(false);
     }
