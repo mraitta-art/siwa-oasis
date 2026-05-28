@@ -119,7 +119,7 @@ export default function MultiPageSiteBuilder() {
 
   // Default layout seeded into the builder when no modules are saved yet
   const DEFAULT_MAIN_SLOTS: Slot[] = [
-    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'main_hero' } },
+    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'discovery' } },
     { id: 'h2', key: 'services_hub',          zone: 'body', label: 'Services Hub',          props: {} },
     { id: 'h3', key: 'experience_categories', zone: 'body', label: 'Experience Categories', props: {} },
     { id: 'h4', key: 'search_bar',            zone: 'body', label: 'Search Engine (Full)',  props: {} },
@@ -136,24 +136,8 @@ export default function MultiPageSiteBuilder() {
       fetch(`/api/jana/website?id=website_${currentPage}`).then(r => r.json()).then(data => {
         const t = data[0];
         if (!t) {
-          if (currentPage === 'main') {
-            setSlots(DEFAULT_MAIN_SLOTS);
-            // Immediately persist so the builder always shows them on re-open
-            const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, ...(s.props || {}) } });
-            fetch('/api/jana/website', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: 'website_main',
-                header_components: [],
-                body_components: DEFAULT_MAIN_SLOTS.map(toComp),
-                footer_components: [],
-                site_settings: {},
-              }),
-            }).catch(() => {/* silent — user can manually save */});
-          } else {
-            setSlots([]);
-          }
+          // No config in DB at all — show defaults for main, empty for others
+          setSlots(currentPage === 'main' ? DEFAULT_MAIN_SLOTS : []);
           return;
         }
         if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
@@ -164,25 +148,7 @@ export default function MultiPageSiteBuilder() {
           ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
         ];
 
-        // ── Auto-seed: if the main page has no modules, inject the full default layout ──
-        if (allLoaded.length === 0 && currentPage === 'main') {
-          setSlots(DEFAULT_MAIN_SLOTS);
-          // Immediately persist so the builder always shows them on re-open
-          const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, ...(s.props || {}) } });
-          fetch('/api/jana/website', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: 'website_main',
-              header_components: [],
-              body_components: DEFAULT_MAIN_SLOTS.map(toComp),
-              footer_components: [],
-              site_settings: t.site_settings || {},
-            }),
-          }).catch(() => {/* silent — user can manually save */});
-          return;
-        }
-
+        // Config exists in DB — always respect it, even if empty (admin cleared the page)
         setSlots(allLoaded);
       }).catch(() => setSlots([]));
     } else {

@@ -11,7 +11,8 @@
 CREATE TABLE IF NOT EXISTS journey_requests (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_name VARCHAR(255) NOT NULL,
-  customer_email VARCHAR(255) NOT NULL,
+  customer_email VARCHAR(255) DEFAULT NULL,
+  customer_phone VARCHAR(50) DEFAULT NULL,
   vibe VARCHAR(100) NOT NULL,               -- spiritual | adventure | culture | culinary
   duration VARCHAR(50) NOT NULL,            -- 2 | 5 | 7+
   pace VARCHAR(50) DEFAULT '',              -- slow | active
@@ -49,6 +50,9 @@ CREATE TABLE IF NOT EXISTS journey_offers (
   contact_email VARCHAR(255) DEFAULT '',
   notes TEXT DEFAULT '',
   status ENUM('pending','accepted','rejected') DEFAULT 'pending',
+  admin_approved_offer BOOLEAN DEFAULT FALSE,
+  visitor_accepted BOOLEAN DEFAULT FALSE,
+  admin_approved_match BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (journey_id) REFERENCES journey_requests(id) ON DELETE CASCADE,

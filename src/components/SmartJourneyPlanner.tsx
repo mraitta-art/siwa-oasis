@@ -132,6 +132,7 @@ export default function SmartJourneyPlanner() {
 
   // User Details
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
 
   // Submission state
@@ -167,7 +168,7 @@ export default function SmartJourneyPlanner() {
     if (step === 1) return !!requestType;
     if (step === 2) return !!vibe;
     if (step === 3) return true; // Details are mostly optional, except maybe some depending on type
-    if (step === 4) return !!name && !!email;
+    if (step === 4) return !!name && !!phone;
     return false;
   };
 
@@ -180,7 +181,8 @@ export default function SmartJourneyPlanner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer_name: name,
-          customer_email: email,
+          customer_phone: phone,
+          customer_email: email || undefined,
           request_type: requestType,
           vibe: vibe,
           duration: duration,
@@ -218,7 +220,7 @@ export default function SmartJourneyPlanner() {
             <p style={{ ...S.sub, fontSize: '1.1rem', maxWidth: '500px', margin: '1rem auto 2rem' }}>
               Your request has been securely routed to our platform. Verified local businesses matching your needs will review it and send you custom offers.
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.6)' }}>Keep an eye on <strong>{email}</strong> for updates.</p>
+            <p style={{ color: 'rgba(255,255,255,0.6)' }}>Keep an eye on your WhatsApp/Phone <strong>{phone}</strong> for updates.</p>
           </div>
         </div>
       </section>
@@ -316,13 +318,17 @@ export default function SmartJourneyPlanner() {
               <h2 style={S.h2}>Where should we send the offers?</h2>
               <p style={S.sub}>Your contact details will be kept secure. Verified vendors will respond to your request with custom proposals.</p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '3rem', maxWidth: '600px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '3rem', maxWidth: '600px' }}>
                 <div>
                   <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Full Name *</label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={S.input} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email Address *</label>
+                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>WhatsApp / Phone Number *</label>
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+20 123 456 7890" style={S.input} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email Address (Optional)</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={S.input} />
                 </div>
               </div>

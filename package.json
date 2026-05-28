@@ -10,7 +10,12 @@
     "build:unix": "NODE_OPTIONS='--max-old-space-size=2048' next build",
     "build:cpanel": "node scripts/cpanel-build.js",
     "start": "node server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backfill:dry": "node scripts/backfill_visitors.js --dry",
+    "backfill": "node scripts/backfill_visitors.js"
+    ,
+    "migrate:file": "node scripts/run_migration.js",
+    "migrate:dry": "node scripts/run_migration.js --dry"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -26,7 +31,8 @@
     "next": "15.1.11",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

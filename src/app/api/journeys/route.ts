@@ -55,6 +55,7 @@ export async function GET(request: Request) {
           return {
             ...r,
             customer_email: null,
+            customer_phone: null,
             customer_name: 'Marketplace Guest',
           };
         }
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
     const {
       customer_name,
       customer_email,
+      customer_phone,
       request_type,
       vibe,
       duration,
@@ -90,9 +92,9 @@ export async function POST(request: Request) {
       custom_details
     } = body;
 
-    if (!customer_name || !customer_email) {
+    if (!customer_name || !customer_phone) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: customer_name, customer_email' },
+        { success: false, error: 'Missing required fields: customer_name, customer_phone' },
         { status: 400 }
       );
     }
@@ -100,11 +102,12 @@ export async function POST(request: Request) {
     // Insert marketplace request
     await query(
       `INSERT INTO journey_requests 
-        (customer_name, customer_email, request_type, vibe, duration, pace, interests, budget, group_size, arrival_date, special_requests, itinerary_name, itinerary_summary, custom_details, status, distribution_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 'admin_review')`,
+        (customer_name, customer_email, customer_phone, request_type, vibe, duration, pace, interests, budget, group_size, arrival_date, special_requests, itinerary_name, itinerary_summary, custom_details, status, distribution_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 'admin_review')`,
       [
         customer_name,
-        customer_email,
+        customer_email || null,
+        customer_phone,
         request_type || 'journey',
         vibe || '',
         duration || '',
@@ -122,8 +125,8 @@ export async function POST(request: Request) {
 
     // Fetch inserted row
     const rows = await query(
-      `SELECT * FROM journey_requests WHERE customer_email = ? ORDER BY created_at DESC LIMIT 1`,
-      [customer_email]
+      `SELECT * FROM journey_requests WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 1`,
+      [customer_phone]
     ) as any[];
 
     return NextResponse.json({ success: true, journey: rows[0] });

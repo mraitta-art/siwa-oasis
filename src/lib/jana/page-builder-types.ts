@@ -1,8 +1,23 @@
 export interface PageBlock {
-  id: string
+  id: string                    // UUID
+  serial?: string               // Unique serial: page_slug:comp_001
   type: string
   order: number
   props?: Record<string, any>
+  status?: 'active' | 'inactive' | 'draft' | 'archived'  // Component status
+  isVisible?: boolean            // Visibility toggle
+  publishedAt?: string          // When published
+  createdAt?: string            // Creation timestamp
+  updatedAt?: string            // Last update timestamp
+  createdBy?: string            // Admin email
+  updatedBy?: string            // Last editor email
+  metadata?: {
+    editCount?: number
+    lastEditedBy?: string
+    notifyAdmins?: boolean
+    priority?: 'low' | 'medium' | 'high'
+    tags?: string[]
+  }
 }
 
 export interface PageLayout {
@@ -14,6 +29,11 @@ export interface PageLayout {
   blocks: PageBlock[]
   siteType?: 'main-site' | 'mini-site'
   version?: number
+  status?: 'draft' | 'published' | 'archived'
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: string
+  updatedBy?: string
 }
 
 export interface PageTemplate {

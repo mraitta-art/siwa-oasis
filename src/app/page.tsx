@@ -12,7 +12,7 @@ export default function Home() {
   useEffect(() => {
     async function init() {
       try {
-        const res = await fetch('/api/jana/website?type=main');
+        const res = await fetch('/api/jana/website?id=website_main');
         if (res.ok) {
           const data = await res.json();
           const config = data[0];
