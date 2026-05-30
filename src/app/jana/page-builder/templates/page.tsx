@@ -103,9 +103,9 @@ export default function PageTemplatesPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="glass-panel p-4 border-l-4 border-blue-500 bg-blue-500/10">
+      <div className="glass-panel p-4 border-l-4 border-[#556B2F] bg-[#556B2F]/10">
         <div className="flex gap-3 items-start">
-          <i className="fas fa-info-circle text-blue-400 mt-1"></i>
+          <i className="fas fa-info-circle text-[#556B2F] mt-1"></i>
           <div>
             <p className="text-white font-medium">For Mini-Sites Only</p>
             <p className="text-slate-400 text-sm mt-1">

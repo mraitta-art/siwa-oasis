@@ -68,7 +68,7 @@ const FIELD_ICONS: Record<string, string> = {
 };
 
 const FIELD_COLORS: Record<string, string> = {
-  text: '#3b82f6',
+  text: '#556B2F',
   textarea: '#8b5cf6',
   number: '#10b981',
   date: '#f59e0b',
@@ -283,7 +283,7 @@ export default function EnhancedFormBuilder() {
                             <span>{FIELD_ICONS[field.field_type] || '📝'}</span>
                             <span className="truncate">{field.label}</span>
                             {field.is_inherited && (
-                              <span className="text-[10px] px-1 bg-blue-100 text-blue-700 rounded">
+                              <span className="text-[10px] px-1 bg-[#556B2F]/10 text-[#556B2F] rounded">
                                 inherited
                               </span>
                             )}
@@ -366,7 +366,7 @@ export default function EnhancedFormBuilder() {
                     {isExpanded && (
                       <div className="ml-8 mt-2 space-y-2">
                         {section.fields.map((field, fieldIdx) => {
-                          const fieldColor = FIELD_COLORS[field.field_type] || '#3b82f6';
+                          const fieldColor = FIELD_COLORS[field.field_type] || '#556B2F';
                           
                           return (
                             <div
@@ -388,7 +388,7 @@ export default function EnhancedFormBuilder() {
                                     </span>
                                   )}
                                   {field.is_inherited && (
-                                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-[#556B2F]/10 text-[#556B2F] rounded font-semibold">
                                       INHERITED
                                     </span>
                                   )}
