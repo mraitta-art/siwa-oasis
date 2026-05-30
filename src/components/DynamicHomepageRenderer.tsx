@@ -59,11 +59,19 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     // ─── HERO ──────────────────────────────────────────────
     case 'hero_carousel': {
       const carouselId = props?.carousel_id || props?.siteId || 'main_hero';
+      const isDynamic = props?.isDynamic !== false; // Default to dynamic for homepage
       return (
         <section style={{ height: '85vh', minHeight: '500px', position: 'relative' }}>
           <AdvancedHeroCarousel 
             height="85vh" 
             carouselName={carouselId}
+            isDynamic={isDynamic}
+            includeDynamicOptions={{
+              businesses: props?.includeBusinesses !== false,
+              journeys: props?.includeJourneys !== false,
+              investment: props?.includeInvestment !== false,
+              registration: props?.includeRegistration !== false
+            }}
             autoPlay={true} 
             autoPlayInterval={siteSettings?.carousel_interval || 8000} 
             showIndicators={true}

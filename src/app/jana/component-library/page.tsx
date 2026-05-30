@@ -1,125 +1,118 @@
 'use client';
-// Trigger re-build
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Component {
-  id: number;
+  id: string;
+  key: string;
   name: string;
-  type: string;
+  description: string;
+  icon: string;
+  zone: string;
   category: string;
-  config: any;
-  thumbnail?: string;
-  description?: string;
-  is_global: boolean;
-  is_active: boolean;
-  usage_count: number;
-  created_at: string;
+  enabled: boolean;
+  manager_url: string;
+  version: string;
+  deprecation_notice?: string;
+  component_config?: Record<string, any>;
+  config_schema?: any;
 }
 
-export default function ComponentLibraryPage() {
+interface ConfigField {
+  name: string;
+  type: string;
+  label: string;
+  default?: any;
+  options?: string[];
+  min?: number;
+  max?: number;
+}
+
+export default function ComponentLibrary() {
   const [components, setComponents] = useState<Component[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<string>('all');
+  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
+  const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [dataSources, setDataSources] = useState<{sections: any[], fields: any[]}>({ sections: [], fields: [] });
+  const [filterType, setFilterType] = useState('all');
+  const [filter, setFilter] = useState({ zone: 'all', category: 'all' });
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
-    loadComponents();
-    Promise.all([
-      fetch('/api/jana/sections').then(r => r.json()),
-      fetch('/api/jana/forms').then(r => r.json())
-    ]).then(([sectionsData, formsData]) => {
-      const uniqueFields = Array.isArray(formsData) 
-        ? Array.from(new Map(formsData.filter(f => f.section_id !== 'basic').map(f => [f.name, f])).values())
-        : [];
-      setDataSources({
-        sections: Array.isArray(sectionsData) ? sectionsData : [],
-        fields: uniqueFields
-      });
-    }).catch(console.error);
-  }, [filterType]);
+    fetchComponents();
+  }, []);
 
-  async function loadComponents() {
-    setLoading(true);
+  const fetchComponents = async () => {
     try {
-      const url = filterType === 'all'
-        ? '/api/jana/component-library'
-        : `/api/jana/component-library?type=${filterType}`;
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setComponents(data);
-      }
-    } catch (e) {
-      console.error('Failed to load components:', e);
+      const res = await fetch('/api/jana/site-components');
+      const data = await res.json();
+      setComponents(data);
+    } catch (error) {
+      showToast('Failed to load components', 'error');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function toggleActive(id: number, currentStatus: boolean) {
+  const openConfigEditor = async (component: Component) => {
+    setSelectedComponent(component);
     try {
-      const res = await fetch(`/api/jana/component-library/${id}`, {
+      const res = await fetch(`/api/jana/site-components/config/${component.id}`);
+      const data = await res.json();
+      setEditingConfig(data.currentConfig || {});
+    } catch (error) {
+      showToast('Failed to load config', 'error');
+    }
+    setShowConfigModal(true);
+  };
+
+  const saveConfig = async () => {
+    if (!selectedComponent) return;
+
+    try {
+      const res = await fetch(`/api/jana/site-components/config/${selectedComponent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !currentStatus })
+        body: JSON.stringify({ component_config: editingConfig })
       });
 
       if (res.ok) {
-        loadComponents();
+        showToast('✅ Configuration saved', 'success');
+        setShowConfigModal(false);
+        fetchComponents();
+      } else {
+        showToast('Failed to save config', 'error');
       }
-    } catch (e) {
-      console.error('Failed to toggle component:', e);
+    } catch (error) {
+      showToast('Error saving config', 'error');
     }
-  }
+  };
 
-  async function deleteComponent(id: number) {
-    if (!confirm('Are you sure? This will remove the component from all pages.')) return;
+  const resetConfig = async () => {
+    if (!selectedComponent) return;
+    if (!confirm('Reset to default configuration?')) return;
 
     try {
-      const res = await fetch(`/api/jana/component-library/${id}`, {
+      const res = await fetch(`/api/jana/site-components/config/${selectedComponent.id}`, {
         method: 'DELETE'
       });
 
       if (res.ok) {
-        loadComponents();
+        showToast('✅ Configuration reset', 'success');
+        setEditingConfig({});
+        setShowConfigModal(false);
+        fetchComponents();
       }
-    } catch (e) {
-      console.error('Failed to delete component:', e);
-    }
-  }
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'carousel': return '🎬';
-      case 'blog_sidebar': return '📰';
-      case 'gallery': return '📸';
-      case 'testimonials': return '💬';
-      case 'cta_section': return '📢';
-      case 'features': return '⭐';
-      case 'map': return '🗺️';
-      case 'timeline': return '⏳';
-      case 'audio_visual': return '🎵';
-      default: return '📦';
+    } catch (error) {
+      showToast('Error resetting config', 'error');
     }
   };
 
-  const getGradient = (type: string) => {
-    switch (type) {
-      case 'carousel': return 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)';
-      case 'blog_sidebar': return 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)';
-      case 'gallery': return 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)';
-      case 'testimonials': return 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
-      case 'cta_section': return 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)';
-      case 'features': return 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)';
-      case 'map': return 'linear-gradient(135deg, #14b8a6 0%, #5eead4 100%)';
-      case 'timeline': return 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)';
-      case 'audio_visual': return 'linear-gradient(135deg, #f43f5e 0%, #fb923c 100%)';
-      default: return 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)';
-    }
+  const showToast = (msg: string, type: 'success' | 'error' | 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
   return (

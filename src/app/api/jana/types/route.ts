@@ -42,6 +42,19 @@ export async function POST(request: NextRequest) {
     const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [] } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
 
+    // ✅ VALIDATION: Check for duplicate names
+    const existingWithName = await execute(
+      'SELECT id FROM business_types WHERE LOWER(name) = LOWER(?)',
+      [name]
+    );
+    
+    if (existingWithName.length > 0) {
+      return NextResponse.json({
+        error: `Type name "${name}" already exists as "${existingWithName[0].id}". Type names must be unique! Either use a different name or consolidate the types.`,
+        existing_id: existingWithName[0].id
+      }, { status: 400 });
+    }
+
     await execute(
       `INSERT INTO business_types (id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(sections), JSON.stringify(own_sections), 99]
@@ -72,6 +85,21 @@ export async function PUT(request: NextRequest) {
     log(`[TYPES PUT] Attempt: ${JSON.stringify(body)}`);
     const { id, name, icon, icon_color, description, is_parent, parent_id, active, sections, own_sections } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    // ✅ VALIDATION: Check for duplicate names (excluding current type)
+    if (name) {
+      const existingWithName = await execute(
+        'SELECT id FROM business_types WHERE LOWER(name) = LOWER(?) AND id != ?',
+        [name, id]
+      );
+      
+      if (existingWithName.length > 0) {
+        return NextResponse.json({
+          error: `Type name "${name}" already exists as "${existingWithName[0].id}". Type names must be unique! Either use a different name or consolidate the types.`,
+          existing_id: existingWithName[0].id
+        }, { status: 400 });
+      }
+    }
 
     await execute(
       `UPDATE business_types SET name=?, icon=?, icon_color=?, description=?, is_parent=?, parent_id=?, active=?, sections=?, own_sections=? WHERE id=?`,

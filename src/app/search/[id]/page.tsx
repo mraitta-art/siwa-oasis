@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+import VibeSearch from '@/components/VibeSearch';
+import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 
 interface SearchResult {
   id: string;
@@ -15,26 +18,69 @@ interface SearchResult {
   [key: string]: any;
 }
 
-export default function PublicSearchPage({ params }: { params: Promise<{ searchEngineId: string }> }) {
-  const { searchEngineId } = React.use(params);
+export default function PublicSearchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
+  
+  // States for search engine mode
   const [results, setResults] = useState<SearchResult[]>([]);
   const [engine, setEngine] = useState<any>(null);
+  const [cardTemplates, setCardTemplates] = useState<any[]>([]);
+  
+  // States for search page mode
+  const [searchPage, setSearchPage] = useState<any>(null);
+  const [isSearchPageMode, setIsSearchPageMode] = useState(false);
+  
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [stats, setStats] = useState({ total: 0, page: 1 });
-  const [cardTemplates, setCardTemplates] = useState<any[]>([]);
 
   useEffect(() => {
-    loadEngine();
-    loadCardTemplates();
-    runSearch();
-  }, [searchEngineId]);
+    loadPage();
+  }, [id]);
 
-  async function loadEngine() {
-    const res = await fetch(`/api/jana/search-engines`);
-    if (res.ok) {
-      const all = await res.json();
-      setEngine(all.find((e: any) => e.id === searchEngineId));
+  async function loadPage() {
+    setLoading(true);
+    setNotFound(false);
+    
+    // First, try to load as a search page (by slug)
+    try {
+      const res = await fetch(`/api/jana/search-pages/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.is_published && data.is_visible) {
+          setSearchPage(data);
+          setIsSearchPageMode(true);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('Not a search page, trying as search engine...');
+    }
+    
+    // Fall back to loading as search engine
+    setIsSearchPageMode(false);
+    try {
+      const res = await fetch(`/api/jana/search-engines`);
+      if (res.ok) {
+        const all = await res.json();
+        const foundEngine = all.find((e: any) => e.id === id);
+        if (foundEngine) {
+          setEngine(foundEngine);
+          await loadCardTemplates();
+          await runSearch();
+        } else {
+          setNotFound(true);
+        }
+      } else {
+        setNotFound(true);
+      }
+    } catch (e) {
+      console.error('Failed to load search engine:', e);
+      setNotFound(true);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -45,7 +91,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ searchE
 
   async function runSearch() {
     setLoading(true);
-    const res = await fetch(`/api/search?engineId=${searchEngineId}`, {
+    const res = await fetch(`/api/search?engineId=${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filters, page: 1, pageSize: 12 })
@@ -66,6 +112,119 @@ export default function PublicSearchPage({ params }: { params: Promise<{ searchE
     };
   };
 
+  // SEARCH PAGE MODE - Render configurable search page from database
+  if (isSearchPageMode) {
+    if (loading) {
+      return (
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+          <i className="fas fa-sun fa-spin fa-4x" style={{ color: '#D4AF37', marginBottom: '2rem' }}></i>
+          <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.7rem' }}>LOADING SEARCH...</div>
+        </div>
+      );
+    }
+
+    if (notFound) {
+      return (
+        <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', minHeight: '100vh', color: '#fff' }}>
+          <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
+          <p style={{ opacity: 0.5 }}>The search page &ldquo;{id}&rdquo; does not exist.</p>
+          <p style={{ opacity: 0.3, fontSize: '0.8rem' }}>Create it in the admin → Search Pages Manager</p>
+          <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return Home</Link>
+        </div>
+      );
+    }
+
+    if (!searchPage) return null;
+
+    // Render hero carousel if enabled
+    const renderHero = () => {
+      if (!searchPage.hero_enabled) return null;
+
+      return (
+        <AdvancedHeroCarousel
+          carouselName={searchPage.hero_carousel_id || 'main_hero'}
+          height={`${searchPage.hero_height_vh || 85}vh`}
+          autoPlay={searchPage.hero_autoplay !== false}
+        />
+      );
+    };
+
+    // Determine which search component to render
+    const renderSearchComponent = () => {
+      if (!searchPage.search_engine_id) {
+        // Default to vibe search if no engine specified
+        return <VibeSearch />;
+      }
+
+      // Use VibeSearch with specified engine
+      return <VibeSearch engineId={searchPage.search_engine_id} />;
+    };
+
+    return (
+      <div style={{ minHeight: '100vh', background: '#f8fafc', paddingBottom: '10rem' }}>
+        {/* Breadcrumb */}
+        {searchPage.show_breadcrumb && (
+          <nav style={{ padding: '1rem 2rem', background: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', color: '#64748b' }}>
+            <Link href="/" style={{ color: '#D4AF37', textDecoration: 'none' }}>Home</Link>
+            <span style={{ margin: '0 0.5rem' }}>/</span>
+            <span>{searchPage.title}</span>
+          </nav>
+        )}
+
+        {/* Hero Carousel (if enabled) */}
+        {renderHero()}
+
+        {/* Search Component Container */}
+        <div className="container" style={{ marginTop: searchPage.hero_enabled ? '-6rem' : '2rem', position: 'relative', zIndex: 10, maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.9)',
+            backdropFilter: 'blur(30px)',
+            padding: '4rem',
+            borderRadius: '40px',
+            boxShadow: '0 40px 100px -20px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(255,255,255,0.8)'
+          }}>
+            {renderSearchComponent()}
+          </div>
+        </div>
+
+        {/* Custom Components (if any) */}
+        {searchPage.components && searchPage.components.length > 0 && (
+          <div style={{ marginTop: '4rem' }}>
+            {searchPage.components.map((component: any, idx: number) => (
+              <DynamicComponentRenderer
+                key={`${component.id || idx}`}
+                component={component}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Handle loading state for search engine mode
+  if (loading) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+        <i className="fas fa-sun fa-spin fa-4x" style={{ color: '#D4AF37', marginBottom: '2rem' }}></i>
+        <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.7rem' }}>LOADING SEARCH...</div>
+      </div>
+    );
+  }
+
+  // Handle not found state
+  if (notFound) {
+    return (
+      <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', minHeight: '100vh', color: '#fff' }}>
+        <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
+        <p style={{ opacity: 0.5 }}>The search page or engine &ldquo;{id}&rdquo; does not exist.</p>
+        <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return Home</Link>
+      </div>
+    );
+  }
+
+  // SEARCH ENGINE MODE - Render search engine results
   return (
     <div style={{ background: '#f3f4f6', minHeight: '100vh' }}>
       <nav style={{ background: '#fff', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -84,7 +243,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ searchE
             <div className="card" style={{ position: 'sticky', top: '2rem' }}>
               <h4>Refine Exploration</h4>
               <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.5rem 0 1.5rem' }}>
-                Engine: <strong>{engine?.name || searchEngineId}</strong>
+                Engine: <strong>{engine?.name || id}</strong>
               </p>
               
               {engine?.allowed_fields?.map((f: string) => (

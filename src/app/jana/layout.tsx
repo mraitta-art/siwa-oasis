@@ -36,9 +36,13 @@ const NAV_GROUPS = [
       { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
       { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-briefcase' },
       { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
+      { name: 'Homepage Editor', path: '/jana/homepage-editor', icon: 'fa-home' },
       { name: 'Visual Orchestrator', path: '/jana/website', icon: 'fa-palette' },
       { name: 'Blog Manager', path: '/jana/blog', icon: 'fa-newspaper' },
       { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
+      { name: 'Services Manager', path: '/jana/services-manager', icon: 'fa-server-group' },
+      { name: 'Categories Manager', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
+      { name: 'Journey Templates', path: '/jana/journey-templates-manager', icon: 'fa-route' },
       { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
     ]
   },

@@ -19,11 +19,21 @@ const BRAND_COLORS = [
   '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#D4AF37', '#27ae60', '#2c3e50'
 ];
 
+interface DuplicateGroup {
+  name: string;
+  ids: string[];
+  count: number;
+}
+
 export default function BusinessTypesPage() {
   const { notify } = useAdmin();
   const [types, setTypes] = useState<BizType[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [selectedDuplicate, setSelectedDuplicate] = useState<DuplicateGroup | null>(null);
+  const [consolidating, setConsolidating] = useState(false);
   
   const [showModal, setShowModal] = useState(false);
   const [editingType, setEditingType] = useState<Partial<BizType> | null>(null);
@@ -32,6 +42,7 @@ export default function BusinessTypesPage() {
   useEffect(() => { 
     loadTypes(); 
     loadSections();
+    checkForDuplicates();
   }, []);
 
   async function loadTypes() {
@@ -115,6 +126,54 @@ export default function BusinessTypesPage() {
     if (!confirm(`Delete type "${id}"?`)) return;
     await fetch(`/api/jana/types?id=${id}`, { method: 'DELETE' });
     loadTypes();
+    checkForDuplicates();
+  }
+
+  async function checkForDuplicates() {
+    try {
+      const res = await fetch('/api/jana/types/verify/duplicates');
+      if (res.ok) {
+        const data = await res.json();
+        setDuplicates(data.duplicates || []);
+      }
+    } catch (e) {
+      console.error('Failed to check duplicates:', e);
+    }
+  }
+
+  async function consolidateTypes(parentTypeId: string, childTypeIds: string[]) {
+    if (childTypeIds.length === 0) return;
+    
+    if (!confirm(`Consolidate ${childTypeIds.length} duplicate type(s) under "${parentTypeId}"? All dependencies will be updated.`)) return;
+
+    setConsolidating(true);
+    try {
+      const res = await fetch('/api/jana/types/consolidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parentTypeId,
+          childTypeIds,
+          action: 'merge'
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        notify(`Successfully consolidated ${childTypeIds.length} types under "${parentTypeId}"`, 'success');
+        setShowDuplicateModal(false);
+        setSelectedDuplicate(null);
+        await loadTypes();
+        await checkForDuplicates();
+      } else {
+        const err = await res.json();
+        notify(err.error || 'Failed to consolidate types', 'error');
+      }
+    } catch (e: any) {
+      notify(e.message || 'Failed to consolidate types', 'error');
+    } finally {
+      setConsolidating(false);
+    }
   }
 
   const toggleSection = (sectionId: string) => {
@@ -161,6 +220,70 @@ export default function BusinessTypesPage() {
           <i className="fas fa-plus"></i> NEW TYPOLOGY
         </button>
       </div>
+
+      {/* 🚨 DUPLICATE ALERT PANEL */}
+      {duplicates.length > 0 && (
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1.25rem',
+          background: '#fef2f2',
+          border: '2px solid #fca5a5',
+          borderRadius: '12px',
+          borderLeft: '6px solid #ef4444'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{ fontSize: '1.5rem', color: '#ef4444' }}>⚠️</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 900, color: '#991b1b', fontSize: '1rem', marginBottom: '0.25rem' }}>
+                {duplicates.length} Duplicate Type Name{duplicates.length !== 1 ? 's' : ''} Detected
+              </div>
+              <p style={{ color: '#7f1d1d', fontSize: '0.85rem', margin: '0.25rem 0 0' }}>
+                Multiple types share the same name. Consolidate them under a parent type to ensure consistency across all dependencies (businesses, forms, templates, etc.).
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            {duplicates.map((dup, idx) => (
+              <div key={idx} style={{
+                background: '#fff7f7',
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid #fca5a5'
+              }}>
+                <div style={{ fontWeight: 800, color: '#991b1b', marginBottom: '0.4rem' }}>
+                  "{dup.name}" ({dup.count} types)
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#7f1d1d', marginBottom: '0.6rem', fontFamily: 'monospace' }}>
+                  {dup.ids.join(' • ')}
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedDuplicate(dup);
+                    setShowDuplicateModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
+                >
+                  ✨ Consolidate Now
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: '2rem' }}>
         {parents.map(p => {
@@ -384,6 +507,126 @@ export default function BusinessTypesPage() {
             <div style={{ padding: '1.5rem 2rem', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
               <button className="btn btn-outline" onClick={() => setShowModal(false)}>CANCEL</button>
               <button className="btn btn-primary" onClick={saveType}>SAVE ARCHITECTURE</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔧 CONSOLIDATION MODAL */}
+      {showDuplicateModal && selectedDuplicate && (
+        <div className="modal-overlay" onClick={() => setShowDuplicateModal(false)} style={{ padding: '1rem' }}>
+          <div className="card animate-in" style={{ width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="card-header">
+              <h3>✨ Consolidate Duplicate Types</h3>
+              <button className="btn btn-xs btn-outline" onClick={() => setShowDuplicateModal(false)}>×</button>
+            </div>
+
+            <div style={{ padding: '2rem' }}>
+              <div style={{ padding: '1rem', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#78350f', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  📋 Consolidating: <strong>"{selectedDuplicate.name}"</strong>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#92400e', marginBottom: '0.5rem' }}>
+                  {selectedDuplicate.count} duplicate type{selectedDuplicate.count !== 1 ? 's' : ''} found: {selectedDuplicate.ids.join(', ')}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#92400e', fontStyle: 'italic' }}>
+                  All dependencies will be updated automatically (businesses, forms, templates, sections).
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                  Select parent type to consolidate under:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                  {selectedDuplicate.ids.map(typeId => {
+                    const typeObj = types.find(t => t.id === typeId);
+                    return (
+                      <label key={typeId} style={{
+                        padding: '0.75rem 1rem',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as any).style.background = '#f9fafb';
+                        (e.currentTarget as any).style.borderColor = '#8b5cf6';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as any).style.background = '#fff';
+                        (e.currentTarget as any).style.borderColor = '#e5e7eb';
+                      }}
+                      >
+                        <input
+                          type="radio"
+                          name="parentType"
+                          value={typeId}
+                          onChange={(e) => {
+                            setSelectedDuplicate({
+                              ...selectedDuplicate,
+                              selectedParent: e.target.value
+                            } as any);
+                          }}
+                          defaultChecked={selectedDuplicate.ids[0] === typeId}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1f2937' }}>
+                            {typeObj?.name || typeId}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                            ID: <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: '3px' }}>{typeId}</code>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{
+                padding: '1rem',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                borderRadius: '8px',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  ✅ What will happen:
+                </div>
+                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem', fontSize: '0.75rem', color: '#166534' }}>
+                  <li>All {selectedDuplicate.count - 1} duplicate type{selectedDuplicate.count - 1 !== 1 ? 's' : ''} become children of the parent</li>
+                  <li>All businesses using duplicates are reassigned to parent</li>
+                  <li>Form fields are updated automatically</li>
+                  <li>Card templates reference the parent</li>
+                  <li>Orchestrator configurations are synchronized</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ padding: '1.5rem 2rem', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setShowDuplicateModal(false)}
+                disabled={consolidating}
+              >
+                CANCEL
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  const parentId = (selectedDuplicate as any).selectedParent || selectedDuplicate.ids[0];
+                  const otherIds = selectedDuplicate.ids.filter(id => id !== parentId);
+                  consolidateTypes(parentId, otherIds);
+                }}
+                disabled={consolidating}
+                style={{ opacity: consolidating ? 0.6 : 1 }}
+              >
+                {consolidating ? '⏳ Consolidating...' : '✨ Consolidate Types'}
+              </button>
             </div>
           </div>
         </div>

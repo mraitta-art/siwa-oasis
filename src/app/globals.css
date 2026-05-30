@@ -1,6 +1,6 @@
 /* ================================================================
-   SIWA OASIS — Light Theme (Production)
-   Clean white/gold design ported from the HTML prototype
+   SIWA OASIS — Desert Sunset Color Palette (Production)
+   Premium desert oasis aesthetic with sunset colors
    ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -8,11 +8,24 @@
 
 @import "tailwindcss";
 
-/* ---- CSS Custom Properties ---- */
+/* ---- CSS Custom Properties — SIWA OASIS Palette ---- */
 :root {
-  --gold: #D4AF37;
-  --gold-hover: #c4a030;
-  --dark: #1a1a2e;
+  /* Primary Desert Sunset Colors */
+  --sun-gold: #FFB700;
+  --sun-orange: #FF9500;
+  --sky-purple: #556B2F;
+  --sky-deep-purple: #6B8E23;
+  --water-turquoise: #20B2AA;
+  --water-cyan: #00CED1;
+  --palm-green: #4CAF50;
+  --palm-lime: #66BB6A;
+  --desert-tan: #D2B48C;
+  --desert-sand: #C19A6B;
+  
+  /* Legacy Variables (mapped to new palette) */
+  --gold: #FFB700;
+  --gold-hover: #FF9500;
+  --dark: #556B2F;
   --text: #1f2937;
   --text-muted: #6b7280;
   --text-light: #9ca3af;
@@ -20,11 +33,11 @@
   --card: #ffffff;
   --border: #e5e7eb;
   --border-light: #f3f4f6;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --success: #4CAF50;
+  --warning: #FF9500;
   --danger: #ef4444;
-  --info: #3b82f6;
-  --purple: #8b5cf6;
+  --info: #00CED1;
+  --purple: #556B2F;
   --radius: 0.75rem;
   --radius-lg: 1rem;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
@@ -43,7 +56,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---- Carousel Animations ---- */
+/* ---- Carousel & Desert Animations ---- */
 @keyframes kenburns-advanced {
   0% {
     transform: scale(1) translate(0, 0);
@@ -60,6 +73,22 @@ body {
   100% {
     transform: scale(1) translate(0, 0);
   }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes desert-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 183, 0, 0.3)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 183, 0, 0.6)); }
+}
+
+@keyframes sunset-fade {
+  0% { background: linear-gradient(135deg, #512DA8, #673AB7); }
+  50% { background: linear-gradient(135deg, #FF9500, #FFB700); }
+  100% { background: linear-gradient(135deg, #512DA8, #673AB7); }
 }
 
 /* ---- Layout ---- */

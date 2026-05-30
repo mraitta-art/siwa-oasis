@@ -143,9 +143,12 @@ export default function SmartJourneyPlanner() {
   // Dynamic config (loaded from server). Falls back to defaults above.
   const [categories, setCategories] = useState<typeof DEFAULT_CATEGORIES>(DEFAULT_CATEGORIES);
   const [vibes, setVibes] = useState<typeof DEFAULT_VIBES>(DEFAULT_VIBES as any);
+  const [templates, setTemplates] = useState<any[]>([]); // Featured journey templates
 
   React.useEffect(() => {
     let mounted = true;
+    
+    // Fetch config
     fetch('/api/journeys/config')
       .then(r => r.json())
       .then(d => {
@@ -156,6 +159,20 @@ export default function SmartJourneyPlanner() {
       .catch(() => {
         // ignore, use defaults
       });
+    
+    // Fetch featured templates
+    fetch('/api/jana/journey-templates?featuredOnly=true&visibleOnly=true')
+      .then(r => r.json())
+      .then(data => {
+        if (!mounted) return;
+        if (Array.isArray(data)) {
+          setTemplates(data.slice(0, 3)); // Show top 3 featured
+        }
+      })
+      .catch(() => {
+        // ignore, use defaults
+      });
+    
     return () => { mounted = false; };
   }, []);
 
@@ -228,9 +245,97 @@ export default function SmartJourneyPlanner() {
   }
 
   return (
-    <section style={S.wrap} id="marketplace">
-      <div style={S.inner}>
-        <div style={S.card}>
+    <>
+      {/* Featured Templates Showcase */}
+      {templates.length > 0 && (
+        <section style={S.wrap}>
+          <div style={S.inner}>
+            <div style={{ marginBottom: '4rem' }}>
+              <span style={S.label}>CURATED JOURNEYS</span>
+              <h2 style={S.h2}>Ready-Made Experiences</h2>
+              <p style={S.sub}>Start with one of our expertly-designed journey templates or create your own custom adventure.</p>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+              {templates.map((template: any) => (
+                <div key={template.id} style={{ ...S.card, cursor: 'pointer', transition: 'all 0.3s', border: '1px solid rgba(255,255,255,0.06)', padding: '0' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#D4AF37'; e.currentTarget.style.boxShadow = '0 30px 80px rgba(212,175,55,0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.6)'; }}>
+                  {/* Image */}
+                  {template.featured_image_url && (
+                    <img src={template.featured_image_url} alt={template.name} style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '35px 35px 0 0' }} />
+                  )}
+                  
+                  {/* Content */}
+                  <div style={{ padding: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                      {template.icon && <i className={`fas ${template.icon}`} style={{ fontSize: '1.25rem', color: template.color || '#D4AF37' }} />}
+                      <span style={{ padding: '0.25rem 0.75rem', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}>{template.duration_days}D</span>
+                      <span style={{ padding: '0.25rem 0.75rem', background: 'rgba(168,85,247,0.1)', color: '#a78bfa', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'capitalize' }}>{template.difficulty_level}</span>
+                      {template.is_investment_journey && (
+                        <span style={{ padding: '0.25rem 0.75rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}>💼 Investment</span>
+                      )}
+                    </div>
+                    
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', margin: '0 0 0.5rem' }}>{template.name}</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#D4AF37', fontWeight: 'bold', margin: '0 0 1rem' }}>{template.subtitle}</p>
+                    
+                    {template.is_investment_journey && template.investment_description && (
+                      <div style={{ background: 'rgba(59,130,246,0.05)', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(59,130,246,0.2)' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'uppercase' }}>💼 Investment Opportunity</div>
+                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: '0.75rem' }}>{template.investment_description.substring(0, 150)}...</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.8rem' }}>
+                          {template.minimum_investment_usd > 0 && (
+                            <div>
+                              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 'bold' }}>MIN INVEST</div>
+                              <div style={{ color: '#3b82f6', fontWeight: 'bold' }}>${template.minimum_investment_usd.toLocaleString()}</div>
+                            </div>
+                          )}
+                          {template.estimated_roi_percent > 0 && (
+                            <div>
+                              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 'bold' }}>POTENTIAL ROI</div>
+                              <div style={{ color: '#10b981', fontWeight: 'bold' }}>{template.estimated_roi_percent}% annually</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {template.highlights && template.highlights.length > 0 && (
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Highlights</div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {template.highlights.slice(0, 3).map((h: string, i: number) => (
+                            <span key={i} style={{ padding: '0.25rem 0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>{h}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}>PRICE</div>
+                        <div>${template.estimated_cost_usd_min} - ${template.estimated_cost_usd_max}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}>BEST SEASON</div>
+                        <div style={{ fontSize: '0.85rem' }}>{template.best_season}</div>
+                      </div>
+                    </div>
+                    
+                    <button onClick={() => { setRequestType('journey'); setStep(2); }} style={{ width: '100%', padding: '0.75rem', background: template.color || '#D4AF37', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.3s' }} onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
+                      Start This {template.is_investment_journey ? 'Investment' : 'Journey'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Main Form Section */}
+      <section style={S.wrap} id="marketplace">
+        <div style={S.inner}>
+          <div style={S.card}>
           <ProgressBar step={step} total={TOTAL_STEPS} />
 
           {/* STEP 1: CATEGORY */}
@@ -350,11 +455,12 @@ export default function SmartJourneyPlanner() {
           />
         </div>
       </div>
+      </section>
       
       <style>{`
         .animate-in { animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-    </section>
+    </>
   );
 }

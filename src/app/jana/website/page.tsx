@@ -43,7 +43,7 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
-interface PageMeta { slug: string; saved: boolean; }
+interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
 export default function MultiPageSiteBuilder() {
@@ -66,10 +66,13 @@ export default function MultiPageSiteBuilder() {
   const [showNewModal, setShowNewModal]       = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditSlotModal, setShowEditSlotModal] = useState(false);
   const [newPageName, setNewPageName]         = useState('');
   const [renameTarget, setRenameTarget]       = useState('');
   const [renameValue, setRenameValue]         = useState('');
   const [deleteTarget, setDeleteTarget]       = useState('');
+  const [editingSlot, setEditingSlot]         = useState<Slot | null>(null);
+  const [editSlotLabel, setEditSlotLabel]    = useState('');
 
   // Template meta
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
@@ -97,7 +100,16 @@ export default function MultiPageSiteBuilder() {
   // Initial data fetch
   useEffect(() => {
     fetch('/api/jana/website/list').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setPages(data.map(p => ({ slug: p.type.replace('website_', ''), saved: true })));
+      if (Array.isArray(data)) {
+        setPages(data.map(p => {
+          const type_str = p.type || '';
+          if (type_str.startsWith('website_search_')) {
+            return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
+          } else {
+            return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
+          }
+        }));
+      }
     }).catch(() => {});
 
     fetch('/api/jana/templates').then(r => r.json()).then(data => setTemplates(Array.isArray(data) ? data : [])).catch(() => {});
@@ -133,7 +145,11 @@ export default function MultiPageSiteBuilder() {
   // Load layout when page/template changes
   useEffect(() => {
     if (mode === 'PAGES') {
-      fetch(`/api/jana/website?id=website_${currentPage}`).then(r => r.json()).then(data => {
+      const currentPageData = pages.find(p => p.slug === currentPage);
+      const pageType = currentPageData?.type || 'page';
+      const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
+      
+      fetch(`/api/jana/website?id=${pageId}`).then(r => r.json()).then(data => {
         const t = data[0];
         if (!t) {
           // No config in DB at all — show defaults for main, empty for others
@@ -205,10 +221,14 @@ export default function MultiPageSiteBuilder() {
     try {
       const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id, ...(s.props || {}) } });
       if (mode === 'PAGES') {
+        const currentPageData = pages.find(p => p.slug === currentPage);
+        const pageType = currentPageData?.type || 'page';
+        const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
+        
         const res = await fetch('/api/jana/website', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: `website_${currentPage}`,
+            id: pageId,
             header_components: slotsFor('header').map(toComp),
             body_components:   slotsFor('body').map(toComp),
             footer_components: slotsFor('footer').map(toComp),
@@ -217,7 +237,7 @@ export default function MultiPageSiteBuilder() {
         });
         if (!res.ok) throw new Error('Failed');
         setPages(prev => prev.map(p => p.slug === currentPage ? { ...p, saved: true } : p));
-        if (!pages.find(p => p.slug === currentPage)) setPages(prev => [...prev, { slug: currentPage, saved: true }]);
+        if (!pages.find(p => p.slug === currentPage)) setPages(prev => [...prev, { slug: currentPage, saved: true, type: 'page' }]);
         notify(`🚀 ${currentPage.toUpperCase()} published!`);
       } else {
         if (!templateMeta.level) { notify('❌ Assign a Subscription Tier first!', 'error'); setSaving(false); return; }
@@ -259,7 +279,9 @@ export default function MultiPageSiteBuilder() {
     try {
       const pg = pages.find(p => p.slug === deleteTarget);
       if (pg?.saved) {
-        const res = await fetch(`/api/jana/website?id=website_${deleteTarget}`, { method: 'DELETE' });
+        const pageType = pg.type || 'page';
+        const pageId = pageType === 'search' ? `website_search_${deleteTarget}` : `website_${deleteTarget}`;
+        const res = await fetch(`/api/jana/website?id=${pageId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error((await res.json()).error || 'Delete failed');
       }
       const remaining = pages.filter(p => p.slug !== deleteTarget);
@@ -278,19 +300,39 @@ export default function MultiPageSiteBuilder() {
     const pg = pages.find(p => p.slug === renameTarget);
     if (pg?.saved) {
       try {
-        const res = await fetch(`/api/jana/website?id=website_${renameTarget}`);
+        const pageType = pg.type || 'page';
+        const oldPageId = pageType === 'search' ? `website_search_${renameTarget}` : `website_${renameTarget}`;
+        const newPageId = pageType === 'search' ? `website_search_${newSlug}` : `website_${newSlug}`;
+        
+        const res = await fetch(`/api/jana/website?id=${oldPageId}`);
         const data = await res.json();
         const cfg = data[0];
         if (cfg) {
-          await fetch('/api/jana/website', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...cfg, id: `website_${newSlug}` }) });
-          await fetch(`/api/jana/website?id=website_${renameTarget}`, { method: 'DELETE' });
+          await fetch('/api/jana/website', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...cfg, id: newPageId }) });
+          await fetch(`/api/jana/website?id=${oldPageId}`, { method: 'DELETE' });
         }
       } catch (e: any) { notify(`❌ Rename failed: ${e.message}`, 'error'); setShowRenameModal(false); return; }
     }
-    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false } : p));
+    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg.type } : p));
     if (currentPage === renameTarget) setCurrentPage(newSlug);
     notify(`✅ Renamed to "${newSlug}"`);
     setShowRenameModal(false); setRenameTarget(''); setRenameValue('');
+  };
+
+  // ── Edit slot ───────────────────────────────────────────────────────────
+  const openEditSlotModal = (slot: Slot) => {
+    setEditingSlot(slot);
+    setEditSlotLabel(slot.label);
+    setShowEditSlotModal(true);
+  };
+
+  const saveEditSlot = () => {
+    if (!editingSlot || !editSlotLabel.trim()) { notify('❌ Label cannot be empty', 'error'); return; }
+    setSlots(prev => prev.map(s => s.id === editingSlot.id ? { ...s, label: editSlotLabel } : s));
+    notify(`✅ Slot updated: "${editSlotLabel}"`);
+    setShowEditSlotModal(false);
+    setEditingSlot(null);
+    setEditSlotLabel('');
   };
 
   // ── Derived state ────────────────────────────────────────────────────────
@@ -458,15 +500,15 @@ export default function MultiPageSiteBuilder() {
                       <span style={{ width:7, height:7, borderRadius:'50%', background:page.saved?'#10b981':'#f59e0b', flexShrink:0, boxShadow:`0 0 5px ${page.saved?'#10b98166':'#f59e0b66'}`, display:'inline-block' }} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:'0.72rem', color:active?'#D4AF37':'rgba(255,255,255,0.78)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                          {page.slug === 'main' ? '🏠 Home' : `📄 ${page.slug}`}
+                          {page.slug === 'main' ? '🏠 Home' : page.type === 'search' ? `🔍 ${page.slug}` : `📄 ${page.slug}`}
                         </div>
                         <div style={{ fontSize:'0.56rem', color:page.saved?'rgba(255,255,255,0.25)':'#f59e0b', fontWeight:600, marginTop:'1px' }}>
-                          {page.saved ? '● Live' : '○ Draft – not published'}
+                          {page.saved ? (page.type === 'search' ? '● Search Page' : '● Live') : '○ Draft – not published'}
                         </div>
                       </div>
                       {/* Quick actions */}
                       <div style={{ display:'flex', gap:'3px', flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-                        <a href={page.slug==='main'?'/':'/p/'+page.slug} target="_blank" rel="noopener noreferrer" title="Preview"
+                        <a href={page.slug==='main'?'/':page.type==='search'?`/search/${page.slug}`:`/p/${page.slug}`} target="_blank" rel="noopener noreferrer" title="Preview"
                           style={iconBtn('#fff')}>👁</a>
                         {page.slug !== 'main' && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
@@ -587,6 +629,7 @@ export default function MultiPageSiteBuilder() {
                       <div style={{ display:'flex', gap:'4px' }}>
                         <button onClick={()=>moveSlot(slot.id,'up')} disabled={idx===0} style={arrowBtn(idx===0)}>↑</button>
                         <button onClick={()=>moveSlot(slot.id,'down')} disabled={idx===zSlots.length-1} style={arrowBtn(idx===zSlots.length-1)}>↓</button>
+                        <button onClick={()=>openEditSlotModal(slot)} title="Edit" style={{ width:26,height:26,background:'#f0f9ff',border:'1px solid #bfdbfe',borderRadius:5,color:'#0ea5e9',cursor:'pointer',fontWeight:900,fontSize:'0.75rem' }}>✏️</button>
                         <button onClick={()=>removeSlot(slot.id)} style={{ width:26,height:26,background:'#fff0f0',border:'1px solid #fecaca',borderRadius:5,color:'#ef4444',cursor:'pointer',fontWeight:900,fontSize:'0.75rem' }}>✕</button>
                       </div>
                     </div>
@@ -696,6 +739,24 @@ export default function MultiPageSiteBuilder() {
           <div style={{ display:'flex', gap:'0.65rem' }}>
             <button onClick={()=>setShowRenameModal(false)} style={modalCancelBtn}>Cancel</button>
             <button onClick={renamePage} style={modalConfirmBtn('linear-gradient(135deg,#6366f1,#4f46e5)','#fff')}>✅ Rename</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Slot */}
+      {showEditSlotModal && editingSlot && (
+        <Modal onClose={()=>{setShowEditSlotModal(false);setEditingSlot(null);}}>
+          <ModalIcon>✏️</ModalIcon>
+          <h3 style={modalTitle}>Edit Block Label</h3>
+          <p style={modalSub}>Update the display name for this component</p>
+          <input autoFocus value={editSlotLabel} onChange={e=>setEditSlotLabel(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveEditSlot();if(e.key==='Escape'){setShowEditSlotModal(false);setEditingSlot(null);}}}
+            placeholder="Block label" style={modalInput} />
+          <div style={{ marginBottom:'1rem', padding:'0.5rem 0.75rem', background:'#f0f9ff', border:'1px solid #bfdbfe', borderRadius:8, fontSize:'0.68rem', color:'#0c4a6e' }}>
+            ℹ️ Type: <strong>{editingSlot.key}</strong>
+          </div>
+          <div style={{ display:'flex', gap:'0.65rem' }}>
+            <button onClick={()=>{setShowEditSlotModal(false);setEditingSlot(null);}} style={modalCancelBtn}>Cancel</button>
+            <button onClick={saveEditSlot} style={modalConfirmBtn('linear-gradient(135deg,#0ea5e9,#0284c7)','#fff')}>✅ Save Label</button>
           </div>
         </Modal>
       )}

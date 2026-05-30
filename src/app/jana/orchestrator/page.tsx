@@ -9,6 +9,19 @@ import { useAdmin } from '@/context/AdminContext';
 /**
  * GOVERNANCE ORCHESTRATOR (PREMIUM)
  * The world-class onboarding engine for Siwa Oasis entities.
+ * 
+ * TERMINOLOGY DECLARATION:
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * • "ARCHITECTURE" Step: Workflow phase/stage in the onboarding process
+ * • "Typology/Typologies": Business classification taxonomy (Hotel, Restaurant, etc.)
+ * 
+ * This component uses both terms intentionally:
+ *   - Step names (ARCHITECTURE, AESTHETICS, DNA_CONFIG, etc.) → Process/workflow structure
+ *   - UI headings ("Select Typology") → Data model/business categories being selected
+ * 
+ * These are NOT synonymous and serve different conceptual purposes.
+ * Developers: Do not standardize these to one term—this distinction is intentional.
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 
 type Step = 'ARCHITECTURE' | 'AESTHETICS' | 'DNA_CONFIG' | 'AUTHORITY' | 'DEPLOYMENT';
@@ -132,6 +145,9 @@ function OrchestratorContent() {
 
   if (loading) return <div className="loader-screen">ORCHESTRATING...</div>;
 
+  // Filter typologies (business categories) into parent/child hierarchy
+  // NOTE: "Typologies" here refers to the DATA MODEL (business classification)
+  // NOT the ARCHITECTURE step (which is the workflow process above)
   const parentTypologies = typologies.filter(t => t.is_parent || !t.parent_id);
   const childTypologies = state.selectedParent ? typologies.filter(t => t.parent_id === state.selectedParent) : [];
 
@@ -164,7 +180,11 @@ function OrchestratorContent() {
         {/* Active Phase Glass Card */}
         <div className="glass-card animate-in">
           
-          {/* STEP 1: ARCHITECTURE */}
+          {/* STEP 1: ARCHITECTURE - Business Type Selection */}
+          {/* NOTE: This STEP is called "ARCHITECTURE" (workflow process),
+                    but it displays "Typology" headings (data classification).
+                    This is intentional: ARCHITECTURE describes the workflow phase,
+                    while "Typology" describes the business category being selected. */}
           {state.step === 'ARCHITECTURE' && (
             <div className="phase-content">
               <div className="phase-header">

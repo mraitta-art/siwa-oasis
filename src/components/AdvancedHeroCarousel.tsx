@@ -32,6 +32,13 @@ interface AdvancedCarouselProps {
   showProgress?: boolean;
   height?: string;
   transitionDuration?: number;
+  isDynamic?: boolean;
+  includeDynamicOptions?: {
+    businesses?: boolean;
+    journeys?: boolean;
+    investment?: boolean;
+    registration?: boolean;
+  };
   visualSettings?: {
     titleSize?: number;
     subtitleSize?: number;
@@ -51,6 +58,13 @@ export default function AdvancedHeroCarousel({
   showProgress = true,
   height = '100vh',
   transitionDuration = 1200,
+  isDynamic = false,
+  includeDynamicOptions = {
+    businesses: true,
+    journeys: true,
+    investment: true,
+    registration: true
+  },
   visualSettings = {}
 }: AdvancedCarouselProps & { autoPlay?: boolean }) {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
@@ -69,10 +83,27 @@ export default function AdvancedHeroCarousel({
     if (carouselName && initialSlides.length === 0) {
       async function fetchSlides() {
         try {
-          const res = await fetch(`/api/jana/hero-carousel?siteId=${carouselName}`);
+          let url: string;
+          
+          if (isDynamic) {
+            // Fetch from dynamic carousel endpoint with parameters
+            const params = new URLSearchParams();
+            params.set('businesses', includeDynamicOptions.businesses !== false ? 'true' : 'false');
+            params.set('journeys', includeDynamicOptions.journeys !== false ? 'true' : 'false');
+            params.set('investment', includeDynamicOptions.investment !== false ? 'true' : 'false');
+            params.set('registration', includeDynamicOptions.registration !== false ? 'true' : 'false');
+            url = `/api/jana/hero-carousel-dynamic?${params.toString()}`;
+          } else {
+            // Fetch from static carousel endpoint
+            url = `/api/jana/hero-carousel?siteId=${carouselName}`;
+          }
+          
+          const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
             setSlides(data.slides || []);
+          } else {
+            console.warn(`Carousel fetch returned ${res.status}, using fallback`);
           }
         } catch (e) {
           console.error('Failed to fetch named carousel:', carouselName, e);
@@ -85,7 +116,7 @@ export default function AdvancedHeroCarousel({
       setSlides(initialSlides);
       setLoading(false);
     }
-  }, [carouselName, initialSlides]);
+  }, [carouselName, initialSlides, isDynamic, includeDynamicOptions]);
 
   const align = visualSettings.contentAlign || 'center';
   const titleSize = visualSettings.titleSize ? `${visualSettings.titleSize}rem` : 'clamp(2.5rem, 7vw, 5.5rem)';
@@ -135,15 +166,15 @@ export default function AdvancedHeroCarousel({
 
   if (loading) {
     return (
-      <section style={{ height, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i>
+      <section style={{ height, background: 'linear-gradient(135deg, #556B2F, #6B8E23)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#FFB700' }}></i>
       </section>
     );
   }
 
   if (!validSlides || validSlides.length === 0) {
     return (
-      <section style={{ height, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <section style={{ height, background: 'linear-gradient(135deg, #556B2F, #20B2AA)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', color: '#fff' }}><h2>{carouselName || 'Cinematic Carousel'}</h2></div>
       </section>
     );
@@ -212,20 +243,21 @@ export default function AdvancedHeroCarousel({
             {slide.showCaption !== false && slide.caption && (
               <div style={{
                 display: 'inline-block', 
-                background: 'rgba(212, 175, 55, 0.9)', 
-                color: '#1a1a2e',
+                background: 'linear-gradient(135deg, #FFB700, #FF9500)',
+                color: '#000',
                 padding: '0.5rem 1.5rem', 
                 borderRadius: '50px', 
                 fontSize: '0.8rem',
                 fontWeight: 800, 
                 letterSpacing: '2px', 
                 textTransform: 'uppercase', 
-                marginBottom: '1.5rem'
+                marginBottom: '1.5rem',
+                boxShadow: '0 4px 15px rgba(255, 183, 0, 0.3)'
               }}>
                 {slide.caption}
               </div>
             )}
-            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#fff' }}>
+            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#FFFFFF', textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
@@ -236,7 +268,8 @@ export default function AdvancedHeroCarousel({
                 margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
                 lineHeight: 1.8,
                 fontWeight: 400,
-                letterSpacing: '0.5px'
+                letterSpacing: '0.5px',
+                color: '#FFFFFF'
               }}>
                 {slide.subtitle}
               </p>
@@ -245,14 +278,17 @@ export default function AdvancedHeroCarousel({
               <div style={{ 
                 display: 'inline-block',
                 padding: '1rem 2.5rem', 
-                background: 'rgba(255,255,255,0.15)', 
+                background: 'linear-gradient(135deg, rgba(255, 183, 0, 0.25), rgba(255, 149, 0, 0.25))',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.3)',
+                border: '2px solid rgba(255, 183, 0, 0.6)',
                 borderRadius: '50px',
                 fontSize: '0.85rem',
                 fontWeight: 800,
                 letterSpacing: '2px',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#FFB700',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
               }}>
                 {slide.ctaText} →
               </div>
@@ -285,20 +321,21 @@ export default function AdvancedHeroCarousel({
             {slide.showCaption !== false && slide.caption && (
               <div style={{
                 display: 'inline-block', 
-                background: 'rgba(212, 175, 55, 0.9)', 
-                color: '#1a1a2e',
+                background: 'linear-gradient(135deg, #FFB700, #FF9500)',
+                color: '#000',
                 padding: '0.5rem 1.5rem', 
                 borderRadius: '50px', 
                 fontSize: '0.8rem',
                 fontWeight: 800, 
                 letterSpacing: '2px', 
                 textTransform: 'uppercase', 
-                marginBottom: '1.5rem'
+                marginBottom: '1.5rem',
+                boxShadow: '0 4px 15px rgba(255, 183, 0, 0.3)'
               }}>
                 {slide.caption}
               </div>
             )}
-            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#fff' }}>
+            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#FFFFFF', textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
@@ -309,7 +346,8 @@ export default function AdvancedHeroCarousel({
                 margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
                 lineHeight: 1.8,
                 fontWeight: 400,
-                letterSpacing: '0.5px'
+                letterSpacing: '0.5px',
+                color: '#FFFFFF'
               }}>
                 {slide.subtitle}
               </p>
@@ -318,14 +356,17 @@ export default function AdvancedHeroCarousel({
               <div style={{ 
                 display: 'inline-block',
                 padding: '1rem 2.5rem', 
-                background: 'rgba(255,255,255,0.15)', 
+                background: 'linear-gradient(135deg, rgba(255, 183, 0, 0.25), rgba(255, 149, 0, 0.25))',
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.3)',
+                border: '2px solid rgba(255, 183, 0, 0.6)',
                 borderRadius: '50px',
                 fontSize: '0.85rem',
                 fontWeight: 800,
                 letterSpacing: '2px',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#FFB700',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
               }}>
                 {slide.ctaText} →
               </div>
@@ -336,8 +377,8 @@ export default function AdvancedHeroCarousel({
 
        {showArrows && validSlides.length > 1 && (
         <>
-          <button onClick={goToPrev} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
-          <button onClick={goToNext} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+           <button onClick={goToPrev} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>‹</button>
+          <button onClick={goToNext} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>›</button>
         </>
       )}
 
@@ -347,9 +388,10 @@ export default function AdvancedHeroCarousel({
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMuted(!isMuted); }}
           style={{ 
             position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 30,
-            background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)',
-            color: '#fff', padding: '0.8rem', borderRadius: '50%', cursor: 'pointer',
-            width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            background: 'rgba(32, 178, 170, 0.3)', border: '2px solid rgba(0, 206, 209, 0.6)',
+            color: '#00CED1', padding: '0.8rem', borderRadius: '50%', cursor: 'pointer',
+            width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(5px)', transition: 'all 0.3s ease'
           }}
           title={isMuted ? "Unmute" : "Mute"}
         >
@@ -365,17 +407,43 @@ function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; anima
   if (slide.type === 'video') return <video src={slide.mediaUrl || undefined} autoPlay muted loop style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
   
   if (slide.displayMode === 'text_only' || slide.type === 'branded') {
+    // Determine background color for branded slides - SIWA OASIS Desert Sunset Palette
+    let bgGradient = 'linear-gradient(135deg, #556B2F, #6B8E23)';
+    
+    // Color-code workflow steps with desert sunset theme
+    if (slide.id?.includes('workflow_register')) {
+      bgGradient = 'linear-gradient(135deg, #556B2F 0%, #20B2AA 100%)'; // Dark Olive to Turquoise
+    } else if (slide.id?.includes('workflow_match')) {
+      bgGradient = 'linear-gradient(135deg, #556B2F 0%, #00CED1 100%)'; // Olive to Cyan
+    } else if (slide.id?.includes('workflow_offers')) {
+      bgGradient = 'linear-gradient(135deg, #FF9500 0%, #FFB700 100%)'; // Orange to Gold (Sun)
+    } else if (slide.id?.includes('workflow_book')) {
+      bgGradient = 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'; // Green to Lime (Palms)
+    }
+    
     return (
       <div style={{
         position: 'absolute', inset: 0,
-        background: slide.bgColor || 'linear-gradient(135deg, #0f172a, #1e293b)',
+        background: slide.bgColor || bgGradient,
         transition: 'background 1s ease',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        {slide.type === 'branded' && (
+        {/* Decorative elements for workflow slides */}
+        {slide.id?.includes('workflow_') && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(circle at 20% 50%, rgba(255, 183, 0, 0.08) 0%, transparent 60%), radial-gradient(circle at 80% 80%, rgba(102, 187, 106, 0.08) 0%, transparent 60%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+            animation: 'pulse 4s ease-in-out infinite'
+          }} />
+        )}
+        
+        {slide.type === 'branded' && !slide.id?.includes('workflow_') && (
           <div style={{
             position: 'absolute',
             top: '40%',

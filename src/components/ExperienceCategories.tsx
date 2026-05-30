@@ -1,15 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface CategoryItem {
   id: string;
   title: string;
   subtitle: string;
   icon: string;
-  imageUrl: string;
+  image_url: string;
   color: string;
   link: string;
+  is_visible: boolean;
+  display_order: number;
 }
 
 const DEFAULT_CATEGORIES: CategoryItem[] = [
@@ -18,36 +20,44 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
     title: 'WELLNESS & HEALING',
     subtitle: 'Float in salt lakes, immerse in natural springs, and experience therapeutic desert sand baths.',
     icon: 'fa-spa',
-    imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
+    image_url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
     color: '#10B981',
     link: '/search/vibe?category=wellness',
+    is_visible: true,
+    display_order: 1,
   },
   {
     id: 'slow-food',
     title: 'AGRICULTURE & SLOW FOOD',
     subtitle: 'Taste organic date orchards, ancestral olive presses, and traditional Siwan gastronomy.',
     icon: 'fa-seedling',
-    imageUrl: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=800',
+    image_url: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=800',
     color: '#f59e0b',
     link: '/search/vibe?category=food',
+    is_visible: true,
+    display_order: 2,
   },
   {
     id: 'crafts',
     title: 'ARTISAN CRAFTS & TRADES',
     subtitle: 'Explore rock salt lamps, hand-embroidered textiles, and clay pottery crafted across generations.',
     icon: 'fa-store',
-    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800',
+    image_url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800',
     color: '#ef4444',
     link: '/search/vibe?category=crafts',
+    is_visible: true,
+    display_order: 3,
   },
   {
     id: 'safaris',
     title: 'ECO-SAFARIS & RETREATS',
     subtitle: 'Nomadic camping in the Great Sand Sea, eco-lodges of Kershef, and spiritual stargazing.',
     icon: 'fa-campground',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
+    image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
     color: '#8b5cf6',
     link: '/search/vibe?category=adventure',
+    is_visible: true,
+    display_order: 4,
   },
 ];
 
@@ -56,7 +66,30 @@ interface Props {
 }
 
 export default function ExperienceCategories({ categories }: Props) {
-  const items = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+  const [items, setItems] = useState<CategoryItem[]>(categories || DEFAULT_CATEGORIES);
+  const [loading, setLoading] = useState(!categories);
+
+  useEffect(() => {
+    if (categories) return; // Use passed-in categories if provided
+
+    async function fetchCategories() {
+      try {
+        const res = await fetch('/api/jana/experience-categories?visibleOnly=true');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setItems(data);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load categories from database, using fallback:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategories();
+  }, [categories]);
 
   return (
     <div style={{ padding: '6rem 0', background: '#0f172a' }}>
@@ -91,7 +124,7 @@ export default function ExperienceCategories({ categories }: Props) {
               if (img) img.style.transform = 'scale(1)';
             }}
           >
-            <img src={cat.imageUrl} alt={cat.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+            <img src={cat.image_url} alt={cat.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(10,15,29,0.95) 100%)', zIndex: 1 }} />
             <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(15,23,42,0.75)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: cat.color, fontSize: '1.1rem', zIndex: 2 }}>
               <i className={`fas ${cat.icon}`}></i>

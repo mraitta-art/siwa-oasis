@@ -28,7 +28,7 @@ export default function Home() {
             } else {
               // Config exists but has no components — use sensible defaults
               setLayout([
-                { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
+                { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
                 { id: 'h2', type: 'services_hub', props: {} },
                 { id: 'h3', type: 'experience_categories', props: {} },
                 { id: 'h4', type: 'search_bar', props: {} },
@@ -43,7 +43,7 @@ export default function Home() {
           } else {
             // No config found at all — first-time setup defaults
             setLayout([
-              { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
+              { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
               { id: 'h2', type: 'services_hub', props: {} },
               { id: 'h3', type: 'experience_categories', props: {} },
               { id: 'h4', type: 'search_bar', props: {} },
@@ -59,7 +59,7 @@ export default function Home() {
         console.error('Homepage init fail:', e);
         // Absolute Fallback
         setLayout([
-          { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery' } },
+          { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
           { id: 'h2', type: 'services_hub', props: {} },
           { id: 'h3', type: 'experience_categories', props: {} },
           { id: 'h4', type: 'search_bar', props: {} },
@@ -76,29 +76,29 @@ export default function Home() {
   }, []);
 
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-       <i className="fas fa-sun fa-spin fa-4x" style={{ color: '#D4AF37', marginBottom: '2rem' }}></i>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
+       <i className="fas fa-sun fa-spin fa-4x" style={{ color: '#FFB700', marginBottom: '2rem' }}></i>
        <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.7rem' }}>CURATING EXPERIENCE...</div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
       
       {/* 🏛️ ELITE NAVIGATION (Global Signature) */}
       <nav style={{ 
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, 
         padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)', 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)' 
+        background: 'linear-gradient(to bottom, rgba(85, 107, 47, 0.85), transparent)' 
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
             <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
-              <i className="fas fa-sun" style={{ color: '#D4AF37', fontSize: '1.5rem' }}></i>
-              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: '#D4AF37' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
+              <i className="fas fa-sun" style={{ color: '#FFB700', fontSize: '1.5rem' }}></i>
+              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: '#FFB700' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
             </>
           )}
         </Link>

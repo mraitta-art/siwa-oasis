@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
     const results = await query(
-      'SELECT type FROM website_configs WHERE type LIKE "website_%" ORDER BY type ASC'
+      'SELECT type FROM website_configs WHERE type LIKE "website_%" OR type LIKE "website_search_%" ORDER BY type ASC'
     );
     return NextResponse.json(results);
   } catch (e: any) {

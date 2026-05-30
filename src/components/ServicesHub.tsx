@@ -8,22 +8,25 @@ interface ServicePillar {
   tagline: string;
   icon: string;         // FontAwesome class
   color: string;        // icon accent colour
-  imageUrl: string;
-  searchLink: string;   // → /search/vibe?category=<id>
+  image_url: string;
+  search_link: string;   // → /search/vibe?category=<id>
+  is_visible: boolean;
+  display_order: number;
   count?: number;       // live business count (optional)
 }
 
-// Static data mirrors the exact parent rows in business_types table.
-// If the DB adds/changes a parent, update this array — or wire an admin toggle.
-const PILLARS: ServicePillar[] = [
+// Fallback data if database fails
+const FALLBACK_PILLARS: ServicePillar[] = [
   {
     id: 'accommodation',
     name: 'Stay & Shelter',
     tagline: 'Desert camps, Kershef lodges, eco-retreats, and full-service hotels.',
     icon: 'fa-bed',
     color: '#8b5cf6',
-    imageUrl: 'https://images.unsplash.com/photo-1482192505345-5852b41ade5c?q=80&w=800',
-    searchLink: '/search/vibe?category=accommodation',
+    image_url: 'https://images.unsplash.com/photo-1482192505345-5852b41ade5c?q=80&w=800',
+    search_link: '/search/vibe?category=accommodation',
+    is_visible: true,
+    display_order: 1,
   },
   {
     id: 'food',
@@ -31,8 +34,10 @@ const PILLARS: ServicePillar[] = [
     tagline: 'Traditional Siwan kitchens, organic date harvests, and desert-side cafés.',
     icon: 'fa-utensils',
     color: '#f59e0b',
-    imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800',
-    searchLink: '/search/vibe?category=food',
+    image_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800',
+    search_link: '/search/vibe?category=food',
+    is_visible: true,
+    display_order: 2,
   },
   {
     id: 'adventure',
@@ -40,8 +45,10 @@ const PILLARS: ServicePillar[] = [
     tagline: '4×4 sand sea expeditions, camel treks, and heritage walking tours.',
     icon: 'fa-compass',
     color: '#10b981',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
-    searchLink: '/search/vibe?category=adventure',
+    image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
+    search_link: '/search/vibe?category=adventure',
+    is_visible: true,
+    display_order: 3,
   },
   {
     id: 'wellness',
@@ -49,8 +56,10 @@ const PILLARS: ServicePillar[] = [
     tagline: 'Therapeutic sand baths, mineral salt lakes, and ancient hot springs.',
     icon: 'fa-spa',
     color: '#27ae60',
-    imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
-    searchLink: '/search/vibe?category=wellness',
+    image_url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
+    search_link: '/search/vibe?category=wellness',
+    is_visible: true,
+    display_order: 4,
   },
   {
     id: 'crafts',
@@ -58,8 +67,10 @@ const PILLARS: ServicePillar[] = [
     tagline: 'Siwan embroidery, handmade pottery, rock salt lamps, and local olive oil.',
     icon: 'fa-store',
     color: '#ef4444',
-    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800',
-    searchLink: '/search/vibe?category=crafts',
+    image_url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800',
+    search_link: '/search/vibe?category=crafts',
+    is_visible: true,
+    display_order: 5,
   },
   {
     id: 'logistics',
@@ -67,49 +78,34 @@ const PILLARS: ServicePillar[] = [
     tagline: 'Local tuk-tuks, desert equipment rental, and guided transfer services.',
     icon: 'fa-truck-moving',
     color: '#64748b',
-    imageUrl: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=800',
-    searchLink: '/search/vibe?category=logistics',
+    image_url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=800',
+    search_link: '/search/vibe?category=logistics',
+    is_visible: true,
+    display_order: 6,
   },
 ];
 
 export default function ServicesHub() {
-  const [pillars, setPillars] = useState<ServicePillar[]>(PILLARS);
+  const [pillars, setPillars] = useState<ServicePillar[]>(FALLBACK_PILLARS);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
-  // Optional: try to fetch live counts per category from the public vibe-search
-  // endpoint. Silently skips on failure — static data is always the fallback.
+  
+  // Fetch from database on mount
   useEffect(() => {
-    async function fetchCounts() {
+    async function fetchServices() {
       try {
-        const res = await fetch('/api/discovery/vibe-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tags: [] }), // empty → returns all businesses
-        });
-        if (!res.ok) return;
-        const all: any[] = await res.json();
-        // Count per type_id parent
-        const counts: Record<string, number> = {};
-        all.forEach((b) => {
-          // type_id may be a child (e.g. 'hotel'); we check if its name matches a parent id
-          // For simplicity count direct type_id matches and partial matches
-          PILLARS.forEach((p) => {
-            if (
-              b.type_id === p.id ||
-              (b.type_id && b.type_id.startsWith(p.id.slice(0, 5)))
-            ) {
-              counts[p.id] = (counts[p.id] || 0) + 1;
-            }
-          });
-        });
-        setPillars((prev) =>
-          prev.map((p) => ({ ...p, count: counts[p.id] ?? p.count }))
-        );
-      } catch {
-        // fail silently — static fallback stays
+        const res = await fetch('/api/jana/services?visibleOnly=true');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setPillars(data);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load services from database, using fallback:', error);
+        // Use fallback data
       }
     }
-    fetchCounts();
+    fetchServices();
   }, []);
 
   return (
@@ -176,7 +172,7 @@ export default function ServicesHub() {
           return (
             <div
               key={pillar.id}
-              onClick={() => (window.location.href = pillar.searchLink)}
+              onClick={() => (window.location.href = pillar.search_link)}
               onMouseEnter={() => setHoveredId(pillar.id)}
               onMouseLeave={() => setHoveredId(null)}
               style={{
@@ -197,7 +193,7 @@ export default function ServicesHub() {
             >
               {/* Background photo */}
               <img
-                src={pillar.imageUrl}
+                src={pillar.image_url}
                 alt={pillar.name}
                 style={{
                   width: '100%',
