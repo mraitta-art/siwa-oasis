@@ -15,7 +15,8 @@
     "backfill": "node scripts/backfill_visitors.js"
     ,
     "migrate:file": "node scripts/run_migration.js",
-    "migrate:dry": "node scripts/run_migration.js --dry"
+    "migrate:dry": "node scripts/run_migration.js --dry",
+    "sync:db": "node scripts/sync_database.js"
   },
   "engines": {
     "node": ">=20.0.0"
