@@ -83,22 +83,24 @@ export default function Home() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
+    <div style={{ minHeight: '100vh', background: settings?.bg_color || 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
       
       {/* 🏛️ ELITE NAVIGATION (Global Signature) */}
       <nav style={{ 
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, 
         padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)', 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        background: 'linear-gradient(to bottom, rgba(85, 107, 47, 0.85), transparent)' 
+        background: settings?.nav_bg_color 
+          ? `linear-gradient(to bottom, ${settings.nav_bg_color}, transparent)` 
+          : 'linear-gradient(to bottom, rgba(85, 107, 47, 0.85), transparent)' 
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
             <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
-              <i className="fas fa-sun" style={{ color: '#FFB700', fontSize: '1.5rem' }}></i>
-              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: '#FFB700' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
+              <i className="fas fa-sun" style={{ color: settings?.primary_color || '#FFB700', fontSize: '1.5rem' }}></i>
+              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: settings?.primary_color || '#FFB700' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
             </>
           )}
         </Link>
@@ -127,13 +129,13 @@ export default function Home() {
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
+               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: settings?.primary_color || '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
                <Link href="/search/vibe" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
                <Link href="#discovery" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage DNA</Link>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>GOVERNANCE</span>
+               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: settings?.primary_color || '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>GOVERNANCE</span>
                <Link href="/admin" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Admin / Partner Login</Link>
                <Link href="/investment" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
             </div>

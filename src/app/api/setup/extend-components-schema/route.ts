@@ -1,4 +1,4 @@
-import { execute } from '@/lib/db';
+import { execute, query } from '@/lib/db';
 
 export async function POST(req: Request) {
   const mode = process.env.NODE_ENV;
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     `);
 
     // Update existing components with default config schema
-    const components = await execute('SELECT id, key, category FROM site_components');
+    const components = await query('SELECT id, key, category FROM site_components');
     
     for (const comp of components) {
       const schema = generateDefaultSchema(comp.key, comp.category);

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 
-export default function VendorPartnerCTA() {
+export default function VendorPartnerCTA({ title, subtitle }: { title?: string; subtitle?: string }) {
   return (
     <div style={{ padding: '6rem 0', background: '#0a0f1d', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -44,7 +44,7 @@ export default function VendorPartnerCTA() {
               display: 'block', 
               marginBottom: '1rem' 
             }}>
-              COMMUNITY DIRECTORY GOVERNANCE
+              {subtitle || 'COMMUNITY DIRECTORY GOVERNANCE'}
             </span>
             <h3 style={{ 
               color: '#fff', 
@@ -53,7 +53,7 @@ export default function VendorPartnerCTA() {
               margin: '0 0 1.25rem 0',
               lineHeight: 1.15
             }}>
-              Empower the Siwan Cooperative
+              {title || 'Empower the Siwan Cooperative'}
             </h3>
             <p style={{ 
               color: 'rgba(255,255,255,0.6)', 

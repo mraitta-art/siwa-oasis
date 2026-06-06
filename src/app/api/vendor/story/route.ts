@@ -22,14 +22,31 @@ export async function GET(req: NextRequest) {
     if (business.length === 0) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     const biz = business[0];
 
-    // 2. Fetch all parent typologies for inheritance
-    const typesToFetch = [];
+    // 2. Fetch full typology chain (child → parent)
+    const typesToFetch: string[] = [];
     let currentTypeId = biz.type_id;
+    let childType: any = null;
+    let parentType: any = null;
+
     while (currentTypeId) {
-      const typeRes = (await query('SELECT id, parent_id FROM business_types WHERE id = ?', [currentTypeId])) as any[];
+      const typeRes = (await query(
+        'SELECT id, name, icon, icon_color, parent_id, is_parent FROM business_types WHERE id = ?',
+        [currentTypeId]
+      )) as any[];
       if (typeRes.length === 0) break;
-      typesToFetch.push(typeRes[0].id);
-      currentTypeId = typeRes[0].parent_id;
+      const t = typeRes[0];
+      typesToFetch.push(t.id);
+      if (!childType) childType = t;          // first iteration = the direct typology
+      if (!t.parent_id) parentType = t;       // no parent = this IS the parent
+      else {
+        // look up the parent info
+        const pRes = (await query(
+          'SELECT id, name, icon, icon_color FROM business_types WHERE id = ?',
+          [t.parent_id]
+        )) as any[];
+        if (pRes.length > 0) parentType = pRes[0];
+      }
+      currentTypeId = t.parent_id;
     }
     // Always include the SECTION_TEMPLATE for universal DNA
     typesToFetch.push('SECTION_TEMPLATE');
@@ -80,6 +97,11 @@ export async function GET(req: NextRequest) {
         status: biz.status,
         published: biz.published,
         tier: biz.subscription_tier
+      },
+      // ── TYPOLOGY IDENTITY ─────────────────────────────────
+      typology: {
+        child: childType  ? { id: childType.id,  name: childType.name,  icon: childType.icon,  color: childType.icon_color  } : null,
+        parent: parentType? { id: parentType.id, name: parentType.name, icon: parentType.icon, color: parentType.icon_color } : null,
       },
       tierFeatures,
       structure: Object.values(sections)

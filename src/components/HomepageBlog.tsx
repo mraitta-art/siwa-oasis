@@ -13,14 +13,14 @@ interface BlogPost {
   reading_time: number;
 }
 
-export default function HomepageBlog() {
+export default function HomepageBlog({ title, subtitle, maxPosts }: { title?: string; subtitle?: string; maxPosts?: number }) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/blog?limit=3');
+        const res = await fetch(`/api/blog?limit=${maxPosts || 3}`);
         if (res.ok) {
           const data = await res.json();
           setPosts(data.posts || []);
@@ -29,7 +29,7 @@ export default function HomepageBlog() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [maxPosts]);
 
   if (loading) return <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fas fa-spinner fa-spin"></i></div>;
   if (posts.length === 0) return null;
@@ -38,8 +38,8 @@ export default function HomepageBlog() {
     <div style={{ padding: '4rem 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
         <div>
-          <h6 style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase', fontSize: '0.7rem', margin: '0 0 0.5rem 0' }}>Stories from the Oasis</h6>
-          <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>Latest Articles</h2>
+          <h6 style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase', fontSize: '0.7rem', margin: '0 0 0.5rem 0' }}>{subtitle || 'Stories from the Oasis'}</h6>
+          <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>{title || 'Latest Articles'}</h2>
         </div>
         <Link href="/blog" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>VIEW ALL POSTS →</Link>
       </div>

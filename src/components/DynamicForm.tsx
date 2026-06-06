@@ -57,6 +57,31 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   
   const [currentLang, setCurrentLang] = React.useState('en');
   const [uploadingFields, setUploadingFields] = React.useState<Record<string, boolean>>({});
+  const [activeCategoryTabs, setActiveCategoryTabs] = React.useState<Record<string, string>>({});
+
+  const getActiveTab = (sid: string, availableTabs: { id: string }[]) => {
+    if (activeCategoryTabs[sid]) return activeCategoryTabs[sid];
+    return availableTabs[0]?.id || '';
+  };
+
+  const isFieldFilled = (field: Field, sid: string) => {
+    const sectionData = data[sid] || {};
+    const val = sectionData[field.name];
+    if (val === undefined || val === null) return false;
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === 'string') return val.trim().length > 0;
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'number') return true;
+    return !!val;
+  };
+
+  const getTabStats = (tabFields: Field[], sid: string) => {
+    const total = tabFields.length;
+    const filled = tabFields.filter(f => isFieldFilled(f, sid)).length;
+    const hasEmptyRequired = tabFields.some(f => f.required && !isFieldFilled(f, sid));
+    const isComplete = total > 0 && filled === total;
+    return { total, filled, hasEmptyRequired, isComplete };
+  };
   const languages = [
     { code: 'en', label: 'English', icon: '🇬🇧' },
     { code: 'zh', label: 'Chinese', icon: '🇨🇳' },
@@ -132,7 +157,69 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     if (isUniversal) { originColor = '#D4AF37'; originLabel = 'UNIVERSAL'; }
     else if (isInherited) { originColor = '#3b82f6'; originLabel = 'INHERITED'; }
 
+    const portalFieldTypes = ['gallery', 'image', 'video', 'youtube', 'narrative', 'richtext', 'rich_text'];
+    const portalNames = ['instagram_handle', 'facebook_link', 'tiktok_handle', 'wechat_id'];
+    const isPortal = portalFieldTypes.includes(field.field_type) || portalNames.includes(field.name);
+    const isCommon = !isPortal && (isUniversal || isInherited);
+    const themeColor = isPortal ? '#D4AF37' : (isCommon ? '#3b82f6' : '#10b981');
+
     const handleChange = (val: any) => onChange(sectionId, field.name, val);
+
+    const handleBatchUpload = async (files: File[]) => {
+      if (files.length === 0) return;
+
+      // SIZE VALIDATION
+      const oversized = files.filter(f => f.size > uploadSizeLimit);
+      if (oversized.length > 0) {
+        alert(`${oversized.length} files exceed your ${Math.round(uploadSizeLimit/1024/1024)}MB limit. Please reduce size or upgrade.`);
+        return;
+      }
+
+      setUploadingFields(prev => ({ ...prev, [field.id]: true }));
+
+      const currentItems = Array.isArray(value) ? [...value] : [];
+      
+      // 1. Add Optimistic Previews
+      const localPreviews = files.map(file => ({
+        url: URL.createObjectURL(file),
+        caption: 'Uploading...',
+        is_uploading: true,
+        file: file
+      }));
+      
+      handleChange([...currentItems, ...localPreviews]);
+
+      try {
+        const finalItems = [...currentItems];
+        
+        for (const localItem of localPreviews) {
+          const fd = new FormData(); 
+          fd.append('file', localItem.file);
+          fd.append('businessName', businessName || 'General');
+          const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
+          fd.append('sectionName', sName);
+          
+          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          const json = await res.json();
+          
+          if (json.url) {
+            finalItems.push({ url: json.url, caption: '', is_hero: false });
+            handleChange([...finalItems, ...localPreviews.slice(finalItems.length - currentItems.length)]);
+          }
+          
+          URL.revokeObjectURL(localItem.url);
+        }
+        
+        handleChange(finalItems);
+        notify(`Media Synchronized: ${files.length} assets added`, 'success');
+      } catch (err: any) {
+        console.error("Batch upload failed", err);
+        notify(err.message || "Media Upload Failed", "error");
+        handleChange(currentItems);
+      } finally {
+        setUploadingFields(prev => ({ ...prev, [field.id]: false }));
+      }
+    };
 
     return (
       <div
@@ -226,41 +313,79 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
                 <div style={{ display: 'flex', gap: '0.25rem', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   {!isFieldLocked && (
-                    <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title="Insert Image">
-                      {uploadingFields[`${field.id}-img`] ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-image"></i>}
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        disabled={uploadingFields[`${field.id}-img`]}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
+                    <>
+                      <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title="Insert Image (Device)">
+                        {uploadingFields[`${field.id}-img`] ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-image"></i>}
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          disabled={uploadingFields[`${field.id}-img`]}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
 
-                          // SIZE VALIDATION
-                          if (file.size > uploadSizeLimit) {
-                            alert(`File too large for your current tier (${Math.round(file.size/1024/1024)}MB). Your limit is ${Math.round(uploadSizeLimit/1024/1024)}MB.`);
-                            return;
-                          }
-
-                          setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          formData.append('businessName', businessName || 'General');
-                          const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
-                          formData.append('sectionName', sName);
-
-                          try {
-                            const res = await fetch(`/api/upload`, { method: 'POST', body: formData });
-                            const data = await res.json();
-                            if (data.url) {
-                              document.execCommand('insertImage', false, data.url);
+                            // SIZE VALIDATION
+                            if (file.size > uploadSizeLimit) {
+                              alert(`File too large for your current tier (${Math.round(file.size/1024/1024)}MB). Your limit is ${Math.round(uploadSizeLimit/1024/1024)}MB.`);
+                              return;
                             }
-                          } catch (err) { console.error("Upload failed", err); }
-                          finally { setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: false })); }
-                        }}
-                      />
-                    </label>
+
+                            setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('businessName', businessName || 'General');
+                            const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
+                            formData.append('sectionName', sName);
+
+                            try {
+                              const res = await fetch(`/api/upload`, { method: 'POST', body: formData });
+                              const data = await res.json();
+                              if (data.url) {
+                                document.execCommand('insertImage', false, data.url);
+                              }
+                            } catch (err) { console.error("Upload failed", err); }
+                            finally { setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: false })); }
+                          }}
+                        />
+                      </label>
+                      <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title="Insert Image (Camera)">
+                        {uploadingFields[`${field.id}-img`] ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-camera"></i>}
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          capture="environment"
+                          disabled={uploadingFields[`${field.id}-img`]}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            // SIZE VALIDATION
+                            if (file.size > uploadSizeLimit) {
+                              alert(`File too large for your current tier (${Math.round(file.size/1024/1024)}MB). Your limit is ${Math.round(uploadSizeLimit/1024/1024)}MB.`);
+                              return;
+                            }
+
+                            setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('businessName', businessName || 'General');
+                            const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
+                            formData.append('sectionName', sName);
+
+                            try {
+                              const res = await fetch(`/api/upload`, { method: 'POST', body: formData });
+                              const data = await res.json();
+                              if (data.url) {
+                                document.execCommand('insertImage', false, data.url);
+                              }
+                            } catch (err) { console.error("Upload failed", err); }
+                            finally { setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: false })); }
+                          }}
+                        />
+                      </label>
+                    </>
                   )}
                 </div>
 
@@ -551,35 +676,54 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           </button>
                         )}
 
-                        {/* HERO PROMOTION TOGGLE */}
-                        <button
-                          onClick={() => {
-                            if (isFieldLocked) return;
-                            const isObj = typeof item === 'object';
-                            const itemIsHero = isObj ? !!item.is_hero : false;
-                            
-                            const featuredCount = value.filter((p: any) => typeof p === 'object' ? p.is_hero : false).length;
-                            if (!itemIsHero && featuredCount >= (tierFeatures.maxSlides || 3) && !isAdmin) {
-                              alert(`Hero Slide Limit Reached (${tierFeatures.maxSlides || 3} max). Please upgrade or unselect another photo.`);
-                              return;
-                            }
-                            const next = [...value];
-                            const newItem = isObj ? { ...item, is_hero: !itemIsHero } : { url: item, is_hero: true };
-                            next[i] = newItem;
-                            handleChange(next);
-                          }}
-                          style={{
-                            position: 'absolute', top: 10, left: 10,
-                            background: (typeof item === 'object' && item.is_hero) ? '#D4AF37' : 'rgba(255,255,255,0.8)',
-                            color: (typeof item === 'object' && item.is_hero) ? '#fff' : '#64748b',
-                            border: 'none', borderRadius: '8px', padding: '4px 8px',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-                            fontSize: '0.6rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                          }}
-                        >
-                          <i className={`fa${(typeof item === 'object' && item.is_hero) ? 's' : 'r'} fa-star`}></i>
-                          {(typeof item === 'object' && item.is_hero) ? 'FEATURED IN HERO' : 'PROMOTE TO HERO'}
-                        </button>
+                        {/* HERO PROMOTION TOGGLES */}
+                        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <button
+                            onClick={() => {
+                              if (isFieldLocked) return;
+                              const isObj = typeof item === 'object';
+                              const isMiniHero = isObj ? !!item.is_minisite_hero : false;
+                              
+                              const next = [...value];
+                              const newItem = isObj ? { ...item, is_minisite_hero: !isMiniHero } : { url: item, is_minisite_hero: true };
+                              next[i] = newItem;
+                              handleChange(next);
+                            }}
+                            style={{
+                              background: (typeof item === 'object' && item.is_minisite_hero) ? '#D4AF37' : 'rgba(255,255,255,0.8)',
+                              color: (typeof item === 'object' && item.is_minisite_hero) ? '#fff' : '#64748b',
+                              border: 'none', borderRadius: '8px', padding: '4px 8px',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                              fontSize: '0.6rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            <i className={`fa${(typeof item === 'object' && item.is_minisite_hero) ? 's' : 'r'} fa-star`}></i>
+                            MINISITE HERO
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              if (isFieldLocked) return;
+                              const isObj = typeof item === 'object';
+                              const isMainHero = isObj ? !!item.is_main_site_hero : false;
+                              
+                              const next = [...value];
+                              const newItem = isObj ? { ...item, is_main_site_hero: !isMainHero } : { url: item, is_main_site_hero: true };
+                              next[i] = newItem;
+                              handleChange(next);
+                            }}
+                            style={{
+                              background: (typeof item === 'object' && item.is_main_site_hero) ? '#1e293b' : 'rgba(255,255,255,0.8)',
+                              color: (typeof item === 'object' && item.is_main_site_hero) ? '#fff' : '#64748b',
+                              border: 'none', borderRadius: '8px', padding: '4px 8px',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                              fontSize: '0.6rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            <i className={`fa${(typeof item === 'object' && item.is_main_site_hero) ? 's' : 'r'} fa-globe`}></i>
+                            MAIN SITE HERO
+                          </button>
+                        </div>
 
                         <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800 }}>
                           SLOT {i + 1}
@@ -655,10 +799,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                     </div>
                   ))}
                   {!isFieldLocked && (
-                    <label className="upload-dropzone hover-lift" style={{
+                    <div className="upload-dropzone hover-lift" style={{
                       height: '240px', border: '2px dashed #D4AF3740', display: 'flex',
                       flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      cursor: uploadingFields[field.id] ? 'wait' : 'pointer', borderRadius: '20px', gap: '1rem',
+                      borderRadius: '20px', gap: '1rem',
                       background: 'rgba(212,175,55,0.03)', transition: 'all 0.3s',
                       opacity: uploadingFields[field.id] ? 0.6 : 1
                     }}>
@@ -672,80 +816,41 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           <div style={{ width: 60, height: 60, background: 'rgba(212,175,55,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
                             <i className="fas fa-cloud-upload-alt fa-2x"></i>
                           </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>UPLOAD MEDIA</div>
-                            <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.25rem' }}>JPEG, PNG, WEBP (MAX 10MB)</div>
+                          <div style={{ textAlign: 'center', display: 'flex', gap: '0.75rem', marginTop: '0.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <label className="btn btn-sm btn-dark" style={{ cursor: 'pointer', background: '#1e293b', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <i className="fas fa-folder-open"></i> Upload Device Files
+                              <input 
+                                type="file" 
+                                multiple 
+                                style={{ display: 'none' }} 
+                                disabled={uploadingFields[field.id]}
+                                onChange={async (e) => {
+                                  const files = Array.from(e.target.files || []); 
+                                  await handleBatchUpload(files);
+                                  e.target.value = '';
+                                }} 
+                              />
+                            </label>
+                            <label className="btn btn-sm" style={{ cursor: 'pointer', background: '#D4AF37', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <i className="fas fa-camera"></i> Take Photo / Video
+                              <input 
+                                type="file" 
+                                accept="image/*,video/*"
+                                capture="environment"
+                                style={{ display: 'none' }} 
+                                disabled={uploadingFields[field.id]}
+                                onChange={async (e) => {
+                                  const files = Array.from(e.target.files || []); 
+                                  await handleBatchUpload(files);
+                                  e.target.value = '';
+                                }} 
+                              />
+                            </label>
                           </div>
+                          <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.25rem' }}>JPEG, PNG, WEBP, MP4 (MAX 10MB)</div>
                         </>
                       )}
-                      <input 
-                        type="file" 
-                        multiple 
-                        style={{ display: 'none' }} 
-                        disabled={uploadingFields[field.id]}
-                        onChange={async (e) => {
-                          const files = Array.from(e.target.files || []); 
-                          if (files.length === 0) return;
-
-                          // SIZE VALIDATION
-                          const oversized = files.filter(f => f.size > uploadSizeLimit);
-                          if (oversized.length > 0) {
-                            alert(`${oversized.length} files exceed your ${Math.round(uploadSizeLimit/1024/1024)}MB limit. Please reduce size or upgrade.`);
-                            return;
-                          }
-
-                          setUploadingFields(prev => ({ ...prev, [field.id]: true }));
-
-                          const currentItems = Array.isArray(value) ? [...value] : [];
-                          const optimisticItems = [...currentItems];
-                          
-                          // 1. Add Optimistic Previews
-                          const localPreviews = files.map(file => ({
-                            url: URL.createObjectURL(file),
-                            caption: 'Uploading...',
-                            is_uploading: true,
-                            file: file
-                          }));
-                          
-                          handleChange([...currentItems, ...localPreviews]);
-
-                          try {
-                            const finalItems = [...currentItems];
-                            
-                            for (const localItem of localPreviews) {
-                              const fd = new FormData(); 
-                              fd.append('file', localItem.file);
-                              fd.append('businessName', businessName || 'General');
-                              const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
-                              fd.append('sectionName', sName);
-                              
-                              const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                              const json = await res.json();
-                              
-                              if (json.url) {
-                                finalItems.push({ url: json.url, caption: '', is_hero: false });
-                                // Update UI incrementally if possible, or just build the final list
-                                handleChange([...finalItems, ...localPreviews.slice(finalItems.length - currentItems.length)]);
-                              }
-                              
-                              // Revoke the object URL to free memory
-                              URL.revokeObjectURL(localItem.url);
-                            }
-                            
-                            handleChange(finalItems);
-                            notify(`Media Synchronized: ${files.length} assets added`, 'success');
-                          } catch (err: any) {
-                            console.error("Batch upload failed", err);
-                            notify(err.message || "Media Upload Failed", "error");
-                            // Fallback to original items if everything fails
-                            handleChange(currentItems);
-                          } finally {
-                            setUploadingFields(prev => ({ ...prev, [field.id]: false }));
-                            e.target.value = '';
-                          }
-                        }} 
-                      />
-                    </label>
+                    </div>
                   )}
                 </div>
               </div>
@@ -861,8 +966,16 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     <div className="dynamic-form">
       {/* DNA LEGEND FOR ADMINS/VENDORS */}
       <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1rem', textTransform: 'uppercase' }}>
-          <i className="fas fa-info-circle" style={{ marginRight: '0.5rem' }}></i> Data Architecture Guide
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', textTransform: 'uppercase' }}>
+            <i className="fas fa-info-circle" style={{ marginRight: '0.5rem' }}></i> Data Architecture Guide
+          </div>
+          {typology && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '4px 10px', borderRadius: '20px', background: '#10b98115', border: '1px solid #10b98130' }}>
+              <i className="fas fa-fingerprint" style={{ fontSize: '0.55rem', color: '#10b981' }}></i>
+              <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#10b981' }}>{typology.toUpperCase()}</span>
+            </div>
+          )}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
@@ -911,48 +1024,235 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
       {sectionOrder.map(sid => {
         const sectionFields = groupedFields[sid];
+
+        const portalFieldTypes = ['gallery', 'image', 'video', 'youtube', 'narrative', 'richtext', 'rich_text'];
+        const portalNames = ['instagram_handle', 'facebook_link', 'tiktok_handle', 'wechat_id'];
         
-        // Categorize Fields
-        const textFields = sectionFields.filter(f => ['text', 'textarea', 'rich_text', 'richtext', 'narrative', 'email', 'tel', 'phone'].includes(f.field_type) && f.name !== 'initialized');
-        const mediaFields = sectionFields.filter(f => ['gallery', 'image', 'video', 'youtube'].includes(f.field_type));
-        const configFields = sectionFields.filter(f => !textFields.includes(f) && !mediaFields.includes(f) && f.name !== 'initialized');
+        const portalFields = sectionFields.filter(f => 
+          portalFieldTypes.includes(f.field_type) || 
+          portalNames.includes(f.name)
+        );
+        
+        const commonFields = sectionFields.filter(f => 
+          !portalFields.includes(f) && 
+          (f.business_type_id === 'SECTION_TEMPLATE' || f.is_inherited || (f as any).section_origin === 'inherited')
+        );
+        
+        const bespokeFields = sectionFields.filter(f => 
+          !portalFields.includes(f) && 
+          !commonFields.includes(f) &&
+          f.name !== 'initialized'
+        );
 
-        let stepCounter = 1;
+        const bespokeLabel = typology ? `${typology} DNA` : 'Bespoke Features';
+        const tabs = [
+          { id: 'portal', label: 'Portal & Media Showcase', icon: 'fa-photo-film', color: '#D4AF37', fields: portalFields },
+          { id: 'common', label: 'Common Core DNA', icon: 'fa-dna', color: '#3b82f6', fields: commonFields },
+          { id: 'bespoke', label: bespokeLabel, icon: 'fa-fingerprint', color: '#10b981', fields: bespokeFields },
+        ].filter(t => t.fields.length > 0);
 
-        const renderCategory = (fields: Field[], title: string, icon: string, color: string) => {
-          if (fields.length === 0) return null;
-          return (
-            <div style={{ marginBottom: '3rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '8px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className={`fas ${icon}`}></i>
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', letterSpacing: '2px' }}>{title.toUpperCase()}</span>
-                <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, #e2e8f0, transparent)' }}></div>
-              </div>
-              <div className="grid-fit">
-                {fields.map(f => {
-                  const fieldEl = renderField(f, sid);
-                  const currentStep = stepCounter++;
-                  return (
-                    <div key={f.name} style={{ position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: '-10px', left: '-10px', width: 24, height: 24, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900, zIndex: 5, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                        {currentStep}
-                      </div>
-                      {fieldEl}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        };
+        if (tabs.length === 0) return null;
+
+        const currentActiveTab = getActiveTab(sid, tabs);
+        const activeTabInfo = tabs.find(t => t.id === currentActiveTab) || tabs[0];
 
         return (
           <section key={sid} style={{ marginBottom: '3rem' }}>
-            {renderCategory(textFields, 'Text & Content', 'fa-font', '#3b82f6')}
-            {renderCategory(mediaFields, 'Media Assets', 'fa-images', '#D4AF37')}
-            {renderCategory(configFields, 'Configurations & Logic', 'fa-cogs', '#10b981')}
+            {/* Tab Bar Header */}
+            {tabs.length > 1 && (
+              <div className="tab-bar-container" style={{ 
+                display: 'flex', gap: '0.75rem', marginBottom: '2rem', 
+                background: '#f1f5f9', padding: '6px', borderRadius: '16px',
+                flexWrap: 'wrap', border: '1px solid #e2e8f0'
+              }}>
+                {tabs.map(tab => {
+                  const isActive = currentActiveTab === tab.id;
+                  const { total, filled, hasEmptyRequired, isComplete } = getTabStats(tab.fields, sid);
+                  
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveCategoryTabs(prev => ({ ...prev, [sid]: tab.id }))}
+                      style={{
+                        flex: '1 1 auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.75rem',
+                        padding: '0.85rem 1.25rem',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: isActive ? tab.color : 'transparent',
+                        color: isActive ? '#fff' : '#64748b',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: isActive ? `0 10px 20px -5px ${tab.color}50` : 'none',
+                        position: 'relative',
+                        transform: isActive ? 'scale(1.02)' : 'scale(1)'
+                      }}
+                    >
+                      <i className={`fas ${tab.icon}`} style={{ fontSize: '0.95rem' }}></i>
+                      <span>{tab.label.toUpperCase()}</span>
+                      
+                      {/* Stats Pill */}
+                      <span style={{ 
+                        fontSize: '0.65rem', 
+                        background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
+                        color: isActive ? '#fff' : '#475569',
+                        padding: '2px 8px',
+                        borderRadius: '20px',
+                        fontWeight: 900
+                      }}>
+                        {filled}/{total}
+                      </span>
+
+                      {/* Notifiers */}
+                      {hasEmptyRequired ? (
+                        <span 
+                          title="Required fields empty"
+                          style={{
+                            position: 'absolute',
+                            top: '-5px',
+                            right: '-5px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: '#ef4444',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.65rem',
+                            fontWeight: 900,
+                            boxShadow: '0 0 10px #ef4444aa',
+                            animation: 'pulse 1.5s infinite'
+                          }}
+                        >
+                          !
+                        </span>
+                      ) : isComplete && total > 0 ? (
+                        <span 
+                          title="Category Complete"
+                          style={{
+                            position: 'absolute',
+                            top: '-5px',
+                            right: '-5px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: '#10b981',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.65rem',
+                            fontWeight: 900,
+                            boxShadow: '0 0 10px #10b981aa'
+                          }}
+                        >
+                          ✓
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Active Tab Field Render Container */}
+            <div className="animate-in" style={{ animationDuration: '0.35s' }}>
+              {activeTabInfo && (
+                <div style={{ marginBottom: '2rem' }}>
+                  {/* Category Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ 
+                      width: 40, height: 40, borderRadius: '10px', 
+                      background: `${activeTabInfo.color}15`, color: activeTabInfo.color, 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '1.1rem'
+                    }}>
+                      <i className={`fas ${activeTabInfo.icon}`}></i>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', letterSpacing: '2px' }}>
+                        {activeTabInfo.label.toUpperCase()}
+                      </h3>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>
+                        {activeTabInfo.id === 'portal' && 'Premium assets that showcase your brand on the public portal and hero carousel.'}
+                        {activeTabInfo.id === 'common' && 'Core operational registry fields shared by all businesses in this section.'}
+                        {activeTabInfo.id === 'bespoke' && (
+                          typology
+                            ? <>Specialized traits exclusive to <strong style={{ color: '#10b981' }}>{typology}</strong>{businessName ? <> — configuring <em>{businessName}</em></> : null}. These fields set your typology apart.</>
+                            : 'Specialized traits and configurations unique to your specific typology.'
+                        )}
+                      </p>
+                    </div>
+                    <div style={{ height: '1px', flex: 1, background: `linear-gradient(to right, ${activeTabInfo.color}30, transparent)` }}></div>
+                  </div>
+
+                  <div className="grid-fit">
+                    {activeTabInfo.fields.map((f) => {
+                      const fieldEl = renderField(f, sid);
+                      const isFilled = isFieldFilled(f, sid);
+                      const isUniversal = f.business_type_id === 'SECTION_TEMPLATE';
+                      const isInherited = f.is_inherited || f.section_origin === 'inherited';
+                      const isPortal = portalFieldTypes.includes(f.field_type) || portalNames.includes(f.name);
+                      const isCommon = !isPortal && (isUniversal || isInherited);
+                      const fieldThemeColor = isPortal ? '#D4AF37' : (isCommon ? '#3b82f6' : '#10b981');
+                      
+                      return (
+                        <div 
+                          key={f.name} 
+                          className={`field-card-container ${isFilled ? 'is-filled' : ''} ${f.required ? 'is-required' : ''}`}
+                          style={{ 
+                            position: 'relative',
+                            borderLeft: isFilled ? `3px solid #10b981` : (f.required ? `3px solid #ef4444` : `3px solid #e2e8f0`),
+                            paddingLeft: '0.75rem',
+                            borderRadius: '0 12px 12px 0',
+                            background: isFilled ? 'rgba(16, 185, 129, 0.01)' : 'transparent',
+                            transition: 'all 0.3s ease',
+                            '--active-color': fieldThemeColor,
+                            '--active-color-alpha': `${fieldThemeColor}20`
+                          } as React.CSSProperties}
+                        >
+                          {/* Indicator tag */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            zIndex: 4,
+                            display: 'flex',
+                            gap: '4px'
+                          }}>
+                            {isFilled ? (
+                              <span style={{ 
+                                fontSize: '0.55rem', background: '#e6f4ea', color: '#137333', 
+                                padding: '2px 6px', borderRadius: '4px', border: '1px solid #13733320',
+                                fontWeight: 900
+                              }}>
+                                FILLED
+                              </span>
+                            ) : f.required ? (
+                              <span style={{ 
+                                fontSize: '0.55rem', background: '#fce8e6', color: '#c5221f', 
+                                padding: '2px 6px', borderRadius: '4px', border: '1px solid #c5221f20',
+                                fontWeight: 900, animation: 'pulse 1.5s infinite'
+                              }}>
+                                REQUIRED
+                              </span>
+                            ) : null}
+                          </div>
+                          {fieldEl}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
         );
       })}
@@ -1008,9 +1308,20 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         }
 
         .form-control:focus {
-          border-color: #D4AF37;
+          border-color: var(--active-color, #D4AF37);
           background: #ffffff;
-          box-shadow: 0 0 15px rgba(212,175,55,0.1);
+          box-shadow: 0 0 15px var(--active-color-alpha, rgba(212,175,55,0.1));
+        }
+
+        .rich-text-container:focus-within {
+          border-color: var(--active-color, #D4AF37) !important;
+          box-shadow: 0 0 15px var(--active-color-alpha, rgba(212,175,55,0.1));
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          70% { transform: scale(1.05); opacity: 0.9; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+          100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
         .narrative-canvas {

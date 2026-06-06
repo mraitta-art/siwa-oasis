@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-export default function InvestmentMarketplaceFeed() {
+export default function InvestmentMarketplaceFeed({ title, subtitle }: { title?: string; subtitle?: string }) {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,8 +33,8 @@ export default function InvestmentMarketplaceFeed() {
     <div style={{ padding: '4rem 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
         <div>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1rem' }}>HERITAGE CAPITAL</div>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: 0 }}>Investment Opportunities</h2>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1rem' }}>{subtitle || 'HERITAGE CAPITAL'}</div>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: 0 }}>{title || 'Investment Opportunities'}</h2>
         </div>
         <Link href="/investment" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem', borderBottom: '1px solid #D4AF37' }}>VIEW ALL OPPORTUNITIES</Link>
       </div>

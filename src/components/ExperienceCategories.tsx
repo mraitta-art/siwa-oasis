@@ -63,9 +63,11 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
 
 interface Props {
   categories?: CategoryItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export default function ExperienceCategories({ categories }: Props) {
+export default function ExperienceCategories({ categories, title, subtitle }: Props) {
   const [items, setItems] = useState<CategoryItem[]>(categories || DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(!categories);
 
@@ -95,10 +97,10 @@ export default function ExperienceCategories({ categories }: Props) {
     <div style={{ padding: '6rem 0', background: '#0f172a' }}>
       <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
         <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
-          THE PILLARS OF SIWA
+          {subtitle || 'THE PILLARS OF SIWA'}
         </span>
         <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>
-          Discover the Living Spirit
+          {title || 'Discover the Living Spirit'}
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.4)', maxWidth: '600px', margin: '1.25rem auto 0 auto', fontSize: '0.95rem', lineHeight: 1.7 }}>
           Journey through ancient agricultural traditions, therapeutic thermal waters, unique kershef architectures, and local marketplace trades.

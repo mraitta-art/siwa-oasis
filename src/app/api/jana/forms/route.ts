@@ -34,6 +34,120 @@ export async function GET(request: NextRequest) {
       }
 
       if (typeId !== 'SECTION_TEMPLATE') {
+        // Find if we have a blueprint_schema configured in business_types
+        let targetSchema: any = null;
+        const typeInfo = await queryOne('SELECT blueprint_schema, parent_id FROM business_types WHERE id = ?', [typeId]) as any;
+        if (typeInfo?.blueprint_schema) {
+          targetSchema = JSON.parse(typeInfo.blueprint_schema);
+        } else if (typeInfo?.parent_id) {
+          const parentInfo = await queryOne('SELECT blueprint_schema FROM business_types WHERE id = ?', [typeInfo.parent_id]) as any;
+          if (parentInfo?.blueprint_schema) {
+            targetSchema = JSON.parse(parentInfo.blueprint_schema);
+          }
+        }
+
+        if (targetSchema && targetSchema.chapters) {
+          const CHAPTER_TO_SECTION: Record<string, string> = {
+            identity: 'sec_1_identity',
+            vibe: 'sec_2_ambience',
+            amenities: 'sec_3_facilities',
+            cuisine: 'sec_4_gastronomy',
+            programs: 'sec_5_experiences',
+            ecology: 'sec_6_guardian',
+            invest: 'sec_7_investment',
+            offers: 'sec_8_connector',
+          };
+
+          const fieldMap = new Map();
+          const atomIds: string[] = [];
+
+          for (const [ch, chData] of Object.entries(targetSchema.chapters)) {
+            const schemaCh = chData as { layer1?: string[]; layer2?: string[] };
+            if (schemaCh?.layer1) atomIds.push(...schemaCh.layer1);
+            if (schemaCh?.layer2) atomIds.push(...schemaCh.layer2);
+          }
+
+          let atoms: any[] = [];
+          if (atomIds.length > 0) {
+            atoms = await query('SELECT * FROM blueprint_atoms WHERE id IN (?) AND active = 1', [atomIds]);
+          }
+
+          const atomMap = new Map(atoms.map(a => [a.id, a]));
+
+          for (const [ch, chData] of Object.entries(targetSchema.chapters)) {
+            const sectionId = CHAPTER_TO_SECTION[ch];
+            if (!sectionId) continue;
+
+            // Auto-inject structural defaults
+            const structuralDefaults = [
+              { name: 'section_gallery', label: 'CINEMATIC GALLERY', type: 'gallery', help: 'High-res photos for carousel slides.', sort_order: -2 },
+              { name: 'section_blog', label: 'NARRATIVE BLOG (RICH)', type: 'rich_text', help: 'The deep story for this chapter.', sort_order: 100 },
+              { name: 'section_news', label: 'Carousel Cinematic Teaser (Mini-Blog)', type: 'textarea', help: 'This short text will appear as captions on the automated hero.', sort_order: -1 },
+              { name: 'feature_on_main', label: 'FEATURE ON MAIN WEBSITE', type: 'checkbox', help: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.', sort_order: -3 }
+            ];
+
+            structuralDefaults.forEach(f => {
+              const key = `${sectionId}:${f.name}`;
+              fieldMap.set(key, {
+                id: `auto-${ch}-${f.name}`,
+                business_type_id: typeId,
+                section_id: sectionId,
+                name: f.name,
+                label: f.label,
+                field_type: f.type,
+                required: 0,
+                vendor_editable: 1,
+                searchable: 1,
+                help_text: f.help,
+                options: [],
+                validation: {},
+                acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
+                sort_order: f.sort_order,
+                section_origin: 'template'
+              });
+            });
+
+            const schemaCh = chData as { layer1?: string[]; layer2?: string[] };
+            const activeChAtoms = [
+              ...(schemaCh?.layer1 || []),
+              ...(schemaCh?.layer2 || [])
+            ];
+
+            activeChAtoms.forEach(atomId => {
+              const atom = atomMap.get(atomId) as any;
+              if (!atom) return;
+
+              const key = `${sectionId}:${atom.id}`;
+              fieldMap.set(key, {
+                id: `atom-${atom.id}`,
+                business_type_id: typeId,
+                section_id: sectionId,
+                name: atom.id,
+                label: atom.label,
+                field_type: atom.type,
+                required: 0,
+                vendor_editable: 1,
+                searchable: 1,
+                help_text: atom.display_hint || null,
+                options: (() => { try { return typeof atom.options_json === 'string' ? JSON.parse(atom.options_json) : atom.options_json || []; } catch(e) { return []; } })(),
+                validation: (() => { try { return typeof atom.validation_json === 'string' ? JSON.parse(atom.validation_json) : atom.validation_json || {}; } catch(e) { return {}; } })(),
+                acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
+                sort_order: atom.sort_order || 0,
+                section_origin: 'own'
+              });
+            });
+          }
+
+          let fieldsList = Array.from(fieldMap.values());
+          if (section) {
+            fieldsList = fieldsList.filter(f => f.section_id === section);
+          }
+          fieldsList.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          return NextResponse.json(fieldsList);
+        }
+      }
+
+      if (typeId !== 'SECTION_TEMPLATE') {
         let currentId: string | null = typeId;
         while (currentId) {
           const typeInfo = await queryOne('SELECT id, parent_id, sections, own_sections FROM business_types WHERE id = ?', [currentId]) as any;

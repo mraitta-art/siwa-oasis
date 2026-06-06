@@ -1,8 +1,9 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import DynamicForm from '@/components/DynamicForm';
 
 interface Field {
   id: string;
@@ -13,6 +14,7 @@ interface Field {
   value: any;
   options?: any;
   help_text?: string;
+  business_type_id?: string;
 }
 
 interface Section {
@@ -22,44 +24,50 @@ interface Section {
   fields: Field[];
 }
 
-import DynamicForm from '@/components/DynamicForm';
+interface Typology {
+  child:  { id: string; name: string; icon: string; color: string } | null;
+  parent: { id: string; name: string; icon: string; color: string } | null;
+}
 
 export default function VendorStudio() {
-  const notify = (msg: string, type: string = 'info') => console.log(type, msg);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [business, setBusiness] = useState<any>(null);
-  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [saving, setSaving]           = useState(false);
+  const [saveOk, setSaveOk]           = useState(false);
+  const [business, setBusiness]       = useState<any>(null);
+  const [typology, setTypology]       = useState<Typology>({ child: null, parent: null });
+  const [sections, setSections]       = useState<Section[]>([]);
+  const [activeTab, setActiveTab]     = useState<'core' | 'common' | 'unique'>('core');
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Record<string, any>>({});
-  const [tierFeatures, setTierFeatures] = useState<Record<string, boolean>>({});
+  const [formData, setFormData]       = useState<Record<string, any>>({});
+  const [tierFeatures, setTierFeatures] = useState<Record<string, any>>({});
 
-  useEffect(() => {
-    loadStory();
-  }, []);
+  useEffect(() => { loadStory(); }, []);
 
   async function loadStory() {
     try {
-      const res = await fetch('/api/vendor/story');
+      const res  = await fetch('/api/vendor/story');
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
       setBusiness(data.business);
+      setTypology(data.typology || { child: null, parent: null });
       setSections(data.structure);
       setTierFeatures(data.tierFeatures || {});
-      if (data.structure.length > 0) setActiveSection(data.structure[0].id);
+      
+      if (data.structure.length > 0) {
+        // Try to find the basic section first
+        const basic = data.structure.find((s: Section) => s.id === 'basic');
+        setActiveSection(basic ? basic.id : data.structure[0].id);
+      }
 
-      // Initialize form data
       const initialData: Record<string, any> = {};
       data.structure.forEach((s: Section) => {
         initialData[s.id] = {};
-        s.fields.forEach((f: any) => {
-          initialData[s.id][f.name] = f.value;
-        });
+        s.fields.forEach((f: any) => { initialData[s.id][f.name] = f.value; });
       });
       setFormData(initialData);
     } catch (e: any) {
-      notify(e.message, 'error');
+      console.error(e.message);
     } finally {
       setLoading(false);
     }
@@ -68,10 +76,7 @@ export default function VendorStudio() {
   const handleInputChange = (sectionId: string, fieldName: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [sectionId]: {
-        ...prev[sectionId],
-        [fieldName]: value
-      }
+      [sectionId]: { ...prev[sectionId], [fieldName]: value }
     }));
   };
 
@@ -79,131 +84,282 @@ export default function VendorStudio() {
     setSaving(true);
     try {
       const res = await fetch('/api/vendor/story', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: formData })
+        body:    JSON.stringify({ data: formData })
       });
       if (res.ok) {
-        notify('Your story has been updated and is now live!', 'success');
-      } else {
-        throw new Error('Failed to save');
-      }
+        setSaveOk(true);
+        setTimeout(() => setSaveOk(false), 3000);
+      } else throw new Error('Failed to save');
     } catch (e: any) {
-      notify(e.message, 'error');
+      console.error(e.message);
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="studio-loader">Preparing your Storyteller Studio...</div>;
+  // Group Sections
+  const { coreSections, commonSections, uniqueSections } = useMemo(() => {
+    const core: Section[] = [];
+    const common: Section[] = [];
+    const unique: Section[] = [];
 
-  const currentSection = sections.find(s => s.id === activeSection);
+    sections.forEach(s => {
+      if (s.id === 'basic') {
+        core.push(s);
+      } else {
+        // Check fields to determine if common or unique
+        const hasUniqueField = s.fields.some(f => f.business_type_id === typology.child?.id);
+        if (hasUniqueField) {
+          unique.push(s);
+        } else {
+          common.push(s);
+        }
+      }
+    });
 
-  // Flatten fields for DynamicForm
-  const allFields = sections.flatMap(s => s.fields.map(f => ({ ...f, section_id: s.id, required: !!f.required })));
+    return { coreSections: core, commonSections: common, uniqueSections: unique };
+  }, [sections, typology]);
+
+  // Handle Tab Switch
+  useEffect(() => {
+    let list: Section[] = [];
+    if (activeTab === 'core') list = coreSections;
+    else if (activeTab === 'common') list = commonSections;
+    else if (activeTab === 'unique') list = uniqueSections;
+
+    if (list.length > 0 && !list.some(s => s.id === activeSection)) {
+      setActiveSection(list[0].id);
+    }
+  }, [activeTab, coreSections, commonSections, uniqueSections]);
+
+  if (loading) return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a', gap: '1.5rem' }}>
+      <div style={{ width: 56, height: 56, border: '4px solid rgba(212,175,55,0.15)', borderTop: '4px solid #D4AF37', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+      <p style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '3px', fontSize: '0.8rem' }}>PREPARING SWIFT STUDIO</p>
+      <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  const currentSection  = sections.find(s => s.id === activeSection);
+  const allFields       = sections.flatMap(s => s.fields.map(f => ({ ...f, section_id: s.id, required: !!f.required })));
+  const accentColor     = typology.child?.color  || '#D4AF37';
+  const parentColor     = typology.parent?.color || '#64748b';
+
+  // Stats
+  const totalFields  = allFields.filter(f => f.name !== 'initialized').length;
+  const filledFields = allFields.filter(f => {
+    const val = formData[f.section_id]?.[f.name];
+    if (!val) return false;
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === 'string') return val.trim().length > 0;
+    return !!val;
+  }).length;
+  const overallPct = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
+
+  const currentList = activeTab === 'core' ? coreSections : activeTab === 'common' ? commonSections : uniqueSections;
 
   return (
-    <div className="studio-container">
-      {/* ── SIDEBAR: CHAPTERS ────────────────────────────────────────── */}
-      <aside className="studio-sidebar">
-        <div className="studio-brand">
-          <i className="fas fa-sun"></i>
-          <span>SIWA STUDIO</span>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#1a1a1a', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      
+      {/* ─── TOP NAVIGATION & TABS ─────────────────────────────────────────── */}
+      <header style={{ 
+        background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', 
+        position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' 
+      }}>
+        <div style={{ padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+             <div style={{ width: 40, height: 40, borderRadius: '12px', background: `${accentColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentColor }}>
+                <i className="fas fa-sun" style={{ fontSize: '1.2rem' }}></i>
+             </div>
+             <div>
+               <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>SIWA STUDIO</div>
+               <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '1px' }}>SWIFT DATA ENTRY</div>
+             </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '1rem' }}>
+               <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>COMPLETION</div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <div style={{ width: '100px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${overallPct}%`, background: overallPct === 100 ? '#10b981' : accentColor, transition: 'width 0.5s' }} />
+                 </div>
+                 <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallPct === 100 ? '#10b981' : '#1e293b' }}>{overallPct}%</span>
+               </div>
+            </div>
 
-        <nav className="studio-nav">
-          <div className="nav-label">STORY CHAPTERS</div>
-          {sections.map(s => (
-            <button
-              key={s.id}
-              className={`nav-item ${activeSection === s.id ? 'active' : ''}`}
-              onClick={() => setActiveSection(s.id)}
-            >
-              <i className={`fas ${s.icon}`}></i>
-              {s.name}
-              {['basic', 'location', 'contact'].includes(s.id) && <span className="dna-indicator" title="Core DNA Section"></span>}
+            <Link href={`/business/${business?.id}`} target="_blank" className="btn btn-outline" style={{ border: '1px solid #e2e8f0', color: '#64748b', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800 }}>
+              <i className="fas fa-external-link-alt" style={{ marginRight: '0.5rem' }}></i> PREVIEW
+            </Link>
+
+            <button onClick={saveChanges} disabled={saving} style={{
+              background: saveOk ? '#10b981' : '#0f172a', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '10px',
+              fontSize: '0.75rem', fontWeight: 800, cursor: saving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+              boxShadow: saveOk ? '0 4px 10px rgba(16, 185, 129, 0.3)' : '0 4px 10px rgba(15, 23, 42, 0.2)', transition: 'all 0.2s'
+            }}>
+              {saving ? <i className="fas fa-spinner fa-spin"></i> : saveOk ? <i className="fas fa-check"></i> : <i className="fas fa-cloud-upload-alt"></i>}
+              {saving ? 'SAVING...' : saveOk ? 'SAVED' : 'PUBLISH'}
             </button>
-          ))}
-        </nav>
-
-        <div className="studio-footer">
-          <Link href={`/business/${business?.id}`} target="_blank" className="btn-preview">
-            <i className="fas fa-external-link-alt"></i> VIEW MINISITE
-          </Link>
-          <button className="btn-save" onClick={saveChanges} disabled={saving}>
-            {saving ? 'SAVING...' : 'PUBLISH STORY'}
-          </button>
+          </div>
         </div>
-      </aside>
 
-      {/* ── MAIN AREA: EDITOR ─────────────────────────────────────────── */}
-      <main className="studio-main">
-        <header className="studio-header">
-          <div className="header-info">
-            <h1>{currentSection?.name}</h1>
-            <p>Tell the story of your business in this chapter.</p>
-          </div>
-          <div className="biz-status">
-            <span className={`status-pill ${business?.status}`}>{business?.status.toUpperCase()}</span>
-            {business?.published && <span className="live-pill">LIVE</span>}
-          </div>
-        </header>
+        {/* CATEGORIZATION TABS */}
+        <div style={{ display: 'flex', padding: '0 2rem', gap: '2rem', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+          {[
+            { id: 'core', label: 'CORE IDENTITY', icon: 'fa-fingerprint', color: '#D4AF37', count: coreSections.length },
+            { id: 'common', label: 'UNIVERSAL DNA', icon: 'fa-globe', color: '#3b82f6', count: commonSections.length },
+            { id: 'unique', label: 'UNIQUE TYPOLOGY', icon: 'fa-star', color: '#10b981', count: uniqueSections.length }
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                style={{
+                  padding: '1rem 0',
+                  background: 'none', border: 'none',
+                  borderBottom: isActive ? `3px solid ${tab.color}` : '3px solid transparent',
+                  color: isActive ? '#0f172a' : '#94a3b8',
+                  fontWeight: isActive ? 900 : 700,
+                  fontSize: '0.75rem', letterSpacing: '1px',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <i className={`fas ${tab.icon}`} style={{ color: isActive ? tab.color : '#cbd5e1' }}></i>
+                {tab.label}
+                <span style={{ 
+                  background: isActive ? `${tab.color}15` : '#f1f5f9', 
+                  color: isActive ? tab.color : '#94a3b8', 
+                  padding: '2px 8px', borderRadius: '10px', fontSize: '0.6rem' 
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </header>
 
-        <section className="editor-canvas">
-          <div className="form-stack">
-            <DynamicForm
-              fields={allFields.filter(f => f.section_id === activeSection)}
-              data={formData}
-              onChange={handleInputChange}
-              userRole="vendor"
-              sections={sections}
-              tierFeatures={tierFeatures}
-            />
+      {/* ─── MAIN CONTENT ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        
+        {/* SUB-SECTIONS NAVIGATION */}
+        <aside style={{ width: '280px', background: '#fff', borderRight: '1px solid #e2e8f0', overflowY: 'auto', padding: '1.5rem' }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', marginBottom: '1rem' }}>
+            {activeTab === 'core' ? 'CORE SECTIONS' : activeTab === 'common' ? 'UNIVERSAL SECTIONS' : 'TYPOLOGY SECTIONS'}
           </div>
-        </section>
-      </main>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {currentList.map(s => {
+              const isActive = activeSection === s.id;
+              
+              // Calc completeness for this section
+              const secFields = allFields.filter(f => f.section_id === s.id && f.name !== 'initialized');
+              const secFilled = secFields.filter(f => {
+                const val = formData[s.id]?.[f.name];
+                if (!val) return false;
+                if (Array.isArray(val)) return val.length > 0;
+                if (typeof val === 'string') return val.trim().length > 0;
+                return !!val;
+              }).length;
+              const secPct = secFields.length > 0 ? Math.round((secFilled / secFields.length) * 100) : 0;
 
-      <style jsx>{`
-        .studio-container { display: flex; height: 100vh; background: #fcfcfc; color: #1a1a1a; }
-        .studio-sidebar { width: 320px; background: #fff; border-right: 1px solid #eee; display: flex; flexDirection: column; }
-        .studio-brand { padding: 2rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #f9f9f9; }
-        .studio-brand i { color: #D4AF37; font-size: 1.5rem; }
-        .studio-brand span { font-weight: 900; letter-spacing: 2px; font-size: 0.9rem; }
-        
-        .studio-nav { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-        .nav-label { font-size: 0.65rem; font-weight: 900; color: #999; letter-spacing: 1.5px; margin-bottom: 1rem; }
-        .nav-item { border: none; background: none; padding: 1rem; border-radius: 12px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 1rem; font-weight: 700; color: #666; transition: all 0.2s; }
-        .nav-item i { width: 20px; color: #ccc; }
-        .nav-item:hover { background: #f9f9f9; color: #333; }
-        .nav-item.active { background: #1a1a1a; color: #fff; }
-        .nav-item.active i { color: #D4AF37; }
-        
-        .dna-indicator { width: 6px; height: 6px; border-radius: 50%; background: #D4AF37; margin-left: auto; }
-        
-        .studio-footer { padding: 1.5rem; border-top: 1px solid #f9f9f9; display: flex; flex-direction: column; gap: 0.75rem; }
-        .btn-preview { text-align: center; padding: 0.85rem; border-radius: 10px; border: 1.5px solid #eee; text-decoration: none; color: #666; font-weight: 800; font-size: 0.75rem; }
-        .btn-save { padding: 1rem; border-radius: 10px; border: none; background: #D4AF37; color: #1a1a1a; font-weight: 900; cursor: pointer; }
-        
-        .studio-main { flex: 1; overflow-y: auto; padding: 4rem; }
-        .studio-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4rem; }
-        .studio-header h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1px; }
-        .studio-header p { color: #999; margin-top: 0.5rem; }
-        
-        .live-pill { background: #000; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-left: 0.5rem; }
-        .status-pill { border: 1px solid #eee; padding: 4px 10px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; }
-        
-        .form-stack { max-width: 700px; display: flex; flex-direction: column; gap: 3rem; }
-        .field-group { display: flex; flex-direction: column; gap: 1rem; }
-        .field-label-row { display: flex; align-items: center; gap: 0.5rem; }
-        .field-label-row label { font-weight: 900; font-size: 0.8rem; text-transform: uppercase; color: #333; }
-        
-        .studio-input { width: 100%; padding: 1.25rem; border-radius: 14px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 1rem; transition: all 0.2s; }
-        .studio-input:focus { border-color: #D4AF37; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.02); }
-        
-        .dna-badge { font-size: 0.6rem; font-weight: 900; color: #D4AF37; letter-spacing: 1px; display: flex; align-items: center; gap: 0.5rem; }
-        
-        .studio-loader { height: 100vh; display: flex; align-items: center; justify-content: center; background: #1a1a1a; color: #D4AF37; font-weight: 900; letter-spacing: 3px; }
-      `}</style>
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSection(s.id)}
+                  style={{
+                    padding: '1rem',
+                    background: isActive ? '#f8fafc' : '#fff',
+                    border: isActive ? `1px solid ${accentColor}40` : '1px solid transparent',
+                    borderRadius: '12px',
+                    textAlign: 'left', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    boxShadow: isActive ? '0 4px 10px rgba(0,0,0,0.02)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: '8px', background: isActive ? accentColor : '#f1f5f9', color: isActive ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <i className={`fas ${s.icon}`}></i>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: isActive ? 800 : 600, color: isActive ? '#0f172a' : '#64748b' }}>{s.name}</div>
+                    <div style={{ fontSize: '0.6rem', color: secPct === 100 ? '#10b981' : '#94a3b8', fontWeight: 700, marginTop: '2px' }}>
+                      {secPct === 100 ? 'COMPLETED' : `${secPct}% FILLED`}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* FORM CANVAS */}
+        <main style={{ flex: 1, overflowY: 'auto', padding: '2.5rem', background: '#f8fafc' }}>
+          
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            
+            {/* INJECT BUSINESS HEADER IF CORE TAB & BASIC SECTION */}
+            {activeTab === 'core' && currentSection?.id === 'basic' && (
+              <div style={{ 
+                background: '#fff', borderRadius: '24px', padding: '2rem', marginBottom: '2rem', 
+                border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '16px', background: `${accentColor}15`, color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+                    <i className={`fas ${typology.child?.icon || 'fa-building'}`}></i>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#f1f5f9', color: '#64748b', padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>
+                        ID: {business?.id?.split('-')[0]}
+                      </span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: `${accentColor}15`, color: accentColor, padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>
+                        {typology.parent?.name?.toUpperCase()} &gt; {typology.child?.name?.toUpperCase()}
+                      </span>
+                    </div>
+                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
+                      {business?.name}
+                    </h1>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SECTION CANVAS WRAPPER */}
+            <div style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
+              
+              <div style={{ marginBottom: '2.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '12px', background: '#f8fafc', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                  <i className={`fas ${currentSection?.icon}`}></i>
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{currentSection?.name}</h2>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Fill in the details for this section. Changes will be saved globally.</p>
+                </div>
+              </div>
+
+              <DynamicForm
+                fields={allFields.filter(f => f.section_id === activeSection)}
+                data={formData}
+                onChange={handleInputChange}
+                userRole="vendor"
+                sections={sections}
+                tierFeatures={tierFeatures}
+                businessName={business?.name}
+                typology={typology.child?.name}
+                business={business}
+              />
+            </div>
+
+          </div>
+        </main>
+      </div>
+
     </div>
   );
 }

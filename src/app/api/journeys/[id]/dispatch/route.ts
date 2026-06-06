@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { target_business_type_id, target_vendor_id, distribution_status, reveal_contact } = body;
 

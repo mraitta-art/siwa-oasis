@@ -118,7 +118,7 @@ function NavControls({ step, canProceed, onBack, onNext, nextLabel = 'CONTINUE' 
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────
 
-export default function SmartJourneyPlanner() {
+export default function SmartJourneyPlanner({ title, subtitle }: { title?: string, subtitle?: string }) {
   const [step, setStep] = useState(1);
   const [requestType, setRequestType] = useState('');
   const [vibe, setVibe] = useState('');
@@ -251,8 +251,8 @@ export default function SmartJourneyPlanner() {
         <section style={S.wrap}>
           <div style={S.inner}>
             <div style={{ marginBottom: '4rem' }}>
-              <span style={S.label}>CURATED JOURNEYS</span>
-              <h2 style={S.h2}>Ready-Made Experiences</h2>
+              <span style={S.label}>{subtitle || 'CURATED JOURNEYS'}</span>
+              <h2 style={S.h2}>{title || 'Ready-Made Experiences'}</h2>
               <p style={S.sub}>Start with one of our expertly-designed journey templates or create your own custom adventure.</p>
             </div>
             

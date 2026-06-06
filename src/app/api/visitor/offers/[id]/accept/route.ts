@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     await query(
       `UPDATE journey_offers SET visitor_accepted = TRUE WHERE id = ?`,

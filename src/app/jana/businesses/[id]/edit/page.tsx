@@ -274,7 +274,7 @@ export default function BusinessEditPage() {
                 background: '#fff', borderRadius: '24px', padding: '3rem', 
                 boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03), 0 10px 15px -3px rgba(0,0,0,0.01)',
                 border: activeTab === section.id ? '2px solid #D4AF37' : '1px solid #f1f5f9',
-                transition: 'all 0.3s'
+                display: activeTab === section.id ? 'block' : 'none'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
@@ -286,7 +286,7 @@ export default function BusinessEditPage() {
                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Category Configuration Module</p>
                 </div>
               </div>
-
+ 
               <DynamicForm 
                 fields={fields.filter(f => f.section_id === section.id)}
                 data={biz.custom_data || {}}
@@ -383,8 +383,11 @@ export default function BusinessEditPage() {
         .btn-premium:active { transform: translateY(0); }
         .btn-premium.loading { opacity: 0.8; cursor: wait; }
 
-        .section-card { transform: scale(0.98); opacity: 0.8; }
-        .section-card.active { transform: scale(1); opacity: 1; }
+        .section-card { animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
     </main>
   );

@@ -4,15 +4,42 @@ import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
 /**
- * VENDOR REGISTRATION API
- * Creates a Profile AND a Business in one atomic flow.
- * Free vendors automatically receive the Essentials template from their tier.
+ * VENDOR REGISTRATION API - GET
+ * Returns a list of all unassigned businesses for a specific typology ID.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const typeId = searchParams.get('type_id');
+
+    if (!typeId) {
+      return NextResponse.json({ error: 'typology type_id is required' }, { status: 400 });
+    }
+
+    // Query businesses of this type that don't have a vendor_id assigned yet
+    const unassigned = await query(
+      `SELECT id, name, slug FROM businesses 
+       WHERE type_id = ? AND (vendor_id IS NULL OR vendor_id = '') 
+       ORDER BY name ASC`,
+      [typeId]
+    );
+
+    return NextResponse.json(unassigned);
+  } catch (error: any) {
+    console.error('Error fetching unassigned businesses:', error);
+    return NextResponse.json({ error: 'Failed to retrieve available businesses.' }, { status: 500 });
+  }
+}
+
+/**
+ * VENDOR REGISTRATION API - POST
+ * Links a new vendor Profile to an existing admin-created Business record.
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, displayName, businessName, businessType } = await req.json();
+    const { email, password, displayName, businessId, businessType } = await req.json();
 
-    if (!email || !password || !businessName || !businessType) {
+    if (!email || !password || !businessId || !businessType) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
     }
 
@@ -22,49 +49,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
 
-    // 2. Prepare IDs
+    // 2. Validate that the business exists under the correct type and is unassigned
+    const businessRow = await queryOne(
+      'SELECT id, name, vendor_id, subscription_tier, template_id FROM businesses WHERE id = ? AND type_id = ?',
+      [businessId, businessType]
+    ) as any;
+
+    if (!businessRow) {
+      return NextResponse.json({ error: 'Selected business not found or category mismatch' }, { status: 404 });
+    }
+
+    if (businessRow.vendor_id) {
+      return NextResponse.json({ error: 'This business has already been claimed by another vendor.' }, { status: 400 });
+    }
+
+    // 3. Prepare IDs and hashing
     const userId = randomUUID();
-    const businessId = randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
-    const slug = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-    // 3. AUTO-RESOLVE: Get the default template from the Free tier
-    let templateId: string | null = null;
-    try {
-      const freeTier = await queryOne('SELECT default_template_id FROM subscription_tiers WHERE id = ?', ['free']) as any;
-      if (freeTier?.default_template_id) {
-        templateId = freeTier.default_template_id;
-      }
-    } catch (e) {
-      // Column may not exist yet — fall back to hardcoded essentials
-      templateId = 'essentials_free';
-    }
-
-    // If still no template, try the hardcoded Essentials fallback
-    if (!templateId) {
-      templateId = 'essentials_free';
-    }
-
-    // 4. Create the Business Record with free tier + Essentials template
+    // 4. Update the Business Record: Link the vendor_id and set active status
     await execute(
-      `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, template_id, status, published, custom_data) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [businessId, businessName, slug, businessType, userId, 'free', templateId, 'active', false, JSON.stringify({})]
+      `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
+      [userId, businessId]
     );
 
     // 5. Create the Profile and link to the business
     await execute(
       'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, email, hashedPassword, 'vendor', displayName, businessId, 'free', true]
+      [userId, email, hashedPassword, 'vendor', displayName, businessId, businessRow.subscription_tier || 'free', true]
     );
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Welcome to the Oasis! Your free Essentials studio is ready.',
+      message: 'Welcome to the Oasis! Your heritage studio is ready.',
       userId,
       businessId,
-      templateId,
-      tier: 'free'
+      templateId: businessRow.template_id || 'essentials_free',
+      tier: businessRow.subscription_tier || 'free'
     });
 
   } catch (error) {

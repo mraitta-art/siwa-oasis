@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute } from '@/lib/db';
+import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { getBusinessTypes, getBusinessTypeById, invalidateCache } from '@/lib/cache';
 import fs from 'fs';
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
 
     // ✅ VALIDATION: Check for duplicate names
-    const existingWithName = await execute(
+    const existingWithName = await query(
       'SELECT id FROM business_types WHERE LOWER(name) = LOWER(?)',
       [name]
     );
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest) {
 
     // ✅ VALIDATION: Check for duplicate names (excluding current type)
     if (name) {
-      const existingWithName = await execute(
+      const existingWithName = await query(
         'SELECT id FROM business_types WHERE LOWER(name) = LOWER(?) AND id != ?',
         [name, id]
       );

@@ -85,7 +85,7 @@ const FALLBACK_PILLARS: ServicePillar[] = [
   },
 ];
 
-export default function ServicesHub() {
+export default function ServicesHub({ title, subtitle }: { title?: string; subtitle?: string }) {
   const [pillars, setPillars] = useState<ServicePillar[]>(FALLBACK_PILLARS);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   
@@ -129,7 +129,7 @@ export default function ServicesHub() {
             marginBottom: '1rem',
           }}
         >
-          COMPLETE SERVICES DIRECTORY
+          {subtitle || 'COMPLETE SERVICES DIRECTORY'}
         </span>
         <h2
           style={{
@@ -140,7 +140,7 @@ export default function ServicesHub() {
             letterSpacing: '-1px',
           }}
         >
-          Everything Siwa Offers
+          {title || 'Everything Siwa Offers'}
         </h2>
         <p
           style={{

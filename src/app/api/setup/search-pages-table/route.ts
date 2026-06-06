@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute } from '@/lib/db';
+import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 
 /**
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
-    const result = await execute(`
+    const result = await query(`
       SELECT 1 FROM information_schema.TABLES 
       WHERE TABLE_SCHEMA = DATABASE() 
       AND TABLE_NAME = 'search_pages'

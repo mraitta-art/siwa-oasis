@@ -21,6 +21,8 @@ interface Slide {
   displayMode?: 'image' | 'text_only';
   bgColor?: string;
   showCaption?: boolean;
+  imageFit?: 'cover' | 'contain';
+  imagePosition?: 'center' | 'top' | 'bottom';
 }
 
 interface AdvancedCarouselProps {
@@ -404,7 +406,16 @@ export default function AdvancedHeroCarousel({
 
 function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; animation: string; isActive: boolean; muted: boolean }) {
   if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl || ''} isActive={isActive} muted={muted} maxDuration={slide.maxDuration} />;
-  if (slide.type === 'video') return <video src={slide.mediaUrl || undefined} autoPlay muted loop style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
+  
+  if (slide.type === 'video') {
+    const objectFit = slide.imageFit === 'contain' ? 'contain' : 'cover';
+    const objectPos = slide.imagePosition || 'center';
+    return (
+      <div style={{ position: 'absolute', inset: 0, backgroundColor: slide.bgColor || '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <video src={slide.mediaUrl || undefined} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPos }} />
+      </div>
+    );
+  }
   
   if (slide.displayMode === 'text_only' || slide.type === 'branded') {
     // Determine background color for branded slides - SIWA OASIS Desert Sunset Palette
@@ -464,10 +475,14 @@ function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; anima
     );
   }
 
+  const bgSize = slide.imageFit === 'contain' ? 'contain' : 'cover';
+  const bgPos = slide.imagePosition || 'center';
+
   return (
     <div style={{
       position: 'absolute', inset: 0, backgroundImage: `url(${slide.mediaUrl})`,
-      backgroundSize: 'cover', backgroundPosition: 'center',
+      backgroundSize: bgSize, backgroundPosition: bgPos, backgroundRepeat: 'no-repeat',
+      backgroundColor: slide.bgColor || '#000',
       animation: isActive && animation === 'kenburns' ? 'kenburns-advanced 20s infinite' : 'none'
     }} />
   );

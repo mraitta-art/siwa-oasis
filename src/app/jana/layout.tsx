@@ -17,6 +17,7 @@ const NAV_GROUPS = [
     subtitle: 'Blueprint & Structure',
     collapsible: false,
     items: [
+      { name: '⚡ Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
       { name: 'Foundation Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Data Sections', path: '/jana/sections', icon: 'fa-columns' },
@@ -112,6 +113,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Contextual guidance based on current page
   const getPageGuide = () => {
     if (pathname === '/jana') return { title: 'Governance Dashboard', tip: 'Overview of your marketplace ecosystem. Start the Foundation Architect for blueprint setup.' };
+    if (pathname.includes('/studio')) return { title: 'Unified Building Studio', tip: 'Stage 1: Define category schema (sections + fields). Stage 2: Select a business and fill its data all in one flow.' };
     if (pathname.includes('/sections')) return { title: 'Data Sections', tip: 'Define reusable data containers first — these become available when configuring types.' };
     if (pathname.includes('/types')) return { title: 'Typology Tree', tip: 'Define parent categories and their children. Assign sections to control what data each type collects.' };
     if (pathname.includes('/expressions')) return { title: 'Vibe & Expressions', tip: 'Define searchable atmosphere tags like "Rustic", "Spiritual", "Eco-friendly".' };

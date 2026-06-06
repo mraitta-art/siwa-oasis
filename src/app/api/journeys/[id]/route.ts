@@ -4,10 +4,10 @@ import { query } from '@/lib/db';
 // GET /api/journeys/[id] - Get a single journey with its offers
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const journeys = await query(
       `SELECT * FROM journey_requests WHERE id = ?`,
@@ -42,10 +42,10 @@ export async function GET(
 // PATCH /api/journeys/[id] - Update journey status
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { status } = body;
 

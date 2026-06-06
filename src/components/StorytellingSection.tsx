@@ -14,7 +14,7 @@ interface StoryPost {
   reading_time: number;
 }
 
-export default function StorytellingSection() {
+export default function StorytellingSection({ title, subtitle }: { title?: string; subtitle?: string }) {
   const [posts, setPosts] = useState<StoryPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,10 +80,10 @@ export default function StorytellingSection() {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '4.5rem' }}>
           <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
-            HERITAGE CHRONICLES
+            {subtitle || 'HERITAGE CHRONICLES'}
           </span>
           <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
-            Living Oral Traditions & Stories
+            {title || 'Living Oral Traditions & Stories'}
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.90rem', marginTop: '1.25rem', maxWidth: '600px', margin: '1.25rem auto 0 auto', lineHeight: 1.6 }}>
             Immerse yourself in authentic Siwan legends, architectural records, healing water studies, and slow agriculture diaries documented by community elders.

@@ -104,7 +104,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
         <AnimatedSection>
           <section style={{ background: '#0f172a', padding: '4rem 2rem' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <HomepageBlog />
+              <HomepageBlog title={props?.title} subtitle={props?.subtitle} maxPosts={props?.maxPosts} />
             </div>
           </section>
         </AnimatedSection>
@@ -128,7 +128,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
         <AnimatedSection>
           <section style={{ background: '#0f172a', padding: '6rem 2rem' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <InvestmentMarketplaceFeed />
+              <InvestmentMarketplaceFeed title={props?.title} subtitle={props?.subtitle} />
             </div>
           </section>
         </AnimatedSection>
@@ -139,9 +139,9 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section style={{ background: '#0a0f1d', padding: '6rem 2rem', textAlign: 'center' }}>
-            <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>Verified Businesses</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '3rem' }}>The Gold Standard of Siwa Oasis Experiences.</p>
-            <Link href="/search/vibe" style={{ display: 'inline-block', padding: '1rem 2.5rem', background: '#D4AF37', color: '#1a1a2e', textDecoration: 'none', borderRadius: '50px', fontWeight: 900 }}>EXPLORE THE COLLECTION</Link>
+            <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>{props?.title || 'Verified Businesses'}</h2>
+            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '3rem' }}>{props?.subtitle || 'The Gold Standard of Siwa Oasis Experiences.'}</p>
+            <Link href={props?.buttonLink || '/search/vibe'} style={{ display: 'inline-block', padding: '1rem 2.5rem', background: '#D4AF37', color: '#1a1a2e', textDecoration: 'none', borderRadius: '50px', fontWeight: 900 }}>{props?.buttonText || 'EXPLORE THE COLLECTION'}</Link>
           </section>
         </AnimatedSection>
       );
@@ -151,7 +151,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <ExperienceCategories />
+            <ExperienceCategories title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );
@@ -161,7 +161,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <SmartJourneyPlanner />
+            <SmartJourneyPlanner title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );
@@ -171,7 +171,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <InteractiveEcosystemMap />
+            <InteractiveEcosystemMap title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );
@@ -181,7 +181,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <LocalProductsShowcase />
+            <LocalProductsShowcase title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );
@@ -191,7 +191,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <StorytellingSection />
+            <StorytellingSection title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );
@@ -201,7 +201,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <VendorPartnerCTA />
+            <VendorPartnerCTA title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );
@@ -211,7 +211,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       return (
         <AnimatedSection>
           <section>
-            <ServicesHub />
+            <ServicesHub title={props?.title} subtitle={props?.subtitle} />
           </section>
         </AnimatedSection>
       );

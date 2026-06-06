@@ -310,38 +310,63 @@ export default function FormArchitectPage() {
 
           {!leftCollapsed && (
             <div className="animate-in">
-              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>BLUEPRINT INDEX</span>
                 <span style={{ background: 'rgba(212,175,55,0.1)', padding: '2px 8px', borderRadius: '6px' }}>{sections.length}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {sections.filter(s => currentType?.sections?.includes(s.id) || currentType?.own_sections?.includes(s.id)).map((s: any) => {
-                  const isActive = activeSection === s.id;
-                  const hasPropagation = s.fields?.some((f: any) => f.name === 'mini_blog');
+              
+              {(() => {
+                const visibleSections = sections.filter(s => currentType?.sections?.includes(s.id) || currentType?.own_sections?.includes(s.id));
+                const core = visibleSections.filter(s => s.id === 'basic');
+                const unique = visibleSections.filter(s => s.id !== 'basic' && s.fields?.some((f:any) => f.business_type_id === currentType?.id));
+                const common = visibleSections.filter(s => s.id !== 'basic' && !unique.includes(s));
+
+                const renderGroup = (title: string, group: any[], color: string) => {
+                  if (group.length === 0) return null;
                   return (
-                    <button 
-                      key={s.id}
-                      onClick={() => setActiveSection(s.id)}
-                      style={{ 
-                        textAlign: 'left', padding: '1rem', borderRadius: '18px', border: isActive ? `1.5px solid ${themeColor}20` : '1px solid transparent',
-                        background: isActive ? `${themeColor}05` : 'transparent',
-                        color: isActive ? '#1e293b' : '#64748b',
-                        fontWeight: isActive ? 900 : 700, fontSize: '0.85rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '1.25rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                      }}
-                    >
-                      <div style={{ width: 42, height: 42, borderRadius: '12px', background: isActive ? themeColor : '#f8fafc', color: isActive ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', border: isActive ? 'none' : '1px solid #f1f5f9' }}>
-                        <i className={`fas ${s.icon}`}></i>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 900, color, letterSpacing: '2px', padding: '0 0.5rem 0.5rem', textTransform: 'uppercase' }}>{title}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        {group.map((s: any) => {
+                          const isActive = activeSection === s.id;
+                          const hasPropagation = s.fields?.some((f: any) => f.name === 'mini_blog');
+                          return (
+                            <button 
+                              key={s.id}
+                              onClick={() => setActiveSection(s.id)}
+                              style={{ 
+                                textAlign: 'left', padding: '0.85rem 1rem', borderRadius: '14px', border: isActive ? `1.5px solid ${themeColor}30` : '1px solid transparent',
+                                background: isActive ? `${themeColor}10` : 'transparent',
+                                color: isActive ? '#1e293b' : '#64748b',
+                                fontWeight: isActive ? 900 : 700, fontSize: '0.8rem', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: isActive ? `0 4px 10px rgba(0,0,0,0.02)` : 'none'
+                              }}
+                            >
+                              <div style={{ width: 36, height: 36, borderRadius: '10px', background: isActive ? themeColor : '#f1f5f9', color: isActive ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>
+                                <i className={`fas ${s.icon}`}></i>
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ marginBottom: '2px' }}>{s.name}</div>
+                                <div style={{ fontSize: '0.55rem', opacity: isActive ? 0.7 : 0.4, fontWeight: 800 }}>{s.fields?.length || 0} PATTERNS</div>
+                              </div>
+                              {hasPropagation && <i className="fas fa-magic" style={{ fontSize: '0.65rem', color: isActive ? themeColor : '#cbd5e1', opacity: 0.5 }}></i>}
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ marginBottom: '2px' }}>{s.name}</div>
-                        <div style={{ fontSize: '0.6rem', opacity: 0.4, fontWeight: 800 }}>{s.fields?.length || 0} DNA PATTERNS</div>
-                      </div>
-                      {hasPropagation && <i className="fas fa-magic" style={{ fontSize: '0.7rem', color: isActive ? themeColor : '#cbd5e1', opacity: 0.5 }}></i>}
-                    </button>
+                    </div>
                   );
-                })}
-              </div>
+                };
+
+                return (
+                  <>
+                    {renderGroup('CORE IDENTITY', core, '#D4AF37')}
+                    {renderGroup('UNIVERSAL DNA', common, '#3b82f6')}
+                    {renderGroup('UNIQUE TYPOLOGY', unique, '#10b981')}
+                  </>
+                );
+              })()}
             </div>
           )}
           {leftCollapsed && (

@@ -53,9 +53,11 @@ const DEFAULT_PRODUCTS: ProductItem[] = [
 
 interface Props {
   products?: ProductItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export default function LocalProductsShowcase({ products }: Props) {
+export default function LocalProductsShowcase({ products, title, subtitle }: Props) {
   const items = products && products.length > 0 ? products : DEFAULT_PRODUCTS;
 
   return (
@@ -66,10 +68,10 @@ export default function LocalProductsShowcase({ products }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4rem', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div>
             <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
-              LOCAL MARKETPLACE
+              {subtitle || 'LOCAL MARKETPLACE'}
             </span>
             <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
-              Featured Local Products
+              {title || 'Featured Local Products'}
             </h2>
           </div>
           <button

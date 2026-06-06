@@ -57,28 +57,30 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a' }}>
+    <div style={{ minHeight: '100vh', background: settings?.bg_color || '#0f172a' }}>
       {/* Navigation */}
       <nav style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
         padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)',
+        background: settings?.nav_bg_color 
+          ? `linear-gradient(to bottom, ${settings.nav_bg_color}, transparent)` 
+          : 'linear-gradient(to bottom, rgba(15,23,42,0.8), transparent)',
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
             <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
-              <i className="fas fa-sun" style={{ color: '#D4AF37', fontSize: '1.5rem' }}></i>
+              <i className="fas fa-sun" style={{ color: settings?.primary_color || '#D4AF37', fontSize: '1.5rem' }}></i>
               <span>
                 {settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.
-                <span style={{ color: '#D4AF37' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span>
+                <span style={{ color: settings?.primary_color || '#D4AF37' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span>
               </span>
             </>
           )}
         </Link>
-        <Link href="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', padding: '0.5rem 1.25rem', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50px', transition: 'all 0.2s' }}>
+        <Link href="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', padding: '0.5rem 1.25rem', border: `1px solid ${settings?.primary_color ? `${settings.primary_color}55` : 'rgba(255,255,255,0.15)'}`, borderRadius: '50px', transition: 'all 0.2s' }}>
           ← HOME
         </Link>
       </nav>

@@ -48,7 +48,7 @@ type Mode = 'PAGES' | 'TEMPLATES';
 
 export default function MultiPageSiteBuilder() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
-  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true }]);
+  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
   const [currentPage, setCurrentPage]   = useState('main');
@@ -72,7 +72,8 @@ export default function MultiPageSiteBuilder() {
   const [renameValue, setRenameValue]         = useState('');
   const [deleteTarget, setDeleteTarget]       = useState('');
   const [editingSlot, setEditingSlot]         = useState<Slot | null>(null);
-  const [editSlotLabel, setEditSlotLabel]    = useState('');
+  const [editSlotProps, setEditSlotProps]    = useState<Record<string, any>>({});
+  const [showPageStyleModal, setShowPageStyleModal] = useState(false);
 
   // Template meta
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
@@ -83,6 +84,7 @@ export default function MultiPageSiteBuilder() {
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
     logo_url: '', show_watermark: true, logo_height: 40,
+    bg_color: '#0f172a', nav_bg_color: '#556B2F',
   });
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
@@ -253,15 +255,31 @@ export default function MultiPageSiteBuilder() {
   };
 
   // ── Create page/template ─────────────────────────────────────────────────
-  const createItem = () => {
+  const createItem = async () => {
     if (mode === 'PAGES') {
       const slug = newPageName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if (!slug) return;
       if (pages.find(p => p.slug === slug)) { notify('⚠️ Page already exists!', 'error'); return; }
-      setPages(prev => [...prev, { slug, saved: false }]);
+
+      // ── Immediately write a blank record to DB so /p/{slug} never 404s ──
+      try {
+        await fetch('/api/jana/website', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: `website_${slug}`,
+            header_components: [],
+            body_components: [],
+            footer_components: [],
+            site_settings: { ...siteSettings, page_slug: slug },
+          }),
+        });
+      } catch { /* non-fatal – page still opens as draft */ }
+
+      setPages(prev => [...prev, { slug, saved: false, type: 'page' }]);
       setCurrentPage(slug); setSlots([]);
       setShowNewModal(false); setNewPageName('');
-      notify(`✨ "${slug}" created – don't forget to publish!`, 'info');
+      notify(`✨ "${slug}" created – add blocks then 🚀 Publish!`, 'info');
     } else {
       const slug = newPageName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
       if (!slug) return;
@@ -294,11 +312,12 @@ export default function MultiPageSiteBuilder() {
 
   // ── Rename page ─────────────────────────────────────────────────────────
   const renamePage = async () => {
+    const pg = pages.find(p => p.slug === renameTarget);
+    if (!pg) return;
     const newSlug = renameValue.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     if (!newSlug || newSlug === renameTarget) { setShowRenameModal(false); return; }
     if (pages.find(p => p.slug === newSlug)) { notify('⚠️ Name already taken!', 'error'); return; }
-    const pg = pages.find(p => p.slug === renameTarget);
-    if (pg?.saved) {
+    if (pg.saved) {
       try {
         const pageType = pg.type || 'page';
         const oldPageId = pageType === 'search' ? `website_search_${renameTarget}` : `website_${renameTarget}`;
@@ -322,17 +341,24 @@ export default function MultiPageSiteBuilder() {
   // ── Edit slot ───────────────────────────────────────────────────────────
   const openEditSlotModal = (slot: Slot) => {
     setEditingSlot(slot);
-    setEditSlotLabel(slot.label);
+    setEditSlotProps({ label: slot.label, engine_id: slot.engine_id || '', carousel_id: slot.carousel_id || '', ...(slot.props || {}) });
     setShowEditSlotModal(true);
   };
 
   const saveEditSlot = () => {
-    if (!editingSlot || !editSlotLabel.trim()) { notify('❌ Label cannot be empty', 'error'); return; }
-    setSlots(prev => prev.map(s => s.id === editingSlot.id ? { ...s, label: editSlotLabel } : s));
-    notify(`✅ Slot updated: "${editSlotLabel}"`);
+    if (!editingSlot || !editSlotProps.label?.trim()) { notify('❌ Label cannot be empty', 'error'); return; }
+    const { label, engine_id, carousel_id, ...restProps } = editSlotProps;
+    setSlots(prev => prev.map(s => s.id === editingSlot.id ? { 
+      ...s, 
+      label, 
+      engine_id: engine_id || undefined, 
+      carousel_id: carousel_id || undefined, 
+      props: restProps 
+    } : s));
+    notify(`✅ Slot updated: "${label}"`);
     setShowEditSlotModal(false);
     setEditingSlot(null);
-    setEditSlotLabel('');
+    setEditSlotProps({});
   };
 
   // ── Derived state ────────────────────────────────────────────────────────
@@ -342,10 +368,10 @@ export default function MultiPageSiteBuilder() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ height: '100vh', background: '#0a0f1e', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', -apple-system, sans-serif", overflow: 'hidden' }}>
+    <div style={{ height: '100vh', minWidth: '1200px', background: '#0a0f1e', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', -apple-system, sans-serif", overflowX: 'auto', overflowY: 'hidden' }}>
 
       {/* ═══════════════════════ TOP BAR ══════════════════════════════════ */}
-      <div style={{ background: 'linear-gradient(90deg,#020617,#0f172a)', color: '#fff', padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(212,175,55,0.12)', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', flexShrink: 0, zIndex: 100 }}>
+      <div style={{ background: 'linear-gradient(90deg,#020617,#0f172a)', color: '#fff', padding: '10px 1.5rem', minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(212,175,55,0.12)', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', flexShrink: 0, zIndex: 100, gap: '1rem' }}>
 
         {/* Left: brand + mode */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
@@ -371,7 +397,7 @@ export default function MultiPageSiteBuilder() {
         </div>
 
         {/* Right: status + actions */}
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', justifyContent: 'flex-end', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.35rem 0.85rem', borderRadius: '8px' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: currentDraft ? '#f59e0b' : '#10b981', display: 'inline-block', boxShadow: `0 0 6px ${currentDraft ? '#f59e0b' : '#10b981'}` }} />
             <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
@@ -383,10 +409,16 @@ export default function MultiPageSiteBuilder() {
           <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />
 
           {mode === 'PAGES' && (
-            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer"
-              style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
-              👁 Preview
-            </a>
+            currentDraft ? (
+              <div style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, cursor: 'not-allowed' }} title="Publish first to preview">
+                👁 Preview (Unpublished)
+              </div>
+            ) : (
+              <a href={currentPage === 'main' ? '/' : (pages.find(p => p.slug === currentPage)?.type === 'search' ? `/search/${currentPage}` : `/p/${currentPage}`)} target="_blank" rel="noopener noreferrer"
+                style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+                👁 Preview
+              </a>
+            )
           )}
 
           <button onClick={save} disabled={saving}
@@ -412,9 +444,21 @@ export default function MultiPageSiteBuilder() {
             <Sep />
             <Field label="LOGO URL">
               <input value={siteSettings.logo_url||''} onChange={e => setSiteSettings(s=>({...s,logo_url:e.target.value}))} placeholder="https://…" style={fieldStyle(160)} />
-              <label style={{ cursor:'pointer', background:'#f8fafc', padding:'3px 8px', borderRadius:'6px', fontSize:'0.58rem', fontWeight:800, border:'1px solid #e2e8f0', whiteSpace:'nowrap', color:'#64748b' }}>
-                ☁ Upload
+              <label style={{ cursor:'pointer', background:'#f8fafc', padding:'3px 8px', borderRadius:'6px', fontSize:'0.58rem', fontWeight:800, border:'1px solid #e2e8f0', whiteSpace:'nowrap', color:'#64748b', marginRight:'4px' }}>
+                ☁ Device
                 <input type="file" hidden accept="image/*" onChange={async e=>{
+                  const file=e.target.files?.[0]; if(!file) return;
+                  notify('Uploading…','info');
+                  try{
+                    const fd=new FormData(); fd.append('file',file); fd.append('businessName','Platform'); fd.append('sectionName','branding');
+                    const r=await fetch('/api/upload',{method:'POST',body:fd}); const d=await r.json();
+                    if(d.url){setSiteSettings(s=>({...s,logo_url:d.url}));notify('✅ Logo updated');}
+                  }catch{notify('❌ Upload failed','error');}
+                }}/>
+              </label>
+              <label style={{ cursor:'pointer', background:'#f8fafc', padding:'3px 8px', borderRadius:'6px', fontSize:'0.58rem', fontWeight:800, border:'1px solid #e2e8f0', whiteSpace:'nowrap', color:'#64748b' }}>
+                📷 Camera
+                <input type="file" hidden accept="image/*" capture="environment" onChange={async e=>{
                   const file=e.target.files?.[0]; if(!file) return;
                   notify('Uploading…','info');
                   try{
@@ -432,6 +476,16 @@ export default function MultiPageSiteBuilder() {
               <input type="checkbox" checked={siteSettings.show_watermark!==false} onChange={e=>setSiteSettings(s=>({...s,show_watermark:e.target.checked}))} />
               <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>🏅 SIGNATURE</span>
             </label>
+            <Sep />
+            <Field label="PRIMARY">
+              <input type="color" value={siteSettings.primary_color||'#D4AF37'} onChange={e => setSiteSettings(s=>({...s,primary_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+            </Field>
+            <Field label="BG COLOR">
+              <input type="color" value={siteSettings.bg_color||'#0f172a'} onChange={e => setSiteSettings(s=>({...s,bg_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+            </Field>
+            <Field label="NAV BG">
+              <input type="color" value={siteSettings.nav_bg_color||'#556B2F'} onChange={e => setSiteSettings(s=>({...s,nav_bg_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+            </Field>
           </>
         ) : (
           <>
@@ -457,10 +511,10 @@ export default function MultiPageSiteBuilder() {
       </div>
 
       {/* ═══════════════════════ 3-COLUMN BODY ═══════════════════════════ */}
-      <div style={{ display:'grid', gridTemplateColumns:'240px 272px 1fr', flex:1, overflow:'hidden', minHeight:0 }}>
+      <div className="builder-layout">
 
         {/* ─── COL 1 · Pages / Templates List ──────────────────────────── */}
-        <div style={{ background:'#0d1526', borderRight:'1px solid rgba(255,255,255,0.05)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div className="builder-col-1" style={{ background:'#0d1526', borderRight:'1px solid rgba(255,255,255,0.05)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
           {/* Panel header */}
           <div style={{ padding:'0.85rem 0.85rem 0.7rem', borderBottom:'1px solid rgba(255,255,255,0.05)', flexShrink:0 }}>
@@ -548,7 +602,7 @@ export default function MultiPageSiteBuilder() {
         </div>
 
         {/* ─── COL 2 · Component Palette ───────────────────────────────── */}
-        <div style={{ background:'#fff', borderRight:'1px solid #f1f5f9', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div className="builder-col-2" style={{ background:'#fff', borderRight:'1px solid #f1f5f9', display:'flex', flexDirection:'column', overflow:'hidden' }}>
           <div style={{ padding:'0.65rem', borderBottom:'1px solid #f1f5f9', display:'flex', gap:'4px', flexShrink:0 }}>
             {(['header','body','footer'] as Zone[]).map(z => (
               <button key={z} onClick={()=>setActiveZone(z)}
@@ -583,7 +637,7 @@ export default function MultiPageSiteBuilder() {
         </div>
 
         {/* ─── COL 3 · Canvas ──────────────────────────────────────────── */}
-        <div style={{ padding:'1.25rem 1.5rem', overflowY:'auto', background:'#f8fafc' }}>
+        <div className="builder-col-3" style={{ padding:'1.25rem 1.5rem', overflowY:'auto', background:'#f8fafc' }}>
           <div style={{ maxWidth:820, margin:'0 auto' }}>
 
             {/* Zone tabs + summary */}
@@ -626,11 +680,11 @@ export default function MultiPageSiteBuilder() {
                     <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', padding:'0.6rem 0.9rem', background:`linear-gradient(90deg,${color}08,transparent)`, borderBottom:`1px solid ${color}12` }}>
                       <div style={{ width:30, height:30, borderRadius:8, background:`${color}14`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.95rem', flexShrink:0 }}>{def?.icon}</div>
                       <div style={{ flex:1, fontWeight:800, fontSize:'0.78rem', color:'#0f172a' }}>{slot.label}</div>
-                      <div style={{ display:'flex', gap:'4px' }}>
-                        <button onClick={()=>moveSlot(slot.id,'up')} disabled={idx===0} style={arrowBtn(idx===0)}>↑</button>
-                        <button onClick={()=>moveSlot(slot.id,'down')} disabled={idx===zSlots.length-1} style={arrowBtn(idx===zSlots.length-1)}>↓</button>
-                        <button onClick={()=>openEditSlotModal(slot)} title="Edit" style={{ width:26,height:26,background:'#f0f9ff',border:'1px solid #bfdbfe',borderRadius:5,color:'#0ea5e9',cursor:'pointer',fontWeight:900,fontSize:'0.75rem' }}>✏️</button>
-                        <button onClick={()=>removeSlot(slot.id)} style={{ width:26,height:26,background:'#fff0f0',border:'1px solid #fecaca',borderRadius:5,color:'#ef4444',cursor:'pointer',fontWeight:900,fontSize:'0.75rem' }}>✕</button>
+                      <div className="block-actions" style={{ display:'flex', gap:'6px', flexShrink:0, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                        <button onClick={()=>moveSlot(slot.id,'up')} disabled={idx===0} style={actionBtn(idx===0, '#64748b', '#f8fafc', '#e2e8f0')} title="Move Up">↑ Up</button>
+                        <button onClick={()=>moveSlot(slot.id,'down')} disabled={idx===zSlots.length-1} style={actionBtn(idx===zSlots.length-1, '#64748b', '#f8fafc', '#e2e8f0')} title="Move Down">↓ Down</button>
+                        <button onClick={()=>openEditSlotModal(slot)} title="Edit Config" style={actionBtn(false, '#0ea5e9', '#f0f9ff', '#bfdbfe')}>✏️ Edit</button>
+                        <button onClick={()=>removeSlot(slot.id)} title="Remove Component" style={actionBtn(false, '#ef4444', '#fff0f0', '#fecaca')}>✕ Delete</button>
                       </div>
                     </div>
 
@@ -747,16 +801,207 @@ export default function MultiPageSiteBuilder() {
       {showEditSlotModal && editingSlot && (
         <Modal onClose={()=>{setShowEditSlotModal(false);setEditingSlot(null);}}>
           <ModalIcon>✏️</ModalIcon>
-          <h3 style={modalTitle}>Edit Block Label</h3>
-          <p style={modalSub}>Update the display name for this component</p>
-          <input autoFocus value={editSlotLabel} onChange={e=>setEditSlotLabel(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveEditSlot();if(e.key==='Escape'){setShowEditSlotModal(false);setEditingSlot(null);}}}
-            placeholder="Block label" style={modalInput} />
+          <h3 style={modalTitle}>Edit Block Configuration</h3>
+          <p style={modalSub}>Update the configuration for this component</p>
+          
+          <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+            <div>
+              <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>DISPLAY LABEL</div>
+              <input autoFocus value={editSlotProps.label || ''} onChange={e=>setEditSlotProps(p=>({...p, label: e.target.value}))} onKeyDown={e=>{if(e.key==='Enter')saveEditSlot();if(e.key==='Escape'){setShowEditSlotModal(false);setEditingSlot(null);}}} placeholder="Block label" style={modalInput} />
+            </div>
+
+            {/* Custom prop editors based on component type */}
+            {editingSlot.key === 'search_bar' && (
+              <div>
+                <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SEARCH ENGINE</div>
+                <select value={editSlotProps.engine_id||''} onChange={e=>setEditSlotProps(p=>({...p, engine_id: e.target.value}))} style={{...modalInput, height: 'auto'}}>
+                  <option value="">Default (Global Search)</option>
+                  {searchEngines.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {editingSlot.key === 'hero_carousel' && (
+              <div>
+                <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>CAROUSEL ID</div>
+                <input value={editSlotProps.carousel_id||''} onChange={e=>setEditSlotProps(p=>({...p, carousel_id: e.target.value}))} placeholder="e.g. discovery" style={modalInput} />
+              </div>
+            )}
+
+            {editingSlot.key === 'featured_vibe' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>VIBE CATEGORY (e.g. Salt Lakes)</div>
+                  <input value={editSlotProps.vibe||''} onChange={e=>setEditSlotProps(p=>({...p, vibe: e.target.value}))} style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>TITLE (e.g. The Turquoise Miracles)</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>DESCRIPTION</div>
+                  <textarea value={editSlotProps.description||''} onChange={e=>setEditSlotProps(p=>({...p, description: e.target.value}))} style={{...modalInput, minHeight: 80, resize: 'vertical'}} />
+                </div>
+              </>
+            )}
+            
+            {editingSlot.key === 'smart_journey_planner' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>CUSTOM TITLE (Optional)</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Ready-Made Experiences" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>CUSTOM SUBTITLE (Optional)</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. CURATED JOURNEYS" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'blog' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SECTION TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Latest from Siwa" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Stories & Insights" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>MAX POSTS TO SHOW</div>
+                  <input type="number" value={editSlotProps.maxPosts||''} onChange={e=>setEditSlotProps(p=>({...p, maxPosts: parseInt(e.target.value)||undefined}))} placeholder="e.g. 6" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'investment_feed' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SECTION TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Heritage Investment" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Invest in Siwa's future" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'services' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>HEADING TEXT</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Verified Businesses" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. The Gold Standard" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>BUTTON TEXT</div>
+                  <input value={editSlotProps.buttonText||''} onChange={e=>setEditSlotProps(p=>({...p, buttonText: e.target.value}))} placeholder="e.g. EXPLORE THE COLLECTION" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>BUTTON LINK</div>
+                  <input value={editSlotProps.buttonLink||''} onChange={e=>setEditSlotProps(p=>({...p, buttonLink: e.target.value}))} placeholder="e.g. /search/vibe" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'experience_categories' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SECTION TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Discover Experiences" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Curated adventures" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'ecosystem_map' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>MAP TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Siwa Ecosystem" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Explore the oasis" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'local_products' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SECTION TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Artisan Products" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Handcrafted with love" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'storytelling_section' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SECTION TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Siwa Stories" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Heritage & Culture" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'partner_cta' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>CTA HEADING</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Become a Partner" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>CTA SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Join the Siwa ecosystem" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {editingSlot.key === 'services_hub' && (
+              <>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>HUB TITLE</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="e.g. Services Directory" style={modalInput} />
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>SUBTITLE</div>
+                  <input value={editSlotProps.subtitle||''} onChange={e=>setEditSlotProps(p=>({...p, subtitle: e.target.value}))} placeholder="e.g. Everything Siwa offers" style={modalInput} />
+                </div>
+              </>
+            )}
+
+            {/* Catch-all Title Override */}
+            {!['search_bar', 'hero_carousel', 'featured_vibe', 'smart_journey_planner', 'blog', 'investment_feed', 'services', 'experience_categories', 'ecosystem_map', 'local_products', 'storytelling_section', 'partner_cta', 'services_hub'].includes(editingSlot.key) && (
+               <div>
+                  <div style={{ fontSize:'0.6rem', fontWeight:900, color:'#64748b', marginBottom:'4px' }}>OVERRIDE TITLE (Optional)</div>
+                  <input value={editSlotProps.title||''} onChange={e=>setEditSlotProps(p=>({...p, title: e.target.value}))} placeholder="Custom section title" style={modalInput} />
+                </div>
+            )}
+          </div>
+
           <div style={{ marginBottom:'1rem', padding:'0.5rem 0.75rem', background:'#f0f9ff', border:'1px solid #bfdbfe', borderRadius:8, fontSize:'0.68rem', color:'#0c4a6e' }}>
-            ℹ️ Type: <strong>{editingSlot.key}</strong>
+            ℹ️ Component Type: <strong>{editingSlot.key}</strong>
           </div>
           <div style={{ display:'flex', gap:'0.65rem' }}>
             <button onClick={()=>{setShowEditSlotModal(false);setEditingSlot(null);}} style={modalCancelBtn}>Cancel</button>
-            <button onClick={saveEditSlot} style={modalConfirmBtn('linear-gradient(135deg,#0ea5e9,#0284c7)','#fff')}>✅ Save Label</button>
+            <button onClick={saveEditSlot} style={modalConfirmBtn('linear-gradient(135deg,#0ea5e9,#0284c7)','#fff')}>✅ Save Config</button>
           </div>
         </Modal>
       )}
@@ -794,6 +1039,14 @@ export default function MultiPageSiteBuilder() {
         ::-webkit-scrollbar-track{background:transparent}
         ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:99px}
         input:focus,select:focus,textarea:focus{outline:none;border-color:#6366f1!important}
+        
+        .builder-layout {
+          display: grid;
+          grid-template-columns: 240px 270px 1fr;
+          flex: 1;
+          overflow: hidden;
+          min-height: 0;
+        }
       `}</style>
     </div>
   );
@@ -849,8 +1102,8 @@ const selectStyle: React.CSSProperties = {
 const iconBtn = (color:string, bg='rgba(255,255,255,0.07)', border='rgba(255,255,255,0.1)'): React.CSSProperties => ({
   width:22, height:22, borderRadius:5, background:bg, border:`1px solid ${border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', cursor:'pointer', textDecoration:'none', color, flexShrink:0,
 });
-const arrowBtn = (disabled:boolean): React.CSSProperties => ({
-  width:26, height:26, background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:5, cursor:disabled?'default':'pointer', opacity:disabled?0.3:1, fontWeight:900, fontSize:'0.78rem',
+const actionBtn = (disabled:boolean, color:string, bg:string, border:string): React.CSSProperties => ({
+  padding: '0.3rem 0.6rem', background: bg, border: `1px solid ${border}`, borderRadius: 6, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.3 : 1, fontWeight: 800, fontSize: '0.65rem', color, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', transition: 'all 0.2s'
 });
 const modalTitle: React.CSSProperties = { margin:'0 0 0.25rem', fontWeight:900, fontSize:'1.15rem', color:'#0f172a' };
 const modalSub:   React.CSSProperties = { margin:'0 0 1.25rem', fontSize:'0.75rem', color:'#64748b', lineHeight:1.5 };

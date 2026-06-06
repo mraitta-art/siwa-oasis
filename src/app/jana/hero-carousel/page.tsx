@@ -12,6 +12,9 @@ interface CarouselSlide {
   ctaText?: string;
   ctaLink?: string;
   displayOrder: number;
+  imageFit?: 'cover' | 'contain';
+  imagePosition?: 'center' | 'top' | 'bottom';
+  bgColor?: string;
 }
 
 export default function HeroCarouselManager() {
@@ -29,7 +32,10 @@ export default function HeroCarouselManager() {
     type: 'image',
     ctaText: '',
     ctaLink: '',
-    displayOrder: 0
+    displayOrder: 0,
+    imageFit: 'cover',
+    imagePosition: 'center',
+    bgColor: '#000000'
   });
 
   // Fetch slides on mount
@@ -90,7 +96,10 @@ export default function HeroCarouselManager() {
       type: 'image',
       ctaText: '',
       ctaLink: '',
-      displayOrder: nextOrder
+      displayOrder: nextOrder,
+      imageFit: 'cover',
+      imagePosition: 'center',
+      bgColor: '#000000'
     });
     setEditingId(null);
     setShowForm(false);
@@ -389,9 +398,46 @@ export default function HeroCarouselManager() {
                     </button>
                     <input type="file" accept="image/*,video/*" multiple onChange={handleFileUpload} style={{ position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
                   </div>
+                  <div style={{ position: 'relative', overflow: 'hidden' }}>
+                    <button style={{ 
+                      background: '#10b981', color: '#fff', border: 'none', padding: '0.75rem 1rem', 
+                      borderRadius: '0.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
+                      display: 'flex', alignItems: 'center', gap: '0.4rem'
+                    }}>
+                      <i className="fas fa-camera"></i> {saving ? '...' : 'CAMERA'}
+                    </button>
+                    <input type="file" accept="image/*,video/*" capture="environment" multiple onChange={handleFileUpload} style={{ position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                  </div>
                 </div>
                 <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Provide a URL or upload files. Native videos (.mp4, .mov) are supported!</p>
               </div>
+              
+              <div>
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>ADJUST MEDIA FIT</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>FIT</label>
+                    <select name="imageFit" value={formData.imageFit || 'cover'} onChange={handleInputChange} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                      <option value="cover">Cover (Fill screen)</option>
+                      <option value="contain">Contain (Show all)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>ALIGN</label>
+                    <select name="imagePosition" value={formData.imagePosition || 'center'} onChange={handleInputChange} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                      <option value="center">Center</option>
+                      <option value="top">Top</option>
+                      <option value="bottom">Bottom</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>BG COLOR</label>
+                    <input type="color" name="bgColor" value={formData.bgColor || '#000000'} onChange={handleInputChange} style={{ width: '100%', height: '34px', padding: '0', borderRadius: '0.5rem', border: '1px solid #e2e8f0', cursor: 'pointer' }} />
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.5rem' }}>Use Contain + BG Color to fit portrait mobile photos nicely without cropping them.</p>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>BUTTON TEXT</label>
                 <input
