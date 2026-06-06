@@ -72,7 +72,13 @@ async function upsertRows(conn, table, rows, columns) {
   
   let inserted = 0;
   for (const row of rows) {
-    const vals = columns.map(c => row[c]);
+    const vals = columns.map(c => {
+      const val = row[c];
+      if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+        return JSON.stringify(val);
+      }
+      return val;
+    });
     const escapedCols = columns.map(c => `\`${c}\``);
     const placeholders = vals.map(() => '?').join(', ');
     const updateClauses = columns.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(', ');
@@ -101,7 +107,13 @@ async function replaceAllRows(conn, table, rows, columns) {
   
   let inserted = 0;
   for (const row of rows) {
-    const vals = columns.map(c => row[c]);
+    const vals = columns.map(c => {
+      const val = row[c];
+      if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+        return JSON.stringify(val);
+      }
+      return val;
+    });
     const escapedCols = columns.map(c => `\`${c}\``);
     const placeholders = vals.map(() => '?').join(', ');
     
@@ -174,7 +186,12 @@ async function main() {
   for (const table of prodOnly) {
     console.log(`\n  Creating '${table}' on LOCAL...`);
     try {
-      const createSQL = await getCreateTable(prodConn, table);
+      let createSQL = await getCreateTable(prodConn, table);
+      // Replace TiDB binary collations with local general_ci to prevent FK constraint mismatches
+      createSQL = createSQL.replace(/COLLATE=utf8mb4_bin/g, 'COLLATE=utf8mb4_general_ci');
+      createSQL = createSQL.replace(/CHARACTER SET utf8mb4 COLLATE utf8mb4_bin/g, 'CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci');
+      createSQL = createSQL.replace(/collate utf8mb4_bin/gi, 'collate utf8mb4_general_ci');
+      
       await localConn.query(createSQL);
       console.log(`  ✅ Created '${table}' on LOCAL`);
 
@@ -321,11 +338,15 @@ async function main() {
         console.log(`    ✅ Upserted ${count2} rows PROD → LOCAL`);
 
       } else {
-        // Default: local has more, push local → prod with upsert
-        console.log(`    Strategy: UPSERT LOCAL → PROD`);
+        // Default: MERGE (upsert both directions) to keep both in sync
+        console.log(`    Strategy: MERGE (upsert both directions)`);
         const localRows = await getAllRows(localConn, table);
-        const count = await upsertRows(prodConn, table, localRows, commonCols);
-        console.log(`    ✅ Upserted ${count} rows LOCAL → PROD`);
+        const upsertedToProd = await upsertRows(prodConn, table, localRows, commonCols);
+        console.log(`    ✅ Upserted ${upsertedToProd} rows LOCAL → PROD`);
+
+        const prodRows = await getAllRows(prodConn, table);
+        const upsertedToLocal = await upsertRows(localConn, table, prodRows, commonCols);
+        console.log(`    ✅ Upserted ${upsertedToLocal} rows PROD → LOCAL`);
       }
     } catch (err) {
       console.error(`  ❌ Error syncing '${table}': ${err.message}`);
