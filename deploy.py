@@ -15,7 +15,7 @@ print("╚═══════════════════════�
 print()
 
 # Configuration
-ZIP_FILE = "siwa_production_20260530_032413.zip"
+ZIP_FILE = "siwa_production_latest.zip"
 SERVER = "siwa.today"
 USERNAME = "vercel"
 PASSWORD = "PiCo@@4##73"

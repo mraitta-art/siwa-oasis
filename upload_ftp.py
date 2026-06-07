@@ -6,7 +6,7 @@ server = "siwa.today"
 user = "vercel"
 password = "PiCo@@4##73"
 remote_path = "/public_html/siwa-oasis"
-local_file = "siwa_upload_latest.zip"
+local_file = "siwa_production_latest.zip"
 
 print(f"Connecting to {server}...")
 try:

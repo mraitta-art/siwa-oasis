@@ -66,13 +66,26 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
       if (res.ok) {
         const data = await res.json();
         setSections(Array.isArray(data) ? data : []);
-        // load fields for each section
+        
+        // Optimize: load all fields for SECTION_TEMPLATE in a single request
+        const fr = await fetch('/api/jana/forms?type=SECTION_TEMPLATE');
         const map: Record<string, any[]> = {};
-        await Promise.all((Array.isArray(data) ? data : []).map(async (s: any) => {
-          const fr = await fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${s.id}`);
-          if (fr.ok) map[s.id] = await fr.json();
-          else map[s.id] = [];
-        }));
+        
+        // Initialize empty arrays for all sections
+        (Array.isArray(data) ? data : []).forEach((s: any) => {
+          map[s.id] = [];
+        });
+
+        if (fr.ok) {
+          const allFields = await fr.json();
+          if (Array.isArray(allFields)) {
+            allFields.forEach((field: any) => {
+              if (map[field.section_id]) {
+                map[field.section_id].push(field);
+              }
+            });
+          }
+        }
         setFields(map);
       }
     } catch (e) { console.error(e); }

@@ -3,6 +3,7 @@
 import React from 'react';
 import { FIELD_TYPES } from '@/lib/governance/constants';
 import { useAdmin, AdminContext } from '@/context/AdminContext';
+import { LangContext } from '@/context/LangContext';
 
 interface Field {
   id: string;
@@ -54,6 +55,10 @@ interface DynamicFormProps {
 export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {}, businessName, typology, business }: DynamicFormProps) {
   const adminCtx = React.useContext(AdminContext);
   const notify = adminCtx?.notify || (() => {});
+  // Safe: works even if DynamicForm is rendered outside LangProvider (e.g. admin)
+  const langCtx = React.useContext(LangContext);
+  const t = langCtx?.t;
+  const isRTL = langCtx?.isRTL ?? false;
   
   const [currentLang, setCurrentLang] = React.useState('en');
   const [uploadingFields, setUploadingFields] = React.useState<Record<string, boolean>>({});
@@ -153,9 +158,9 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     const isInherited = field.is_inherited || field.section_origin === 'inherited';
     
     let originColor = '#10b981';
-    let originLabel = 'UNIQUE';
-    if (isUniversal) { originColor = '#D4AF37'; originLabel = 'UNIVERSAL'; }
-    else if (isInherited) { originColor = '#3b82f6'; originLabel = 'INHERITED'; }
+    let originLabel: string = t?.badgeUnique ?? 'UNIQUE';
+    if (isUniversal) { originColor = '#D4AF37'; originLabel = t?.badgeUniversal ?? 'UNIVERSAL'; }
+    else if (isInherited) { originColor = '#3b82f6'; originLabel = t?.badgeInherited ?? 'INHERITED'; }
 
     const portalFieldTypes = ['gallery', 'image', 'video', 'youtube', 'narrative', 'richtext', 'rich_text'];
     const portalNames = ['instagram_handle', 'facebook_link', 'tiktok_handle', 'wechat_id'];
@@ -171,7 +176,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
       // SIZE VALIDATION
       const oversized = files.filter(f => f.size > uploadSizeLimit);
       if (oversized.length > 0) {
-        alert(`${oversized.length} files exceed your ${Math.round(uploadSizeLimit/1024/1024)}MB limit. Please reduce size or upgrade.`);
+        alert(`${oversized.length} ${t?.filesExceedLimit ?? 'files exceed your'} ${Math.round(uploadSizeLimit/1024/1024)}${t?.mbLimit ?? 'MB limit. Please reduce size or upgrade.'}`);
         return;
       }
 
@@ -211,10 +216,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         }
         
         handleChange(finalItems);
-        notify(`Media Synchronized: ${files.length} assets added`, 'success');
+        notify(`${t?.mediaSynced ?? 'Media Synchronized'}: ${files.length} ${t?.assetsAdded ?? 'assets added'}`, 'success');
       } catch (err: any) {
         console.error("Batch upload failed", err);
-        notify(err.message || "Media Upload Failed", "error");
+        notify(err.message || (t?.mediaUploadFailed ?? "Media Upload Failed"), "error");
         handleChange(currentItems);
       } finally {
         setUploadingFields(prev => ({ ...prev, [field.id]: false }));
@@ -247,7 +252,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             }}>
               {(field.field_type || 'TEXT').toUpperCase()}
             </span>
-            {featureMissing && <span className="badge badge-warning"><i className="fas fa-crown"></i> PREMIUM</span>}
+            {featureMissing && <span className="badge badge-warning"><i className="fas fa-crown"></i> {t?.badgePremium ?? 'PREMIUM'}</span>}
           </span>
           {field.help_text && <span className="help-text">{field.help_text}</span>}
         </label>
@@ -262,21 +267,21 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <i className="fas fa-hourglass-half" style={{ color: '#0f172a', fontSize: '1.2rem' }}></i>
               <div>
-                <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.85rem' }}>TRIAL ENDING SOON</div>
+                <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.85rem' }}>{t?.trialEndingSoon ?? 'TRIAL ENDING SOON'}</div>
                 <div style={{ fontSize: '0.65rem', color: '#0f172a', fontWeight: 700, opacity: 0.8 }}>
-                  Your premium access expires in {Math.round((new Date(business.trial_expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60))} hours.
+                  {t?.trialExpiresIn ?? 'Your premium access expires in'} {Math.round((new Date(business.trial_expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60))} {t?.hours ?? 'hours.'}
                 </div>
               </div>
             </div>
             <button style={{ background: '#0f172a', color: '#D4AF37', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer' }}>
-              UPGRADE NOW
+              {t?.upgradeNow ?? 'UPGRADE NOW'}
             </button>
           </div>
         )}
 
         {featureMissing && (
           <div className="lock-overlay">
-            <button className="btn btn-sm btn-dark">UPGRADE TO UNLOCK</button>
+            <button className="btn btn-sm btn-dark">{t?.upgradeToUnlock ?? 'UPGRADE TO UNLOCK'}</button>
           </div>
         )}
 
@@ -293,13 +298,13 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                   </div>
                   <div>
                     <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>
-                      MASTER STORYTELLER <span style={{ opacity: 0.3, marginLeft: '5px' }}>•</span> {value ? (value as string).replace(/<[^>]*>/g, '').split(/\s+/).length : 0} WORDS
+                      {t?.masterStoryteller ?? 'MASTER STORYTELLER'} <span style={{ opacity: 0.3, marginLeft: '5px' }}>•</span> {value ? (value as string).replace(/<[^>]*>/g, '').split(/\s+/).length : 0} {t?.words ?? 'WORDS'}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800 }}>CLICK TO EXPAND NARRATIVE CANVAS</div>
+                    <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800 }}>{t?.clickExpand ?? 'CLICK TO EXPAND NARRATIVE CANVAS'}</div>
                   </div>
                 </div>
                 <div style={{ background: '#D4AF37', color: '#fff', padding: '4px 12px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 900 }}>
-                  OPEN EDITOR
+                  {t?.openEditor ?? 'OPEN EDITOR'}
                 </div>
               </summary>
 
@@ -314,7 +319,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 <div style={{ display: 'flex', gap: '0.25rem', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   {!isFieldLocked && (
                     <>
-                      <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title="Insert Image (Device)">
+                      <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title={t?.insertImageDevice ?? 'Insert Image (Device)'}>
                         {uploadingFields[`${field.id}-img`] ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-image"></i>}
                         <input
                           type="file"
@@ -349,7 +354,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           }}
                         />
                       </label>
-                      <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title="Insert Image (Camera)">
+                      <label className="editor-tool-btn" style={{ cursor: 'pointer', color: uploadingFields[`${field.id}-img`] ? '#94a3b8' : '#D4AF37' }} title={t?.insertImageCamera ?? 'Insert Image (Camera)'}>
                         {uploadingFields[`${field.id}-img`] ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-camera"></i>}
                         <input
                           type="file"
@@ -390,7 +395,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 </div>
 
                 <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }}></div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>CINEMATIC NARRATIVE STUDIO</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>{t?.cinematicNarrative ?? 'CINEMATIC NARRATIVE STUDIO'}</div>
 
                 {isAdmin && !isFieldLocked && (
                   <button
@@ -413,7 +418,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                     style={{ marginLeft: '1rem', background: '#1e293b', border: 'none', color: '#D4AF37', padding: '4px 12px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
                   >
                     {uploadingFields[`${field.id}-ai`] ? <i className="fas fa-magic fa-spin"></i> : <i className="fas fa-magic"></i>}
-                    {uploadingFields[`${field.id}-ai`] ? 'GENERATING...' : 'AI MAGIC'}
+                    {uploadingFields[`${field.id}-ai`] ? (t?.generating ?? 'GENERATING...') : (t?.aiMagic ?? 'AI MAGIC')}
                   </button>
                 )}
 
@@ -424,9 +429,9 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                       if (document.fullscreenElement) document.exitFullscreen();
                       else editor.requestFullscreen();
                     }}
-                    style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 700 }}
+                    style={{ marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0, background: 'none', border: 'none', color: '#64748b', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 700 }}
                   >
-                    <i className="fas fa-expand-arrows-alt" style={{ marginRight: '0.5rem' }}></i> ZEN MODE
+                    <i className="fas fa-expand-arrows-alt" style={{ marginRight: '0.5rem' }}></i> {t?.zenMode ?? 'ZEN MODE'}
                   </button>
                 )}
               </div>
@@ -460,7 +465,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
               ) : (
                 <div style={{ textAlign: 'center', opacity: 0.5 }}>
                   <i className="fas fa-map-marked-alt fa-3x" style={{ color: '#D4AF37', marginBottom: '1rem' }}></i>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800 }}>ENTER COORDINATES TO PREVIEW</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800 }}>{t?.enterCoords ?? 'ENTER COORDINATES TO PREVIEW'}</div>
                 </div>
               )}
               {value && (
@@ -468,14 +473,14 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                   href={`https://www.google.com/maps?q=${value}`} target="_blank" rel="noopener noreferrer"
                   style={{ position: 'absolute', bottom: '10px', right: '10px', background: '#fff', padding: '5px 12px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 900, color: '#1e293b', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', textDecoration: 'none' }}
                 >
-                  <i className="fas fa-external-link-alt" style={{ marginRight: '5px' }}></i> OPEN IN GOOGLE MAPS
+                  <i className="fas fa-external-link-alt" style={{ marginRight: '5px' }}></i> {t?.openInMaps ?? 'OPEN IN GOOGLE MAPS'}
                 </a>
               )}
             </div>
             <div style={{ position: 'relative' }}>
               <i className="fas fa-crosshairs" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
               <input
-                type="text" className="form-control" placeholder="Latitude, Longitude (e.g. 29.2023, 25.5244)"
+                type="text" className="form-control" placeholder={t?.coordsPlaceholder ?? 'Latitude, Longitude (e.g. 29.2023, 25.5244)'}
                 value={value || ''} onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
                 style={{ paddingLeft: '2.5rem' }}
               />
@@ -490,17 +495,17 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 <i className="fab fa-youtube fa-4x" style={{ color: '#ff0000' }}></i>
               )}
               <div style={{ position: 'absolute', zIndex: 1, textAlign: 'center', color: '#fff' }}>
-                <div style={{ fontWeight: 900, fontSize: '0.7rem', letterSpacing: '2px', marginBottom: '0.5rem' }}>CINEMATIC PREVIEW</div>
-                <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>{value ? 'READY TO STREAM' : 'NO VIDEO LINK'}</div>
+                <div style={{ fontWeight: 900, fontSize: '0.7rem', letterSpacing: '2px', marginBottom: '0.5rem' }}>{t?.cinematicPreview ?? 'CINEMATIC PREVIEW'}</div>
+                <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>{value ? (t?.readyToStream ?? 'READY TO STREAM') : (t?.noVideoLink ?? 'NO VIDEO LINK')}</div>
                 {!isMediaAllowed('youtube') && (
                   <div style={{ background: '#D4AF37', color: '#000', padding: '4px 10px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900, marginTop: '1rem' }}>
-                    <i className="fas fa-lock"></i> UPGRADE FOR YOUTUBE
+                    <i className="fas fa-lock"></i> {t?.upgradeForYoutube ?? 'UPGRADE FOR YOUTUBE'}
                   </div>
                 )}
               </div>
             </div>
             <input
-              type="text" className="form-control" placeholder={isMediaAllowed('youtube') ? "Paste YouTube URL or ID..." : "YouTube locked for this tier"}
+              type="text" className="form-control" placeholder={isMediaAllowed('youtube') ? (t?.pasteYouTube ?? 'Paste YouTube URL or ID...') : (t?.youtubeLocked ?? 'YouTube locked for this tier')}
               value={value || ''} onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked || !isMediaAllowed('youtube')}
             />
           </div>
@@ -531,7 +536,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
               style={{ width: '20px', height: '20px', accentColor: '#22c55e' }}
             />
             <span style={{ fontWeight: 800, color: value ? '#166534' : '#64748b', fontSize: '0.85rem' }}>
-              {value ? 'ENABLED / ACTIVE' : 'DISABLED / INACTIVE'}
+              {value ? (t?.enabled ?? 'ENABLED / ACTIVE') : (t?.disabled ?? 'DISABLED / INACTIVE')}
             </span>
           </label>
         ) : isSelect ? (
@@ -549,7 +554,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 color: value ? '#1e293b' : '#94a3b8',
               }}
             >
-              <option value="">— Select an option —</option>
+              <option value="">{t?.selectOption ?? '— Select an option —'}</option>
               {(() => {
                 try {
                   const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
@@ -564,7 +569,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             }}></i>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem' }}>
               <i className="fas fa-shield-alt" style={{ fontSize: '0.55rem', color: '#D4AF37' }}></i>
-              <span style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>Options defined by admin • Admin-locked choices</span>
+              <span style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>{t?.adminDefinedOpts ?? 'Options defined by admin • Admin-locked choices'}</span>
             </div>
           </div>
         ) : isMulti ? (
@@ -617,8 +622,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem' }}>
               <i className="fas fa-shield-alt" style={{ fontSize: '0.55rem', color: '#D4AF37' }}></i>
-              <span style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>Options defined by admin • Click to toggle selections</span>
-              ) : field.field_type === 'gallery' ? (
+              <span style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>{t?.adminToggle ?? 'Options defined by admin • Click to toggle selections'}</span>
+            </div>
+          </div>
+        ) : field.field_type === 'gallery' ? (
           <div className="premium-gallery-manager" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
             <details style={{ width: '100%' }}>
               <summary style={{ 
@@ -631,13 +638,13 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                   </div>
                   <div>
                     <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>
-                      GALLERY ASSETS <span style={{ opacity: 0.3, marginLeft: '5px' }}>•</span> {(Array.isArray(value) ? value.length : 0)} IMAGES
+                      {t?.galleryAssets ?? 'GALLERY ASSETS'} <span style={{ opacity: 0.3, marginLeft: '5px' }}>•</span> {(Array.isArray(value) ? value.length : 0)} {t?.images ?? 'IMAGES'}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800 }}>CLICK TO EXPAND CINEMATIC MANAGER</div>
+                    <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800 }}>{t?.clickExpandGallery ?? 'CLICK TO EXPAND CINEMATIC MANAGER'}</div>
                   </div>
                 </div>
                 <div style={{ background: '#1e293b', color: '#fff', padding: '4px 12px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 900 }}>
-                  MANAGE MEDIA
+                  {t?.manageMedia ?? 'MANAGE MEDIA'}
                 </div>
               </summary>
 
@@ -662,7 +669,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                               {isUploading && (
                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', color: '#fff' }}>
                                   <i className="fas fa-circle-notch fa-spin fa-2x" style={{ marginBottom: '0.5rem' }}></i>
-                                  <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '1px' }}>PROCESSING...</div>
+                                  <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '1px' }}>{t?.processing ?? 'PROCESSING...'}</div>
                                 </div>
                               )}
                             </div>
@@ -698,7 +705,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                             }}
                           >
                             <i className={`fa${(typeof item === 'object' && item.is_minisite_hero) ? 's' : 'r'} fa-star`}></i>
-                            MINISITE HERO
+                            {t?.minisiteHero ?? 'MINISITE HERO'}
                           </button>
 
                           <button
@@ -721,17 +728,17 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                             }}
                           >
                             <i className={`fa${(typeof item === 'object' && item.is_main_site_hero) ? 's' : 'r'} fa-globe`}></i>
-                            MAIN SITE HERO
+                            {t?.mainSiteHero ?? 'MAIN SITE HERO'}
                           </button>
                         </div>
 
                         <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800 }}>
-                          SLOT {i + 1}
+                          {t?.slot ?? 'SLOT'} {i + 1}
                         </div>
                       </div>
                       <div style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                          <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px' }}>SLIDE SETTINGS</label>
+                          <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px' }}>{t?.slideSettings ?? 'SLIDE SETTINGS'}</label>
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button 
                               title="Display Mode"
@@ -771,10 +778,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                         </div>
                         
                         <div style={{ marginBottom: '0.75rem' }}>
-                          <label style={{ display: 'block', fontSize: '0.55rem', fontWeight: 900, color: '#cbd5e1', marginBottom: '0.2rem' }}>IMAGE URL (EXTERNAL)</label>
+                          <label style={{ display: 'block', fontSize: '0.55rem', fontWeight: 900, color: '#cbd5e1', marginBottom: '0.2rem' }}>{t?.imageUrlExternal ?? 'IMAGE URL (EXTERNAL)'}</label>
                           <input 
                             type="text"
-                            placeholder="Paste image link here..."
+                            placeholder={t?.pasteImageLink ?? 'Paste image link here...'}
                             value={(typeof item === 'object' ? item.url : item) || ''}
                             onChange={e => {
                               const next = [...value];
@@ -818,7 +825,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           </div>
                           <div style={{ textAlign: 'center', display: 'flex', gap: '0.75rem', marginTop: '0.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <label className="btn btn-sm btn-dark" style={{ cursor: 'pointer', background: '#1e293b', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                              <i className="fas fa-folder-open"></i> Upload Device Files
+                              <i className="fas fa-folder-open"></i> {t?.addMoreMedia ?? 'Upload Device Files'}
                               <input 
                                 type="file" 
                                 multiple 
@@ -832,7 +839,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                               />
                             </label>
                             <label className="btn btn-sm" style={{ cursor: 'pointer', background: '#D4AF37', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                              <i className="fas fa-camera"></i> Take Photo / Video
+                              <i className="fas fa-camera"></i> {t?.addViaCamera ?? 'Take Photo / Video'}
                               <input 
                                 type="file" 
                                 accept="image/*,video/*"
@@ -855,8 +862,6 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 </div>
               </div>
             </details>
-          </div>
-      </div>
           </div>
         ) : field.field_type === 'link_label' ? (
           <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>

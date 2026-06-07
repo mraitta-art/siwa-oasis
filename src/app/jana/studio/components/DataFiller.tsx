@@ -44,11 +44,25 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
       const sectionData = secRes.ok ? await secRes.json() : [];
       setSections(Array.isArray(sectionData) ? sectionData : []);
 
+      // Optimize: load all fields for SECTION_TEMPLATE in a single request
+      const fr = await fetch('/api/jana/forms?type=SECTION_TEMPLATE');
       const fieldMap: Record<string, any[]> = {};
-      await Promise.all((Array.isArray(sectionData) ? sectionData : []).map(async (s: any) => {
-        const fr = await fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${s.id}`);
-        fieldMap[s.id] = fr.ok ? await fr.json() : [];
-      }));
+      
+      // Initialize empty arrays for all sections
+      (Array.isArray(sectionData) ? sectionData : []).forEach((s: any) => {
+        fieldMap[s.id] = [];
+      });
+
+      if (fr.ok) {
+        const allFields = await fr.json();
+        if (Array.isArray(allFields)) {
+          allFields.forEach((field: any) => {
+            if (fieldMap[field.section_id]) {
+              fieldMap[field.section_id].push(field);
+            }
+          });
+        }
+      }
       setFields(fieldMap);
 
       // Load existing data from business

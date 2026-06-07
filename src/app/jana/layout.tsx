@@ -20,8 +20,6 @@ const NAV_GROUPS = [
       { name: '⚡ Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
       { name: 'Foundation Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
-      { name: 'Data Sections', path: '/jana/sections', icon: 'fa-columns' },
-      { name: 'Form Builder', path: '/jana/form-builder', icon: 'fa-list-check' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
       { name: 'Vendor Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
       { name: 'Vibe Expressions', path: '/jana/expressions', icon: 'fa-wand-magic-sparkles' },

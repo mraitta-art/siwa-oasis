@@ -147,6 +147,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      let allSectionIds = new Set<string>();
       if (typeId !== 'SECTION_TEMPLATE') {
         let currentId: string | null = typeId;
         while (currentId) {
@@ -160,17 +161,22 @@ export async function GET(request: NextRequest) {
              currentId = null;
           }
         }
+        typesToFetch.forEach(t => {
+           try {
+               const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections) : t.sections;
+               if (Array.isArray(s1)) s1.forEach(s => allSectionIds.add(s));
+               const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections) : t.own_sections;
+               if (Array.isArray(s2)) s2.forEach(s => allSectionIds.add(s));
+           } catch(e) {}
+        });
+      } else {
+        if (section) {
+          allSectionIds.add(section);
+        } else {
+          const allSecs = await query('SELECT id FROM sections') as any[];
+          allSecs.forEach(s => allSectionIds.add(s.id));
+        }
       }
-
-      let allSectionIds = new Set<string>();
-      typesToFetch.forEach(t => {
-         try {
-             const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections) : t.sections;
-             if (Array.isArray(s1)) s1.forEach(s => allSectionIds.add(s));
-             const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections) : t.own_sections;
-             if (Array.isArray(s2)) s2.forEach(s => allSectionIds.add(s));
-         } catch(e) {}
-      });
 
       const sectionIdsArray = Array.from(allSectionIds);
 
@@ -229,7 +235,9 @@ export async function GET(request: NextRequest) {
             field_type: 'rich_text',
             required_feature: 'hero_automation',
             sort_order: 1, 
-            help_text: 'Use this advanced editor to design the full story for this section on the page.'
+            help_text: 'Use this advanced editor to design the full story for this section on the page.',
+            acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
+            validation: {}
           });
         }
 
@@ -243,7 +251,9 @@ export async function GET(request: NextRequest) {
             field_type: 'textarea',
             required_feature: 'hero_automation', 
             sort_order: -2, 
-            help_text: 'This short text will appear as captions on the automated hero.'
+            help_text: 'This short text will appear as captions on the automated hero.',
+            acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
+            validation: {}
           });
         }
 
@@ -257,7 +267,9 @@ export async function GET(request: NextRequest) {
             field_type: 'gallery',
             required_feature: 'hero_automation', 
             sort_order: -1, 
-            help_text: 'Add photos. Each photo caption becomes a slide title in the automated carousel.'
+            help_text: 'Add photos. Each photo caption becomes a slide title in the automated carousel.',
+            acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
+            validation: {}
           });
         }
 
@@ -271,7 +283,9 @@ export async function GET(request: NextRequest) {
             field_type: 'checkbox',
             required_feature: 'hero_automation',
             sort_order: -3, 
-            help_text: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.'
+            help_text: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.',
+            acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
+            validation: {}
           });
         }
       });

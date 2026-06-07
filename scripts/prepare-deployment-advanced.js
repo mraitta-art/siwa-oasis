@@ -337,6 +337,32 @@ function createBundle(environment, bundleDir) {
     console.log(`   ✅ Included: ${entry}`);
   });
 
+  // Clean up cache and local uploads in bundle to reduce size and avoid conflict
+  const cachePath = path.join(bundleDir, '.next', 'cache');
+  if (fs.existsSync(cachePath)) {
+    fs.rmSync(cachePath, { recursive: true, force: true });
+    console.log('   🧹 Cleared Next.js compilation cache in bundle');
+  }
+
+  const uploadsPath = path.join(bundleDir, 'public', 'uploads');
+  if (fs.existsSync(uploadsPath)) {
+    const uploadFiles = fs.readdirSync(uploadsPath);
+    uploadFiles.forEach(file => {
+      if (file !== '.gitkeep') {
+        fs.rmSync(path.join(uploadsPath, file), { recursive: true, force: true });
+      }
+    });
+    console.log('   🧹 Cleared local upload files from public/uploads/ in bundle');
+  }
+
+  // Create tmp/restart.txt for automatic Passenger restart on cPanel
+  const tmpDir = path.join(bundleDir, 'tmp');
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir);
+  }
+  fs.writeFileSync(path.join(tmpDir, 'restart.txt'), new Date().toISOString());
+  console.log('   🧹 Created tmp/restart.txt for automatic server restart');
+
   // Generate environment-specific files
   const packageJsonPath = path.join(bundleDir, 'package.json');
   const htaccessPath = path.join(bundleDir, '.htaccess');

@@ -7,7 +7,7 @@ param(
     [string]$FTPUser = "vercel",
     [string]$FTPPass = "PiCo@@4##73",
     [string]$RemotePath = "/public_html/siwa-oasis",
-    [string]$LocalZip = "siwa_production_20260530_032413.zip"
+    [string]$LocalZip = "siwa_production_latest.zip"
 )
 
 Write-Host ""

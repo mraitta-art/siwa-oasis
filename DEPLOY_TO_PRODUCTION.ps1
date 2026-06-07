@@ -73,6 +73,11 @@ function Compress-Deployment {
     Write-Status "  Copying .next folder..." "Progress"
     Copy-Item -Path ".\.next" -Destination "$tempDir\.next" -Recurse -Force
     
+    if (Test-Path "$tempDir\.next\cache") {
+        Write-Status "  🧹 Removing compiler cache to optimize size..." "Progress"
+        Remove-Item "$tempDir\.next\cache" -Recurse -Force
+    }
+    
     Write-Status "  Copying package.json..." "Progress"
     Copy-Item -Path ".\package.json" -Destination "$tempDir\package.json" -Force
     

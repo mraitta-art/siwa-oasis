@@ -13,7 +13,7 @@ console.log('║        SIWA.TODAY PRODUCTION DEPLOYMENT - NODE.JS        ║');
 console.log('╚════════════════════════════════════════════════════════════╝\n');
 
 // Configuration
-const ZIP_FILE = 'siwa_production_20260530_032413.zip';
+const ZIP_FILE = 'siwa_production_latest.zip';
 const SERVER = 'siwa.today';
 const USERNAME = 'vercel';
 const PASSWORD = 'PiCo@@4##73';
