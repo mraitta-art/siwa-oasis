@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `page_experience_categories` (
 -- ═════════════════════════════════════════════════════════════════
 -- INSERT: Initial Services (from hardcoded data)
 -- ═════════════════════════════════════════════════════════════════
-INSERT INTO `page_services` (id, name, tagline, icon, color, image_url, search_link, display_order, is_visible) VALUES
+INSERT IGNORE INTO `page_services` (id, name, tagline, icon, color, image_url, search_link, display_order, is_visible) VALUES
 ('accommodation', 'Stay & Shelter', 'Desert camps, Kershef lodges, eco-retreats, and full-service hotels.', 'fa-bed', '#8b5cf6', 'https://images.unsplash.com/photo-1482192505345-5852b41ade5c?q=80&w=800', '/search/vibe?category=accommodation', 1, 1),
 ('food', 'Food & Gastronomy', 'Traditional Siwan kitchens, organic date harvests, and desert-side cafés.', 'fa-utensils', '#f59e0b', 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800', '/search/vibe?category=food', 2, 1),
 ('adventure', 'Adventure & Safari', '4×4 sand sea expeditions, camel treks, and heritage walking tours.', 'fa-compass', '#10b981', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800', '/search/vibe?category=adventure', 3, 1),
@@ -53,7 +53,7 @@ INSERT INTO `page_services` (id, name, tagline, icon, color, image_url, search_l
 -- ═════════════════════════════════════════════════════════════════
 -- INSERT: Initial Experience Categories (from hardcoded data)
 -- ═════════════════════════════════════════════════════════════════
-INSERT INTO `page_experience_categories` (id, title, subtitle, icon, image_url, color, link, display_order, is_visible) VALUES
+INSERT IGNORE INTO `page_experience_categories` (id, title, subtitle, icon, image_url, color, link, display_order, is_visible) VALUES
 ('wellness', 'WELLNESS & HEALING', 'Float in salt lakes, immerse in natural springs, and experience therapeutic desert sand baths.', 'fa-spa', 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800', '#10B981', '/search/vibe?category=wellness', 1, 1),
 ('slow-food', 'AGRICULTURE & SLOW FOOD', 'Taste organic date orchards, ancestral olive presses, and traditional Siwan gastronomy.', 'fa-seedling', 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=800', '#f59e0b', '/search/vibe?category=food', 2, 1),
 ('crafts', 'ARTISAN CRAFTS & TRADES', 'Explore rock salt lamps, hand-embroidered textiles, and clay pottery crafted across generations.', 'fa-store', 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800', '#ef4444', '/search/vibe?category=crafts', 3, 1),

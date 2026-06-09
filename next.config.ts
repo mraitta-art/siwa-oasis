@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Disable prerendering for API routes to prevent build-time module resolution errors
+  staticPageGenerationTimeout: 0,
+  experimental: {
+    webpackBuildWorker: false,
+  },
   // Reduce memory usage for cPanel deployment
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -19,10 +24,6 @@ const nextConfig: NextConfig = {
       };
     }
     return config;
-  },
-  // Disable experimental features that use WebAssembly
-  experimental: {
-    webpackBuildWorker: false,
   },
   // Optimize for production build
   compress: true,

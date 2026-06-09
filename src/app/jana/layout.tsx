@@ -7,55 +7,88 @@ import { AdminProvider, useAdmin } from '@/context/AdminContext';
 
 /* ─────────────────────────────────────────────────────────
    GOVERNANCE PIPELINE — Sidebar navigation groups.
-   Ordered by the actual data lifecycle dependency chain:
-   Foundation → Forms → Discovery → Registry → Publication
+   5 focused groups ordered by workflow:
+   Foundation → Content → Site → Businesses → System
    ───────────────────────────────────────────────────────── */
 const NAV_GROUPS = [
   {
-    id: 'architect',
-    title: '🏗️ ARCHITECT & BUILDING',
-    subtitle: 'Blueprint & Structure',
-    collapsible: false,
+    id: 'foundation',
+    title: 'FOUNDATION',
+    subtitle: 'Schema & Structure',
+    icon: 'fa-cubes',
+    collapsible: true,
+    defaultCollapsed: false,
     items: [
-      { name: '⚡ Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
-      { name: 'Foundation Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
+      { name: 'Blueprint Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
+      { name: 'Sections', path: '/jana/sections', icon: 'fa-table-cells' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
       { name: 'Vendor Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
-      { name: 'Vibe Expressions', path: '/jana/expressions', icon: 'fa-wand-magic-sparkles' },
       { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
     ]
   },
   {
-    id: 'operations',
-    title: '🚗 DRIVING & OPERATIONS',
-    subtitle: 'Filling & Management',
-    collapsible: false,
+    id: 'content',
+    title: 'CONTENT',
+    subtitle: 'Media & Components',
+    icon: 'fa-photo-film',
+    collapsible: true,
+    defaultCollapsed: false,
     items: [
-      { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
-      { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-briefcase' },
-      { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
-      { name: 'Homepage Editor', path: '/jana/homepage-editor', icon: 'fa-home' },
-      { name: 'Visual Orchestrator', path: '/jana/website', icon: 'fa-palette' },
-      { name: 'Blog Manager', path: '/jana/blog', icon: 'fa-newspaper' },
+      { name: 'Blog Hub', path: '/jana/blog', icon: 'fa-newspaper' },
       { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
-      { name: 'Services Manager', path: '/jana/services-manager', icon: 'fa-server-group' },
-      { name: 'Categories Manager', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
-      { name: 'Journey Templates', path: '/jana/journey-templates-manager', icon: 'fa-route' },
       { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
+      { name: 'Services', path: '/jana/services-manager', icon: 'fa-server-group' },
+      { name: 'Categories', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
+      { name: 'Journeys', path: '/jana/journey-templates-manager', icon: 'fa-route' },
     ]
   },
   {
-    id: 'settings',
-    title: '⚙️ SETTINGS & MAINTENANCE',
-    subtitle: 'System & Backups',
+    id: 'site',
+    title: 'SITE & PAGES',
+    subtitle: 'Public-Facing Design',
+    icon: 'fa-display',
     collapsible: true,
+    defaultCollapsed: false,
     items: [
-      { name: 'Data Manager (Backups)', path: '/jana/data-manager', icon: 'fa-server' },
+      { name: 'Visual Editor', path: '/jana/website', icon: 'fa-palette' },
+      { name: 'Homepage Editor', path: '/jana/homepage-editor', icon: 'fa-home' },
+      { name: 'Page Builder', path: '/jana/page-builder', icon: 'fa-object-group' },
       { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
-      { name: 'System Diagnostic', path: '/jana/diagnostic', icon: 'fa-stethoscope' },
+      { name: 'Search Pages', path: '/jana/search-pages', icon: 'fa-filter-list' },
+    ]
+  },
+  {
+    id: 'businesses',
+    title: 'BUSINESSES',
+    subtitle: 'Registry & Operations',
+    icon: 'fa-briefcase',
+    collapsible: true,
+    defaultCollapsed: false,
+    items: [
+      { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-building' },
+      { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
+      { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
+      { name: 'Vendors', path: '/jana/vendors', icon: 'fa-user-tie' },
+      { name: 'Packages', path: '/jana/packages', icon: 'fa-box-open' },
+    ]
+  },
+  {
+    id: 'system',
+    title: 'SYSTEM',
+    subtitle: 'Maintenance & Config',
+    icon: 'fa-gear',
+    collapsible: true,
+    defaultCollapsed: true,
+    items: [
+      { name: 'Data Manager', path: '/jana/data-manager', icon: 'fa-database' },
+      { name: 'Forms', path: '/jana/forms', icon: 'fa-rectangle-list' },
+      { name: 'Moderation', path: '/jana/moderation', icon: 'fa-user-shield' },
+      { name: 'Upgrades', path: '/jana/upgrades', icon: 'fa-arrow-up-right-dots' },
+      { name: 'Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
+      { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-stethoscope' },
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
-      { name: 'Curation Control', path: '/jana/curation', icon: 'fa-filter' },
+      { name: 'Curation', path: '/jana/curation', icon: 'fa-filter' },
     ]
   }
 ];
@@ -64,7 +97,11 @@ const NAV_GROUPS = [
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { advancedMode, setAdvancedMode } = useAdmin();
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    const defaults: Record<string, boolean> = {};
+    NAV_GROUPS.forEach(g => { if (g.defaultCollapsed) defaults[g.id] = true; });
+    return defaults;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -110,29 +147,49 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   // Contextual guidance based on current page
   const getPageGuide = () => {
-    if (pathname === '/jana') return { title: 'Governance Dashboard', tip: 'Overview of your marketplace ecosystem. Start the Foundation Architect for blueprint setup.' };
-    if (pathname.includes('/studio')) return { title: 'Unified Building Studio', tip: 'Stage 1: Define category schema (sections + fields). Stage 2: Select a business and fill its data all in one flow.' };
-    if (pathname.includes('/sections')) return { title: 'Data Sections', tip: 'Define reusable data containers first — these become available when configuring types.' };
-    if (pathname.includes('/types')) return { title: 'Typology Tree', tip: 'Define parent categories and their children. Assign sections to control what data each type collects.' };
-    if (pathname.includes('/expressions')) return { title: 'Vibe & Expressions', tip: 'Define searchable atmosphere tags like "Rustic", "Spiritual", "Eco-friendly".' };
-    if (pathname.includes('/forms')) return { title: 'Form Architect', tip: 'Add fields to types. Fields on parents are inherited by all children automatically.' };
-    if (pathname.includes('/governance')) return { title: 'Foundation Architect', tip: 'Guided blueprint flow: Identity → Modules → Fields → Governance.' };
-    if (pathname.includes('/policies')) return { title: 'Policies & Logic', tip: 'Define search visibility policies that control what data each role can see.' };
-    if (pathname.includes('/search-engines')) return { title: 'Search Engines', tip: 'Configure multi-criteria search with filterable fields from your form definitions.' };
+    if (pathname === '/jana') return { title: 'Dashboard', tip: 'Overview of your marketplace ecosystem.' };
+    // Foundation
+    if (pathname.includes('/governance')) return { title: 'Blueprint Architect', tip: 'Guided blueprint flow: Identity, Modules, Fields, Governance.' };
+    if (pathname.includes('/types')) return { title: 'Business Types', tip: 'Define parent categories and their children. Assign sections to control what data each type collects.' };
+    if (pathname.includes('/sections')) return { title: 'Sections', tip: 'Define reusable data containers — these become available when configuring types.' };
+    if (pathname.includes('/templates')) return { title: 'Master Templates', tip: 'Design reusable templates for business types.' };
+    if (pathname.includes('/tiers')) return { title: 'Vendor Tiers', tip: 'Define subscription tiers with feature quotas.' };
     if (pathname.includes('/cards')) return { title: 'Card Layouts', tip: 'Design how business listings appear in search results. Choose visible fields per type.' };
-    if (pathname.includes('/businesses')) return { title: 'Business Manager', tip: 'Onboard and manage businesses using forms defined in the Architect.' };
-    if (pathname.includes('/vendors')) return { title: 'Vendor Authority', tip: 'Assign vendor accounts to manage their own business listings.' };
-    if (pathname.includes('/orchestrator')) return { title: 'Orchestration Wizard', tip: 'Guided flow: select type → fill data → assign vendor → publish.' };
-    if (pathname.includes('/website')) return { title: 'Website Designer', tip: 'Build the public homepage with drag-and-drop components.' };
-    if (pathname.includes('/component-library')) return { title: 'Component Library', tip: 'Manage all reusable components: carousels, sidebars, galleries, and more.' };
-    if (pathname.includes('/hero-carousel')) return { title: 'Hero Carousel Builder', tip: 'Create cinematic carousel slides and save them to the component library.' };
+    if (pathname.includes('/expressions')) return { title: 'Vibe Expressions', tip: 'Define searchable atmosphere tags like Rustic, Spiritual, Eco-friendly.' };
+    // Content
     if (pathname.includes('/blog/sidebar')) return { title: 'Blog Sidebar Builder', tip: 'Design custom blog sidebar layouts and save to the library.' };
+    if (pathname.includes('/blog-layout-builder') || pathname.includes('/blog/layouts')) return { title: 'Blog Layout Builder', tip: 'Design custom blog grid layouts with live preview.' };
+    if (pathname.includes('/blog-templates') || pathname.includes('/blog/templates')) return { title: 'Blog Templates', tip: 'Browse pre-built blog component templates.' };
+    if (pathname.includes('/blog-integration') || pathname.includes('/blog/integration')) return { title: 'Blog Integration', tip: 'Configure and generate blog sections with easy presets.' };
+    if (pathname.includes('/blog')) return { title: 'Blog Hub', tip: 'Create and manage blog posts, layouts, templates, and integrations.' };
+    if (pathname.includes('/hero-carousel')) return { title: 'Hero Carousel', tip: 'Create cinematic carousel slides and save them to the component library.' };
+    if (pathname.includes('/component-library')) return { title: 'Component Library', tip: 'Manage all reusable components: carousels, sidebars, galleries, and more.' };
+    if (pathname.includes('/services-manager')) return { title: 'Services', tip: 'Manage page services displayed across the platform.' };
+    if (pathname.includes('/experience-categories')) return { title: 'Categories', tip: 'Manage experience categories for discovery and filtering.' };
+    if (pathname.includes('/journey-templates')) return { title: 'Journey Templates', tip: 'Design reusable journey templates for customer onboarding.' };
+    // Site & Pages
+    if (pathname.includes('/website')) return { title: 'Visual Editor', tip: 'Build the public homepage with drag-and-drop components.' };
+    if (pathname.includes('/homepage-editor')) return { title: 'Homepage Editor', tip: 'Quick homepage configuration: layout sections, settings, and content.' };
     if (pathname.includes('/page-builder')) return { title: 'Page Builder', tip: 'Build custom pages using components from the library.' };
-    if (pathname.includes('/blog')) return { title: 'Blog Manager', tip: 'Create and manage blog posts with rich content and SEO optimization.' };
-    if (pathname.includes('/blog-layout-builder')) return { title: 'Blog Layout Builder', tip: 'Design custom blog grid layouts with live preview and copy generated code.' };
-    if (pathname.includes('/blog-templates')) return { title: 'Blog Templates', tip: 'Browse pre-built blog component templates for forms and mini-sites.' };
-    if (pathname.includes('/blog-integration')) return { title: 'Blog Integration Tool', tip: 'Configure and generate blog sections with easy presets for any page.' };
-    return { title: 'Marketplace Governance', tip: 'Navigate the pipeline from Foundation through Publication.' };
+    if (pathname.includes('/search-engines')) return { title: 'Search Engines', tip: 'Configure multi-criteria search with filterable fields.' };
+    if (pathname.includes('/search-pages')) return { title: 'Search Pages', tip: 'Manage search page configurations and result layouts.' };
+    // Businesses
+    if (pathname.includes('/studio')) return { title: 'Unified Studio', tip: 'Stage 1: Define category schema. Stage 2: Select a business and fill its data.' };
+    if (pathname.includes('/businesses')) return { title: 'Business Registry', tip: 'Onboard and manage businesses using forms defined in Foundation.' };
+    if (pathname.includes('/orchestrator')) return { title: 'Onboarding Wizard', tip: 'Guided flow: select type, fill data, assign vendor, publish.' };
+    if (pathname.includes('/fast-track')) return { title: 'Fast-Track Builder', tip: 'Quickly add businesses with minimal friction.' };
+    if (pathname.includes('/vendors')) return { title: 'Vendors', tip: 'Assign vendor accounts to manage their own business listings.' };
+    if (pathname.includes('/packages')) return { title: 'Packages', tip: 'Create and manage experience packages offered by businesses.' };
+    // System
+    if (pathname.includes('/data-manager')) return { title: 'Data Manager', tip: 'Import, export, and backup your database.' };
+    if (pathname.includes('/forms')) return { title: 'Forms', tip: 'Manage form definitions and field configurations.' };
+    if (pathname.includes('/moderation')) return { title: 'Moderation', tip: 'Review and moderate user-submitted content.' };
+    if (pathname.includes('/upgrades')) return { title: 'Upgrades', tip: 'Review and approve vendor upgrade requests.' };
+    if (pathname.includes('/policies')) return { title: 'Policies', tip: 'Define search visibility policies that control what data each role can see.' };
+    if (pathname.includes('/diagnostic')) return { title: 'Diagnostic', tip: 'System health checks and component diagnostics.' };
+    if (pathname.includes('/audit')) return { title: 'Audit Logs', tip: 'View activity history and change tracking.' };
+    if (pathname.includes('/curation')) return { title: 'Curation', tip: 'Content filtering and curation rules.' };
+    return { title: 'Governance CMS', tip: 'Navigate the pipeline from Foundation through Publication.' };
   };
 
   const guide = getPageGuide();
@@ -211,12 +268,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     borderRadius: '6px', marginBottom: '0.15rem',
                   }}
                 >
-                  <div style={{
-                    fontSize: '0.6rem', fontWeight: 800, letterSpacing: '1px',
-                    color: hasActiveItem ? '#D4AF37' : 'rgba(255,255,255,0.35)',
-                    transition: 'color 0.2s',
-                  }}>
-                    {group.title}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <i className={`fas ${group.icon}`} style={{
+                      fontSize: '0.55rem', color: hasActiveItem ? '#D4AF37' : 'rgba(255,255,255,0.25)',
+                      width: '14px', textAlign: 'center',
+                    }}></i>
+                    <div style={{
+                      fontSize: '0.6rem', fontWeight: 800, letterSpacing: '1.5px',
+                      color: hasActiveItem ? '#D4AF37' : 'rgba(255,255,255,0.35)',
+                      transition: 'color 0.2s',
+                    }}>
+                      {group.title}
+                    </div>
                   </div>
                   {group.collapsible !== false && (
                     <i className={`fas fa-chevron-${isGroupCollapsed ? 'right' : 'down'}`}

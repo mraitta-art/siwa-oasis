@@ -25,6 +25,7 @@ interface BlogPost {
 
 export default function BlogAdminPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'posts' | 'layouts' | 'templates' | 'integration'>('posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -168,12 +169,10 @@ export default function BlogAdminPage() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                {migrationRunning ? '⏳ Running...' : '🔧 Setup Database'}
+                {migrationRunning ? 'Running...' : 'Setup Database'}
               </button>
               <button
-                onClick={() => {
-                  router.push('/jana/blog/editor');
-                }}
+                onClick={() => router.push('/jana/blog/editor')}
                 style={{
                   padding: '1rem 2rem',
                   background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
@@ -187,10 +186,46 @@ export default function BlogAdminPage() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                <span style={{ fontSize: '1.2rem' }}>+</span> New Post
+                + New Post
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Hub Tabs */}
+        <div style={{
+          display: 'flex', gap: '0.5rem', marginBottom: '2rem',
+          background: '#fff', borderRadius: '12px', padding: '0.5rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0',
+        }}>
+          {[
+            { key: 'posts' as const, label: 'Posts', icon: 'fa-newspaper' },
+            { key: 'layouts' as const, label: 'Layout Builder', icon: 'fa-table-cells-large' },
+            { key: 'templates' as const, label: 'Templates', icon: 'fa-swatchbook' },
+            { key: 'integration' as const, label: 'Integration', icon: 'fa-plug' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                if (tab.key === 'posts') {
+                  setActiveTab('posts');
+                } else {
+                  router.push(`/jana/blog-${tab.key === 'layouts' ? 'layout-builder' : tab.key === 'templates' ? 'templates' : 'integration'}`);
+                }
+              }}
+              style={{
+                flex: 1, padding: '0.75rem 1rem', border: 'none', borderRadius: '8px',
+                background: activeTab === tab.key ? 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)' : 'transparent',
+                color: activeTab === tab.key ? '#fff' : '#64748b',
+                fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+                transition: 'all 0.2s ease', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: '0.5rem',
+              }}
+            >
+              <i className={`fas ${tab.icon}`} style={{ fontSize: '0.75rem' }}></i>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Stats */}

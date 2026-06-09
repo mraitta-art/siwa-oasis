@@ -15,7 +15,13 @@
     "backfill": "node scripts/backfill_visitors.js",
     "migrate:file": "node scripts/run_migration.js",
     "migrate:dry": "node scripts/run_migration.js --dry",
-    "sync:db": "node scripts/sync_database.js"
+    "sync": "node scripts/smart-sync.js",
+    "sync:dry": "node scripts/smart-sync.js --dry",
+    "sync:code": "node scripts/smart-sync.js --skip-db",
+    "sync:db": "node scripts/smart-sync.js --skip-build",
+    "sync:quick": "node scripts/smart-sync.js --quick",
+    "sync:force": "node scripts/smart-sync.js --force",
+    "sync:db:raw": "node scripts/sync_database.js"
   },
   "engines": {
     "node": ">=20.0.0"

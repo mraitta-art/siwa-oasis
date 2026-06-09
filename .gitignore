@@ -47,6 +47,10 @@ next-env.d.ts
 /siwa-cpanel-release.zip
 *.zip
 
+# sync tracking
+.last-sync-hashes.json
+.sync-manifest.json
+
 # temporary logs
 server_log.txt
 /scratch

@@ -79,9 +79,11 @@ export default function AdvancedHeroCarousel({
   const [isMuted, setIsMuted] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchedRef = useRef(false);
 
-  // Auto-fetch slides if a carouselName is provided
+  // Auto-fetch slides if a carouselName is provided (only once)
   useEffect(() => {
+    if (fetchedRef.current) return;
     if (carouselName && initialSlides.length === 0) {
       async function fetchSlides() {
         try {
@@ -114,6 +116,7 @@ export default function AdvancedHeroCarousel({
         }
       }
       fetchSlides();
+      fetchedRef.current = true;
     } else if (initialSlides.length > 0) {
       setSlides(initialSlides);
       setLoading(false);

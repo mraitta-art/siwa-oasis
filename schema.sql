@@ -60,6 +60,7 @@ CREATE TABLE sections (
   required BOOLEAN DEFAULT FALSE,
   vendor_editable BOOLEAN DEFAULT TRUE,
   show_on_public BOOLEAN DEFAULT TRUE,
+  show_on_minisite BOOLEAN DEFAULT TRUE,
   is_filterable BOOLEAN DEFAULT FALSE,
   show_on_card BOOLEAN DEFAULT FALSE,
   is_universal BOOLEAN DEFAULT FALSE,

@@ -70,15 +70,15 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
     console.log('[SECTIONS POST] Attempting to create section:', { id, name, business_type_id, is_universal });
 
     try {
       await execute(
-        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, 
+          id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, show_on_minisite !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, 
           inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, 
           display_order || 0, sort_order || 0, active !== false, business_type_id || null,
           propagation_hero || false, propagation_blog || false, propagation_card || false
@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const updates = [];
@@ -132,6 +132,7 @@ export async function PUT(request: NextRequest) {
     if (required !== undefined) { updates.push('required=?'); params.push(required); }
     if (vendor_editable !== undefined) { updates.push('vendor_editable=?'); params.push(vendor_editable); }
     if (show_on_public !== undefined) { updates.push('show_on_public=?'); params.push(show_on_public); }
+    if (show_on_minisite !== undefined) { updates.push('show_on_minisite=?'); params.push(show_on_minisite); }
     if (is_filterable !== undefined) { updates.push('is_filterable=?'); params.push(is_filterable); }
     if (show_on_card !== undefined) { updates.push('show_on_card=?'); params.push(show_on_card); }
     if (is_universal !== undefined) { updates.push('is_universal=?'); params.push(is_universal); }

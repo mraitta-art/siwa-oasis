@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       try {
         // Try to fetch from page_services
         const services = await query(
-          `SELECT id, name, description, featured_image_url, service_icon 
+          `SELECT id, name, tagline, image_url, icon 
            FROM page_services 
            WHERE is_visible = 1 
            ORDER BY display_order ASC 
@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
             slides.push({
               id: `business_${service.id}`,
               type: 'image',
-              mediaUrl: service.featured_image_url || '/images/siwa-default.jpg',
+              mediaUrl: service.image_url || '/images/siwa-default.jpg',
               title: `🏢 ${service.name}`,
               subtitle: 'Verified Business',
-              caption: service.description || 'Authentic Siwa Experience',
+              caption: service.tagline || 'Authentic Siwa Experience',
               ctaText: 'Explore This Business',
               ctaLink: `/search/vibe?service=${service.id}`,
               ctaType: 'search',

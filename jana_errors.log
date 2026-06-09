@@ -395,3 +395,4 @@
 [2026-05-27T19:27:19.798Z] [TYPES POST] Attempt: {"id":"product_marketplace","name":"Product MarketPlace","icon":"fas fa-spa","icon_color":"#8b5cf6","description":"","is_parent":true,"parent_id":null,"sections":[],"own_sections":[],"active":true}
 [2026-06-05T14:41:25.983Z] [TYPES POST] Attempt: {"id":"camps","name":"camps","icon":"fas fa-building","icon_color":"#8b5cf6","description":"","is_parent":false,"parent_id":"accommodation","sections":[],"own_sections":["basic","sec_8_rates_offers"],"active":true}
 [2026-06-05T22:09:17.772Z] [TYPES PUT] Attempt: {"id":"camps","name":"camps","icon":"fas fa-building","icon_color":"#8b5cf6","description":"","is_parent":0,"parent_id":"accommodation","sections":["sec_2_ambience"],"own_sections":["basic","sec_8_rates_offers"],"active":1,"sort_order":"99.00","blueprint":null,"created_at":"2026-06-05T14:41:26.000Z"}
+[2026-06-09T12:20:41.337Z] [TYPES PUT] Attempt: {"id":"camping_areas","own_sections":["sec_1781007637313"]}

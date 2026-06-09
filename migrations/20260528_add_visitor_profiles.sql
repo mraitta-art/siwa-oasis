@@ -15,10 +15,12 @@ CREATE TABLE IF NOT EXISTS visitor_profiles (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2) Add visitor_id to journey_requests
+-- 2) Add visitor_id to journey_requests (if it exists)
+-- Note: MySQL doesn't support ALTER TABLE IF EXISTS.
+-- The sync tool will auto-create the table if it exists locally,
+-- or skip this ALTER if the table doesn't exist in either environment.
 ALTER TABLE journey_requests
-  ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(36) DEFAULT NULL,
-  ADD INDEX IF NOT EXISTS idx_visitor_id (visitor_id);
+  ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(36) DEFAULT NULL;
 
 -- Note: If you have other per-business request tables, repeat ALTER TABLE to add visitor_id.
 

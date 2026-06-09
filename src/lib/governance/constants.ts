@@ -135,6 +135,7 @@ export const SIWA_DEFS = {
     { name: 'section_blog',    label: 'Section Blog / Story',   field_type: 'rich_text', sort_order: 1 },
     { name: 'feature_on_main', label: 'Feature on Main Page',  field_type: 'boolean',   sort_order: 2 },
     { name: 'section_news',    label: 'Latest News Teaser',     field_type: 'textarea',  sort_order: 3 },
+    { name: 'show_on_minisite', label: 'Show on Minisite',      field_type: 'boolean',   sort_order: 4 },
   ],
   sectionIcons: [
     'fa-cubes', 'fa-map', 'fa-info-circle', 'fa-camera-retro', 'fa-hotel', 'fa-concierge-bell',

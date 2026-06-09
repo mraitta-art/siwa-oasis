@@ -1,8 +1,25 @@
 import React from 'react';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+
+/**
+ * Strip dangerous HTML tags/attributes to mitigate XSS.
+ * Works in both server and browser environments.
+ */
+function sanitizeHtml(html: string): string {
+  // Remove script/style/iframe/object/embed/form elements and their content
+  let clean = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|select|button)[\s\S]*?<\/\1>/gi, '');
+  // Remove self-closing dangerous tags
+  clean = clean.replace(/<(script|style|iframe|object|embed|form|input|textarea|select|button)\b[^>]*\/?>/gi, '');
+  // Remove event handler attributes (onclick, onerror, etc.)
+  clean = clean.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  // Remove javascript: protocol in href/src attributes
+  clean = clean.replace(/(href|src)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '$1=""');
+  return clean;
+}
 
 /**
  * Dynamic Component Renderer
- * Renders any component based on configuration
+ * Renders component based on configuration
  * Can be extended with more component types
  */
 
@@ -17,8 +34,6 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
 
   switch (type) {
     case 'hero_carousel':
-      // Import dynamically to avoid circular dependencies
-      const AdvancedHeroCarousel = require('@/components/AdvancedHeroCarousel').default;
       return (
         <AdvancedHeroCarousel
           carouselName={props.carousel_id || 'main_hero'}
@@ -65,7 +80,7 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
           )}
           {props.content && (
             <div
-              dangerouslySetInnerHTML={{ __html: props.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(props.content) }}
               style={{ lineHeight: 1.8, color: '#64748b' }}
             />
           )}

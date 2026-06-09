@@ -1,12 +1,25 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LangProvider, useLang } from '@/context/LangContext';
 
-/* ─── Inner layout that has access to useLang() ───────────────────────── */
 function VendorLayoutInner({ children }: { children: React.ReactNode }) {
   const { t, isRTL, toggleLang, lang } = useLang();
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Close drawer on navigation
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const navGroups = [
     {
@@ -41,158 +54,209 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
       title: t.navVendorTiers,
       items: [
         { name: t.myVendorTier,   href: '/vendor/tier',    icon: 'fa-gem' },
-        { name: t.requestUpgrade, href: '/vendor/upgrade', icon: 'fa-arrow-up text-brand-400' },
+        { name: t.requestUpgrade, href: '/vendor/upgrade', icon: 'fa-arrow-up' },
       ],
     },
   ];
 
+  const sidebarContent = (
+    <>
+      {/* Brand Header */}
+      <div style={{
+        height: '60px', display: 'flex', alignItems: 'center',
+        padding: '0 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.07)',
+        justifyContent: 'space-between', flexDirection: isRTL ? 'row-reverse' : 'row',
+      }}>
+        <Link href="/vendor" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#D4AF37,#F5E6AD)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a1a2e', fontWeight: 900, fontSize: '0.75rem' }}>S</div>
+          <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#fff' }}>
+            {isRTL ? 'مركز البائع' : 'VENDOR HUB'}
+          </span>
+        </Link>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Language Toggle */}
+          <button
+            onClick={toggleLang}
+            style={{
+              background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.35)',
+              color: '#D4AF37', borderRadius: '20px', padding: '3px 10px',
+              fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s',
+            }}
+          >
+            {t.langToggle}
+          </button>
+          {/* Close on mobile */}
+          {isMobile && (
+            <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem', cursor: 'pointer', padding: '0.25rem' }}>
+              <i className="fas fa-times"></i>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 0.75rem' }}>
+        {navGroups.map((group, idx) => (
+          <div key={idx} style={{ marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '0.55rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '0 0.5rem', marginBottom: '0.4rem', textAlign: isRTL ? 'right' : 'left' }}>
+              {group.title}
+            </div>
+            <nav>
+              {group.items.map((item: any) => {
+                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.65rem',
+                      padding: '0.55rem 0.75rem', borderRadius: '8px', textDecoration: 'none',
+                      color: active ? '#D4AF37' : 'rgba(255,255,255,0.55)',
+                      background: active ? 'rgba(212,175,55,0.1)' : 'transparent',
+                      fontSize: '0.8rem', fontWeight: active ? 700 : 500,
+                      marginBottom: '0.15rem', transition: 'all 0.2s',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                    }}
+                  >
+                    <i className={`fas ${item.icon}`} style={{ width: '16px', textAlign: 'center', fontSize: '0.75rem', opacity: active ? 1 : 0.6 }}></i>
+                    <span style={{ flex: 1 }}>{item.name}</span>
+                    {item.badge && (
+                      <span style={{ background: '#D4AF37', color: '#1a1a2e', borderRadius: '20px', padding: '1px 7px', fontSize: '0.5rem', fontWeight: 900 }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        ))}
+      </div>
+
+      {/* User Card */}
+      <div style={{ padding: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(212,175,55,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', fontWeight: 900, fontSize: '0.8rem', flexShrink: 0 }}>
+          {isRTL ? 'ب' : 'V'}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {isRTL ? 'أحمد البائع' : 'Ahmed Vendor'}
+          </div>
+          <div style={{ fontSize: '0.6rem', color: '#D4AF37', fontWeight: 700 }}>
+            {isRTL ? 'بائع مميز' : 'Premium Vendor'}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
-      {/* Load Cairo font for Arabic */}
       {isRTL && (
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-        `}</style>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');`}</style>
       )}
 
       <div
         dir={isRTL ? 'rtl' : 'ltr'}
         style={{
-          display: 'flex',
-          height: '100vh',
-          overflow: 'hidden',
-          fontFamily: isRTL
-            ? "'Cairo', 'Segoe UI', system-ui, sans-serif"
-            : "'Inter', 'Segoe UI', system-ui, sans-serif",
+          display: 'flex', height: '100vh', overflow: 'hidden',
+          fontFamily: isRTL ? "'Cairo','Segoe UI',system-ui,sans-serif" : "'Inter','Segoe UI',system-ui,sans-serif",
           flexDirection: isRTL ? 'row-reverse' : 'row',
+          background: '#0f172a',
         }}
       >
-        {/* ── Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="w-72 flex-shrink-0 glass-panel !rounded-none !border-y-0 !border-l-0 flex flex-col z-20">
+        {/* ── Mobile Overlay ── */}
+        {isMobile && mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 199 }}
+          />
+        )}
 
-          {/* Brand Header */}
-          <div className="h-16 flex items-center px-6 border-b border-slate-700/50" style={{ justifyContent: 'space-between' }}>
-            <Link href="/vendor">
-              <h1 className="font-outfit text-xl font-bold tracking-tight text-white inline-flex items-center gap-2">
-                <span className="text-brand-400">{isRTL ? 'مركز' : 'VENDOR'}</span>
-                {isRTL ? 'البائع' : 'HUB'}
-              </h1>
-            </Link>
+        {/* ── Mobile Drawer ── */}
+        {isMobile && (
+          <aside style={{
+            width: '280px', background: 'linear-gradient(180deg,#0f172a 0%,#1e293b 100%)',
+            display: 'flex', flexDirection: 'column',
+            position: 'fixed', top: 0, bottom: 0,
+            [isRTL ? 'right' : 'left']: 0,
+            zIndex: 200,
+            transform: mobileOpen ? 'translateX(0)' : (isRTL ? 'translateX(100%)' : 'translateX(-100%)'),
+            transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+            overflowY: 'auto',
+          }}>
+            {sidebarContent}
+          </aside>
+        )}
 
-            {/* Language Toggle */}
-            <button
-              onClick={toggleLang}
-              title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
-              style={{
-                background: 'rgba(212,175,55,0.12)',
-                border: '1px solid rgba(212,175,55,0.35)',
-                color: '#D4AF37',
-                borderRadius: '20px',
-                padding: '4px 12px',
-                fontSize: '0.7rem',
-                fontWeight: 900,
-                cursor: 'pointer',
-                letterSpacing: '0.5px',
-                transition: 'all 0.2s',
-                flexShrink: 0,
-              }}
-            >
-              {t.langToggle}
-            </button>
-          </div>
+        {/* ── Desktop Sidebar ── */}
+        {!isMobile && (
+          <aside style={{
+            width: '260px', flexShrink: 0,
+            background: 'linear-gradient(180deg,#0f172a 0%,#1e293b 100%)',
+            display: 'flex', flexDirection: 'column',
+            borderRight: isRTL ? 'none' : '1px solid rgba(255,255,255,0.05)',
+            borderLeft: isRTL ? '1px solid rgba(255,255,255,0.05)' : 'none',
+          }}>
+            {sidebarContent}
+          </aside>
+        )}
 
-          {/* Business Selector */}
-          <div className="p-4 border-b border-slate-700/50">
-            <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-700">
-              <p className="text-xs text-slate-500 uppercase font-semibold mb-1">{t.activeBusiness}</p>
-              <p className="font-medium text-white truncate">Siwa Paradise Hotel</p>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded border border-brand-500/30">
-                  {t.premiumTier}
-                </span>
-                <button className="text-xs text-slate-400 hover:text-white">
-                  {t.switchBusiness} <i className="fas fa-chevron-down"></i>
+        {/* ── Main Content ── */}
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', minWidth: 0 }}>
+
+          {/* Top Bar */}
+          <header style={{
+            height: '56px', flexShrink: 0,
+            background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: isMobile ? '0 0.75rem' : '0 1.5rem',
+            gap: '0.75rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Hamburger */}
+              {isMobile && (
+                <button
+                  onClick={() => setMobileOpen(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#fff', borderRadius: '8px', padding: '0.45rem 0.6rem',
+                    fontSize: '1rem', cursor: 'pointer',
+                  }}
+                >
+                  <i className="fas fa-bars"></i>
                 </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex-1 overflow-y-auto py-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-700">
-            {navGroups.map((group, idx) => (
-              <div key={idx} className="px-4">
-                <h3 className="px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  {group.title}
-                </h3>
-                <nav className="space-y-1">
-                  {group.items.map((item: any) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
-                    >
-                      <i className={`fas ${item.icon} w-5 text-center text-slate-400 group-hover:text-white`}></i>
-                      <span className="flex-1">{item.name}</span>
-                      {item.badge && (
-                        <span style={{
-                          background: '#D4AF37', color: '#1a1a2e', borderRadius: '20px',
-                          padding: '0.1rem 0.45rem', fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px',
-                        }}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </nav>
-              </div>
-            ))}
-          </div>
-
-          {/* User Card */}
-          <div className="p-4 border-t border-slate-700/50 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold text-white">
-              {isRTL ? 'ب' : 'V'}
-            </div>
-            <div className="flex-1 truncate">
-              <p className="text-sm font-medium text-white truncate">
-                {isRTL ? 'أحمد البائع' : 'Ahmed Vendor'}
-              </p>
-            </div>
-          </div>
-        </aside>
-
-        {/* ── Main Content Area ───────────────────────────────────────── */}
-        <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-          <header className="h-16 flex-shrink-0 glass-panel !rounded-none !border-x-0 !border-t-0 flex justify-between items-center px-8 z-10">
-            <div className="text-sm text-slate-400">
-              <span className="text-brand-400 font-medium">
-                {isRTL ? 'الرئيسية' : 'Dashboard'}
-              </span>
-              {isRTL ? ' / نظرة عامة' : ' / Overview'}
-            </div>
-
-            {/* Tier Quota Global Indicator */}
-            <div className="flex items-center gap-6">
-              <div
-                className="hidden md:flex items-center gap-3 bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-700/50"
-                title={isRTL ? 'حدود الوسائط الخاصة بك' : 'Your media limits'}
-              >
-                <i className="fas fa-database text-brand-400 text-xs"></i>
-                <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-brand-500 to-accent-500 w-[65%]"></div>
-                </div>
-                <span className="text-xs text-slate-300 font-medium tracking-wide">
-                  65% {t.mediaUsage}
+              )}
+              <div style={{ fontSize: isMobile ? '0.75rem' : '0.8rem', color: 'rgba(255,255,255,0.45)' }}>
+                <span style={{ color: '#D4AF37', fontWeight: 700 }}>
+                  {isRTL ? 'الرئيسية' : 'Dashboard'}
                 </span>
+                {isRTL ? ' / نظرة عامة' : ' / Overview'}
               </div>
-              <Link href="/" target="_blank" className="text-sm text-brand-400 hover:text-brand-300 font-medium transition-colors">
-                {t.viewLiveMinisite}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {!isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.04)', padding: '0.35rem 0.75rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <i className="fas fa-database" style={{ color: '#D4AF37', fontSize: '0.7rem' }}></i>
+                  <div style={{ width: '80px', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: '65%', background: 'linear-gradient(90deg,#D4AF37,#F5E6AD)' }}></div>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>65% {t.mediaUsage}</span>
+                </div>
+              )}
+              <Link href="/" target="_blank" style={{ fontSize: '0.75rem', color: '#D4AF37', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
+                <i className="fas fa-external-link-alt" style={{ fontSize: '0.7rem' }}></i>
+                {!isMobile && (isRTL ? 'عرض الموقع' : 'Live Site')}
               </Link>
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-8 relative z-0">
-            <div className="max-w-7xl mx-auto">
+          {/* Page Content */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '1rem' : '1.5rem 2rem', background: '#f8fafc' }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
               {children}
             </div>
           </div>
@@ -202,7 +266,6 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ─── Public export wraps inner layout with the LangProvider ──────────── */
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
   return (
     <LangProvider>

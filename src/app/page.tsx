@@ -4,10 +4,39 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 
+interface LayoutSection {
+  id: string;
+  type: string;
+  props?: Record<string, unknown>;
+}
+
+interface SiteSettings {
+  bg_color?: string;
+  nav_bg_color?: string;
+  logo_url?: string;
+  logo_height?: number;
+  site_name?: string;
+  primary_color?: string;
+  show_watermark?: boolean;
+  carousel_interval?: number;
+}
+
+const DEFAULT_LAYOUT: LayoutSection[] = [
+  { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
+  { id: 'h2', type: 'services_hub', props: {} },
+  { id: 'h3', type: 'experience_categories', props: {} },
+  { id: 'h4', type: 'search_bar', props: {} },
+  { id: 'h5', type: 'smart_journey_planner', props: {} },
+  { id: 'h6', type: 'ecosystem_map', props: {} },
+  { id: 'h7', type: 'local_products', props: {} },
+  { id: 'h8', type: 'storytelling_section', props: {} },
+  { id: 'h9', type: 'partner_cta', props: {} }
+];
+
 export default function Home() {
-  const [layout, setLayout] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // Start with default layout immediately — no blocking spinner
+  const [layout, setLayout] = useState<LayoutSection[]>(DEFAULT_LAYOUT);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -17,70 +46,21 @@ export default function Home() {
           const data = await res.json();
           const config = data[0];
           if (config) {
-            // Use the saved layout exactly as the admin configured it
-            const allComponents = [
+            const allComponents: LayoutSection[] = [
               ...(config.header_components || []),
               ...(config.body_components || []),
               ...(config.footer_components || [])
             ];
-            if (allComponents.length > 0) {
-              setLayout(allComponents);
-            } else {
-              // Config exists but has no components — use sensible defaults
-              setLayout([
-                { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
-                { id: 'h2', type: 'services_hub', props: {} },
-                { id: 'h3', type: 'experience_categories', props: {} },
-                { id: 'h4', type: 'search_bar', props: {} },
-                { id: 'h5', type: 'smart_journey_planner', props: {} },
-                { id: 'h6', type: 'ecosystem_map', props: {} },
-                { id: 'h7', type: 'local_products', props: {} },
-                { id: 'h8', type: 'storytelling_section', props: {} },
-                { id: 'h9', type: 'partner_cta', props: {} }
-              ]);
-            }
-            setSettings(config.site_settings);
-          } else {
-            // No config found at all — first-time setup defaults
-            setLayout([
-              { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
-              { id: 'h2', type: 'services_hub', props: {} },
-              { id: 'h3', type: 'experience_categories', props: {} },
-              { id: 'h4', type: 'search_bar', props: {} },
-              { id: 'h5', type: 'smart_journey_planner', props: {} },
-              { id: 'h6', type: 'ecosystem_map', props: {} },
-              { id: 'h7', type: 'local_products', props: {} },
-              { id: 'h8', type: 'storytelling_section', props: {} },
-              { id: 'h9', type: 'partner_cta', props: {} }
-            ]);
+            if (allComponents.length > 0) setLayout(allComponents);
+            if (config.site_settings) setSettings(config.site_settings);
           }
         }
       } catch (e) { 
         console.error('Homepage init fail:', e);
-        // Absolute Fallback
-        setLayout([
-          { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
-          { id: 'h2', type: 'services_hub', props: {} },
-          { id: 'h3', type: 'experience_categories', props: {} },
-          { id: 'h4', type: 'search_bar', props: {} },
-          { id: 'h5', type: 'smart_journey_planner', props: {} },
-          { id: 'h6', type: 'ecosystem_map', props: {} },
-          { id: 'h7', type: 'local_products', props: {} },
-          { id: 'h8', type: 'storytelling_section', props: {} },
-          { id: 'h9', type: 'partner_cta', props: {} }
-        ]);
       }
-      setLoading(false);
     }
     init();
   }, []);
-
-  if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
-       <i className="fas fa-sun fa-spin fa-4x" style={{ color: '#FFB700', marginBottom: '2rem' }}></i>
-       <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.7rem' }}>CURATING EXPERIENCE...</div>
-    </div>
-  );
 
   return (
     <div style={{ minHeight: '100vh', background: settings?.bg_color || 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
