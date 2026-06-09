@@ -6,7 +6,7 @@
 - Server: `siwa.today`
 
 **Deployment File:**
-- ZIP: `siwa_production_20260530_032413.zip` (62 MB)
+- ZIP: `siwa_production_latest.zip` (Optimized, ~5-15 MB)
 - Location: `e:\ANitgravity\siwatoday\siwa-oasis\`
 
 ---
@@ -51,7 +51,7 @@
 ### **STEP 4: Upload New ZIP**
 
 1. Click **Upload** button
-2. Select file: `siwa_production_20260530_032413.zip`
+2. Select file: `siwa_production_latest.zip`
 3. Click **Open** to start upload
 4. **Wait for upload** to complete (may take 1-2 minutes)
 
@@ -62,7 +62,7 @@
 ### **STEP 5: Extract ZIP**
 
 1. In File Manager, find the uploaded ZIP
-2. **Right-click** on `siwa_production_20260530_032413.zip`
+2. **Right-click** on `siwa_production_latest.zip`
 3. Click **Extract** (or "Uncompress")
 4. Confirm: Extract to current directory
 5. **Wait for extraction** to complete
@@ -89,21 +89,17 @@ You should now see in your app directory:
 
 ---
 
-### **STEP 8: Restart Application**
+### **STEP 8: Restart Application (Automatic! ⚡)**
 
-1. Go back to **cPanel Home**
-2. Look for **"Setup Node.js App"** or **"Node.js Selector"**
-3. Find your app (should show `siwa-oasis` or similar)
-4. Click the app name to select it
-5. Click the **Restart** button
-6. **Wait 2-3 seconds** for restart to complete
-7. Status should show **"running"** in green ✅
+1. Because the optimized package includes `tmp/restart.txt`, **cPanel will automatically detect the new files and restart the app on the next visit!**
+2. You do **NOT** need to open "Setup Node.js App" and click "Restart" anymore.
+3. Simply visit `https://www.siwa.today` to automatically trigger the restart and warm up the site.
 
 ---
 
 ### **STEP 9: Verify Deployment**
 
-**Wait 1-2 minutes**, then:
+**Wait 10-15 seconds for the automatic restart, then:**
 
 1. Open your **mobile phone** (important! Test on mobile)
 2. Open browser
@@ -125,9 +121,7 @@ You should now see in your app directory:
 - [ ] Uploaded ZIP file
 - [ ] Extracted ZIP file
 - [ ] Deleted ZIP file
-- [ ] Restarted Node.js app
-- [ ] Waited 1-2 minutes
-- [ ] Opened siwa.today on mobile
+- [ ] Opened siwa.today (Auto-restart is triggered on load!)
 - [ ] Verified dark olive background
 - [ ] Verified carousel with real data
 - [ ] Verified mobile responsive
@@ -170,8 +164,8 @@ If you get stuck:
 
 **Your deployment package is ready!**
 
-File: `siwa_production_20260530_032413.zip`
-Size: 62 MB
+File: `siwa_production_latest.zip`
+Size: Optimized (~5-15 MB)
 Location: `e:\ANitgravity\siwatoday\siwa-oasis\`
 
 **Follow these steps and your SIWA.TODAY will be live with the beautiful dark olive theme!** 🚀

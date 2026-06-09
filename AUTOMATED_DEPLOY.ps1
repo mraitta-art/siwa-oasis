@@ -8,7 +8,7 @@ param(
     [string]$Password = "PiCo@@4##73",
     [int]$Port = 22,
     [string]$RemotePath = "/home/vercel/public_html/siwa-oasis",
-    [string]$LocalZip = "siwa_production_20260530_032413.zip"
+    [string]$LocalZip = "siwa_production_latest.zip"
 )
 
 Write-Host ""
