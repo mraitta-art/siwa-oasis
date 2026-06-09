@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  * GET /api/vendor/auctions - Browse available auctions
  * GET /api/vendor/auctions/{id} - View auction details
  * POST /api/vendor/auctions/{id}/bid - Place a bid
+ * POST /api/vendor/auctions/{id}/express-interest - Express interest (if contact hidden)
  * POST /api/vendor/auctions/{id}/watch - Watch/unwatch auction
  */
 
@@ -12,6 +13,12 @@ interface BidRequest {
   bid_amount: number;
   contract_duration_months?: number;
   vendor_notes?: string;
+}
+
+interface ExpressInterestRequest {
+  message: string;
+  bid_amount?: number;
+  availability?: string;
 }
 
 // Simulated auctions database
@@ -29,6 +36,9 @@ const auctionsDb: Record<
     total_bids: number;
     unique_bidders: number;
     auction_end_time: string;
+    show_visitor_contact: boolean; // NEW: Contact visibility
+    contact_visibility_level: string; // NEW: Visibility level
+    admin_contact_email: string; // NEW: Where replies go if hidden
     bid_history: Array<{
       vendor_name: string;
       bid_amount: number;
@@ -49,6 +59,9 @@ const auctionsDb: Record<
     total_bids: 3,
     unique_bidders: 2,
     auction_end_time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+    show_visitor_contact: false, // HIDDEN - New field
+    contact_visibility_level: "none", // No contact shown
+    admin_contact_email: "vendor-replies@siwatoday.com", // New field
     bid_history: [
       {
         vendor_name: "Chef A",
@@ -123,6 +136,11 @@ export async function GET(request: NextRequest) {
               ((auction.current_price - auction.starting_price) /
                 auction.starting_price) *
               100,
+            // Contact visibility info
+            visitor_contact_visible: auction.show_visitor_contact,
+            contact_info_note: auction.show_visitor_contact
+              ? "Visitor contact is visible. You can reach out directly after winning."
+              : "Visitor contact is HIDDEN. If you win, express your interest and admin will permit contact.",
           },
         },
         { status: 200 }
@@ -160,6 +178,11 @@ export async function GET(request: NextRequest) {
             unique_bidders: a.unique_bidders,
             can_bid: hoursRemaining > 0,
             min_next_bid: a.current_price + 50,
+            // NEW: Contact visibility info
+            visitor_contact_visible: a.show_visitor_contact,
+            contact_note: a.show_visitor_contact
+              ? "✓ Direct contact available"
+              : "⚠️ Contact hidden - express interest if interested",
           };
         }),
         total: auctions.length,
@@ -246,6 +269,54 @@ export async function POST(request: NextRequest) {
           message: isWinning ? "Bid placed! You are currently winning." : "Bid placed!",
           current_price: auction.current_price,
           next_minimum_bid: auction.current_price + 50,
+        },
+        { status: 201 }
+      );
+    }
+
+    // Express interest when contact is hidden
+    if (action === "express-interest") {
+      const body: ExpressInterestRequest = await request.json();
+
+      if (!body.message) {
+        return NextResponse.json(
+          { success: false, error: "Message required" },
+          { status: 400 }
+        );
+      }
+
+      const auction = auctionsDb[auctionId];
+      if (!auction) {
+        return NextResponse.json(
+          { success: false, error: "Auction not found" },
+          { status: 404 }
+        );
+      }
+
+      if (auction.show_visitor_contact) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Contact is visible for this auction. Use bid instead of expressing interest.",
+          },
+          { status: 400 }
+        );
+      }
+
+      console.log(
+        `✉️ Vendor expressed interest in auction ${auctionId}: "${body.message}"`
+      );
+
+      return NextResponse.json(
+        {
+          success: true,
+          action: "interest_expressed",
+          auction_id: auctionId,
+          reply_id: `reply_${Date.now()}`,
+          message: "Your interest has been sent to admin for review.",
+          next_step:
+            "Admin will review your message and permit vendor contact if approved.",
+          admin_contact: auction.admin_contact_email,
         },
         { status: 201 }
       );

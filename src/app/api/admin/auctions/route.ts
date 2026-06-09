@@ -17,6 +17,10 @@ interface OpenAuctionRequest {
   min_bid_increment?: number;
   duration_days: number;
   admin_note?: string;
+  // NEW: Contact visibility control
+  show_visitor_contact?: boolean; // Default: false (hidden)
+  contact_visibility_level?: 'none' | 'partial' | 'full' | 'email_only'; // Default: 'none'
+  admin_contact_email?: string; // Where vendor replies go (default: vendor-replies@siwatoday.com)
 }
 
 interface AuctionResponse {
@@ -39,6 +43,10 @@ const auctionsDb: Record<
     unique_bidders: number;
     auction_end_time: string;
     opened_at: string;
+    // NEW: Contact visibility fields
+    show_visitor_contact: boolean;
+    contact_visibility_level: string;
+    admin_contact_email: string;
   }
 > = {};
 
@@ -112,6 +120,11 @@ export async function POST(request: NextRequest) {
       const endTime = new Date();
       endTime.setDate(endTime.getDate() + body.duration_days);
 
+      // NEW: Contact visibility settings (defaults to hidden)
+      const showVisitorContact = body.show_visitor_contact ?? false;
+      const contactVisibilityLevel = body.contact_visibility_level ?? 'none';
+      const adminContactEmail = body.admin_contact_email ?? 'vendor-replies@siwatoday.com';
+
       auctionsDb[auctionId] = {
         id: auctionId,
         recommendation_id: body.recommendation_id,
@@ -123,9 +136,16 @@ export async function POST(request: NextRequest) {
         unique_bidders: 0,
         auction_end_time: endTime.toISOString(),
         opened_at: new Date().toISOString(),
+        // NEW: Contact visibility fields
+        show_visitor_contact: showVisitorContact,
+        contact_visibility_level: contactVisibilityLevel,
+        admin_contact_email: adminContactEmail,
       };
 
-      console.log(`📢 Auction opened: ${auctionId} - ${body.title}`);
+      console.log(
+        `📢 Auction opened: ${auctionId} - ${body.title}\n` +
+        `   Contact: ${showVisitorContact ? '✓ VISIBLE' : '❌ HIDDEN (replies to ' + adminContactEmail + ')'}`
+      );
 
       return NextResponse.json(
         {
@@ -135,8 +155,14 @@ export async function POST(request: NextRequest) {
           starting_price: body.starting_price,
           auction_end_time: endTime.toISOString(),
           status: "open",
-          message:
-            "Auction opened successfully. Vendors will be notified immediately.",
+          contact_visibility: {
+            show_visitor_contact: showVisitorContact,
+            contact_visibility_level: contactVisibilityLevel,
+            vendor_replies_to: adminContactEmail,
+          },
+          message: showVisitorContact
+            ? "Auction opened with VISIBLE contact. Vendors can reach out directly."
+            : "Auction opened with HIDDEN contact. Vendor replies will come to admin for approval.",
         },
         { status: 201 }
       );

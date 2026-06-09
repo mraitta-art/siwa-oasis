@@ -22,6 +22,16 @@ CREATE TABLE IF NOT EXISTS auctions (
     reserve_price DECIMAL(10, 2),
     min_bid_increment DECIMAL(10, 2) DEFAULT 50,
     
+    -- Contact Visibility Control (NEW)
+    show_visitor_contact BOOLEAN DEFAULT FALSE COMMENT 'Show or hide visitor contact during auction',
+    contact_visibility_level ENUM(
+        'none',          -- Contact completely hidden
+        'partial',       -- Name only during auction
+        'full',          -- All contact shown
+        'email_only'     -- Email only, no phone
+    ) DEFAULT 'none',
+    admin_contact_email VARCHAR(255) COMMENT 'Where vendor replies go if contact hidden',
+    
     -- Timing
     auction_start_time TIMESTAMP NOT NULL,
     auction_end_time TIMESTAMP NOT NULL,
@@ -50,12 +60,14 @@ CREATE TABLE IF NOT EXISTS auctions (
     -- Auction metrics
     total_bids INT DEFAULT 0,
     unique_bidders INT DEFAULT 0,
+    replies_received INT DEFAULT 0 COMMENT 'Vendor replies received (if contact hidden)',
     price_increase_percent DECIMAL(5, 2),
     price_increase_amount DECIMAL(10, 2),
     
     -- Admin info
     opened_by_admin_id VARCHAR(36),
     admin_note MEDIUMTEXT,
+    permit_contact_after_bid BOOLEAN DEFAULT FALSE COMMENT 'Require admin approval before vendor gets contact',
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -66,6 +78,7 @@ CREATE TABLE IF NOT EXISTS auctions (
     INDEX idx_auction_end_time (auction_end_time),
     INDEX idx_winning_vendor_id (winning_vendor_id),
     INDEX idx_category (category),
+    INDEX idx_contact_visibility (show_visitor_contact),
     
     FOREIGN KEY (recommendation_id) REFERENCES visitor_recommendations(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -110,7 +123,56 @@ CREATE TABLE IF NOT EXISTS auction_bids (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- STEP 3: Create Auction Winners Table
+-- STEP 3B: Create Vendor Replies Table (NEW)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS auction_vendor_replies (
+    id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    auction_id VARCHAR(36) NOT NULL,
+    vendor_id VARCHAR(36) NOT NULL,
+    
+    -- Reply from vendor (when contact is hidden)
+    reply_subject VARCHAR(255),
+    reply_message MEDIUMTEXT,
+    bid_amount DECIMAL(10, 2),
+    
+    -- Reply status
+    reply_status ENUM(
+        'received',           -- Initial reply from vendor
+        'admin_reviewed',     -- Admin read it
+        'contact_permitted',  -- Admin approved vendor contact
+        'contact_denied',     -- Admin denied access
+        'responded'           -- Admin responded to vendor
+    ) DEFAULT 'received',
+    
+    -- Contact permission
+    contact_permitted BOOLEAN DEFAULT FALSE,
+    contact_permitted_at TIMESTAMP NULL,
+    contact_permitted_by_admin_id VARCHAR(36),
+    admin_reason TEXT,
+    
+    -- Visitor contact released
+    visitor_contact_shared BOOLEAN DEFAULT FALSE,
+    visitor_contact_shared_at TIMESTAMP NULL,
+    
+    -- Admin response
+    admin_response_message MEDIUMTEXT,
+    admin_responded_at TIMESTAMP NULL,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_auction_id (auction_id),
+    INDEX idx_vendor_id (vendor_id),
+    INDEX idx_reply_status (reply_status),
+    INDEX idx_contact_permitted (contact_permitted),
+    
+    FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
+    FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- STEP 4: Create Auction Winners Table
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS auction_winners (
@@ -167,8 +229,9 @@ CREATE TABLE IF NOT EXISTS auction_winners (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- STEP 4: Create Auction Watchers Table
+-- STEP 5: Create Auction Watchers Table
 -- ============================================
+
 
 CREATE TABLE IF NOT EXISTS auction_watchers (
     id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
@@ -192,8 +255,9 @@ CREATE TABLE IF NOT EXISTS auction_watchers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- STEP 5: Create Auction Audit Trail
+-- STEP 6: Create Auction Audit Trail
 -- ============================================
+
 
 CREATE TABLE IF NOT EXISTS auction_audit_log (
     id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
@@ -231,8 +295,9 @@ CREATE TABLE IF NOT EXISTS auction_audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- STEP 6: Create Views for Reporting
+-- STEP 7: Create Views for Reporting
 -- ============================================
+
 
 CREATE OR REPLACE VIEW vw_active_auctions AS
 SELECT 
@@ -310,8 +375,9 @@ GROUP BY YEAR(aw.created_at), MONTH(aw.created_at)
 ORDER BY year DESC, month DESC;
 
 -- ============================================
--- STEP 7: Create Stored Procedures
+-- STEP 8: Create Stored Procedures
 -- ============================================
+
 
 DELIMITER //
 
@@ -531,14 +597,16 @@ END //
 DELIMITER ;
 
 -- ============================================
--- STEP 8: Insert Sample Auctions
+-- STEP 9: Insert Sample Auctions
 -- ============================================
+
 
 -- Sample data will be inserted after migrations are tested
 
 -- ============================================
--- STEP 9: Summary
+-- STEP 10: Summary
 -- ============================================
+
 
 -- This migration adds:
 -- 1. Auction system for competitive bidding
