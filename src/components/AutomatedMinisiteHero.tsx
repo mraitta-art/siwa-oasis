@@ -71,8 +71,10 @@ export default function AutomatedMinisiteHero({
       const gallery = sectionData.section_gallery || [];
       const photos = Array.isArray(gallery) ? gallery : [gallery].filter(Boolean);
 
-      // CURATION FILTER: Only show photos marked as "is_hero"
-      const featuredPhotos = photos.filter((p: any) => p && p.is_hero);
+      // CURATION FILTER: Only show photos marked as "is_hero" AND approved by admin
+      const featuredPhotos = photos.filter((p: any) => 
+        p && p.is_hero && (p.approval_status === 'approved' || p.approval_status === undefined)
+      );
 
       if (youtubeStory) {
         allSlides.push({
