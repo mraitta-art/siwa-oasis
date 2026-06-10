@@ -2,6 +2,8 @@
 // Purpose: Admin permission system - approve/reject/assign recommendations
 // Features: Permission control, visibility management, vendor outreach
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 
 // ============================================================================

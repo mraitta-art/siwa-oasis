@@ -1,996 +1,255 @@
 'use client';
-export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useAdmin } from '@/context/AdminContext';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import TagInput from '@/components/TagInput';
-import { SIWA_DEFS } from '@/lib/governance/constants';
-
-const SECTION_ICONS = SIWA_DEFS.sectionIcons;
-const FIELD_LIBRARY = SIWA_DEFS.fieldLibrary;
-const STANDARD_FIELD_NAMES = SIWA_DEFS.sectionStandards.map(s => s.name);
+import { useState, useEffect } from 'react';
 
 interface Section {
   id: string;
   name: string;
   icon: string;
-  required: boolean;
-  vendor_editable: boolean;
-  show_on_public: boolean;
-  show_on_minisite: boolean;
-  is_filterable: boolean;
-  show_on_card: boolean;
-  is_universal: boolean;
-  propagation_hero?: boolean;
-  propagation_blog?: boolean;
-  propagation_card?: boolean;
-  business_type_id?: string | null;
-}
-
-interface BusinessType {
-  id: string;
-  name: string;
-  parent_id: string | null;
-}
-
-
-function SectionsContent() {
-  const { notify } = useAdmin();
-  const searchParams = useSearchParams();
-  const returnTo = searchParams.get('returnTo');
-  const typeId = searchParams.get('typeId'); // The typology we are adding to
-
-  const [sections, setSections] = useState<Section[]>([]);
-  const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAssigning, setIsAssigning] = useState(false);
-
-  // Editor State
-  const [showModal, setShowModal] = useState(false);
-  const [isNew, setIsNew] = useState(true);
-  // Inline blueprint designer — replaces modal
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [sectionFieldsMap, setSectionFieldsMap] = useState<Record<string, any[]>>({});
-  const [fieldDefs, setFieldDefs] = useState<any[]>([]);
-  const [libraryComponents, setLibraryComponents] = useState<any[]>([]);
-  const [editingSection, setEditingSection] = useState<Partial<Section> | null>(null);
-  const [inspectingField, setInspectingField] = useState<any | null>(null);
-  const [addingField, setAddingField] = useState(false);
-  const [newFieldLabel, setNewFieldLabel] = useState('');
-  const [newFieldType, setNewFieldType] = useState('text');
-  // Link to Types
-  const [linkingSection, setLinkingSection] = useState<string | null>(null);
-  const [selectedLinkTypes, setSelectedLinkTypes] = useState<string[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
-
-  // --- AUTO-ASSIGN LOGIC (THE "MANIPULATION" FIX) ---
-  async function assignAndReturn(sectionId: string) {
-    if (!typeId) return;
-    setIsAssigning(true);
-    try {
-      // 1. Fetch the absolute latest typology state
-      const tRes = await fetch('/api/jana/types');
-      if (!tRes.ok) throw new Error('Could not connect to Typology Registry');
-      const allTypes = await tRes.json();
-      const targetType = allTypes.find((t: any) => t.id === typeId);
-
-      if (!targetType) throw new Error('Target typology has disappeared or changed ID');
-
-      // 2. Manipulate the sections array
-      const currentSections = Array.isArray(targetType.sections) ? targetType.sections : [];
-      const updatedSections = currentSections.includes(sectionId)
-        ? currentSections
-        : [...currentSections, sectionId];
-
-      // 3. Construct a perfect payload for the PUT API
-      const payload = {
-        id: targetType.id,
-        name: targetType.name,
-        icon: targetType.icon || 'fa-box',
-        icon_color: targetType.icon_color || '#D4AF37',
-        description: targetType.description || '',
-        is_parent: targetType.is_parent ? 1 : 0,
-        parent_id: targetType.parent_id || null,
-        active: 1, // Ensure it stays active
-        sections: updatedSections,
-        own_sections: targetType.own_sections || []
-      };
-
-      // 4. Save to Database
-      const saveRes = await fetch('/api/jana/types', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (saveRes.ok) {
-        notify(`Success! ${targetType.name} now includes ${sectionId}.`, 'success');
-        // Decode and return
-        const destination = returnTo ? decodeURIComponent(returnTo) : '/jana/governance';
-        window.location.href = destination;
-      } else {
-        const errData = await saveRes.json();
-        throw new Error(errData.error || 'The Governance Registry rejected this assignment');
-      }
-    } catch (e: any) {
-      notify(`Assignment Failed: ${e.message}`, 'error');
-    } finally {
-      setIsAssigning(false);
-    }
-  }
-
-  useEffect(() => { loadSections(); }, []);
-
-  async function loadSections() {
-    setLoading(true);
-    const [secRes, typesRes, fdRes, libRes] = await Promise.all([
-      fetch('/api/jana/sections'),
-      fetch('/api/jana/types'),
-      fetch('/api/jana/field-definitions'),
-      fetch('/api/jana/component-library')
-    ]);
-    if (secRes.ok) setSections(await secRes.json());
-    if (typesRes.ok) setBusinessTypes(await typesRes.json());
-    if (fdRes.ok) setFieldDefs(await fdRes.json());
-    if (libRes.ok) setLibraryComponents(await libRes.json());
-    setLoading(false);
-  }
-
-  async function loadSectionFields(sid: string) {
-    const res = await fetch(`/api/jana/forms?type=SECTION_TEMPLATE&section=${sid}`);
-    if (res.ok) {
-      const data = await res.json();
-      console.log(`[BLUEPRINT] Loaded ${data.length} fields for section ${sid}:`, data);
-      setSectionFieldsMap(prev => ({ ...prev, [sid]: data }));
-    }
-  }
-
-  async function addFieldToSection(sid: string) {
-    if (!newFieldLabel.trim()) { notify('Please enter a field label', 'error'); return; }
-    const name = newFieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
-    const res = await fetch('/api/jana/forms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        business_type_id: 'SECTION_TEMPLATE',
-        section_id: sid,
-        name,
-        label: newFieldLabel,
-        field_type: newFieldType
-      })
-    });
-    if (res.ok) {
-      notify(`"${newFieldLabel}" added to blueprint.`, 'success');
-      setAddingField(false);
-      setNewFieldLabel('');
-      setNewFieldType('text');
-      loadSectionFields(sid);
-    } else {
-      const err = await res.json();
-      notify(err.error || 'Failed to add field', 'error');
-    }
-  }
-
-  async function removeFieldFromSection(fid: string, sid: string) {
-    const res = await fetch(`/api/jana/forms?id=${fid}`, { method: 'DELETE' });
-    if (res.ok) {
-      loadSectionFields(sid);
-    } else {
-      const err = await res.json();
-      notify(err.error || 'Cannot delete this field', 'error');
-    }
-  }
-
-  async function updateFieldInSection(sid: string) {
-    if (!inspectingField) return;
-    const res = await fetch('/api/jana/forms', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inspectingField)
-    });
-    if (res.ok) {
-      notify('Field updated.', 'success');
-      loadSectionFields(sid);
-      setInspectingField(null);
-    }
-  }
-
-  const openEditor = (section: Partial<Section> | null) => {
-    if (section) {
-      setEditingSection({ ...section });
-      setIsNew(false);
-    } else {
-      setEditingSection({
-        id: '', name: '', icon: 'fa-info-circle',
-        required: false, vendor_editable: true, show_on_public: true, show_on_minisite: true,
-        is_filterable: false, show_on_card: false, is_universal: false,
-        propagation_hero: false, propagation_blog: false, propagation_card: false,
-        business_type_id: null
-      });
-      setIsNew(true);
-    }
-    setShowModal(true);
-  };
-
-  const generateId = (name: string) => {
-    if (!isNew) return;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    setEditingSection(prev => prev ? { ...prev, id: slug } : null);
-  };
-
-  async function saveSection() {
-    if (!editingSection?.id || !editingSection?.name) {
-      notify('Block Name and ID are required.', 'error'); return;
-    }
-    // ENFORCE: non-universal sections MUST have a parent
-    if (!editingSection.is_universal && !editingSection.business_type_id) {
-      notify('A Master Parent business type is required. If this section applies to ALL types, toggle "Universal".', 'error');
-      return;
-    }
-    const method = isNew ? 'POST' : 'PUT';
-    const res = await fetch('/api/jana/sections', {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editingSection),
-    });
-    if (res.ok) {
-      notify('Block architected successfully.', 'success');
-      setShowModal(false);
-      // ── AUTO-INJECT STANDARD DNA FIELDS on new section ──
-      if (isNew && editingSection.id) {
-        const sid = editingSection.id;
-        const standardFields = SIWA_DEFS.sectionStandards;
-        await Promise.all(standardFields.map(f =>
-          fetch('/api/jana/forms', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...f, business_type_id: 'SECTION_TEMPLATE', section_id: sid, required: false, vendor_editable: true })
-          })
-        ));
-        notify('Standard DNA fields auto-injected ✓', 'success');
-      }
-      loadSections();
-    } else {
-      const err = await res.json();
-      notify(err.error || 'Failed to save section.', 'error');
-    }
-  }
-
-  async function deleteSection(id: string) {
-    if (!confirm(`Delete section "${id}"?`)) return;
-    await fetch(`/api/jana/sections?id=${id}`, { method: 'DELETE' });
-    loadSections();
-  }
-
-  async function moveSection(id: string, direction: number) {
-    const currentIndex = sections.findIndex(s => s.id === id);
-    if (currentIndex === -1) return;
-    
-    const newIndex = currentIndex + direction;
-    if (newIndex < 0 || newIndex >= sections.length) return;
-    
-    const newSections = [...sections];
-    const temp = newSections[currentIndex];
-    newSections[currentIndex] = newSections[newIndex];
-    newSections[newIndex] = temp;
-    
-    setSections(newSections);
-    
-    try {
-      // Re-index sequentially to prevent SQLite locks (SQLITE_BUSY) or Failed to fetch errors
-      for (let index = 0; index < newSections.length; index++) {
-        const sec = newSections[index];
-        await fetch('/api/jana/sections', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: sec.id, sort_order: index + 1 })
-        });
-      }
-      notify('Order synchronized successfully.', 'success');
-    } catch (e) {
-      notify('Failed to update order', 'error');
-      loadSections();
-    }
-  }
-
-  if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
-
-  return (
-    <div className="animate-in" style={{ paddingBottom: '5rem' }}>
-      {isAssigning && (
-        <div className="modal-overlay" style={{ background: 'rgba(255,255,255,0.8)', zIndex: 9999 }}>
-          <div style={{ textAlign: 'center' }}>
-            <i className="fas fa-spinner fa-spin fa-3x" style={{ color: '#D4AF37', marginBottom: '1rem' }}></i>
-            <p style={{ fontWeight: 800 }}>MAPPING ARCHITECTURE...</p>
-          </div>
-        </div>
-      )}
-
-      {returnTo && (
-        <div style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%)', padding: '1.25rem 2.5rem', borderRadius: '16px', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{ width: '40px', height: '40px', background: 'rgba(212,175,55,0.15)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <i className="fas fa-magic" style={{ color: '#D4AF37', fontSize: '1.1rem' }}></i>
-            </div>
-            <div>
-              <div style={{ color: '#fff', fontWeight: 900, fontSize: '0.95rem', letterSpacing: '0.5px' }}>WIZARD: COMPONENT MAPPING</div>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem' }}>Select or create a module blueprint to assign it to the active typology.</div>
-            </div>
-          </div>
-          <button
-            className="btn btn-primary"
-            style={{ background: '#D4AF37', color: '#1a1a2e', border: 'none', fontWeight: 900, padding: '0.75rem 1.5rem', borderRadius: '12px', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }}
-            onClick={() => window.location.href = returnTo}
-          >
-            <i className="fas fa-arrow-left" style={{ marginRight: '0.75rem' }}></i> RETURN TO STUDIO
-          </button>
-        </div>
-      )}
-
-      <div className="card-header" style={{ marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <i className="fas fa-layer-group" style={{ color: '#1e293b' }}></i> Section Architect
-          </h2>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>Architect the DNA of your platform. Universal blocks apply to all businesses.</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => openEditor(null)} style={{ background: '#1e293b', border: 'none', borderRadius: '12px', padding: '0.75rem 1.5rem', fontWeight: 900 }}>
-          <i className="fas fa-plus" style={{ marginRight: '0.5rem' }}></i> NEW BLOCK
-        </button>
-      </div>
-
-      {/* STATS & FILTERS */}
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-        <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '0.6rem 1.25rem', fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37' }}>
-          <i className="fas fa-globe" style={{ marginRight: '0.5rem' }}></i>
-          {sections.filter(s => s.is_universal).length} UNIVERSAL
-        </div>
-        {Array.from(new Set(sections.filter(s => !s.is_universal && s.business_type_id).map(s => s.business_type_id))).map(tid => {
-          const type = businessTypes.find(t => t.id === tid);
-          return (
-            <div key={tid} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.6rem 1.25rem', fontSize: '0.75rem', fontWeight: 900, color: '#1e293b' }}>
-              <i className="fas fa-sitemap" style={{ marginRight: '0.5rem', color: '#94a3b8' }}></i>
-              {type?.name || tid}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* SECTIONS LIST (INLINE ARCHITECTURE) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {sections.map(s => {
-          const isExpanded = expandedSection === s.id;
-          const fields = sectionFieldsMap[s.id] || [];
-          
-          return (
-            <div 
-              key={s.id} 
-              onClick={() => {
-                setSelectedSectionId(s.id);
-                if (!isExpanded) {
-                  setExpandedSection(s.id);
-                  loadSectionFields(s.id);
-                }
-              }}
-              style={{ 
-                background: selectedSectionId === s.id ? 'rgba(212,175,55,0.03)' : '#fff', 
-                padding: isExpanded ? '0' : '1.5rem 2rem', 
-                borderRadius: '24px', 
-                border: selectedSectionId === s.id ? '2px solid #D4AF37' : '1px solid #e2e8f0',
-                display: 'flex', flexDirection: isExpanded ? 'column' : 'row', alignItems: isExpanded ? 'stretch' : 'center', gap: '2rem',
-                boxShadow: selectedSectionId === s.id ? '0 10px 30px -10px rgba(212,175,55,0.2)' : '0 4px 6px -1px rgba(0,0,0,0.02)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-            >
-              {/* HEADER ROW */}
-              <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%' }}>
-                <div style={{ 
-                  width: '64px', height: '64px', borderRadius: '18px', 
-                  background: selectedSectionId === s.id ? '#D4AF37' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  color: selectedSectionId === s.id ? '#fff' : '#D4AF37', fontSize: '1.5rem',
-                  transition: 'all 0.3s ease',
-                  flexShrink: 0
-                }}>
-                  <i className={`fas ${s.icon}`}></i>
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{s.name}</h3>
-                    {s.is_universal && <span style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '6px', letterSpacing: '0.5px' }}>UNIVERSAL</span>}
-                    {s.required && <span style={{ color: '#ef4444', fontSize: '0.6rem' }}><i className="fas fa-lock"></i> REQ</span>}
-                    {(s as any).propagation_hero && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.5rem', fontWeight: 900, padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }} title="Feeds Hero Carousel">HERO</span>}
-                    {(s as any).propagation_blog && <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.5rem', fontWeight: 900, padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }} title="Feeds Blog Feed">BLOG</span>}
-                    {(s as any).propagation_card && <span style={{ background: '#d1fae5', color: '#065f46', fontSize: '0.5rem', fontWeight: 900, padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }} title="Shown on Cards">CARD</span>}
-                    {s.show_on_minisite && <span style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.5rem', fontWeight: 900, padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }} title="Visible on Minisite">MINI</span>}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.25rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>{s.id}</span>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
-                      <i className="fas fa-cubes" style={{ marginRight: '0.4rem', color: '#D4AF37' }}></i>
-                      {fields.length} Blueprint Fields
-                    </span>
-                  </div>
-                </div>
-
-                {/* ACTIONS */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginRight: '0.5rem' }}>
-                    <button onClick={(e) => { e.stopPropagation(); moveSection(s.id, -1); }} className="btn-icon" style={{ fontSize: '0.7rem', padding: '0.2rem' }} title="Move Up"><i className="fas fa-chevron-up"></i></button>
-                    <button onClick={(e) => { e.stopPropagation(); moveSection(s.id, 1); }} className="btn-icon" style={{ fontSize: '0.7rem', padding: '0.2rem' }} title="Move Down"><i className="fas fa-chevron-down"></i></button>
-                  </div>
-
-                  <Link 
-                    href={`/jana/sections/studio/${s.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ 
-                      padding: '0.6rem 1.25rem', 
-                      borderRadius: '12px', 
-                      background: '#1e293b',
-                      color: '#fff',
-                      textDecoration: 'none',
-                      fontWeight: 900,
-                      fontSize: '0.75rem',
-                      display: 'flex', alignItems: 'center', gap: '0.6rem',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <i className="fas fa-pencil-ruler"></i>
-                    STUDIO
-                  </Link>
-
-                  <Link 
-                    href={`/jana/sections/studio/${s.id}?tab=feed`}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ 
-                      padding: '0.6rem 1.25rem', 
-                      borderRadius: '12px', 
-                      background: 'rgba(212,175,55,0.1)',
-                      color: '#D4AF37',
-                      textDecoration: 'none',
-                      fontWeight: 900,
-                      fontSize: '0.75rem',
-                      display: 'flex', alignItems: 'center', gap: '0.6rem',
-                      border: '1px solid rgba(212,175,55,0.2)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <i className="fas fa-server"></i>
-                    FEED
-                  </Link>
-
-                  <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }}></div>
-
-                  <button onClick={(e) => { e.stopPropagation(); openEditor(s); }} className="btn-icon" title="Edit Metadata"><i className="fas fa-cog"></i></button>
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation();
-                      setLinkingSection(s.id);
-                      const linked = businessTypes.filter(t => (t as any).sections?.includes(s.id)).map(t => t.id);
-                      setSelectedLinkTypes(linked);
-                    }} 
-                    className="btn-icon" title="Link to Typologies" style={{ color: '#3b82f6' }}
-                  >
-                    <i className="fas fa-link"></i>
-                  </button>
-                  {returnTo && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); assignAndReturn(s.id); }}
-                      style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1rem', borderRadius: '10px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
-                    >
-                      ASSIGN
-                    </button>
-                  )}
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); deleteSection(s.id); }} 
-                    className="btn-icon" style={{ color: '#ef4444' }}
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
-                  
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setExpandedSection(isExpanded ? null : s.id);
-                      if (!isExpanded) loadSectionFields(s.id);
-                    }}
-                    style={{ 
-                      marginLeft: '0.5rem',
-                      background: isExpanded ? '#D4AF37' : '#f1f5f9',
-                      color: isExpanded ? '#1a1a2e' : '#64748b',
-                      border: 'none',
-                      padding: '0.6rem 1rem',
-                      borderRadius: '10px',
-                      fontWeight: 900,
-                      fontSize: '0.7rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                    title={isExpanded ? 'Collapse' : 'Click to add fields'}
-                  >
-                    <i className={`fas fa-${isExpanded ? 'chevron-up' : 'chevron-down'}`}></i>
-                    {isExpanded ? 'COLLAPSE' : 'ADD FIELDS'}
-                  </button>
-                </div>
-              </div>
-
-              {/* EXPANDED BLUEPRINT DESIGNER */}
-              {isExpanded && (
-                <div style={{ borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column' }} className="animate-in">
-
-                  {/* ═══ PART 1: STANDARD FOUNDATION ═══ */}
-                  <div style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.04) 0%, rgba(212,175,55,0.01) 100%)', borderBottom: '2px solid rgba(212,175,55,0.15)', padding: '1.5rem 2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(212,175,55,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <i className="fas fa-gem" style={{ color: '#D4AF37', fontSize: '0.7rem' }}></i>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1.5px' }}>PART 1: STANDARD FOUNDATION</div>
-                          <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>Auto-injected into every section. Locked and universal across all business types.</div>
-                        </div>
-                      </div>
-                      {(() => {
-                        const standards = SIWA_DEFS.sectionStandards;
-                        const missing = standards.filter(st => !fields.some((f: any) => f.name === st.name));
-                        if (missing.length > 0) {
-                          return (
-                            <button 
-                              className="btn btn-xs"
-                              style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24', fontWeight: 900, fontSize: '0.6rem', borderRadius: '8px', padding: '0.4rem 0.8rem' }}
-                              onClick={async () => {
-                                setIsAssigning(true);
-                                try {
-                                  await Promise.all(missing.map(f => 
-                                    fetch('/api/jana/forms', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ name: f.name, label: f.label, field_type: f.field_type, business_type_id: 'SECTION_TEMPLATE', section_id: s.id, required: false, vendor_editable: true, sort_order: 99 })
-                                    })
-                                  ));
-                                  notify('Foundation DNA Repaired', 'success');
-                                  loadSectionFields(s.id);
-                                } finally { setIsAssigning(false); }
-                              }}
-                            >
-                              <i className="fas fa-magic" style={{ marginRight: '0.4rem' }}></i> REPAIR ({missing.length} missing)
-                            </button>
-                          );
-                        }
-                        return <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><i className="fas fa-check-circle"></i> HEALTHY</span>;
-                      })()}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem' }}>
-                      {SIWA_DEFS.sectionStandards.map(st => {
-                        const field = fields.find((f: any) => f.name === st.name);
-                        const lib = FIELD_LIBRARY.find(l => l.id === st.field_type);
-                        return (
-                          <div key={st.name} style={{
-                            background: field ? '#fff' : '#fff9e6',
-                            border: field ? '1px solid rgba(212,175,55,0.2)' : '1px dashed #fbbf24',
-                            borderRadius: '10px', padding: '0.6rem 0.8rem',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: field ? 1 : 0.5
-                          }}>
-                            <i className={`fas ${lib?.icon || 'fa-cube'}`} style={{ color: '#D4AF37', fontSize: '0.7rem' }}></i>
-                            <div>
-                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#1e293b' }}>{st.label}</div>
-                              <div style={{ fontSize: '0.5rem', color: '#94a3b8', textTransform: 'uppercase' }}>{st.field_type}</div>
-                            </div>
-                            {field && <i className="fas fa-lock" style={{ marginLeft: 'auto', color: '#cbd5e1', fontSize: '0.5rem' }} title="Locked foundation field"></i>}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Propagation + Visibility Summary */}
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                      {[
-                        { key: 'propagation_hero', label: 'Hero Carousel', icon: 'fa-images', color: '#92400e' },
-                        { key: 'propagation_blog', label: 'Blog Feed', icon: 'fa-newspaper', color: '#1e40af' },
-                        { key: 'propagation_card', label: 'Card Display', icon: 'fa-id-card', color: '#065f46' },
-                      ].map(p => {
-                        const active = !!(s as any)[p.key];
-                        return (
-                          <div key={p.key} style={{
-                            padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 800,
-                            background: active ? 'rgba(212,175,55,0.08)' : '#f8fafc',
-                            border: active ? '1px solid rgba(212,175,55,0.3)' : '1px solid #e2e8f0',
-                            color: active ? '#D4AF37' : '#94a3b8',
-                            display: 'flex', alignItems: 'center', gap: '0.4rem'
-                          }}>
-                            <i className={`fas ${p.icon}`}></i>
-                            {p.label}
-                            {active ? <i className="fas fa-check" style={{ color: '#16a34a', marginLeft: '0.2rem' }}></i> : <i className="fas fa-minus" style={{ marginLeft: '0.2rem', opacity: 0.3 }}></i>}
-                          </div>
-                        );
-                      })}
-                      <div style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 800, background: s.show_on_public ? 'rgba(59,130,246,0.08)' : '#f8fafc', border: s.show_on_public ? '1px solid rgba(59,130,246,0.3)' : '1px solid #e2e8f0', color: s.show_on_public ? '#3b82f6' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <i className="fas fa-globe"></i> Public {s.show_on_public ? <i className="fas fa-check" style={{ color: '#16a34a' }}></i> : <i className="fas fa-minus" style={{ opacity: 0.3 }}></i>}
-                      </div>
-                      <div style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.6rem', fontWeight: 800, background: s.show_on_minisite ? 'rgba(236,72,153,0.08)' : '#f8fafc', border: s.show_on_minisite ? '1px solid rgba(236,72,153,0.3)' : '1px solid #e2e8f0', color: s.show_on_minisite ? '#ec4899' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <i className="fas fa-store"></i> Minisite {s.show_on_minisite ? <i className="fas fa-check" style={{ color: '#16a34a' }}></i> : <i className="fas fa-minus" style={{ opacity: 0.3 }}></i>}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ═══ PART 2: CUSTOM COMPONENTS ═══ */}
-                  <div style={{ display: 'flex', height: '550px' }}>
-                    <div style={{ width: '100%', borderTop: 'none' }}>
-                      <div style={{ padding: '0.75rem 2rem', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <i className="fas fa-cubes" style={{ color: '#D4AF37', fontSize: '0.6rem' }}></i>
-                        </div>
-                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#1e293b', letterSpacing: '1.5px' }}>PART 2: CUSTOM COMPONENTS</div>
-                        <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>Type-specific fields for search, data, links, and cards</div>
-                        <span style={{ marginLeft: 'auto', fontSize: '0.6rem', fontWeight: 900, color: '#64748b', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>{fields.filter((f: any) => !STANDARD_FIELD_NAMES.includes(f.name)).length} custom</span>
-                      </div>
-                  <div style={{ width: '280px', borderRight: '1px solid #e2e8f0', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: '#f8fafc' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>ADD TO BLUEPRINT</div>
-                    
-                    {!addingField ? (
-                      <button 
-                        onClick={() => setAddingField(true)}
-                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                      >
-                        <i className="fas fa-plus"></i> NEW CUSTOM FIELD
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }} className="animate-in">
-                        <input 
-                          type="text" className="form-control" placeholder="Field Label..." 
-                          value={newFieldLabel} onChange={e => setNewFieldLabel(e.target.value)}
-                          autoFocus
-                        />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
-                          {FIELD_LIBRARY.map(t => (
-                            <button key={t.id} onClick={() => setNewFieldType(t.id)} style={{
-                              padding: '0.5rem 0.25rem', borderRadius: '8px', border: newFieldType === t.id ? `2px solid ${t.color}` : '1px solid #e2e8f0',
-                              background: newFieldType === t.id ? `${t.color}10` : '#fff', cursor: 'pointer', fontSize: '0.6rem', fontWeight: 800
-                            }}>
-                              <i className={`fas ${t.icon}`} style={{ color: t.color, display: 'block', marginBottom: '2px' }}></i>
-                              {t.name}
-                            </button>
-                          ))}
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => addFieldToSection(s.id)} style={{ flex: 1, background: '#D4AF37', color: '#1e293b', border: 'none', borderRadius: '8px', fontWeight: 900, padding: '0.6rem', fontSize: '0.75rem' }}>SAVE</button>
-                          <button onClick={() => setAddingField(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '0.6rem', cursor: 'pointer' }}>✕</button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ marginTop: 'auto', padding: '1rem', background: 'rgba(212,175,55,0.05)', borderRadius: '12px', border: '1px dashed rgba(212,175,55,0.3)', fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.6 }}>
-                      <i className="fas fa-shield-alt" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
-                      <strong style={{ color: '#D4AF37' }}>Standard Foundation:</strong> Gallery, Blog, Teasers and Status toggles are automatically injected into all new section blueprints.
-                    </div>
-                  </div>
-
-                  {/* CENTER: PREVIEW / CANVAS */}
-                  <div style={{ flex: 1, padding: '1.5rem 2rem', overflowY: 'auto', background: '#fcfcfc' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                      <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#1e293b', letterSpacing: '1px' }}>TYPE-SPECIFIC FIELDS (CLICK TO INSPECT)</div>
-                      <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>These fields vary by business type</div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {(() => {
-                        const customFields = fields.filter((f: any) => !STANDARD_FIELD_NAMES.includes(f.name));
-                        if (customFields.length === 0) {
-                          return (
-                            <div style={{ textAlign: 'center', padding: '3rem', border: '2px dashed #f1f5f9', borderRadius: '16px', color: '#cbd5e1' }}>
-                              <i className="fas fa-cubes" style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'block' }}></i>
-                              No custom fields yet. Add type-specific fields from the library.
-                            </div>
-                          );
-                        }
-                        return customFields.map((f: any) => {
-                        const lib = FIELD_LIBRARY.find(l => l.id === f.field_type);
-                        const isInspecting = inspectingField?.id === f.id;
-
-                        return (
-                          <div 
-                            key={f.id} 
-                            onClick={() => setInspectingField(isInspecting ? null : f)}
-                            style={{ 
-                              padding: '1rem 1.25rem', 
-                              background: isInspecting ? 'rgba(212,175,55,0.04)' : isStd ? 'rgba(212,175,55,0.015)' : '#fff',
-                              border: isInspecting ? '2px solid #D4AF37' : isStd ? '1px solid rgba(212,175,55,0.2)' : '1px solid #f1f5f9',
-                              borderRadius: '12px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              cursor: 'pointer', transition: 'all 0.2s'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: '40px', height: '40px', background: isStd ? 'rgba(212,175,55,0.1)' : '#f8fafc', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <i className={`fas ${lib?.icon || 'fa-cube'}`} style={{ color: isStd ? '#D4AF37' : lib?.color || '#64748b' }}></i>
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{f.label}</div>
-                                <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{f.field_type} {isStd ? '• STANDARD' : ''}</div>
-                              </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              {isStd && <span style={{ fontSize: '0.55rem', background: 'rgba(212,175,55,0.08)', color: '#D4AF37', padding: '2px 6px', borderRadius: '4px', fontWeight: 900 }}>FOUNDATION</span>}
-                              <button onClick={(e) => { e.stopPropagation(); removeFieldFromSection(f.id, s.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', opacity: 0.5 }}><i className="fas fa-times"></i></button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* RIGHT: INSPECTOR */}
-                  {inspectingField && (
-                    <div style={{ width: '340px', borderLeft: '1px solid #e2e8f0', padding: '1.5rem', background: '#fff', overflowY: 'auto' }} className="animate-in">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>PROPERTY INSPECTOR</div>
-                        <button onClick={() => setInspectingField(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}><i className="fas fa-times"></i></button>
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.6rem' }}>DISPLAY LABEL</label>
-                        <input type="text" className="form-control" value={inspectingField.label || ''} onChange={e => setInspectingField({ ...inspectingField, label: e.target.value })} />
-                      </div>
-
-                      <div className="form-group" style={{ marginTop: '1rem' }}>
-                        <label className="form-label" style={{ fontSize: '0.6rem' }}>DATABASE KEY (SLUG)</label>
-                        <input type="text" className="form-control" value={inspectingField.name || ''} onChange={e => setInspectingField({ ...inspectingField, name: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: '#f8fafc' }} />
-                      </div>
-
-                      <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label className="form-label" style={{ fontSize: '0.6rem' }}>GOVERNANCE FLAGS</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                          <input type="checkbox" checked={!!inspectingField.required} onChange={e => setInspectingField({ ...inspectingField, required: e.target.checked })} /> MANDATORY
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                          <input type="checkbox" checked={!!inspectingField.vendor_editable} onChange={e => setInspectingField({ ...inspectingField, vendor_editable: e.target.checked })} /> VENDOR EDITABLE
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem', background: 'rgba(212,175,55,0.05)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
-                          <input type="checkbox" checked={!!inspectingField.searchable} onChange={e => setInspectingField({ ...inspectingField, searchable: e.target.checked })} /> INCLUDE IN FILTER UI
-                        </label>
-                      </div>
-
-                      {inspectingField.field_type === 'component' && (
-                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f0f4ff', borderRadius: '12px', border: '1px solid #dbeafe' }}>
-                          <label className="form-label" style={{ fontSize: '0.6rem', color: '#3b82f6' }}>LIBRARY COMPONENT BINDING</label>
-                          <select 
-                            className="form-control"
-                            style={{ marginTop: '0.5rem' }}
-                            value={inspectingField.options?.component_id || ''}
-                            onChange={e => setInspectingField({ ...inspectingField, options: { ...inspectingField.options, component_id: e.target.value } })}
-                          >
-                            <option value="">-- Select Component --</option>
-                            {libraryComponents.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                        </div>
-                      )}
-
-                      {['select', 'multiselect', 'checkbox_group'].includes(inspectingField.field_type) && (
-                        <div style={{ marginTop: '1.5rem' }}>
-                          <TagInput 
-                            value={Array.isArray(inspectingField.options) ? inspectingField.options : []}
-                            onChange={tags => setInspectingField({ ...inspectingField, options: tags })}
-                          />
-                        </div>
-                      )}
-
-                      <button 
-                        onClick={() => updateFieldInSection(s.id)}
-                        style={{ width: '100%', marginTop: '2rem', padding: '0.8rem', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}
-                      >
-                        APPLY CHANGES
-                      </button>
-                    </div>
-                  )}
-                </div>
-                </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* --- MODALS --- */}
-
-      {/* METADATA EDITOR MODAL */}
-      {showModal && editingSection && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="card animate-in" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div className="card-header">
-              <h3>{isNew ? 'Create New Block' : 'Edit Block Metadata'}</h3>
-              <button className="btn btn-xs btn-outline" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div style={{ padding: '2rem' }}>
-              <div className="form-group">
-                <label className="form-label required">Display Name</label>
-                <input type="text" className="form-control" value={editingSection.name || ''} onChange={e => { setEditingSection({...editingSection, name: e.target.value}); generateId(e.target.value); }} />
-              </div>
-              <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label className="form-label">Database ID (Slug)</label>
-                <input type="text" className="form-control" value={editingSection.id || ''} readOnly={!isNew} onChange={e => setEditingSection({...editingSection, id: e.target.value})} style={{ background: '#f8fafc', fontFamily: 'monospace' }} />
-              </div>
-              
-              <div style={{ marginTop: '1.5rem' }}>
-                <label className="form-label">Visual Icon</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', maxHeight: '100px', overflowY: 'auto' }}>
-                  {SECTION_ICONS.map(icon => (
-                    <div 
-                      key={icon} 
-                      onClick={() => setEditingSection({...editingSection, icon})}
-                      style={{ width: '36px', height: '36px', borderRadius: '8px', border: editingSection.icon === icon ? '2px solid #D4AF37' : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: editingSection.icon === icon ? '#fff' : 'transparent' }}
-                    >
-                      <i className={`fas ${icon}`} style={{ color: editingSection.icon === icon ? '#D4AF37' : '#64748b' }}></i>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ marginTop: '1.5rem' }}>
-                <label className="form-label">Governance Flags</label>
-                <div className="grid-2">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.is_universal} onChange={e => setEditingSection({...editingSection, is_universal: e.target.checked})} /> UNIVERSAL
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.required} onChange={e => setEditingSection({...editingSection, required: e.target.checked})} /> MANDATORY
-                  </label>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '1.5rem' }}>
-                <label className="form-label">Visibility Governance</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.show_on_public} onChange={e => setEditingSection({...editingSection, show_on_public: e.target.checked})} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0369a1' }}>Public Listing Visibility</div>
-                      <div style={{ fontSize: '0.65rem', color: '#0369a1', opacity: 0.8 }}>Show this section on the main platform listing and search results.</div>
-                    </div>
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#fef9e7', border: '1px solid #f9e79f', borderRadius: '12px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.show_on_minisite} onChange={e => setEditingSection({...editingSection, show_on_minisite: e.target.checked})} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#7d6608' }}>Business Minisite Visibility</div>
-                      <div style={{ fontSize: '0.65rem', color: '#7d6608', opacity: 0.8 }}>Render this section on the vendor&apos;s minisite page (independent of public listing).</div>
-                    </div>
-                  </label>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '12px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.is_filterable} onChange={e => setEditingSection({...editingSection, is_filterable: e.target.checked})} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#9d174d' }}>Search Engine Discovery</div>
-                      <div style={{ fontSize: '0.65rem', color: '#9d174d', opacity: 0.8 }}>Allow search engines to filter businesses by data in this section.</div>
-                    </div>
-                  </label>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingSection.show_on_card} onChange={e => setEditingSection({...editingSection, show_on_card: e.target.checked})} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#065f46' }}>Result Card Display</div>
-                      <div style={{ fontSize: '0.65rem', color: '#065f46', opacity: 0.8 }}>Highlight key data from this section on search result listing cards.</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '1.5rem' }}>
-                <label className="form-label">Minisite Propagation</label>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', background: editingSection.propagation_hero ? 'rgba(212,175,55,0.1)' : '#f8fafc', border: editingSection.propagation_hero ? '1.5px solid #D4AF37' : '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}>
-                    <input type="checkbox" checked={!!editingSection.propagation_hero} onChange={e => setEditingSection({...editingSection, propagation_hero: e.target.checked})} style={{ display: 'none' }} />
-                    <i className="fas fa-images" style={{ color: editingSection.propagation_hero ? '#D4AF37' : '#94a3b8' }}></i>
-                    Hero Carousel
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', background: editingSection.propagation_blog ? 'rgba(212,175,55,0.1)' : '#f8fafc', border: editingSection.propagation_blog ? '1.5px solid #D4AF37' : '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}>
-                    <input type="checkbox" checked={!!editingSection.propagation_blog} onChange={e => setEditingSection({...editingSection, propagation_blog: e.target.checked})} style={{ display: 'none' }} />
-                    <i className="fas fa-newspaper" style={{ color: editingSection.propagation_blog ? '#D4AF37' : '#94a3b8' }}></i>
-                    Blog Feed
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', background: editingSection.propagation_card ? 'rgba(212,175,55,0.1)' : '#f8fafc', border: editingSection.propagation_card ? '1.5px solid #D4AF37' : '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}>
-                    <input type="checkbox" checked={!!editingSection.propagation_card} onChange={e => setEditingSection({...editingSection, propagation_card: e.target.checked})} style={{ display: 'none' }} />
-                    <i className="fas fa-id-card" style={{ color: editingSection.propagation_card ? '#D4AF37' : '#94a3b8' }}></i>
-                    Card Display
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="card-footer" style={{ justifyContent: 'flex-end', gap: '1rem' }}>
-              <button className="btn btn-outline" onClick={() => setShowModal(false)}>CANCEL</button>
-              <button className="btn btn-primary" onClick={saveSection}>SAVE ARCHITECTURE</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* LINKING MODAL */}
-      {linkingSection && (
-        <div className="modal-overlay" onClick={() => setLinkingSection(null)}>
-          <div className="card animate-in" style={{ width: '500px' }} onClick={e => e.stopPropagation()}>
-            <div className="card-header">
-              <h3><i className="fas fa-link"></i> Link to Business Types</h3>
-              <button className="btn btn-xs btn-outline" onClick={() => setLinkingSection(null)}>✕</button>
-            </div>
-            <div style={{ padding: '2rem' }}>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>Select which business typologies should inherit this section blueprint.</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
-                {businessTypes.map(t => (
-                  <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedLinkTypes.includes(t.id)} 
-                      onChange={e => {
-                        if (e.target.checked) setSelectedLinkTypes([...selectedLinkTypes, t.id]);
-                        else setSelectedLinkTypes(selectedLinkTypes.filter(id => id !== t.id));
-                      }}
-                    />
-                    <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{t.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="card-footer">
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', justifyContent: 'center' }}
-                onClick={async () => {
-                  setIsAssigning(true);
-                  try {
-                    const updates = businessTypes.map(async (t) => {
-                      const shouldBeLinked = selectedLinkTypes.includes(t.id);
-                      const currentSections = Array.isArray((t as any).sections) ? (t as any).sections : [];
-                      
-                      let newSections;
-                      if (shouldBeLinked && !currentSections.includes(linkingSection)) {
-                        newSections = [...currentSections, linkingSection];
-                      } else if (!shouldBeLinked && currentSections.includes(linkingSection)) {
-                        newSections = currentSections.filter((id: string) => id !== linkingSection);
-                      } else {
-                        return; // No change needed
-                      }
-
-                      return fetch('/api/jana/types', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...t, sections: newSections })
-                      });
-                    });
-
-                    await Promise.all(updates);
-                    notify('Governance mapping updated successfully.', 'success');
-                    loadSections(); // Refresh local state
-                    setLinkingSection(null);
-                  } catch (e) {
-                    notify('Failed to update mapping.', 'error');
-                  } finally {
-                    setIsAssigning(false);
-                  }
-                }}
-              >
-                UPDATE MAPPING
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  description: string;
 }
 
 export default function SectionsPage() {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [icon, setIcon] = useState('fa-layer-group');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    loadSections();
+  }, []);
+
+  async function loadSections() {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/jana/sections');
+      if (res.ok) {
+        const data = await res.json();
+        setSections(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreate() {
+    if (!name.trim()) {
+      setError('Section name is required');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/jana/sections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          icon,
+          description: '',
+          is_universal: true
+        })
+      });
+
+      if (res.ok) {
+        setSuccess('Section created successfully');
+        setName('');
+        setIcon('fa-layer-group');
+        setError('');
+        loadSections();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to create section');
+      }
+    } catch (err) {
+      setError('Error creating section');
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this section?')) return;
+
+    try {
+      const res = await fetch('/api/jana/sections', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+
+      if (res.ok) {
+        setSuccess('Section deleted');
+        loadSections();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to delete section');
+      }
+    } catch (err) {
+      setError('Error deleting section');
+    }
+  }
+
   return (
-    <Suspense fallback={<div className="loading-screen"><i className="fas fa-spinner fa-spin"></i> Loading...</div>}>
-      <SectionsContent />
-    </Suspense>
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ margin: 0, marginBottom: '0.5rem' }}>
+          <i className="fas fa-layer-group" style={{ marginRight: '0.5rem', color: '#D4AF37' }}></i>
+          Section Architect
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Manage universal sections for your platform</p>
+      </div>
+
+      {/* Form */}
+      <div style={{
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        marginBottom: '2rem'
+      }}>
+        <h3 style={{ marginTop: 0 }}>Create New Section</h3>
+        
+        {error && (
+          <div style={{
+            background: '#fee2e2',
+            color: '#991b1b',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div style={{
+            background: '#dcfce7',
+            color: '#166534',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem'
+          }}>
+            {success}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+          <input
+            type="text"
+            placeholder="Section name"
+            value={name}
+            onChange={e => { setName(e.target.value); setError(''); }}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '1rem'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Icon class (e.g., fa-star)"
+            value={icon}
+            onChange={e => setIcon(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '1rem'
+            }}
+          />
+          <button
+            onClick={handleCreate}
+            style={{
+              background: '#D4AF37',
+              color: '#1a1a2e',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            Create
+          </button>
+        </div>
+      </div>
+
+      {/* Sections List */}
+      <div>
+        <h3>Sections ({sections.length})</h3>
+        
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+            <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+            Loading sections...
+          </div>
+        ) : sections.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '2rem',
+            background: '#f8fafc',
+            borderRadius: '8px',
+            color: '#64748b'
+          }}>
+            No sections created yet. Create one to get started.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {sections.map(section => (
+              <div
+                key={section.id}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <i
+                    className={`fas ${section.icon}`}
+                    style={{
+                      fontSize: '1.5rem',
+                      color: '#D4AF37'
+                    }}
+                  ></i>
+                  <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                      {section.name}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                      {section.icon}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(section.id)}
+                  style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  <i className="fas fa-trash" style={{ marginRight: '0.25rem' }}></i>
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
-

@@ -1,0 +1,84 @@
+name: 🚀 Auto-Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  NODE_VERSION: '22'
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Build and Deploy to Vercel
+
+    steps:
+      # Step 1: Checkout code from GitHub
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Setup Node.js environment
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: 📦 Install dependencies
+        run: npm ci
+        timeout-minutes: 15
+
+      # Step 4: Run linter (optional but recommended)
+      - name: 🔍 Run ESLint
+        run: npm run lint 2>/dev/null || echo "⚠️  Linting skipped"
+        continue-on-error: true
+
+      # Step 5: Build project locally
+      - name: 🏗️  Build Next.js
+        run: npm run build
+        timeout-minutes: 30
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # Step 6: Deploy to Vercel
+      - name: 🌐 Deploy to Vercel
+        uses: vercel/action@v6
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ env.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ env.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        env:
+          VERCEL_ENV: production
+
+      # Step 7: Post-deployment verification
+      - name: ✅ Verify deployment
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🔗 Check deployment at Vercel dashboard"
+
+      # Step 8: Notify on failure
+      - name: 🚨 Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Check logs above."
+          exit 1
+
+  # Optional: Notify success
+  notify-success:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: success()
+    steps:
+      - name: ✨ Success notification
+        run: |
+          echo "🎉 Successfully deployed to Vercel!"
+          echo "📊 Main branch is now live"

@@ -1,3 +1,6 @@
+'use client';
+export const dynamic = 'force-dynamic';
+
 import JourneyPackageBuilder from '@/components/JourneyPackageBuilder';
 
 export const metadata = {
