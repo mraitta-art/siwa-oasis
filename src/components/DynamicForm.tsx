@@ -4,6 +4,7 @@ import React from 'react';
 import { FIELD_TYPES } from '@/lib/governance/constants';
 import { useAdmin, AdminContext } from '@/context/AdminContext';
 import { LangContext } from '@/context/LangContext';
+import { compressImage } from '@/lib/compressImage';
 
 interface Field {
   id: string;
@@ -176,8 +177,11 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     const handleBatchUpload = async (files: File[]) => {
       if (files.length === 0) return;
 
-      // SIZE VALIDATION
-      const oversized = files.filter(f => f.size > uploadSizeLimit);
+      // COMPRESS IMAGES CLIENT-SIDE BEFORE VALIDATION
+      const compressedFiles = await Promise.all(files.map(f => compressImage(f)));
+
+      // SIZE VALIDATION (After compression)
+      const oversized = compressedFiles.filter(f => f.size > uploadSizeLimit);
       if (oversized.length > 0) {
         alert(`${oversized.length} ${t?.filesExceedLimit ?? 'files exceed your'} ${Math.round(uploadSizeLimit/1024/1024)}${t?.mbLimit ?? 'MB limit. Please reduce size or upgrade.'}`);
         return;
@@ -187,8 +191,8 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
       const currentItems = Array.isArray(value) ? [...value] : [];
       
-      // 1. Add Optimistic Previews
-      const localPreviews = files.map(file => ({
+      // 1. Add Optimistic Previews using the compressed files
+      const localPreviews = compressedFiles.map(file => ({
         url: URL.createObjectURL(file),
         caption: 'Uploading...',
         is_uploading: true,
@@ -346,12 +350,18 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           accept="image/*"
                           disabled={uploadingFields[`${field.id}-img`]}
                           onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
+                            const originalFile = e.target.files?.[0];
+                            if (!originalFile) return;
+
+                            setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
+                            
+                            // COMPRESS CLIENT-SIDE
+                            const file = await compressImage(originalFile);
 
                             // SIZE VALIDATION
                             if (file.size > uploadSizeLimit) {
                               alert(`File too large for your current tier (${Math.round(file.size/1024/1024)}MB). Your limit is ${Math.round(uploadSizeLimit/1024/1024)}MB.`);
+                              setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: false }));
                               return;
                             }
 
@@ -382,12 +392,18 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                           capture="environment"
                           disabled={uploadingFields[`${field.id}-img`]}
                           onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
+                            const originalFile = e.target.files?.[0];
+                            if (!originalFile) return;
+
+                            setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: true }));
+
+                            // COMPRESS CLIENT-SIDE
+                            const file = await compressImage(originalFile);
 
                             // SIZE VALIDATION
                             if (file.size > uploadSizeLimit) {
                               alert(`File too large for your current tier (${Math.round(file.size/1024/1024)}MB). Your limit is ${Math.round(uploadSizeLimit/1024/1024)}MB.`);
+                              setUploadingFields(prev => ({ ...prev, [`${field.id}-img`]: false }));
                               return;
                             }
 
