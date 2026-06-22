@@ -346,9 +346,51 @@ interface JourneyFormProps {
 function JourneyForm({ template, onSave, onCancel }: JourneyFormProps) {
   const [form, setForm] = useState(template);
   const [highlightsText, setHighlightsText] = useState((form.highlights || []).join('\n'));
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleChange = (field: keyof JourneyTemplate, value: any) => {
     setForm({ ...form, [field]: value });
+  };
+
+  async function uploadFile(file: File) {
+    const reader = new FileReader();
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const filename = `${Date.now()}_${file.name}`;
+    const resp = await fetch('/api/uploads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, data: dataUrl }),
+    });
+    const j = await resp.json();
+    if (!j?.success || !j.url) {
+      throw new Error(j?.error || 'Upload failed');
+    }
+    return j.url;
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const url = await uploadFile(file);
+      handleChange('featured_image_url', url);
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      alert('Image upload failed. Please try again.');
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = () => {
+    handleChange('featured_image_url', '');
   };
 
   const handleSave = () => {
@@ -499,16 +541,39 @@ function JourneyForm({ template, onSave, onCancel }: JourneyFormProps) {
           />
         </div>
 
-        {/* Featured Image URL */}
+        {/* Featured Image */}
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)' }}>Featured Image URL</label>
-          <input
-            type="text"
-            value={form.featured_image_url}
-            onChange={(e) => handleChange('featured_image_url', e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
-          />
-          {form.featured_image_url && <img src={form.featured_image_url} alt="preview" style={{ marginTop: '1rem', maxWidth: '200px', borderRadius: '4px' }} />}
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)' }}>Featured Image</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageUpload}
+              style={{ color: '#fff' }}
+            />
+            {uploadingImage && <span style={{ color: '#D4AF37' }}>Uploading image...</span>}
+            <input
+              type="text"
+              placeholder="Or paste image URL"
+              value={form.featured_image_url}
+              onChange={(e) => handleChange('featured_image_url', e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
+            />
+          </div>
+
+          {form.featured_image_url ? (
+            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <img src={form.featured_image_url} alt="preview" style={{ maxWidth: '200px', borderRadius: '4px' }} />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.8)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Remove Image
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Highlights */}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute, query } from '@/lib/db';
+import { execute, query, queryOne } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { invalidateCache } from '@/lib/cache';
 
@@ -7,7 +7,32 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
-    console.log("🛠️  Initiating 8-Chapter Architecture Migration via API...");
+    console.log("🛠️  Initiating 10-Chapter Architecture Migration via API...");
+
+    // 0. UPGRADE TABLES & TIERS
+    try {
+      await execute("ALTER TABLE form_fields MODIFY COLUMN id VARCHAR(100) NOT NULL");
+      await execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS admin_overrides JSON DEFAULT NULL");
+    } catch (e) {
+      console.log("DDL column alter skipped/existing");
+    }
+
+    const tiers = [
+      { id: 'free', allowed: ["sec_1_identity","sec_2_ambience"] },
+      { id: 'basic', allowed: ["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian"] },
+      { id: 'premium', allowed: ["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian","sec_7_investment","sec_8_connector","sec_9_marketplace_catalog","sec_10_testimonials_faqs"] },
+      { id: 'gold', allowed: ["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian","sec_7_investment","sec_8_connector","sec_9_marketplace_catalog","sec_10_testimonials_faqs"] },
+      { id: 'vip', allowed: ["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian","sec_7_investment","sec_8_connector","sec_9_marketplace_catalog","sec_10_testimonials_faqs"] }
+    ];
+
+    for (const t of tiers) {
+      const tierRow = await queryOne<any>("SELECT features FROM subscription_tiers WHERE id = ?", [t.id]);
+      if (tierRow) {
+        let features = typeof tierRow.features === 'string' ? JSON.parse(tierRow.features) : tierRow.features || {};
+        features.allowedSections = t.allowed;
+        await execute("UPDATE subscription_tiers SET features = ? WHERE id = ?", [JSON.stringify(features), t.id]);
+      }
+    }
 
     // 1. CLEAR OLD DATA
     await execute("DELETE FROM form_fields WHERE section_id IN (SELECT id FROM sections)");
@@ -18,7 +43,7 @@ export async function GET(request: NextRequest) {
       "INSERT IGNORE INTO business_types (id, name, is_parent, active) VALUES ('SECTION_TEMPLATE', 'System Template', 0, 1)"
     );
 
-    // 2. DEFINE THE 8 GOLDEN CHAPTERS (Refined Strategy)
+    // 2. DEFINE THE 10 GOLDEN CHAPTERS
     const chapters = [
       { id: 'sec_1_identity',    name: 'Identity & Heritage',     icon: 'fa-landmark',        order: 1 },
       { id: 'sec_2_ambience',    name: 'Design & Ambience',       icon: 'fa-sun',             order: 2 },
@@ -28,6 +53,8 @@ export async function GET(request: NextRequest) {
       { id: 'sec_6_guardian',    name: 'Sustainability DNA',      icon: 'fa-leaf',            order: 6 },
       { id: 'sec_7_investment',  name: 'Business & Investment',   icon: 'fa-chart-line',      order: 7 },
       { id: 'sec_8_connector',   name: 'Rates, Offers & Access',  icon: 'fa-tags',            order: 8 },
+      { id: 'sec_9_marketplace_catalog', name: 'Marketplace & Products Catalog', icon: 'fa-store', order: 9 },
+      { id: 'sec_10_testimonials_faqs',  name: 'Testimonials & FAQs',    icon: 'fa-comments',        order: 10 },
     ];
 
     // 3. INJECT SECTIONS
@@ -79,6 +106,14 @@ export async function GET(request: NextRequest) {
       // Chapter 7: Investment (Time-share)
       { sid: 'sec_7_investment', id: 'investment_opps', label: 'INVESTMENT OFFERS', type: 'text', help: 'Details of shares for sale or development deals.' },
       { sid: 'sec_7_investment', id: 'timeshare_details', label: 'TIME-SHARE MODEL', type: 'text', help: 'Describe fractional ownership options.' },
+
+      // Chapter 9: Marketplace & Products Catalog
+      { sid: 'sec_9_marketplace_catalog', id: 'product_list', label: 'PRODUCT LIST (JSON)', type: 'rich_text', help: 'List products: Name, Price, Description, Image, Story.' },
+      { sid: 'sec_9_marketplace_catalog', id: 'shipping_available', label: 'SHIPPING AVAILABLE', type: 'boolean', help: 'Toggle shipping inside/outside Egypt.' },
+
+      // Chapter 10: Testimonials & FAQs
+      { sid: 'sec_10_testimonials_faqs', id: 'testimonials', label: 'TESTIMONIALS (RICH)', type: 'rich_text', help: 'Customer quotes and ratings.' },
+      { sid: 'sec_10_testimonials_faqs', id: 'faqs',         label: 'FREQUENT QUESTIONS',   type: 'rich_text', help: 'Questions and answers.' }
     ];
 
     for (const f of strategicFields) {
@@ -103,7 +138,7 @@ export async function GET(request: NextRequest) {
     invalidateCache.sections();
     invalidateCache.formFields();
 
-    return NextResponse.json({ success: true, message: 'Architecture stabilized with 8 Chapters.' });
+    return NextResponse.json({ success: true, message: 'Architecture stabilized with 10 Chapters.' });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

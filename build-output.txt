@@ -1,0 +1,31 @@
+
+> siwa-oasis@0.1.0 build
+> next build
+
+   Gû¦ Next.js 15.1.11
+   - Environments: .env.local, .env.production, .env
+
+   Creating an optimized production build ...
+Failed to compile.
+System.Management.Automation.RemoteException
+./src/app/vendor/page.tsx
+Error:   [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\vendor\page.tsx[0m:271:1]
+ [2m268[0m |       </header>
+ [2m269[0m | 
+ [2m270[0m |       {/* GöÇGöÇGöÇ MAIN CONTENT GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+ [2m271[0m |       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+     : [35;1m       ^^^[0m
+ [2m272[0m | 
+ [2m273[0m |         {/* SUB-SECTIONS NAVIGATION */}
+ [2m274[0m |         <aside style={{ width: '280px', background: '#fff', borderRight: isRTL ? 'none' : '1px solid #e2e8f0', borderLeft: isRTL ? '1px solid #e2e8f0' : 'none', overflowY: 'auto', padding: '1.5rem' }}>
+     `----
+System.Management.Automation.RemoteException
+Caused by:
+    Syntax Error
+System.Management.Automation.RemoteException
+Import trace for requested module:
+./src/app/vendor/page.tsx
+System.Management.Automation.RemoteException
+System.Management.Automation.RemoteException
+> Build failed because of webpack errors

@@ -121,7 +121,7 @@ function NavControls({ step, canProceed, onBack, onNext, nextLabel = 'CONTINUE' 
 export default function SmartJourneyPlanner({ title, subtitle }: { title?: string, subtitle?: string }) {
   const [step, setStep] = useState(1);
   const [requestType, setRequestType] = useState('');
-  const [vibe, setVibe] = useState('');
+  const [vibesSelected, setVibesSelected] = useState<string[]>([]);
   
   // Generic Details
   const [duration, setDuration] = useState('');
@@ -183,7 +183,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
 
   const canProceed = (): boolean => {
     if (step === 1) return !!requestType;
-    if (step === 2) return !!vibe;
+    if (step === 2) return vibesSelected.length > 0;
     if (step === 3) return true; // Details are mostly optional, except maybe some depending on type
     if (step === 4) return !!name && !!phone;
     return false;
@@ -193,7 +193,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     setSubmitting(true);
     setSubmitError('');
     try {
-      const res = await fetch('/api/journeys', {
+          const res = await fetch('/api/journeys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,7 +201,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
           customer_phone: phone,
           customer_email: email || undefined,
           request_type: requestType,
-          vibe: vibe,
+              vibes: vibesSelected,
           duration: duration,
           budget: budget,
           group_size: parseInt(groupSize) || 1,
@@ -209,7 +209,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
           special_requests: specialRequests,
           custom_details: {
             selected_category_name: categories.find(c => c.id === requestType)?.label,
-            selected_preference_name: vibes[requestType]?.find((v: any) => v.id === vibe)?.label,
+                selected_preference_names: vibesSelected.map((id) => vibes[requestType]?.find((v: any) => v.id === id)?.label).filter(Boolean),
           }
         }),
       });
@@ -365,12 +365,21 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               <p style={S.sub}>Help us narrow down exactly what kind of {categories.find(c => c.id === requestType)?.label.toLowerCase()} you want.</p>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '3rem' }}>
-                {vibes[requestType]?.map(v => (
-                  <button key={v.id} onClick={() => setVibe(v.id)} style={S.btn(vibe === v.id)}>
-                    <i className={`fas ${v.icon}`} style={{ fontSize: '2rem', color: vibe === v.id ? '#D4AF37' : 'rgba(255,255,255,0.2)', marginBottom: '1rem', display: 'block' }} />
-                    <h3 style={{ color: vibe === v.id ? '#D4AF37' : '#fff', fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>{v.label}</h3>
-                  </button>
-                ))}
+                {vibes[requestType]?.map(v => {
+                  const active = vibesSelected.includes(v.id);
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => {
+                        setVibesSelected(prev => prev.includes(v.id) ? prev.filter(x => x !== v.id) : [...prev, v.id]);
+                      }}
+                      style={S.btn(active)}
+                    >
+                      <i className={`fas ${v.icon}`} style={{ fontSize: '2rem', color: active ? '#D4AF37' : 'rgba(255,255,255,0.2)', marginBottom: '1rem', display: 'block' }} />
+                      <h3 style={{ color: active ? '#D4AF37' : '#fff', fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>{v.label}</h3>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

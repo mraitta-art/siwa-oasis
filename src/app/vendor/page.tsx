@@ -1,376 +1,187 @@
 'use client';
-export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import DynamicForm from '@/components/DynamicForm';
-import { useLang } from '@/context/LangContext';
+import { useState } from 'react';
 
-interface Field {
-  id: string;
-  name: string;
-  label: string;
-  field_type: string;
-  required: boolean;
-  value: any;
-  options?: any;
-  help_text?: string;
-  business_type_id?: string;
-}
+export default function VendorDashboardPage() {
+  const [stats] = useState({
+    packages: { total: 12, active: 10, pending: 2, sold: 145 },
+    offers: { total: 8, active: 6, pending: 2, used: 324 },
+    discounts: { total: 5, active: 4, pending: 1, used: 89 },
+    investments: { total: 3, active: 2, pending: 1, inquiries: 27 },
+    sections: { total: 6, visible: 5, pending: 1 },
+  });
 
-interface Section {
-  id: string;
-  name: string;
-  icon: string;
-  fields: Field[];
-}
+  const [recentActivity] = useState([
+    { id: 1, type: 'offer', message: 'New offer "50% Off" approved', time: '2 hours ago', status: '✅' },
+    { id: 2, type: 'inquiry', message: 'New inquiry on Winter Package', time: '4 hours ago', status: '💬' },
+    { id: 3, type: 'investment', message: 'New investor application received', time: '1 day ago', status: '📊' },
+    { id: 4, type: 'section', message: 'Gallery section now featured', time: '2 days ago', status: '⭐' },
+    { id: 5, type: 'package', message: 'Package "3-Night Stay" visible on main site', time: '3 days ago', status: '👁️' },
+  ]);
 
-interface Typology {
-  child:  { id: string; name: string; icon: string; color: string } | null;
-  parent: { id: string; name: string; icon: string; color: string } | null;
-}
-
-export default function VendorStudio() {
-  const { t, isRTL } = useLang();
-
-  const [loading, setLoading]         = useState(true);
-  const [saving, setSaving]           = useState(false);
-  const [saveOk, setSaveOk]           = useState(false);
-  const [business, setBusiness]       = useState<any>(null);
-  const [typology, setTypology]       = useState<Typology>({ child: null, parent: null });
-  const [sections, setSections]       = useState<Section[]>([]);
-  const [activeTab, setActiveTab]     = useState<'core' | 'common' | 'unique'>('core');
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [formData, setFormData]       = useState<Record<string, any>>({});
-  const [tierFeatures, setTierFeatures] = useState<Record<string, any>>({});
-
-  useEffect(() => { loadStory(); }, []);
-
-  async function loadStory() {
-    try {
-      const res  = await fetch('/api/vendor/story');
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setBusiness(data.business);
-      setTypology(data.typology || { child: null, parent: null });
-      setSections(data.structure);
-      setTierFeatures(data.tierFeatures || {});
-
-      if (data.structure.length > 0) {
-        const basic = data.structure.find((s: Section) => s.id === 'basic');
-        setActiveSection(basic ? basic.id : data.structure[0].id);
-      }
-
-      const initialData: Record<string, any> = {};
-      data.structure.forEach((s: Section) => {
-        initialData[s.id] = {};
-        s.fields.forEach((f: any) => { initialData[s.id][f.name] = f.value; });
-      });
-      setFormData(initialData);
-    } catch (e: any) {
-      console.error(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleInputChange = (sectionId: string, fieldName: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [sectionId]: { ...prev[sectionId], [fieldName]: value }
-    }));
-  };
-
-  async function saveChanges() {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/vendor/story', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ data: formData })
-      });
-      if (res.ok) {
-        setSaveOk(true);
-        setTimeout(() => setSaveOk(false), 3000);
-      } else throw new Error('Failed to save');
-    } catch (e: any) {
-      console.error(e.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  // Group Sections
-  const { coreSections, commonSections, uniqueSections } = useMemo(() => {
-    const core: Section[] = [];
-    const common: Section[] = [];
-    const unique: Section[] = [];
-
-    sections.forEach(s => {
-      if (s.id === 'basic') {
-        core.push(s);
-      } else {
-        const hasUniqueField = s.fields.some(f => f.business_type_id === typology.child?.id);
-        if (hasUniqueField) unique.push(s);
-        else common.push(s);
-      }
-    });
-
-    return { coreSections: core, commonSections: common, uniqueSections: unique };
-  }, [sections, typology]);
-
-  // Handle Tab Switch
-  useEffect(() => {
-    let list: Section[] = [];
-    if (activeTab === 'core') list = coreSections;
-    else if (activeTab === 'common') list = commonSections;
-    else if (activeTab === 'unique') list = uniqueSections;
-
-    if (list.length > 0 && !list.some(s => s.id === activeSection)) {
-      setActiveSection(list[0].id);
-    }
-  }, [activeTab, coreSections, commonSections, uniqueSections]);
-
-  if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a', gap: '1.5rem' }}>
-      <div style={{ width: 56, height: 56, border: '4px solid rgba(212,175,55,0.15)', borderTop: '4px solid #D4AF37', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-      <p style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '3px', fontSize: '0.8rem' }}>{t.preparingStudio}</p>
-      <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-
-  const currentSection  = sections.find(s => s.id === activeSection);
-  const allFields       = sections.flatMap(s => s.fields.map(f => ({ ...f, section_id: s.id, required: !!f.required })));
-  const accentColor     = typology.child?.color  || '#D4AF37';
-
-  // Stats
-  const totalFields  = allFields.filter(f => f.name !== 'initialized').length;
-  const filledFields = allFields.filter(f => {
-    const val = formData[f.section_id]?.[f.name];
-    if (!val) return false;
-    if (Array.isArray(val)) return val.length > 0;
-    if (typeof val === 'string') return val.trim().length > 0;
-    return !!val;
-  }).length;
-  const overallPct = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
-
-  const currentList = activeTab === 'core' ? coreSections : activeTab === 'common' ? commonSections : uniqueSections;
-
-  const tabDefs = [
-    { id: 'core',   label: t.tabCore,   icon: 'fa-fingerprint', color: '#D4AF37', count: coreSections.length },
-    { id: 'common', label: t.tabCommon, icon: 'fa-globe',        color: '#3b82f6', count: commonSections.length },
-    { id: 'unique', label: t.tabUnique, icon: 'fa-star',         color: '#10b981', count: uniqueSections.length },
+  const dashboardItems = [
+    {
+      icon: '📦',
+      label: 'Packages',
+      description: 'Manage product bundles & deals',
+      stats: `${stats.packages.active}/${stats.packages.total} active`,
+      href: '/vendor/packages',
+      color: 'from-blue-900 to-blue-700',
+    },
+    {
+      icon: '🎁',
+      label: 'Offers',
+      description: 'Create & manage promotions',
+      stats: `${stats.offers.active}/${stats.offers.total} active`,
+      href: '/vendor/offers',
+      color: 'from-green-900 to-green-700',
+    },
+    {
+      icon: '💰',
+      label: 'Discounts',
+      description: 'Set up discount campaigns',
+      stats: `${stats.discounts.active}/${stats.discounts.total} active`,
+      href: '/vendor/discounts',
+      color: 'from-yellow-900 to-yellow-700',
+    },
+    {
+      icon: '💵',
+      label: 'Investments',
+      description: 'Manage investment opportunities',
+      stats: `${stats.investments.inquiries} inquiries`,
+      href: '/vendor/investment-opportunities',
+      color: 'from-purple-900 to-purple-700',
+    },
+    {
+      icon: '📋',
+      label: 'Sections',
+      description: 'Manage minisite sections',
+      stats: `${stats.sections.visible} visible`,
+      href: '/vendor/sections',
+      color: 'from-pink-900 to-pink-700',
+    },
+    {
+      icon: '⚙️',
+      label: 'Settings',
+      description: 'Profile & preferences',
+      stats: 'Configure',
+      href: '/vendor/settings',
+      color: 'from-gray-900 to-gray-700',
+    },
   ];
 
-  const sidebarLabel =
-    activeTab === 'core' ? t.coreSections :
-    activeTab === 'common' ? t.universalSections :
-    t.typologySections;
-
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', height: '100vh',
-      background: '#f8fafc', color: '#1a1a1a',
-      fontFamily: isRTL ? "'Cairo', 'Segoe UI', sans-serif" : "'Inter', system-ui, sans-serif",
-    }}>
-
-      {/* ─── TOP NAVIGATION & TABS ──────────────────────────────────── */}
-      <header style={{
-        background: '#fff', borderBottom: '1px solid #e2e8f0',
-        display: 'flex', flexDirection: 'column',
-        position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-        direction: isRTL ? 'rtl' : 'ltr',
-      }}>
-        <div style={{ padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '12px', background: `${accentColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentColor }}>
-              <i className="fas fa-sun" style={{ fontSize: '1.2rem' }}></i>
-            </div>
-            <div>
-              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>{t.siwaStudio}</div>
-              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '1px' }}>{t.swiftDataEntry}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isRTL ? 'flex-start' : 'flex-end', marginRight: isRTL ? 0 : '1rem', marginLeft: isRTL ? '1rem' : 0 }}>
-              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>{t.completion}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: '100px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${overallPct}%`, background: overallPct === 100 ? '#10b981' : accentColor, transition: 'width 0.5s' }} />
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallPct === 100 ? '#10b981' : '#1e293b' }}>{overallPct}%</span>
-              </div>
-            </div>
-
-            <Link href={`/business/${business?.id}`} target="_blank" className="btn btn-outline" style={{ border: '1px solid #e2e8f0', color: '#64748b', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800 }}>
-              <i className="fas fa-external-link-alt" style={{ marginRight: isRTL ? 0 : '0.5rem', marginLeft: isRTL ? '0.5rem' : 0 }}></i>
-              {t.preview}
-            </Link>
-
-            <button onClick={saveChanges} disabled={saving} style={{
-              background: saveOk ? '#10b981' : '#0f172a', color: '#fff', border: 'none',
-              padding: '0.6rem 1.5rem', borderRadius: '10px',
-              fontSize: '0.75rem', fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              boxShadow: saveOk ? '0 4px 10px rgba(16,185,129,0.3)' : '0 4px 10px rgba(15,23,42,0.2)',
-              transition: 'all 0.2s',
-            }}>
-              {saving ? <i className="fas fa-spinner fa-spin"></i> : saveOk ? <i className="fas fa-check"></i> : <i className="fas fa-cloud-upload-alt"></i>}
-              {saving ? t.saving : saveOk ? t.saved : t.publish}
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#556B2F] to-[#D4AF37] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+            🏪 Vendor Dashboard
+          </h1>
+          <p className="text-white/90">Manage your business, content, and offerings</p>
         </div>
-
-        {/* CATEGORIZATION TABS */}
-        <div style={{ display: 'flex', padding: '0 2rem', gap: '2rem', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
-          {tabDefs.map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                style={{
-                  padding: '1rem 0', background: 'none', border: 'none',
-                  borderBottom: isActive ? `3px solid ${tab.color}` : '3px solid transparent',
-                  color: isActive ? '#0f172a' : '#94a3b8',
-                  fontWeight: isActive ? 900 : 700,
-                  fontSize: '0.75rem', letterSpacing: isRTL ? '0' : '1px',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  transition: 'all 0.2s',
-                }}
-              >
-                <i className={`fas ${tab.icon}`} style={{ color: isActive ? tab.color : '#cbd5e1' }}></i>
-                {tab.label}
-                <span style={{
-                  background: isActive ? `${tab.color}15` : '#f1f5f9',
-                  color: isActive ? tab.color : '#94a3b8',
-                  padding: '2px 8px', borderRadius: '10px', fontSize: '0.6rem',
-                }}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </header>
-
-      {/* ─── MAIN CONTENT ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-
-        {/* SUB-SECTIONS NAVIGATION */}
-        <aside style={{ width: '280px', background: '#fff', borderRight: isRTL ? 'none' : '1px solid #e2e8f0', borderLeft: isRTL ? '1px solid #e2e8f0' : 'none', overflowY: 'auto', padding: '1.5rem' }}>
-          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: isRTL ? '0' : '1px', marginBottom: '1rem' }}>
-            {sidebarLabel}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {currentList.map(s => {
-              const isActive = activeSection === s.id;
-
-              const secFields = allFields.filter(f => f.section_id === s.id && f.name !== 'initialized');
-              const secFilled = secFields.filter(f => {
-                const val = formData[s.id]?.[f.name];
-                if (!val) return false;
-                if (Array.isArray(val)) return val.length > 0;
-                if (typeof val === 'string') return val.trim().length > 0;
-                return !!val;
-              }).length;
-              const secPct = secFields.length > 0 ? Math.round((secFilled / secFields.length) * 100) : 0;
-
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setActiveSection(s.id)}
-                  style={{
-                    padding: '1rem',
-                    background: isActive ? '#f8fafc' : '#fff',
-                    border: isActive ? `1px solid ${accentColor}40` : '1px solid transparent',
-                    borderRadius: '12px', textAlign: isRTL ? 'right' : 'left',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    boxShadow: isActive ? '0 4px 10px rgba(0,0,0,0.02)' : 'none',
-                    transition: 'all 0.2s',
-                    flexDirection: isRTL ? 'row-reverse' : 'row',
-                  }}
-                >
-                  <div style={{ width: 32, height: 32, borderRadius: '8px', background: isActive ? accentColor : '#f1f5f9', color: isActive ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <i className={`fas ${s.icon}`}></i>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: isActive ? 800 : 600, color: isActive ? '#0f172a' : '#64748b' }}>{s.name}</div>
-                    <div style={{ fontSize: '0.6rem', color: secPct === 100 ? '#10b981' : '#94a3b8', fontWeight: 700, marginTop: '2px' }}>
-                      {secPct === 100 ? t.completed : `${secPct}${t.pctFilled}`}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-
-        {/* FORM CANVAS */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '2.5rem', background: '#f8fafc' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-
-            {/* BUSINESS HEADER — core / basic section */}
-            {activeTab === 'core' && currentSection?.id === 'basic' && (
-              <div style={{
-                background: '#fff', borderRadius: '24px', padding: '2rem', marginBottom: '2rem',
-                border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                flexDirection: isRTL ? 'row-reverse' : 'row',
-              }}>
-                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                  <div style={{ width: 64, height: 64, borderRadius: '16px', background: `${accentColor}15`, color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
-                    <i className={`fas ${typology.child?.icon || 'fa-building'}`}></i>
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#f1f5f9', color: '#64748b', padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>
-                        ID: {business?.id?.split('-')[0]}
-                      </span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: `${accentColor}15`, color: accentColor, padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>
-                        {typology.parent?.name?.toUpperCase()} &gt; {typology.child?.name?.toUpperCase()}
-                      </span>
-                    </div>
-                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', textAlign: isRTL ? 'right' : 'left' }}>
-                      {business?.name}
-                    </h1>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SECTION CANVAS */}
-            <div style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
-              <div style={{ marginBottom: '2.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '1rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '12px', background: '#f8fafc', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
-                  <i className={`fas ${currentSection?.icon}`}></i>
-                </div>
-                <div style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{currentSection?.name}</h2>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>{t.fillDetails}</p>
-                </div>
-              </div>
-
-              <DynamicForm
-                fields={allFields.filter(f => f.section_id === activeSection)}
-                data={formData}
-                onChange={handleInputChange}
-                userRole="vendor"
-                sections={sections}
-                tierFeatures={tierFeatures}
-                businessName={business?.name}
-                typology={typology.child?.name}
-                business={business}
-              />
-            </div>
-
-          </div>
-        </main>
       </div>
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-[#D4AF37]">{stats.packages.total}</div>
+            <div className="text-xs text-gray-400">Packages</div>
+            <div className="text-xs text-green-400 mt-1">{stats.packages.active} active</div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-[#D4AF37]">{stats.offers.total}</div>
+            <div className="text-xs text-gray-400">Offers</div>
+            <div className="text-xs text-green-400 mt-1">{stats.offers.active} active</div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-[#D4AF37]">{stats.discounts.total}</div>
+            <div className="text-xs text-gray-400">Discounts</div>
+            <div className="text-xs text-green-400 mt-1">{stats.discounts.active} active</div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-[#D4AF37]">{stats.investments.inquiries}</div>
+            <div className="text-xs text-gray-400">Inquiries</div>
+            <div className="text-xs text-green-400 mt-1">{stats.investments.total} investments</div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-[#D4AF37]">{stats.sections.visible}</div>
+            <div className="text-xs text-gray-400">Sections</div>
+            <div className="text-xs text-green-400 mt-1">On minisite</div>
+          </div>
+        </div>
+
+        {/* Main Management Grid */}
+        <h2 className="text-2xl font-bold text-white mb-6">📊 Management Center</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {dashboardItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <div className={`bg-gradient-to-br ${item.color} p-1 rounded-lg cursor-pointer hover:shadow-lg hover:shadow-[#D4AF37]/30 transition-all`}>
+                <div className="bg-gray-900 rounded-lg p-6 h-full flex flex-col justify-between">
+                  <div>
+                    <div className="text-4xl mb-3">{item.icon}</div>
+                    <h3 className="text-lg font-bold text-white mb-1">{item.label}</h3>
+                    <p className="text-sm text-gray-400 mb-4">{item.description}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">{item.stats}</span>
+                    <span className="text-[#D4AF37]">→</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Recent Activity */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-white mb-6">📈 Recent Activity</h2>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+            {recentActivity.map((activity, idx) => (
+              <div
+                key={activity.id}
+                className={`px-6 py-4 ${idx !== recentActivity.length - 1 ? 'border-b border-gray-800' : ''} hover:bg-gray-800 transition-colors`}
+              >
+                <div className="flex items-start gap-4">
+                  <span className="text-2xl">{activity.status}</span>
+                  <div className="flex-1">
+                    <p className="text-white font-semibold">{activity.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg p-8 text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Ready to Grow?</h2>
+          <p className="text-white/90 mb-6">Create new offerings and expand your reach</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link
+              href="/vendor/packages"
+              className="px-6 py-2 bg-white text-[#556B2F] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              + New Package
+            </Link>
+            <Link
+              href="/vendor/offers"
+              className="px-6 py-2 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
+            >
+              + New Offer
+            </Link>
+            <Link
+              href="/vendor/investment-opportunities"
+              className="px-6 py-2 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
+            >
+              + New Investment
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

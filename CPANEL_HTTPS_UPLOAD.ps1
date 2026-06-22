@@ -6,7 +6,7 @@ Set-Location "E:\ANitgravity\siwatoday\siwa-oasis"
 
 $CpanelHost = "siwa.today"
 $CpanelPort = 2083
-$CpanelUser = "vercel"
+$CpanelUser = "mraitta@gmail.com"
 $CpanelPass = "PiCo@@4##73"
 $ZipName    = "siwa_production_latest.zip"
 $RemoteDir  = "/home/vercel/public_html/siwa-oasis"

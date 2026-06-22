@@ -30,8 +30,9 @@ const DEFAULT_LAYOUT: LayoutSection[] = [
   { id: 'h5', type: 'smart_journey_planner', props: {} },
   { id: 'h6', type: 'ecosystem_map', props: {} },
   { id: 'h7', type: 'local_products', props: {} },
-  { id: 'h8', type: 'storytelling_section', props: {} },
-  { id: 'h9', type: 'partner_cta', props: {} }
+  { id: 'h8', type: 'investment_feed', props: { title: 'Heritage Investment Opportunities', subtitle: 'HERITAGE CAPITAL' } },
+  { id: 'h9', type: 'storytelling_section', props: {} },
+  { id: 'h10', type: 'partner_cta', props: {} }
 ];
 
 export default function Home() {

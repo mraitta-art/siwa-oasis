@@ -23,8 +23,11 @@ const NAV_GROUPS = [
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Sections', path: '/jana/sections', icon: 'fa-table-cells' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
+      { name: 'Blueprints', path: '/jana/blueprints', icon: 'fa-drafting-compass' },
+      { name: 'Business Forms', path: '/jana/business-forms', icon: 'fa-file-alt' },
       { name: 'Vendor Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
       { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
+      { name: 'Vibe Expressions', path: '/jana/expressions', icon: 'fa-sparkles' },
     ]
   },
   {
@@ -36,9 +39,14 @@ const NAV_GROUPS = [
     defaultCollapsed: false,
     items: [
       { name: 'Blog Hub', path: '/jana/blog', icon: 'fa-newspaper' },
+      { name: 'Blog Layout Builder', path: '/jana/blog-layout-builder', icon: 'fa-table-columns' },
+      { name: 'Blog Templates', path: '/jana/blog-templates', icon: 'fa-file-invoice' },
+      { name: 'Blog Integration', path: '/jana/blog-integration', icon: 'fa-plug' },
       { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
       { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
-      { name: 'Services', path: '/jana/services-manager', icon: 'fa-server-group' },
+      { name: 'Components', path: '/jana/components', icon: 'fa-puzzle-piece' },
+      { name: 'Carousel Diagnostic', path: '/jana/carousel-diagnostic', icon: 'fa-stethoscope' },
+      { name: 'Services', path: '/jana/services-manager', icon: 'fa-concierge-bell' },
       { name: 'Categories', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
       { name: 'Journeys', path: '/jana/journey-templates-manager', icon: 'fa-route' },
     ]
@@ -54,8 +62,12 @@ const NAV_GROUPS = [
       { name: 'Visual Editor', path: '/jana/website', icon: 'fa-palette' },
       { name: 'Homepage Editor', path: '/jana/homepage-editor', icon: 'fa-home' },
       { name: 'Page Builder', path: '/jana/page-builder', icon: 'fa-object-group' },
+      { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },
+      { name: 'Minisite Builder', path: '/jana/minisite', icon: 'fa-store' },
       { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
       { name: 'Search Pages', path: '/jana/search-pages', icon: 'fa-filter-list' },
+      { name: 'Search & Compare', path: '/jana/search-compare', icon: 'fa-sliders' },
+      { name: 'Mobile View', path: '/jana/mobile', icon: 'fa-mobile-alt' },
     ]
   },
   {
@@ -69,8 +81,47 @@ const NAV_GROUPS = [
       { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-building' },
       { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
       { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
+      { name: 'Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
       { name: 'Vendors', path: '/jana/vendors', icon: 'fa-user-tie' },
       { name: 'Packages', path: '/jana/packages', icon: 'fa-box-open' },
+      { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
+      { name: 'Dispatch', path: '/jana/dispatch', icon: 'fa-paper-plane' },
+      { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
+    ]
+  },
+  {
+    id: 'tools',
+    title: 'TOOLS & BUILDERS',
+    subtitle: 'Forms & Automation',
+    icon: 'fa-tools',
+    collapsible: true,
+    defaultCollapsed: false,
+    items: [
+      { name: 'Form Builder', path: '/jana/form-builder', icon: 'fa-rectangle-list' },
+      { name: 'Enhanced Form Builder', path: '/jana/form-builder-enhanced', icon: 'fa-wand-magic-sparkles' },
+      { name: 'Demo Automation', path: '/jana/demo-automation', icon: 'fa-robot' },
+    ]
+  },
+  {
+    id: 'admin_governance',
+    title: 'ADMIN & GOVERNANCE',
+    subtitle: 'Platform Controls',
+    icon: 'fa-shield-halved',
+    collapsible: true,
+    defaultCollapsed: false,
+    items: [
+      { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
+      { name: 'Section Visibility', path: '/admin/section-visibility', icon: 'fa-eye' },
+      { name: 'POI Settings', path: '/admin/poi-settings', icon: 'fa-location-dot' },
+      { name: 'Packages Approval', path: '/admin/packages', icon: 'fa-box' },
+      { name: 'Offers Approval', path: '/admin/offers', icon: 'fa-gift' },
+      { name: 'Discount Campaigns', path: '/admin/discounts', icon: 'fa-tags' },
+      { name: 'Investment Opps', path: '/admin/investment-opportunities', icon: 'fa-hand-holding-dollar' },
+      { name: 'Journey Requests', path: '/admin/journey-requests', icon: 'fa-route' },
+      { name: 'Journey Policies', path: '/admin/journey-policies', icon: 'fa-gavel' },
+      { name: 'Homepages Manager', path: '/admin/homepages-manager', icon: 'fa-house-chimney-window' },
+      { name: 'Journey Analytics', path: '/admin/analytics/journey-requests', icon: 'fa-chart-line' },
+      { name: 'Vendor Analytics', path: '/admin/analytics/vendor-performance', icon: 'fa-chart-simple' },
     ]
   },
   {
@@ -82,11 +133,11 @@ const NAV_GROUPS = [
     defaultCollapsed: true,
     items: [
       { name: 'Data Manager', path: '/jana/data-manager', icon: 'fa-database' },
-      { name: 'Forms', path: '/jana/forms', icon: 'fa-rectangle-list' },
+      { name: 'Forms', path: '/jana/forms', icon: 'fa-clipboard-list' },
       { name: 'Moderation', path: '/jana/moderation', icon: 'fa-user-shield' },
       { name: 'Upgrades', path: '/jana/upgrades', icon: 'fa-arrow-up-right-dots' },
       { name: 'Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
-      { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-stethoscope' },
+      { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
       { name: 'Curation', path: '/jana/curation', icon: 'fa-filter' },
     ]
@@ -153,6 +204,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/types')) return { title: 'Business Types', tip: 'Define parent categories and their children. Assign sections to control what data each type collects.' };
     if (pathname.includes('/sections')) return { title: 'Sections', tip: 'Define reusable data containers — these become available when configuring types.' };
     if (pathname.includes('/templates')) return { title: 'Master Templates', tip: 'Design reusable templates for business types.' };
+    if (pathname.includes('/blueprints')) return { title: 'Blueprints', tip: 'Visual architecture blueprints — map out the full structure of your marketplace.' };
+    if (pathname.includes('/business-forms')) return { title: 'Business Forms', tip: 'Configure forms used during business onboarding and data collection.' };
     if (pathname.includes('/tiers')) return { title: 'Vendor Tiers', tip: 'Define subscription tiers with feature quotas.' };
     if (pathname.includes('/cards')) return { title: 'Card Layouts', tip: 'Design how business listings appear in search results. Choose visible fields per type.' };
     if (pathname.includes('/expressions')) return { title: 'Vibe Expressions', tip: 'Define searchable atmosphere tags like Rustic, Spiritual, Eco-friendly.' };
@@ -164,6 +217,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/blog')) return { title: 'Blog Hub', tip: 'Create and manage blog posts, layouts, templates, and integrations.' };
     if (pathname.includes('/hero-carousel')) return { title: 'Hero Carousel', tip: 'Create cinematic carousel slides and save them to the component library.' };
     if (pathname.includes('/component-library')) return { title: 'Component Library', tip: 'Manage all reusable components: carousels, sidebars, galleries, and more.' };
+    if (pathname.includes('/carousel-diagnostic')) return { title: 'Carousel Diagnostic', tip: 'Debug and test carousel components, check slide loading and transitions.' };
+    if (pathname.includes('/components')) return { title: 'Components', tip: 'Browse and manage individual UI components for pages and minisites.' };
     if (pathname.includes('/services-manager')) return { title: 'Services', tip: 'Manage page services displayed across the platform.' };
     if (pathname.includes('/experience-categories')) return { title: 'Categories', tip: 'Manage experience categories for discovery and filtering.' };
     if (pathname.includes('/journey-templates')) return { title: 'Journey Templates', tip: 'Design reusable journey templates for customer onboarding.' };
@@ -171,6 +226,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/website')) return { title: 'Visual Editor', tip: 'Build the public homepage with drag-and-drop components.' };
     if (pathname.includes('/homepage-editor')) return { title: 'Homepage Editor', tip: 'Quick homepage configuration: layout sections, settings, and content.' };
     if (pathname.includes('/page-builder')) return { title: 'Page Builder', tip: 'Build custom pages using components from the library.' };
+    if (pathname.includes('/pages')) return { title: 'Pages Manager', tip: 'Manage all custom pages, their routes, and publication status.' };
+    if (pathname.includes('/minisite')) return { title: 'Minisite Builder', tip: 'Build and preview vendor minisites — each business gets its own branded page.' };
+    if (pathname.includes('/search-compare')) return { title: 'Search & Compare', tip: 'Side-by-side comparison tool for businesses, packages, and offers.' };
+    if (pathname.includes('/mobile')) return { title: 'Mobile View', tip: 'Preview and optimize your pages for mobile devices.' };
     if (pathname.includes('/search-engines')) return { title: 'Search Engines', tip: 'Configure multi-criteria search with filterable fields.' };
     if (pathname.includes('/search-pages')) return { title: 'Search Pages', tip: 'Manage search page configurations and result layouts.' };
     // Businesses
@@ -180,6 +239,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/fast-track')) return { title: 'Fast-Track Builder', tip: 'Quickly add businesses with minimal friction.' };
     if (pathname.includes('/vendors')) return { title: 'Vendors', tip: 'Assign vendor accounts to manage their own business listings.' };
     if (pathname.includes('/packages')) return { title: 'Packages', tip: 'Create and manage experience packages offered by businesses.' };
+    if (pathname.includes('/auctions')) return { title: 'Auctions', tip: 'Manage auction listings for exclusive experiences and investment opportunities.' };
+    if (pathname.includes('/dispatch')) return { title: 'Dispatch', tip: 'Send notifications, announcements, and messages to vendors and visitors.' };
+    if (pathname.includes('/benefits')) return { title: 'Benefits', tip: 'Configure and manage vendor tier benefits and perks.' };
+    // Tools
+    if (pathname.includes('/form-builder-enhanced')) return { title: 'Enhanced Form Builder', tip: 'Advanced drag-and-drop form builder with conditional logic and validation.' };
+    if (pathname.includes('/form-builder')) return { title: 'Form Builder', tip: 'Quick visual form builder — create fields, sections, and modules easily.' };
+    if (pathname.includes('/demo-automation')) return { title: 'Demo Automation', tip: 'Generate demo data and automate repetitive setup tasks.' };
     // System
     if (pathname.includes('/data-manager')) return { title: 'Data Manager', tip: 'Import, export, and backup your database.' };
     if (pathname.includes('/forms')) return { title: 'Forms', tip: 'Manage form definitions and field configurations.' };
@@ -313,7 +379,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       width: '16px', textAlign: 'center', fontSize: '0.75rem',
                       opacity: active ? 1 : 0.6,
                     }}></i>
-                    {showLabels && <span>{item.name}</span>}
+                    {showLabels && <span style={{ flex: 1 }}>{item.name}</span>}
+                    {showLabels && (item as any).badge && (
+                      <span style={{
+                        background: '#D4AF37', color: '#1a1a2e', borderRadius: '20px',
+                        padding: '1px 6px', fontSize: '0.48rem', fontWeight: 900,
+                        letterSpacing: '0.5px', flexShrink: 0,
+                      }}>
+                        {(item as any).badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

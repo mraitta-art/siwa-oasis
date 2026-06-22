@@ -10,14 +10,11 @@ export default function InvestmentMarketplaceFeed({ title, subtitle }: { title?:
   useEffect(() => {
     async function fetchOpportunities() {
       try {
-        const res = await fetch('/api/jana/businesses?type=investment');
-        const data = await res.json();
-        // Filter: Only Premium vendors with an active Investment chapter
-        const active = data.filter((b: any) => 
-          b.subscription_tier !== 'free' && 
-          b.custom_data?.sec_7_investment?.initialized !== false
-        );
-        setOpportunities(active);
+        const res = await fetch('/api/jana/homepage/pools?type=investment');
+        if (res.ok) {
+          const data = await res.json();
+          setOpportunities(data);
+        }
       } catch (e) {
         console.error("Investment Feed Load Failed", e);
       } finally {

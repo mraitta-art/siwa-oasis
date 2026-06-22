@@ -102,7 +102,7 @@ CREATE TABLE field_definitions (
 
 -- 5. FORM FIELDS (Field Definitions per Type/Section)
 CREATE TABLE form_fields (
-  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  id VARCHAR(100) PRIMARY KEY DEFAULT (UUID()),
   business_type_id VARCHAR(100) NOT NULL,
   section_id VARCHAR(100) NOT NULL,
   name VARCHAR(100) NOT NULL,
@@ -175,6 +175,7 @@ CREATE TABLE businesses (
   views INT DEFAULT 0,
   custom_data JSON DEFAULT NULL,
   draft_data JSON DEFAULT NULL,
+  admin_overrides JSON DEFAULT NULL,
   template_id VARCHAR(100) DEFAULT NULL,
   is_standalone BOOLEAN DEFAULT FALSE,
   active TINYINT(1) DEFAULT 1,
@@ -314,11 +315,11 @@ INSERT INTO profiles (id, email, password_hash, role, display_name, subscription
 
 -- Default Subscription Tiers
 INSERT INTO subscription_tiers (id, name, price_amount, features) VALUES
-('free', 'Free', 0, '{"maxBusinesses":1,"canPublishMinisite":false,"canCustomizeTemplate":false,"maxImages":5,"maxSlides":3,"maxStorageMB":10,"maxCustomBlocks":2}'),
-('basic', 'Basic', 9.99, '{"maxBusinesses":3,"canPublishMinisite":true,"canCustomizeTemplate":false,"maxImages":15,"maxSlides":10,"maxStorageMB":50,"maxCustomBlocks":5}'),
-('premium', 'Premium', 29.99, '{"maxBusinesses":10,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":50,"maxSlides":20,"maxStorageMB":250,"maxCustomBlocks":15}'),
-('gold', 'Gold VIP', 79.99, '{"maxBusinesses":50,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":100,"maxSlides":50,"maxStorageMB":1000,"maxCustomBlocks":50}'),
-('vip', 'Enterprise/VIP', 199.99, '{"maxBusinesses":999,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":999,"maxSlides":999,"maxStorageMB":10000,"maxCustomBlocks":999}');
+('free', 'Free', 0, '{"maxBusinesses":1,"canPublishMinisite":false,"canCustomizeTemplate":false,"maxImages":5,"maxSlides":3,"maxStorageMB":10,"maxCustomBlocks":2,"allowedSections":["sec_1_identity","sec_2_ambience"]}'),
+('basic', 'Basic', 9.99, '{"maxBusinesses":3,"canPublishMinisite":true,"canCustomizeTemplate":false,"maxImages":15,"maxSlides":10,"maxStorageMB":50,"maxCustomBlocks":5,"allowedSections":["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian"]}'),
+('premium', 'Premium', 29.99, '{"maxBusinesses":10,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":50,"maxSlides":20,"maxStorageMB":250,"maxCustomBlocks":15,"allowedSections":["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian","sec_7_investment","sec_8_connector","sec_9_marketplace_catalog","sec_10_testimonials_faqs"]}'),
+('gold', 'Gold VIP', 79.99, '{"maxBusinesses":50,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":100,"maxSlides":50,"maxStorageMB":1000,"maxCustomBlocks":50,"allowedSections":["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian","sec_7_investment","sec_8_connector","sec_9_marketplace_catalog","sec_10_testimonials_faqs"]}'),
+('vip', 'Enterprise/VIP', 199.99, '{"maxBusinesses":999,"canPublishMinisite":true,"canCustomizeTemplate":true,"maxImages":999,"maxSlides":999,"maxStorageMB":10000,"maxCustomBlocks":999,"allowedSections":["sec_1_identity","sec_2_ambience","sec_3_facilities","sec_4_gastronomy","sec_5_experiences","sec_6_guardian","sec_7_investment","sec_8_connector","sec_9_marketplace_catalog","sec_10_testimonials_faqs"]}');
 
 -- Default Business Types
 -- 1. PARENTS

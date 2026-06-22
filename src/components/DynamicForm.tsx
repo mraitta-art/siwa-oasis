@@ -152,7 +152,10 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     const featureMissing = !!(field.required_feature && !tierFeatures[field.required_feature] && !isAdmin && !isTrial);
     const uploadSizeLimit = isTrial ? 2 * 1024 * 1024 : (tierFeatures.maxUploadSize || 10 * 1024 * 1024); // 2MB for trial, 10MB standard
     
-    const isFieldLocked = featureMissing || (field.vendor_editable === false && !isAdmin);
+    const allowedSections = tierFeatures?.allowedSections;
+    const isSectionLocked = userRole === 'vendor' && Array.isArray(allowedSections) && !allowedSections.includes(sectionId);
+
+    const isFieldLocked = isSectionLocked || featureMissing || (field.vendor_editable === false && !isAdmin);
 
     const isUniversal = field.business_type_id === 'SECTION_TEMPLATE';
     const isInherited = field.is_inherited || field.section_origin === 'inherited';
@@ -282,6 +285,22 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         {featureMissing && (
           <div className="lock-overlay">
             <button className="btn btn-sm btn-dark">{t?.upgradeToUnlock ?? 'UPGRADE TO UNLOCK'}</button>
+          </div>
+        )}
+
+        {isSectionLocked && (
+          <div className="lock-overlay" style={{
+            position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, borderRadius: '16px'
+          }}>
+            <div style={{ background: '#1e293b', border: '1px solid #D4AF3750', padding: '1rem 1.5rem', borderRadius: '12px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
+              <div style={{ color: '#D4AF37', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                <i className="fas fa-lock"></i> {t?.lockedSection ?? 'SECTION LOCKED'}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700 }}>
+                {t?.upgradeRequired ?? 'Requires subscription tier upgrade or admin override.'}
+              </div>
+            </div>
           </div>
         )}
 

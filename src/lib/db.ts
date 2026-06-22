@@ -51,6 +51,19 @@ if (process.env.NODE_ENV === 'production') {
 
 export default pool;
 
+/** Named alias so legacy imports like `import { db } from '@/lib/db'` resolve correctly */
+export const db = {
+  query: async (sql: string, params?: unknown[]) => {
+    const [rows] = await pool.query(sql, params as never);
+    return [rows] as [unknown[]];
+  },
+  execute: async (sql: string, params?: unknown[]) => {
+    const [result] = await pool.query(sql, params as never);
+    return [result];
+  },
+};
+
+
 /** Execute a query and return rows */
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   const [rows] = await pool.query(sql, params);

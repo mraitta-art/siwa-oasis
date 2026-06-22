@@ -58,7 +58,70 @@ interface Props {
 }
 
 export default function LocalProductsShowcase({ products, title, subtitle }: Props) {
-  const items = products && products.length > 0 ? products : DEFAULT_PRODUCTS;
+  const [items, setItems] = React.useState<ProductItem[]>(products || []);
+  const [loading, setLoading] = React.useState(!products);
+
+  React.useEffect(() => {
+    if (products && products.length > 0) return;
+    
+    async function fetchProducts() {
+      try {
+        const res = await fetch('/api/jana/homepage/pools?type=products');
+        if (res.ok) {
+          const data = await res.json();
+          const list: ProductItem[] = [];
+          data.forEach((biz: any) => {
+            const market = biz.custom_data?.sec_9_marketplace_catalog || {};
+            let rawList = market.product_list || [];
+            
+            let parsedList: any[] = [];
+            try {
+              parsedList = typeof rawList === 'string' ? JSON.parse(rawList) : rawList;
+            } catch (e) {
+              if (typeof rawList === 'string' && rawList.trim().length > 10) {
+                parsedList = [{
+                  name: `Custom products at ${biz.name}`,
+                  description: rawList,
+                  price: 'Contact Vendor',
+                  image: biz.custom_data?.sec_1_identity?.hero_image || ''
+                }];
+              }
+            }
+
+            if (Array.isArray(parsedList)) {
+              parsedList.forEach((prod: any, idx: number) => {
+                list.push({
+                  id: `${biz.id}-prod-${idx}`,
+                  name: prod.name || prod.product_name || 'Siwan Product',
+                  category: prod.category || biz.type_name || 'Artisan Crafts',
+                  price: prod.price || 'Contact for price',
+                  description: prod.description || prod.product_desc || 'Authentic Siwa product.',
+                  imageUrl: prod.image || prod.imageUrl || prod.url || biz.custom_data?.sec_1_identity?.hero_image || '/images/siwa-default.jpg',
+                  origin: prod.origin || biz.name,
+                  story: prod.story || prod.product_story || '',
+                  link: `/p/${biz.slug}`
+                });
+              });
+            }
+          });
+
+          if (list.length > 0) {
+            setItems(list);
+          } else {
+            setItems(DEFAULT_PRODUCTS);
+          }
+        } else {
+          setItems(DEFAULT_PRODUCTS);
+        }
+      } catch (e) {
+        console.warn("Failed to load dynamic products, using fallback", e);
+        setItems(DEFAULT_PRODUCTS);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, [products]);
 
   return (
     <div style={{ padding: '6rem 0', background: '#0a0f1d', borderTop: '1px solid rgba(255,255,255,0.03)' }}>

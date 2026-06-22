@@ -4,8 +4,8 @@
 
 Set-Location "E:\ANitgravity\siwatoday\siwa-oasis"
 
-$FTPServer  = "ftp.siwa.today"
-$FTPUser    = "vercel"
+$FTPServer  = "siwa.today"
+$FTPUser    = "mraitta@gmail.com"
 $FTPPass    = "PiCo@@4##73"
 $RemotePath = "/public_html/siwa-oasis"
 $ZipName    = "siwa_production_latest.zip"

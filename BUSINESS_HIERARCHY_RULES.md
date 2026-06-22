@@ -1,0 +1,161 @@
+-- ============================================================
+-- BUSINESS TYPE HIERARCHY DOCUMENTATION
+-- ============================================================
+--
+-- HIERARCHY STRUCTURE:
+--
+--   Parent Template (is_parent=TRUE, parent_id=NULL)
+--   │
+--   ├─ NO vendor_id (not owned)
+--   ├─ NO minisites
+--   ├─ Forms are READ-ONLY (template structure)
+--   ├─ Defines base sections and fields for child types
+--   └─ Example: "Hotel Category" (parent)
+--       
+--       ↓
+--
+--   Child Template (is_parent=FALSE, parent_id=<parent_id>)
+--   │
+--   ├─ Inherits structure from parent
+--   ├─ NO vendor_id (not owned)
+--   ├─ NO minisites
+--   ├─ Forms are READ-ONLY (template structure)
+--   ├─ Can customize inherited sections/fields
+--   └─ Example: "5-Star Hotel" (child of "Hotel Category")
+--
+--       ↓
+--
+--   Leaf Business (is_parent=FALSE, parent_id=NULL, vendor_id=<vendor_id>)
+--   │
+--   ├─ Actual business instance owned by vendor
+--   ├─ HAS vendor_id (owner/manager reference)
+--   ├─ CAN have minisites (child business units)
+--   ├─ Forms are EDITABLE (vendor fills in data)
+--   ├─ Inherits base structure from parent/child templates
+--   └─ Example: "Desert Oasis Hotel" (leaf instance)
+--
+-- ============================================================
+--
+-- VALIDATION RULES:
+--
+-- 1. PARENT TEMPLATES
+--    ✓ is_parent = TRUE
+--    ✓ parent_id = NULL
+--    ✓ vendor_id = NULL (no owner)
+--    ✓ Forms: READ-ONLY
+--    ✓ Purpose: Define structure for child types
+--    ✗ Cannot be filled with business data
+--    ✗ Cannot have minisites
+--
+-- 2. CHILD TEMPLATES
+--    ✓ is_parent = FALSE
+--    ✓ parent_id = <valid parent business_type.id>
+--    ✓ vendor_id = NULL (no owner)
+--    ✓ Forms: READ-ONLY
+--    ✓ Purpose: Specialize parent structure
+--    ✗ Cannot be filled with business data
+--    ✗ Cannot have minisites
+--
+-- 3. LEAF BUSINESSES
+--    ✓ is_parent = FALSE
+--    ✓ parent_id = NULL or inherit from parent/child type
+--    ✓ vendor_id = <valid profiles.id> (vendor owner/manager)
+--    ✓ Forms: EDITABLE
+--    ✓ Purpose: Actual business operated by vendor
+--    ✓ CAN have minisites (child business units)
+--    ✓ Vendor fills in all business data
+--
+-- ============================================================
+--
+-- SCHEMA UPDATES NEEDED:
+--
+-- Table: business_types
+-- Add columns:
+-- - is_template BOOLEAN (computed: is_parent OR parent_id IS NOT NULL)
+-- - hierarchy_level VARCHAR (computed: 'parent', 'child', 'leaf')
+-- - template_required BOOLEAN (if must use this as parent)
+-- - inherit_from_parent JSON (list of parent field IDs to inherit)
+--
+-- Table: businesses
+-- Already has:
+-- - vendor_id (owner/manager)
+-- - type_id (reference to business_types)
+-- - template_id (template used)
+--
+-- New validations in form_fields:
+-- - section_origin ENUM('inherited', 'own', 'template')
+--   inherited = from parent/child type template
+--   own = defined specifically for this type
+--   template = read-only template field (not editable by vendor)
+--
+-- ============================================================
+--
+-- FRONTEND DISPLAY RULES:
+--
+-- When rendering business type selector or forms:
+--
+-- 1. PARENT TEMPLATE DISPLAY:
+--    Icon: 👑
+--    Label: "Parent Template"
+--    Color: Purple (bg-purple-900)
+--    Badge: "🔒 Read-only structure"
+--    Form fields: All disabled/read-only
+--
+-- 2. CHILD TEMPLATE DISPLAY:
+--    Icon: 📋
+--    Label: "Child Template"
+--    Color: Blue (bg-blue-900)
+--    Badge: "📋 Inherits from [Parent]"
+--    Form fields: All disabled/read-only
+--    Show inheritance chain: 👑 Parent → 📋 Child
+--
+-- 3. LEAF BUSINESS DISPLAY:
+--    Icon: 🏪
+--    Label: "Business Instance"
+--    Color: Green (bg-green-900)
+--    Badge: "✅ Editable by vendor"
+--    Form fields: Enable only non-template fields
+--    Show vendor owner: "Owned by [Vendor Name]"
+--
+-- ============================================================
+--
+-- VALIDATION MESSAGES IN FORMS:
+--
+-- PARENT TEMPLATE FORM:
+-- 👑 This is a parent template
+-- 🔒 Forms are read-only and define the structure for child types
+-- ❌ Cannot save business data to templates
+-- 
+-- CHILD TEMPLATE FORM:
+-- 📋 This is a child template inheriting from parent
+-- 🔒 Forms are read-only templates
+-- Inheritance: 👑 Parent → 📋 Child
+-- ❌ Cannot save business data to templates
+--
+-- LEAF BUSINESS FORM:
+-- 🏪 This is a business instance
+-- ✅ Form fields are EDITABLE - you can fill in business data
+-- 👤 Owner/Manager: [Vendor Name]
+-- ✓ Ready to accept vendor data
+--
+-- ============================================================
+--
+-- API VALIDATION (Node.js):
+--
+-- When receiving form submission:
+--
+-- 1. Check business_type.is_parent
+--    IF TRUE → REJECT "Cannot save to parent template"
+--
+-- 2. Check business_type.parent_id
+--    IF NOT NULL and businesses.vendor_id IS NULL → REJECT "Cannot save to child template"
+--
+-- 3. Check businesses.vendor_id
+--    IF NULL → REJECT "Leaf business must have vendor_id"
+--
+-- 4. Check field section_origin
+--    IF section_origin = 'template' → DO NOT SAVE this field
+--    IF section_origin = 'inherited' → SAVE (inherited from parent)
+--    IF section_origin = 'own' → SAVE (specific to this type)
+--
+-- ============================================================

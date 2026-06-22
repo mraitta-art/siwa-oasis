@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   // Disable prerendering for API routes to prevent build-time module resolution errors
-  staticPageGenerationTimeout: 0,
+  staticPageGenerationTimeout: 300,
   experimental: {
     webpackBuildWorker: false,
   },

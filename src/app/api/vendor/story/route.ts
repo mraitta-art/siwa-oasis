@@ -89,6 +89,20 @@ export async function GET(req: NextRequest) {
     const tierResult = (await query('SELECT features FROM subscription_tiers WHERE id = ?', [biz.subscription_tier])) as any[];
     const tierFeatures = tierResult.length > 0 ? (typeof tierResult[0].features === 'string' ? JSON.parse(tierResult[0].features) : tierResult[0].features) : {};
 
+    // 7. Merge Admin Overrides
+    let allowedSections = tierFeatures.allowedSections || [];
+    if (biz.admin_overrides) {
+      try {
+        const overrides = typeof biz.admin_overrides === 'string' ? JSON.parse(biz.admin_overrides) : biz.admin_overrides;
+        if (Array.isArray(overrides.allowed_sections)) {
+          allowedSections = [...new Set([...allowedSections, ...overrides.allowed_sections])];
+        }
+      } catch (e) {
+        console.error("Failed to parse admin_overrides:", e);
+      }
+    }
+    tierFeatures.allowedSections = allowedSections;
+
     return NextResponse.json({
       business: {
         id: biz.id,
