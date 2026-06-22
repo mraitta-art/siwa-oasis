@@ -12,6 +12,12 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
+  const [isRTL, setIsRTL] = useState(false);
+
+  // Detect RTL direction on mount
+  useEffect(() => {
+    setIsRTL(document.documentElement.dir === 'rtl' || window.getComputedStyle(document.body).direction === 'rtl');
+  }, []);
 
   // Sync active tab when sections change or on mount
   useEffect(() => {
@@ -416,7 +422,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
             background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)',
-            display: 'flex', justifyContent: 'flex-end',
+            display: 'flex', justifyContent: 'flex-start',
             animation: 'fadeInBackdrop 0.3s ease-out'
           }}
           onClick={() => setIsMobileMenuOpen(false)}
@@ -425,9 +431,10 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
             className="minisite-mobile-drawer"
             style={{
               width: '80%', maxWidth: '360px', height: '100%',
-              background: '#fff', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
+              background: '#fff', 
+              boxShadow: isRTL ? '-10px 0 30px rgba(0,0,0,0.1)' : '10px 0 30px rgba(0,0,0,0.1)',
               display: 'flex', flexDirection: 'column',
-              animation: 'slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+              animation: isRTL ? 'slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)' : 'slideInFromLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
