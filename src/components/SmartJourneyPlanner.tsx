@@ -5,31 +5,31 @@ import React, { useState } from 'react';
 // ─── STYLES ─────────────────────────────────────────────────────────────────
 
 const S = {
-  wrap: { padding: '6rem 0', background: '#0a0f1d', borderTop: '1px solid rgba(255,255,255,0.03)' } as React.CSSProperties,
+  wrap: { padding: '6rem 0', background: 'var(--bg-alt)', borderTop: '1px solid var(--border-light)' } as React.CSSProperties,
   inner: { maxWidth: '1000px', margin: '0 auto', padding: '0 1.5rem' } as React.CSSProperties,
   card: {
-    background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(30px)',
-    border: '1px solid rgba(255,255,255,0.06)', borderRadius: '35px',
-    padding: 'clamp(1.5rem, 5vw, 3.5rem)', boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+    background: 'var(--card)',
+    border: '1px solid var(--border)', borderRadius: '35px',
+    padding: 'clamp(1.5rem, 5vw, 3.5rem)', boxShadow: 'var(--shadow-lg)',
   } as React.CSSProperties,
-  label: { color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase' as const, display: 'block', marginBottom: '1rem' },
-  h2: { color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 } as React.CSSProperties,
-  sub: { color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginTop: '1rem' } as React.CSSProperties,
+  label: { color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase' as const, display: 'block', marginBottom: '1rem' },
+  h2: { color: 'var(--text)', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 } as React.CSSProperties,
+  sub: { color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '1rem' } as React.CSSProperties,
   btn: (active: boolean) => ({
     padding: '2rem 1.5rem', borderRadius: '24px',
-    background: active ? 'rgba(212, 175, 55, 0.08)' : 'rgba(255,255,255,0.01)',
-    border: active ? '2px solid #D4AF37' : '1px solid rgba(255,255,255,0.05)',
-    color: '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    background: active ? 'rgba(255, 183, 0, 0.08)' : 'var(--bg)',
+    border: active ? '2px solid var(--gold)' : '1px solid var(--border)',
+    color: 'var(--text)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     width: '100%',
   } as React.CSSProperties),
   input: {
-    width: '100%', padding: '0.9rem 1.25rem', background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: '#fff', fontSize: '0.9rem',
+    width: '100%', padding: '0.9rem 1.25rem', background: 'var(--bg)',
+    border: '1px solid var(--border)', borderRadius: '14px', color: 'var(--text)', fontSize: '0.9rem',
     outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.2s',
   } as React.CSSProperties,
   textarea: {
-    width: '100%', padding: '0.9rem 1.25rem', background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: '#fff', fontSize: '0.9rem',
+    width: '100%', padding: '0.9rem 1.25rem', background: 'var(--bg)',
+    border: '1px solid var(--border)', borderRadius: '14px', color: 'var(--text)', fontSize: '0.9rem',
     outline: 'none', boxSizing: 'border-box' as const, resize: 'vertical' as const, minHeight: '80px',
   } as React.CSSProperties,
 };
@@ -78,21 +78,21 @@ const DEFAULT_VIBES: Record<string, { id: string; label: string; icon: string }[
 function ProgressBar({ step, total }: { step: number; total: number }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', position: 'relative' }}>
-      <div style={{ position: 'absolute', top: '15px', left: 0, right: 0, height: '2px', background: 'rgba(255,255,255,0.05)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', top: '15px', left: 0, width: `${((step - 1) / (total - 1)) * 100}%`, height: '2px', background: '#D4AF37', zIndex: 1, transition: 'width 0.4s ease' }} />
+      <div style={{ position: 'absolute', top: '15px', left: 0, right: 0, height: '2px', background: 'var(--border)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', top: '15px', left: 0, width: `${((step - 1) / (total - 1)) * 100}%`, height: '2px', background: 'var(--gold)', zIndex: 1, transition: 'width 0.4s ease' }} />
       {Array.from({ length: total }, (_, i) => i + 1).map(num => (
         <div key={num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
           <div style={{
             width: '32px', height: '32px', borderRadius: '50%',
-            background: step >= num ? '#D4AF37' : '#0f172a',
-            color: step >= num ? '#0a0f1d' : 'rgba(255,255,255,0.3)',
-            border: step >= num ? 'none' : '1px solid rgba(255,255,255,0.1)',
+            background: step >= num ? 'var(--gold)' : 'var(--bg-alt)',
+            color: step >= num ? 'var(--dark)' : 'var(--text-light)',
+            border: step >= num ? 'none' : '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: '0.8rem', transition: 'all 0.3s',
           }}>
             {step > num ? <i className="fas fa-check" style={{ fontSize: '0.7rem' }} /> : num}
           </div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 800, marginTop: '0.75rem', color: step >= num ? '#D4AF37' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, marginTop: '0.75rem', color: step >= num ? 'var(--gold)' : 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '1px' }}>
             {['CATEGORY', 'PREFERENCES', 'DETAILS', 'SUBMIT'][num - 1]}
           </span>
         </div>
@@ -105,11 +105,11 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
 
 function NavControls({ step, canProceed, onBack, onNext, nextLabel = 'CONTINUE' }: any) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '2rem' }}>
-      <button disabled={step === 1} onClick={onBack} style={{ background: 'none', border: 'none', color: step === 1 ? 'rgba(255,255,255,0.1)' : '#fff', cursor: step === 1 ? 'default' : 'pointer', fontWeight: 900, fontSize: '0.85rem', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
+      <button disabled={step === 1} onClick={onBack} style={{ background: 'none', border: 'none', color: step === 1 ? 'var(--text-light)' : 'var(--text)', cursor: step === 1 ? 'default' : 'pointer', fontWeight: 900, fontSize: '0.85rem', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <i className="fas fa-arrow-left" /> BACK
       </button>
-      <button disabled={!canProceed} onClick={onNext} style={{ padding: '0.85rem 2.5rem', background: canProceed ? '#D4AF37' : 'rgba(255,255,255,0.05)', color: canProceed ? '#1a1a2e' : 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50px', fontWeight: 900, fontSize: '0.85rem', letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.3s' }}>
+      <button disabled={!canProceed} onClick={onNext} style={{ padding: '0.85rem 2.5rem', background: canProceed ? 'var(--gold)' : 'var(--bg)', color: canProceed ? 'var(--dark)' : 'var(--text-light)', border: 'none', borderRadius: '50px', fontWeight: 900, fontSize: '0.85rem', letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.3s' }}>
         {nextLabel} <i className="fas fa-arrow-right" style={{ marginLeft: '0.5rem' }} />
       </button>
     </div>
@@ -348,9 +348,9 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '3rem' }}>
                 {categories.map(cat => (
                   <button key={cat.id} onClick={() => setRequestType(cat.id)} style={S.btn(requestType === cat.id)}>
-                    <i className={`fas ${cat.icon}`} style={{ fontSize: '2.5rem', color: requestType === cat.id ? '#D4AF37' : 'rgba(255,255,255,0.2)', marginBottom: '1.5rem', display: 'block' }} />
-                    <h3 style={{ color: requestType === cat.id ? '#D4AF37' : '#fff', fontSize: '1.25rem', fontWeight: 900, margin: '0 0 0.5rem' }}>{cat.label}</h3>
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', margin: 0, lineHeight: 1.5 }}>{cat.desc}</p>
+                    <i className={`fas ${cat.icon}`} style={{ fontSize: '2.5rem', color: requestType === cat.id ? 'var(--gold)' : 'var(--text-light)', marginBottom: '1.5rem', display: 'block' }} />
+                    <h3 style={{ color: requestType === cat.id ? 'var(--gold)' : 'var(--text)', fontSize: '1.25rem', fontWeight: 900, margin: '0 0 0.5rem' }}>{cat.label}</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0, lineHeight: 1.5 }}>{cat.desc}</p>
                   </button>
                 ))}
               </div>
@@ -375,8 +375,8 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                       }}
                       style={S.btn(active)}
                     >
-                      <i className={`fas ${v.icon}`} style={{ fontSize: '2rem', color: active ? '#D4AF37' : 'rgba(255,255,255,0.2)', marginBottom: '1rem', display: 'block' }} />
-                      <h3 style={{ color: active ? '#D4AF37' : '#fff', fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>{v.label}</h3>
+                      <i className={`fas ${v.icon}`} style={{ fontSize: '2rem', color: active ? 'var(--gold)' : 'var(--text-light)', marginBottom: '1rem', display: 'block' }} />
+                      <h3 style={{ color: active ? 'var(--gold)' : 'var(--text)', fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>{v.label}</h3>
                     </button>
                   );
                 })}
@@ -395,30 +395,30 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                 {['journey', 'accommodation'].includes(requestType) && (
                   <>
                     <div>
-                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Duration (Days/Nights)</label>
+                      <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Duration (Days/Nights)</label>
                       <input type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g. 3" style={S.input} />
                     </div>
                     <div>
-                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Group Size</label>
+                      <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Group Size</label>
                       <input type="number" value={groupSize} onChange={e => setGroupSize(e.target.value)} placeholder="e.g. 2" style={S.input} />
                     </div>
                   </>
                 )}
                 
                 <div>
-                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Estimated Budget</label>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Estimated Budget</label>
                   <input type="text" value={budget} onChange={e => setBudget(e.target.value)} placeholder="e.g. $500 or 'Flexible'" style={S.input} />
                 </div>
                 
                 {['journey', 'accommodation', 'restaurant'].includes(requestType) && (
                   <div>
-                    <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Arrival / Date</label>
+                    <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Arrival / Date</label>
                     <input type="date" value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} style={S.input} />
                   </div>
                 )}
                 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Special Requests or Notes</label>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Special Requests or Notes</label>
                   <textarea value={specialRequests} onChange={e => setSpecialRequests(e.target.value)} placeholder="Tell us any specific requirements, allergies, or questions you have..." style={S.textarea} />
                 </div>
               </div>
@@ -434,15 +434,15 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '3rem', maxWidth: '600px' }}>
                 <div>
-                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Full Name *</label>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Full Name *</label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={S.input} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>WhatsApp / Phone Number *</label>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>WhatsApp / Phone Number *</label>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+20 123 456 7890" style={S.input} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email Address (Optional)</label>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email Address (Optional)</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={S.input} />
                 </div>
               </div>

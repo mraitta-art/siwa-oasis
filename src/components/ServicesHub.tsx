@@ -112,15 +112,15 @@ export default function ServicesHub({ title, subtitle }: { title?: string; subti
     <div
       style={{
         padding: '6rem 0',
-        background: 'linear-gradient(180deg, #0a0f1d 0%, #0f172a 100%)',
-        borderTop: '1px solid rgba(255,255,255,0.03)',
+        background: 'var(--bg-alt)',
+        borderTop: '1px solid var(--border-light)',
       }}
     >
       {/* ── Header ── */}
       <div style={{ textAlign: 'center', marginBottom: '4rem', padding: '0 1.5rem' }}>
         <span
           style={{
-            color: '#D4AF37',
+            color: 'var(--gold)',
             fontWeight: 900,
             letterSpacing: '4px',
             fontSize: '0.75rem',
@@ -133,7 +133,7 @@ export default function ServicesHub({ title, subtitle }: { title?: string; subti
         </span>
         <h2
           style={{
-            color: '#fff',
+            color: 'var(--text)',
             fontSize: 'clamp(2rem, 4vw, 3rem)',
             fontWeight: 900,
             margin: '0 0 1.25rem 0',
@@ -144,7 +144,7 @@ export default function ServicesHub({ title, subtitle }: { title?: string; subti
         </h2>
         <p
           style={{
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-muted)',
             maxWidth: '600px',
             margin: '0 auto',
             fontSize: '0.95rem',

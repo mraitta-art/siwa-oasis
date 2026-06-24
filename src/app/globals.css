@@ -26,13 +26,14 @@
   --gold: #FFB700;
   --gold-hover: #FF9500;
   --dark: #556B2F;
-  --text: #1f2937;
-  --text-muted: #6b7280;
-  --text-light: #9ca3af;
-  --bg: #f3f4f6;
+  --text: #202D15;                 /* Deep Palm Shadow */
+  --text-muted: #5A4A3A;           /* Soil Brown */
+  --text-light: #8E7B6C;           /* Light Soil/Sand text */
+  --bg: #FAF6F0;                   /* Warm Cream Sand background */
+  --bg-alt: #F2F4F0;               /* Soft Sage/Palm background */
   --card: #ffffff;
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
+  --border: #E8DFD3;               /* Sand Line */
+  --border-light: #F4ECE0;
   --success: #4CAF50;
   --warning: #FF9500;
   --danger: #ef4444;
@@ -40,9 +41,9 @@
   --purple: #556B2F;
   --radius: 0.75rem;
   --radius-lg: 1rem;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.08);
 }
 
 /* ---- Reset & Base ---- */

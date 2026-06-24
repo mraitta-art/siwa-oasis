@@ -41,12 +41,21 @@ const PALETTE: PaletteItem[] = [
 
 const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981', footer: '#64748b' };
 
+// ── Theme Presets (curated Oasis palettes) ────────────────────────────────────
+const THEME_PRESETS = [
+  { id: 'warm_sand',        name: '🏜️ Warm Sand (Light Oasis)',      bg_color: '#FAF6F0', nav_bg_color: '#556B2F', primary_color: '#FFB700' },
+  { id: 'midnight_desert',  name: '🌙 Midnight Desert (Dark Modern)', bg_color: '#0a0f1d', nav_bg_color: '#1e293b', primary_color: '#00CED1' },
+  { id: 'dark_olive',       name: '🌿 Classic Dark Olive',            bg_color: '#2C3E25', nav_bg_color: '#1a2417', primary_color: '#FFB700' },
+  { id: 'lagoon_springs',   name: '🌊 Lagoon Springs (Turquoise)',    bg_color: '#EBF7F6', nav_bg_color: '#20B2AA', primary_color: '#FF7F50' },
+];
+
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
 interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
 export default function MultiPageSiteBuilder() {
+  const dragSrcId = React.useRef<string | null>(null);
   const [mode, setMode]                 = useState<Mode>('PAGES');
   const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
   const [types, setTypes]               = useState<any[]>([]);
@@ -78,14 +87,55 @@ export default function MultiPageSiteBuilder() {
   // Template meta
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
 
-  // Site settings
+  // Site settings — default to Warm Sand (light oasis)
   const [siteSettings, setSiteSettings] = useState({
-    site_name: 'Siwa Today', primary_color: '#D4AF37',
+    site_name: 'Siwa Today', primary_color: '#FFB700',
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
     logo_url: '', show_watermark: true, logo_height: 40,
-    bg_color: '#0f172a', nav_bg_color: '#556B2F',
+    bg_color: '#FAF6F0', nav_bg_color: '#556B2F',
   });
+
+  // Helper: detect which preset matches current settings (or 'custom')
+  const detectPreset = () => {
+    const s = siteSettings;
+    const match = THEME_PRESETS.find(p => p.bg_color === s.bg_color && p.nav_bg_color === s.nav_bg_color && p.primary_color === s.primary_color);
+    return match?.id || 'custom';
+  };
+
+  // Apply a theme preset
+  const applyPreset = (presetId: string) => {
+    const preset = THEME_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+    setSiteSettings(s => ({ ...s, bg_color: preset.bg_color, nav_bg_color: preset.nav_bg_color, primary_color: preset.primary_color }));
+    notify(`✅ Theme: ${preset.name}`);
+  };
+
+  // Drag-and-drop slot reordering
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    dragSrcId.current = id;
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const srcId = dragSrcId.current;
+    if (!srcId || srcId === targetId) return;
+    setSlots(prev => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex(s => s.id === srcId);
+      const toIdx   = arr.findIndex(s => s.id === targetId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      return arr;
+    });
+    dragSrcId.current = null;
+  };
+  const handleDragEnd = () => { dragSrcId.current = null; };
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ msg, type });
@@ -103,14 +153,23 @@ export default function MultiPageSiteBuilder() {
   useEffect(() => {
     fetch('/api/jana/website/list').then(r => r.json()).then(data => {
       if (Array.isArray(data)) {
-        setPages(data.map(p => {
+        const loadedPages = data.map(p => {
           const type_str = p.type || '';
           if (type_str.startsWith('website_search_')) {
             return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
           } else {
             return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
           }
-        }));
+        });
+        setPages(loadedPages);
+
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const pageParam = params.get('page');
+          if (pageParam && loadedPages.some(p => p.slug === pageParam)) {
+            setCurrentPage(pageParam);
+          }
+        }
       }
     }).catch(() => {});
 
@@ -477,11 +536,22 @@ export default function MultiPageSiteBuilder() {
               <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>🏅 SIGNATURE</span>
             </label>
             <Sep />
+            <Field label="🎨 THEME">
+              <select
+                value={detectPreset()}
+                onChange={e => applyPreset(e.target.value)}
+                style={{ ...selectStyle, background: '#fffbeb', border: '1.5px solid #D4AF37', fontWeight: 900, color: '#1a1a2e', minWidth: 200 }}
+              >
+                <option value="custom">✏️ Custom Palette</option>
+                {THEME_PRESETS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </Field>
+            <Sep />
             <Field label="PRIMARY">
-              <input type="color" value={siteSettings.primary_color||'#D4AF37'} onChange={e => setSiteSettings(s=>({...s,primary_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+              <input type="color" value={siteSettings.primary_color||'#FFB700'} onChange={e => setSiteSettings(s=>({...s,primary_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
             </Field>
             <Field label="BG COLOR">
-              <input type="color" value={siteSettings.bg_color||'#0f172a'} onChange={e => setSiteSettings(s=>({...s,bg_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+              <input type="color" value={siteSettings.bg_color||'#FAF6F0'} onChange={e => setSiteSettings(s=>({...s,bg_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
             </Field>
             <Field label="NAV BG">
               <input type="color" value={siteSettings.nav_bg_color||'#556B2F'} onChange={e => setSiteSettings(s=>({...s,nav_bg_color:e.target.value}))} style={{ width: 32, height: 26, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
@@ -675,16 +745,29 @@ export default function MultiPageSiteBuilder() {
                 const zSlots = slotsFor(activeZone);
                 const idx    = zSlots.findIndex(s => s.id === slot.id);
                 return (
-                  <div key={slot.id} style={{ background:'#fff', borderRadius:14, border:`1px solid ${color}20`, marginBottom:'0.9rem', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', overflow:'hidden' }}>
+                  <div
+                    key={slot.id}
+                    draggable
+                    onDragStart={e => handleDragStart(e, slot.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={e => handleDrop(e, slot.id)}
+                    onDragEnd={handleDragEnd}
+                    style={{ background:'#fff', borderRadius:14, border:`1px solid ${color}20`, marginBottom:'0.9rem', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', overflow:'hidden', cursor:'grab' }}
+                  >
                     {/* Block header */}
                     <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', padding:'0.6rem 0.9rem', background:`linear-gradient(90deg,${color}08,transparent)`, borderBottom:`1px solid ${color}12` }}>
+                      {/* Drag handle */}
+                      <div title="Drag to reorder" style={{ color:'#cbd5e1', fontSize:'1rem', cursor:'grab', flexShrink:0, lineHeight:1, padding:'0 4px 0 0', userSelect:'none' }}>⠿</div>
                       <div style={{ width:30, height:30, borderRadius:8, background:`${color}14`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.95rem', flexShrink:0 }}>{def?.icon}</div>
-                      <div style={{ flex:1, fontWeight:800, fontSize:'0.78rem', color:'#0f172a' }}>{slot.label}</div>
+                      <div style={{ flex:1, fontWeight:800, fontSize:'0.78rem', color:'#0f172a' }}>
+                        {slot.label}
+                        <span style={{ display:'block', fontSize:'0.52rem', color:'#cbd5e1', fontWeight:500, marginTop:'1px' }}>drag to reorder · zone: {slot.zone}</span>
+                      </div>
                       <div className="block-actions" style={{ display:'flex', gap:'6px', flexShrink:0, flexWrap:'wrap', justifyContent:'flex-end' }}>
-                        <button onClick={()=>moveSlot(slot.id,'up')} disabled={idx===0} style={actionBtn(idx===0, '#64748b', '#f8fafc', '#e2e8f0')} title="Move Up">↑ Up</button>
-                        <button onClick={()=>moveSlot(slot.id,'down')} disabled={idx===zSlots.length-1} style={actionBtn(idx===zSlots.length-1, '#64748b', '#f8fafc', '#e2e8f0')} title="Move Down">↓ Down</button>
-                        <button onClick={()=>openEditSlotModal(slot)} title="Edit Config" style={actionBtn(false, '#0ea5e9', '#f0f9ff', '#bfdbfe')}>✏️ Edit</button>
-                        <button onClick={()=>removeSlot(slot.id)} title="Remove Component" style={actionBtn(false, '#ef4444', '#fff0f0', '#fecaca')}>✕ Delete</button>
+                        <button onClick={e=>{e.stopPropagation();moveSlot(slot.id,'up');}} disabled={idx===0} style={actionBtn(idx===0, '#64748b', '#f8fafc', '#e2e8f0')} title="Move Up">↑ Up</button>
+                        <button onClick={e=>{e.stopPropagation();moveSlot(slot.id,'down');}} disabled={idx===zSlots.length-1} style={actionBtn(idx===zSlots.length-1, '#64748b', '#f8fafc', '#e2e8f0')} title="Move Down">↓ Down</button>
+                        <button onClick={e=>{e.stopPropagation();openEditSlotModal(slot);}} title="Edit Config" style={actionBtn(false, '#0ea5e9', '#f0f9ff', '#bfdbfe')}>✏️ Edit</button>
+                        <button onClick={e=>{e.stopPropagation();removeSlot(slot.id);}} title="Remove Component" style={actionBtn(false, '#ef4444', '#fff0f0', '#fecaca')}>✕ Delete</button>
                       </div>
                     </div>
 

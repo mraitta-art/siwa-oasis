@@ -35,8 +35,63 @@ const DEFAULT_LAYOUT: LayoutSection[] = [
   { id: 'h10', type: 'partner_cta', props: {} }
 ];
 
+// ── Luminance helper — determines if a hex color is "light" ──────────────────
+function isLight(hex: string | undefined): boolean {
+  if (!hex) return true;
+  try {
+    const c = hex.replace('#', '');
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 140;
+  } catch { return true; }
+}
+
+// ── Dynamically generate :root CSS overrides from settings ───────────────────
+function buildThemeCSS(s: SiteSettings | null): string {
+  const bg  = s?.bg_color    || '#FAF6F0';
+  const pri = s?.primary_color || '#FFB700';
+  const nav = s?.nav_bg_color  || '#556B2F';
+  const light = isLight(bg);
+
+  if (light) {
+    return `:root {
+      --bg: ${bg};
+      --bg-alt: ${bg}ee;
+      --card: #ffffff;
+      --text: #202D15;
+      --text-muted: #5A4A3A;
+      --text-light: #8E7B6C;
+      --border: #E8DFD3;
+      --border-light: #F4ECE0;
+      --gold: ${pri};
+      --gold-hover: ${pri}cc;
+      --dark: ${nav};
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.10);
+    }`;
+  } else {
+    return `:root {
+      --bg: ${bg};
+      --bg-alt: ${bg}dd;
+      --card: rgba(255,255,255,0.04);
+      --text: #f8fafc;
+      --text-muted: #cbd5e1;
+      --text-light: #94a3b8;
+      --border: rgba(255,255,255,0.08);
+      --border-light: rgba(255,255,255,0.05);
+      --gold: ${pri};
+      --gold-hover: ${pri}cc;
+      --dark: ${nav};
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
+    }`;
+  }
+}
+
 export default function Home() {
-  // Start with default layout immediately — no blocking spinner
   const [layout, setLayout] = useState<LayoutSection[]>(DEFAULT_LAYOUT);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
 
@@ -64,25 +119,30 @@ export default function Home() {
     init();
   }, []);
 
+  const themeCSS = buildThemeCSS(settings);
+  const primary  = settings?.primary_color || '#FFB700';
+  const navBg    = settings?.nav_bg_color  || '#556B2F';
+
   return (
-    <div style={{ minHeight: '100vh', background: settings?.bg_color || 'linear-gradient(135deg, #556B2F, #6B8E23)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       
-      {/* 🏛️ ELITE NAVIGATION (Global Signature) */}
+      {/* Dynamic theme injection — overrides :root CSS variables */}
+      <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
+
+      {/* 🏛️ ELITE NAVIGATION */}
       <nav style={{ 
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, 
         padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)', 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        background: settings?.nav_bg_color 
-          ? `linear-gradient(to bottom, ${settings.nav_bg_color}, transparent)` 
-          : 'linear-gradient(to bottom, rgba(85, 107, 47, 0.85), transparent)' 
+        background: `linear-gradient(to bottom, ${navBg}dd, transparent)` 
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
             <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
-              <i className="fas fa-sun" style={{ color: settings?.primary_color || '#FFB700', fontSize: '1.5rem' }}></i>
-              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: settings?.primary_color || '#FFB700' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
+              <i className="fas fa-sun" style={{ color: primary, fontSize: '1.5rem' }}></i>
+              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: primary }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
             </>
           )}
         </Link>
@@ -98,7 +158,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🌍 FOOTER (Global Navigation) */}
+      {/* 🌍 FOOTER — always dark cinematic */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8rem 4rem', background: '#0a0f1d', color: '#fff' }}>
          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '4rem' }}>
             <div>
@@ -111,13 +171,13 @@ export default function Home() {
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: settings?.primary_color || '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
+               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
                <Link href="/search/vibe" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
                <Link href="#discovery" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage DNA</Link>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: settings?.primary_color || '#D4AF37', letterSpacing: '3px', marginBottom: '0.5rem' }}>GOVERNANCE</span>
+               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>GOVERNANCE</span>
                <Link href="/admin" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Admin / Partner Login</Link>
                <Link href="/investment" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
             </div>

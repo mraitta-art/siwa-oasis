@@ -124,22 +124,22 @@ export default function LocalProductsShowcase({ products, title, subtitle }: Pro
   }, [products]);
 
   return (
-    <div style={{ padding: '6rem 0', background: '#0a0f1d', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+    <div style={{ padding: '6rem 0', background: 'var(--bg)', borderTop: '1px solid var(--border-light)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4rem', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div>
-            <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
+            <span style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
               {subtitle || 'LOCAL MARKETPLACE'}
             </span>
-            <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
+            <h2 style={{ color: 'var(--text)', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
               {title || 'Featured Local Products'}
             </h2>
           </div>
           <button
             onClick={() => window.location.href = '/search/vibe?category=crafts'}
-            style={{ background: 'none', border: 'none', color: '#D4AF37', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '1px' }}
+            style={{ background: 'none', border: 'none', color: 'var(--gold)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '1px' }}
           >
             BROWSE MARKETPLACE <i className="fas fa-arrow-right"></i>
           </button>

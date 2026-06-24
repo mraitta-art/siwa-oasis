@@ -5,16 +5,16 @@ import Link from 'next/link';
 
 export default function VendorPartnerCTA({ title, subtitle }: { title?: string; subtitle?: string }) {
   return (
-    <div style={{ padding: '6rem 0', background: '#0a0f1d', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+    <div style={{ padding: '6rem 0', background: 'var(--bg)', borderTop: '1px solid var(--border-light)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 1.5rem' }}>
         
         <div style={{
           position: 'relative',
           borderRadius: '40px',
           overflow: 'hidden',
-          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+          background: 'linear-gradient(135deg, rgba(255, 183, 0, 0.08) 0%, var(--bg-alt) 100%)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-md)',
           padding: 'clamp(2.5rem, 8vw, 5rem)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -29,14 +29,14 @@ export default function VendorPartnerCTA({ title, subtitle }: { title?: string; 
             left: '-50px',
             width: '200px',
             height: '200px',
-            background: 'radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(255,183,0,0.1) 0%, transparent 70%)',
             pointerEvents: 'none'
           }} />
 
           {/* Text Area */}
           <div style={{ flex: '1 1 500px', zIndex: 2 }}>
             <span style={{ 
-              color: '#D4AF37', 
+              color: 'var(--gold)', 
               fontWeight: 900, 
               letterSpacing: '4px', 
               fontSize: '0.75rem', 
@@ -47,7 +47,7 @@ export default function VendorPartnerCTA({ title, subtitle }: { title?: string; 
               {subtitle || 'COMMUNITY DIRECTORY GOVERNANCE'}
             </span>
             <h3 style={{ 
-              color: '#fff', 
+              color: 'var(--text)', 
               fontSize: 'clamp(2rem, 4vw, 2.75rem)', 
               fontWeight: 900, 
               margin: '0 0 1.25rem 0',
@@ -56,7 +56,7 @@ export default function VendorPartnerCTA({ title, subtitle }: { title?: string; 
               {title || 'Empower the Siwan Cooperative'}
             </h3>
             <p style={{ 
-              color: 'rgba(255,255,255,0.6)', 
+              color: 'var(--text-muted)', 
               fontSize: '1rem', 
               lineHeight: 1.7, 
               margin: 0,
@@ -72,14 +72,14 @@ export default function VendorPartnerCTA({ title, subtitle }: { title?: string; 
               href="/be-a-partner" 
               style={{
                 padding: '1.25rem 2.5rem',
-                background: '#D4AF37',
-                color: '#0a0f1d',
+                background: 'var(--gold)',
+                color: 'var(--dark)',
                 textDecoration: 'none',
                 borderRadius: '50px',
                 fontWeight: 900,
                 fontSize: '0.85rem',
                 letterSpacing: '1px',
-                boxShadow: '0 15px 30px rgba(212, 175, 55, 0.2)',
+                boxShadow: '0 15px 30px rgba(255, 183, 0, 0.2)',
                 transition: 'all 0.3s'
               }}
               onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
@@ -92,9 +92,9 @@ export default function VendorPartnerCTA({ title, subtitle }: { title?: string; 
               href="/investment" 
               style={{
                 padding: '1.25rem 2.25rem',
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
                 textDecoration: 'none',
                 borderRadius: '50px',
                 fontWeight: 800,
@@ -103,12 +103,12 @@ export default function VendorPartnerCTA({ title, subtitle }: { title?: string; 
                 transition: 'all 0.3s'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                e.currentTarget.style.borderColor = '#D4AF37';
+                e.currentTarget.style.background = 'var(--bg-alt)';
+                e.currentTarget.style.borderColor = 'var(--gold)';
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.background = 'var(--card)';
+                e.currentTarget.style.borderColor = 'var(--border)';
               }}
             >
               HERITAGE STATUTES

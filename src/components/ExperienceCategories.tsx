@@ -94,15 +94,15 @@ export default function ExperienceCategories({ categories, title, subtitle }: Pr
   }, [categories]);
 
   return (
-    <div style={{ padding: '6rem 0', background: '#0f172a' }}>
+    <div style={{ padding: '6rem 0', background: 'var(--bg)' }}>
       <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-        <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
+        <span style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
           {subtitle || 'THE PILLARS OF SIWA'}
         </span>
-        <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>
+        <h2 style={{ color: 'var(--text)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>
           {title || 'Discover the Living Spirit'}
         </h2>
-        <p style={{ color: 'rgba(255,255,255,0.4)', maxWidth: '600px', margin: '1.25rem auto 0 auto', fontSize: '0.95rem', lineHeight: 1.7 }}>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '1.25rem auto 0 auto', fontSize: '0.95rem', lineHeight: 1.7 }}>
           Journey through ancient agricultural traditions, therapeutic thermal waters, unique kershef architectures, and local marketplace trades.
         </p>
       </div>

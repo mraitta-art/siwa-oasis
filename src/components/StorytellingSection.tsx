@@ -67,25 +67,25 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
 
   if (loading) {
     return (
-      <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-        <i className="fas fa-circle-notch fa-spin fa-2x" style={{ color: '#D4AF37' }}></i>
+      <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <i className="fas fa-circle-notch fa-spin fa-2x" style={{ color: 'var(--gold)' }}></i>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '6rem 0', background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+    <div style={{ padding: '6rem 0', background: 'var(--bg)', borderTop: '1px solid var(--border-light)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
         
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '4.5rem' }}>
-          <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
+          <span style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
             {subtitle || 'HERITAGE CHRONICLES'}
           </span>
-          <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
+          <h2 style={{ color: 'var(--text)', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
             {title || 'Living Oral Traditions & Stories'}
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.90rem', marginTop: '1.25rem', maxWidth: '600px', margin: '1.25rem auto 0 auto', lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.90rem', marginTop: '1.25rem', maxWidth: '600px', margin: '1.25rem auto 0 auto', lineHeight: 1.6 }}>
             Immerse yourself in authentic Siwan legends, architectural records, healing water studies, and slow agriculture diaries documented by community elders.
           </p>
         </div>
@@ -98,13 +98,13 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
               href={`/blog/${post.slug}`} 
               style={{ 
                 display: 'block',
-                background: 'rgba(255,255,255,0.01)', 
+                background: 'var(--card)', 
                 borderRadius: '35px', 
-                border: '1px solid rgba(255,255,255,0.05)', 
+                border: '1px solid var(--border)', 
                 overflow: 'hidden', 
                 textDecoration: 'none', 
                 color: 'inherit',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                boxShadow: 'var(--shadow-md)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
               onMouseOver={(e) => {
@@ -155,13 +155,13 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
 
               {/* Text Area */}
               <div style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.5px', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-light)', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.5px', marginBottom: '1rem' }}>
                   <span>{new Date(post.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}</span>
                   <span>{post.reading_time} MIN READ</span>
                 </div>
 
                 <h3 style={{ 
-                  color: '#fff', 
+                  color: 'var(--text)', 
                   margin: '0 0 1rem 0', 
                   fontSize: '1.35rem', 
                   fontWeight: 900,
@@ -171,7 +171,7 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
                 </h3>
                 
                 <p style={{ 
-                  color: 'rgba(255,255,255,0.5)', 
+                  color: 'var(--text-muted)', 
                   fontSize: '0.85rem', 
                   lineHeight: 1.7, 
                   marginBottom: '2rem' 

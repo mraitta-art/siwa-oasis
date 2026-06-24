@@ -82,18 +82,18 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
   ];
 
   return (
-    <div style={{ padding: '6rem 0', background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+    <div style={{ padding: '6rem 0', background: 'var(--bg)', borderTop: '1px solid var(--border-light)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
         
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-          <span style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
+          <span style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
             {subtitle || 'GEOGRAPHIC LAYOUT'}
           </span>
-          <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
+          <h2 style={{ color: 'var(--text)', fontSize: 'clamp(2rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: 0 }}>
             {title || 'Interactive Ecosystem Map'}
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginTop: '1.25rem', maxWidth: '650px', margin: '1.25rem auto 0 auto', lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '1.25rem', maxWidth: '650px', margin: '1.25rem auto 0 auto', lineHeight: 1.6 }}>
             Hover or click geographical milestones on our lightweight Oasis render to view real-time ecological indices, salinity indexes, and thermal values.
           </p>
         </div>
@@ -104,11 +104,11 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
           {/* Map canvas */}
           <div style={{ 
             position: 'relative', 
-            background: 'rgba(10,15,29,0.5)', 
+            background: 'var(--bg-alt)', 
             borderRadius: '40px',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border)',
             overflow: 'hidden',
-            boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)',
+            boxShadow: 'var(--shadow-lg)',
             padding: '1rem'
           }}>
             
@@ -118,14 +118,14 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
               style={{ 
                 width: '100%', 
                 height: 'auto', 
-                background: '#0a0f1d', 
+                background: 'var(--bg-alt)', 
                 borderRadius: '30px'
               }}
             >
               {/* Grid Lines */}
               <defs>
                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1"/>
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border)" strokeWidth="0.5"/>
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
@@ -154,17 +154,17 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
                     onClick={() => setActiveNode(n)}
                   >
                     {/* Ripple Rings */}
-                    <circle r={isActive ? 24 : 14} fill="rgba(212, 175, 55, 0.08)" style={{ transition: 'all 0.3s' }} />
-                    <circle r={isActive ? 16 : 9} fill="rgba(212, 175, 55, 0.15)" style={{ transition: 'all 0.3s' }} />
+                    <circle r={isActive ? 24 : 14} fill="rgba(255, 183, 0, 0.08)" style={{ transition: 'all 0.3s' }} />
+                    <circle r={isActive ? 16 : 9} fill="rgba(255, 183, 0, 0.15)" style={{ transition: 'all 0.3s' }} />
                     
                     {/* Core Anchor Node */}
-                    <circle r="5" fill="#D4AF37" />
+                    <circle r="5" fill="var(--gold)" />
 
                     {/* Node Text Label */}
                     <text 
                       y="-25" 
                       textAnchor="middle" 
-                      fill={isActive ? '#fff' : 'rgba(255,255,255,0.4)'} 
+                      fill={isActive ? 'var(--text)' : 'var(--text-light)'} 
                       style={{ 
                         fontSize: '11px', 
                         fontWeight: 900, 
@@ -189,9 +189,9 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
                   bottom: '2rem',
                   left: '2rem',
                   right: '2rem',
-                  background: 'rgba(15, 23, 42, 0.85)',
+                  background: 'var(--card)',
                   backdropFilter: 'blur(30px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid var(--border)',
                   borderRadius: '24px',
                   padding: '2rem',
                   display: 'flex',
@@ -199,18 +199,18 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: '1.5rem',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                  boxShadow: 'var(--shadow-lg)',
                   zIndex: 10
                 }}
               >
                 <div style={{ flex: 1, minWidth: '250px' }}>
-                  <span style={{ color: '#D4AF37', fontWeight: 900, fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--gold)', fontWeight: 900, fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
                     {activeNode.category}
                   </span>
-                  <h4 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 900, margin: '0 0 0.5rem 0' }}>
+                  <h4 style={{ color: 'var(--text)', fontSize: '1.25rem', fontWeight: 900, margin: '0 0 0.5rem 0' }}>
                     {activeNode.name}
                   </h4>
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', lineHeight: 1.6, margin: 0 }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.6, margin: 0 }}>
                     {activeNode.description}
                   </p>
                 </div>
@@ -219,20 +219,20 @@ export default function InteractiveEcosystemMap({ title, subtitle }: { title?: s
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '1.5rem', 
-                  borderLeft: '1px solid rgba(255,255,255,0.1)', 
+                  borderLeft: '1px solid var(--border)', 
                   paddingLeft: '1.5rem' 
                 }}>
                   <div>
-                    <span style={{ display: 'block', fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: 900, letterSpacing: '1px' }}>{activeNode.statLabel}</span>
-                    <strong style={{ display: 'block', fontSize: '1.25rem', color: '#D4AF37', fontWeight: 900, marginTop: '2px' }}>{activeNode.statValue}</strong>
+                    <span style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-light)', fontWeight: 900, letterSpacing: '1px' }}>{activeNode.statLabel}</span>
+                    <strong style={{ display: 'block', fontSize: '1.25rem', color: 'var(--gold)', fontWeight: 900, marginTop: '2px' }}>{activeNode.statValue}</strong>
                   </div>
 
                   <button
                     onClick={() => window.location.href = activeNode.link}
                     style={{
                       padding: '0.75rem 1.5rem',
-                      background: '#D4AF37',
-                      color: '#0a0f1d',
+                      background: 'var(--gold)',
+                      color: 'var(--dark)',
                       border: 'none',
                       borderRadius: '50px',
                       fontWeight: 900,

@@ -85,11 +85,11 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       const engineId = props?.engine_id || props?.engineId || '';
       return (
         <AnimatedSection>
-          <section id="discovery" style={{ background: '#0a0f1d', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative' }}>
+          <section id="discovery" style={{ background: 'var(--bg-alt)', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative' }}>
             <div className="container" style={{ 
-              maxWidth: '1200px', margin: '0 auto', background: 'rgba(255,255,255,0.02)', 
-              backdropFilter: 'blur(40px)', padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
-              border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)'
+              maxWidth: '1200px', margin: '0 auto', background: 'var(--card)', 
+              padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
+              border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
             }}>
               <VibeSearch engineId={engineId} />
             </div>
@@ -102,7 +102,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     case 'blog':
       return (
         <AnimatedSection>
-          <section style={{ background: '#0f172a', padding: '4rem 2rem' }}>
+          <section style={{ background: 'var(--bg)', padding: '4rem 2rem' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
               <HomepageBlog title={props?.title} subtitle={props?.subtitle} maxPosts={props?.maxPosts} />
             </div>
@@ -114,7 +114,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     case 'featured_vibe':
       return (
         <AnimatedSection>
-          <section style={{ background: '#0f172a', padding: '0 2rem' }}>
+          <section style={{ background: 'var(--bg)', padding: '0 2rem' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
               <FeaturedVibe {...props} />
             </div>
@@ -126,7 +126,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     case 'investment_feed':
       return (
         <AnimatedSection>
-          <section style={{ background: '#0f172a', padding: '6rem 2rem' }}>
+          <section style={{ background: 'var(--bg)', padding: '6rem 2rem' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
               <InvestmentMarketplaceFeed title={props?.title} subtitle={props?.subtitle} />
             </div>
@@ -138,10 +138,10 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     case 'services':
       return (
         <AnimatedSection>
-          <section style={{ background: '#0a0f1d', padding: '6rem 2rem', textAlign: 'center' }}>
-            <h2 style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>{props?.title || 'Verified Businesses'}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '3rem' }}>{props?.subtitle || 'The Gold Standard of Siwa Oasis Experiences.'}</p>
-            <Link href={props?.buttonLink || '/search/vibe'} style={{ display: 'inline-block', padding: '1rem 2.5rem', background: '#D4AF37', color: '#1a1a2e', textDecoration: 'none', borderRadius: '50px', fontWeight: 900 }}>{props?.buttonText || 'EXPLORE THE COLLECTION'}</Link>
+          <section style={{ background: 'var(--bg-alt)', padding: '6rem 2rem', textAlign: 'center' }}>
+            <h2 style={{ color: 'var(--text)', fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>{props?.title || 'Verified Businesses'}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '3rem' }}>{props?.subtitle || 'The Gold Standard of Siwa Oasis Experiences.'}</p>
+            <Link href={props?.buttonLink || '/search/vibe'} style={{ display: 'inline-block', padding: '1rem 2.5rem', background: 'var(--gold)', color: 'var(--dark)', textDecoration: 'none', borderRadius: '50px', fontWeight: 900 }}>{props?.buttonText || 'EXPLORE THE COLLECTION'}</Link>
           </section>
         </AnimatedSection>
       );
@@ -236,7 +236,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
 // ── Main renderer ─────────────────────────────────────────────────────────────
 export default function DynamicHomepageRenderer({ layout, settings }: { layout: any[], settings: any }) {
   return (
-    <div style={{ background: '#0f172a' }}>
+    <div style={{ background: 'var(--bg)' }}>
       {layout.map((section, idx) => (
         <SectionRenderer 
           key={section.id || idx}

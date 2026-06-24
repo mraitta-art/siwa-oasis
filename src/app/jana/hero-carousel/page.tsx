@@ -101,11 +101,13 @@ export default function HeroCarouselManager() {
 
   useEffect(() => { loadAllSlides(); }, [loadAllSlides]);
 
-  // Save manual slides only — auto-generated ones are always fresh from DB
+  // Save manual slides only — auto-generated ones are always fresh from DB.
+  // IMPORTANT: re-assign displayOrder by array index here so the sort in the
+  // dynamic endpoint always reflects the admin's intended order.
   const saveManualSlides = async (slides: CarouselSlide[]) => {
     const manualSlides = slides
       .filter(s => !['business', 'journey', 'investment', 'workflow'].includes(s._source || ''))
-      .map(({ _source, ...s }) => s);
+      .map(({ _source, ...s }, idx) => ({ ...s, displayOrder: idx })); // ← fix: re-index here
 
     const res = await fetch('/api/jana/hero-carousel', {
       method: 'POST',
@@ -204,7 +206,10 @@ export default function HeroCarouselManager() {
     try {
       let updated: CarouselSlide[];
       if (editingId) {
-        updated = allSlides.map(s => s.id === editingId ? { ...s, ...formData, _source: 'manual' } as CarouselSlide : s);
+        // Replace the matching slide in-place, mark as manual
+        updated = allSlides.map(s =>
+          s.id === editingId ? { ...s, ...formData, _source: 'manual' } as CarouselSlide : s
+        );
       } else {
         const newSlide: CarouselSlide = {
           ...formData,
@@ -217,8 +222,10 @@ export default function HeroCarouselManager() {
         };
         updated = [...allSlides, newSlide];
       }
-      setAllSlides(updated);
-      const ok = await saveManualSlides(updated);
+      // Re-index displayOrder to match current array positions (prevents sort scramble)
+      const reIndexed = updated.map((s, i) => ({ ...s, displayOrder: i }));
+      setAllSlides(reIndexed);
+      const ok = await saveManualSlides(reIndexed);
       if (ok) {
         showMsg('success', editingId ? 'Slide updated!' : 'Slide added to carousel!');
         setShowForm(false);
