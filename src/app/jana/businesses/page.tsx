@@ -387,6 +387,9 @@ export default function BusinessRegistryPage() {
                         <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
                           <i className="fas fa-magic"></i> CURATE
                         </Link>
+                        <Link href={`/jana/businesses/${b.id}/qr`} className="btn btn-xs btn-outline" style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }} title="Print QR Onboarding Kit">
+                          <i className="fas fa-qrcode"></i> QR KIT
+                        </Link>
                         <Link href={`/jana/businesses/${b.id}/promote`} className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="Promote to New Template">
                           <i className="fas fa-rocket"></i> PROMOTE
                         </Link>

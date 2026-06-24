@@ -153,6 +153,17 @@ export default function BusinessEditPage() {
             </div>
           </div>
           
+          <Link
+            href={`/jana/businesses/${id}/qr`}
+            style={{
+              padding: '0.75rem 1.5rem', borderRadius: '14px', background: '#fff',
+              color: '#475569', border: '1px solid #e2e8f0', fontWeight: 800, fontSize: '0.85rem',
+              cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem'
+            }}
+          >
+            <i className="fas fa-qrcode"></i> QR KIT
+          </Link>
+
           <button 
             onClick={saveBusiness} 
             disabled={saving}
