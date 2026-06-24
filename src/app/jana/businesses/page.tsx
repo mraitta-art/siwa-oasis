@@ -166,9 +166,14 @@ export default function BusinessRegistryPage() {
           <h3 style={{ marginBottom: '0.25rem' }}><i className="fas fa-building"></i> Business Registry</h3>
           <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>Register and manage governed business entities.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowWizard(!showWizard)}>
-          <i className={`fas ${showWizard ? 'fa-times' : 'fa-plus'}`}></i> {showWizard ? 'CANCEL' : 'REGISTER BUSINESS'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className="btn btn-primary" onClick={() => setShowWizard(!showWizard)}>
+            <i className={`fas ${showWizard ? 'fa-times' : 'fa-plus'}`}></i> {showWizard ? 'CANCEL' : 'REGISTER BUSINESS'}
+          </button>
+          <Link href="/jana/google-import" className="btn btn-outline" style={{ color: '#D4AF37', borderColor: '#D4AF37', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', fontWeight: 800 }}>
+            <i className="fab fa-google"></i> GOOGLE IMPORT
+          </Link>
+        </div>
       </div>
 
       {/* ── INLINE QUICK-REGISTER PANEL ── */}
