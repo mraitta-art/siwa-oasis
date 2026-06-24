@@ -145,6 +145,17 @@ export default function AdvancedHeroCarousel({
     setTimeout(() => setIsTransitioning(false), transitionDuration);
   }, [isTransitioning, validSlides.length, transitionDuration]);
 
+  // Auto-pause when current slide is a YouTube video so visitor can watch fully
+  const isYouTubeSlide = validSlides[currentSlide]?.type === 'youtube';
+
+  useEffect(() => {
+    if (isYouTubeSlide) {
+      setIsPaused(true);  // auto-pause on YouTube slides
+    }
+    // Note: we do NOT auto-resume here — visitor must click play or navigate
+    // away via arrows. This gives full control while watching.
+  }, [isYouTubeSlide, currentSlide]);
+
   useEffect(() => {
     if (validSlides.length <= 1 || isPaused || !autoPlay) return;
     setProgress(0);
@@ -189,12 +200,20 @@ export default function AdvancedHeroCarousel({
   const overlayOpacity = slide.overlayOpacity ?? 0.5;
   const animation = slide.animation || 'kenburns';
 
+  const togglePause = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPaused(p => !p);
+  };
+
   return (
     <section
       style={{
         height, position: 'relative', overflow: 'hidden', background: '#000',
         fontFamily: visualSettings.primaryFont || 'inherit'
       }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => { if (!isYouTubeSlide) setIsPaused(false); }}
     >
       <div style={{ position: 'absolute', inset: 0 }}>
         {validSlides.map((s, index) => (
@@ -380,28 +399,70 @@ export default function AdvancedHeroCarousel({
         </div>
       )}
 
-       {showArrows && validSlides.length > 1 && (
+      {showArrows && validSlides.length > 1 && (
         <>
-           <button onClick={goToPrev} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>‹</button>
-          <button onClick={goToNext} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>›</button>
+          <button onClick={(e) => { e.stopPropagation(); goToPrev(); }} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>‹</button>
+          <button onClick={(e) => { e.stopPropagation(); goToNext(); }} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>›</button>
         </>
       )}
 
-      {/* SOUND CONTROL */}
-      {slide.type === 'youtube' && (
-        <button 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMuted(!isMuted); }}
-          style={{ 
-            position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 30,
-            background: 'rgba(32, 178, 170, 0.3)', border: '2px solid rgba(0, 206, 209, 0.6)',
-            color: '#00CED1', padding: '0.8rem', borderRadius: '50%', cursor: 'pointer',
-            width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(5px)', transition: 'all 0.3s ease'
+      {/* ── BOTTOM CONTROLS ROW ── */}
+      <div style={{
+        position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 30,
+        display: 'flex', gap: '0.6rem', alignItems: 'center'
+      }}>
+
+        {/* PAUSE / PLAY button — always visible */}
+        <button
+          onClick={togglePause}
+          style={{
+            background: isPaused ? 'rgba(212,175,55,0.35)' : 'rgba(255,255,255,0.12)',
+            border: `2px solid ${isPaused ? 'rgba(212,175,55,0.9)' : 'rgba(255,255,255,0.3)'}`,
+            color: isPaused ? '#FFB700' : '#fff',
+            borderRadius: '50%', cursor: 'pointer',
+            width: '46px', height: '46px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(8px)', transition: 'all 0.25s ease',
+            fontSize: '0.9rem'
           }}
-          title={isMuted ? "Unmute" : "Mute"}
+          title={isPaused ? 'Resume slideshow' : 'Pause slideshow'}
         >
-          <i className={`fas ${isMuted ? 'fa-volume-mute' : 'fa-volume-up'}`}></i>
+          <i className={`fas ${isPaused ? 'fa-play' : 'fa-pause'}`}></i>
         </button>
+
+        {/* MUTE / UNMUTE — only for YouTube slides */}
+        {slide.type === 'youtube' && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMuted(!isMuted); }}
+            style={{
+              background: 'rgba(32,178,170,0.3)', border: '2px solid rgba(0,206,209,0.6)',
+              color: '#00CED1', borderRadius: '50%', cursor: 'pointer',
+              width: '46px', height: '46px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(8px)', transition: 'all 0.3s ease',
+              fontSize: '0.85rem'
+            }}
+            title={isMuted ? 'Unmute video' : 'Mute video'}
+          >
+            <i className={`fas ${isMuted ? 'fa-volume-mute' : 'fa-volume-up'}`}></i>
+          </button>
+        )}
+      </div>
+
+      {/* YouTube watching indicator — tells visitor they can watch freely */}
+      {isYouTubeSlide && isPaused && (
+        <div style={{
+          position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 30, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(212,175,55,0.4)', borderRadius: '50px',
+          padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+          color: '#FFB700', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '1px',
+          pointerEvents: 'none'
+        }}>
+          <i className="fas fa-pause-circle"></i>
+          SLIDESHOW PAUSED · ENJOY THE VIDEO
+          <i className="fab fa-youtube" style={{ color: '#ff4444' }}></i>
+        </div>
       )}
     </section>
   );
