@@ -18,6 +18,7 @@ interface Slide {
   imageFit?: 'cover' | 'contain';
   imagePosition?: 'center' | 'top' | 'bottom';
   bgColor?: string;
+  _source?: 'manual' | 'business' | 'journey' | 'investment' | 'workflow';
 }
 
 // GET: Load dynamic carousel slides from multiple data sources
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
         if (savedSlides.length > 0) {
           // Sort by displayOrder if available
           savedSlides.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-          slides.push(...savedSlides);
+          slides.push(...savedSlides.map((s: any) => ({ ...s, _source: 'manual' })));
         }
       }
     } catch (e) {
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
             if (!alreadyAdded && service.image_url) {
               slides.push({
                 id: `business_${service.id}`,
+                _source: 'business',
                 type: 'image',
                 mediaUrl: service.image_url,
                 title: `🏢 ${service.name}`,
@@ -108,6 +110,7 @@ export async function GET(request: NextRequest) {
             if (!alreadyAdded && journey.featured_image_url) {
               slides.push({
                 id: `journey_${journey.id}`,
+                _source: 'journey',
                 type: 'image',
                 mediaUrl: journey.featured_image_url,
                 title: `✈️ ${journey.name}`,
@@ -144,6 +147,7 @@ export async function GET(request: NextRequest) {
             if (!alreadyAdded && inv.featured_image_url) {
               slides.push({
                 id: `investment_${inv.id}`,
+                _source: 'investment',
                 type: 'image',
                 mediaUrl: inv.featured_image_url,
                 title: `💼 ${inv.name}`,
@@ -170,6 +174,7 @@ export async function GET(request: NextRequest) {
       const workflowSlides: Slide[] = [
         {
           id: 'workflow_register',
+          _source: 'workflow',
           type: 'branded',
           mediaUrl: null,
           title: '📝 Create Your Request',
@@ -183,6 +188,7 @@ export async function GET(request: NextRequest) {
         },
         {
           id: 'workflow_match',
+          _source: 'workflow',
           type: 'branded',
           mediaUrl: null,
           title: '🔍 We Find The Best Matches',
@@ -196,6 +202,7 @@ export async function GET(request: NextRequest) {
         },
         {
           id: 'workflow_offers',
+          _source: 'workflow',
           type: 'branded',
           mediaUrl: null,
           title: '💎 Receive Exclusive Offers',
@@ -209,6 +216,7 @@ export async function GET(request: NextRequest) {
         },
         {
           id: 'workflow_book',
+          _source: 'workflow',
           type: 'branded',
           mediaUrl: null,
           title: '✅ Book & Enjoy',

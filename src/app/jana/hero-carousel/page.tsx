@@ -94,7 +94,9 @@ export default function HeroCarouselManager() {
         const fetched: CarouselSlide[] = (data.slides || []).map((s: any, i: number) => ({
           ...s,
           displayOrder: s.displayOrder ?? i,
+          // Trust _source from API first; only fall back to id-prefix detection for legacy slides
           _source: s._source || (
+            s.id?.startsWith('slide_') ? 'manual' :
             s.id?.startsWith('business_') ? 'business' :
             s.id?.startsWith('journey_') ? 'journey' :
             s.id?.startsWith('investment_') ? 'investment' :
@@ -112,46 +114,67 @@ export default function HeroCarouselManager() {
 
   useEffect(() => { loadAllSlides(); }, [loadAllSlides]);
 
-  // Save manual slides only — auto-generated ones are always fresh from DB.
-  // IMPORTANT: re-assign displayOrder by array index here so the sort in the
-  // dynamic endpoint always reflects the admin's intended order.
-  const saveManualSlides = async (slides: CarouselSlide[]) => {
-    const manualSlides = slides
-      .filter(s => !['business', 'journey', 'investment', 'workflow'].includes(s._source || ''))
-      .map(({ _source, ...s }, idx) => ({ ...s, displayOrder: idx })); // ← fix: re-index here
+  // Save the FULL carousel config (all slides the admin sees).
+  // Any auto-generated slide that the admin edited or reordered is treated as
+  // a manual override — its id was already reassigned to slide_TIMESTAMP in
+  // handleSave, so the dynamic API won't re-inject a stale version of it.
+  // Non-edited auto slides (business_, journey_, etc.) are EXCLUDED from the
+  // saved payload so they continue to be fetched fresh from the DB on next load.
+  // This means:
+  //   • Edited slides → saved with new slide_ id → show up as manual overrides ✅
+  //   • Untouched auto slides → not in DB → fetched live ✅
+  //   • Deleted auto slides → converted to manual-only mode ✅
+  const saveSlideConfig = async (slides: CarouselSlide[]) => {
+    // Only persist slides that are explicitly manual (slide_ prefix or _source==='manual')
+    // Auto-generated slides (business_/journey_/investment_/workflow_) that haven't
+    // been edited yet are excluded — the dynamic endpoint will pull them live.
+    const slidesToSave = slides
+      .filter(s => {
+        const src = s._source || '';
+        const isAutoId = (
+          s.id?.startsWith('business_') ||
+          s.id?.startsWith('journey_') ||
+          s.id?.startsWith('investment_') ||
+          s.id?.startsWith('workflow_')
+        );
+        // Keep if: explicitly manual source OR has a manual slide_ id
+        return src === 'manual' || s.id?.startsWith('slide_') || (!isAutoId && src !== 'business' && src !== 'journey' && src !== 'investment' && src !== 'workflow');
+      })
+      .map(({ _source, ...s }, idx) => ({ ...s, displayOrder: idx }));
 
     const res = await fetch('/api/jana/hero-carousel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slides: manualSlides, siteId: 'main' }),
+      body: JSON.stringify({ slides: slidesToSave, siteId: 'main' }),
     });
     return res.ok;
-  };
-
-  // For auto-generated slides that admin wants to hide, we save them as "excluded" IDs
-  const getExcludedIds = (): string[] => {
-    try { return JSON.parse(localStorage.getItem('carousel_excluded_ids') || '[]'); }
-    catch { return []; }
-  };
-  const setExcludedIds = (ids: string[]) => {
-    localStorage.setItem('carousel_excluded_ids', JSON.stringify(ids));
   };
 
   const handleDelete = async (slide: CarouselSlide) => {
     if (!confirm(`Remove "${slide.title}" from the carousel?`)) return;
 
-    if (['business', 'journey', 'investment', 'workflow'].includes(slide._source || '')) {
-      // For auto-generated: we convert it to a manual "excluded" marker by removing it from view
-      // The real fix: save all current slides as manual overrides, which means auto-generated
-      // slides won't appear (since manual slides take full control when present)
-      showMsg('info', 'Converting carousel to full manual mode to allow removal...');
+    const isAutoSlide = ['business', 'journey', 'investment', 'workflow'].includes(slide._source || '');
+    if (isAutoSlide) {
+      // Converting the entire carousel to manual-override mode.
+      // Once we save any slide list, the dynamic endpoint will no longer inject
+      // its own auto slides — the saved config takes full precedence.
+      showMsg('info', 'Removing auto-generated slide. Carousel is now in full manual mode.');
     }
 
     const updatedSlides = allSlides.filter(s => s.id !== slide.id);
     setAllSlides(updatedSlides);
 
-    // Save ALL current slides (minus deleted) as manual — this gives full control
-    const ok = await saveManualSlides(updatedSlides);
+    // Convert any remaining auto slides to manual overrides so they are preserved
+    const normalised = updatedSlides.map(s => ({
+      ...s,
+      // Reassign auto-generated ids to slide_ prefix so they are treated as manual
+      id: (s.id?.startsWith('business_') || s.id?.startsWith('journey_') || s.id?.startsWith('investment_') || s.id?.startsWith('workflow_'))
+        ? `slide_${s.id}` : s.id,
+      _source: 'manual' as const,
+    }));
+    setAllSlides(normalised);
+
+    const ok = await saveSlideConfig(normalised);
     if (ok) {
       showMsg('success', `"${slide.title}" removed. Carousel saved.`);
       loadAllSlides();
@@ -169,7 +192,8 @@ export default function HeroCarouselManager() {
     [next[index], next[target]] = [next[target], next[index]];
     const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
     setAllSlides(reordered);
-    await saveManualSlides(reordered);
+    // For reorder we only need to save the manual slides (auto slides keep their own order from DB)
+    await saveSlideConfig(reordered);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,10 +241,18 @@ export default function HeroCarouselManager() {
     try {
       let updated: CarouselSlide[];
       if (editingId) {
-        // Replace the matching slide in-place, mark as manual
+        // KEY FIX: Give the edited slide a fresh slide_ id so it is never
+        // re-classified by id prefix on next page load. This is the root cause
+        // of edits being lost — an edited business_3 slide kept its business_ prefix
+        // which made the save filter drop it on every subsequent save.
+        const freshId = editingId.startsWith('slide_') ? editingId : `slide_${Date.now()}`;
         updated = allSlides.map(s =>
-          s.id === editingId ? { ...s, ...formData, _source: 'manual' } as CarouselSlide : s
+          s.id === editingId
+            ? { ...s, ...formData, id: freshId, _source: 'manual' } as CarouselSlide
+            : s
         );
+        // If the id changed, also update editingId so the form stays in sync
+        // (not strictly needed since we close the form next, but clean)
       } else {
         const newSlide: CarouselSlide = {
           ...formData,
@@ -236,14 +268,14 @@ export default function HeroCarouselManager() {
       // Re-index displayOrder to match current array positions (prevents sort scramble)
       const reIndexed = updated.map((s, i) => ({ ...s, displayOrder: i }));
       setAllSlides(reIndexed);
-      const ok = await saveManualSlides(reIndexed);
+      const ok = await saveSlideConfig(reIndexed);
       if (ok) {
-        showMsg('success', editingId ? 'Slide updated!' : 'Slide added to carousel!');
+        showMsg('success', editingId ? '✅ Slide updated and saved!' : '✅ Slide added to carousel!');
         setShowForm(false);
         setEditingId(null);
         loadAllSlides();
       } else {
-        showMsg('error', 'Failed to save');
+        showMsg('error', 'Failed to save — check your connection and try again.');
       }
     } finally {
       setSaving(false);
@@ -267,10 +299,24 @@ export default function HeroCarouselManager() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Responsive overrides — keeps the form usable on phone screens */}
+      <style>{`
+        @media (max-width: 640px) {
+          .carousel-form-grid { grid-template-columns: 1fr !important; }
+          .carousel-text-grid { grid-template-columns: 1fr 1fr !important; }
+          .carousel-header-row { flex-direction: column !important; align-items: flex-start !important; }
+          .carousel-slide-row { grid-template-columns: 40px 60px 1fr !important; gap: 0.6rem !important; }
+          .carousel-slide-actions { flex-direction: column !important; gap: 0.35rem !important; }
+        }
+        @media (max-width: 400px) {
+          .carousel-text-grid { grid-template-columns: 1fr !important; }
+          .carousel-slide-row { grid-template-columns: 36px 1fr !important; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="carousel-header-row" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px' }}>
               ← ADMIN DASHBOARD
@@ -309,7 +355,7 @@ export default function HeroCarouselManager() {
               <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.5rem' }}>✕</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+            <div className="carousel-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
 
               {/* TYPE */}
               <div style={{ gridColumn: '1 / -1' }}>
@@ -434,7 +480,7 @@ export default function HeroCarouselManager() {
               {/* ── TEXT STYLING ─────────────────────────────────────── */}
               <div style={{ gridColumn: '1 / -1' }}>
                 <div style={{ color: '#D4AF37', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px', marginBottom: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>🎨 TEXT STYLING</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <div className="carousel-text-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE COLOR</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -537,7 +583,7 @@ export default function HeroCarouselManager() {
                       [next[0], next[1]] = [next[1], next[0]];
                       const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
                       setAllSlides(reordered);
-                      await saveManualSlides(reordered);
+                      await saveSlideConfig(reordered);
                       showMsg('success', '✅ Fixed! YouTube slide moved to position 2. Fast image is now first.');
                     }}
                     style={{ background: '#f59e0b', color: '#0f172a', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
@@ -553,6 +599,7 @@ export default function HeroCarouselManager() {
               const ytId = slide.type === 'youtube' ? extractYouTubeId(slide.mediaUrl || '') : null;
               return (
                 <div key={slide.id}
+                  className="carousel-slide-row"
                   style={{ background: '#1e293b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)', padding: '1rem 1.25rem', display: 'grid', gridTemplateColumns: '52px 90px 1fr auto', gap: '1rem', alignItems: 'center', transition: 'border-color 0.2s' }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}>
@@ -595,14 +642,14 @@ export default function HeroCarouselManager() {
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                  <div className="carousel-slide-actions" style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                     <button onClick={() => startEdit(slide)}
-                      style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', padding: '0.5rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>
-                      Edit
+                      style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', padding: '0.5rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      ✏️ Edit
                     </button>
                     <button onClick={() => handleDelete(slide)}
-                      style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', padding: '0.5rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>
-                      Remove
+                      style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', padding: '0.5rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      🗑 Remove
                     </button>
                   </div>
                 </div>
