@@ -80,6 +80,8 @@ export default function AdvancedHeroCarousel({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const fetchedRef = useRef(false);
+  // Track which YouTube players are allowed to init (only current ± 1)
+  const [activeYtRange, setActiveYtRange] = useState<Set<number>>(new Set([0, 1]));
 
   // Auto-fetch slides if a carouselName is provided (only once)
   useEffect(() => {
@@ -105,7 +107,22 @@ export default function AdvancedHeroCarousel({
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
-            setSlides(data.slides || []);
+            const fetched: Slide[] = data.slides || [];
+            setSlides(fetched);
+            // ── SMART START: skip to first fast-loading slide (not youtube/video) ──
+            // This prevents a blank/buffering screen on page load
+            const fastStartIdx = fetched.findIndex(
+              s => s.type !== 'youtube' && s.type !== 'video'
+            );
+            if (fastStartIdx > 0) {
+              setCurrentSlide(fastStartIdx);
+              // Update the initial YouTube lazy-load range to around the fast-start index
+              setActiveYtRange(new Set([
+                Math.max(0, fastStartIdx - 1),
+                fastStartIdx,
+                Math.min(fetched.length - 1, fastStartIdx + 1),
+              ]));
+            }
           } else {
             console.warn(`Carousel fetch returned ${res.status}, using fallback`);
           }
@@ -119,6 +136,9 @@ export default function AdvancedHeroCarousel({
       fetchedRef.current = true;
     } else if (initialSlides.length > 0) {
       setSlides(initialSlides);
+      // Smart start for pre-supplied slides too
+      const fastIdx = initialSlides.findIndex(s => s.type !== 'youtube' && s.type !== 'video');
+      if (fastIdx > 0) setCurrentSlide(fastIdx);
       setLoading(false);
     }
   }, [carouselName, initialSlides, isDynamic, includeDynamicOptions]);
@@ -147,6 +167,16 @@ export default function AdvancedHeroCarousel({
 
   // Auto-pause when current slide is a YouTube video so visitor can watch fully
   const isYouTubeSlide = validSlides[currentSlide]?.type === 'youtube';
+
+  // Update lazy-load range whenever slide changes — only init YT players near current
+  useEffect(() => {
+    const total = validSlides.length;
+    setActiveYtRange(new Set([
+      (currentSlide - 1 + total) % total,
+      currentSlide,
+      (currentSlide + 1) % total,
+    ]));
+  }, [currentSlide, validSlides.length]);
 
   useEffect(() => {
     if (isYouTubeSlide) {
@@ -229,7 +259,8 @@ export default function AdvancedHeroCarousel({
               slide={s} 
               animation={String(animation)} 
               isActive={index === currentSlide} 
-              muted={Boolean(isMuted)} 
+              muted={Boolean(isMuted)}
+              canInitYT={activeYtRange.has(index)}
             />
             <div style={{
               position: 'absolute', inset: 0,
@@ -468,8 +499,22 @@ export default function AdvancedHeroCarousel({
   );
 }
 
-function SlideMedia({ slide, animation, isActive, muted }: { slide: Slide; animation: string; isActive: boolean; muted: boolean }) {
-  if (slide.type === 'youtube') return <YouTubeBackground videoUrl={slide.mediaUrl || ''} isActive={isActive} muted={muted} maxDuration={slide.maxDuration} />;
+function SlideMedia({ slide, animation, isActive, muted, canInitYT = true }: { slide: Slide; animation: string; isActive: boolean; muted: boolean; canInitYT?: boolean }) {
+  if (slide.type === 'youtube') {
+    const ytId = extractYouTubeId(slide.mediaUrl || '');
+    if (!ytId) return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
+    // Show thumbnail instantly — replace with player only when in lazy-init range
+    if (!canInitYT) {
+      return (
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `url(https://img.youtube.com/vi/${ytId}/maxresdefault.jpg)`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+        }} />
+      );
+    }
+    return <YouTubeBackground videoUrl={slide.mediaUrl || ''} isActive={isActive} muted={muted} maxDuration={slide.maxDuration} />;
+  }
   
   if (slide.type === 'video') {
     const objectFit = slide.imageFit === 'contain' ? 'contain' : 'cover';

@@ -442,6 +442,37 @@ export default function HeroCarouselManager() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 700 }}>{allSlides.length} slides · exactly as they appear on the homepage</span>
             </div>
+
+            {/* ⚠️ Warning if slide #1 is YouTube/video */}
+            {allSlides[0] && (allSlides[0].type === 'youtube' || allSlides[0].type === 'video') && (
+              <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '12px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <i className="fas fa-exclamation-triangle" style={{ color: '#f59e0b', fontSize: '1.1rem' }} />
+                  <div>
+                    <div style={{ color: '#fcd34d', fontWeight: 800, fontSize: '0.85rem' }}>⚡ Performance Tip</div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                      Your first slide is a <strong style={{ color: '#fcd34d' }}>{allSlides[0].type.toUpperCase()}</strong> — this causes a loading delay on page open because the browser needs time to connect to YouTube. Put an image or text slide first for instant loading.
+                    </div>
+                  </div>
+                </div>
+                {allSlides.length > 1 && (
+                  <button
+                    onClick={async () => {
+                      const next = [...allSlides];
+                      [next[0], next[1]] = [next[1], next[0]];
+                      const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
+                      setAllSlides(reordered);
+                      await saveManualSlides(reordered);
+                      showMsg('success', '✅ Fixed! YouTube slide moved to position 2. Fast image is now first.');
+                    }}
+                    style={{ background: '#f59e0b', color: '#0f172a', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                  >
+                    ⚡ Quick Fix — Move to Position 2
+                  </button>
+                )}
+              </div>
+            )}
+
             {allSlides.map((slide, index) => {
               const src = SOURCE_LABELS[slide._source || 'manual'] || SOURCE_LABELS.manual;
               const ytId = slide.type === 'youtube' ? extractYouTubeId(slide.mediaUrl || '') : null;
