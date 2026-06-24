@@ -26,6 +26,7 @@ interface CarouselSlide {
   fontFamily?: string;
   // source tracks where this slide came from (for display only)
   _source?: 'manual' | 'business' | 'journey' | 'investment' | 'workflow';
+  isOverride?: boolean;
 }
 
 function extractYouTubeId(url: string): string | null {
@@ -51,6 +52,7 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
 
 export default function HeroCarouselManager() {
   const [allSlides, setAllSlides] = useState<CarouselSlide[]>([]);
+  const [deletedDynamicIds, setDeletedDynamicIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -104,6 +106,7 @@ export default function HeroCarouselManager() {
           ),
         }));
         setAllSlides(fetched);
+        setDeletedDynamicIds(data.deletedDynamicIds || []);
       }
     } catch (err) {
       showMsg('error', 'Failed to load slides');
@@ -114,38 +117,21 @@ export default function HeroCarouselManager() {
 
   useEffect(() => { loadAllSlides(); }, [loadAllSlides]);
 
-  // Save the FULL carousel config (all slides the admin sees).
-  // Any auto-generated slide that the admin edited or reordered is treated as
-  // a manual override — its id was already reassigned to slide_TIMESTAMP in
-  // handleSave, so the dynamic API won't re-inject a stale version of it.
-  // Non-edited auto slides (business_, journey_, etc.) are EXCLUDED from the
-  // saved payload so they continue to be fetched fresh from the DB on next load.
-  // This means:
-  //   • Edited slides → saved with new slide_ id → show up as manual overrides ✅
-  //   • Untouched auto slides → not in DB → fetched live ✅
-  //   • Deleted auto slides → converted to manual-only mode ✅
-  const saveSlideConfig = async (slides: CarouselSlide[]) => {
-    // Only persist slides that are explicitly manual (slide_ prefix or _source==='manual')
-    // Auto-generated slides (business_/journey_/investment_/workflow_) that haven't
-    // been edited yet are excluded — the dynamic endpoint will pull them live.
-    const slidesToSave = slides
-      .filter(s => {
-        const src = s._source || '';
-        const isAutoId = (
-          s.id?.startsWith('business_') ||
-          s.id?.startsWith('journey_') ||
-          s.id?.startsWith('investment_') ||
-          s.id?.startsWith('workflow_')
-        );
-        // Keep if: explicitly manual source OR has a manual slide_ id
-        return src === 'manual' || s.id?.startsWith('slide_') || (!isAutoId && src !== 'business' && src !== 'journey' && src !== 'investment' && src !== 'workflow');
-      })
-      .map(({ _source, ...s }, idx) => ({ ...s, displayOrder: idx }));
+  // Save the FULL carousel config (all slides the admin sees), along with deletedDynamicIds
+  const saveSlideConfig = async (slides: CarouselSlide[], deletedIds: string[] = deletedDynamicIds) => {
+    const slidesToSave = slides.map(({ _source, ...s }, idx) => ({
+      ...s,
+      displayOrder: idx
+    }));
 
     const res = await fetch('/api/jana/hero-carousel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slides: slidesToSave, siteId: 'main' }),
+      body: JSON.stringify({ 
+        slides: slidesToSave, 
+        deletedDynamicIds: deletedIds, 
+        siteId: 'main' 
+      }),
     });
     return res.ok;
   };
@@ -153,30 +139,26 @@ export default function HeroCarouselManager() {
   const handleDelete = async (slide: CarouselSlide) => {
     if (!confirm(`Remove "${slide.title}" from the carousel?`)) return;
 
-    const isAutoSlide = ['business', 'journey', 'investment', 'workflow'].includes(slide._source || '');
-    if (isAutoSlide) {
-      // Converting the entire carousel to manual-override mode.
-      // Once we save any slide list, the dynamic endpoint will no longer inject
-      // its own auto slides — the saved config takes full precedence.
-      showMsg('info', 'Removing auto-generated slide. Carousel is now in full manual mode.');
+    const isDynamic = slide.id.startsWith('business_') || 
+                      slide.id.startsWith('journey_') || 
+                      slide.id.startsWith('investment_') || 
+                      slide.id.startsWith('workflow_');
+
+    const newDeletedIds = isDynamic 
+      ? [...deletedDynamicIds.filter(id => id !== slide.id), slide.id] 
+      : deletedDynamicIds;
+
+    if (isDynamic) {
+      setDeletedDynamicIds(newDeletedIds);
     }
 
     const updatedSlides = allSlides.filter(s => s.id !== slide.id);
-    setAllSlides(updatedSlides);
+    const reIndexed = updatedSlides.map((s, idx) => ({ ...s, displayOrder: idx }));
+    setAllSlides(reIndexed);
 
-    // Convert any remaining auto slides to manual overrides so they are preserved
-    const normalised = updatedSlides.map(s => ({
-      ...s,
-      // Reassign auto-generated ids to slide_ prefix so they are treated as manual
-      id: (s.id?.startsWith('business_') || s.id?.startsWith('journey_') || s.id?.startsWith('investment_') || s.id?.startsWith('workflow_'))
-        ? `slide_${s.id}` : s.id,
-      _source: 'manual' as const,
-    }));
-    setAllSlides(normalised);
-
-    const ok = await saveSlideConfig(normalised);
+    const ok = await saveSlideConfig(reIndexed, newDeletedIds);
     if (ok) {
-      showMsg('success', `"${slide.title}" removed. Carousel saved.`);
+      showMsg('success', `"${slide.title}" removed from carousel.`);
       loadAllSlides();
     } else {
       showMsg('error', 'Failed to save changes');
@@ -241,18 +223,19 @@ export default function HeroCarouselManager() {
     try {
       let updated: CarouselSlide[];
       if (editingId) {
-        // KEY FIX: Give the edited slide a fresh slide_ id so it is never
-        // re-classified by id prefix on next page load. This is the root cause
-        // of edits being lost — an edited business_3 slide kept its business_ prefix
-        // which made the save filter drop it on every subsequent save.
-        const freshId = editingId.startsWith('slide_') ? editingId : `slide_${Date.now()}`;
+        // Keep original ID to prevent duplication and preserve its exact position!
+        // If it is a dynamic slide, set isOverride flag to indicate it has custom fields.
+        const isDynamic = !editingId.startsWith('slide_');
         updated = allSlides.map(s =>
           s.id === editingId
-            ? { ...s, ...formData, id: freshId, _source: 'manual' } as CarouselSlide
+            ? { 
+                ...s, 
+                ...formData, 
+                id: editingId, 
+                ...(isDynamic ? { isOverride: true } : {}) 
+              } as CarouselSlide
             : s
         );
-        // If the id changed, also update editingId so the form stays in sync
-        // (not strictly needed since we close the form next, but clean)
       } else {
         const newSlide: CarouselSlide = {
           ...formData,
