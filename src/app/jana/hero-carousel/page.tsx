@@ -1,33 +1,60 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 interface CarouselSlide {
   id: string;
   title: string;
   subtitle?: string;
-  mediaUrl: string;
-  type: 'image' | 'youtube' | 'video';
+  caption?: string;
+  mediaUrl: string | null;
+  type: 'image' | 'youtube' | 'video' | 'branded';
   ctaText?: string;
   ctaLink?: string;
   displayOrder: number;
   imageFit?: 'cover' | 'contain';
   imagePosition?: 'center' | 'top' | 'bottom';
   bgColor?: string;
+  overlayOpacity?: number;
+  animation?: string;
+  // source tracks where this slide came from (for display only)
+  _source?: 'manual' | 'business' | 'journey' | 'investment' | 'workflow';
 }
 
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /(?:v=|v\/|vi\/|vi=|video\/|embed\/|youtu\.be\/|youtube\.com\/watch\?v=|youtube\.com\/shorts\/)([^#&?\s]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+  return null;
+}
+
+const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  manual:     { label: '⭐ Manual',     color: '#D4AF37', bg: 'rgba(212,175,55,0.15)' },
+  business:   { label: '🏢 Business',   color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+  journey:    { label: '✈️ Journey',    color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+  investment: { label: '💼 Investment', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
+  workflow:   { label: '📋 Workflow',   color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+};
+
 export default function HeroCarouselManager() {
-  const [slides, setSlides] = useState<CarouselSlide[]>([]);
+  const [allSlides, setAllSlides] = useState<CarouselSlide[]>([]);
   const [loading, setLoading] = useState(true);
-  const [siteId, setSiteId] = useState('main');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [preview, setPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<CarouselSlide>>({
     title: '',
     subtitle: '',
+    caption: '',
     mediaUrl: '',
     type: 'image',
     ctaText: '',
@@ -35,474 +62,460 @@ export default function HeroCarouselManager() {
     displayOrder: 0,
     imageFit: 'cover',
     imagePosition: 'center',
-    bgColor: '#000000'
+    bgColor: '#000000',
+    overlayOpacity: 0.4,
+    animation: 'kenburns',
   });
 
-  // Fetch slides on mount
-  useEffect(() => {
-    let initialSiteId = '';
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      initialSiteId = params.get('siteId') || '';
-    }
-    
-    const savedSiteId = sessionStorage.getItem('siwa_carousel_siteId');
-    
-    if (initialSiteId) {
-      setSiteId(initialSiteId);
-    } else if (savedSiteId && savedSiteId !== siteId) {
-      setSiteId(savedSiteId);
-    } else {
-      fetchSlides();
-    }
-  }, []);
+  const showMsg = (type: string, text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 6000);
+  };
 
-  useEffect(() => {
-    sessionStorage.setItem('siwa_carousel_siteId', siteId);
-    fetchSlides();
-  }, [siteId]);
-
-  async function fetchSlides() {
+  // Load ALL slides from the dynamic endpoint — same view as homepage
+  const loadAllSlides = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/jana/hero-carousel?siteId=${siteId}`);
+      // Fetch what the homepage actually sees
+      const res = await fetch('/api/jana/hero-carousel-dynamic?businesses=true&journeys=true&investment=true&registration=true');
       if (res.ok) {
         const data = await res.json();
-        const fetchedSlides = data.slides || [];
-        setSlides(fetchedSlides.sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0)));
+        const fetched: CarouselSlide[] = (data.slides || []).map((s: any, i: number) => ({
+          ...s,
+          displayOrder: s.displayOrder ?? i,
+          _source: s._source || (
+            s.id?.startsWith('business_') ? 'business' :
+            s.id?.startsWith('journey_') ? 'journey' :
+            s.id?.startsWith('investment_') ? 'investment' :
+            s.id?.startsWith('workflow_') ? 'workflow' : 'manual'
+          ),
+        }));
+        setAllSlides(fetched);
       }
     } catch (err) {
-      console.error('Failed to fetch slides:', err);
-      showMessage('error', 'Failed to load slides');
+      showMsg('error', 'Failed to load slides');
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  function showMessage(type: string, text: string) {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-  }
+  useEffect(() => { loadAllSlides(); }, [loadAllSlides]);
 
-  function resetForm() {
-    const nextOrder = slides.length > 0 
-      ? Math.max(...slides.map(s => s.displayOrder || 0)) + 1 
-      : 0;
+  // Save manual slides only — auto-generated ones are always fresh from DB
+  const saveManualSlides = async (slides: CarouselSlide[]) => {
+    const manualSlides = slides
+      .filter(s => !['business', 'journey', 'investment', 'workflow'].includes(s._source || ''))
+      .map(({ _source, ...s }) => s);
 
-    setFormData({
-      title: '',
-      subtitle: '',
-      mediaUrl: '',
-      type: 'image',
-      ctaText: '',
-      ctaLink: '',
-      displayOrder: nextOrder,
-      imageFit: 'cover',
-      imagePosition: 'center',
-      bgColor: '#000000'
+    const res = await fetch('/api/jana/hero-carousel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slides: manualSlides, siteId: 'main' }),
     });
-    setEditingId(null);
-    setShowForm(false);
-  }
+    return res.ok;
+  };
 
-  function startEdit(slide: CarouselSlide) {
-    setFormData(slide);
-    setEditingId(slide.id);
-    setShowForm(true);
-  }
+  // For auto-generated slides that admin wants to hide, we save them as "excluded" IDs
+  const getExcludedIds = (): string[] => {
+    try { return JSON.parse(localStorage.getItem('carousel_excluded_ids') || '[]'); }
+    catch { return []; }
+  };
+  const setExcludedIds = (ids: string[]) => {
+    localStorage.setItem('carousel_excluded_ids', JSON.stringify(ids));
+  };
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  }
+  const handleDelete = async (slide: CarouselSlide) => {
+    if (!confirm(`Remove "${slide.title}" from the carousel?`)) return;
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (['business', 'journey', 'investment', 'workflow'].includes(slide._source || '')) {
+      // For auto-generated: we convert it to a manual "excluded" marker by removing it from view
+      // The real fix: save all current slides as manual overrides, which means auto-generated
+      // slides won't appear (since manual slides take full control when present)
+      showMsg('info', 'Converting carousel to full manual mode to allow removal...');
+    }
+
+    const updatedSlides = allSlides.filter(s => s.id !== slide.id);
+    setAllSlides(updatedSlides);
+
+    // Save ALL current slides (minus deleted) as manual — this gives full control
+    const ok = await saveManualSlides(updatedSlides);
+    if (ok) {
+      showMsg('success', `"${slide.title}" removed. Carousel saved.`);
+      loadAllSlides();
+    } else {
+      showMsg('error', 'Failed to save changes');
+      loadAllSlides(); // revert
+    }
+  };
+
+  const handleMoveSlide = async (index: number, dir: 'up' | 'down') => {
+    if (dir === 'up' && index === 0) return;
+    if (dir === 'down' && index === allSlides.length - 1) return;
+    const next = [...allSlides];
+    const target = dir === 'up' ? index - 1 : index + 1;
+    [next[index], next[target]] = [next[target], next[index]];
+    const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
+    setAllSlides(reordered);
+    await saveManualSlides(reordered);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setSaving(true);
     try {
-      const uploadResults: {url: string, name: string, isVideo: boolean}[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.size > 50 * 1024 * 1024) { // 50MB limit
-          showMessage('error', `File ${file.name} too large (max 50MB)`);
-          continue;
-        }
-
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', file);
-        const bizContext = siteId === 'main' ? 'General' : siteId;
-        uploadFormData.append('businessName', bizContext);
-        uploadFormData.append('sectionName', 'Hero');
-
-        const res = await fetch('/api/jana/media/upload', {
-          method: 'POST',
-          body: uploadFormData
-        });
-
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('businessName', 'General');
+        fd.append('sectionName', 'Hero');
+        const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
         if (res.ok) {
           const data = await res.json();
-          uploadResults.push({ 
-            url: data.url, 
-            name: file.name, 
-            isVideo: file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.mp4') || file.name.toLowerCase().endsWith('.mov')
-          });
+          const isVideo = file.type.startsWith('video/');
+          setFormData(prev => ({
+            ...prev,
+            mediaUrl: data.url,
+            type: isVideo ? 'video' : 'image',
+          }));
+          showMsg('success', `${isVideo ? 'Video' : 'Image'} uploaded!`);
         }
       }
-
-      if (uploadResults.length === 1) {
-        // Single upload: update current form
-        setFormData(prev => ({ 
-          ...prev, 
-          mediaUrl: uploadResults[0].url, 
-          type: uploadResults[0].isVideo ? 'video' : 'image' 
-        }));
-        showMessage('success', `${uploadResults[0].isVideo ? 'Video' : 'Image'} uploaded!`);
-      } else if (uploadResults.length > 1) {
-        // Multiple uploads: create slides for each
-        const newSlides: CarouselSlide[] = [];
-        let currentMaxOrder = slides.length > 0 ? Math.max(...slides.map(s => s.displayOrder || 0)) : -1;
-        
-        uploadResults.forEach((result, idx) => {
-          newSlides.push({
-            id: `slide_${Date.now()}_${idx}`,
-            title: result.name.split('.')[0].replace(/[-_]/g, ' '),
-            mediaUrl: result.url,
-            type: result.isVideo ? 'video' : 'image',
-            displayOrder: currentMaxOrder + idx + 1
-          });
-        });
-
-        const finalSlides = [...slides, ...newSlides];
-        const res = await fetch('/api/jana/hero-carousel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slides: finalSlides, siteId })
-        });
-
-        if (res.ok) {
-          setSlides(finalSlides);
-          showMessage('success', `Uploaded and saved ${uploadResults.length} slides!`);
-        }
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
-      showMessage('error', 'Failed to upload media');
+    } catch {
+      showMsg('error', 'Upload failed');
     } finally {
       setSaving(false);
       e.target.value = '';
     }
-  }
+  };
 
-  async function handleSave() {
-    if (!formData.title?.trim() || !formData.mediaUrl?.trim()) {
-      showMessage('error', 'Title and Media URL are required');
-      return;
+  const handleSave = async () => {
+    if (!formData.title?.trim()) { showMsg('error', 'Title is required'); return; }
+    if (formData.type !== 'branded' && !formData.mediaUrl?.trim()) {
+      showMsg('error', 'Media URL is required for image/video/YouTube slides'); return;
+    }
+    if (formData.type === 'youtube') {
+      const ytId = extractYouTubeId(formData.mediaUrl || '');
+      if (!ytId) { showMsg('error', 'Invalid YouTube URL. Paste the full video URL.'); return; }
     }
 
     setSaving(true);
     try {
-      let updatedSlides;
+      let updated: CarouselSlide[];
       if (editingId) {
-        updatedSlides = slides.map(s => s.id === editingId ? { ...s, ...formData } as CarouselSlide : s);
+        updated = allSlides.map(s => s.id === editingId ? { ...s, ...formData, _source: 'manual' } as CarouselSlide : s);
       } else {
-        const nextOrder = slides.length > 0 
-          ? Math.max(...slides.map(s => s.displayOrder || 0)) + 1 
-          : 0;
-
-        const newSlide = {
+        const newSlide: CarouselSlide = {
           ...formData,
           id: `slide_${Date.now()}`,
-          displayOrder: nextOrder
-        } as CarouselSlide;
-        updatedSlides = [...slides, newSlide];
+          title: formData.title!,
+          mediaUrl: formData.mediaUrl || null,
+          type: formData.type || 'image',
+          displayOrder: allSlides.length,
+          _source: 'manual',
+        };
+        updated = [...allSlides, newSlide];
       }
-
-      const res = await fetch('/api/jana/hero-carousel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: updatedSlides, siteId })
-      });
-
-      if (res.ok) {
-        showMessage('success', editingId ? 'Slide updated!' : 'Slide created!');
-        setSlides(updatedSlides.sort((a, b) => a.displayOrder - b.displayOrder));
-        resetForm();
+      setAllSlides(updated);
+      const ok = await saveManualSlides(updated);
+      if (ok) {
+        showMsg('success', editingId ? 'Slide updated!' : 'Slide added to carousel!');
+        setShowForm(false);
+        setEditingId(null);
+        loadAllSlides();
       } else {
-        const data = await res.json();
-        showMessage('error', data.error || 'Failed to save');
+        showMsg('error', 'Failed to save');
       }
-    } catch (err) {
-      console.error('Save error:', err);
-      showMessage('error', 'Error saving carousel');
     } finally {
       setSaving(false);
     }
-  }
+  };
 
-  async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this slide?')) return;
-    const updatedSlides = slides.filter(s => s.id !== id);
-    try {
-      const res = await fetch('/api/jana/hero-carousel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: updatedSlides, siteId })
-      });
-      if (res.ok) {
-        showMessage('success', 'Slide deleted');
-        setSlides(updatedSlides);
-      } else {
-        showMessage('error', 'Failed to delete');
-      }
-    } catch (err) {
-      showMessage('error', 'Error deleting slide');
-    }
-  }
+  const startEdit = (slide: CarouselSlide) => {
+    setFormData({ ...slide });
+    setEditingId(slide.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  async function moveSlide(index: number, direction: 'up' | 'down') {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === slides.length - 1) return;
-    const newSlides = [...slides];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [newSlides[index], newSlides[targetIndex]] = [newSlides[targetIndex], newSlides[index]];
-    const finalSlides = newSlides.map((s, i) => ({ ...s, displayOrder: i }));
-    try {
-      const res = await fetch('/api/jana/hero-carousel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: finalSlides, siteId })
-      });
-      if (res.ok) {
-        setSlides(finalSlides);
-      }
-    } catch (err) {
-      showMessage('error', 'Failed to reorder');
-    }
-  }
+  const resetForm = () => {
+    setFormData({ title: '', subtitle: '', caption: '', mediaUrl: '', type: 'image', ctaText: '', ctaLink: '', displayOrder: allSlides.length, imageFit: 'cover', imagePosition: 'center', bgColor: '#000000', overlayOpacity: 0.4, animation: 'kenburns' });
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const ytPreviewId = formData.type === 'youtube' ? extractYouTubeId(formData.mediaUrl || '') : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '2rem' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3rem' }}>
+    <div style={{ minHeight: '100vh', background: '#0f172a', padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+        {/* Header */}
+        <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 800 }}>
+            <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px' }}>
               ← ADMIN DASHBOARD
             </Link>
-            <h1 style={{ fontSize: '3rem', fontWeight: 900, color: '#0f172a', margin: '0.5rem 0 0 0', letterSpacing: '-1px' }}>
-              HERO CAROUSEL
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: '0.5rem 0 0', letterSpacing: '-1px' }}>
+              🎬 Hero Carousel
             </h1>
-            <p style={{ color: '#64748b' }}>Manage cinematic slides for your marketplace and minisites</p>
+            <p style={{ color: '#64748b', margin: '0.25rem 0 0' }}>
+              Full control — manage every slide that appears on the homepage hero.
+            </p>
           </div>
-          
-          <div style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.2)', padding: '1.25rem', borderRadius: '16px', maxWidth: '350px' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                <i className="fas fa-lightbulb" style={{ color: '#D4AF37' }}></i>
-                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>CINEMATIC STRATEGY</span>
-             </div>
-             <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5 }}>
-                <strong style={{ color: '#1e293b' }}>Pro Tip:</strong> Place YouTube videos on the <strong style={{ color: '#D4AF37' }}>2nd or 3rd slide</strong>. This gives the system time to silently buffer the video while the user views the first image, ensuring an instant, lag-free transition.
-             </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ background: '#fff', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>CAROUSEL ID / NAME:</label>
-              <input 
-                type="text"
-                value={siteId} 
-                onChange={(e) => setSiteId(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                placeholder="e.g. adrere_amellal"
-                style={{ border: 'none', fontWeight: 700, color: '#D4AF37', outline: 'none', background: 'transparent', width: '150px' }}
-              />
-            </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <a href="/" target="_blank" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#94a3b8', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 700 }}>
+              <i className="fas fa-eye" /> Preview Site
+            </a>
             {!showForm && (
-              <button
-                onClick={() => { resetForm(); setShowForm(true); }}
-                style={{
-                  background: '#D4AF37', color: '#fff', border: 'none', padding: '1rem 2rem',
-                  borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(212,175,55,0.3)'
-                }}
-              >
-                + ADD NEW SLIDE
+              <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem' }}>
+                + Add Slide
               </button>
             )}
           </div>
         </div>
 
+        {/* Message */}
         {message.text && (
-          <div style={{
-            background: message.type === 'error' ? '#fee2e2' : '#dcfce7',
-            color: message.type === 'error' ? '#991b1b' : '#166534',
-            padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem',
-            borderLeft: `4px solid ${message.type === 'error' ? '#dc2626' : '#16a34a'}`
-          }}>
+          <div style={{ padding: '1rem 1.5rem', borderRadius: '10px', marginBottom: '1.5rem', background: message.type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', border: `1px solid ${message.type === 'error' ? '#ef4444' : '#10b981'}`, color: message.type === 'error' ? '#fca5a5' : '#6ee7b7', fontWeight: 700 }}>
             {message.text}
           </div>
         )}
 
+        {/* Add/Edit Form */}
         {showForm && (
-          <div style={{ background: '#fff', padding: '2rem', borderRadius: '1rem', border: '1px solid #e2e8f0', marginBottom: '3rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '2rem' }}>{editingId ? 'Edit Slide' : 'Create New Slide'}</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+          <div style={{ background: '#1e293b', borderRadius: '16px', padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(212,175,55,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ color: '#fff', fontWeight: 900, margin: 0 }}>{editingId ? '✏️ Edit Slide' : '+ New Slide'}</h2>
+              <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.5rem' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+
+              {/* TYPE */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SLIDE TYPE</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {(['image', 'youtube', 'video', 'branded'] as const).map(t => (
+                    <button key={t} onClick={() => setFormData(p => ({ ...p, type: t }))}
+                      style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '2px solid', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', transition: 'all 0.2s',
+                        borderColor: formData.type === t ? '#D4AF37' : 'rgba(255,255,255,0.1)',
+                        background: formData.type === t ? 'rgba(212,175,55,0.15)' : 'transparent',
+                        color: formData.type === t ? '#D4AF37' : '#64748b' }}>
+                      {t === 'image' ? '🖼 Image' : t === 'youtube' ? '▶ YouTube' : t === 'video' ? '🎥 Video' : '✨ Text/Branded'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* TITLE */}
               <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>TITLE</label>
-                <input
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE *</label>
+                <input value={formData.title || ''} onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
                   placeholder="e.g. Discover Siwa Oasis"
-                />
+                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              {/* SUBTITLE */}
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SUBTITLE</label>
+                <input value={formData.subtitle || ''} onChange={e => setFormData(p => ({ ...p, subtitle: e.target.value }))}
+                  placeholder="Short description"
+                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              {/* CAPTION */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>CAPTION (Badge label shown above title)</label>
+                <input value={formData.caption || ''} onChange={e => setFormData(p => ({ ...p, caption: e.target.value }))}
+                  placeholder="e.g. FEATURED · SIWA OASIS"
+                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              {/* MEDIA URL / YOUTUBE URL */}
+              {formData.type !== 'branded' && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>
+                    {formData.type === 'youtube' ? 'YOUTUBE URL (paste the full video link)' : 'MEDIA URL / UPLOAD'}
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <input value={formData.mediaUrl || ''} onChange={e => setFormData(p => ({ ...p, mediaUrl: e.target.value }))}
+                      placeholder={formData.type === 'youtube' ? 'https://www.youtube.com/watch?v=...' : 'https://...'}
+                      style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: `1px solid ${formData.type === 'youtube' && formData.mediaUrl && !extractYouTubeId(formData.mediaUrl) ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                    {formData.type !== 'youtube' && (
+                      <>
+                        <div style={{ position: 'relative' }}>
+                          <button style={{ background: '#334155', color: '#fff', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            {saving ? '...' : '⬆ Upload'}
+                          </button>
+                          <input type="file" accept="image/*,video/*" multiple onChange={handleFileUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                          <button style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            📷 Camera
+                          </button>
+                          <input type="file" accept="image/*,video/*" capture="environment" onChange={handleFileUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {/* YouTube validation feedback */}
+                  {formData.type === 'youtube' && formData.mediaUrl && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 700, color: extractYouTubeId(formData.mediaUrl) ? '#10b981' : '#ef4444' }}>
+                      {extractYouTubeId(formData.mediaUrl) ? `✅ Valid YouTube ID: ${extractYouTubeId(formData.mediaUrl)}` : '❌ Cannot extract YouTube ID — check the URL format'}
+                    </div>
+                  )}
+                  {/* YouTube preview thumbnail */}
+                  {ytPreviewId && (
+                    <div style={{ marginTop: '0.75rem', borderRadius: '8px', overflow: 'hidden', maxWidth: 320, position: 'relative' }}>
+                      <img src={`https://img.youtube.com/vi/${ytPreviewId}/hqdefault.jpg`} alt="YouTube thumbnail" style={{ width: '100%', display: 'block' }} />
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 50, height: 36, background: 'rgba(255,0,0,0.85)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(0,0,0,0.7)', color: '#10b981', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>✓ YOUTUBE PREVIEW</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CTA */}
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>BUTTON TEXT</label>
+                <input value={formData.ctaText || ''} onChange={e => setFormData(p => ({ ...p, ctaText: e.target.value }))}
+                  placeholder="e.g. Explore Now"
+                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>SUBTITLE</label>
-                <input
-                  name="subtitle"
-                  value={formData.subtitle}
-                  onChange={handleInputChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                  placeholder="Short descriptive text"
-                />
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>BUTTON LINK</label>
+                <input value={formData.ctaLink || ''} onChange={e => setFormData(p => ({ ...p, ctaLink: e.target.value }))}
+                  placeholder="/search/vibe"
+                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
               </div>
+
+              {/* ANIMATION + OVERLAY */}
               <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>TYPE</label>
-                <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                >
-                  <option value="image">Image</option>
-                  <option value="video">Native Video</option>
-                  <option value="youtube">YouTube Embed</option>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>ANIMATION</label>
+                <select value={formData.animation || 'kenburns'} onChange={e => setFormData(p => ({ ...p, animation: e.target.value }))}
+                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                  <option value="kenburns">Ken Burns (Cinematic Zoom)</option>
+                  <option value="fade">Fade</option>
+                  <option value="zoom">Zoom</option>
+                  <option value="slide">Slide</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>MEDIA URL / YOUTUBE URL</label>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
-                  <input
-                    name="mediaUrl"
-                    value={formData.mediaUrl}
-                    onChange={handleInputChange}
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                    placeholder="https://..."
-                  />
-                  <div style={{ position: 'relative', overflow: 'hidden' }}>
-                    <button style={{ 
-                      background: '#D4AF37', color: '#fff', border: 'none', padding: '0.75rem 1rem', 
-                      borderRadius: '0.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem'
-                    }}>
-                      {saving ? '...' : 'UPLOAD'}
-                    </button>
-                    <input type="file" accept="image/*,video/*" multiple onChange={handleFileUpload} style={{ position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-                  </div>
-                  <div style={{ position: 'relative', overflow: 'hidden' }}>
-                    <button style={{ 
-                      background: '#10b981', color: '#fff', border: 'none', padding: '0.75rem 1rem', 
-                      borderRadius: '0.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
-                      display: 'flex', alignItems: 'center', gap: '0.4rem'
-                    }}>
-                      <i className="fas fa-camera"></i> {saving ? '...' : 'CAMERA'}
-                    </button>
-                    <input type="file" accept="image/*,video/*" capture="environment" multiple onChange={handleFileUpload} style={{ position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Provide a URL or upload files. Native videos (.mp4, .mov) are supported!</p>
-              </div>
-              
-              <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>ADJUST MEDIA FIT</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>FIT</label>
-                    <select name="imageFit" value={formData.imageFit || 'cover'} onChange={handleInputChange} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                      <option value="cover">Cover (Fill screen)</option>
-                      <option value="contain">Contain (Show all)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>ALIGN</label>
-                    <select name="imagePosition" value={formData.imagePosition || 'center'} onChange={handleInputChange} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                      <option value="center">Center</option>
-                      <option value="top">Top</option>
-                      <option value="bottom">Bottom</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>BG COLOR</label>
-                    <input type="color" name="bgColor" value={formData.bgColor || '#000000'} onChange={handleInputChange} style={{ width: '100%', height: '34px', padding: '0', borderRadius: '0.5rem', border: '1px solid #e2e8f0', cursor: 'pointer' }} />
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.5rem' }}>Use Contain + BG Color to fit portrait mobile photos nicely without cropping them.</p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>BUTTON TEXT</label>
-                <input
-                  name="ctaText"
-                  value={formData.ctaText}
-                  onChange={handleInputChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>BUTTON LINK</label>
-                <input
-                  name="ctaLink"
-                  value={formData.ctaLink}
-                  onChange={handleInputChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                />
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>OVERLAY DARKNESS (0–1)</label>
+                <input type="range" min="0" max="1" step="0.05" value={formData.overlayOpacity ?? 0.4} onChange={e => setFormData(p => ({ ...p, overlayOpacity: parseFloat(e.target.value) }))}
+                  style={{ width: '100%', accentColor: '#D4AF37' }} />
+                <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>{Math.round((formData.overlayOpacity ?? 0.4) * 100)}% dark overlay</div>
               </div>
             </div>
-            <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button onClick={handleSave} disabled={saving} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '1rem 2.5rem', borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'SAVING...' : 'SAVE SLIDE'}
+
+            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+              <button onClick={handleSave} disabled={saving}
+                style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.9rem 2rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Saving...' : editingId ? '✓ Update Slide' : '+ Add to Carousel'}
               </button>
-              <button onClick={resetForm} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '1rem 2.5rem', borderRadius: '0.5rem', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
+              <button onClick={resetForm}
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '0.9rem 1.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}>
+                Cancel
+              </button>
             </div>
           </div>
         )}
 
-        <div style={{ display: 'grid', gap: '1.5rem' }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '5rem' }}>Loading slides...</div>
-          ) : slides.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '5rem', background: '#fff', borderRadius: '1rem', border: '2px dashed #e2e8f0' }}>No slides configured.</div>
-          ) : (
-            slides.map((slide, index) => (
-              <div key={slide.id} style={{ background: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem', display: 'grid', gridTemplateColumns: '200px 1fr auto', gap: '2rem', alignItems: 'center' }}>
-                <div style={{ height: '120px', borderRadius: '0.5rem', overflow: 'hidden', background: '#f1f5f9' }}>
-                  {slide.type === 'image' ? (
-                    <img src={slide.mediaUrl} alt={slide.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
-                      <i className={slide.type === 'video' ? 'fas fa-video fa-2x' : 'fab fa-youtube fa-2x'}></i>
+        {/* Slides List */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '5rem', color: '#64748b' }}>
+            <i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }} />
+            <p style={{ marginTop: '1rem' }}>Loading all carousel slides...</p>
+          </div>
+        ) : allSlides.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '5rem', background: '#1e293b', borderRadius: '16px', border: '2px dashed rgba(255,255,255,0.1)', color: '#64748b' }}>
+            <p>No slides yet. Click <strong style={{ color: '#D4AF37' }}>+ Add Slide</strong> to begin.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 700 }}>{allSlides.length} slides · exactly as they appear on the homepage</span>
+            </div>
+            {allSlides.map((slide, index) => {
+              const src = SOURCE_LABELS[slide._source || 'manual'] || SOURCE_LABELS.manual;
+              const ytId = slide.type === 'youtube' ? extractYouTubeId(slide.mediaUrl || '') : null;
+              return (
+                <div key={slide.id}
+                  style={{ background: '#1e293b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)', padding: '1rem 1.25rem', display: 'grid', gridTemplateColumns: '52px 90px 1fr auto', gap: '1rem', alignItems: 'center', transition: 'border-color 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}>
+
+                  {/* Order controls */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'center' }}>
+                    <button onClick={() => handleMoveSlide(index, 'up')} disabled={index === 0}
+                      style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: index === 0 ? '#334155' : '#94a3b8', borderRadius: '6px', width: 28, height: 28, cursor: index === 0 ? 'default' : 'pointer', fontWeight: 900 }}>▲</button>
+                    <span style={{ color: '#D4AF37', fontWeight: 900, fontSize: '0.8rem' }}>{index + 1}</span>
+                    <button onClick={() => handleMoveSlide(index, 'down')} disabled={index === allSlides.length - 1}
+                      style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: index === allSlides.length - 1 ? '#334155' : '#94a3b8', borderRadius: '6px', width: 28, height: 28, cursor: index === allSlides.length - 1 ? 'default' : 'pointer', fontWeight: 900 }}>▼</button>
+                  </div>
+
+                  {/* Preview */}
+                  <div style={{ width: 90, height: 60, borderRadius: '8px', overflow: 'hidden', background: '#0f172a', flexShrink: 0 }}>
+                    {slide.type === 'youtube' && ytId ? (
+                      <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : slide.type === 'image' && slide.mediaUrl ? (
+                      <img src={slide.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: slide.bgColor || '#1e293b' }}>
+                        <i className={`fas ${slide.type === 'video' ? 'fa-video' : slide.type === 'youtube' ? 'fa-youtube' : 'fa-star'}`} style={{ color: '#D4AF37', fontSize: '1.5rem' }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                      <h3 style={{ color: '#fff', fontWeight: 800, margin: 0, fontSize: '0.95rem' }}>{slide.title}</h3>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '20px', background: src.bg, color: src.color }}>{src.label}</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'rgba(255,255,255,0.05)', color: '#64748b' }}>{slide.type.toUpperCase()}</span>
                     </div>
-                  )}
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: '0 0 0.5rem 0' }}>{slide.title}</h3>
-                  <p style={{ color: '#64748b', fontSize: '0.9rem' }}>{slide.subtitle || 'No subtitle'}</p>
-                  <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', background: '#fef3c7', padding: '0.2rem 0.6rem', borderRadius: '10px' }}>
-                      {(slide.type || 'IMAGE').toUpperCase()}
-                    </span>
+                    {slide.subtitle && <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0 }}>{slide.subtitle}</p>}
+                    {slide.type === 'youtube' && (
+                      <p style={{ color: ytId ? '#10b981' : '#ef4444', fontSize: '0.7rem', margin: '0.25rem 0 0', fontWeight: 700 }}>
+                        {ytId ? `✅ YouTube ID: ${ytId}` : `❌ Invalid YouTube URL: ${slide.mediaUrl}`}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    <button onClick={() => startEdit(slide)}
+                      style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', padding: '0.5rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>
+                      Edit
+                    </button>
+                    <button onClick={() => handleDelete(slide)}
+                      style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', padding: '0.5rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>
+                      Remove
+                    </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => moveSlide(index, 'up')} disabled={index === 0} style={{ padding: '0.5rem', cursor: 'pointer' }}>↑</button>
-                    <button onClick={() => moveSlide(index, 'down')} disabled={index === slides.length - 1} style={{ padding: '0.5rem', cursor: 'pointer' }}>↓</button>
-                  </div>
-                  <button onClick={() => startEdit(slide)} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.4rem', cursor: 'pointer' }}>EDIT</button>
-                  <button onClick={() => handleDelete(slide.id)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.4rem', cursor: 'pointer' }}>DEL</button>
-                </div>
-              </div>
-            ))
-          )}
+              );
+            })}
+          </div>
+        )}
+
+        {/* Info box */}
+        <div style={{ marginTop: '2rem', background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: '12px', padding: '1.25rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.7 }}>
+            <strong style={{ color: '#D4AF37' }}>⭐ Manual slides</strong> are ones you added here. 
+            <strong style={{ color: '#3b82f6' }}> 🏢 Business</strong>, 
+            <strong style={{ color: '#10b981' }}> ✈️ Journey</strong>, 
+            <strong style={{ color: '#8b5cf6' }}> 💼 Investment</strong> slides come from your database.
+            <strong style={{ color: '#f59e0b' }}> 📋 Workflow</strong> slides are default placeholders (only shown when no manual slides exist).
+            <br/>
+            Once you save a slide here, the carousel goes into <strong style={{ color: '#D4AF37' }}>full manual mode</strong> — you control every slide shown.
+          </p>
         </div>
       </div>
     </div>

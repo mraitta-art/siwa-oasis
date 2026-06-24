@@ -17,6 +17,7 @@ declare global {
   interface Window {
     onYouTubeIframeAPIReady: () => void;
     YT: any;
+    __ytInitQueue: Array<() => void>;
   }
 }
 
@@ -34,19 +35,23 @@ export default function YouTubeCarouselPlayer({
   const playerRef = useRef<any>(null);
   const containerId = useRef(`yt-player-${Math.random().toString(36).substr(2, 9)}`);
 
-  // 1. Load YouTube API
+  // 1. Load YouTube API (only once per page)
   useEffect(() => {
     if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+      }
     }
   }, []);
 
-  // 2. Initialize Player
+  // 2. Initialize Player — uses a queue so multiple players on the same page all init
   const initPlayer = useCallback(() => {
     if (playerRef.current) return;
+    if (!window.YT || !window.YT.Player) return;
+    const el = document.getElementById(containerId.current);
+    if (!el) return;
     
     playerRef.current = new window.YT.Player(containerId.current, {
       videoId: videoId,
@@ -92,14 +97,27 @@ export default function YouTubeCarouselPlayer({
 
   useEffect(() => {
     if (window.YT && window.YT.Player) {
+      // API already loaded — init immediately
       initPlayer();
     } else {
-      const original = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (original) original();
-        initPlayer();
-      };
+      // Queue this player's init using a global callback list
+      if (!window.__ytInitQueue) window.__ytInitQueue = [];
+      window.__ytInitQueue.push(initPlayer);
+      
+      // Set (or chain) the global ready callback
+      if (!window.onYouTubeIframeAPIReady) {
+        window.onYouTubeIframeAPIReady = () => {
+          (window.__ytInitQueue || []).forEach((fn: any) => fn());
+          window.__ytInitQueue = [];
+        };
+      }
     }
+    return () => {
+      // Remove from queue on unmount
+      if (window.__ytInitQueue) {
+        window.__ytInitQueue = (window.__ytInitQueue || []).filter((fn: any) => fn !== initPlayer);
+      }
+    };
   }, [initPlayer]);
 
   // 3. Handle Active State Changes (Play/Pause)
