@@ -83,6 +83,7 @@ export default function MultiPageSiteBuilder() {
   const [editingSlot, setEditingSlot]         = useState<Slot | null>(null);
   const [editSlotProps, setEditSlotProps]    = useState<Record<string, any>>({});
   const [showPageStyleModal, setShowPageStyleModal] = useState(false);
+  const [dragEnabledSlotId, setDragEnabledSlotId] = useState<string | null>(null);
 
   // Template meta
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
@@ -747,17 +748,24 @@ export default function MultiPageSiteBuilder() {
                 return (
                   <div
                     key={slot.id}
-                    draggable
+                    draggable={dragEnabledSlotId === slot.id}
                     onDragStart={e => handleDragStart(e, slot.id)}
                     onDragOver={handleDragOver}
                     onDrop={e => handleDrop(e, slot.id)}
                     onDragEnd={handleDragEnd}
-                    style={{ background:'#fff', borderRadius:14, border:`1px solid ${color}20`, marginBottom:'0.9rem', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', overflow:'hidden', cursor:'grab' }}
+                    style={{ background:'#fff', borderRadius:14, border:`1px solid ${color}20`, marginBottom:'0.9rem', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', overflow:'hidden' }}
                   >
                     {/* Block header */}
                     <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', padding:'0.6rem 0.9rem', background:`linear-gradient(90deg,${color}08,transparent)`, borderBottom:`1px solid ${color}12` }}>
                       {/* Drag handle */}
-                      <div title="Drag to reorder" style={{ color:'#cbd5e1', fontSize:'1rem', cursor:'grab', flexShrink:0, lineHeight:1, padding:'0 4px 0 0', userSelect:'none' }}>⠿</div>
+                      <div 
+                        title="Drag to reorder" 
+                        onMouseEnter={() => setDragEnabledSlotId(slot.id)}
+                        onMouseLeave={() => setDragEnabledSlotId(null)}
+                        style={{ color:'#cbd5e1', fontSize:'1rem', cursor:'grab', flexShrink:0, lineHeight:1, padding:'0 4px 0 0', userSelect:'none' }}
+                      >
+                        ⠿
+                      </div>
                       <div style={{ width:30, height:30, borderRadius:8, background:`${color}14`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.95rem', flexShrink:0 }}>{def?.icon}</div>
                       <div style={{ flex:1, fontWeight:800, fontSize:'0.78rem', color:'#0f172a' }}>
                         {slot.label}
