@@ -60,8 +60,18 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     case 'hero_carousel': {
       const carouselId = props?.carousel_id || props?.siteId || 'main_hero';
       const isDynamic = props?.isDynamic !== false; // Default to dynamic for homepage
+      // Build visualSettings from slot props so title fonts/colors/position apply
+      const visualSettings = {
+        titleColor:    props?.titleColor    || undefined,
+        titleSize:     props?.titleSize     ? Number(props.titleSize)     : undefined,
+        subtitleSize:  props?.subtitleSize  ? Number(props.subtitleSize)  : undefined,
+        contentAlign:  (props?.contentAlign as 'center' | 'left' | 'right') || 'center',
+        primaryFont:   props?.primaryFont   || undefined,
+      };
       return (
-        <section style={{ height: '85vh', minHeight: '500px', position: 'relative' }}>
+        // key={carouselId} keeps the carousel instance stable across page reorders
+        // so it won't re-fetch slides or reset its autoplay timer
+        <section key={carouselId} style={{ height: '85vh', minHeight: '500px', position: 'relative' }}>
           <AdvancedHeroCarousel 
             height="85vh" 
             carouselName={carouselId}
@@ -72,9 +82,12 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
               investment: props?.includeInvestment !== false,
               registration: props?.includeRegistration !== false
             }}
-            autoPlay={true} 
-            autoPlayInterval={siteSettings?.carousel_interval || 8000} 
-            showIndicators={true}
+            autoPlay={props?.autoPlay !== false} 
+            autoPlayInterval={props?.autoPlayInterval ? Number(props.autoPlayInterval) : (siteSettings?.carousel_interval || 8000)} 
+            showIndicators={props?.showIndicators !== false}
+            showArrows={props?.showArrows !== false}
+            showProgress={props?.showProgress !== false}
+            visualSettings={visualSettings}
           />
         </section>
       );

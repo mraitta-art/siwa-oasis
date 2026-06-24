@@ -18,6 +18,12 @@ interface CarouselSlide {
   bgColor?: string;
   overlayOpacity?: number;
   animation?: string;
+  // Text styling fields
+  titleColor?: string;
+  titleSize?: number;
+  subtitleSize?: number;
+  textAlign?: 'center' | 'left' | 'right';
+  fontFamily?: string;
   // source tracks where this slide came from (for display only)
   _source?: 'manual' | 'business' | 'journey' | 'investment' | 'workflow';
 }
@@ -65,6 +71,11 @@ export default function HeroCarouselManager() {
     bgColor: '#000000',
     overlayOpacity: 0.4,
     animation: 'kenburns',
+    titleColor: '#FFFFFF',
+    titleSize: 0,
+    subtitleSize: 0,
+    textAlign: 'center',
+    fontFamily: '',
   });
 
   const showMsg = (type: string, text: string) => {
@@ -247,7 +258,7 @@ export default function HeroCarouselManager() {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', subtitle: '', caption: '', mediaUrl: '', type: 'image', ctaText: '', ctaLink: '', displayOrder: allSlides.length, imageFit: 'cover', imagePosition: 'center', bgColor: '#000000', overlayOpacity: 0.4, animation: 'kenburns' });
+    setFormData({ title: '', subtitle: '', caption: '', mediaUrl: '', type: 'image', ctaText: '', ctaLink: '', displayOrder: allSlides.length, imageFit: 'cover', imagePosition: 'center', bgColor: '#000000', overlayOpacity: 0.4, animation: 'kenburns', titleColor: '#FFFFFF', titleSize: 0, subtitleSize: 0, textAlign: 'center', fontFamily: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -418,6 +429,63 @@ export default function HeroCarouselManager() {
                 <input type="range" min="0" max="1" step="0.05" value={formData.overlayOpacity ?? 0.4} onChange={e => setFormData(p => ({ ...p, overlayOpacity: parseFloat(e.target.value) }))}
                   style={{ width: '100%', accentColor: '#D4AF37' }} />
                 <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>{Math.round((formData.overlayOpacity ?? 0.4) * 100)}% dark overlay</div>
+              </div>
+
+              {/* ── TEXT STYLING ─────────────────────────────────────── */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ color: '#D4AF37', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px', marginBottom: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>🎨 TEXT STYLING</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE COLOR</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="color" value={formData.titleColor || '#FFFFFF'} onChange={e => setFormData(p => ({ ...p, titleColor: e.target.value }))}
+                        style={{ width: 44, height: 36, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
+                      <input value={formData.titleColor || '#FFFFFF'} onChange={e => setFormData(p => ({ ...p, titleColor: e.target.value }))}
+                        style={{ flex: 1, padding: '0.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', fontFamily: 'monospace' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TEXT ALIGNMENT</label>
+                    <select value={formData.textAlign || 'center'} onChange={e => setFormData(p => ({ ...p, textAlign: e.target.value as 'center'|'left'|'right' }))}
+                      style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                      <option value="center">⊙ Center</option>
+                      <option value="left">⇐ Left</option>
+                      <option value="right">⇒ Right</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>FONT FAMILY</label>
+                    <select value={formData.fontFamily || ''} onChange={e => setFormData(p => ({ ...p, fontFamily: e.target.value }))}
+                      style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                      <option value="">Default (Inherit)</option>
+                      <option value="'Inter', sans-serif">Inter (Modern)</option>
+                      <option value="'Playfair Display', serif">Playfair Display (Elegant)</option>
+                      <option value="'Outfit', sans-serif">Outfit (Clean)</option>
+                      <option value="'Cinzel', serif">Cinzel (Luxury)</option>
+                      <option value="'Lora', serif">Lora (Classic)</option>
+                      <option value="'Montserrat', sans-serif">Montserrat (Bold)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE SIZE (rem, 0=auto)</label>
+                    <input type="number" min="0" max="10" step="0.5" value={formData.titleSize || 0} onChange={e => setFormData(p => ({ ...p, titleSize: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0 = auto" style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SUBTITLE SIZE (rem, 0=auto)</label>
+                    <input type="number" min="0" max="5" step="0.25" value={formData.subtitleSize || 0} onChange={e => setFormData(p => ({ ...p, subtitleSize: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0 = auto" style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>PREVIEW</label>
+                      <div style={{ padding: '0.5rem 0.75rem', background: formData.bgColor || '#1e293b', borderRadius: 8, textAlign: formData.textAlign || 'center', fontFamily: formData.fontFamily || 'inherit' }}>
+                        <div style={{ color: formData.titleColor || '#fff', fontWeight: 900, fontSize: formData.titleSize ? `${formData.titleSize}rem` : '1rem' }}>Title Preview</div>
+                        <div style={{ color: '#ccc', fontSize: formData.subtitleSize ? `${formData.subtitleSize}rem` : '0.7rem', marginTop: 2 }}>Subtitle preview</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -23,6 +23,12 @@ interface Slide {
   showCaption?: boolean;
   imageFit?: 'cover' | 'contain';
   imagePosition?: 'center' | 'top' | 'bottom';
+  // Per-slide text styling (overrides global visualSettings)
+  titleColor?: string;
+  titleSize?: number;
+  subtitleSize?: number;
+  textAlign?: 'center' | 'left' | 'right';
+  fontFamily?: string;
 }
 
 interface AdvancedCarouselProps {
@@ -147,6 +153,7 @@ export default function AdvancedHeroCarousel({
   const titleSize = visualSettings.titleSize ? `${visualSettings.titleSize}rem` : 'clamp(2.5rem, 7vw, 5.5rem)';
   const subtitleSize = visualSettings.subtitleSize ? `${visualSettings.subtitleSize}rem` : 'clamp(1.1rem, 2.5vw, 1.6rem)';
 
+  // Per-slide overrides computed inline (after slide is selected below)
   const validSlides = slides.filter(s => s.type === 'branded' || (s.mediaUrl && s.mediaUrl.length > 0));
 
   const goToNext = useCallback(() => {
@@ -230,6 +237,13 @@ export default function AdvancedHeroCarousel({
   const overlayOpacity = slide.overlayOpacity ?? 0.5;
   const animation = slide.animation || 'kenburns';
 
+  // Per-slide text styling — overrides global visualSettings when set
+  const slideAlign = slide.textAlign || align;
+  const slideTitleSize = slide.titleSize && slide.titleSize > 0 ? `${slide.titleSize}rem` : titleSize;
+  const slideSubtitleSize = slide.subtitleSize && slide.subtitleSize > 0 ? `${slide.subtitleSize}rem` : subtitleSize;
+  const slideTitleColor = slide.titleColor || visualSettings.titleColor || '#FFFFFF';
+  const slideFontFamily = slide.fontFamily || visualSettings.primaryFont || 'inherit';
+
   const togglePause = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -240,7 +254,7 @@ export default function AdvancedHeroCarousel({
     <section
       style={{
         height, position: 'relative', overflow: 'hidden', background: '#000',
-        fontFamily: visualSettings.primaryFont || 'inherit'
+        fontFamily: slideFontFamily
       }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => { if (!isYouTubeSlide) setIsPaused(false); }}
@@ -281,8 +295,8 @@ export default function AdvancedHeroCarousel({
             display: 'flex',
             flexDirection: 'column', 
             justifyContent: 'center',
-            alignItems: align === 'center' ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end'),
-            textAlign: align, 
+            alignItems: slideAlign === 'center' ? 'center' : (slideAlign === 'left' ? 'flex-start' : 'flex-end'),
+            textAlign: slideAlign, 
             padding: '2rem 10%', 
             color: '#fff',
             textDecoration: 'none',
@@ -312,15 +326,15 @@ export default function AdvancedHeroCarousel({
                 {slide.caption}
               </div>
             )}
-            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#FFFFFF', textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
+            <h1 style={{ fontSize: slideTitleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: slideTitleColor, textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
               <p style={{ 
-                fontSize: subtitleSize, 
+                fontSize: slideSubtitleSize, 
                 opacity: 0.95, 
                 maxWidth: '900px', 
-                margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
+                margin: slideAlign === 'center' ? '0 auto 3rem' : '0 0 3rem', 
                 lineHeight: 1.8,
                 fontWeight: 400,
                 letterSpacing: '0.5px',
@@ -359,8 +373,8 @@ export default function AdvancedHeroCarousel({
             display: 'flex',
             flexDirection: 'column', 
             justifyContent: 'center',
-            alignItems: align === 'center' ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end'),
-            textAlign: align, 
+            alignItems: slideAlign === 'center' ? 'center' : (slideAlign === 'left' ? 'flex-start' : 'flex-end'),
+            textAlign: slideAlign, 
             padding: '2rem 10%', 
             color: '#fff',
             textDecoration: 'none',
@@ -390,15 +404,15 @@ export default function AdvancedHeroCarousel({
                 {slide.caption}
               </div>
             )}
-            <h1 style={{ fontSize: titleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: visualSettings.titleColor || '#FFFFFF', textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
+            <h1 style={{ fontSize: slideTitleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: slideTitleColor, textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
               <p style={{ 
-                fontSize: subtitleSize, 
+                fontSize: slideSubtitleSize, 
                 opacity: 0.95, 
                 maxWidth: '900px', 
-                margin: align === 'center' ? '0 auto 3rem' : '0 0 3rem', 
+                margin: slideAlign === 'center' ? '0 auto 3rem' : '0 0 3rem', 
                 lineHeight: 1.8,
                 fontWeight: 400,
                 letterSpacing: '0.5px',
