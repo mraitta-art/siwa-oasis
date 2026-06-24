@@ -14,6 +14,10 @@ interface Slide {
   ctaType?: 'page' | 'search' | 'external' | 'custom';
   overlayOpacity?: number;
   animation?: 'fade' | 'zoom' | 'slide' | 'kenburns';
+  displayOrder?: number;
+  imageFit?: 'cover' | 'contain';
+  imagePosition?: 'center' | 'top' | 'bottom';
+  bgColor?: string;
 }
 
 // GET: Load dynamic carousel slides from multiple data sources
@@ -26,6 +30,28 @@ export async function GET(request: NextRequest) {
     const includeRegistration = searchParams.get('registration') !== 'false';
 
     const slides: Slide[] = [];
+
+    // ─ 0. MANUALLY SAVED SLIDES (HIGHEST PRIORITY — always shown first) ──────
+    // These are slides the admin explicitly added via the Hero Carousel Editor,
+    // including any YouTube videos, uploaded images, or custom slides.
+    try {
+      const savedConfig = await query(
+        `SELECT config FROM website_configs WHERE type = 'hero_carousel_main' LIMIT 1`
+      );
+      if (savedConfig && savedConfig.length > 0) {
+        const config = typeof savedConfig[0].config === 'string'
+          ? JSON.parse(savedConfig[0].config)
+          : savedConfig[0].config;
+        const savedSlides: Slide[] = config?.slides || [];
+        if (savedSlides.length > 0) {
+          // Sort by displayOrder if available
+          savedSlides.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+          slides.push(...savedSlides);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch manually saved carousel slides:', e);
+    }
 
     // ─ 1. BUSINESSES/SERVICES SLIDES ────────────────────────────────────────
     if (includeBusinesses) {
@@ -40,20 +66,24 @@ export async function GET(request: NextRequest) {
         );
 
         if (services && services.length > 0) {
-          services.forEach((service: any, index: number) => {
-            slides.push({
-              id: `business_${service.id}`,
-              type: 'image',
-              mediaUrl: service.image_url || '/images/siwa-default.jpg',
-              title: `🏢 ${service.name}`,
-              subtitle: 'Verified Business',
-              caption: service.tagline || 'Authentic Siwa Experience',
-              ctaText: 'Explore This Business',
-              ctaLink: `/search/vibe?service=${service.id}`,
-              ctaType: 'search',
-              animation: 'zoom',
-              overlayOpacity: 0.4
-            });
+          services.forEach((service: any) => {
+            // Don't duplicate manually added slides
+            const alreadyAdded = slides.some(s => s.id === `business_${service.id}`);
+            if (!alreadyAdded && service.image_url) {
+              slides.push({
+                id: `business_${service.id}`,
+                type: 'image',
+                mediaUrl: service.image_url,
+                title: `🏢 ${service.name}`,
+                subtitle: 'Verified Business',
+                caption: service.tagline || 'Authentic Siwa Experience',
+                ctaText: 'Explore This Business',
+                ctaLink: `/search/vibe?service=${service.id}`,
+                ctaType: 'search',
+                animation: 'zoom',
+                overlayOpacity: 0.4
+              });
+            }
           });
         }
       } catch (e) {
@@ -74,19 +104,22 @@ export async function GET(request: NextRequest) {
 
         if (journeys && journeys.length > 0) {
           journeys.forEach((journey: any) => {
-            slides.push({
-              id: `journey_${journey.id}`,
-              type: 'image',
-              mediaUrl: journey.featured_image_url || '/images/journey-default.jpg',
-              title: `✈️ ${journey.name}`,
-              subtitle: `${journey.duration_days}D Journey • $${journey.estimated_cost_usd_min}-$${journey.estimated_cost_usd_max}`,
-              caption: journey.description || 'Curated Experience',
-              ctaText: 'View Journey',
-              ctaLink: `/journeys/${journey.id}`,
-              ctaType: 'page',
-              animation: 'kenburns',
-              overlayOpacity: 0.3
-            });
+            const alreadyAdded = slides.some(s => s.id === `journey_${journey.id}`);
+            if (!alreadyAdded && journey.featured_image_url) {
+              slides.push({
+                id: `journey_${journey.id}`,
+                type: 'image',
+                mediaUrl: journey.featured_image_url,
+                title: `✈️ ${journey.name}`,
+                subtitle: `${journey.duration_days}D Journey • $${journey.estimated_cost_usd_min}-$${journey.estimated_cost_usd_max}`,
+                caption: journey.description || 'Curated Experience',
+                ctaText: 'View Journey',
+                ctaLink: `/journeys/${journey.id}`,
+                ctaType: 'page',
+                animation: 'kenburns',
+                overlayOpacity: 0.3
+              });
+            }
           });
         }
       } catch (e) {
@@ -107,19 +140,22 @@ export async function GET(request: NextRequest) {
 
         if (investmentJourneys && investmentJourneys.length > 0) {
           investmentJourneys.forEach((inv: any) => {
-            slides.push({
-              id: `investment_${inv.id}`,
-              type: 'image',
-              mediaUrl: inv.featured_image_url || '/images/investment-default.jpg',
-              title: `💼 ${inv.name}`,
-              subtitle: `${inv.estimated_roi_percent}% ROI • Min: $${inv.minimum_investment_usd?.toLocaleString()}`,
-              caption: `${inv.duration_days}D Journey - Investment Opportunity: ${inv.description?.substring(0, 100)}...`,
-              ctaText: 'View Investment',
-              ctaLink: `/journeys/${inv.id}`,
-              ctaType: 'page',
-              animation: 'slide',
-              overlayOpacity: 0.35
-            });
+            const alreadyAdded = slides.some(s => s.id === `investment_${inv.id}`);
+            if (!alreadyAdded && inv.featured_image_url) {
+              slides.push({
+                id: `investment_${inv.id}`,
+                type: 'image',
+                mediaUrl: inv.featured_image_url,
+                title: `💼 ${inv.name}`,
+                subtitle: `${inv.estimated_roi_percent}% ROI • Min: $${inv.minimum_investment_usd?.toLocaleString()}`,
+                caption: `${inv.duration_days}D Journey - Investment Opportunity: ${inv.description?.substring(0, 100)}...`,
+                ctaText: 'View Investment',
+                ctaLink: `/journeys/${inv.id}`,
+                ctaType: 'page',
+                animation: 'slide',
+                overlayOpacity: 0.35
+              });
+            }
           });
         }
       } catch (e) {
@@ -127,8 +163,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ─ 4. REGISTRATION & OFFER WORKFLOW SLIDES ─────────────────────────────
-    if (includeRegistration) {
+    // ─ 4. REGISTRATION & OFFER WORKFLOW SLIDES (only if no manual slides exist) ─
+    // Only add these branded workflow slides if the admin hasn't configured
+    // their own custom slides, to avoid cluttering the carousel.
+    if (includeRegistration && slides.length === 0) {
       const workflowSlides: Slide[] = [
         {
           id: 'workflow_register',
@@ -186,12 +224,12 @@ export async function GET(request: NextRequest) {
       slides.push(...workflowSlides);
     }
 
-    // Fallback slides if no data found
+    // Fallback slides if absolutely no data found
     if (slides.length === 0) {
       slides.push({
         id: 'default_hero',
-        type: 'image',
-        mediaUrl: '/images/siwa-hero.jpg',
+        type: 'branded',
+        mediaUrl: null,
         title: 'Welcome to Siwa Oasis',
         subtitle: 'Authentic Experiences, Investment Opportunities',
         caption: 'Discover curated journeys and investment opportunities in the heart of the Siwa Oasis',

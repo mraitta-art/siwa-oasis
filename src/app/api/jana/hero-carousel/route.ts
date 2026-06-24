@@ -45,11 +45,18 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Validate each slide
+    // Validate each slide - YouTube slides use URL, branded slides have no media
     for (const slide of slides) {
-      if (!slide.id || !slide.type || !slide.mediaUrl) {
+      if (!slide.id || !slide.type) {
         return NextResponse.json(
-          { error: 'Each slide must have id, type, and mediaUrl' },
+          { error: 'Each slide must have id and type' },
+          { status: 400 }
+        );
+      }
+      // Only require mediaUrl for image/video types (not youtube which uses URL, not branded)
+      if ((slide.type === 'image' || slide.type === 'video') && !slide.mediaUrl) {
+        return NextResponse.json(
+          { error: `Slide "${slide.title || slide.id}" of type "${slide.type}" must have a mediaUrl` },
           { status: 400 }
         );
       }
