@@ -153,7 +153,7 @@ export default function LocalProductsShowcase({ products, title, subtitle }: Pro
               title={p.name}
               description={p.description}
               image={p.imageUrl}
-              tag={`${(p.category || 'Product').toUpperCase()} • ${(p.origin || 'Siwa').toUpperCase()}`}
+              tag={`${String(p.category || 'Product').toUpperCase()} • ${String(p.origin || 'Siwa').toUpperCase()}`}
               onCardClick={() => window.location.href = p.link || `/search/vibe?q=${p.id}`}
               links={[
                 {

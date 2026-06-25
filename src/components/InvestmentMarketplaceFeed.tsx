@@ -55,12 +55,12 @@ export default function InvestmentMarketplaceFeed({ title, subtitle }: { title?:
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 />
                 <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', background: 'var(--gold)', color: 'var(--dark)', padding: '0.4rem 1rem', borderRadius: '50px', fontSize: '0.65rem', fontWeight: 900 }}>
-                  {(type || 'Investment').toUpperCase()}
+                  {String(type || 'Investment').toUpperCase()}
                 </div>
               </div>
 
               <div style={{ padding: '2rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-light)', letterSpacing: '2px', marginBottom: '0.5rem' }}>{(biz.type_name || 'Business').toUpperCase()}</div>
+                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-light)', letterSpacing: '2px', marginBottom: '0.5rem' }}>{String(biz.type_name || 'Business').toUpperCase()}</div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text)', marginBottom: '1rem' }}>{biz.name}</h3>
                 
                 <div style={{ background: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '16px', marginBottom: '2rem' }}>

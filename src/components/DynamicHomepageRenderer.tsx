@@ -54,7 +54,11 @@ interface SectionProps {
   siteSettings?: any;
 }
 
+
 const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
+  // Guard: skip sections with null/undefined type
+  if (!type || typeof type !== 'string') return null;
+
   switch (type) {
     // ─── HERO ──────────────────────────────────────────────
     case 'hero_carousel': {
@@ -250,14 +254,21 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
 export default function DynamicHomepageRenderer({ layout, settings }: { layout: any[], settings: any }) {
   return (
     <div style={{ background: 'var(--bg)' }}>
-      {layout.map((section, idx) => (
-        <SectionRenderer 
-          key={section.id || idx}
-          type={section.type} 
-          props={section.props} 
-          siteSettings={settings} 
-        />
-      ))}
+      {layout.map((section, idx) => {
+        if (!section) return null;
+        try {
+          return (
+            <SectionRenderer 
+              key={section.id || idx}
+              type={section.type ?? ''} 
+              props={section.props} 
+              siteSettings={settings} 
+            />
+          );
+        } catch {
+          return null;
+        }
+      })}
     </div>
   );
 }
