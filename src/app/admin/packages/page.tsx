@@ -197,7 +197,7 @@ export default function AdminPackagesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-1 rounded font-semibold ${getStatusColor(pkg.status)}`}>
-                      {pkg.status === 'service_package' ? '⚙️ Service' : pkg.status}
+                      {pkg.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">

@@ -34,7 +34,7 @@ export async function getPolicyById(policyId: string) {
     const [rows] = await connection.query(
       'SELECT * FROM admin_journey_policies WHERE id = ?',
       [policyId]
-    );
+    ) as any;
     return rows?.[0] || null;
   } finally {
     connection.release();
@@ -46,7 +46,7 @@ export async function getDefaultPolicy() {
   try {
     const [rows] = await connection.query(
       'SELECT * FROM admin_journey_policies WHERE is_default = TRUE LIMIT 1'
-    );
+    ) as any;
     return rows?.[0] || null;
   } finally {
     connection.release();
@@ -163,7 +163,7 @@ export async function getJourneyRequest(requestId: string) {
     const [rows] = await connection.query(
       'SELECT * FROM journey_requests WHERE id = ?',
       [requestId]
-    );
+    ) as any;
     return rows?.[0] || null;
   } finally {
     connection.release();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import Link from 'next/link';
 
 interface FieldDef { id: string; name: string; type: 'text' | 'number' | 'textarea' | 'select' | 'checkbox'; required?: boolean; options?: string[] }
@@ -15,7 +15,8 @@ interface Section {
   fields?: FieldDef[]; // for business_form sections
 }
 
-export default function HomepageEditorPage({ params }: { params: { id: string } }) {
+export default function HomepageEditorPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [sections, setSections] = useState<Section[]>([
     { id: '1', name: 'Hero Section', type: 'hero', order: 1, enabled: true, images: ['https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=600&fit=crop'] },
     { id: '2', name: 'Features', type: 'features', order: 2, enabled: true },
@@ -202,7 +203,7 @@ export default function HomepageEditorPage({ params }: { params: { id: string } 
               <button
                 onClick={async () => {
                   try {
-                    const res = await fetch(`/api/homepages/${params.id}`, {
+                    const res = await fetch(`/api/homepages/${id}`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ pageSettings, sections }),

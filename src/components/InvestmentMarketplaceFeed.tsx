@@ -55,7 +55,7 @@ export default function InvestmentMarketplaceFeed({ title, subtitle }: { title?:
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 />
                 <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', background: 'var(--gold)', color: 'var(--dark)', padding: '0.4rem 1rem', borderRadius: '50px', fontSize: '0.65rem', fontWeight: 900 }}>
-                  {type.toUpperCase()}
+                  {(type || 'Investment').toUpperCase()}
                 </div>
               </div>
 

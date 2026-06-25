@@ -8,11 +8,19 @@ interface BlogPost {
   title: string;
   slug: string;
   excerpt: string;
-  featured_image: string;
-  category_name: string;
-  created_at: string;
+  featured_image: string | null;
+  category_name: string | null;
+  created_at: string | null;
   views: number;
   reading_time: number;
+}
+
+function formatDate(dateStr: string | null | undefined) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 export default function BlogListing() {
@@ -129,7 +137,7 @@ export default function BlogListing() {
                     {post.excerpt?.substring(0, 120)}...
                   </p>
                   <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#94a3b8' }}>
-                    <span>📅 {new Date(post.created_at).toLocaleDateString()}</span>
+                    <span>📅 {formatDate(post.created_at)}</span>
                     <span>⏱️ {post.reading_time || 0} min</span>
                     <span>👁️ {post.views || 0}</span>
                   </div>

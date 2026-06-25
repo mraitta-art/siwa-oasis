@@ -392,7 +392,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
                 </div>
 
                 <div className="text-xs text-gray-500 mb-4">
-                  {opp.years_in_business} year{opp.years_current !== 1 ? 's' : ''} • ${(
+                  {opp.years_in_business} year{opp.years_in_business !== 1 ? 's' : ''} • ${(
                     opp.annual_revenue / 1000
                   ).toFixed(0)}K revenue
                 </div>

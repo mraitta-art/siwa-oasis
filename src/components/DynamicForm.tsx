@@ -58,7 +58,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   const notify = adminCtx?.notify || (() => {});
   // Safe: works even if DynamicForm is rendered outside LangProvider (e.g. admin)
   const langCtx = React.useContext(LangContext);
-  const t = langCtx?.t;
+  const t = langCtx?.t as any;
   const isRTL = langCtx?.isRTL ?? false;
   
   const [currentLang, setCurrentLang] = React.useState('en');

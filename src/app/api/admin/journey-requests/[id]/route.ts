@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Mock response - in production, fetch from database
-    const requestId = params.id;
+    const { id: requestId } = await params;
 
     const journeyRequest = {
       id: requestId,
@@ -47,10 +47,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json();
-    const requestId = params.id;
+    const { id: requestId } = await params;
 
     // In production, update database
     return NextResponse.json({

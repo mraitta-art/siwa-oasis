@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // TODO: Fetch from database
     // For now, return empty array
-    const packages = [];
+    const packages: any[] = [];
 
     return NextResponse.json({
       packages,

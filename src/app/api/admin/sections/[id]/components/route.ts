@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: sectionId } = params;
+    const { id: sectionId } = await params;
     const { components } = await request.json();
 
     if (!Array.isArray(components) || components.length === 0) {

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, use } from 'react';
 
 interface SectionData {
   id: string;
@@ -12,7 +12,8 @@ interface SectionData {
   order: number;
 }
 
-export default function HomepageSectionsPage({ params }: { params: { id: string } }) {
+export default function HomepageSectionsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [sections, setSections] = useState<SectionData[]>([
     {
       id: '1',

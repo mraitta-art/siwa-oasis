@@ -8,9 +8,17 @@ interface BlogPost {
   slug: string;
   excerpt: string;
   featured_image: string;
-  category_name: string;
-  created_at: string;
+  category_name: string | null;
+  created_at: string | null;
   reading_time: number;
+}
+
+function formatDate(dateStr: string | null | undefined) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 export default function HomepageBlog({ title, subtitle, maxPosts }: { title?: string; subtitle?: string; maxPosts?: number }) {
@@ -55,7 +63,7 @@ export default function HomepageBlog({ title, subtitle, maxPosts }: { title?: st
               <h3 style={{ color: '#fff', margin: '0 0 0.75rem 0', fontSize: '1.25rem', fontWeight: 800 }}>{post.title}</h3>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>{post.excerpt?.substring(0, 100)}...</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>
-                <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                <span>{formatDate(post.created_at)}</span>
                 <span>{post.reading_time} min read</span>
               </div>
             </div>

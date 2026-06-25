@@ -379,7 +379,7 @@ export default function VendorMediaPage() {
                 Gallery Settings
               </h2>
 
-              <div style={{ space: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid #e2e8f0' }}>
                   <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#1a1a2e' }}>🎯 Auto-Feature Best Photo</h3>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>

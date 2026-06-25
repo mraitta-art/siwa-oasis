@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(
   request: Request,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
-    const { sectionId } = params;
+    const { sectionId } = await params;
 
     const query = `
       SELECT sc.id, scd.id as data_id, scd.data, scd.status, scd.title
@@ -16,7 +16,7 @@ export async function GET(
       ORDER BY sc.display_order, scd.display_order
     `;
 
-    const rows = await db.query(query, [sectionId]);
+    const [rows] = await db.query(query, [sectionId]);
 
     // Group by component_id
     const grouped: Record<string, any[]> = {};
@@ -43,10 +43,10 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
-    const { sectionId } = params;
+    const { sectionId } = await params;
     const componentData = await request.json();
 
     // Get current user business context (simplified - use from auth)

@@ -52,7 +52,7 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
           What is your Siwa Story today?
         </h2>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '900px', margin: '0 auto' }}>
-          {availableVibes.map(vibe => {
+          {availableVibes.filter(vibe => typeof vibe === 'string').map(vibe => {
             const isActive = selectedTags.includes(vibe);
             return (
               <button
@@ -75,7 +75,7 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
                 }}
               >
                 <i className={`fas ${isActive ? 'fa-check-circle' : 'fa-circle-notch'}`} style={{ fontSize: '0.7rem' }}></i>
-                {vibe.toUpperCase()}
+                {(vibe || '').toUpperCase()}
               </button>
             );
           })}

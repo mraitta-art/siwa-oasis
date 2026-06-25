@@ -142,7 +142,7 @@ export default function Home() {
           ) : (
             <>
               <i className="fas fa-sun" style={{ color: primary, fontSize: '1.5rem' }}></i>
-              <span>{settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.<span style={{ color: primary }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
+              <span>{(settings?.site_name || 'Siwa Today').toUpperCase().split(' ')[0]}.<span style={{ color: primary }}>{(settings?.site_name || 'Siwa Today').toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
             </>
           )}
         </Link>

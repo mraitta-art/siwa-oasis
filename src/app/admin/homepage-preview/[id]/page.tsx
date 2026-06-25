@@ -1,14 +1,16 @@
 'use client';
 
+import { use } from 'react';
 import Link from 'next/link';
 
-export default function HomepagePreviewPage({ params }: { params: { id: string } }) {
+export default function HomepagePreviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Admin Toolbar */}
       <div className="fixed top-0 left-0 right-0 bg-gray-900 border-b border-gray-800 z-50 flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-4">
-          <Link href={`/admin/homepage-editor/${params.id}`} className="text-gray-400 hover:text-[#D4AF37] transition-colors">
+          <Link href={`/admin/homepage-editor/${id}`} className="text-gray-400 hover:text-[#D4AF37] transition-colors">
             ← Edit
           </Link>
           <div>

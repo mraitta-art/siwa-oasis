@@ -8,10 +8,21 @@ interface StoryPost {
   title: string;
   slug: string;
   excerpt: string;
-  featured_image: string;
-  category_name: string;
-  created_at: string;
+  featured_image: string | null;
+  category_name: string | null;
+  created_at: string | null;
   reading_time: number;
+}
+
+function formatDateLong(dateStr: string | null | undefined) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const months = [
+    'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+  ];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 export default function StorytellingSection({ title, subtitle }: { title?: string; subtitle?: string }) {
@@ -123,7 +134,7 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
               {/* Cover Image */}
               <div style={{ height: '260px', position: 'relative', overflow: 'hidden' }}>
                 <img 
-                  src={post.featured_image} 
+                  src={post.featured_image || 'https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=800'} 
                   alt={post.title} 
                   style={{ 
                     width: '100%', 
@@ -149,14 +160,14 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
                   border: '1px solid rgba(255,255,255,0.1)',
                   boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
                 }}>
-                  {post.category_name.toUpperCase()}
+                  {(post.category_name || 'General').toString().toUpperCase()}
                 </div>
               </div>
 
               {/* Text Area */}
               <div style={{ padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-light)', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.5px', marginBottom: '1rem' }}>
-                  <span>{new Date(post.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}</span>
+                  <span>{formatDateLong(post.created_at)}</span>
                   <span>{post.reading_time} MIN READ</span>
                 </div>
 

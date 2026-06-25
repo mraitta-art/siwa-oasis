@@ -88,9 +88,13 @@ export default function BlogAdminPage() {
 
       if (res.ok) {
         loadPosts();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert('❌ Failed to delete post: ' + (data.error || `Server error ${res.status}`));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to delete post:', e);
+      alert('❌ Failed to delete post: ' + e.message);
     }
   }
 

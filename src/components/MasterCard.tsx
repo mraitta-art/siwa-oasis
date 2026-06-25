@@ -47,7 +47,7 @@ export default function MasterCard({
 
       {/* Card Content */}
       <div className="master-card-content">
-        {tag && <div className="master-card-tag">{tag.toUpperCase()}</div>}
+        {tag && typeof tag === 'string' && <div className="master-card-tag">{tag.toUpperCase()}</div>}
         
         <h3 className="master-card-title">{title}</h3>
         <p className="master-card-description">{description}</p>

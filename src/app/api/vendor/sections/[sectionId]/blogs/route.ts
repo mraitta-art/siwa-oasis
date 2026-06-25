@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(
   request: Request,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
-    const { sectionId } = params;
+    const { sectionId } = await params;
 
     const query = `
       SELECT id, title, excerpt, status, created_at, published_at
@@ -16,7 +16,7 @@ export async function GET(
       LIMIT 100
     `;
 
-    const blogs = await db.query(query, [sectionId]);
+    const [blogs] = await db.query(query, [sectionId]);
     return Response.json(blogs || []);
   } catch (error) {
     console.error('Get blogs error:', error);
@@ -26,10 +26,10 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
-    const { sectionId } = params;
+    const { sectionId } = await params;
     const { title, content, excerpt } = await request.json();
 
     if (!title || !content) {
@@ -44,13 +44,13 @@ export async function POST(
 
     // Check section curation policy
     const sectionQuery = `SELECT curation_policy, auto_publish_blogs FROM sections WHERE id = ?`;
-    const sectionRes = await db.query(sectionQuery, [sectionId]);
+    const [rows] = await db.query(sectionQuery, [sectionId]);
+    const section = (rows as any[])?.[0];
     
-    if (!sectionRes || sectionRes.length === 0) {
+    if (!section) {
       return Response.json({ error: 'Section not found' }, { status: 404 });
     }
 
-    const section = sectionRes[0];
     const status = section.auto_publish_blogs ? 'published' : 'pending_approval';
     const publishedAt = section.auto_publish_blogs ? new Date() : null;
 
