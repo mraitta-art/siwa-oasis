@@ -3,27 +3,39 @@ import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { invalidateCache } from '@/lib/cache';
 
+async function loadCarouselConfig(siteId: string) {
+  const fallbackTypes = [`hero_carousel_${siteId}`, 'hero_carousel_main', 'hero_carousel_discovery'];
+  for (const type of fallbackTypes) {
+    try {
+      const results = await query(
+        `SELECT config FROM website_configs WHERE type = ? LIMIT 1`,
+        [type]
+      );
+      if (results.length > 0) {
+        const config = typeof results[0].config === 'string'
+          ? JSON.parse(results[0].config)
+          : results[0].config;
+        return { config, type };
+      }
+    } catch (error) {
+      console.error(`Failed to load carousel config for ${type}:`, error);
+    }
+  }
+  return { config: null, type: null };
+}
+
 // GET: Load hero carousel slides
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const siteId = searchParams.get('siteId') || 'main';
-    const configType = `hero_carousel_${siteId}`;
-    const results = await query(
-      `SELECT config FROM website_configs WHERE type = ? LIMIT 1`,
-      [configType]
-    );
-    
-    if (results.length > 0) {
-      const config = typeof results[0].config === 'string' 
-        ? JSON.parse(results[0].config) 
-        : results[0].config;
-      return NextResponse.json({ ...(config || { slides: [] }), siteId });
+    const { config, type } = await loadCarouselConfig(siteId);
+
+    if (config) {
+      return NextResponse.json({ ...(config || { slides: [] }), siteId, sourceType: type });
     }
 
-
-
-    return NextResponse.json({ slides: [], siteId });
+    return NextResponse.json({ slides: [], siteId, sourceType: null });
   } catch (e: any) {
     console.error('Failed to load hero carousel:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });

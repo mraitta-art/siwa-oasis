@@ -37,7 +37,7 @@ export default function ComponentRegistryPage() {
     name: '',
     description: '',
     icon: '',
-    zone: 'body' as 'header' | 'body' | 'footer',
+    zone: 'body' as const,
     category: '',
     manager_url: '',
     sort_order: 999

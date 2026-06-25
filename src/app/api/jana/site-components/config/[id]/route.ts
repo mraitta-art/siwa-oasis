@@ -1,15 +1,14 @@
-import { query, execute, queryOne } from '@/lib/db';
+import { query, execute } from '@/lib/db';
 
 // GET component config schema and current values
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const component = await queryOne(
+    const component = await query(
       'SELECT id, key, name, config_schema, component_config, default_props FROM site_components WHERE id = ?',
-      [id]
+      [params.id]
     );
 
     if (!component) {
@@ -32,15 +31,14 @@ export async function GET(
 // PUT update component configuration
 export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const body = await req.json();
     const { component_config, version, deprecation_notice, tags } = body;
 
     // Validate component exists
-    const component = await queryOne('SELECT id FROM site_components WHERE id = ?', [id]);
+    const component = await query('SELECT id FROM site_components WHERE id = ?', [params.id]);
     if (!component) {
       return Response.json({ error: 'Component not found' }, { status: 404 });
     }
@@ -55,14 +53,14 @@ export async function PUT(
         version || '1.0.0',
         deprecation_notice || null,
         JSON.stringify(tags || []),
-        id
+        params.id
       ]
     );
 
     return Response.json({
       success: true,
       message: 'Component configuration updated',
-      id
+      id: params.id
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
@@ -72,13 +70,12 @@ export async function PUT(
 // DELETE revert to defaults
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     await execute(
       'UPDATE site_components SET component_config = NULL, version = "1.0.0", deprecation_notice = NULL WHERE id = ?',
-      [id]
+      [params.id]
     );
 
     return Response.json({

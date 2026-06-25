@@ -54,3 +54,20 @@ next-env.d.ts
 # temporary logs
 server_log.txt
 /scratch
+
+# auto-sync system logs (contain timestamps/commit data, not needed in repo)
+sync.log
+sync-git.log
+*.log
+
+# security — never commit these
+secrets.json
+*.key
+*.pem
+credentials.json
+service-account.json
+
+# database backups (can be large and contain sensitive data)
+*.sql
+database_backups/
+*.dump

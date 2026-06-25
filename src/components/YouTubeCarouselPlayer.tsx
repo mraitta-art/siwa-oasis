@@ -32,6 +32,7 @@ export default function YouTubeCarouselPlayer({
 }: YouTubeCarouselPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+    const [error, setError] = useState<string | null>(null);
   const playerRef = useRef<any>(null);
   const containerId = useRef(`yt-player-${Math.random().toString(36).substr(2, 9)}`);
 
@@ -53,6 +54,11 @@ export default function YouTubeCarouselPlayer({
     const el = document.getElementById(containerId.current);
     if (!el) return;
     
+      // Get origin for production compatibility
+      const origin = typeof window !== 'undefined' 
+        ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
+        : (process.env.NEXT_PUBLIC_APP_URL || '');
+    
     playerRef.current = new window.YT.Player(containerId.current, {
       videoId: videoId,
       playerVars: {
@@ -64,12 +70,13 @@ export default function YouTubeCarouselPlayer({
         iv_load_policy: 3,
         mute: 1, // REQUIRED for autoplay in all modern browsers
         enablejsapi: 1,
-        origin: typeof window !== 'undefined' ? window.location.origin : '',
+          origin: origin,
         playsinline: 1
       },
       events: {
         onReady: (event: any) => {
           setIsLoaded(true);
+            console.log('✓ YouTube Player Ready:', videoId);
           if (isActive && autoplay) {
             event.target.mute();
             event.target.playVideo();
@@ -83,6 +90,19 @@ export default function YouTubeCarouselPlayer({
             }, 100);
           }
         },
+          onError: (event: any) => {
+            const errorCode = event.data;
+            const errors: Record<number, string> = {
+              2: 'Invalid parameter',
+              5: 'HTML5 player error',
+              100: 'Video not found',
+              101: 'Video owner does not allow embedding',
+              150: 'Same as 101 (embedding disabled)'
+            };
+            const errorMsg = errors[errorCode] || `Unknown error (${errorCode})`;
+            setError(errorMsg);
+            console.error('❌ YouTube Player Error:', errorMsg, '- Video ID:', videoId);
+          },
         onStateChange: (event: any) => {
           if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
           if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);

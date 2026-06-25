@@ -36,6 +36,7 @@ const DRY = argv.includes('--dry');
 const SKIP_DB = argv.includes('--skip-db');
 const SKIP_BUILD = argv.includes('--skip-build');
 const QUICK = argv.includes('--quick');
+const BIDIRECTIONAL = argv.includes('--bidirectional') || !argv.includes('--one-way');
 
 const PROD_DB = {
   host: process.env.PROD_DB_HOST || 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
@@ -57,8 +58,8 @@ const LOCAL_DB = {
 // Files to watch for changes
 const WATCH_DIRS = ['src', 'public', 'migrations'];
 const WATCH_FILES = ['package.json', 'next.config.ts', 'server.js', 'tsconfig.json'];
-const MIGRATIONS_DIR = path.join(rootDir, 'migrations');
-
+const MIGRATIONS_DIR = path.join(rootDir, 'migrations');const BACKUP_DIR = path.join(rootDir, 'database_backups', 'smart-sync');
+const REQUIRE_BACKUP = !argv.includes('--no-backup');
 // ═══════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════
@@ -109,7 +110,119 @@ function getFilesFromPattern(pattern) {
   }
   return files;
 }
+const TIMESTAMP_FIELDS = ['updated_at', 'modified_at', 'last_modified', 'last_updated', 'created_at'];
 
+function quoteId(name) {
+  return `\`${name.replace(/`/g, '')}\``;
+}
+
+function buildWhereClause(pkCols) {
+  return pkCols.map(col => `${quoteId(col)} = ?`).join(' AND ');
+}
+
+function findTimestampFields(row) {
+  if (!row || typeof row !== 'object') return [];
+  return TIMESTAMP_FIELDS.filter(field => Object.prototype.hasOwnProperty.call(row, field));
+}
+
+function parseTimestamp(value) {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const dt = new Date(value);
+    if (!Number.isNaN(dt.valueOf())) return dt;
+  }
+  return null;
+}
+
+function compareTimestamps(localRow, prodRow) {
+  const localFields = findTimestampFields(localRow);
+  const prodFields = findTimestampFields(prodRow);
+  if (localFields.length === 0 || prodFields.length === 0) return null;
+
+  const candidates = [];
+  for (const localField of localFields) {
+    const localTs = parseTimestamp(localRow[localField]);
+    if (!localTs) continue;
+    for (const prodField of prodFields) {
+      const prodTs = parseTimestamp(prodRow[prodField]);
+      if (!prodTs) continue;
+      candidates.push({ localField, prodField, localTs, prodTs });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  const exactMatch = candidates.find(c => c.localField === c.prodField);
+  const chosen = exactMatch || candidates[0];
+
+  if (chosen.localTs > chosen.prodTs) return 1;
+  if (chosen.localTs < chosen.prodTs) return -1;
+  return 0;
+}
+
+function serializeValue(value) {
+  if (value === undefined) return null;
+  if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+    return JSON.stringify(value);
+  }
+  return value;
+}
+
+async function getPrimaryKeyColumns(conn, table) {
+  const [rows] = await conn.query(`SHOW KEYS FROM \`${table}\` WHERE Key_name = 'PRIMARY' ORDER BY Seq_in_index`);
+  return rows.map((row) => row.Column_name).filter(Boolean);
+}
+
+function rowToSqlParts(row) {
+  const cols = Object.keys(row).map(quoteId);
+  const vals = Object.keys(row).map(key => serializeValue(row[key]));
+  return { cols, vals };
+}
+
+async function insertRow(conn, table, row) {
+  const { cols, vals } = rowToSqlParts(row);
+  const placeholders = cols.map(() => '?').join(',');
+  const sql = `INSERT INTO \`${table}\` (${cols.join(',')}) VALUES (${placeholders})`;
+  return conn.query(sql, vals);
+}
+
+async function tableExists(conn, table) {
+  const [rows] = await conn.query('SHOW TABLES LIKE ?', [table]);
+  return rows.length > 0;
+}
+
+function ensureBackupDirectory(dir) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+async function backupTable(conn, table, filePath) {
+  try {
+    const [rows] = await conn.query(`SELECT * FROM \`${table}\``);
+    fs.writeFileSync(filePath, JSON.stringify(rows, null, 2), 'utf8');
+    log.ok(`Backed up ${table} to ${path.relative(rootDir, filePath)}`);
+    return true;
+  } catch (e) {
+    log.warn(`Failed to back up ${table}: ${String(e.message || e)}`);
+    return false;
+  }
+}
+
+async function updateRow(conn, table, row, pkCols) {
+  const updateCols = Object.keys(row).filter(col => !pkCols.includes(col));
+  if (updateCols.length === 0) return;
+  const setClause = updateCols.map(col => `${quoteId(col)} = ?`).join(', ');
+  const whereClause = buildWhereClause(pkCols);
+  const values = updateCols.map(col => serializeValue(row[col]));
+  const whereValues = pkCols.map(col => serializeValue(row[col]));
+  const sql = `UPDATE \`${table}\` SET ${setClause} WHERE ${whereClause}`;
+  return conn.query(sql, [...values, ...whereValues]);
+}
+
+function getRowKey(row, pkCols) {
+  return pkCols.map(col => String(row[col])).join('||');
+}
 // ═══════════════════════════════════════════════════════════
 // PHASE 1: CHANGE DETECTION
 // ═══════════════════════════════════════════════════════════
@@ -383,12 +496,89 @@ async function syncData() {
   log.info('Comparing local vs production table data...');
 
   if (DRY) {
-    log.info('[DRY] Would sync data from local to production');
+    log.info('[DRY] Would sync data between local and production');
     return true;
   }
 
   const mysql = require('mysql2/promise');
   let localConn, prodConn;
+
+  function rowsEqual(a, b) {
+    const keysA = Object.keys(a).sort();
+    const keysB = Object.keys(b).sort();
+    if (keysA.length !== keysB.length) return false;
+    for (let i = 0; i < keysA.length; i++) {
+      if (keysA[i] !== keysB[i]) return false;
+      const aVal = a[keysA[i]];
+      const bVal = b[keysA[i]];
+      if (aVal === bVal) continue;
+      if (aVal == null && bVal == null) continue;
+      if (typeof aVal === 'object' || typeof bVal === 'object') {
+        if (JSON.stringify(aVal) !== JSON.stringify(bVal)) return false;
+      } else if (String(aVal) !== String(bVal)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function fetchRowsByKey(conn, table, pkCols) {
+    const [rows] = await conn.query(`SELECT * FROM \`${table}\``);
+    const map = new Map();
+    for (const row of rows) {
+      map.set(getRowKey(row, pkCols), row);
+    }
+    return map;
+  }
+
+  async function resolveRowConflict(table, pkCols, localRow, prodRow) {
+    const cmp = compareTimestamps(localRow, prodRow);
+    if (cmp === 1) {
+      await updateRow(prodConn, table, localRow, pkCols);
+      log.info(`  [${table}] Local row is newer; updated production (${getRowKey(localRow, pkCols)})`);
+      return 'prod-updated';
+    }
+    if (cmp === -1) {
+      if (BIDIRECTIONAL) {
+        await updateRow(localConn, table, prodRow, pkCols);
+        log.info(`  [${table}] Production row is newer; updated local (${getRowKey(prodRow, pkCols)})`);
+        return 'local-updated';
+      }
+      log.info(`  [${table}] Production row is newer; skipped local update (${getRowKey(prodRow, pkCols)})`);
+      return 'skipped';
+    }
+
+    if (rowsEqual(localRow, prodRow)) {
+      return 'identical';
+    }
+
+    log.warn(`  [${table}] Conflict without timestamps: row differs but no reliable timestamp found (${getRowKey(localRow, pkCols)})`);
+    return 'ambiguous';
+  }
+
+  async function upsertRow(conn, table, row, pkCols) {
+    const [existing] = await conn.query(`SELECT 1 FROM \`${table}\` WHERE ${buildWhereClause(pkCols)} LIMIT 1`, pkCols.map(col => serializeValue(row[col])));
+    if (existing.length === 0) {
+      await insertRow(conn, table, row);
+      return 'inserted';
+    }
+    await updateRow(conn, table, row, pkCols);
+    return 'updated';
+  }
+
+  async function backupProductionTables(tableList) {
+    const queued = [];
+    for (const table of tableList) {
+      if (!prodNames.has(table)) {
+        log.warn(`  [${table}] Production table missing, skipping backup.`);
+        continue;
+      }
+      const backupFile = path.join(BACKUP_DIR, `${backupTimestamp}-${table}.json`);
+      queued.push(backupTable(prodConn, table, backupFile));
+    }
+    const results = await Promise.all(queued);
+    return results.every(Boolean);
+  }
 
   try {
     localConn = await mysql.createConnection(LOCAL_DB);
@@ -424,42 +614,90 @@ async function syncData() {
       }
     }
 
-    let synced = 0, skipped = 0, merged = 0;
+    if (REQUIRE_BACKUP) {
+      ensureBackupDirectory(BACKUP_DIR);
+    }
 
-    for (const table of PUSH_TABLES) {
-      if (!localNames.has(table)) { skipped++; continue; }
+    const backupTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupTables = [...new Set([...PUSH_TABLES, ...MERGE_TABLES].filter(table => prodNames.has(table) && !SKIP_TABLES.includes(table)))];
+    if (REQUIRE_BACKUP && backupTables.length > 0) {
+      log.step('PRODUCTION BACKUP: Preparing before data synchronization');
+      const backupOk = await backupProductionTables(backupTables);
+      if (!backupOk) {
+        throw new Error('Production backup failed. Aborting data sync.');
+      }
+      log.ok(`Production backup complete: ${backupTables.length} tables backed up to ${path.relative(rootDir, BACKUP_DIR)}`);
+    }
 
-      try {
-        const [rows] = await localConn.query(`SELECT * FROM \`${table}\``);
-        if (rows.length === 0) { skipped++; continue; }
+    let tablesSynced = 0;
+    let tablesSkipped = 0;
+    let tablesMerged = 0;
+    const tableCandidates = Array.from(new Set([...PUSH_TABLES, ...MERGE_TABLES]));
 
-        const cols = Object.keys(rows[0]);
-        let upserted = 0;
+    for (const table of tableCandidates) {
+      if (SKIP_TABLES.includes(table)) {
+        tablesSkipped++;
+        continue;
+      }
+      if (!localNames.has(table) && !prodNames.has(table)) {
+        tablesSkipped++;
+        continue;
+      }
 
-        for (const row of rows) {
-          const vals = cols.map(c => {
-            const v = row[c];
-            return (v !== null && typeof v === 'object' && !(v instanceof Date)) ? JSON.stringify(v) : v;
-          });
-          const placeholders = cols.map(() => '?').join(',');
-          const updates = cols.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(',');
-          const sql = `INSERT INTO \`${table}\` (${cols.map(c => `\`${c}\``).join(',')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updates}`;
-          await prodConn.query(sql, vals);
-          upserted++;
+      log.step(`SYNC TABLE: ${table}`);
+      const pkCols = await getPrimaryKeyColumns(localNames.has(table) ? localConn : prodConn, table);
+      if (pkCols.length === 0) {
+        log.warn(`  ${table}: no primary key found, skipping table`);
+        tablesSkipped++;
+        continue;
+      }
+
+      const localRows = localNames.has(table) ? await fetchRowsByKey(localConn, table, pkCols) : new Map();
+      const prodRows = prodNames.has(table) ? await fetchRowsByKey(prodConn, table, pkCols) : new Map();
+      const allKeys = new Set([...localRows.keys(), ...prodRows.keys()]);
+      let rowChanges = 0;
+
+      for (const rowKey of allKeys) {
+        const localRow = localRows.get(rowKey);
+        const prodRow = prodRows.get(rowKey);
+
+        if (localRow && !prodRow) {
+          await insertRow(prodConn, table, localRow);
+          log.info(`  Inserted row into production: ${rowKey}`);
+          rowChanges++;
+          continue;
         }
 
-        log.ok(`${table}: ${upserted} rows pushed to production`);
-        synced++;
-      } catch (e) {
-        log.warn(`${table}: ${e.message.substring(0, 80)}`);
-        skipped++;
+        if (!localRow && prodRow) {
+          if (BIDIRECTIONAL || MERGE_TABLES.includes(table)) {
+            await insertRow(localConn, table, prodRow);
+            log.info(`  Inserted row into local: ${rowKey}`);
+            rowChanges++;
+          }
+          continue;
+        }
+
+        if (localRow && prodRow) {
+          const result = await resolveRowConflict(table, pkCols, localRow, prodRow);
+          if (result === 'prod-updated' || result === 'local-updated') {
+            rowChanges++;
+          }
+          continue;
+        }
       }
+
+      if (rowChanges > 0) {
+        tablesSynced++;
+      } else {
+        tablesSkipped++;
+      }
+      if (MERGE_TABLES.includes(table)) tablesMerged++;
     }
 
     await localConn.end();
     await prodConn.end();
 
-    log.ok(`Data sync complete: ${synced} tables synced, ${skipped} skipped, ${merged} merged`);
+    log.ok(`Data sync complete: ${tablesSynced} tables synced, ${tablesSkipped} skipped, ${tablesMerged} merged`);
     return true;
   } catch (e) {
     log.err(`Data sync failed: ${e.message}`);

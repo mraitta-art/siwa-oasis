@@ -200,17 +200,35 @@ export async function GET(request: NextRequest) {
     // Load saved configuration and deleted ID track list
     let savedSlides: Slide[] = [];
     let deletedDynamicIds: string[] = [];
+    let sourceType = 'hero_carousel_main';
+
+    async function loadSavedCarouselConfig() {
+      const fallbackTypes = ['hero_carousel_main', 'hero_carousel_discovery'];
+      for (const type of fallbackTypes) {
+        try {
+          const savedConfig = await query(
+            `SELECT config FROM website_configs WHERE type = ? LIMIT 1`,
+            [type]
+          );
+          if (savedConfig && savedConfig.length > 0) {
+            const config = typeof savedConfig[0].config === 'string'
+              ? JSON.parse(savedConfig[0].config)
+              : savedConfig[0].config;
+            return { config, type };
+          }
+        } catch (e) {
+          console.error(`Failed to fetch manually saved carousel slides for ${type}:`, e);
+        }
+      }
+      return { config: null, type: null };
+    }
 
     try {
-      const savedConfig = await query(
-        `SELECT config FROM website_configs WHERE type = 'hero_carousel_main' LIMIT 1`
-      );
-      if (savedConfig && savedConfig.length > 0) {
-        const config = typeof savedConfig[0].config === 'string'
-          ? JSON.parse(savedConfig[0].config)
-          : savedConfig[0].config;
-        savedSlides = config?.slides || [];
-        deletedDynamicIds = config?.deletedDynamicIds || [];
+      const result = await loadSavedCarouselConfig();
+      if (result.config) {
+        savedSlides = result.config?.slides || [];
+        deletedDynamicIds = result.config?.deletedDynamicIds || [];
+        sourceType = result.type || sourceType;
       }
     } catch (e) {
       console.error('Failed to fetch manually saved carousel slides:', e);

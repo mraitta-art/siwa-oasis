@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const { prodConfig, validateConfig } = require('./db-config');
 
 const sql = `
 ALTER TABLE journey_templates
@@ -15,15 +16,9 @@ ADD COLUMN requirements_text TEXT;
 `;
 
 async function run() {
+  validateConfig(prodConfig, 'PROD');
   try {
-    const dbProd = await mysql.createConnection({
-      host: 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
-      port: 4000,
-      user: '3iv5fPeLo2ze3jn.root',
-      password: 'Dj2teUVtQyMYghF3',
-      database: 'siwa_oasis',
-      ssl: { rejectUnauthorized: false }
-    });
+    const dbProd = await mysql.createConnection(prodConfig);
     console.log('Connected to Prod DB');
     await dbProd.query(sql);
     console.log('✅ Prod DB altered successfully.');
@@ -33,3 +28,4 @@ async function run() {
   }
 }
 run();
+

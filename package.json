@@ -21,7 +21,19 @@
     "sync:db": "node scripts/smart-sync.js --skip-build",
     "sync:quick": "node scripts/smart-sync.js --quick",
     "sync:force": "node scripts/smart-sync.js --force",
-    "sync:db:raw": "node scripts/sync_database.js"
+    "sync:db:raw": "node scripts/sync_database.js",
+    "sync:github": "node scripts/github-sync.js",
+    "sync:github:pull": "node scripts/github-sync.js --pull-only",
+    "sync:github:push": "node scripts/github-sync.js --push-only",
+    "sync:all": "npm run sync && npm run sync:github",
+"health": "node scripts/sync-health-check.js",
+    "health:watch": "node scripts/sync-health-check.js --watch",
+    "live": "node scripts/live-deploy.js",
+    "live:once": "node scripts/live-deploy.js --once",
+    "live:status": "node scripts/live-deploy.js --status",
+    "secure": "node scripts/security-check.js",
+    "deploy": "node scripts/security-check.js && node scripts/live-deploy.js --once",
+    "deploy:safe": "node scripts/security-check.js && node scripts/live-deploy.js --once"
   },
   "engines": {
     "node": ">=20.0.0"
