@@ -52,7 +52,6 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
     { value: 'business_form', label: '🧾 Business Form', description: 'Custom form for business submissions' },
   ];
 
-  // Fetch page settings and sections from the server
   useEffect(() => {
     async function loadData() {
       try {
@@ -85,7 +84,6 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
     );
   };
 
-  // Upload helper: read file as base64 and POST to /api/uploads
   async function uploadFile(file: File) {
     const reader = new FileReader();
     const dataUrl: string = await new Promise((res, rej) => {
@@ -200,38 +198,38 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 border-4 border-[#556B2F]/20 border-t-[#556B2F] rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-medium text-sm">Loading page settings...</p>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-semibold text-xs animate-pulse">Loading page settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100/50 to-zinc-50 py-8 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
       <div className="max-w-7xl mx-auto">
         
         {/* Header toolbar */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <Link href="/admin/homepages-manager" className="group text-slate-500 hover:text-[#556B2F] text-sm font-semibold transition-colors mb-2 inline-flex items-center gap-1">
-              <span className="transition-transform group-hover:-translate-x-0.5">←</span> Back to Homepage Manager
+            <Link href="/admin/homepages-manager" className="group text-slate-400 hover:text-slate-700 text-xs font-bold transition-colors mb-2 inline-flex items-center gap-1 uppercase tracking-wider">
+              ← Homepage Manager
             </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Homepage Editor</h1>
-            <p className="text-slate-500 text-sm font-medium">Design structures and layouts for <span className="text-[#556B2F] font-bold">{pageSettings.title || 'Untitled Page'}</span></p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Homepage Editor</h1>
+            <p className="text-slate-500 text-xs font-medium">Design structures and layouts for <span className="text-slate-800 font-bold">{pageSettings.title || 'Untitled Page'}</span></p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Link
               href={`/admin/homepage-preview/${id}`}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all duration-200 flex items-center gap-1.5"
+              className="px-3.5 py-2 border border-slate-250 hover:bg-slate-50 text-slate-705 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
             >
               👁️ View Preview
             </Link>
             <button
               onClick={handleSavePage}
               disabled={isSaving}
-              className="px-5 py-2.5 bg-gradient-to-r from-[#556B2F] to-[#6b8e23] hover:from-[#445625] hover:to-[#55721c] text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+              className="px-4 py-2 bg-slate-905 hover:bg-slate-950 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : '💾 Save Page'}
             </button>
@@ -244,41 +242,41 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
           {/* Page settings drawer (Left) */}
           <div className="lg:col-span-1 space-y-6">
             
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
+            <div className="bg-white border border-slate-200 rounded-xl p-5">
+              <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2 mb-4">
                 📄 Page Settings
               </h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Page Title</label>
+                  <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-2">Page Title</label>
                   <input
                     type="text"
                     value={pageSettings.title}
                     onChange={(e) => setPageSettings({ ...pageSettings, title: e.target.value })}
                     placeholder="Enter page title"
-                    className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-950 text-xs font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description</label>
+                  <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-2">Description</label>
                   <textarea
                     value={pageSettings.description}
                     onChange={(e) => setPageSettings({ ...pageSettings, description: e.target.value })}
                     placeholder="Brief description for SEO and headings"
-                    className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-950 text-xs font-medium"
                     rows={3}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Theme</label>
+                    <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-2">Theme</label>
                     <select
                       value={pageSettings.theme}
                       onChange={(e) => setPageSettings({ ...pageSettings, theme: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                      className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-950 text-xs font-medium"
                     >
                       <option value="light">☀️ Light Theme</option>
                       <option value="dark">🌙 Dark Theme</option>
@@ -287,11 +285,11 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Layout</label>
+                    <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-2">Layout</label>
                     <select
                       value={pageSettings.layout}
                       onChange={(e) => setPageSettings({ ...pageSettings, layout: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                      className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-950 text-xs font-medium"
                     >
                       <option value="standard">Standard</option>
                       <option value="minimal">Minimalist</option>
@@ -302,27 +300,27 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
 
                 <button 
                   onClick={handleSavePage}
-                  className="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-950 text-white font-bold rounded-xl text-sm transition-all duration-200"
+                  className="w-full mt-2 py-2 border border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-bold rounded-lg text-xs transition-colors"
                 >
                   Quick Save Settings
                 </button>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4">⚡ Page Status</h2>
-              <div className="space-y-2.5">
+            <div className="bg-white border border-slate-200 rounded-xl p-5">
+              <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2 mb-4">⚡ Page Status</h2>
+              <div className="space-y-2">
                 <button
                   onClick={handleSavePage}
-                  className="w-full px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-left text-xs font-bold rounded-xl transition-all duration-200"
+                  className="w-full px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 text-left text-xs font-bold rounded-lg transition-colors"
                 >
-                  ✓ Page is Live & Running
+                  ✓ Page config is active
                 </button>
                 <Link
                   href={`/admin/homepage-sections/${id}`}
-                  className="w-full px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 block text-xs font-bold rounded-xl transition-all duration-200"
+                  className="w-full px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 block text-xs font-bold rounded-lg transition-colors"
                 >
-                  📋 Configure Complex Datasets
+                  📋 Configure Datasets
                 </Link>
               </div>
             </div>
@@ -332,18 +330,17 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
           {/* Sections manager list (Right/Center) */}
           <div className="lg:col-span-2 space-y-6">
             
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200 rounded-xl p-5">
+              <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2 mb-5 flex items-center justify-between">
                 <span>📋 Layout Sections ({sections.length})</span>
-                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Drag / Sort Enabled</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Order Management</span>
               </h2>
 
-              {/* Sections list block */}
               {sections.length === 0 ? (
-                <div className="py-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl mb-6">
-                  <div className="text-3xl mb-2">🧩</div>
-                  <h4 className="text-sm font-bold text-slate-600 mb-1">No layout sections added yet</h4>
-                  <p className="text-xs text-slate-400 max-w-xs mx-auto">Select a component template below to start structuring your homepage.</p>
+                <div className="py-12 text-center border border-dashed border-slate-200 rounded-lg mb-6">
+                  <div className="text-2xl mb-2">🧩</div>
+                  <h4 className="text-xs font-bold text-slate-600 mb-0.5">No sections added yet</h4>
+                  <p className="text-[11px] text-slate-400 max-w-xs mx-auto">Select a component template below to start structuring your homepage.</p>
                 </div>
               ) : (
                 <div className="space-y-3 mb-8">
@@ -352,10 +349,10 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                     .map((section, index) => (
                       <div
                         key={section.id}
-                        className={`border rounded-xl p-4 transition-all duration-300 ${
+                        className={`border rounded-lg p-4 transition-all duration-150 ${
                           section.enabled 
-                            ? 'bg-white border-slate-200/80 shadow-sm hover:border-[#D4AF37]/50' 
-                            : 'bg-slate-50 border-slate-200/60 opacity-60'
+                            ? 'bg-white border-slate-200' 
+                            : 'bg-white border-slate-150 opacity-50'
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -364,23 +361,23 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                               type="checkbox"
                               checked={section.enabled}
                               onChange={() => toggleSection(section.id)}
-                              className="w-4 h-4 rounded text-[#556B2F] focus:ring-[#556B2F] border-slate-300 accent-[#556B2F] cursor-pointer"
+                              className="w-3.5 h-3.5 rounded text-slate-900 focus:ring-0 border-slate-350 accent-slate-900 cursor-pointer"
                               title="Toggle Visibility"
                             />
                             <div>
-                              <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                              <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                                 {section.name}
-                                {!section.enabled && <span className="text-[9px] bg-slate-200 text-slate-600 px-1 rounded uppercase font-bold">Hidden</span>}
+                                {!section.enabled && <span className="text-[9px] border border-slate-250 text-slate-500 px-1 rounded uppercase font-bold">Hidden</span>}
                               </div>
-                              <div className="text-[10px] text-slate-400 uppercase font-black tracking-wider">{section.type}</div>
+                              <div className="text-[9px] text-slate-400 uppercase font-black tracking-wider">{section.type}</div>
                             </div>
                           </div>
 
-                          <div className="flex gap-1 self-end sm:self-center">
+                          <div className="flex gap-1.5 self-end sm:self-center">
                             <button
                               onClick={() => moveSection(section.id, 'up')}
                               disabled={index === 0}
-                              className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200 transition-colors"
+                              className="px-2 py-1 bg-white hover:bg-slate-50 text-slate-500 rounded border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold"
                               title="Move Up"
                             >
                               ↑
@@ -388,20 +385,20 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                             <button
                               onClick={() => moveSection(section.id, 'down')}
                               disabled={index === sections.length - 1}
-                              className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200 transition-colors"
+                              className="px-2 py-1 bg-white hover:bg-slate-50 text-slate-500 rounded border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold"
                               title="Move Down"
                             >
                               ↓
                             </button>
                             <button
                               onClick={() => setEditingSection(section)}
-                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg border border-slate-250 transition-colors"
+                              className="px-2.5 py-1 border border-slate-200 hover:bg-slate-50 text-slate-705 text-xs font-bold rounded transition-colors"
                             >
-                              ✏️ Edit Details
+                              ✏️ Edit
                             </button>
                             <button
                               onClick={() => removeSection(section.id)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-100 transition-colors"
+                              className="px-2.5 py-1 border border-slate-200 hover:border-rose-350 hover:bg-rose-50 text-rose-600 text-xs font-bold rounded transition-colors"
                               title="Delete Component"
                             >
                               🗑️
@@ -415,16 +412,16 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
 
               {/* Add New Section block */}
               <div className="border-t border-slate-100 pt-6">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Add Layout Component</h3>
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Add Layout Component</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {availableSectionTypes.map((type) => (
                     <button
                       key={type.value}
                       onClick={() => addSection(type.value)}
-                      className="p-3 bg-slate-50 hover:bg-slate-100/50 border border-slate-200 hover:border-[#D4AF37]/50 rounded-xl transition-all duration-200 text-left group"
+                      className="p-3 bg-white border border-slate-200 hover:border-slate-400 rounded-lg transition-all duration-150 text-left group"
                     >
-                      <div className="font-bold text-slate-800 text-sm group-hover:text-[#556B2F] transition-colors">{type.label}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{type.description}</div>
+                      <div className="font-bold text-slate-800 text-xs group-hover:text-slate-950 transition-colors">{type.label}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{type.description}</div>
                     </button>
                   ))}
                 </div>
@@ -433,15 +430,15 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
 
             {/* Editing Section Drawer Details Modal */}
             {editingSection && (
-              <div className="bg-white border border-slate-200 shadow-lg rounded-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-250">
-                <div className="flex items-center justify-between pb-3 mb-6 border-b border-slate-100">
+              <div className="bg-white border border-slate-350 rounded-xl p-5 transition-all duration-200">
+                <div className="flex items-center justify-between pb-2 mb-5 border-b border-slate-200">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Configure: {editingSection.name}</h3>
-                    <p className="text-xs text-slate-400">Settings for {editingSection.type} component</p>
+                    <h3 className="text-sm font-black text-slate-900">Configure Component: {editingSection.name}</h3>
+                    <p className="text-[10px] text-slate-400">Settings for {editingSection.type} element</p>
                   </div>
                   <button
                     onClick={() => setEditingSection(null)}
-                    className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-50 transition-colors"
+                    className="text-slate-400 hover:text-slate-600 font-bold p-1 text-xs"
                   >
                     ✕
                   </button>
@@ -449,22 +446,22 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
 
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Section Custom Name</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Section Custom Name</label>
                     <input
                       type="text"
                       value={editingSection.name}
                       onChange={(e) => setEditingSection({ ...editingSection, name: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-950 text-xs font-medium"
                     />
                   </div>
 
                   {/* Business Form Fields Editor */}
                   {editingSection.type === 'business_form' && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Custom Form Fields</h4>
+                    <div className="border border-slate-200 rounded-xl p-4 bg-white">
+                      <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-3">Custom Form Fields</h4>
                       <div className="space-y-3">
                         {(editingSection.fields || []).map((field, idx) => (
-                          <div key={field.id} className="flex flex-wrap gap-2 items-center bg-white border border-slate-100 p-2.5 rounded-lg">
+                          <div key={field.id} className="flex flex-wrap gap-2 items-center border border-slate-200 p-2.5 rounded-lg bg-white">
                             <input 
                               type="text" 
                               value={field.name} 
@@ -478,7 +475,7 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                                 });
                               }}
                               placeholder="Field Label"
-                              className="px-2 py-1 bg-slate-50 text-slate-800 text-xs border border-slate-200 rounded-md focus:outline-none focus:border-[#D4AF37]" 
+                              className="px-2 py-1 bg-white text-slate-800 text-xs border border-slate-200 rounded focus:outline-none focus:border-slate-950" 
                             />
                             
                             <select 
@@ -492,7 +489,7 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                                   return { ...prev, fields };
                                 });
                               }}
-                              className="px-2 py-1 bg-slate-50 text-slate-800 text-xs border border-slate-200 rounded-md focus:outline-none focus:border-[#D4AF37]"
+                              className="px-2 py-1 bg-white text-slate-800 text-xs border border-slate-200 rounded focus:outline-none focus:border-slate-950"
                             >
                               <option value="text">Text Input</option>
                               <option value="number">Numeric</option>
@@ -514,7 +511,7 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                                     return { ...prev, fields };
                                   });
                                 }}
-                                className="rounded text-[#556B2F] border-slate-300 accent-[#556B2F]"
+                                className="rounded text-slate-900 border-slate-350 accent-slate-900"
                               /> 
                               Required
                             </label>
@@ -544,7 +541,7 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                             };
                             setEditingSection(prev => prev ? { ...prev, fields: [...(prev.fields || []), newField] } : null);
                           }}
-                          className="px-3 py-1.5 bg-[#556B2F] hover:bg-[#445625] text-white text-xs font-bold rounded-lg transition-colors"
+                          className="px-3 py-1.5 border border-slate-900 text-slate-900 hover:bg-slate-50 text-xs font-bold rounded transition-colors"
                         >
                           + Add Field Element
                         </button>
@@ -554,24 +551,24 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
 
                   {/* Image Uploader for Hero or Gallery */}
                   {(editingSection.type === 'hero' || editingSection.type === 'gallery') && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Component Images</label>
+                    <div className="border border-slate-200 rounded-xl p-4 bg-white">
+                      <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-3">Component Images</label>
                       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-4">
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) => handleFileSelect(editingSection.id, e)}
-                          className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#556B2F]/10 file:text-[#556B2F] hover:file:bg-[#556B2F]/20 cursor-pointer"
+                          className="text-xs text-slate-500 file:mr-3 file:py-1 file:px-2.5 file:rounded file:border file:border-slate-250 file:text-xs file:font-semibold file:bg-white file:text-slate-700 cursor-pointer"
                         />
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {(editingSection.images || []).map((img, i) => (
-                          <div key={i} className="aspect-[4/3] bg-slate-200 rounded-lg overflow-hidden relative border border-slate-200 shadow-sm group">
+                          <div key={i} className="aspect-[4/3] bg-slate-100 rounded overflow-hidden relative border border-slate-200 group">
                             <img src={img} alt={`img-${i}`} className="w-full h-full object-cover" />
                             <button 
                               onClick={() => removeImage(editingSection.id, i)} 
-                              className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[10px] leading-none"
+                              className="absolute top-1 right-1 bg-slate-900 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] leading-none"
                               title="Delete Image"
                             >
                               ✕
@@ -582,18 +579,18 @@ export default function HomepageEditorPage({ params }: { params: Promise<{ id: s
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-2 border-t border-slate-100 justify-end">
+                  <div className="flex gap-2.5 pt-2 border-t border-slate-100 justify-end">
                     <button
                       onClick={() => setEditingSection(null)}
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-all duration-200"
+                      className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 text-xs font-bold rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button 
                       onClick={() => handleSectionSave(editingSection)}
-                      className="px-5 py-2 bg-[#556B2F] hover:bg-[#445625] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-sm"
+                      className="px-4 py-1.5 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-lg transition-colors"
                     >
-                      Save Component Updates
+                      Apply Updates
                     </button>
                   </div>
                 </div>

@@ -23,7 +23,6 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
 
   const [editingSection, setEditingSection] = useState<SectionData | null>(null);
 
-  // Load section structures from the backend API
   useEffect(() => {
     async function loadData() {
       try {
@@ -81,7 +80,6 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
       });
 
       if (res.ok) {
-        // Refresh local cache representation
         setPageData((prev: any) => prev ? { ...prev, sections: updated } : null);
       } else {
         alert('Failed to save layout changes.');
@@ -111,7 +109,6 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
     const swapWith = direction === 'up' ? index - 1 : index + 1;
     [newSections[index], newSections[swapWith]] = [newSections[swapWith], newSections[index]];
     
-    // Reset order field based on new positions
     newSections.forEach((s, idx) => {
       s.order = idx + 1;
     });
@@ -148,37 +145,37 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 border-4 border-[#556B2F]/20 border-t-[#556B2F] rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-medium text-sm">Loading page sections...</p>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-semibold text-xs animate-pulse">Loading page sections...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100/50 to-zinc-50 py-8 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <Link href="/admin/homepages-manager" className="group text-slate-500 hover:text-[#556B2F] text-sm font-semibold transition-colors mb-2 inline-flex items-center gap-1">
-              <span className="transition-transform group-hover:-translate-x-0.5">←</span> Back to Homepage Manager
+            <Link href="/admin/homepages-manager" className="group text-slate-450 hover:text-slate-700 text-xs font-bold transition-colors mb-2 inline-flex items-center gap-1 uppercase tracking-wider">
+              ← Homepage Manager
             </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Manage Section Details</h1>
-            <p className="text-slate-500 text-sm font-medium">Fine-tune elements and view details for <span className="text-[#556B2F] font-bold">{pageName}</span></p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Manage Section Details</h1>
+            <p className="text-slate-500 text-xs font-medium">Fine-tune elements and view details for <span className="text-slate-800 font-bold">{pageName}</span></p>
           </div>
 
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <Link
               href={`/admin/homepage-editor/${id}`}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all duration-200 flex items-center gap-1"
+              className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
             >
               ✏️ Open Visual Editor
             </Link>
             <Link
               href={`/admin/homepage-preview/${id}`}
-              className="px-4 py-2 bg-[#D4AF37] hover:bg-[#b89528] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
+              className="px-3.5 py-1.5 border border-slate-250 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
             >
               👁️ Preview Live Content
             </Link>
@@ -188,59 +185,59 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
         {/* Main Content Workspace */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Sections List (Left/Center) */}
+          {/* Sections List */}
           <div className="lg:col-span-2 space-y-4">
             {sections.length === 0 ? (
-              <div className="py-12 bg-white border border-slate-200/60 rounded-2xl text-center p-8 shadow-sm">
-                <div className="text-4xl mb-3">📋</div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">No layout sections found</h3>
-                <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6">Open the visual editor to populate sections or use template presets to get started.</p>
+              <div className="py-12 bg-white border border-slate-200 rounded-xl text-center p-8">
+                <div className="text-3xl mb-2">📋</div>
+                <h3 className="text-sm font-bold text-slate-800 mb-1">No layout sections found</h3>
+                <p className="text-slate-500 text-xs max-w-sm mx-auto mb-6">Open the visual editor to populate sections or use template presets to get started.</p>
               </div>
             ) : (
               sections.map((section, index) => (
                 <div
                   key={section.id}
-                  className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
+                  className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-350 transition-all duration-150"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1">{section.title}</h3>
+                      <h3 className="text-base font-black text-slate-900 leading-tight mb-1">{section.title}</h3>
                       <p className="text-slate-500 text-xs font-medium max-w-lg">{section.content || 'No description provided.'}</p>
-                      <div className="flex gap-4 mt-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        <span>Component Type: <span className="text-[#556B2F]">{section.type}</span></span>
-                        <span>Item Count: <span className="text-[#D4AF37]">{section.items}</span></span>
+                      <div className="flex gap-4 mt-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span>Type: <span className="text-slate-750 font-black">{section.type}</span></span>
+                        <span>Items: <span className="text-slate-750 font-black">{section.items}</span></span>
                       </div>
                     </div>
 
-                    <span className="self-start sm:self-center px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-full text-xs font-bold">
+                    <span className="self-start sm:self-center px-2 py-0.5 border border-slate-200 text-slate-500 rounded text-[10px] font-bold uppercase tracking-wider">
                       Position {index + 1}
                     </span>
                   </div>
 
-                  <div className="flex gap-2 flex-wrap pt-3 border-t border-slate-50">
+                  <div className="flex gap-2 flex-wrap pt-3.5 border-t border-slate-100">
                     <button
                       onClick={() => setEditingSection(section)}
-                      className="px-3.5 py-2 bg-[#556B2F] hover:bg-[#445625] text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
+                      className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded transition-colors"
                     >
                       ✏️ Edit Copy & Details
                     </button>
                     <button
                       onClick={() => moveSection(section.id, 'up')}
                       disabled={index === 0}
-                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-600 rounded-lg transition-colors"
+                      className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold rounded transition-colors"
                     >
                       ↑ Move Up
                     </button>
                     <button
                       onClick={() => moveSection(section.id, 'down')}
                       disabled={index === sections.length - 1}
-                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-600 rounded-lg transition-colors"
+                      className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold rounded transition-colors"
                     >
                       ↓ Move Down
                     </button>
                     <button
                       onClick={() => removeSection(section.id)}
-                      className="px-3 py-2 border border-rose-250 text-rose-600 hover:bg-rose-50 text-xs font-bold rounded-lg transition-colors ml-auto"
+                      className="px-2.5 py-1.5 border border-slate-200 hover:border-rose-350 hover:bg-rose-50 text-rose-600 text-xs font-bold rounded transition-colors ml-auto"
                     >
                       🗑️ Remove
                     </button>
@@ -251,8 +248,8 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
 
             {/* Quick Saves Status Indicator */}
             {isSaving && (
-              <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+              <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-3.5 py-2 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
                 Autosaving layout...
               </div>
             )}
@@ -263,12 +260,12 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
             
             {/* Inline Editor */}
             {editingSection ? (
-              <div className="bg-white border border-slate-200/85 rounded-2xl p-6 shadow-md animate-in fade-in slide-in-from-right-4 duration-250">
-                <div className="flex items-center justify-between pb-3 mb-5 border-b border-slate-100">
-                  <h2 className="text-base font-bold text-slate-900">Modify Content</h2>
+              <div className="bg-white border border-slate-350 rounded-xl p-5 transition-all duration-150">
+                <div className="flex items-center justify-between pb-2 mb-5 border-b border-slate-200">
+                  <h2 className="text-xs font-black text-slate-900">Modify Content</h2>
                   <button
                     onClick={() => setEditingSection(null)}
-                    className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-full hover:bg-slate-50 transition-colors"
+                    className="text-slate-400 hover:text-slate-600 font-bold p-1 text-xs"
                   >
                     ✕
                   </button>
@@ -276,47 +273,47 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Section Heading</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Section Heading</label>
                     <input
                       type="text"
                       value={editingSection.title}
                       onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-950 text-xs font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description / Paragraph</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Description / Paragraph</label>
                     <textarea
                       value={editingSection.content}
                       onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-950 text-xs font-medium"
                       rows={4}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Limit / Count</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Item Limit / Count</label>
                     <input
                       type="number"
                       value={editingSection.items}
                       min="1"
                       max="10"
                       onChange={(e) => setEditingSection({ ...editingSection, items: parseInt(e.target.value) || 1 })}
-                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-950 text-xs font-medium"
                     />
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex gap-2">
+                  <div className="pt-4 border-t border-slate-200 flex gap-2.5">
                     <button
                       onClick={() => setEditingSection(null)}
-                      className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors"
+                      className="w-1/2 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-bold rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => handleSectionSave(editingSection)}
-                      className="w-1/2 py-2 bg-[#556B2F] hover:bg-[#445625] text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                      className="w-1/2 py-1.5 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-lg transition-colors"
                     >
                       Apply
                     </button>
@@ -325,9 +322,9 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
               </div>
             ) : (
               /* Preset add template drawer */
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-                <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
-                  <span>🧩 Add Preset component</span>
+              <div className="bg-white border border-slate-200 rounded-xl p-5">
+                <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2 mb-4">
+                  🧩 Add Preset Component
                 </h2>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -344,9 +341,9 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
                     <button
                       key={preset.name}
                       onClick={() => addSection(preset.type, preset.name)}
-                      className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-[#D4AF37]/50 rounded-xl transition-all duration-200 text-center flex flex-col items-center justify-center group"
+                      className="p-3 bg-white border border-slate-200 hover:border-slate-400 rounded-lg transition-all duration-150 text-center flex flex-col items-center justify-center group"
                     >
-                      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-200">{preset.icon}</div>
+                      <div className="text-2xl mb-1 group-hover:scale-105 transition-transform duration-150">{preset.icon}</div>
                       <div className="text-[10px] font-bold text-slate-700 leading-tight">{preset.name}</div>
                     </button>
                   ))}
