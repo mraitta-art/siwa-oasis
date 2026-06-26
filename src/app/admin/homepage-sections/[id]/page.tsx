@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 
 interface SectionData {
   id: string;
@@ -14,113 +14,261 @@ interface SectionData {
 
 export default function HomepageSectionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [sections, setSections] = useState<SectionData[]>([
-    {
-      id: '1',
-      title: 'Hero Section',
-      type: 'hero',
-      content: 'Hotels & Resorts - Main headline',
-      items: 1,
-      order: 1,
-    },
-    {
-      id: '2',
-      title: 'Featured Properties',
-      type: 'gallery',
-      content: 'Showcase 3-6 featured hotels',
-      items: 5,
-      order: 2,
-    },
-    {
-      id: '3',
-      title: 'Testimonials',
-      type: 'testimonials',
-      content: 'Guest reviews and ratings',
-      items: 4,
-      order: 3,
-    },
-  ]);
+  
+  const [sections, setSections] = useState<SectionData[]>([]);
+  const [pageName, setPageName] = useState('');
+  const [pageData, setPageData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [editingSection, setEditingSection] = useState<SectionData | null>(null);
 
+  // Load section structures from the backend API
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/homepages/${id}`);
+        const data = await res.json();
+        if (data.success && data.page) {
+          setPageData(data.page);
+          setPageName(data.page.name || 'Untitled Page');
+          const mapped: SectionData[] = (data.page.sections || []).map((s: any) => ({
+            id: s.id,
+            title: s.name || 'Untitled Section',
+            type: s.type || 'hero',
+            content: s.content || '',
+            items: s.items || (s.images?.length || 1),
+            order: s.order || 0
+          }));
+          setSections(mapped.sort((a, b) => a.order - b.order));
+        } else {
+          alert('Failed to load page config');
+        }
+      } catch (err) {
+        console.error('Failed to load data', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [id]);
+
+  const handleSaveChanges = async (updatedSectionsList = sections) => {
+    try {
+      setIsSaving(true);
+      const updated = updatedSectionsList.map((s, idx) => {
+        const existing = (pageData?.sections || []).find((x: any) => x.id === s.id) || {};
+        return {
+          ...existing,
+          id: s.id,
+          name: s.title,
+          type: s.type,
+          content: s.content,
+          items: s.items,
+          order: idx + 1,
+          enabled: existing.enabled !== undefined ? existing.enabled : true
+        };
+      });
+
+      const res = await fetch(`/api/homepages/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pageData,
+          sections: updated
+        }),
+      });
+
+      if (res.ok) {
+        // Refresh local cache representation
+        setPageData((prev: any) => prev ? { ...prev, sections: updated } : null);
+      } else {
+        alert('Failed to save layout changes.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error occurred while saving sections.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSectionSave = (updated: SectionData) => {
+    const updatedList = sections.map(s => s.id === updated.id ? updated : s);
+    setSections(updatedList);
+    setEditingSection(null);
+    handleSaveChanges(updatedList);
+  };
+
+  const moveSection = (sectionId: string, direction: 'up' | 'down') => {
+    const index = sections.findIndex(s => s.id === sectionId);
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === sections.length - 1)) {
+      return;
+    }
+
+    const newSections = [...sections];
+    const swapWith = direction === 'up' ? index - 1 : index + 1;
+    [newSections[index], newSections[swapWith]] = [newSections[swapWith], newSections[index]];
+    
+    // Reset order field based on new positions
+    newSections.forEach((s, idx) => {
+      s.order = idx + 1;
+    });
+
+    setSections(newSections);
+    handleSaveChanges(newSections);
+  };
+
+  const removeSection = (sectionId: string) => {
+    if (!confirm('Are you sure you want to remove this section from this page layout?')) {
+      return;
+    }
+    const filtered = sections.filter(s => s.id !== sectionId);
+    setSections(filtered);
+    if (editingSection?.id === sectionId) {
+      setEditingSection(null);
+    }
+    handleSaveChanges(filtered);
+  };
+
+  const addSection = (type: string, titleName: string) => {
+    const newSec: SectionData = {
+      id: Date.now().toString(),
+      title: titleName,
+      type: type,
+      content: `Add description or custom copy for ${titleName} component here...`,
+      items: 3,
+      order: sections.length + 1
+    };
+    const updatedList = [...sections, newSec];
+    setSections(updatedList);
+    handleSaveChanges(updatedList);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
+        <div className="w-10 h-10 border-4 border-[#556B2F]/20 border-t-[#556B2F] rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium text-sm">Loading page sections...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100/50 to-zinc-50 py-8 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
       <div className="max-w-7xl mx-auto">
+        
         {/* Header */}
-        <div className="mb-8">
-          <Link href="/admin/homepages-manager" className="text-gray-400 hover:text-[#D4AF37] transition-colors mb-4 block">
-            ← Back to Homepages
-          </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">Manage Sections</h1>
-          <p className="text-gray-400">Edit individual sections for Hotels & Resorts page</p>
-        </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Sections List */}
-          <div className="lg:col-span-2">
-            <div className="space-y-4">
-              {sections
-                .sort((a, b) => a.order - b.order)
-                .map((section) => (
-                  <div
-                    key={section.id}
-                    className="bg-gray-900 border border-gray-800 rounded-lg p-6 hover:border-[#D4AF37] transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-white mb-1">{section.title}</h3>
-                        <p className="text-gray-400 text-sm">{section.content}</p>
-                        <div className="flex gap-4 mt-3 text-sm text-gray-500">
-                          <span>Type: <span className="text-[#D4AF37]">{section.type}</span></span>
-                          <span>Items: <span className="text-[#D4AF37]">{section.items}</span></span>
-                        </div>
-                      </div>
-
-                      <span className="px-3 py-1 bg-[#556B2F] rounded text-sm text-white font-semibold">
-                        Position {section.order}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-3 flex-wrap">
-                      <button
-                        onClick={() => setEditingSection(section)}
-                        className="px-4 py-2 bg-[#556B2F] rounded text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-                      >
-                        ✏️ Edit Content
-                      </button>
-                      <button className="px-4 py-2 bg-gray-800 rounded text-white text-sm font-semibold hover:bg-gray-700 transition-colors">
-                        🎨 Customize
-                      </button>
-                      <button className="px-4 py-2 bg-gray-800 rounded text-white text-sm font-semibold hover:bg-gray-700 transition-colors">
-                        ↑ Move Up
-                      </button>
-                      <button className="px-4 py-2 bg-gray-800 rounded text-white text-sm font-semibold hover:bg-gray-700 transition-colors">
-                        ↓ Move Down
-                      </button>
-                      <button className="px-4 py-2 bg-red-900 rounded text-red-200 text-sm font-semibold hover:bg-red-800 transition-colors">
-                        🗑️ Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-
-            {/* Add Section Button */}
-            <button className="mt-8 px-6 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity w-full">
-              + Add New Section
-            </button>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
+          <div>
+            <Link href="/admin/homepages-manager" className="group text-slate-500 hover:text-[#556B2F] text-sm font-semibold transition-colors mb-2 inline-flex items-center gap-1">
+              <span className="transition-transform group-hover:-translate-x-0.5">←</span> Back to Homepage Manager
+            </Link>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Manage Section Details</h1>
+            <p className="text-slate-500 text-sm font-medium">Fine-tune elements and view details for <span className="text-[#556B2F] font-bold">{pageName}</span></p>
           </div>
 
-          {/* Section Editor */}
-          <div className="lg:col-span-1">
+          <div className="flex gap-2.5">
+            <Link
+              href={`/admin/homepage-editor/${id}`}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all duration-200 flex items-center gap-1"
+            >
+              ✏️ Open Visual Editor
+            </Link>
+            <Link
+              href={`/admin/homepage-preview/${id}`}
+              className="px-4 py-2 bg-[#D4AF37] hover:bg-[#b89528] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
+            >
+              👁️ Preview Live Content
+            </Link>
+          </div>
+        </div>
+
+        {/* Main Content Workspace */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Sections List (Left/Center) */}
+          <div className="lg:col-span-2 space-y-4">
+            {sections.length === 0 ? (
+              <div className="py-12 bg-white border border-slate-200/60 rounded-2xl text-center p-8 shadow-sm">
+                <div className="text-4xl mb-3">📋</div>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">No layout sections found</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6">Open the visual editor to populate sections or use template presets to get started.</p>
+              </div>
+            ) : (
+              sections.map((section, index) => (
+                <div
+                  key={section.id}
+                  className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1">{section.title}</h3>
+                      <p className="text-slate-500 text-xs font-medium max-w-lg">{section.content || 'No description provided.'}</p>
+                      <div className="flex gap-4 mt-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <span>Component Type: <span className="text-[#556B2F]">{section.type}</span></span>
+                        <span>Item Count: <span className="text-[#D4AF37]">{section.items}</span></span>
+                      </div>
+                    </div>
+
+                    <span className="self-start sm:self-center px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-full text-xs font-bold">
+                      Position {index + 1}
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2 flex-wrap pt-3 border-t border-slate-50">
+                    <button
+                      onClick={() => setEditingSection(section)}
+                      className="px-3.5 py-2 bg-[#556B2F] hover:bg-[#445625] text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
+                    >
+                      ✏️ Edit Copy & Details
+                    </button>
+                    <button
+                      onClick={() => moveSection(section.id, 'up')}
+                      disabled={index === 0}
+                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-600 rounded-lg transition-colors"
+                    >
+                      ↑ Move Up
+                    </button>
+                    <button
+                      onClick={() => moveSection(section.id, 'down')}
+                      disabled={index === sections.length - 1}
+                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-600 rounded-lg transition-colors"
+                    >
+                      ↓ Move Down
+                    </button>
+                    <button
+                      onClick={() => removeSection(section.id)}
+                      className="px-3 py-2 border border-rose-250 text-rose-600 hover:bg-rose-50 text-xs font-bold rounded-lg transition-colors ml-auto"
+                    >
+                      🗑️ Remove
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* Quick Saves Status Indicator */}
+            {isSaving && (
+              <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                Autosaving layout...
+              </div>
+            )}
+          </div>
+
+          {/* Section Editor & Presets (Right) */}
+          <div className="lg:col-span-1 space-y-6">
+            
+            {/* Inline Editor */}
             {editingSection ? (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-white">Edit Section</h2>
+              <div className="bg-white border border-slate-200/85 rounded-2xl p-6 shadow-md animate-in fade-in slide-in-from-right-4 duration-250">
+                <div className="flex items-center justify-between pb-3 mb-5 border-b border-slate-100">
+                  <h2 className="text-base font-bold text-slate-900">Modify Content</h2>
                   <button
                     onClick={() => setEditingSection(null)}
-                    className="text-gray-400 hover:text-white"
+                    className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-full hover:bg-slate-50 transition-colors"
                   >
                     ✕
                   </button>
@@ -128,102 +276,87 @@ export default function HomepageSectionsPage({ params }: { params: Promise<{ id:
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Section Title</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Section Heading</label>
                     <input
                       type="text"
-                      defaultValue={editingSection.title}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      value={editingSection.title}
+                      onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Content</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description / Paragraph</label>
                     <textarea
-                      defaultValue={editingSection.content}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      value={editingSection.content}
+                      onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
                       rows={4}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Number of Items</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Limit / Count</label>
                     <input
                       type="number"
-                      defaultValue={editingSection.items}
+                      value={editingSection.items}
                       min="1"
                       max="10"
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      onChange={(e) => setEditingSection({ ...editingSection, items: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all duration-200 text-sm font-medium"
                     />
                   </div>
 
-                  <div className="pt-4 border-t border-gray-700 space-y-2">
-                    <button className="w-full px-4 py-2 bg-[#556B2F] rounded text-white text-sm font-semibold hover:opacity-90 transition-opacity">
-                      Save Changes
-                    </button>
+                  <div className="pt-4 border-t border-slate-100 flex gap-2">
                     <button
                       onClick={() => setEditingSection(null)}
-                      className="w-full px-4 py-2 bg-gray-800 rounded text-white text-sm font-semibold hover:bg-gray-700 transition-colors"
+                      className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors"
                     >
                       Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSectionSave(editingSection)}
+                      className="w-1/2 py-2 bg-[#556B2F] hover:bg-[#445625] text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    >
+                      Apply
                     </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-                <h2 className="text-lg font-bold text-white mb-4">📊 Section Stats</h2>
+              /* Preset add template drawer */
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+                <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+                  <span>🧩 Add Preset component</span>
+                </h2>
 
-                <div className="space-y-4">
-                  <div className="bg-gray-800 rounded p-4 text-center">
-                    <div className="text-3xl font-bold text-[#D4AF37] mb-1">{sections.length}</div>
-                    <div className="text-sm text-gray-400">Total Sections</div>
-                  </div>
-
-                  <div className="bg-gray-800 rounded p-4 text-center">
-                    <div className="text-3xl font-bold text-[#D4AF37] mb-1">{sections.reduce((sum, s) => sum + s.items, 0)}</div>
-                    <div className="text-sm text-gray-400">Total Items</div>
-                  </div>
-
-                  <button className="w-full px-4 py-3 bg-gray-800 rounded text-white text-sm font-semibold hover:bg-gray-700 transition-colors mt-6">
-                    👁️ Preview Page
-                  </button>
-
-                  <button className="w-full px-4 py-3 bg-green-900 rounded text-green-200 text-sm font-semibold hover:bg-green-800 transition-colors">
-                    ✓ Publish
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: 'Hero Banner', type: 'hero', icon: '🎬' },
+                    { name: 'Highlights', type: 'features', icon: '✨' },
+                    { name: 'Gallery Grid', type: 'gallery', icon: '🖼️' },
+                    { name: 'Reviews', type: 'testimonials', icon: '💬' },
+                    { name: 'Our Team', type: 'team', icon: '👥' },
+                    { name: 'FAQ Block', type: 'faq', icon: '❓' },
+                    { name: 'Pricing Plans', type: 'pricing', icon: '💰' },
+                    { name: 'Form / Contact', type: 'cta', icon: '🎯' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => addSection(preset.type, preset.name)}
+                      className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-[#D4AF37]/50 rounded-xl transition-all duration-200 text-center flex flex-col items-center justify-center group"
+                    >
+                      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-200">{preset.icon}</div>
+                      <div className="text-[10px] font-bold text-slate-700 leading-tight">{preset.name}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
+            
           </div>
         </div>
 
-        {/* Section Templates */}
-        {!editingSection && (
-          <div className="mt-12 border-t border-gray-800 pt-12">
-            <h2 className="text-2xl font-bold text-white mb-8">Available Section Templates</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[
-                { name: 'Hero', icon: '🎬' },
-                { name: 'Features', icon: '✨' },
-                { name: 'Gallery', icon: '🖼️' },
-                { name: 'Testimonials', icon: '💬' },
-                { name: 'Team', icon: '👥' },
-                { name: 'FAQ', icon: '❓' },
-                { name: 'Pricing', icon: '💰' },
-                { name: 'CTA', icon: '🎯' },
-              ].map((template) => (
-                <button
-                  key={template.name}
-                  className="p-4 bg-gray-900 border border-gray-800 rounded hover:border-[#D4AF37] transition-colors text-center"
-                >
-                  <div className="text-3xl mb-2">{template.icon}</div>
-                  <div className="text-sm font-semibold text-white">{template.name}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
