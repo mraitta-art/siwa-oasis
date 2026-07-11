@@ -211,6 +211,35 @@ export async function POST(request: NextRequest) {
       results.push({ check: 'vendor_gallery columns verification', status: 'ERROR', detail: e.message });
     }
 
+    // 9. Verify business_types table has default_template_id (parent template inheritance)
+    try {
+      const cols = await query(`DESCRIBE business_types`);
+      const hasDefaultTmpl = cols.some((c: any) => c.Field === 'default_template_id');
+      if (!hasDefaultTmpl) {
+        await execute(`ALTER TABLE business_types ADD COLUMN default_template_id VARCHAR(100) DEFAULT NULL`);
+        results.push({ check: 'business_types.default_template_id', status: 'ADDED' });
+      } else {
+        results.push({ check: 'business_types.default_template_id', status: 'EXISTS' });
+      }
+    } catch (e: any) {
+      results.push({ check: 'business_types.default_template_id verification', status: 'ERROR', detail: e.message });
+    }
+
+    // 10. Verify businesses table has resolved_template_id (caching inheritance path)
+    try {
+      const cols = await query(`DESCRIBE businesses`);
+      const hasResolvedTmpl = cols.some((c: any) => c.Field === 'resolved_template_id');
+      if (!hasResolvedTmpl) {
+        await execute(`ALTER TABLE businesses ADD COLUMN resolved_template_id VARCHAR(100) DEFAULT NULL`);
+        await execute(`UPDATE businesses SET resolved_template_id = template_id WHERE template_id IS NOT NULL`);
+        results.push({ check: 'businesses.resolved_template_id', status: 'ADDED + BACKFILLED' });
+      } else {
+        results.push({ check: 'businesses.resolved_template_id', status: 'EXISTS' });
+      }
+    } catch (e: any) {
+      results.push({ check: 'businesses.resolved_template_id verification', status: 'ERROR', detail: e.message });
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Database verification complete',
