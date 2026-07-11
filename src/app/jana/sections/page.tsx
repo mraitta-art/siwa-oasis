@@ -67,7 +67,9 @@ export default function SectionsPage() {
     setSelectedType(typeId);
     const type = businessTypes.find(t => t.id === typeId);
     if (type) {
-      setSelectedSections(type.sections || []);
+      const isParent = type.is_parent || Number(type.is_parent) === 1;
+      // Parents manage 'sections'; children manage their own extra 'own_sections'
+      setSelectedSections(isParent ? (type.sections || []) : (type.own_sections || []));
     } else {
       setSelectedSections([]);
     }
@@ -80,22 +82,46 @@ export default function SectionsPage() {
     }
 
     try {
+      // Fetch the current type data to preserve all fields
+      const typeRes = await fetch('/api/jana/types?id=' + selectedType + '&t=' + Date.now());
+      if (!typeRes.ok) {
+        setError('Could not load type data. Please try again.');
+        return;
+      }
+      const currentType = await typeRes.json();
+
+      // Determine correct field: parents use 'sections', children use 'own_sections'
+      const isParent = currentType.is_parent || Number(currentType.is_parent) === 1;
+      const updatedBody = {
+        id: currentType.id,
+        name: currentType.name,
+        icon: currentType.icon,
+        icon_color: currentType.icon_color,
+        description: currentType.description,
+        is_parent: currentType.is_parent,
+        parent_id: currentType.parent_id,
+        active: currentType.active !== false,
+        sections: isParent ? selectedSections : (currentType.sections || []),
+        own_sections: isParent ? (currentType.own_sections || []) : selectedSections,
+      };
+
       const res = await fetch('/api/jana/types', {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: selectedType,
-          sections: selectedSections
-        })
+        body: JSON.stringify(updatedBody)
       });
 
       if (res.ok) {
-        setSuccess('✅ Sections updated! Affects mini sites.');
+        setSuccess('✅ Sections saved successfully!');
+        setError('');
         loadData();
         setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setError('Failed to save: ' + (errData.error || res.statusText));
       }
     } catch (err) {
-      setError('Error saving sections');
+      setError('Error saving sections. Please try again.');
     }
   }
 
