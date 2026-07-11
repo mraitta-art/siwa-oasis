@@ -6,7 +6,7 @@ import { useAdmin } from '@/context/AdminContext';
 interface BizType {
   id: string; name: string; icon: string; icon_color: string; description: string;
   is_parent: boolean; parent_id: string | null; sections: string[]; own_sections: string[];
-  active: boolean;
+  active: boolean; default_template_id?: string | null;
 }
 
 const COMMON_ICONS = [
@@ -29,6 +29,7 @@ export default function BusinessTypesPage() {
   const { notify } = useAdmin();
   const [types, setTypes] = useState<BizType[]>([]);
   const [sections, setSections] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -45,6 +46,7 @@ export default function BusinessTypesPage() {
   useEffect(() => { 
     loadTypes(); 
     loadSections();
+    loadTemplates();
     checkForDuplicates();
   }, []);
 
@@ -73,6 +75,18 @@ export default function BusinessTypesPage() {
     } catch (e) {
       console.error('Failed to load sections:', e);
       setSections([]);
+    }
+  }
+
+  async function loadTemplates() {
+    try {
+      const res = await fetch('/api/jana/templates');
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      setTemplates([]);
     }
   }
 
@@ -558,6 +572,60 @@ export default function BusinessTypesPage() {
                   </div>
                 )}
               </div>
+
+              {/* ── DEFAULT MINISITE TEMPLATE (Category/Parent only) ── */}
+              {editingType.is_parent && (
+                <div style={{ marginTop: '1.25rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', padding: '1rem 1.25rem' }}>
+                  <label className="form-label" style={{ color: '#92400e', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <i className="fas fa-layer-group"></i>
+                    Default Free Minisite Template
+                    <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#92400e', padding: '2px 7px', borderRadius: '6px', fontWeight: 700 }}>INHERITED BY ALL SUBCATEGORY NAMES</span>
+                  </label>
+                  <p style={{ fontSize: '0.72rem', color: '#78350f', marginBottom: '0.75rem', margin: '0 0 0.75rem' }}>
+                    Every business name registered under any subcategory of this category will automatically use this minisite template unless a specific override is chosen.
+                  </p>
+                  <select
+                    className="form-control"
+                    value={editingType.default_template_id || ''}
+                    onChange={e => setEditingType({...editingType, default_template_id: e.target.value || null})}
+                    style={{ borderColor: editingType.default_template_id ? '#10b981' : '#fcd34d' }}
+                  >
+                    <option value="">-- No default template (manual selection required) --</option>
+                    {templates
+                      .filter((t: any) => !t.type_id || t.type_id === editingType.id)
+                      .map((t: any) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} {t.level ? `[${t.level}]` : ''} {!t.type_id ? '🌐 Universal' : ''}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  {editingType.default_template_id && (
+                    <div style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 700, marginTop: '0.35rem' }}>
+                      ✅ All business names under this category will inherit: <strong>{templates.find(t => t.id === editingType.default_template_id)?.name}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show inherited template info for child types */}
+              {!editingType.is_parent && editingType.parent_id && (() => {
+                const parentType = types.find(t => t.id === editingType.parent_id);
+                const parentTemplate = parentType?.default_template_id
+                  ? templates.find(t => t.id === parentType.default_template_id)
+                  : null;
+                return parentTemplate ? (
+                  <div style={{ marginTop: '1.25rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <i className="fas fa-layer-group" style={{ color: '#16a34a' }}></i>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#166534' }}>Inherited Minisite Template from {parentType?.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '2px' }}>
+                        Business names registered here will use: <strong>{parentTemplate.name}</strong>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               <div style={{ marginTop: '1.5rem' }}>
                 <label className="form-label">Icon & Branding</label>

@@ -122,8 +122,35 @@ export async function POST(request: NextRequest) {
     // Generate Slug
     const slug = slugify(name);
 
-    // AUTO-RESOLVE: If no template provided, get the default from the subscription tier
+    // ══════════════════════════════════════════════════════════════
+    // TEMPLATE RESOLUTION CHAIN (minisite template inheritance):
+    //   1. Explicitly chosen template_id (body)
+    //   2. Child type's own default_template_id
+    //   3. Parent type's default_template_id  ← free template inheritance
+    //   4. Subscription tier's default_template_id
+    // ══════════════════════════════════════════════════════════════
     if (!template_id) {
+      // 2. Check child type's own default template
+      if (selectedType.default_template_id) {
+        template_id = selectedType.default_template_id;
+      }
+    }
+
+    if (!template_id && selectedType.parent_id) {
+      // 3. Resolve parent type's free/default minisite template
+      try {
+        const parentType = await queryOne(
+          'SELECT default_template_id FROM business_types WHERE id = ?',
+          [selectedType.parent_id]
+        ) as any;
+        if (parentType?.default_template_id) {
+          template_id = parentType.default_template_id;
+        }
+      } catch (e) {}
+    }
+
+    if (!template_id) {
+      // 4. Fall back to subscription tier default
       try {
         const tierRow = await queryOne('SELECT default_template_id FROM subscription_tiers WHERE id = ?', [subscription_tier]) as any;
         if (tierRow?.default_template_id) {
@@ -133,7 +160,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (!template_id && !is_standalone) {
-      return NextResponse.json({ error: 'A Template must be assigned unless creating a Standalone Minisite.' }, { status: 400 });
+      return NextResponse.json({ error: 'No minisite template could be resolved. Assign a default template to the parent business type or the subscription tier.' }, { status: 400 });
     }
 
     const id = crypto.randomUUID();

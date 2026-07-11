@@ -59,7 +59,15 @@ export default function VendorDashboardPage() {
       description: 'Manage minisite sections',
       stats: `${stats.sections.visible} visible`,
       href: '/vendor/sections',
-      color: 'from-pink-900 to-pink-700',
+      color: 'from-slate-900 to-slate-700',
+    },
+    {
+      icon: '🔓',
+      label: 'Claim Business',
+      description: 'Claim a listing and activate your minisite',
+      stats: 'Browse unclaimed names',
+      href: '/vendor/claim',
+      color: 'from-amber-900 to-amber-700',
     },
     {
       icon: '⚙️',

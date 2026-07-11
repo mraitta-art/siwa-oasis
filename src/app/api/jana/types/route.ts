@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     log(`[TYPES POST] Attempt: ${JSON.stringify(body)}`);
-    const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [] } = body;
+    const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [], default_template_id = null } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
 
     // ✅ VALIDATION: Check for duplicate names
@@ -57,9 +57,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Auto-add default_template_id column if not present (self-healing)
+    try {
+      await execute(`ALTER TABLE business_types ADD COLUMN IF NOT EXISTS default_template_id VARCHAR(100) DEFAULT NULL`);
+    } catch (e) { /* column may already exist */ }
+
     await execute(
-      `INSERT INTO business_types (id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(sections), JSON.stringify(own_sections), 99]
+      `INSERT INTO business_types (id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections, sort_order, default_template_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(sections), JSON.stringify(own_sections), 99, is_parent ? (default_template_id || null) : null]
     );
     
     // Invalidate cache after mutation
@@ -85,7 +90,7 @@ export async function PUT(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     log(`[TYPES PUT] Attempt: ${JSON.stringify(body)}`);
-    const { id, name, icon, icon_color, description, is_parent, parent_id, active, sections, own_sections } = body;
+    const { id, name, icon, icon_color, description, is_parent, parent_id, active, sections, own_sections, default_template_id } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     // ✅ VALIDATION: Check for duplicate names (excluding current type)
@@ -103,9 +108,14 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Auto-add default_template_id column if not present (self-healing)
+    try {
+      await execute(`ALTER TABLE business_types ADD COLUMN IF NOT EXISTS default_template_id VARCHAR(100) DEFAULT NULL`);
+    } catch (e) { /* column may already exist */ }
+
     await execute(
-      `UPDATE business_types SET name=?, icon=?, icon_color=?, description=?, is_parent=?, parent_id=?, active=?, sections=?, own_sections=? WHERE id=?`,
-      [name, icon, icon_color, description, is_parent ? 1 : 0, is_parent ? null : (parent_id || null), active ? 1 : 0, JSON.stringify(sections || []), JSON.stringify(own_sections || []), id]
+      `UPDATE business_types SET name=?, icon=?, icon_color=?, description=?, is_parent=?, parent_id=?, active=?, sections=?, own_sections=?, default_template_id=? WHERE id=?`,
+      [name, icon, icon_color, description, is_parent ? 1 : 0, is_parent ? null : (parent_id || null), active ? 1 : 0, JSON.stringify(sections || []), JSON.stringify(own_sections || []), is_parent ? (default_template_id || null) : null, id]
     );
     
     // Invalidate cache after mutation
