@@ -17,6 +17,11 @@ interface Component {
   deprecation_notice?: string;
   component_config?: Record<string, any>;
   config_schema?: any;
+  type: string;
+  is_active: boolean;
+  is_global: boolean;
+  usage_count: number;
+  created_at: string;
 }
 
 interface ConfigField {
@@ -35,8 +40,18 @@ export default function ComponentLibrary() {
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [filterType, setFilterType] = useState('all');
   const [filter, setFilter] = useState({ zone: 'all', category: 'all' });
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const dataSources = { sections: [] as any[], fields: [] as any[] };
+
+  const getGradient = (type: string) => 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
+  const getIcon = (type: string) => '📦';
+  const toggleActive = (id: string, active: boolean) => {};
+  const deleteComponent = (id: string) => {};
+  const loadComponents = () => fetchComponents();
 
   useEffect(() => {
     fetchComponents();
