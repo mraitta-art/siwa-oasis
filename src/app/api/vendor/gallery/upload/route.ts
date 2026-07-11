@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File;
     const sectionId = formData.get('sectionId') as string;
     const caption = formData.get('caption') as string;
+    const showOnMain = formData.get('show_on_main') !== 'false';
+    const showOnMinisite = formData.get('show_on_minisite') !== 'false';
 
     if (!file || !sectionId) {
       return Response.json({ error: 'Missing file or section' }, { status: 400 });
@@ -25,8 +27,8 @@ export async function POST(request: Request) {
     // Store in database
     const query = `
       INSERT INTO vendor_gallery 
-      (id, vendor_id, section_id, url, caption, file_size, mime_type, is_hero, created_at)
-      VALUES (UUID(), ?, ?, ?, ?, ?, ?, FALSE, NOW())
+      (id, vendor_id, section_id, url, caption, file_size, mime_type, is_hero, show_on_main, show_on_minisite, created_at)
+      VALUES (UUID(), ?, ?, ?, ?, ?, ?, FALSE, ?, ?, NOW())
     `;
 
     await db.query(query, [
@@ -35,7 +37,9 @@ export async function POST(request: Request) {
       fileUrl,
       caption || file.name,
       file.size,
-      file.type
+      file.type,
+      showOnMain,
+      showOnMinisite
     ]);
 
     return Response.json({ success: true, url: fileUrl }, { status: 201 });

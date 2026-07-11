@@ -12,19 +12,50 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const body = await request.json();
+    
+    const updates: string[] = [];
+    const values: any[] = [];
 
-    // Update hero status
+    if (body.caption !== undefined) {
+      updates.push('caption = ?');
+      values.push(body.caption);
+    }
+    
+    if (body.is_hero !== undefined) {
+      updates.push('is_hero = ?');
+      values.push(body.is_hero ? 1 : 0);
+    }
+
+    if (body.show_on_main !== undefined) {
+      updates.push('show_on_main = ?');
+      values.push(body.show_on_main ? 1 : 0);
+    }
+
+    if (body.show_on_minisite !== undefined) {
+      updates.push('show_on_minisite = ?');
+      values.push(body.show_on_minisite ? 1 : 0);
+    }
+
+    if (updates.length === 0) {
+      return Response.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    updates.push('updated_at = NOW()');
+    
     const query = `
       UPDATE vendor_gallery
-      SET is_hero = TRUE, updated_at = NOW()
+      SET ${updates.join(', ')}
       WHERE id = ? AND vendor_id = ?
     `;
 
-    await db.query(query, [id, user.id]);
+    values.push(id, user.id);
+
+    await db.query(query, values);
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error('Hero update error:', error);
+    console.error('Gallery item update error:', error);
     return Response.json({ error: 'Failed to update' }, { status: 500 });
   }
 }

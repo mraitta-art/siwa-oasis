@@ -105,6 +105,52 @@ export async function POST(request: NextRequest) {
       results.push({ check: 'businesses index', status: 'ERROR', detail: e.message });
     }
 
+    // 7. Verify section_blogs table has show_on_main and show_on_minisite columns
+    try {
+      const cols = await query(`DESCRIBE section_blogs`);
+      const hasMain = cols.some((c: any) => c.Field === 'show_on_main');
+      const hasMini = cols.some((c: any) => c.Field === 'show_on_minisite');
+      
+      if (!hasMain) {
+        await execute(`ALTER TABLE section_blogs ADD COLUMN show_on_main BOOLEAN DEFAULT TRUE`);
+        results.push({ check: 'section_blogs.show_on_main', status: 'ADDED' });
+      } else {
+        results.push({ check: 'section_blogs.show_on_main', status: 'EXISTS' });
+      }
+      
+      if (!hasMini) {
+        await execute(`ALTER TABLE section_blogs ADD COLUMN show_on_minisite BOOLEAN DEFAULT TRUE`);
+        results.push({ check: 'section_blogs.show_on_minisite', status: 'ADDED' });
+      } else {
+        results.push({ check: 'section_blogs.show_on_minisite', status: 'EXISTS' });
+      }
+    } catch (e: any) {
+      results.push({ check: 'section_blogs columns verification', status: 'ERROR', detail: e.message });
+    }
+
+    // 8. Verify vendor_gallery table has show_on_main and show_on_minisite columns
+    try {
+      const cols = await query(`DESCRIBE vendor_gallery`);
+      const hasMain = cols.some((c: any) => c.Field === 'show_on_main');
+      const hasMini = cols.some((c: any) => c.Field === 'show_on_minisite');
+      
+      if (!hasMain) {
+        await execute(`ALTER TABLE vendor_gallery ADD COLUMN show_on_main BOOLEAN DEFAULT TRUE`);
+        results.push({ check: 'vendor_gallery.show_on_main', status: 'ADDED' });
+      } else {
+        results.push({ check: 'vendor_gallery.show_on_main', status: 'EXISTS' });
+      }
+      
+      if (!hasMini) {
+        await execute(`ALTER TABLE vendor_gallery ADD COLUMN show_on_minisite BOOLEAN DEFAULT TRUE`);
+        results.push({ check: 'vendor_gallery.show_on_minisite', status: 'ADDED' });
+      } else {
+        results.push({ check: 'vendor_gallery.show_on_minisite', status: 'EXISTS' });
+      }
+    } catch (e: any) {
+      results.push({ check: 'vendor_gallery columns verification', status: 'ERROR', detail: e.message });
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Database verification complete',
