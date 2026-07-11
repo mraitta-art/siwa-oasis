@@ -20,103 +20,26 @@ interface InvestmentOpportunity {
   visibility_on_main_site: boolean;
 }
 
+interface SponsorshipPackage {
+  id: string;
+  business_name: string;
+  business_slug: string;
+  business_logo: string | null;
+  sponsorship_title: string;
+  sponsorship_type: string;
+  sponsorship_tier: 'platinum' | 'gold' | 'silver' | 'bronze' | 'custom';
+  sponsorship_value: string;
+  sponsorship_benefits: string;
+  sponsorship_duration: string;
+  sponsorship_description: string;
+  is_featured: boolean;
+}
+
 export default function MainSiteInvestmentOpportunitiesPage() {
+  const [activeTab, setActiveTab] = useState<'investments' | 'sponsorships'>('investments');
   const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([]);
-
-  useEffect(() => {
-    fetch('/api/approved/investments')
-      .then(r => r.json())
-      .then(j => {
-        if (j?.success && Array.isArray(j.items)) {
-          const mapped = j.items.map((item: any) => ({
-            id: item.id,
-            opportunity_title: item.title || '',
-            opportunity_type: 'equity' as const,
-            business_name: item.business_name || 'Business',
-            investment_amount_min: 50000,
-            investment_amount_max: 250000,
-            expected_roi_percent: 20,
-            business_stage: 'growth',
-            annual_revenue: 500000,
-            years_in_business: 5,
-            is_featured: item.is_featured || false,
-            investors_current: 0,
-            target_investors: 5,
-            visibility_on_main_site: true,
-          }));
-          setOpportunities(mapped);
-        }
-      })
-      .catch(e => console.error('Failed to fetch investments', e));
-  }, []);
-
-  // Fallback mock data if no approved items
-  const mockOpportunities: InvestmentOpportunity[] = [
-    {
-      id: '1',
-      opportunity_title: 'Desert Tours Expansion',
-      opportunity_type: 'equity',
-      business_name: 'Desert Tours Co',
-      investment_amount_min: 50000,
-      investment_amount_max: 250000,
-      expected_roi_percent: 25,
-      business_stage: 'growth',
-      annual_revenue: 500000,
-      years_in_business: 5,
-      is_featured: true,
-      investors_current: 3,
-      target_investors: 5,
-      visibility_on_main_site: true,
-    },
-    {
-      id: '2',
-      opportunity_title: 'Siwa Palace Renovation',
-      opportunity_type: 'partnership',
-      business_name: 'Siwa Palace Hotel',
-      investment_amount_min: 100000,
-      investment_amount_max: 500000,
-      expected_roi_percent: 20,
-      business_stage: 'expansion',
-      annual_revenue: 1200000,
-      years_in_business: 8,
-      is_featured: true,
-      investors_current: 2,
-      target_investors: 4,
-      visibility_on_main_site: true,
-    },
-    {
-      id: '3',
-      opportunity_title: 'Restaurant Chain Franchise',
-      opportunity_type: 'franchise',
-      business_name: 'Restaurant Siwa',
-      investment_amount_min: 30000,
-      investment_amount_max: 80000,
-      expected_roi_percent: 30,
-      business_stage: 'expansion',
-      annual_revenue: 350000,
-      years_in_business: 3,
-      is_featured: false,
-      investors_current: 0,
-      target_investors: 10,
-      visibility_on_main_site: true,
-    },
-    {
-      id: '4',
-      opportunity_title: 'Photography Studio Network',
-      opportunity_type: 'joint_venture',
-      business_name: 'Siwa Photo Studio',
-      investment_amount_min: 20000,
-      investment_amount_max: 100000,
-      expected_roi_percent: 22,
-      business_stage: 'startup',
-      annual_revenue: 80000,
-      years_in_business: 1,
-      is_featured: false,
-      investors_current: 1,
-      target_investors: 3,
-      visibility_on_main_site: false,
-    },
-  ];
+  const [sponsorships, setSponsorships] = useState<SponsorshipPackage[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -124,28 +47,85 @@ export default function MainSiteInvestmentOpportunitiesPage() {
   const [filterROI, setFilterROI] = useState('all');
   const [sortBy, setSortBy] = useState('roi');
 
-  // Use API opportunities if available, fallback to mock
-  const displayOpportunities = opportunities.length > 0 ? opportunities : mockOpportunities;
+  // Load both investments and sponsorships
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch('/api/discovery/investments').then((r) => r.json()),
+      fetch('/api/discovery/sponsorships').then((r) => r.json())
+    ])
+      .then(([invData, spData]) => {
+        if (invData?.success && Array.isArray(invData.items)) {
+          const mapped = invData.items.map((item: any) => ({
+            id: item.business_id || item.id,
+            opportunity_title: item.opportunity_title || '',
+            opportunity_type: (item.opportunity_type || 'equity') as any,
+            business_name: item.business_name || 'Business',
+            investment_amount_min: parseFloat(item.investment_amount_min) || 0,
+            investment_amount_max: parseFloat(item.investment_amount_max) || 0,
+            expected_roi_percent: parseFloat(item.expected_roi_percent) || 0,
+            business_stage: item.business_stage || 'growth',
+            annual_revenue: parseFloat(item.annual_revenue) || 0,
+            years_in_business: 0,
+            is_featured: !!item.is_featured,
+            investors_current: 0,
+            target_investors: parseInt(item.target_investors) || 5,
+            visibility_on_main_site: true,
+          }));
+          setOpportunities(mapped);
+        }
+        if (spData?.success && Array.isArray(spData.items)) {
+          setSponsorships(spData.items.map((item: any) => ({
+            id: item.business_id,
+            business_name: item.business_name,
+            business_slug: item.business_slug,
+            business_logo: item.business_logo,
+            sponsorship_title: item.sponsorship_title,
+            sponsorship_type: item.sponsorship_type,
+            sponsorship_tier: item.sponsorship_tier || 'custom',
+            sponsorship_value: item.sponsorship_value || 'Contact Us',
+            sponsorship_benefits: item.sponsorship_benefits || '',
+            sponsorship_duration: item.sponsorship_duration || 'Annual',
+            sponsorship_description: item.sponsorship_description || '',
+            is_featured: !!item.is_featured,
+          })));
+        }
+      })
+      .catch((e) => console.error('Failed to fetch investments/sponsorships', e))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const visibleOpportunities = displayOpportunities
-    .filter((opp) => opp.visibility_on_main_site)
+  // Filter Opportunities
+  const visibleOpportunities = opportunities
     .filter((opp) => {
-      if (filterType !== 'all' && opp.opportunity_type !== filterType) return false;
-      if (filterStage !== 'all' && opp.business_stage !== filterStage) return false;
-      if (filterROI === 'high' && opp.expected_roi_percent < 25) return false;
-      if (filterROI === 'medium' && (opp.expected_roi_percent < 15 || opp.expected_roi_percent >= 25)) return false;
-      if (filterROI === 'low' && opp.expected_roi_percent >= 15) return false;
-      if (searchTerm && !opp.opportunity_title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      return true;
+      const matchesSearch = opp.opportunity_title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            opp.business_name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === 'all' || opp.opportunity_type === filterType;
+      const matchesStage = filterStage === 'all' || opp.business_stage === filterStage;
+      
+      let matchesROI = true;
+      if (filterROI === 'high') matchesROI = opp.expected_roi_percent >= 25;
+      else if (filterROI === 'medium') matchesROI = opp.expected_roi_percent >= 15 && opp.expected_roi_percent < 25;
+      else if (filterROI === 'low') matchesROI = opp.expected_roi_percent < 15;
+
+      return matchesSearch && matchesType && matchesStage && matchesROI;
     })
     .sort((a, b) => {
       if (sortBy === 'roi') return b.expected_roi_percent - a.expected_roi_percent;
       if (sortBy === 'investment') return a.investment_amount_min - b.investment_amount_min;
-      if (sortBy === 'progress') return b.investors_current / b.target_investors - a.investors_current / a.target_investors;
       return 0;
     });
 
-  const featuredOpportunities = visibleOpportunities.filter((o) => o.is_featured).slice(0, 2);
+  // Filter Sponsorships
+  const visibleSponsorships = sponsorships.filter((sp) => {
+    const matchesSearch = sp.sponsorship_title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          sp.business_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTier = filterType === 'all' || sp.sponsorship_tier === filterType;
+    return matchesSearch && matchesTier;
+  });
+
+  const featuredOpportunities = opportunities.filter((o) => o.is_featured).slice(0, 2);
+  const featuredSponsorships = sponsorships.filter((s) => s.is_featured).slice(0, 2);
 
   const getTypeIcon = (type: string) => {
     const icons: Record<string, string> = {
@@ -160,23 +140,28 @@ export default function MainSiteInvestmentOpportunitiesPage() {
 
   const getStageColor = (stage: string) => {
     switch (stage) {
-      case 'startup':
-        return 'bg-yellow-900 text-yellow-200';
-      case 'growth':
-        return 'bg-green-900 text-green-200';
-      case 'established':
-        return 'bg-blue-900 text-blue-200';
-      case 'expansion':
-        return 'bg-purple-900 text-purple-200';
-      default:
-        return 'bg-gray-800 text-gray-300';
+      case 'startup': return 'bg-yellow-900 text-yellow-200';
+      case 'growth': return 'bg-green-900 text-green-200';
+      case 'established': return 'bg-blue-900 text-blue-200';
+      case 'expansion': return 'bg-purple-900 text-purple-200';
+      default: return 'bg-gray-800 text-gray-300';
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return 'bg-slate-300 text-slate-900';
+      case 'gold': return 'bg-yellow-500 text-black';
+      case 'silver': return 'bg-gray-400 text-black';
+      case 'bronze': return 'bg-amber-700 text-amber-100';
+      default: return 'bg-emerald-950 text-emerald-200';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]">
+    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] py-16 sm:py-24">
+      <div className="relative overflow-hidden py-16 sm:py-24 border-b border-gray-850">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-gradient-to-r from-[#556B2F] via-transparent to-[#D4AF37]" />
         </div>
@@ -184,247 +169,249 @@ export default function MainSiteInvestmentOpportunitiesPage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold sm:text-5xl tracking-tight">
             <span className="bg-gradient-to-r from-[#D4AF37] to-[#FFB700] bg-clip-text text-transparent">
-              Investment Opportunities
+              Investment & Sponsorship Hub
             </span>
           </h1>
           <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
-            Invest in promising businesses and tourism ventures in Siwa Oasis
+            Find high-yield equity stakes, local partnerships, or promote your brand through premium sponsorships.
           </p>
+
+          {/* Hub Tabs */}
+          <div className="mt-8 inline-flex p-1.5 bg-gray-900 border border-gray-800 rounded-2xl gap-2">
+            <button
+              onClick={() => { setActiveTab('investments'); setSearchTerm(''); setFilterType('all'); }}
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+                activeTab === 'investments' ? 'bg-gradient-to-r from-[#556B2F] to-[#D4AF37] text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              💰 Investment Opportunities
+            </button>
+            <button
+              onClick={() => { setActiveTab('sponsorships'); setSearchTerm(''); setFilterType('all'); }}
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+                activeTab === 'sponsorships' ? 'bg-gradient-to-r from-[#556B2F] to-[#D4AF37] text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🤝 Sponsorship Packages
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Featured Opportunities */}
-        {featuredOpportunities.length > 0 && (
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
-              <span className="text-[#D4AF37]">⭐</span> Featured Investment Opportunities
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {featuredOpportunities.map((opp) => (
-                <div
-                  key={opp.id}
-                  className="bg-gradient-to-br from-[#556B2F] to-[#D4AF37] rounded-lg p-1 hover:shadow-lg hover:shadow-[#D4AF37]/50 transition-all"
-                >
-                  <div className="bg-gray-900 rounded-lg p-8 h-full flex flex-col">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-3xl">{getTypeIcon(opp.opportunity_type)}</span>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-bold ${getStageColor(
-                              opp.business_stage
-                            )}`}
-                          >
-                            {opp.business_stage}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-1">{opp.opportunity_title}</h3>
-                        <p className="text-sm text-gray-400">{opp.business_name}</p>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-[#D4AF37]">{opp.expected_roi_percent}%</div>
-                        <div className="text-xs text-gray-500">Expected ROI</div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-800 rounded p-4 mb-4 flex-1">
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <div className="text-xs text-gray-500">Investment Range</div>
-                          <div className="text-sm font-semibold text-white">
-                            ${(opp.investment_amount_min / 1000).toFixed(0)}K -
-                            ${(opp.investment_amount_max / 1000).toFixed(0)}K
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Business Stats</div>
-                          <div className="text-sm font-semibold text-white">
-                            {opp.years_in_business}yr • ${(opp.annual_revenue / 1000).toFixed(0)}K
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs text-gray-500">Investors</span>
-                          <span className="text-sm font-bold text-[#D4AF37]">
-                            {opp.investors_current}/{opp.target_investors}
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-700 rounded overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#556B2F] to-[#D4AF37]"
-                            style={{ width: `${(opp.investors_current / opp.target_investors) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button className="w-full px-4 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity">
-                      View Opportunity →
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Loading */}
+        {loading && (
+          <div className="text-center py-20">
+            <i className="fas fa-spinner fa-spin fa-3x text-[#D4AF37] mb-4"></i>
+            <p className="text-gray-400">Loading listings...</p>
           </div>
         )}
 
-        {/* Filters & Search */}
-        <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <input
-              type="text"
-              placeholder="Search opportunities..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="md:col-span-2 lg:col-span-1 px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#D4AF37]"
-            />
+        {!loading && activeTab === 'investments' && (
+          <>
+            {/* Featured Section */}
+            {featuredOpportunities.length > 0 && (
+              <div className="mb-16">
+                <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                  <span className="text-[#D4AF37]">⭐</span> Featured Investments
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {featuredOpportunities.map((opp) => (
+                    <div key={opp.id} className="bg-gradient-to-br from-[#556B2F] to-[#D4AF37] rounded-2xl p-[1px] hover:shadow-lg transition-all">
+                      <div className="bg-gray-900 rounded-2xl p-8 h-full flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-start mb-4">
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${getStageColor(opp.business_stage)}`}>
+                              {opp.business_stage.toUpperCase()}
+                            </span>
+                            <span className="text-2xl font-bold text-[#D4AF37]">{opp.expected_roi_percent}% ROI</span>
+                          </div>
+                          <h3 className="text-2xl font-bold text-white mb-1">{opp.opportunity_title}</h3>
+                          <p className="text-sm text-gray-500 mb-6">{opp.business_name}</p>
+                        </div>
+                        <div className="bg-gray-950 p-5 rounded-xl border border-gray-800 mb-6 flex justify-between">
+                          <div>
+                            <span className="text-xs text-gray-500 block mb-1">MIN INVESTMENT</span>
+                            <span className="font-bold text-lg">${opp.investment_amount_min.toLocaleString()}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-gray-500 block mb-1">STAGE</span>
+                            <span className="font-semibold text-gray-300 capitalize">{opp.business_stage}</span>
+                          </div>
+                        </div>
+                        <Link href={`/p/${opp.id}`} className="w-full text-center py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-xl text-white font-bold hover:opacity-90 transition-opacity">
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#D4AF37]"
-            >
-              <option value="all">All Types</option>
-              <option value="equity">Equity</option>
-              <option value="partnership">Partnership</option>
-              <option value="franchise">Franchise</option>
-              <option value="joint_venture">Joint Venture</option>
-            </select>
+            {/* Filter controls */}
+            <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-gray-900/50 p-6 rounded-2xl border border-gray-850">
+              <input
+                type="text"
+                placeholder="Search opportunities..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
+              />
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none"
+              >
+                <option value="all">All Types</option>
+                <option value="equity">Equity</option>
+                <option value="partnership">Partnership</option>
+                <option value="franchise">Franchise</option>
+                <option value="joint_venture">Joint Venture</option>
+              </select>
+              <select
+                value={filterStage}
+                onChange={(e) => setFilterStage(e.target.value)}
+                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none"
+              >
+                <option value="all">All Stages</option>
+                <option value="startup">Startup</option>
+                <option value="growth">Growth</option>
+                <option value="established">Established</option>
+                <option value="expansion">Expansion</option>
+              </select>
+              <select
+                value={filterROI}
+                onChange={(e) => setFilterROI(e.target.value)}
+                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none"
+              >
+                <option value="all">All ROI</option>
+                <option value="high">High (25%+)</option>
+                <option value="medium">Medium (15-25%)</option>
+                <option value="low">Low (&lt;15%)</option>
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none"
+              >
+                <option value="roi">Sort by ROI</option>
+                <option value="investment">Sort by Min Investment</option>
+              </select>
+            </div>
 
-            <select
-              value={filterStage}
-              onChange={(e) => setFilterStage(e.target.value)}
-              className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#D4AF37]"
-            >
-              <option value="all">All Stages</option>
-              <option value="startup">Startup</option>
-              <option value="growth">Growth</option>
-              <option value="established">Established</option>
-              <option value="expansion">Expansion</option>
-            </select>
-
-            <select
-              value={filterROI}
-              onChange={(e) => setFilterROI(e.target.value)}
-              className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#D4AF37]"
-            >
-              <option value="all">All ROI</option>
-              <option value="high">High (25%+)</option>
-              <option value="medium">Medium (15-25%)</option>
-              <option value="low">Low (&lt;15%)</option>
-            </select>
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#D4AF37]"
-            >
-              <option value="roi">Sort by ROI</option>
-              <option value="investment">Sort by Min Investment</option>
-              <option value="progress">Sort by Progress</option>
-            </select>
-          </div>
-
-          <div className="text-gray-400 text-sm">
-            Showing {visibleOpportunities.length} opportunity{visibleOpportunities.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-
-        {/* All Opportunities */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visibleOpportunities.map((opp) => (
-            <div
-              key={opp.id}
-              className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden hover:border-[#D4AF37] transition-colors group"
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+            {/* List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {visibleOpportunities.map((opp) => (
+                <div key={opp.id} className="bg-gray-900 border border-gray-850 rounded-2xl overflow-hidden hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between p-6">
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
                       <span className="text-2xl">{getTypeIcon(opp.opportunity_type)}</span>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-bold ${getStageColor(
-                          opp.business_stage
-                        )}`}
-                      >
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStageColor(opp.business_stage)}`}>
                         {opp.business_stage}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-1">{opp.opportunity_title}</h3>
-                    <p className="text-sm text-gray-400">{opp.business_name}</p>
+                    <h4 className="text-lg font-bold text-white mb-1">{opp.opportunity_title}</h4>
+                    <p className="text-xs text-gray-500 mb-6">{opp.business_name}</p>
                   </div>
-                </div>
-
-                {/* Key Metrics */}
-                <div className="bg-gray-800 rounded p-3 mb-4 text-sm">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-gray-500 text-xs">ROI</div>
-                      <div className="text-lg font-bold text-[#D4AF37]">{opp.expected_roi_percent}%</div>
+                  <div className="space-y-3 bg-gray-950 p-4 rounded-xl border border-gray-850 mb-6">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Min Commit</span>
+                      <span className="font-semibold text-white">${opp.investment_amount_min.toLocaleString()}</span>
                     </div>
-                    <div>
-                      <div className="text-gray-500 text-xs">Min Investment</div>
-                      <div className="text-lg font-bold text-green-400">
-                        ${(opp.investment_amount_min / 1000).toFixed(0)}K
-                      </div>
+                    <div className="flex justify-between text-xs pt-2 border-t border-gray-800/40">
+                      <span className="text-gray-500">Target ROI</span>
+                      <span className="font-bold text-[#D4AF37]">{opp.expected_roi_percent}%</span>
                     </div>
                   </div>
-
-                  <div className="mt-3 pt-3 border-t border-gray-700">
-                    <div className="flex justify-between items-center mb-2 text-xs">
-                      <span className="text-gray-500">Investors</span>
-                      <span className="font-bold text-white">
-                        {opp.investors_current}/{opp.target_investors}
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-gray-700 rounded overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#556B2F] to-[#D4AF37]"
-                        style={{ width: `${(opp.investors_current / opp.target_investors) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                  <Link href={`/p/${opp.id}`} className="w-full text-center py-2.5 bg-gray-800 hover:bg-gray-750 text-white text-xs font-bold rounded-xl transition-all">
+                    View Project
+                  </Link>
                 </div>
-
-                <div className="text-xs text-gray-500 mb-4">
-                  {opp.years_in_business} year{opp.years_in_business !== 1 ? 's' : ''} • ${(
-                    opp.annual_revenue / 1000
-                  ).toFixed(0)}K revenue
-                </div>
-
-                <button className="w-full px-4 py-2 bg-[#556B2F] rounded text-white font-semibold hover:opacity-90 transition-opacity group-hover:bg-[#D4AF37] group-hover:text-black">
-                  Learn More →
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {visibleOpportunities.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">🔍</div>
-            <p className="text-gray-400 text-lg">No opportunities found matching your filters</p>
-          </div>
+          </>
         )}
 
-        {/* CTA Section */}
-        <div className="mt-16 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Ready to Invest?</h2>
-          <p className="text-gray-100 mb-6">
-            Create your investor profile and start receiving personalized investment opportunities
-          </p>
-          <Link
-            href="/investor-signup"
-            className="inline-block px-8 py-3 bg-white rounded-lg text-[#556B2F] font-semibold hover:bg-gray-100 transition-colors"
-          >
-            Become an Investor →
-          </Link>
-        </div>
+        {!loading && activeTab === 'sponsorships' && (
+          <>
+            {/* Featured Section */}
+            {featuredSponsorships.length > 0 && (
+              <div className="mb-16">
+                <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                  <span className="text-[#D4AF37]">⭐</span> Featured Sponsorships
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {featuredSponsorships.map((sp) => (
+                    <div key={sp.id} className="bg-gradient-to-br from-[#556B2F] to-[#D4AF37] rounded-2xl p-[1px] hover:shadow-lg transition-all">
+                      <div className="bg-gray-900 rounded-2xl p-8 h-full flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-start mb-4">
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${getTierColor(sp.sponsorship_tier)}`}>
+                              {sp.sponsorship_tier.toUpperCase()} TIER
+                            </span>
+                            <span className="text-lg font-bold text-green-400">{sp.sponsorship_value}</span>
+                          </div>
+                          <h3 className="text-2xl font-bold text-white mb-1">{sp.sponsorship_title}</h3>
+                          <p className="text-sm text-gray-500 mb-6">{sp.business_name}</p>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-6 line-clamp-2">{sp.sponsorship_description}</p>
+                        <Link href={`/p/${sp.business_slug}`} className="w-full text-center py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-xl text-white font-bold hover:opacity-90 transition-opacity">
+                          Secure Sponsorship
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Filter controls */}
+            <div className="mb-8 flex gap-4 bg-gray-900/50 p-6 rounded-2xl border border-gray-850">
+              <input
+                type="text"
+                placeholder="Search sponsorships..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
+              />
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none"
+              >
+                <option value="all">All Tiers</option>
+                <option value="platinum">Platinum</option>
+                <option value="gold">Gold</option>
+                <option value="silver">Silver</option>
+                <option value="bronze">Bronze</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            {/* List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {visibleSponsorships.map((sp) => (
+                <div key={sp.id} className="bg-gray-900 border border-gray-850 rounded-2xl overflow-hidden hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between p-6">
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getTierColor(sp.sponsorship_tier)}`}>
+                        {sp.sponsorship_tier}
+                      </span>
+                      <span className="text-sm font-semibold text-green-400">{sp.sponsorship_value}</span>
+                    </div>
+                    <h4 className="text-lg font-bold text-white mb-1">{sp.sponsorship_title}</h4>
+                    <p className="text-xs text-gray-500 mb-6">{sp.business_name}</p>
+                    <p className="text-xs text-gray-400 mb-6 line-clamp-3">{sp.sponsorship_description}</p>
+                  </div>
+                  <Link href={`/p/${sp.business_slug}`} className="w-full text-center py-2.5 bg-gray-800 hover:bg-gray-750 text-white text-xs font-bold rounded-xl transition-all">
+                    Inquire details
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

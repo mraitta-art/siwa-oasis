@@ -6,9 +6,20 @@ export default function DiscountsPage() {
   const [items, setItems] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    fetch('/api/approved/discounts')
+    fetch('/api/discovery/discounts')
       .then(r => r.json())
-      .then(j => { if (j?.success) setItems(j.items || []); })
+      .then(j => {
+        if (j?.success && Array.isArray(j.items)) {
+          setItems(j.items.map((item: any) => ({
+            id: item.business_id,
+            title: item.discount_name || '',
+            business_name: item.business_name || '',
+            brief: `${item.discount_value || ''}${item.discount_type === 'percent' ? '% off' : item.discount_type === 'fixed_amount' ? ' USD off' : ''} — ${item.season || 'All year'}`,
+            description: item.description || '',
+            promo_code: item.promo_code || null,
+          })));
+        }
+      })
       .catch(e => console.error(e));
   }, []);
 

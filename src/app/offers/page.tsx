@@ -21,10 +21,10 @@ export default function MainSiteOffersPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch both offers and discounts
+        // Fetch both offers and discounts from real discovery APIs
         const [offersRes, discountsRes] = await Promise.all([
-          fetch('/api/approved/offers'),
-          fetch('/api/approved/discounts')
+          fetch('/api/discovery/offers'),
+          fetch('/api/discovery/discounts')
         ]);
 
         const offersData = await offersRes.json();
@@ -32,17 +32,27 @@ export default function MainSiteOffersPage() {
 
         let combined: Item[] = [];
         
-        if (offersData?.success && Array.isArray(offersData.items)) {
-          combined.push(...offersData.items.map((item: any) => ({
-            ...item,
-            type: 'offer' as const
+        if (offersData?.success && Array.isArray(offersData.offers)) {
+          combined.push(...offersData.offers.map((item: any) => ({
+            id: item.business_id,
+            title: item.title || item.offer_title || '',
+            business_name: item.business_name || '',
+            brief: item.description ? (item.description.substring(0, 120) + '...') : '',
+            description: item.description || '',
+            is_featured: !!item.is_featured,
+            type: 'offer' as const,
           })));
         }
 
         if (discountsData?.success && Array.isArray(discountsData.items)) {
           combined.push(...discountsData.items.map((item: any) => ({
-            ...item,
-            type: 'discount' as const
+            id: item.business_id,
+            title: item.discount_name || '',
+            business_name: item.business_name || '',
+            brief: item.description ? (item.description.substring(0, 120) + '...') : `${item.discount_value || ''}${item.discount_type === 'percent' ? '%' : ''} off`,
+            description: item.description || '',
+            is_featured: !!item.is_featured,
+            type: 'discount' as const,
           })));
         }
 
@@ -51,6 +61,7 @@ export default function MainSiteOffersPage() {
         console.error('Failed to fetch offers/discounts', e);
       }
     }
+    fetchData();
   }, []);
 
   const [searchTerm, setSearchTerm] = useState('');

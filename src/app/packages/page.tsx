@@ -18,11 +18,18 @@ export default function PackagesPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
 
   React.useEffect(() => {
-    fetch('/api/approved/packages')
+    fetch('/api/discovery/offers')
       .then(r => r.json())
       .then(j => { 
-        if (j?.success && Array.isArray(j.items)) {
-          setItems(j.items);
+        if (j?.success && Array.isArray(j.offers)) {
+          setItems(j.offers.map((item: any) => ({
+            id: item.business_id,
+            title: item.title || '',
+            business_name: item.business_name || '',
+            brief: item.description ? item.description.substring(0, 150) : '',
+            description: item.description || '',
+            is_featured: !!item.is_featured,
+          })));
         }
       })
       .catch(e => console.error('Failed to fetch packages', e));
