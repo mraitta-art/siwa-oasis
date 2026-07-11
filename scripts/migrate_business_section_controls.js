@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config({ path: '.env.local' });
 async function migrate() {
-  const c = await mysql.createConnection({ host:process.env.DB_HOST, user:process.env.DB_USER, password:process.env.DB_PASSWORD, database:process.env.DB_NAME, port:Number(process.env.DB_PORT||3306) });
+  const c = await mysql.createConnection({ host:process.env.DB_HOST, user:process.env.DB_USER, password:process.env.DB_PASSWORD, database: process.env.DB_NAME, port: Number(process.env.DB_PORT || 3306), ssl: process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud') ? { rejectUnauthorized: false } : undefined });
   
   console.log('Creating business_section_controls table...');
   await c.query(`

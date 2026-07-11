@@ -266,7 +266,8 @@ async function main() {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'siwa_oasis',
-    port: parseInt(process.env.DB_PORT || '3306')
+    port: parseInt(process.env.DB_PORT || '3306'),
+    ssl: process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud') ? { rejectUnauthorized: false } : undefined
   });
   console.log("Connected!");
 

@@ -83,22 +83,12 @@ export async function POST(request: NextRequest) {
       actualParentId = newParentId;
     }
 
-    // Step 1: Update all duplicate types to be children of the parent
+    // Step 1: Verify all duplicate types exist before proceeding
     for (const childId of childTypeIds) {
-      // Check if type exists
       const childType = await query('SELECT * FROM business_types WHERE id = ?', [childId]);
       if (childType.length === 0) {
         console.warn(`Type ${childId} not found, skipping...`);
-        continue;
       }
-
-      // Update the type to be a child of the parent
-      await execute(
-        `UPDATE business_types 
-         SET parent_id = ?, is_parent = 0 
-         WHERE id = ?`,
-        [actualParentId, childId]
-      );
     }
 
     // Step 2: Update all businesses using old types to use the parent
@@ -166,6 +156,11 @@ export async function POST(request: NextRequest) {
         console.warn(`Failed to update orchestrator page ${page.id}:`, e);
       }
     }
+
+    // Step 5.5: Actually DELETE the consolidated duplicate types
+    await execute(
+      `DELETE FROM business_types WHERE id IN (${typeIdList})`
+    );
 
     // Step 6: Invalidate caches
     invalidateCache.businessTypes();

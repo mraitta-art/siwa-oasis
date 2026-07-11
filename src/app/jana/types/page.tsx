@@ -35,6 +35,7 @@ export default function BusinessTypesPage() {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [selectedDuplicate, setSelectedDuplicate] = useState<DuplicateGroup | null>(null);
   const [consolidating, setConsolidating] = useState(false);
+  const [selectedParentForConsolidate, setSelectedParentForConsolidate] = useState('');
   const [quickFixId, setQuickFixId] = useState<string | null>(null);
   const [quickFixParent, setQuickFixParent] = useState('');
   const [deleteModal, setDeleteModal] = useState<{ type: BizType; children: BizType[] } | null>(null);
@@ -325,6 +326,7 @@ export default function BusinessTypesPage() {
                 <button
                   onClick={() => {
                     setSelectedDuplicate(dup);
+                    setSelectedParentForConsolidate(dup.ids[0]);
                     setShowDuplicateModal(true);
                   }}
                   style={{
@@ -809,13 +811,8 @@ export default function BusinessTypesPage() {
                           type="radio"
                           name="parentType"
                           value={typeId}
-                          onChange={(e) => {
-                            setSelectedDuplicate({
-                              ...selectedDuplicate,
-                              selectedParent: e.target.value
-                            } as any);
-                          }}
-                          defaultChecked={selectedDuplicate.ids[0] === typeId}
+                          checked={selectedParentForConsolidate === typeId}
+                          onChange={(e) => setSelectedParentForConsolidate(e.target.value)}
                         />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1f2937' }}>
@@ -842,11 +839,12 @@ export default function BusinessTypesPage() {
                   ✅ What will happen:
                 </div>
                 <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem', fontSize: '0.75rem', color: '#166534' }}>
-                  <li>All {selectedDuplicate.count - 1} duplicate type{selectedDuplicate.count - 1 !== 1 ? 's' : ''} become children of the parent</li>
-                  <li>All businesses using duplicates are reassigned to parent</li>
-                  <li>Form fields are updated automatically</li>
-                  <li>Card templates reference the parent</li>
-                  <li>Orchestrator configurations are synchronized</li>
+                  <li>✓ Type <strong>"{selectedParentForConsolidate || selectedDuplicate.ids[0]}"</strong> will be <span style={{ background: '#bbf7d0', padding: '1px 5px', borderRadius: '4px' }}>KEPT</span></li>
+                  {selectedDuplicate.ids.filter(id => id !== (selectedParentForConsolidate || selectedDuplicate.ids[0])).map(id => (
+                    <li key={id}>🗑 Type <strong>"{id}"</strong> will be <span style={{ background: '#fecaca', padding: '1px 5px', borderRadius: '4px' }}>PERMANENTLY DELETED</span></li>
+                  ))}
+                  <li>All businesses using deleted types are reassigned to the kept type</li>
+                  <li>Form fields and templates are updated automatically</li>
                 </ul>
               </div>
             </div>
@@ -862,7 +860,7 @@ export default function BusinessTypesPage() {
               <button 
                 className="btn btn-primary" 
                 onClick={() => {
-                  const parentId = (selectedDuplicate as any).selectedParent || selectedDuplicate.ids[0];
+                  const parentId = selectedParentForConsolidate || selectedDuplicate.ids[0];
                   const otherIds = selectedDuplicate.ids.filter(id => id !== parentId);
                   consolidateTypes(parentId, otherIds);
                 }}
