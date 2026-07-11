@@ -159,3 +159,12 @@ export async function requireAuth(): Promise<SessionUser> {
   if (!user) throw new Error('Not authenticated');
   return user;
 }
+
+/** Require vendor access (or admin override) */
+export async function requireVendor(): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not authenticated');
+  const allowedRoles = ['vendor', 'super_admin', 'content_admin'];
+  if (!allowedRoles.includes(user.role)) throw new Error('Vendor access required');
+  return user;
+}

@@ -147,7 +147,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     const isMulti = ['checkbox_group', 'multiselect'].includes(field.field_type);
 
     const isTrial = business?.subscription_tier === 'trial' || (business?.trial_expires_at && new Date(business.trial_expires_at) > new Date());
-    const isAdmin = ['super_admin', 'admin', 'content_admin'].includes(userRole || 'public');
+    const isAdmin = ['super_admin', 'admin', 'content_admin', 'sales_manager', 'support_agent'].includes(userRole || 'public');
     
     // TRIAL LOGIC: Unlock features but limit resources
     const featureMissing = !!(field.required_feature && !tierFeatures[field.required_feature] && !isAdmin && !isTrial);

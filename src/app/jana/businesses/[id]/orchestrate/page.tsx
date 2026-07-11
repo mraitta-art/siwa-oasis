@@ -116,9 +116,8 @@ export default function BusinessOrchestrator() {
   if (!biz) return <div className="loader-screen" style={{ color: '#ef4444' }}>BUSINESS ENTITY NOT FOUND</div>;
 
   const templateSections = biz.template_sections || [];
-  const activeSectionIds = sections
-    .filter(s => biz.custom_data?.[s.id] || templateSections.includes(s.id))
-    .map(s => s.id);
+  // Admin Command Center: Make all sections available for edit
+  const activeSectionIds = sections.map(s => s.id);
 
   return (
     <div className="orchestrator-page">
