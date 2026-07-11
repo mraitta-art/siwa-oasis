@@ -7,7 +7,9 @@ interface BusinessType {
   id: string;
   name: string;
   icon: string;
+  icon_color?: string;
   is_parent: boolean;
+  parent_id?: string | null;
   sections: string[];
   own_sections: string[];
   description: string;
@@ -40,8 +42,8 @@ export default function SectionsPage() {
     try {
       setLoading(true);
       const [typesRes, sectionsRes] = await Promise.all([
-        fetch('/api/jana/types'),
-        fetch('/api/jana/sections')
+        fetch('/api/jana/types?t=' + Date.now()),
+        fetch('/api/jana/sections?t=' + Date.now())
       ]);
 
       if (typesRes.ok) {
@@ -180,26 +182,75 @@ export default function SectionsPage() {
             <p style={{ color: '#94a3b8' }}>Loading...</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {businessTypes.map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => handleSelectType(type.id)}
-                  style={{
-                    textAlign: 'left',
-                    padding: '0.75rem',
-                    border: selectedType === type.id ? '2px solid #D4AF37' : '1px solid #e2e8f0',
-                    borderRadius: '6px',
-                    background: selectedType === type.id ? '#fffbeb' : '#f9fafb',
-                    cursor: 'pointer',
-                    fontWeight: selectedType === type.id ? 'bold' : 'normal'
-                  }}
-                >
-                  <i className={`fas ${type.icon}`} style={{ marginRight: '0.5rem', color: '#D4AF37' }}></i>
-                  {type.name}
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginLeft: '0.5rem' }}>
-                    ({type.sections?.length || 0} sections)
-                  </span>
-                </button>
+              {businessTypes.filter(t => t.is_parent || Number(t.is_parent) === 1).map(parent => (
+                <div key={parent.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.5rem' }}>
+                  <button
+                    onClick={() => handleSelectType(parent.id)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.75rem',
+                      border: selectedType === parent.id ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      background: selectedType === parent.id ? '#fffbeb' : '#f8fafc',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      borderLeft: `4px solid ${parent.icon_color || '#1e293b'}`
+                    }}
+                  >
+                    <i className={`fas ${parent.icon}`} style={{ marginRight: '0.5rem', color: parent.icon_color || '#D4AF37' }}></i>
+                    {parent.name}
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: '0.5rem', fontWeight: 'normal' }}>
+                      ({(parent.sections || []).length} locked sections)
+                    </span>
+                  </button>
+                  
+                  {businessTypes.filter(t => t.parent_id === parent.id).map(child => (
+                    <button
+                      key={child.id}
+                      onClick={() => handleSelectType(child.id)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.6rem 0.6rem 0.6rem 2rem',
+                        border: selectedType === child.id ? '2px solid #D4AF37' : '1px solid transparent',
+                        borderRadius: '6px',
+                        background: selectedType === child.id ? '#fffbeb' : 'transparent',
+                        cursor: 'pointer',
+                        fontWeight: selectedType === child.id ? 'bold' : 'normal',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <i className={`fas ${child.icon}`} style={{ marginRight: '0.5rem', color: child.icon_color || '#8b5cf6', fontSize: '0.8rem' }}></i>
+                      <div style={{ flex: 1 }}>
+                        {child.name}
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: '0.5rem' }}>
+                          ({(child.own_sections || []).length} extra)
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ))}
+              
+              {/* Orphan Types (in case some have no parent but aren't parents themselves, which shouldn't happen but fallback) */}
+              {businessTypes.filter(t => !t.is_parent && Number(t.is_parent) !== 1 && !t.parent_id).map(orphan => (
+                 <button
+                   key={orphan.id}
+                   onClick={() => handleSelectType(orphan.id)}
+                   style={{
+                     textAlign: 'left',
+                     padding: '0.75rem',
+                     border: selectedType === orphan.id ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                     borderRadius: '6px',
+                     background: selectedType === orphan.id ? '#fffbeb' : '#f9fafb',
+                     cursor: 'pointer',
+                     fontWeight: selectedType === orphan.id ? 'bold' : 'normal'
+                   }}
+                 >
+                   <i className={`fas ${orphan.icon}`} style={{ marginRight: '0.5rem', color: '#D4AF37' }}></i>
+                   {orphan.name}
+                 </button>
               ))}
             </div>
           )}
