@@ -89,6 +89,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
     }
 
+    // ══════════════════════════════════════════════════════════════
+    // RULE 1: Only CHILD types (with a parent_id) can hold businesses.
+    // Parent/container types are classification buckets — not registrants.
+    // ══════════════════════════════════════════════════════════════
+    const selectedType = await queryOne(
+      'SELECT id, name, is_parent, parent_id FROM business_types WHERE id = ?',
+      [type_id]
+    ) as any;
+    if (!selectedType) {
+      return NextResponse.json({ error: `Business type "${type_id}" not found.` }, { status: 400 });
+    }
+    if (selectedType.is_parent || !selectedType.parent_id) {
+      return NextResponse.json({
+        error: `❌ Rule violation: "${selectedType.name}" is a parent/category type. Businesses can only be registered under a child (leaf) type that belongs to a parent. Please select a specific sub-type.`,
+        rule: 'PARENT_TYPE_NO_REGISTRATION'
+      }, { status: 400 });
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // RULE 2: Every business name defaults to the anonymous vendor
+    // until a real vendor claims it. Never leave vendor_id as NULL.
+    // ══════════════════════════════════════════════════════════════
+    if (!vendor_id) {
+      // Look up the system anonymous profile
+      const anonProfile = await queryOne(
+        `SELECT id FROM profiles WHERE role = 'anonymous' OR id = 'anonymous' OR email = 'anonymous@siwa.today' LIMIT 1`
+      ) as any;
+      vendor_id = anonProfile?.id || 'anonymous';
+    }
+
     // Generate Slug
     const slug = slugify(name);
 
@@ -112,7 +142,7 @@ export async function POST(request: NextRequest) {
       [id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone ? 1 : 0, JSON.stringify(custom_data), status, 1]
     );
 
-    return NextResponse.json({ id, name, slug, type_id }, { status: 201 });
+    return NextResponse.json({ id, name, slug, type_id, vendor_id }, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
@@ -150,6 +180,23 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    // RULE 1: If type_id is being changed, ensure the new type is a child type
+    if (updates.type_id) {
+      const selectedType = await queryOne(
+        'SELECT id, name, is_parent, parent_id FROM business_types WHERE id = ?',
+        [updates.type_id]
+      ) as any;
+      if (!selectedType) {
+        return NextResponse.json({ error: `Business type "${updates.type_id}" not found.` }, { status: 400 });
+      }
+      if (selectedType.is_parent || !selectedType.parent_id) {
+        return NextResponse.json({
+          error: `❌ Rule violation: "${selectedType.name}" is a parent/category type. Only child types can hold business registrations.`,
+          rule: 'PARENT_TYPE_NO_REGISTRATION'
+        }, { status: 400 });
+      }
+    }
 
     const sets: string[] = [];
     const params: any[] = [];

@@ -105,6 +105,35 @@ export async function POST(request: NextRequest) {
       results.push({ check: 'businesses index', status: 'ERROR', detail: e.message });
     }
 
+    // 6b. Ensure anonymous system profile exists (Rule 2: every business has a default vendor)
+    try {
+      await execute(`
+        INSERT IGNORE INTO profiles (id, email, role, display_name, created_at)
+        VALUES ('anonymous', 'anonymous@siwa.today', 'anonymous', 'Unclaimed Listing', NOW())
+      `);
+      results.push({ check: 'anonymous profile', status: 'EXISTS/CREATED' });
+    } catch (e: any) {
+      results.push({ check: 'anonymous profile', status: 'ERROR', detail: e.message });
+    }
+
+    // 6c. Add is_claimed column to businesses (Rule 2: explicit claim state)
+    try {
+      const cols = await query(`DESCRIBE businesses`);
+      const hasClaimed = cols.some((c: any) => c.Field === 'is_claimed');
+      if (!hasClaimed) {
+        await execute(`ALTER TABLE businesses ADD COLUMN is_claimed TINYINT(1) NOT NULL DEFAULT 0`);
+        // Backfill: real vendors = claimed
+        await execute(`UPDATE businesses SET is_claimed = 1 WHERE vendor_id IS NOT NULL AND vendor_id != 'anonymous' AND vendor_id != ''`);
+        // Backfill: null vendor_id → anonymous
+        await execute(`UPDATE businesses SET vendor_id = 'anonymous' WHERE vendor_id IS NULL OR vendor_id = ''`);
+        results.push({ check: 'businesses.is_claimed', status: 'ADDED + BACKFILLED' });
+      } else {
+        results.push({ check: 'businesses.is_claimed', status: 'EXISTS' });
+      }
+    } catch (e: any) {
+      results.push({ check: 'businesses.is_claimed', status: 'ERROR', detail: e.message });
+    }
+
     // 7. Create section_blogs table if needed, then verify visibility columns
     try {
       await execute(`

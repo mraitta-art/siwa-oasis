@@ -187,9 +187,9 @@ export default function BusinessRegistryPage() {
               <input className="form-control" placeholder="e.g. Great Sand Sea Expedition"
                 value={newBiz.name} onChange={e => setNewBiz({...newBiz, name: e.target.value})} />
             </div>
-            {/* Business Type */}
+            {/* Business Type — only CHILD types (those with a parent) are selectable */}
             <div>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS TYPE *</label>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS TYPE * <span style={{ color: '#3b82f6', fontWeight: 600 }}>(child types only)</span></label>
               <select className="form-control" value={newBiz.type_id}
                 onChange={e => {
                   const tid = e.target.value;
@@ -197,9 +197,21 @@ export default function BusinessRegistryPage() {
                   // Show all templates: type-specific + universal (type_id = null)
                   setFilteredTemplates(templates.filter((t: any) => t.type_id === tid || !t.type_id));
                 }}>
-                <option value="">-- Select Type --</option>
-                {types.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                <option value="">-- Select Sub-Type --</option>
+                {types
+                  .filter((t: any) => !t.is_parent && t.parent_id) /* Rule 1: only child types */
+                  .map((t: any) => {
+                    const parent = types.find((p: any) => p.id === t.parent_id);
+                    return <option key={t.id} value={t.id}>{parent ? `${parent.name} › ` : ''}{t.name}</option>;
+                  })
+                }
+                {types.filter((t: any) => !t.is_parent && t.parent_id).length === 0 && (
+                  <option disabled>No child types found — create child types first</option>
+                )}
               </select>
+              <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                ⚠️ Parent/category types are excluded — they cannot hold business registrations
+              </div>
             </div>
             {/* Template — auto-resolves from tier when not set */}
             <div>
@@ -348,14 +360,21 @@ export default function BusinessRegistryPage() {
                   </div>
                 </td>
                 <td>
-                  {b.vendor_email ? (
-                    <div style={{ fontSize: '0.8rem' }}>
-                      <i className="fas fa-user-circle" style={{ color: '#6b7280' }}></i> {b.vendor_email}
-                      {!b.approved_by_vendor && <span className="badge badge-warning" style={{ fontSize: '0.6rem', display: 'block', width: 'fit-content', marginTop: '0.2rem' }}>PENDING VENDOR</span>}
-                    </div>
-                  ) : (
-                    <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>Managed by System</span>
-                  )}
+                  {(() => {
+                    const isAnon = !b.vendor_id || b.vendor_id === 'anonymous' || !b.vendor_email;
+                    if (isAnon) return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: '999px', border: '1px solid #fcd34d' }}>
+                        🔓 Unclaimed
+                      </span>
+                    );
+                    return (
+                      <div style={{ fontSize: '0.8rem' }}>
+                        <i className="fas fa-user-circle" style={{ color: '#6b7280', marginRight: '4px' }}></i>
+                        {b.vendor_email}
+                        {!b.approved_by_vendor && <span className="badge badge-warning" style={{ fontSize: '0.6rem', display: 'block', width: 'fit-content', marginTop: '0.2rem' }}>PENDING VENDOR</span>}
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td>
                   <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{b.views.toLocaleString()} <span style={{ color: '#9ca3af', fontWeight: 400 }}>views</span></div>
