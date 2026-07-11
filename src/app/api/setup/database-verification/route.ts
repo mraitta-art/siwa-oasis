@@ -283,3 +283,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// GET alias — allows triggering from a browser
+export const GET = POST;

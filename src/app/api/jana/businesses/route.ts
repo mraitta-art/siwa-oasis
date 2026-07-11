@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
     }
 
     const includeType = searchParams.get('includeType') === 'true';
-    const businesses = await query(`
+    const typeFilter = searchParams.get('type');
+
+    let queryStr = `
       SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
              ${includeType ? 'bt.sections as type_sections, bt.own_sections as type_own_sections,' : ''}
              p.email as vendor_email, p.display_name as vendor_name,
@@ -40,8 +42,28 @@ export async function GET(request: NextRequest) {
       LEFT JOIN business_types bt ON b.type_id = bt.id
       LEFT JOIN profiles p ON b.vendor_id = p.id
       LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-      ORDER BY b.created_at DESC
-    `);
+    `;
+    
+    const queryParams: any[] = [];
+    
+    if (typeFilter) {
+      const typesList = await query(`
+        SELECT id FROM business_types WHERE id = ? OR parent_id = ?
+      `, [typeFilter, typeFilter]);
+      
+      const targetTypeIds = (typesList as any[]).map(t => t.id);
+      
+      if (targetTypeIds.length > 0) {
+        queryStr += ` WHERE b.type_id IN (${targetTypeIds.map(() => '?').join(',')}) `;
+        queryParams.push(...targetTypeIds);
+      } else {
+        queryStr += ` WHERE 1=0 `;
+      }
+    }
+    
+    queryStr += ` ORDER BY b.created_at DESC `;
+    
+    const businesses = await query(queryStr, queryParams);
 
     if (includeType) {
       businesses.forEach((biz: any) => {

@@ -138,6 +138,7 @@ const NAV_GROUPS = [
       { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
       { name: 'Curation', path: '/jana/curation', icon: 'fa-filter' },
+      { name: 'System Setup', path: '/jana/setup', icon: 'fa-screwdriver-wrench' },
     ]
   }
 ];
@@ -253,6 +254,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/diagnostic')) return { title: 'Diagnostic', tip: 'System health checks and component diagnostics.' };
     if (pathname.includes('/audit')) return { title: 'Audit Logs', tip: 'View activity history and change tracking.' };
     if (pathname.includes('/curation')) return { title: 'Curation', tip: 'Content filtering and curation rules.' };
+    if (pathname.includes('/setup')) return { title: 'System Setup', tip: 'Run database schema verification, seed default components, and configure universal sections.' };
     return { title: 'Governance CMS', tip: 'Navigate the pipeline from Foundation through Publication.' };
   };
 
