@@ -133,10 +133,20 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
     
+    // CASCADING DELETES
+    // 1. Delete associated form fields
+    await execute('DELETE FROM form_fields WHERE business_type_id = ?', [id]);
+    
+    // 2. Delete associated sections
+    await execute('DELETE FROM sections WHERE business_type_id = ?', [id]);
+    
+    // 3. Delete the business type
     await execute('DELETE FROM business_types WHERE id = ?', [id]);
     
-    // Invalidate cache after mutation
+    // Invalidate caches
     invalidateCache.businessTypes();
+    invalidateCache.sections();
+    invalidateCache.formFields();
     
     return NextResponse.json({ success: true });
   } catch (e: any) {
