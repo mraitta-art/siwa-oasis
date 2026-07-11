@@ -128,6 +128,17 @@ export async function POST(request: NextRequest) {
       results.push({ check: 'businesses index', status: 'ERROR', detail: e.message });
     }
 
+    // 6a. Ensure SECTION_TEMPLATE dummy type exists (Fulfill foreign key constraint for template form fields)
+    try {
+      await execute(`
+        INSERT IGNORE INTO business_types (id, name, is_parent)
+        VALUES ('SECTION_TEMPLATE', 'Universal Section Template', 0)
+      `);
+      results.push({ check: 'SECTION_TEMPLATE business type', status: 'EXISTS/CREATED' });
+    } catch (e: any) {
+      results.push({ check: 'SECTION_TEMPLATE business type', status: 'ERROR', detail: e.message });
+    }
+
     // 6b. Ensure anonymous system profile exists (Rule 2: every business has a default vendor)
     try {
       await execute(`

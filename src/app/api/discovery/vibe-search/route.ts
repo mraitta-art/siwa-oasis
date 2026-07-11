@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Resolve which fields/paths we should search
-    let searchablePaths = ['$.experience_vibe.vibe_tags']; // Default
+    let searchablePaths = ['$.experience_vibe.vibe_tags', '$.vibe.vibe_tags']; // Default
 
     if (engineId) {
       const engine: any = await query(`

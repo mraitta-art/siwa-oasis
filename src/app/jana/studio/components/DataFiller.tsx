@@ -21,6 +21,10 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
+  // Minisite custom configurations
+  const [sectionLabels, setSectionLabels] = useState<Record<string, string>>({});
+  const [hiddenSections, setHiddenSections] = useState<string[]>([]);
+
   // Inline create business
   const [creatingBusiness, setCreatingBusiness] = useState(false);
   const [newBizName, setNewBizName] = useState('');
@@ -74,6 +78,12 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
         }
       });
       setFormData(flat);
+
+      // Load custom labels and hidden sections
+      const labels = business.custom_data?.section_labels || business.custom_data?.basic?.section_labels || {};
+      const hidden = business.custom_data?.basic?.hidden_sections || business.custom_data?.hidden_sections || [];
+      setSectionLabels(labels);
+      setHiddenSections(hidden);
 
       if (Array.isArray(sectionData) && sectionData.length > 0) {
         setActiveTab(sectionData[0].id);
@@ -139,11 +149,42 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
     setSaving(false);
   }
 
+  async function saveMinisiteSettings() {
+    if (!selectedBusiness) return;
+    setSaving(true);
+    const current = typeof selectedBusiness.custom_data === 'object' ? (selectedBusiness.custom_data || {}) : {};
+    const updated = {
+      ...current,
+      section_labels: sectionLabels,
+      basic: {
+        ...(current.basic || {}),
+        section_labels: sectionLabels,
+        hidden_sections: hiddenSections
+      }
+    };
+    try {
+      const res = await fetch(`/api/jana/businesses/${selectedBusiness.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_data: updated })
+      });
+      if (!res.ok) throw new Error('Failed to save settings');
+      setSelectedBusiness({ ...selectedBusiness, custom_data: updated });
+      notify('Minisite settings saved successfully!', 'success');
+    } catch (e) {
+      notify('Failed to save settings', 'error');
+    }
+    setSaving(false);
+  }
+
   async function publishStory() {
     if (!selectedBusiness) return;
     setPublishing(true);
-    // Build full data structure
-    const allData: Record<string, Record<string, any>> = {};
+    // Build full data structure merging with existing config keys
+    const current = typeof selectedBusiness.custom_data === 'object' ? (selectedBusiness.custom_data || {}) : {};
+    const allData: Record<string, any> = {
+      ...current
+    };
     sections.forEach(section => {
       const sectionData: Record<string, any> = {};
       Object.entries(formData).forEach(([key, val]) => {
@@ -151,7 +192,9 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
           sectionData[key.replace(section.id + '__', '')] = val;
         }
       });
-      if (Object.keys(sectionData).length > 0) allData[section.id] = sectionData;
+      if (Object.keys(sectionData).length > 0) {
+        allData[section.id] = sectionData;
+      }
     });
     try {
       await fetch(`/api/jana/businesses/${selectedBusiness.id}`, {
@@ -159,6 +202,8 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ custom_data: allData })
       });
+      // Sync local state as well
+      setSelectedBusiness({ ...selectedBusiness, custom_data: allData });
       notify(`"${selectedBusiness.name}" is now LIVE! 🎉`, 'success');
     } catch (e) { notify('Publish failed', 'error'); }
     setPublishing(false);
@@ -472,6 +517,17 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
                     </button>
                   );
                 })}
+                <button onClick={() => setActiveTab('__minisite_settings')} style={{
+                  padding: '0.6rem 1.1rem', borderRadius: '10px',
+                  border: activeTab === '__minisite_settings' ? '2px solid #D4AF37' : '1.5px solid transparent',
+                  background: activeTab === '__minisite_settings' ? '#fff' : 'transparent',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  boxShadow: activeTab === '__minisite_settings' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s'
+                }}>
+                  <i className="fas fa-cog" style={{ color: activeTab === '__minisite_settings' ? '#D4AF37' : '#94a3b8', fontSize: '0.75rem' }}></i>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: activeTab === '__minisite_settings' ? '#1e293b' : '#64748b' }}>⚙️ Minisite Settings</span>
+                </button>
               </div>
 
               {/* Active Section Form */}
@@ -520,6 +576,90 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
                   )}
                 </div>
               ))}
+
+              {activeTab === '__minisite_settings' && (
+                <div style={{ background: '#fff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '14px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', fontSize: '1.1rem' }}>
+                        <i className="fas fa-cog"></i>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a' }}>Minisite Settings</div>
+                        <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Customize tab labels and section visibilities</div>
+                      </div>
+                    </div>
+                    <button onClick={saveMinisiteSettings} disabled={saving} style={{
+                      padding: '0.65rem 1.5rem', borderRadius: '12px', background: '#1e293b', color: '#fff',
+                      border: 'none', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                    }}>
+                      {saving ? <><i className="fas fa-spinner fa-spin"></i> SAVING...</> : <><i className="fas fa-save"></i> SAVE SETTINGS</>}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {sections.map(section => {
+                      const isHidden = hiddenSections.includes(section.id);
+                      const currentLabel = sectionLabels[section.id] || '';
+                      
+                      return (
+                        <div key={section.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.85rem', border: '1px solid #e2e8f0' }}>
+                              <i className={`fas ${section.icon}`}></i>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>{section.name}</div>
+                              <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>ID: {section.id}</div>
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: '2 1 250px' }}>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', display: 'block', marginBottom: '0.35rem' }}>NAVIGATION TAB LABEL</label>
+                            <input 
+                              type="text" 
+                              placeholder={section.name}
+                              value={currentLabel}
+                              onChange={e => {
+                                setSectionLabels(prev => ({ ...prev, [section.id]: e.target.value }));
+                              }}
+                              style={{
+                                width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px',
+                                border: '1.5px solid #cbd5e1', background: '#fff', fontSize: '0.8rem',
+                                color: '#1e293b', outline: 'none'
+                              }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '120px' }}>
+                            <button
+                              onClick={() => {
+                                if (isHidden) {
+                                  setHiddenSections(prev => prev.filter(id => id !== section.id));
+                                } else {
+                                  setHiddenSections(prev => [...prev, section.id]);
+                                }
+                              }}
+                              style={{
+                                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                                border: '1.5px solid',
+                                borderColor: isHidden ? '#ef4444' : '#10b981',
+                                background: isHidden ? '#fef2f2' : '#f0fdf4',
+                                color: isHidden ? '#ef4444' : '#10b981',
+                                fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '0.35rem', transition: 'all 0.15s'
+                              }}
+                            >
+                              <i className={isHidden ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+                              {isHidden ? 'HIDDEN' : 'VISIBLE'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
 

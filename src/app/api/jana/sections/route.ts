@@ -99,8 +99,13 @@ export async function POST(request: NextRequest) {
       { name: 'section_blog', label: 'Master Section Story (Rich Text)', type: 'rich_text', order: 1, help: 'Full rich-text story for this section.' }
     ];
 
+    const crypto = require('crypto');
     for (const field of structuralFields) {
-      const fid = `auto_${id}_${field.name}`;
+      const fullFid = `auto_${id}_${field.name}`;
+      const fid = fullFid.length <= 36 
+        ? fullFid 
+        : `auto_${crypto.createHash('md5').update(`${id}:${field.name}`).digest('hex').slice(0, 31)}`;
+
       await execute(
         `INSERT IGNORE INTO form_fields 
         (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, sort_order, section_origin, required_feature, acl, validation)

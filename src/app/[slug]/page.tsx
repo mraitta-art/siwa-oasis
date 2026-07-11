@@ -158,10 +158,12 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     // --- MULTI-LAYERED SECTION GOVERNANCE ---
     const tierAllowed = biz.tier_features?.allowed_public_sections;
     const templateHidden = biz.template_features?.hidden_sections;
+    const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
 
     sections = sections.filter((s: any) => {
       if (tierAllowed && Array.isArray(tierAllowed) && !tierAllowed.includes(s.id)) return false;
       if (templateHidden && Array.isArray(templateHidden) && templateHidden.includes(s.id)) return false;
+      if (customHidden && Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
       return true;
     });
 
