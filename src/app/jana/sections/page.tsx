@@ -31,6 +31,7 @@ export default function SectionsPage() {
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [sectionName, setSectionName] = useState('');
   const [sectionIcon, setSectionIcon] = useState('fa-layer-group');
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -97,34 +98,68 @@ export default function SectionsPage() {
     }
   }
 
-  async function handleCreateSection() {
+  async function handleSaveSection() {
     if (!sectionName.trim()) {
       setError('Section name required');
       return;
     }
 
     try {
+      const method = editingSectionId ? 'PUT' : 'POST';
+      const body: any = {
+        name: sectionName.trim(),
+        icon: sectionIcon,
+        affects_mini_sites: true
+      };
+      
+      if (editingSectionId) {
+        body.id = editingSectionId;
+      }
+
       const res = await fetch('/api/jana/sections', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: sectionName.trim(),
-          icon: sectionIcon,
-          affects_mini_sites: true
-        })
+        body: JSON.stringify(body)
       });
 
       if (res.ok) {
-        setSuccess('✅ Section created!');
+        setSuccess(editingSectionId ? '✅ Section updated!' : '✅ Section created!');
         setSectionName('');
         setSectionIcon('fa-layer-group');
+        setEditingSectionId(null);
         setError('');
         loadData();
         setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to save section');
       }
     } catch (err) {
-      setError('Error creating section');
+      setError('Error saving section');
     }
+  }
+
+  async function handleDeleteSection(id: string) {
+    if (!confirm('Are you sure you want to delete this section? This will also remove it from any assigned business types.')) return;
+    
+    try {
+      const res = await fetch(`/api/jana/sections?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSuccess('✅ Section deleted!');
+        loadData();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to delete section');
+      }
+    } catch (err) {
+      setError('Error deleting section');
+    }
+  }
+
+  function handleEditSection(section: Section) {
+    setEditingSectionId(section.id);
+    setSectionName(section.name);
+    setSectionIcon(section.icon);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   const toggleSection = (sectionId: string) => {
@@ -261,12 +296,26 @@ export default function SectionsPage() {
           {/* Create Section */}
           <div style={{
             background: '#fff',
-            border: '1px solid #e2e8f0',
+            border: editingSectionId ? '2px solid #D4AF37' : '1px solid #e2e8f0',
             borderRadius: '12px',
             padding: '1.5rem',
             marginBottom: '1.5rem'
           }}>
-            <h3 style={{ marginTop: 0 }}>Create New Section</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+               <h3 style={{ margin: 0 }}>{editingSectionId ? '✏️ Edit Section' : 'Create New Section'}</h3>
+               {editingSectionId && (
+                 <button 
+                   onClick={() => {
+                     setEditingSectionId(null);
+                     setSectionName('');
+                     setSectionIcon('fa-layer-group');
+                   }}
+                   style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}
+                 >
+                   Cancel Edit
+                 </button>
+               )}
+            </div>
             <div style={{ display: 'grid', gap: '0.75rem' }}>
               <input
                 type="text"
@@ -291,7 +340,7 @@ export default function SectionsPage() {
                 }}
               />
               <button
-                onClick={handleCreateSection}
+                onClick={handleSaveSection}
                 style={{
                   background: '#D4AF37',
                   color: '#1a1a2e',
@@ -302,7 +351,7 @@ export default function SectionsPage() {
                   cursor: 'pointer'
                 }}
               >
-                + Create Section
+                {editingSectionId ? '✓ Save Changes' : '+ Create Section'}
               </button>
             </div>
           </div>
@@ -330,10 +379,9 @@ export default function SectionsPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.75rem',
-                      padding: '0.75rem',
+                      padding: '0.5rem 0.75rem',
                       background: '#f9fafb',
                       borderRadius: '6px',
-                      cursor: 'pointer',
                       border: '1px solid #e2e8f0'
                     }}
                   >
@@ -341,15 +389,34 @@ export default function SectionsPage() {
                       type="checkbox"
                       checked={selectedSections.includes(section.id)}
                       onChange={() => toggleSection(section.id)}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem' }}
                     />
-                    <i className={`fas ${section.icon}`} style={{ color: '#D4AF37' }}></i>
-                    <span style={{ fontWeight: 'bold' }}>{section.name}</span>
-                    {section.affects_mini_sites && (
-                      <span style={{ fontSize: '0.75rem', background: '#dbeafe', color: '#0c4a6e', padding: '0.2rem 0.5rem', borderRadius: '999px' }}>
-                        Affects Mini Sites
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '0.75rem', cursor: 'pointer' }} onClick={() => toggleSection(section.id)}>
+                      <i className={`fas ${section.icon}`} style={{ color: '#D4AF37' }}></i>
+                      <span style={{ fontWeight: 'bold' }}>{section.name}</span>
+                      {section.affects_mini_sites && (
+                        <span style={{ fontSize: '0.7rem', background: '#dbeafe', color: '#0c4a6e', padding: '0.2rem 0.5rem', borderRadius: '999px' }}>
+                          Mini Sites
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        onClick={(e) => { e.preventDefault(); handleEditSection(section); }}
+                        style={{ background: '#f1f5f9', border: 'none', padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', color: '#475569' }}
+                        title="Edit Section"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        onClick={(e) => { e.preventDefault(); handleDeleteSection(section.id); }}
+                        style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', color: '#ef4444' }}
+                        title="Delete Section"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    </div>
                   </label>
                 ))}
               </div>
