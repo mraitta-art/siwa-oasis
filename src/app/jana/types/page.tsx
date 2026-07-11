@@ -197,7 +197,7 @@ export default function BusinessTypesPage() {
 
   async function checkForDuplicates() {
     try {
-      const res = await fetch('/api/jana/types/verify/duplicates');
+      const res = await fetch('/api/jana/types/verify/duplicates?t=' + Date.now());
       if (res.ok) {
         const data = await res.json();
         setDuplicates(data.duplicates || []);
@@ -225,12 +225,13 @@ export default function BusinessTypesPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
         notify(`Successfully consolidated ${childTypeIds.length} types under "${parentTypeId}"`, 'success');
+        // Immediately remove the resolved duplicate from state — no waiting for API
+        setDuplicates(prev => prev.filter(d => d.name !== selectedDuplicate?.name));
         setShowDuplicateModal(false);
         setSelectedDuplicate(null);
         await loadTypes();
-        await checkForDuplicates();
+        await checkForDuplicates(); // Final authoritative check
       } else {
         const err = await res.json();
         notify(err.error || 'Failed to consolidate types', 'error');
