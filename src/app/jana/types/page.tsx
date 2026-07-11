@@ -331,6 +331,31 @@ export default function BusinessTypesPage() {
             </div>
           );
         })}
+        
+        {/* ORPHAN TYPES SECTION */}
+        {types.filter(t => !t.is_parent && Number(t.is_parent) !== 1 && !t.parent_id).length > 0 && (
+          <div className="tree-group" style={{ marginBottom: '1.5rem', background: '#fff1f2', borderRadius: '12px', padding: '1rem', borderLeft: `4px solid #e11d48` }}>
+            <h4 style={{ color: '#be123c', marginTop: 0, marginBottom: '1rem' }}><i className="fas fa-exclamation-triangle"></i> Unlinked / Orphaned Types</h4>
+            <p style={{ fontSize: '0.8rem', color: '#9f1239', marginBottom: '1rem' }}>These types are marked as children but have no assigned parent. They appear on the Sections page but are disconnected from the hierarchy. Please edit them to assign a parent, convert them to parents, or delete them.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {types.filter(t => !t.is_parent && Number(t.is_parent) !== 1 && !t.parent_id).map(orphan => (
+                <div key={orphan.id} className="tree-item-advanced" style={{ background: '#fff', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #fecdd3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                     <i className={orphan.icon || 'fas fa-question-circle'} style={{ color: '#e11d48', fontSize: '1rem' }}></i>
+                     <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#be123c' }}>{orphan.name}</div>
+                        <div style={{ fontSize: '0.65rem', color: '#fda4af' }}>ID: {orphan.id} • Orphaned Type</div>
+                     </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                     <button className="btn btn-xs btn-outline" onClick={() => openEditor(orphan)}><i className="fas fa-edit"></i></button>
+                     <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteType(orphan.id)}><i className="fas fa-trash"></i></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && editingType && (
