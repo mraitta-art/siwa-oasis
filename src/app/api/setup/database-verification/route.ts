@@ -105,21 +105,52 @@ export async function POST(request: NextRequest) {
       results.push({ check: 'businesses index', status: 'ERROR', detail: e.message });
     }
 
-    // 7. Verify section_blogs table has show_on_main and show_on_minisite columns
+    // 7. Create section_blogs table if needed, then verify visibility columns
+    try {
+      await execute(`
+        CREATE TABLE IF NOT EXISTS section_blogs (
+          id           VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+          section_id   VARCHAR(36) NOT NULL,
+          business_id  VARCHAR(100) NOT NULL,
+          vendor_id    VARCHAR(100) NOT NULL,
+          title        VARCHAR(500) NOT NULL,
+          content      LONGTEXT,
+          excerpt      VARCHAR(1000),
+          show_on_main      TINYINT(1) NOT NULL DEFAULT 1,
+          show_on_minisite  TINYINT(1) NOT NULL DEFAULT 1,
+          status   ENUM('draft','pending','published','rejected') DEFAULT 'pending',
+          approved_by  VARCHAR(100) DEFAULT NULL,
+          approval_note MEDIUMTEXT,
+          approved_at  TIMESTAMP NULL DEFAULT NULL,
+          published_at TIMESTAMP NULL DEFAULT NULL,
+          created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_section_id  (section_id),
+          INDEX idx_business_id (business_id),
+          INDEX idx_vendor_id   (vendor_id),
+          INDEX idx_status      (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      results.push({ check: 'section_blogs table', status: 'EXISTS/CREATED' });
+    } catch (e: any) {
+      results.push({ check: 'section_blogs table', status: 'ERROR', detail: e.message });
+    }
+
+    // 7b. Verify section_blogs visibility columns (for tables that already existed)
     try {
       const cols = await query(`DESCRIBE section_blogs`);
       const hasMain = cols.some((c: any) => c.Field === 'show_on_main');
       const hasMini = cols.some((c: any) => c.Field === 'show_on_minisite');
       
       if (!hasMain) {
-        await execute(`ALTER TABLE section_blogs ADD COLUMN show_on_main BOOLEAN DEFAULT TRUE`);
+        await execute(`ALTER TABLE section_blogs ADD COLUMN show_on_main TINYINT(1) NOT NULL DEFAULT 1`);
         results.push({ check: 'section_blogs.show_on_main', status: 'ADDED' });
       } else {
         results.push({ check: 'section_blogs.show_on_main', status: 'EXISTS' });
       }
       
       if (!hasMini) {
-        await execute(`ALTER TABLE section_blogs ADD COLUMN show_on_minisite BOOLEAN DEFAULT TRUE`);
+        await execute(`ALTER TABLE section_blogs ADD COLUMN show_on_minisite TINYINT(1) NOT NULL DEFAULT 1`);
         results.push({ check: 'section_blogs.show_on_minisite', status: 'ADDED' });
       } else {
         results.push({ check: 'section_blogs.show_on_minisite', status: 'EXISTS' });
