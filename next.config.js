@@ -25,6 +25,16 @@ const nextConfig = {
     return config;
   },
   compress: true,
+  // Redirect /studio to /jana/studio natively
+  async redirects() {
+    return [
+      {
+        source: '/studio',
+        destination: '/jana/studio',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

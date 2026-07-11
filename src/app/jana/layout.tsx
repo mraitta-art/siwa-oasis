@@ -21,7 +21,7 @@ const NAV_GROUPS = [
     items: [
       { name: 'Blueprint Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
-      { name: 'Sections', path: '/jana/sections', icon: 'fa-table-cells' },
+      { name: 'Unified Section Architect', path: '/jana/sections', icon: 'fa-table-cells' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
       { name: 'Blueprints', path: '/jana/blueprints', icon: 'fa-drafting-compass' },
       { name: 'Business Forms', path: '/jana/business-forms', icon: 'fa-file-alt' },
@@ -97,8 +97,6 @@ const NAV_GROUPS = [
     collapsible: true,
     defaultCollapsed: false,
     items: [
-      { name: 'Form Builder', path: '/jana/form-builder', icon: 'fa-rectangle-list' },
-      { name: 'Enhanced Form Builder', path: '/jana/form-builder-enhanced', icon: 'fa-wand-magic-sparkles' },
       { name: 'Demo Automation', path: '/jana/demo-automation', icon: 'fa-robot' },
     ]
   },

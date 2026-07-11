@@ -51,9 +51,9 @@ export async function GET(req: NextRequest) {
     // Always include the SECTION_TEMPLATE for universal DNA
     typesToFetch.push('SECTION_TEMPLATE');
 
-    // 3. Fetch the Form Fields (The Structure/DNA)
+    // 3. Fetch the Form Fields (The Structure/DNA) — also pull section feature flags
     const fields = (await query(
-      'SELECT f.*, s.name as section_name, s.icon as section_icon ' +
+      'SELECT f.*, s.name as section_name, s.icon as section_icon, s.enable_gallery, s.enable_blog ' +
       'FROM form_fields f ' +
       'JOIN sections s ON f.section_id = s.id ' +
       'WHERE f.business_type_id IN (?) ' +
@@ -72,6 +72,9 @@ export async function GET(req: NextRequest) {
           id: f.section_id,
           name: f.section_name,
           icon: f.section_icon,
+          // Feature flags — admin-controlled per section
+          enable_gallery: f.enable_gallery !== 0,
+          enable_blog:    f.enable_blog    !== 0,
           fields: []
         };
       }

@@ -60,6 +60,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Redirect /studio to /jana/studio natively
+  async redirects() {
+    return [
+      {
+        source: '/studio',
+        destination: '/jana/studio',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

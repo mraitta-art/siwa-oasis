@@ -41,6 +41,29 @@ export async function POST(request: NextRequest) {
       results.push({ check: 'sections.display_order', status: 'ERROR', detail: e.message });
     }
 
+    // 2b. Verify sections table has enable_gallery and enable_blog columns
+    try {
+      const cols = await query(`DESCRIBE sections`);
+      const hasGallery = cols.some((c: any) => c.Field === 'enable_gallery');
+      const hasBlog = cols.some((c: any) => c.Field === 'enable_blog');
+
+      if (!hasGallery) {
+        await execute(`ALTER TABLE sections ADD COLUMN enable_gallery TINYINT(1) NOT NULL DEFAULT 1`);
+        results.push({ check: 'sections.enable_gallery', status: 'ADDED' });
+      } else {
+        results.push({ check: 'sections.enable_gallery', status: 'EXISTS' });
+      }
+
+      if (!hasBlog) {
+        await execute(`ALTER TABLE sections ADD COLUMN enable_blog TINYINT(1) NOT NULL DEFAULT 1`);
+        results.push({ check: 'sections.enable_blog', status: 'ADDED' });
+      } else {
+        results.push({ check: 'sections.enable_blog', status: 'EXISTS' });
+      }
+    } catch (e: any) {
+      results.push({ check: 'sections feature columns verification', status: 'ERROR', detail: e.message });
+    }
+
     // 3. Verify form_fields table has is_comparable column
     try {
       const cols = await query(`DESCRIBE form_fields`);

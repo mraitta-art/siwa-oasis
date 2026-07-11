@@ -7,7 +7,7 @@ import { useLang } from '@/context/LangContext';
 
 /* ─── Interfaces ───────────────────────────────────────────────── */
 interface Field { id: string; name: string; label: string; field_type: string; required: boolean; value: any; options?: any; help_text?: string; business_type_id?: string; }
-interface Section { id: string; name: string; icon: string; fields: Field[]; }
+interface Section { id: string; name: string; icon: string; fields: Field[]; enable_gallery: boolean; enable_blog: boolean; }
 interface Typology { child: { id: string; name: string; icon: string; color: string } | null; parent: { id: string; name: string; icon: string; color: string } | null; }
 interface GalleryItem { id: string; url: string; caption: string; is_hero: boolean; show_on_main: boolean; show_on_minisite: boolean; approval_status: string; uploadedAt: string; }
 interface BlogPost { id: string; title: string; excerpt: string; status: string; show_on_main: boolean; show_on_minisite: boolean; created_at: string; published_at: string | null; }
@@ -75,7 +75,7 @@ export default function VendorStudio() {
     }
   }
 
-  /* When active section changes, load its content */
+  /* When active section changes, reset tab and load content */
   useEffect(() => {
     if (!activeSection) return;
     setSectionPanel('fields');
@@ -245,25 +245,40 @@ export default function VendorStudio() {
   const filledFields    = allFields.filter(f => { const v = formData[f.section_id]?.[f.name]; if (!v) return false; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'string') return v.trim().length > 0; return !!v; }).length;
   const overallPct      = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
   const currentList     = activeTab === 'core' ? coreSections : activeTab === 'common' ? commonSections : uniqueSections;
+  
   const tabDefs         = [
     { id: 'core',   label: t.tabCore   || 'Core Info',  icon: 'fa-fingerprint', color: '#D4AF37', count: coreSections.length },
     { id: 'common', label: t.tabCommon || 'Universal',  icon: 'fa-globe',       color: '#3b82f6', count: commonSections.length },
     { id: 'unique', label: t.tabUnique || 'Unique',     icon: 'fa-star',        color: '#10b981', count: uniqueSections.length },
   ];
 
-  /* ── Shared styles ─────────────────────────────────────────── */
-  const panelBtnStyle = (active: boolean, color = accentColor) => ({
-    padding: '0.6rem 1.25rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
-    fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.5px', transition: 'all 0.15s',
-    background: active ? color : '#f1f5f9',
-    color: active ? (color === '#D4AF37' ? '#1a1a2e' : '#fff') : '#64748b',
-    display: 'flex', alignItems: 'center', gap: '0.4rem',
+  /* ── Premium Sub-Tabs Style ────────────────────────────────── */
+  const subTabStyle = (active: boolean, color: string) => ({
+    padding: '0.75rem 1.5rem',
+    background: 'none',
+    border: 'none',
+    borderBottom: active ? `3px solid ${color}` : '3px solid transparent',
+    color: active ? '#0f172a' : '#94a3b8',
+    fontWeight: active ? 900 : 600,
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    transition: 'all 0.25s ease',
   });
 
-  const toggle = (active: boolean) => ({
-    width: 36, height: 20, borderRadius: 10, cursor: 'pointer', border: 'none',
-    background: active ? '#10b981' : '#cbd5e1', position: 'relative' as const,
-    transition: 'background 0.2s', flexShrink: 0,
+  const toggleStyle = (active: boolean) => ({
+    width: 32,
+    height: 18,
+    borderRadius: 9,
+    cursor: 'pointer',
+    border: 'none',
+    background: active ? '#10b981' : '#e2e8f0',
+    position: 'relative' as const,
+    transition: 'all 0.2s',
+    flexShrink: 0,
+    padding: 0,
   });
 
   return (
@@ -282,7 +297,7 @@ export default function VendorStudio() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: isRTL ? 'flex-start' : 'flex-end' }}>
               <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>Completion</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -306,13 +321,16 @@ export default function VendorStudio() {
 
         {/* CATEGORY TABS */}
         <div style={{ display: 'flex', padding: '0 2rem', gap: '2rem', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
-          {tabDefs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} style={{ padding: '1rem 0', background: 'none', border: 'none', borderBottom: activeTab === tab.id ? `3px solid ${tab.color}` : '3px solid transparent', color: activeTab === tab.id ? '#0f172a' : '#94a3b8', fontWeight: activeTab === tab.id ? 900 : 700, fontSize: '0.75rem', letterSpacing: '1px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }}>
-              <i className={`fas ${tab.icon}`} style={{ color: activeTab === tab.id ? tab.color : '#cbd5e1' }}></i>
-              {tab.label}
-              <span style={{ background: activeTab === tab.id ? `${tab.color}15` : '#f1f5f9', color: activeTab === tab.id ? tab.color : '#94a3b8', padding: '2px 8px', borderRadius: '10px', fontSize: '0.6rem' }}>{tab.count}</span>
-            </button>
-          ))}
+          {tabDefs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} style={{ padding: '1rem 0', background: 'none', border: 'none', borderBottom: isActive ? `3px solid ${tab.color}` : '3px solid transparent', color: isActive ? '#0f172a' : '#94a3b8', fontWeight: isActive ? 900 : 700, fontSize: '0.75rem', letterSpacing: '1px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }}>
+                <i className={`fas ${tab.icon}`} style={{ color: isActive ? tab.color : '#cbd5e1' }}></i>
+                {tab.label}
+                <span style={{ background: isActive ? `${tab.color}15` : '#f1f5f9', color: isActive ? tab.color : '#94a3b8', padding: '2px 8px', borderRadius: '10px', fontSize: '0.6rem' }}>{tab.count}</span>
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -344,59 +362,61 @@ export default function VendorStudio() {
         </aside>
 
         {/* CANVAS */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#f8fafc' }}>
+        <main style={{ flex: 1, overflowY: 'auto', padding: '2.5rem', background: '#f8fafc' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
             {/* Business header card for core/basic */}
             {activeTab === 'core' && currentSection?.id === 'basic' && (
-              <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem 2rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+              <div style={{ background: '#fff', borderRadius: '24px', padding: '2rem', marginBottom: '2rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: '14px', background: `${accentColor}15`, color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '16px', background: `${accentColor}15`, color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
                     <i className={`fas ${typology.child?.icon || 'fa-building'}`}></i>
                   </div>
                   <div>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.3rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#f1f5f9', color: '#64748b', padding: '3px 8px', borderRadius: '6px' }}>ID: {business?.id?.split('-')[0]}</span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: `${accentColor}15`, color: accentColor, padding: '3px 8px', borderRadius: '6px' }}>{typology.parent?.name} › {typology.child?.name}</span>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#f1f5f9', color: '#64748b', padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>ID: {business?.id?.split('-')[0]}</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, background: `${accentColor}15`, color: accentColor, padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>{typology.parent?.name} › {typology.child?.name}</span>
                     </div>
-                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>{business?.name}</h1>
+                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>{business?.name}</h1>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Section card */}
-            <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            {/* Premium Section Canvas Card */}
+            <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
 
-              {/* Section title + panel switcher */}
-              <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f8fafc', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
-                    <i className={`fas ${currentSection?.icon}`}></i>
-                  </div>
-                  <div style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{currentSection?.name}</h2>
-                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>Manage fields, images and blog posts for this section</p>
-                  </div>
+              {/* Title & Info */}
+              <div style={{ padding: '2.5rem 2.5rem 0', display: 'flex', alignItems: 'center', gap: '1.25rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '12px', background: '#f8fafc', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>
+                  <i className={`fas ${currentSection?.icon}`}></i>
                 </div>
+                <div style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{currentSection?.name}</h2>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Please fill in this section's details.</p>
+                </div>
+              </div>
 
-                {/* Panel Tabs */}
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button style={panelBtnStyle(sectionPanel === 'fields')} onClick={() => switchPanel('fields')}>
-                    <i className="fas fa-list-alt"></i> Fields
-                  </button>
-                  <button style={panelBtnStyle(sectionPanel === 'gallery', '#6366f1')} onClick={() => switchPanel('gallery')}>
+              {/* Sub-Tabs Selector — tabs shown only if admin enabled them for this section */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 2.5rem', marginTop: '1.5rem', gap: '1.5rem', direction: isRTL ? 'rtl' : 'ltr' }}>
+                <button style={subTabStyle(sectionPanel === 'fields', accentColor)} onClick={() => switchPanel('fields')}>
+                  <i className="fas fa-list-alt"></i> Fields
+                </button>
+                {currentSection?.enable_gallery !== false && (
+                  <button style={subTabStyle(sectionPanel === 'gallery', '#6366f1')} onClick={() => switchPanel('gallery')}>
                     <i className="fas fa-images"></i> Gallery
                   </button>
-                  <button style={panelBtnStyle(sectionPanel === 'blog', '#f59e0b')} onClick={() => switchPanel('blog')}>
+                )}
+                {currentSection?.enable_blog !== false && (
+                  <button style={subTabStyle(sectionPanel === 'blog', '#f59e0b')} onClick={() => switchPanel('blog')}>
                     <i className="fas fa-feather-alt"></i> Blog
                   </button>
-                </div>
+                )}
               </div>
 
               {/* ── PANEL: FIELDS ─────────────────────────────── */}
               {sectionPanel === 'fields' && (
-                <div style={{ padding: '2rem' }}>
+                <div style={{ padding: '2.5rem' }}>
                   <DynamicForm
                     fields={allFields.filter(f => f.section_id === activeSection)}
                     data={formData}
@@ -413,30 +433,30 @@ export default function VendorStudio() {
 
               {/* ── PANEL: GALLERY ────────────────────────────── */}
               {sectionPanel === 'gallery' && (
-                <div style={{ padding: '2rem' }}>
+                <div style={{ padding: '2.5rem' }}>
 
-                  {/* Upload controls */}
-                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                  {/* Upload Controls Bar */}
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button
                       disabled={uploadingImg}
                       onClick={() => cameraRef.current?.click()}
-                      style={{ padding: '0.75rem 1.25rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      style={{ padding: '0.75rem 1.25rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
                       <i className="fas fa-camera"></i> Camera
                     </button>
                     <button
                       disabled={uploadingImg}
                       onClick={() => fileRef.current?.click()}
-                      style={{ padding: '0.75rem 1.25rem', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      style={{ padding: '0.75rem 1.25rem', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
                       <i className="fas fa-folder-open"></i> {uploadingImg ? 'Uploading...' : 'Choose Files'}
                     </button>
                     <input ref={cameraRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }} onChange={e => handleImageUpload(e.target.files)} />
                     <input ref={fileRef}   type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={e => handleImageUpload(e.target.files)} />
 
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: '#64748b' }}>
                       <i className="fas fa-info-circle" style={{ color: '#6366f1' }}></i>
-                      Each image can be toggled to show on the <strong>main site</strong> and/or your <strong>mini site</strong>
+                      Configure visibility options below each image placeholder.
                     </div>
                   </div>
 
@@ -448,31 +468,31 @@ export default function VendorStudio() {
                   )}
 
                   {!galleryLoading && gallery.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-                      <i className="fas fa-images" style={{ fontSize: '2.5rem', color: '#cbd5e1', marginBottom: '1rem', display: 'block' }}></i>
-                      <div style={{ fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>No images yet</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Upload photos from your camera or device to showcase this section</div>
+                    <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
+                      <i className="fas fa-images" style={{ fontSize: '2.5rem', color: '#cbd5e1', marginBottom: '1.25rem', display: 'block' }}></i>
+                      <div style={{ fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>No images uploaded yet</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Upload photos from your camera or local files to feature in this section.</div>
                     </div>
                   )}
 
                   {!galleryLoading && gallery.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem' }}>
                       {gallery.map(img => (
-                        <div key={img.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                          {/* Image preview */}
-                          <div style={{ aspectRatio: '16/9', background: '#f1f5f9', position: 'relative', overflow: 'hidden' }}>
+                        <div key={img.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                          {/* Image Thumbnail Container */}
+                          <div style={{ aspectRatio: '16/10', background: '#f1f5f9', position: 'relative', overflow: 'hidden' }}>
                             <img src={img.url} alt={img.caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             {img.approval_status === 'pending' && (
-                              <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(245,158,11,0.9)', color: '#fff', fontSize: '0.6rem', fontWeight: 800, padding: '3px 8px', borderRadius: '999px' }}>⏳ PENDING</div>
+                              <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(245,158,11,0.9)', color: '#fff', fontSize: '0.6rem', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px' }}>⏳ PENDING</div>
                             )}
                             {img.approval_status === 'approved' && (
-                              <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(16,185,129,0.9)', color: '#fff', fontSize: '0.6rem', fontWeight: 800, padding: '3px 8px', borderRadius: '999px' }}>✓ APPROVED</div>
+                              <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(16,185,129,0.9)', color: '#fff', fontSize: '0.6rem', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px' }}>✓ APPROVED</div>
                             )}
-                            <button onClick={() => deleteImage(img.id)} style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(239,68,68,0.85)', color: '#fff', border: 'none', borderRadius: '6px', width: 28, height: 28, cursor: 'pointer', fontSize: '0.75rem' }}>✕</button>
+                            <button onClick={() => deleteImage(img.id)} style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(239,68,68,0.85)', color: '#fff', border: 'none', borderRadius: '8px', width: 28, height: 28, cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>✕</button>
                           </div>
 
-                          {/* Caption input */}
-                          <div style={{ padding: '0.75rem' }}>
+                          {/* Controls & Edit fields */}
+                          <div style={{ padding: '1rem' }}>
                             <input
                               type="text"
                               value={img.caption}
@@ -481,29 +501,28 @@ export default function VendorStudio() {
                                 setGallery(prev => prev.map(i => i.id === img.id ? { ...i, caption: newCaption } : i));
                               }}
                               onBlur={e => updateImage(img.id, { caption: e.target.value })}
-                              placeholder="Add caption..."
-                              style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.8rem', color: '#1e293b', background: '#f8fafc', boxSizing: 'border-box' }}
+                              placeholder="Image description..."
+                              style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.8rem', color: '#1e293b', background: '#f8fafc', boxSizing: 'border-box', outline: 'none' }}
                             />
 
-                            {/* Visibility toggles */}
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                            {/* Visibility Toggles */}
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'space-between' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
                                 <button
                                   onClick={() => updateImage(img.id, { show_on_main: !img.show_on_main })}
-                                  style={{ ...toggle(img.show_on_main), border: 'none' }}
-                                  title={img.show_on_main ? 'Visible on main site' : 'Hidden from main site'}
+                                  style={toggleStyle(img.show_on_main)}
                                 >
-                                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: img.show_on_main ? 16 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: img.show_on_main ? 16 : 2, transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                                 </button>
                                 Main Site
                               </label>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
                                 <button
                                   onClick={() => updateImage(img.id, { show_on_minisite: !img.show_on_minisite })}
-                                  style={{ ...toggle(img.show_on_minisite), border: 'none' }}
-                                  title={img.show_on_minisite ? 'Visible on mini site' : 'Hidden from mini site'}
+                                  style={toggleStyle(img.show_on_minisite)}
                                 >
-                                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: img.show_on_minisite ? 16 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: img.show_on_minisite ? 16 : 2, transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                                 </button>
                                 Mini Site
                               </label>
@@ -518,37 +537,37 @@ export default function VendorStudio() {
 
               {/* ── PANEL: BLOG ───────────────────────────────── */}
               {sectionPanel === 'blog' && (
-                <div style={{ padding: '2rem' }}>
+                <div style={{ padding: '2.5rem' }}>
 
-                  {/* New blog form */}
+                  {/* New Blog Post Form */}
                   {blogForm ? (
-                    <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem' }}>
-                      <h3 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: 900, color: '#92400e' }}>✍️ Write New Blog Post</h3>
+                    <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '16px', padding: '2rem', marginBottom: '2rem' }}>
+                      <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 900, color: '#92400e' }}>✍️ Write New Blog Post</h3>
                       <input
-                        type="text" placeholder="Post title..."
+                        type="text" placeholder="Article Title..."
                         value={blogForm.title}
                         onChange={e => setBlogForm(prev => prev ? { ...prev, title: e.target.value } : prev)}
-                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid #fcd34d', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 600, marginBottom: '1rem', boxSizing: 'border-box', outline: 'none' }}
                       />
                       <textarea
-                        placeholder="Write your story here..."
+                        placeholder="Write your article details here..."
                         value={blogForm.content}
                         onChange={e => setBlogForm(prev => prev ? { ...prev, content: e.target.value } : prev)}
                         rows={8}
-                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid #fcd34d', borderRadius: '10px', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
                       />
 
-                      {/* Visibility toggles */}
-                      <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', marginBottom: '1rem' }}>
+                      {/* Toggles */}
+                      <div style={{ display: 'flex', gap: '2rem', marginTop: '1.25rem', marginBottom: '1.5rem' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
-                          <button onClick={() => setBlogForm(prev => prev ? { ...prev, show_on_main: !prev.show_on_main } : prev)} style={{ ...toggle(blogForm.show_on_main), border: 'none' }}>
-                            <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: blogForm.show_on_main ? 16 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                          <button onClick={() => setBlogForm(prev => prev ? { ...prev, show_on_main: !prev.show_on_main } : prev)} style={toggleStyle(blogForm.show_on_main)}>
+                            <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: blogForm.show_on_main ? 16 : 2, transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
                           </button>
-                          Show on Main Website
+                          Show on Main Directory
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
-                          <button onClick={() => setBlogForm(prev => prev ? { ...prev, show_on_minisite: !prev.show_on_minisite } : prev)} style={{ ...toggle(blogForm.show_on_minisite), border: 'none' }}>
-                            <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: blogForm.show_on_minisite ? 16 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                          <button onClick={() => setBlogForm(prev => prev ? { ...prev, show_on_minisite: !prev.show_on_minisite } : prev)} style={toggleStyle(blogForm.show_on_minisite)}>
+                            <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: blogForm.show_on_minisite ? 16 : 2, transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
                           </button>
                           Show on Mini Site
                         </label>
@@ -558,12 +577,12 @@ export default function VendorStudio() {
                         <button onClick={() => setBlogForm(null)} style={{ padding: '0.6rem 1.25rem', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
                         <button onClick={saveBlog} disabled={blogSaving} style={{ padding: '0.6rem 1.5rem', background: '#f59e0b', color: '#1a1a1a', border: 'none', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           {blogSaving ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
-                          {blogSaving ? 'Submitting...' : 'Submit Post'}
+                          {blogSaving ? 'Publishing...' : 'Publish Post'}
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => setBlogForm({ title: '', content: '', show_on_main: true, show_on_minisite: true })} style={{ marginBottom: '1.5rem', padding: '0.75rem 1.5rem', background: '#f59e0b', color: '#1a1a1a', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button onClick={() => setBlogForm({ title: '', content: '', show_on_main: true, show_on_minisite: true })} style={{ marginBottom: '2rem', padding: '0.75rem 1.5rem', background: '#f59e0b', color: '#1a1a1a', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <i className="fas fa-plus"></i> Write New Blog Post
                     </button>
                   )}
@@ -576,44 +595,47 @@ export default function VendorStudio() {
                   )}
 
                   {!blogsLoading && blogs.length === 0 && !blogForm && (
-                    <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-                      <i className="fas fa-feather-alt" style={{ fontSize: '2.5rem', color: '#cbd5e1', marginBottom: '1rem', display: 'block' }}></i>
-                      <div style={{ fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>No posts yet</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Share your story about this section — it will appear on your mini site and the main directory</div>
+                    <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
+                      <i className="fas fa-feather-alt" style={{ fontSize: '2.5rem', color: '#cbd5e1', marginBottom: '1.25rem', display: 'block' }}></i>
+                      <div style={{ fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>No blog posts written yet</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Share updates, stories, or announcements specific to this section.</div>
                     </div>
                   )}
 
                   {!blogsLoading && blogs.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       {blogs.map(blog => (
-                        <div key={blog.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                        <div key={blog.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '0.25rem' }}>{blog.title}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem' }}>{blog.excerpt}</div>
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '0.35rem' }}>{blog.title}</div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', lineHeight: 1.5 }}>{blog.excerpt}</div>
+                            
+                            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                               {/* Status badge */}
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '3px 8px', borderRadius: '999px', background: blog.status === 'published' ? '#dcfce7' : '#fef3c7', color: blog.status === 'published' ? '#166534' : '#92400e' }}>
-                                {blog.status === 'published' ? '✅ Published' : '⏳ Pending Approval'}
+                              <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '3px 10px', borderRadius: '999px', background: blog.status === 'published' ? '#dcfce7' : '#fef3c7', color: blog.status === 'published' ? '#15803d' : '#d97706', letterSpacing: '0.5px' }}>
+                                {blog.status === 'published' ? '✓ PUBLISHED' : '⏳ PENDING'}
                               </span>
 
                               {/* Visibility toggles */}
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                                <button onClick={() => toggleBlogVisibility(blog, 'show_on_main')} style={{ ...toggle(blog.show_on_main), border: 'none' }}>
-                                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: blog.show_on_main ? 17 : 3, transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+                                <button onClick={() => toggleBlogVisibility(blog, 'show_on_main')} style={toggleStyle(blog.show_on_main)}>
+                                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: blog.show_on_main ? 17 : 3, transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
                                 </button>
                                 Main Site
                               </label>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                                <button onClick={() => toggleBlogVisibility(blog, 'show_on_minisite')} style={{ ...toggle(blog.show_on_minisite), border: 'none' }}>
-                                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: blog.show_on_minisite ? 17 : 3, transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+                                <button onClick={() => toggleBlogVisibility(blog, 'show_on_minisite')} style={toggleStyle(blog.show_on_minisite)}>
+                                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: blog.show_on_minisite ? 17 : 3, transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
                                 </button>
                                 Mini Site
                               </label>
 
-                              <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: 'auto' }}>{new Date(blog.created_at).toLocaleDateString()}</span>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: 'auto' }}>{new Date(blog.created_at).toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <button onClick={() => deleteBlog(blog.id)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
+                          
+                          <button onClick={() => deleteBlog(blog.id)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
                             <i className="fas fa-trash"></i>
                           </button>
                         </div>

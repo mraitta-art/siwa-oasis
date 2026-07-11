@@ -43,12 +43,12 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
-interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
+interface PageMeta { slug: string; saved: boolean; type?: 'page' | 'search'; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
 export default function MultiPageSiteBuilder() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
-  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true }]);
+  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
   const [currentPage, setCurrentPage]   = useState('main');
@@ -258,7 +258,7 @@ export default function MultiPageSiteBuilder() {
       const slug = newPageName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if (!slug) return;
       if (pages.find(p => p.slug === slug)) { notify('⚠️ Page already exists!', 'error'); return; }
-      setPages(prev => [...prev, { slug, saved: false }]);
+      setPages(prev => [...prev, { slug, saved: false, type: 'page' as const }]);
       setCurrentPage(slug); setSlots([]);
       setShowNewModal(false); setNewPageName('');
       notify(`✨ "${slug}" created – don't forget to publish!`, 'info');
@@ -313,7 +313,7 @@ export default function MultiPageSiteBuilder() {
         }
       } catch (e: any) { notify(`❌ Rename failed: ${e.message}`, 'error'); setShowRenameModal(false); return; }
     }
-    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg.type } : p));
+    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg?.type } : p));
     if (currentPage === renameTarget) setCurrentPage(newSlug);
     notify(`✅ Renamed to "${newSlug}"`);
     setShowRenameModal(false); setRenameTarget(''); setRenameValue('');

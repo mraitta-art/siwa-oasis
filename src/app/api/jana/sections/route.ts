@@ -70,18 +70,19 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery = true, enable_blog = true } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
     console.log('[SECTIONS POST] Attempting to create section:', { id, name, business_type_id, is_universal });
 
     try {
       await execute(
-        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, show_on_minisite !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, 
           inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, 
           display_order || 0, sort_order || 0, active !== false, business_type_id || null,
-          propagation_hero || false, propagation_blog || false, propagation_card || false
+          propagation_hero || false, propagation_blog || false, propagation_card || false,
+          enable_gallery ? 1 : 0, enable_blog ? 1 : 0
         ]
       );
       console.log('[SECTIONS POST] Section created successfully');
@@ -122,7 +123,7 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const updates = [];
@@ -146,6 +147,8 @@ export async function PUT(request: NextRequest) {
     if (propagation_hero !== undefined) { updates.push('propagation_hero=?'); params.push(propagation_hero); }
     if (propagation_blog !== undefined) { updates.push('propagation_blog=?'); params.push(propagation_blog); }
     if (propagation_card !== undefined) { updates.push('propagation_card=?'); params.push(propagation_card); }
+    if (enable_gallery !== undefined) { updates.push('enable_gallery=?'); params.push(enable_gallery ? 1 : 0); }
+    if (enable_blog !== undefined) { updates.push('enable_blog=?'); params.push(enable_blog ? 1 : 0); }
 
     console.log('[SECTIONS PUT] Attempting to update section:', { id, updates: updates.length });
 

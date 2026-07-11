@@ -1,20 +1,23 @@
 import { query, execute } from '@/lib/db';
+import { NextRequest } from 'next/server';
 
 // GET component config schema and current values
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const component = await query(
-      'SELECT id, key, name, config_schema, component_config, default_props FROM site_components WHERE id = ?',
-      [params.id]
-    );
+    const { id } = await context.params;
+    const rows = (await query(
+      'SELECT id, `key`, name, config_schema, component_config, default_props FROM site_components WHERE id = ?',
+      [id]
+    )) as any[];
 
-    if (!component) {
+    if (!rows || rows.length === 0) {
       return Response.json({ error: 'Component not found' }, { status: 404 });
     }
 
+    const component = rows[0];
     return Response.json({
       id: component.id,
       key: component.key,
@@ -30,16 +33,17 @@ export async function GET(
 
 // PUT update component configuration
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await req.json();
     const { component_config, version, deprecation_notice, tags } = body;
 
     // Validate component exists
-    const component = await query('SELECT id FROM site_components WHERE id = ?', [params.id]);
-    if (!component) {
+    const rows = (await query('SELECT id FROM site_components WHERE id = ?', [id])) as any[];
+    if (!rows || rows.length === 0) {
       return Response.json({ error: 'Component not found' }, { status: 404 });
     }
 
@@ -53,14 +57,14 @@ export async function PUT(
         version || '1.0.0',
         deprecation_notice || null,
         JSON.stringify(tags || []),
-        params.id
+        id
       ]
     );
 
     return Response.json({
       success: true,
       message: 'Component configuration updated',
-      id: params.id
+      id
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
@@ -69,13 +73,14 @@ export async function PUT(
 
 // DELETE revert to defaults
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     await execute(
       'UPDATE site_components SET component_config = NULL, version = "1.0.0", deprecation_notice = NULL WHERE id = ?',
-      [params.id]
+      [id]
     );
 
     return Response.json({

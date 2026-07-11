@@ -88,7 +88,7 @@ function renderMarkdown(md: string): string {
     .join('\n');
 
   // Wrap consecutive <li> items in <ul>
-  html = html.replace(/(<li>.*?<\/li>\n?)+/gs, (match) => `<ul>${match}</ul>`);
+  html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
 
   return html;
 }
