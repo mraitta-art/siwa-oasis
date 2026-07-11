@@ -36,6 +36,7 @@ export default function BusinessTypesPage() {
   const [consolidating, setConsolidating] = useState(false);
   const [quickFixId, setQuickFixId] = useState<string | null>(null);
   const [quickFixParent, setQuickFixParent] = useState('');
+  const [deleteModal, setDeleteModal] = useState<{ type: BizType; children: BizType[] } | null>(null);
   
   const [showModal, setShowModal] = useState(false);
   const [editingType, setEditingType] = useState<Partial<BizType> | null>(null);
@@ -124,9 +125,37 @@ export default function BusinessTypesPage() {
     }
   }
 
-  async function deleteType(id: string) {
-    if (!confirm(`Delete type "${id}"?`)) return;
-    await fetch(`/api/jana/types?id=${id}`, { method: 'DELETE' });
+  function downloadBackup(type: BizType, children: BizType[]) {
+    const backup = {
+      exported_at: new Date().toISOString(),
+      warning: 'This backup was created before deletion. Import manually if you need to restore.',
+      type,
+      children
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_${type.id}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function confirmDelete(type: BizType) {
+    const children = types.filter(t => t.parent_id === type.id);
+    setDeleteModal({ type, children });
+  }
+
+  async function executeDelete() {
+    if (!deleteModal) return;
+    const { type } = deleteModal;
+    const res = await fetch(`/api/jana/types?id=${type.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      notify(`🗑️ "${type.name}" deleted successfully`, 'success');
+    } else {
+      notify('Failed to delete type', 'error');
+    }
+    setDeleteModal(null);
     loadTypes();
     checkForDuplicates();
   }
@@ -327,7 +356,7 @@ export default function BusinessTypesPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button className="btn btn-xs btn-outline" onClick={() => openEditor(p)}><i className="fas fa-edit"></i></button>
-                  <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteType(p.id)}><i className="fas fa-trash"></i></button>
+                  <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => confirmDelete(p)}><i className="fas fa-trash"></i></button>
                 </div>
               </div>
 
@@ -344,7 +373,7 @@ export default function BusinessTypesPage() {
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                          <button className="btn btn-xs btn-outline" onClick={() => openEditor(ch)}><i className="fas fa-edit"></i></button>
-                         <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteType(ch.id)}><i className="fas fa-trash"></i></button>
+                         <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => confirmDelete(ch)}><i className="fas fa-trash"></i></button>
                       </div>
                     </div>
                   ))}
@@ -379,7 +408,7 @@ export default function BusinessTypesPage() {
                          ⚡ Quick Fix
                        </button>
                        <button className="btn btn-xs btn-outline" onClick={() => openEditor(orphan)}><i className="fas fa-edit"></i></button>
-                       <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteType(orphan.id)}><i className="fas fa-trash"></i></button>
+                       <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => confirmDelete(orphan)}><i className="fas fa-trash"></i></button>
                     </div>
                   </div>
                   {/* Quick Fix: inline parent assign */}
@@ -414,6 +443,71 @@ export default function BusinessTypesPage() {
           </div>
         )}
       </div>
+
+      {/* DELETE WARNING MODAL */}
+      {deleteModal && (
+        <div className="modal-overlay" style={{ padding: '1rem', zIndex: 2000 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '500px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+            {/* Red header */}
+            <div style={{ background: 'linear-gradient(135deg, #dc2626, #991b1b)', padding: '1.5rem', color: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ fontSize: '2rem' }}>⚠️</div>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '1.1rem' }}>Permanent Deletion Warning</div>
+                  <div style={{ opacity: 0.85, fontSize: '0.85rem' }}>This action cannot be undone</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: '0 0 1rem', color: '#1e293b', fontWeight: 600 }}>
+                You are about to delete: <span style={{ color: '#dc2626' }}>«{deleteModal.type.name}»</span>
+              </p>
+
+              {/* Cascade warning for parents */}
+              {(deleteModal.type.is_parent || Number(deleteModal.type.is_parent) === 1) && deleteModal.children.length > 0 && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ fontWeight: 800, color: '#991b1b', marginBottom: '0.5rem', fontSize: '0.9rem' }}>🔗 CASCADE: The following children will also be deleted:</div>
+                  {deleteModal.children.map(ch => (
+                    <div key={ch.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0', fontSize: '0.85rem', color: '#7f1d1d' }}>
+                      <i className={ch.icon} style={{ color: ch.icon_color }}></i>
+                      <span>{ch.name}</span>
+                      <span style={{ opacity: 0.6, fontSize: '0.75rem' }}>({ch.id})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '0.75rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#92400e' }}>
+                <strong>Also permanently deleted:</strong> all associated form fields and section assignments.
+              </div>
+
+              {/* Backup button */}
+              <button
+                onClick={() => downloadBackup(deleteModal.type, deleteModal.children)}
+                style={{ width: '100%', padding: '0.75rem', marginBottom: '0.75rem', background: '#f8fafc', border: '2px dashed #94a3b8', borderRadius: '8px', color: '#475569', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                📥 Download JSON Backup First (Recommended)
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => setDeleteModal(null)}
+                  style={{ flex: 1, padding: '0.75rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeDelete}
+                  style={{ flex: 1, padding: '0.75rem', background: 'linear-gradient(135deg, #dc2626, #991b1b)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  🗑️ Yes, Delete Permanently
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && editingType && (
         <div className="modal-overlay" onClick={() => setShowModal(false)} style={{ padding: '1rem' }}>

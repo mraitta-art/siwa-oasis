@@ -34,6 +34,7 @@ export default function SectionsPage() {
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [sectionDeleteModal, setSectionDeleteModal] = useState<Section | null>(null);
 
   useEffect(() => {
     loadData();
@@ -138,13 +139,21 @@ export default function SectionsPage() {
     }
   }
 
-  async function handleDeleteSection(id: string) {
-    if (!confirm('Are you sure you want to delete this section? This will also remove it from any assigned business types.')) return;
-    
+  async function handleDeleteSection(section: Section) {
+    setSectionDeleteModal(section);
+  }
+
+  async function executeDeleteSection() {
+    if (!sectionDeleteModal) return;
+    const id = sectionDeleteModal.id;
     try {
       const res = await fetch(`/api/jana/sections?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setSuccess('✅ Section deleted!');
+        setSectionDeleteModal(null);
+        if (selectedSections.includes(id)) {
+          setSelectedSections(prev => prev.filter(s => s !== id));
+        }
         loadData();
         setTimeout(() => setSuccess(''), 3000);
       } else {
@@ -153,6 +162,21 @@ export default function SectionsPage() {
     } catch (err) {
       setError('Error deleting section');
     }
+  }
+
+  function downloadSectionBackup(section: Section) {
+    const backup = {
+      exported_at: new Date().toISOString(),
+      warning: 'Backup created before section deletion.',
+      section
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_section_${section.id}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function handleEditSection(section: Section) {
@@ -410,7 +434,7 @@ export default function SectionsPage() {
                         <i className="fas fa-edit"></i>
                       </button>
                       <button 
-                        onClick={(e) => { e.preventDefault(); handleDeleteSection(section.id); }}
+                        onClick={(e) => { e.preventDefault(); handleDeleteSection(section); }}
                         style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', color: '#ef4444' }}
                         title="Delete Section"
                       >
@@ -453,6 +477,49 @@ export default function SectionsPage() {
           )}
         </div>
       </div>
+
+      {/* SECTION DELETE WARNING MODAL */}
+      {sectionDeleteModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+            <div style={{ background: 'linear-gradient(135deg, #dc2626, #991b1b)', padding: '1.5rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ fontSize: '2rem' }}>⚠️</div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '1.1rem' }}>Delete Section</div>
+                <div style={{ opacity: 0.85, fontSize: '0.85rem' }}>This action cannot be undone</div>
+              </div>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: '0 0 0.75rem', color: '#1e293b', fontWeight: 600 }}>
+                Delete section: <span style={{ color: '#dc2626' }}>«{sectionDeleteModal.name}»</span>
+              </p>
+              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '0.75rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#92400e' }}>
+                This section will be <strong>removed from all business types</strong> that currently use it, and all its auto-generated form fields will be permanently deleted.
+              </div>
+              <button
+                onClick={() => downloadSectionBackup(sectionDeleteModal)}
+                style={{ width: '100%', padding: '0.75rem', marginBottom: '0.75rem', background: '#f8fafc', border: '2px dashed #94a3b8', borderRadius: '8px', color: '#475569', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                📥 Download JSON Backup First (Recommended)
+              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => setSectionDeleteModal(null)}
+                  style={{ flex: 1, padding: '0.75rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeDeleteSection}
+                  style={{ flex: 1, padding: '0.75rem', background: 'linear-gradient(135deg, #dc2626, #991b1b)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  🗑️ Yes, Delete Permanently
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
