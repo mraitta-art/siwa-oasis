@@ -315,10 +315,18 @@ export default function GoogleImportWizard() {
                     onChange={e => setSelectedTypeId(e.target.value)}
                     style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
                   >
-                    <option value="">-- Map to Typology --</option>
-                    {types.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
+                    <option value="">-- Map to Typology (subcategories only) --</option>
+                    {types
+                      .filter(t => !t.is_parent && t.parent_id)
+                      .map(t => {
+                        const parent = types.find(p => p.id === t.parent_id);
+                        return (
+                          <option key={t.id} value={t.id}>
+                            {parent ? `${parent.name} › ` : ''}{t.name}
+                          </option>
+                        );
+                      })
+                    }
                   </select>
                 </div>
 
