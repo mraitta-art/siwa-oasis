@@ -106,6 +106,21 @@ export async function GET(req: NextRequest) {
     }
     tierFeatures.allowedSections = allowedSections;
 
+    // 8. Fetch Section Controls (Admin Overrides & Custom Labels)
+    const controlsResult = await query(
+      'SELECT section_id, custom_label, admin_locked_label, admin_hidden, admin_disabled FROM business_section_controls WHERE business_id = ?',
+      [biz.id]
+    ) as any[];
+    const sectionControls: Record<string, any> = {};
+    controlsResult.forEach(c => {
+      sectionControls[c.section_id] = {
+        custom_label: c.custom_label,
+        admin_locked_label: c.admin_locked_label === 1,
+        admin_hidden: c.admin_hidden === 1,
+        admin_disabled: c.admin_disabled === 1
+      };
+    });
+
     return NextResponse.json({
       business: {
         id: biz.id,
@@ -121,7 +136,8 @@ export async function GET(req: NextRequest) {
         parent: parentType? { id: parentType.id, name: parentType.name, icon: parentType.icon, color: parentType.icon_color } : null,
       },
       tierFeatures,
-      structure: Object.values(sections)
+      structure: Object.values(sections),
+      sectionControls // NEW
     });
 
   } catch (error) {
@@ -155,11 +171,18 @@ export async function POST(req: NextRequest) {
     // Persist vendor-customised tab labels
     if (section_labels && typeof section_labels === 'object') {
       merged.section_labels = section_labels;
-      // Also write under basic.section_labels (path read by [slug]/page.tsx)
-      merged.basic = {
-        ...(merged.basic || {}),
-        section_labels,
-      };
+      merged.basic = { ...(merged.basic || {}), section_labels };
+
+      // Persist to the dedicated table as well
+      for (const [secId, label] of Object.entries(section_labels)) {
+        // Skip empty labels to avoid clearing admin locks if not needed, or update if empty string
+        await execute(
+          `INSERT INTO business_section_controls (id, business_id, section_id, custom_label) 
+           VALUES (UUID(), ?, ?, ?)
+           ON DUPLICATE KEY UPDATE custom_label = ?`,
+          [user.businessId, secId, label as string, label as string]
+        );
+      }
     }
 
     // Persist vendor-controlled section visibility (hidden_sections)

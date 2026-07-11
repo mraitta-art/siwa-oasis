@@ -30,6 +30,7 @@ export default function VendorStudio() {
   /* ── Minisite customization ─────────────────────────────────── */
   const [sectionLabels, setSectionLabels] = useState<Record<string, string>>({});
   const [hiddenSections, setHiddenSections] = useState<string[]>([]);
+  const [sectionControls, setSectionControls] = useState<Record<string, any>>({});
   const [labelsSaving, setLabelsSaving] = useState(false);
   const [labelsSaved, setLabelsSaved] = useState(false);
 
@@ -79,6 +80,15 @@ export default function VendorStudio() {
       const biz = data.business || {};
       const existingLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
       const existingHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections || [];
+      
+      // Override legacy labels with exact DB custom_labels if they exist
+      if (data.sectionControls) {
+        setSectionControls(data.sectionControls);
+        Object.entries(data.sectionControls).forEach(([secId, ctrl]: [string, any]) => {
+          if (ctrl.custom_label) existingLabels[secId] = ctrl.custom_label;
+        });
+      }
+
       setSectionLabels(existingLabels);
       setHiddenSections(existingHidden);
     } catch (e: any) {
@@ -440,16 +450,22 @@ export default function VendorStudio() {
 
                       {/* Label Input */}
                       <div style={{ flex: '2 1 260px' }}>
-                        <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem' }}>CUSTOM TAB LABEL</label>
+                        <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem' }}>
+                          CUSTOM TAB LABEL {sectionControls[s.id]?.admin_locked_label && <i className="fas fa-lock" style={{color: '#ef4444', marginLeft: '4px'}} title="Locked by Admin"></i>}
+                        </label>
                         <input
                           type="text"
                           placeholder={s.name + ' (default)'}
                           value={currentLabel}
                           onChange={e => setSectionLabels(prev => ({ ...prev, [s.id]: e.target.value }))}
-                          disabled={isHidden}
-                          style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: isHidden ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
+                          disabled={isHidden || sectionControls[s.id]?.admin_locked_label}
+                          style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: (isHidden || sectionControls[s.id]?.admin_locked_label) ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
                         />
-                        {currentLabel && <div style={{ fontSize: '0.6rem', color: '#8b5cf6', marginTop: '0.25rem' }}>✓ Visitors will see: <strong>{currentLabel}</strong></div>}
+                        {sectionControls[s.id]?.admin_locked_label ? (
+                          <div style={{ fontSize: '0.6rem', color: '#ef4444', marginTop: '0.25rem' }}>This label has been locked by the site administrator.</div>
+                        ) : currentLabel ? (
+                          <div style={{ fontSize: '0.6rem', color: '#8b5cf6', marginTop: '0.25rem' }}>✓ Visitors will see: <strong>{currentLabel}</strong></div>
+                        ) : null}
                       </div>
 
                       {/* Visibility Toggle */}
@@ -497,19 +513,31 @@ export default function VendorStudio() {
             {/* Premium Section Canvas Card */}
             <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
 
-              {/* Title & Info */}
-              <div style={{ padding: '2.5rem 2.5rem 0', display: 'flex', alignItems: 'center', gap: '1.25rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '12px', background: '#f8fafc', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>
-                  <i className={`fas ${currentSection?.icon}`}></i>
+              {sectionControls[activeTab]?.admin_disabled ? (
+                <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '16px', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem' }}>
+                    <i className="fas fa-ban"></i>
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Section Disabled</h2>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#64748b', maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto' }}>
+                    This section has been temporarily disabled by the site administrator. You cannot edit it at this time.
+                  </p>
                 </div>
-                <div style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{currentSection?.name}</h2>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Please fill in this section's details.</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  {/* Title & Info */}
+                  <div style={{ padding: '2.5rem 2.5rem 0', display: 'flex', alignItems: 'center', gap: '1.25rem', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '12px', background: '#f8fafc', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>
+                      <i className={`fas ${currentSection?.icon}`}></i>
+                    </div>
+                    <div style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                      <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{currentSection?.name}</h2>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Please fill in this section's details.</p>
+                    </div>
+                  </div>
 
-              {/* Sub-Tabs Selector — tabs shown only if admin enabled them for this section */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 2.5rem', marginTop: '1.5rem', gap: '1.5rem', direction: isRTL ? 'rtl' : 'ltr' }}>
+                  {/* Sub-Tabs Selector — tabs shown only if admin enabled them for this section */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 2.5rem', marginTop: '1.5rem', gap: '1.5rem', direction: isRTL ? 'rtl' : 'ltr' }}>
                 <button style={subTabStyle(sectionPanel === 'fields', accentColor)} onClick={() => switchPanel('fields')}>
                   <i className="fas fa-list-alt"></i> Fields
                 </button>
@@ -756,6 +784,8 @@ export default function VendorStudio() {
                 </div>
               )}
 
+                </>
+              )}
             </div>
             {/* Close normal section canvas conditional */}
             </>)}

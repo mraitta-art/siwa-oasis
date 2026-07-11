@@ -176,14 +176,34 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     const templateHidden = biz.template_features?.hidden_sections;
     const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
 
+    // Fetch Admin Overrides & Custom Labels for this business
+    const controlsResult = await query<any>(
+      'SELECT section_id, custom_label, admin_hidden FROM business_section_controls WHERE business_id = ?',
+      [biz.id]
+    );
+    const sectionControls: Record<string, any> = {};
+    controlsResult.forEach(c => {
+      sectionControls[c.section_id] = c;
+    });
+
     sections = sections.filter((s: any) => {
       if (tierAllowed && Array.isArray(tierAllowed) && !tierAllowed.includes(s.id)) return false;
       if (templateHidden && Array.isArray(templateHidden) && templateHidden.includes(s.id)) return false;
       if (customHidden && Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
+      // Admin override forced hide
+      if (sectionControls[s.id]?.admin_hidden === 1) return false;
       return true;
     });
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} />;
+    // Build the final labels mapping: custom_label > basic.section_labels > default
+    const legacyLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
+    const finalLabels: Record<string, string> = {};
+    sections.forEach((s: any) => {
+      const label = sectionControls[s.id]?.custom_label || legacyLabels[s.id] || s.name;
+      finalLabels[s.id] = label;
+    });
+
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (

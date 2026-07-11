@@ -14,6 +14,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
   const [fields, setFields] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [tier, setTier] = useState<any>(null);
+  const [adminControls, setAdminControls] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -42,6 +43,16 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
       const myTier = allTiers.find((t: any) => t.id === business.subscription_tier);
       setTier(myTier);
 
+      const ctrlRes = await fetch(`/api/admin/businesses/${id}/section-controls`);
+      const ctrlData = await ctrlRes.json();
+      if (ctrlData.success && ctrlData.controls) {
+        const controlsMap: Record<string, any> = {};
+        ctrlData.controls.forEach((c: any) => {
+          controlsMap[c.section_id] = c;
+        });
+        setAdminControls(controlsMap);
+      }
+
     } catch (e) { console.error(e); }
     setLoading(false);
   }
@@ -66,6 +77,30 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
       alert('Business DNA updated successfully!');
     } catch (e) { console.error(e); }
     setSaving(false);
+  }
+
+  async function toggleAdminControl(sectionId: string, field: 'admin_locked_label' | 'admin_hidden' | 'admin_disabled') {
+    const current = adminControls[sectionId] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0 };
+    const nextVal = current[field] === 1 ? 0 : 1;
+    
+    // Optimistic UI update
+    setAdminControls(prev => ({
+      ...prev,
+      [sectionId]: { ...current, [field]: nextVal }
+    }));
+
+    try {
+      await fetch(`/api/admin/businesses/${id}/section-controls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionId,
+          adminLockedLabel: field === 'admin_locked_label' ? nextVal : current.admin_locked_label,
+          adminHidden: field === 'admin_hidden' ? nextVal : current.admin_hidden,
+          adminDisabled: field === 'admin_disabled' ? nextVal : current.admin_disabled,
+        })
+      });
+    } catch (e) { console.error(e); }
   }
 
   if (loading) return (
@@ -114,15 +149,35 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
                    </div>
                 </div>
                 <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
-                   <h4 style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#1e293b' }}>Active Modules</h4>
-                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {sections.map(s => (
-                        <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>
-                           <i className={`fas ${s.icon}`} style={{ width: '15px', color: '#D4AF37' }}></i>
-                           {s.name}
-                           {biz.custom_data?.[s.id] && <i className="fas fa-check-circle" style={{ color: '#22c55e', marginLeft: 'auto' }}></i>}
-                        </li>
-                      ))}
+                   <h4 style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#1e293b' }}>Section Controls (Admin)</h4>
+                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {sections.map(s => {
+                        const ctrl = adminControls[s.id] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0 };
+                        return (
+                          <li key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
+                               <i className={`fas ${s.icon}`} style={{ color: '#D4AF37' }}></i>
+                               {s.name}
+                             </div>
+                             
+                             {/* Controls */}
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingLeft: '1.5rem' }}>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', color: '#64748b', cursor: 'pointer' }}>
+                                 <input type="checkbox" checked={ctrl.admin_hidden === 1} onChange={() => toggleAdminControl(s.id, 'admin_hidden')} />
+                                 Force Hide from Public
+                               </label>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', color: '#64748b', cursor: 'pointer' }}>
+                                 <input type="checkbox" checked={ctrl.admin_locked_label === 1} onChange={() => toggleAdminControl(s.id, 'admin_locked_label')} />
+                                 Lock Custom Tab Name
+                               </label>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', color: '#64748b', cursor: 'pointer' }}>
+                                 <input type="checkbox" checked={ctrl.admin_disabled === 1} onChange={() => toggleAdminControl(s.id, 'admin_disabled')} />
+                                 Disable Vendor Editing
+                               </label>
+                             </div>
+                          </li>
+                        );
+                      })}
                    </ul>
                 </div>
              </div>

@@ -8,7 +8,7 @@ import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
  * VANITY URL CLIENT COMPONENT
  * Handles the interactive minisite UI.
  */
-export default function VanityBusinessClient({ slug, initialData, sections }: { slug: string, initialData: any, sections: any[] }) {
+export default function VanityBusinessClient({ slug, initialData, sections, sectionLabels = {} }: { slug: string, initialData: any, sections: any[], sectionLabels?: Record<string, string> }) {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
@@ -112,7 +112,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
           {/* Desktop tabs */}
           <div className="minisite-desktop-tabs" style={{ display: 'flex', gap: '2rem' }}>
             {activeSections.map(s => {
-              const customLabel = biz.custom_data?.section_labels?.[s.id] || s.name;
+              const customLabel = sectionLabels[s.id] || s.name;
               return (
                 <button 
                   key={s.id} 
@@ -154,7 +154,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
         <div className="minisite-mobile-tabs-sub" style={{ display: 'none', marginTop: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}>
           <div className="minisite-nav-tabs" style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
             {activeSections.map(s => {
-              const customLabel = biz.custom_data?.section_labels?.[s.id] || s.name;
+              const customLabel = sectionLabels[s.id] || s.name;
               return (
                 <button 
                   key={s.id} 
@@ -182,7 +182,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
           <main>
             {activeSections.filter(s => s.id === activeTab).map(section => {
               const secData = data[section.id];
-              const customLabel = biz.custom_data?.section_labels?.[section.id] || section.name;
+              const customLabel = sectionLabels[section.id] || section.name;
               if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {customLabel}.</div>;
 
               return (
@@ -471,7 +471,7 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
               <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', marginBottom: '1rem' }}>BUSINESS CHAPTERS</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
                 {activeSections.map(s => {
-                  const customLabel = biz.custom_data?.section_labels?.[s.id] || s.name;
+                  const customLabel = sectionLabels[s.id] || s.name;
                   const isActive = activeTab === s.id;
                   return (
                     <button

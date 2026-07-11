@@ -79,6 +79,64 @@ const NEW_TYPES = [
     description: 'Salt spring scrubs, warm oil massage, and traditional thermal therapies',
     is_parent: 0,
     parent_id: 'wellness'
+  },
+
+  // 🍽️ Dining & Gastronomy additions (under parent: food)
+  {
+    id: 'fine_dining',
+    name: 'Fine Dining & Sunset Dinners',
+    icon: 'fa-utensils',
+    icon_color: '#ea580c',
+    description: 'Candlelit gourmet dinners, salt lake sunset restaurants, and organic farm dining',
+    is_parent: 0,
+    parent_id: 'food'
+  },
+  {
+    id: 'desert_dining_event',
+    name: 'Bedouin Desert Dinners & Camps',
+    icon: 'fa-campground',
+    icon_color: '#b45309',
+    description: 'Traditional slow-cooked Abu-Mardam pits, campfire dinners, and desert music events',
+    is_parent: 0,
+    parent_id: 'food'
+  },
+  {
+    id: 'street_food_stall',
+    name: 'Local Street Food & Market Stalls',
+    icon: 'fa-hotdog',
+    icon_color: '#ca8a04',
+    description: 'Shali market area local street grills, tea stalls, and quick eats',
+    is_parent: 0,
+    parent_id: 'food'
+  },
+
+  // 🎁 Local Products & Crafts additions (under parent: crafts)
+  {
+    id: 'salt_crafts',
+    name: 'Salt Crystal Lamps & Decor',
+    icon: 'fa-gem',
+    icon_color: '#f43f5e',
+    description: 'Authentic Siwa salt block lanterns, crystal lamps, and home decor workshops',
+    is_parent: 0,
+    parent_id: 'crafts'
+  },
+  {
+    id: 'herbal_cosmetics',
+    name: 'Herbs & Organic Cosmetics',
+    icon: 'fa-mortar-pestle',
+    icon_color: '#0d9488',
+    description: 'Siwan medicinal herbs, organic lemongrass, natural oils, and date-seed cosmetics',
+    is_parent: 0,
+    parent_id: 'crafts'
+  },
+  {
+    id: 'date_packers',
+    name: 'Dates & Olives Packaging Wholesalers',
+    icon: 'fa-boxes',
+    icon_color: '#4f46e5',
+    description: 'Siwa date factories, packaging lines, and bulk olive distributors for global shipping',
+    is_parent: 0,
+    parent_id: 'crafts'
   }
 ];
 
@@ -91,7 +149,7 @@ async function main() {
     port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306
   });
 
-  console.log("Connected to database. Seeding new business typologies...");
+  console.log("Connected to database. Seeding additional trip planner categories...");
 
   for (const t of NEW_TYPES) {
     const [existing] = await connection.query(
