@@ -434,12 +434,30 @@ export default function UnifiedSectionArchitect() {
                 }}>
                   {currentSection.active ? '● ACTIVE' : '○ INACTIVE'}
                 </span>
-                <button
-                  onClick={() => setDeletingId(selectedSection)}
-                  style={{ ...css.btn('#ef4444', true), padding: '0.5rem 1rem', fontSize: '0.65rem' }}
-                >
-                  <i className="fas fa-trash" style={{ marginRight: '0.4rem' }} /> Delete
-                </button>
+                {['vibe', 'experience', 'investment-opportunity', 'auction', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
+                  <button
+                    disabled
+                    title="This section is used by the main website's features (e.g. investment, packages, auctions) and cannot be deleted."
+                    style={{
+                      ...css.btn('#94a3b8', true),
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.65rem',
+                      cursor: 'not-allowed',
+                      background: '#f1f5f9',
+                      borderColor: '#cbd5e1',
+                      color: '#94a3b8',
+                    }}
+                  >
+                    <i className="fas fa-lock" style={{ marginRight: '0.4rem' }} /> System Locked
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setDeletingId(selectedSection)}
+                    style={{ ...css.btn('#ef4444', true), padding: '0.5rem 1rem', fontSize: '0.65rem' }}
+                  >
+                    <i className="fas fa-trash" style={{ marginRight: '0.4rem' }} /> Delete
+                  </button>
+                )}
               </div>
             )}
           </div>

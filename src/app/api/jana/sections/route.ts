@@ -165,12 +165,30 @@ export async function PUT(request: NextRequest) {
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
 
+const RESTRICTED_SECTION_IDS = [
+  'vibe',
+  'experience',
+  'investment-opportunity',
+  'auction',
+  'offers-packages',
+  'discounts-promotions',
+  'sponsorship',
+  'business_info'
+];
+
 export async function DELETE(request: NextRequest) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    if (RESTRICTED_SECTION_IDS.includes(id)) {
+      return NextResponse.json(
+        { error: `Cannot delete system-critical section "${id}". This section is required by the main website's core features.` },
+        { status: 400 }
+      );
+    }
 
     // CASCADING DELETE: Automatically clean up fields before deleting the section
     await execute('DELETE FROM form_fields WHERE section_id = ?', [id]);
