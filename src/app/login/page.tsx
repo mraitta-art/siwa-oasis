@@ -23,7 +23,6 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Login failed'); setLoading(false); return; }
 
-      // Route based on role
       const role = data.user.role;
       if (['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(role)) {
         router.push('/jana');
@@ -35,52 +34,110 @@ export default function LoginPage() {
         router.push('/');
       }
     } catch {
-      setError('Network error');
+      setError('Network error. Is the dev server running?');
       setLoading(false);
     }
   }
 
+  const quickFill = (e: string, p: string) => {
+    setEmail(e);
+    setPassword(p);
+    setError('');
+  };
+
+  const DEV_ACCOUNTS = [
+    { label: 'Super Admin', email: 'super@siwa.com', color: '#7c3aed' },
+    { label: 'Content Admin', email: 'content@siwa.com', color: '#0369a1' },
+    { label: 'Sales Manager', email: 'salesmanager@siwa.com', color: '#16a34a' },
+    { label: 'Salesman', email: 'salesman@siwa.com', color: '#d97706' },
+    { label: 'Vendor', email: 'vendor@siwa.com', color: '#dc2626' },
+  ];
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-      <div style={{ width: '100%', maxWidth: 420, padding: '2rem' }}>
-        <div className="card" style={{ padding: '2rem' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+      <div style={{ width: '100%', maxWidth: 440, padding: '1.5rem' }}>
+        <div style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.4)' }}>
+
+          {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1a1a2e' }}>
-              <i className="fas fa-sun" style={{ color: '#D4AF37', marginRight: '0.5rem' }}></i>
-              SIWA OASIS
-            </h1>
-            <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.5rem' }}>Sign in to your dashboard</p>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+              <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
+            </div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>SIWA OASIS</h1>
+            <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.35rem' }}>Admin Dashboard Sign In</p>
           </div>
 
+          {/* Form */}
           <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input type="email" className="form-control" value={email} onChange={e => setEmail(e.target.value)} placeholder="super@siwa.com" required />
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="super@siwa.com"
+                required
+                style={{ width: '100%', padding: '0.75rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                onFocus={e => e.target.style.borderColor = '#D4AF37'}
+                onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              />
             </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input type="password" className="form-control" value={password} onChange={e => setPassword(e.target.value)} placeholder="super123" required />
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••••"
+                required
+                style={{ width: '100%', padding: '0.75rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                onFocus={e => e.target.style.borderColor = '#D4AF37'}
+                onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              />
             </div>
 
             {error && (
-              <div style={{ background: '#fee2e2', color: '#dc2626', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.82rem', marginBottom: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <i className="fas fa-exclamation-circle"></i> {error}
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', justifyContent: 'center' }} disabled={loading}>
-              {loading ? <><i className="fas fa-spinner fa-spin"></i> Signing in...</> : <><i className="fas fa-sign-in-alt"></i> Sign In</>}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ width: '100%', padding: '0.85rem', background: loading ? '#94a3b8' : '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              {loading ? <><i className="fas fa-spinner fa-spin"></i> Signing in…</> : <><i className="fas fa-sign-in-alt"></i> Sign In</>}
             </button>
           </form>
 
+          {/* Dev Quick Login — only in development */}
           {process.env.NODE_ENV !== 'production' && (
-            <div className="policy-indicator" style={{ marginTop: '1.5rem' }}>
-              <i className="fas fa-users"></i> <strong>Demo Accounts:</strong><br/>
-              • super@siwa.com / super123 (Super Admin)<br/>
-              • content@siwa.com / content123 (Content Admin)<br/>
-              • salesmanager@siwa.com / sales123 (Sales Manager)<br/>
-              • salesman@siwa.com / salesman123 (Salesman)<br/>
-              • vendor@siwa.com / vendor123 (Vendor)
+            <div style={{ marginTop: '1.75rem', paddingTop: '1.5rem', borderTop: '1.5px dashed #e2e8f0' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.75rem', textAlign: 'center' }}>
+                ⚡ Dev Quick Login — Password: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#0f172a' }}>password123</code>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {DEV_ACCOUNTS.map(acc => (
+                  <button
+                    key={acc.email}
+                    onClick={() => quickFill(acc.email, 'password123')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.55rem 0.85rem', border: `1.5px solid ${acc.color}20`, borderRadius: '8px', background: `${acc.color}08`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: acc.color, transition: 'all 0.15s', textAlign: 'left' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = `${acc.color}18`; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = `${acc.color}08`; }}
+                  >
+                    <i className="fas fa-user-circle" style={{ fontSize: '1rem' }}></i>
+                    <span style={{ flex: 1 }}>{acc.label}</span>
+                    <code style={{ fontSize: '0.65rem', opacity: 0.7, fontWeight: 400 }}>{acc.email}</code>
+                  </button>
+                ))}
+              </div>
+              <a
+                href="/api/auth/backdoor"
+                style={{ display: 'block', marginTop: '0.75rem', textAlign: 'center', padding: '0.55rem', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none', border: '1.5px solid #fcd34d' }}
+              >
+                ⚡ Instant Super Admin Access (No Password)
+              </a>
             </div>
           )}
         </div>
