@@ -27,8 +27,11 @@ export async function GET(request: Request) {
         b.slug,
         bt.name AS type_name,
         bt.icon AS type_icon,
-        JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".business_logo')) AS logo,
-        JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".logo')) AS fallback_logo,
+        COALESCE(
+          JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_1_identity".business_logo')),
+          JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".business_logo')),
+          JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".logo'))
+        ) AS logo,
         JSON_EXTRACT(b.custom_data, '$."investment-opportunity"') AS investment_data
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
@@ -77,7 +80,7 @@ export async function GET(request: Request) {
         business_id: row.id,
         business_name: row.business_name,
         business_slug: row.slug,
-        business_logo: row.logo || row.fallback_logo || null,
+        business_logo: row.logo || null,
         type_name: row.type_name,
         type_icon: row.type_icon,
         // Investment fields
@@ -96,6 +99,11 @@ export async function GET(request: Request) {
         is_featured: !!data.is_featured,
         contact_for_details: !!data.contact_for_details,
         investment_contact: data.investment_contact || null,
+        // Timeline/traction fields
+        years_in_business: data.years_in_business || null,
+        investors_current: data.investors_current || null,
+        equity_offered: data.equity_offered || null,
+        break_even_timeline: data.break_even_timeline || null,
       };
     }).filter(Boolean);
 

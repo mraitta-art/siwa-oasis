@@ -57,6 +57,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ? identity.section_blog.substring(0, 160).replace(/<[^>]*>/g, '') 
       : `Discover the unique ${biz.name} experience in Siwa Oasis. ${vibe.view_types?.join(', ') || ''}`;
 
+    const logoUrl = identity.business_logo || identity.logo || data.business_info?.business_logo || data.business_info?.logo;
+    const ogImage = logoUrl || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62';
+
     return {
       title: `${biz.name} | Siwa Oasis Official Registry`,
       description: description,
@@ -65,7 +68,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description: description,
         type: 'website',
         url: `https://siwa.today/${slug}`,
-        images: [{ url: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62', width: 1200, height: 630 }]
+        images: [{ url: ogImage, width: 1200, height: 630 }]
       }
     };
   } catch (e) {
@@ -151,7 +154,20 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
           `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
           sectionIds
         );
-        sections = rows;
+        
+        // Fetch field metadata definitions to display user-friendly labels on minisite
+        const fieldDefs = await query<any>(
+          `SELECT name, label, section_id FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
+          [biz.type_id]
+        );
+
+        sections = rows.map((s: any) => {
+          const sFields = fieldDefs.filter((f: any) => f.section_id === s.id);
+          return {
+            ...s,
+            fields: sFields
+          };
+        });
       }
     }
 

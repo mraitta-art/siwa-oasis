@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 
 interface InvestmentOpportunity {
   id: string;
+  business_slug: string;
   opportunity_title: string;
   opportunity_type: 'equity' | 'partnership' | 'franchise' | 'joint_venture' | 'sponsorship';
   business_name: string;
@@ -58,18 +59,24 @@ export default function MainSiteInvestmentOpportunitiesPage() {
         if (invData?.success && Array.isArray(invData.items)) {
           const mapped = invData.items.map((item: any) => ({
             id: item.business_id || item.id,
+            business_slug: item.business_slug || item.business_id || item.id,
             opportunity_title: item.opportunity_title || '',
             opportunity_type: (item.opportunity_type || 'equity') as any,
             business_name: item.business_name || 'Business',
+            business_logo: item.business_logo || null,
             investment_amount_min: parseFloat(item.investment_amount_min) || 0,
             investment_amount_max: parseFloat(item.investment_amount_max) || 0,
             expected_roi_percent: parseFloat(item.expected_roi_percent) || 0,
             business_stage: item.business_stage || 'growth',
             annual_revenue: parseFloat(item.annual_revenue) || 0,
-            years_in_business: 0,
+            years_in_business: parseFloat(item.years_in_business) || null,
             is_featured: !!item.is_featured,
-            investors_current: 0,
+            investors_current: parseFloat(item.investors_current) || null,
             target_investors: parseInt(item.target_investors) || 5,
+            equity_offered: item.equity_offered || null,
+            investment_description: item.investment_description || null,
+            investment_highlights: item.investment_highlights || null,
+            investment_contact: item.investment_contact || null,
             visibility_on_main_site: true,
           }));
           setOpportunities(mapped);
@@ -239,7 +246,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
                             <span className="font-semibold text-gray-300 capitalize">{opp.business_stage}</span>
                           </div>
                         </div>
-                        <Link href={`/p/${opp.id}`} className="w-full text-center py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-xl text-white font-bold hover:opacity-90 transition-opacity">
+                        <Link href={`/p/${opp.business_slug}`} className="w-full text-center py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-xl text-white font-bold hover:opacity-90 transition-opacity">
                           View Details
                         </Link>
                       </div>
@@ -324,7 +331,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
                       <span className="font-bold text-[#D4AF37]">{opp.expected_roi_percent}%</span>
                     </div>
                   </div>
-                  <Link href={`/p/${opp.id}`} className="w-full text-center py-2.5 bg-gray-800 hover:bg-gray-750 text-white text-xs font-bold rounded-xl transition-all">
+                  <Link href={`/p/${opp.business_slug}`} className="w-full text-center py-2.5 bg-gray-800 hover:bg-gray-750 text-white text-xs font-bold rounded-xl transition-all">
                     View Project
                   </Link>
                 </div>

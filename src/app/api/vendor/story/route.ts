@@ -137,11 +137,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data } = await req.json(); // Data should be grouped by section_id
+    const body = await req.json();
+    const { data, section_labels, hidden_sections } = body;
+
+    // Start from current custom_data to avoid overwriting unrelated fields
+    const existing = (await query(
+      'SELECT custom_data FROM businesses WHERE id = ?',
+      [user.businessId]
+    )) as any[];
+    const currentData = existing.length > 0 && existing[0].custom_data
+      ? (typeof existing[0].custom_data === 'string' ? JSON.parse(existing[0].custom_data) : existing[0].custom_data)
+      : {};
+
+    // Merge new section field data
+    const merged = { ...currentData, ...(data || {}) };
+
+    // Persist vendor-customised tab labels
+    if (section_labels && typeof section_labels === 'object') {
+      merged.section_labels = section_labels;
+      // Also write under basic.section_labels (path read by [slug]/page.tsx)
+      merged.basic = {
+        ...(merged.basic || {}),
+        section_labels,
+      };
+    }
+
+    // Persist vendor-controlled section visibility (hidden_sections)
+    if (Array.isArray(hidden_sections)) {
+      merged.basic = {
+        ...(merged.basic || {}),
+        hidden_sections,
+      };
+    }
 
     await execute(
       'UPDATE businesses SET custom_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [JSON.stringify(data), user.businessId]
+      [JSON.stringify(merged), user.businessId]
     );
 
     return NextResponse.json({ success: true, message: 'Story updated and live!' });

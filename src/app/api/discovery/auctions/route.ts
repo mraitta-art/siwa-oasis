@@ -29,12 +29,16 @@ export async function GET(request: Request) {
         b.slug,
         bt.name AS type_name,
         bt.icon AS type_icon,
-        JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".business_logo')) AS logo,
-        JSON_EXTRACT(b.custom_data, '$."auction"') AS auction_data
+        COALESCE(
+          JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.\"sec_1_identity\".business_logo')),
+          JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.\"business_info\".business_logo')),
+          JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.\"business_info\".logo'))
+        ) AS logo,
+        JSON_EXTRACT(b.custom_data, '$.\"auction\"') AS auction_data
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
       WHERE b.status = 'active'
-        AND JSON_EXTRACT(b.custom_data, '$."auction"') IS NOT NULL
+        AND JSON_EXTRACT(b.custom_data, '$.\"auction\"') IS NOT NULL
     `;
 
     const params: any[] = [];

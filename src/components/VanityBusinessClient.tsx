@@ -208,10 +208,14 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
 
                     <div className="grid-2">
                       {Object.entries(secData).map(([key, val]) => {
-                        if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description'].includes(key)) return null;
+                        if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic'].includes(key)) return null;
+                        
+                        const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
+                        const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
+
                         return (
                           <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{(key || '').replace(/_/g, ' ').toUpperCase()}</div>
+                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
                             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{Array.isArray(val) ? val.join(', ') : String(val)}</div>
                           </div>
                         );
@@ -402,7 +406,18 @@ export default function VanityBusinessClient({ slug, initialData, sections }: { 
                     </div>
                   )}
 
-                  <button className="btn btn-primary" style={{ width: '100%', padding: '1.2rem', borderRadius: '12px', fontWeight: 900, background: '#1e293b', color: '#fff', marginTop: '2.5rem' }}>ENQUIRE DIRECTLY</button>
+                  <a 
+                    href={`tel:${dynamicPhone.replace(/[^0-9+]/g, '')}`}
+                    className="btn btn-primary" 
+                    style={{ 
+                      width: '100%', padding: '1.2rem', borderRadius: '12px', 
+                      fontWeight: 900, background: '#1e293b', color: '#fff', 
+                      marginTop: '2.5rem', display: 'block', textAlign: 'center', 
+                      textDecoration: 'none' 
+                    }}
+                  >
+                    ENQUIRE DIRECTLY
+                  </a>
                 </div>
               )}
             </div>

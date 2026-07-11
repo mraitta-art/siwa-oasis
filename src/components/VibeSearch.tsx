@@ -143,9 +143,9 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
                   description={hint}
                   image={image}
                   tag={badge}
-                  onCardClick={() => window.location.href = `/business/${biz.id}`}
+                  onCardClick={() => window.location.href = `/${biz.slug || biz.id}`}
                   links={[
-                    { label: 'Explore Journey', icon: 'fa-arrow-right', onClick: () => window.location.href = `/business/${biz.id}` }
+                    { label: 'Explore Journey', icon: 'fa-arrow-right', onClick: () => window.location.href = `/${biz.slug || biz.id}` }
                   ]}
                 />
               );

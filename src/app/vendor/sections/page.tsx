@@ -22,10 +22,16 @@ export default function VendorStudio() {
   const [business, setBusiness]         = useState<any>(null);
   const [typology, setTypology]         = useState<Typology>({ child: null, parent: null });
   const [sections, setSections]         = useState<Section[]>([]);
-  const [activeTab, setActiveTab]       = useState<'core' | 'common' | 'unique'>('core');
+  const [activeTab, setActiveTab]       = useState<'core' | 'common' | 'unique' | 'minisite_settings'>('core');
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [formData, setFormData]         = useState<Record<string, any>>({});
   const [tierFeatures, setTierFeatures] = useState<Record<string, any>>({});
+
+  /* ── Minisite customization ─────────────────────────────────── */
+  const [sectionLabels, setSectionLabels] = useState<Record<string, string>>({});
+  const [hiddenSections, setHiddenSections] = useState<string[]>([]);
+  const [labelsSaving, setLabelsSaving] = useState(false);
+  const [labelsSaved, setLabelsSaved] = useState(false);
 
   /* ── Section content panel tabs ────────────────────────────── */
   const [sectionPanel, setSectionPanel] = useState<'fields' | 'gallery' | 'blog'>('fields');
@@ -68,6 +74,13 @@ export default function VendorStudio() {
         s.fields.forEach((f: any) => { initial[s.id][f.name] = f.value; });
       });
       setFormData(initial);
+
+      // Load existing minisite customisations
+      const biz = data.business || {};
+      const existingLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
+      const existingHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections || [];
+      setSectionLabels(existingLabels);
+      setHiddenSections(existingHidden);
     } catch (e: any) {
       console.error(e.message);
     } finally {
@@ -211,6 +224,23 @@ export default function VendorStudio() {
     finally { setSaving(false); }
   }
 
+  async function saveMinisiteSettings() {
+    setLabelsSaving(true);
+    try {
+      const res = await fetch('/api/vendor/story', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: formData,
+          section_labels: sectionLabels,
+          hidden_sections: hiddenSections,
+        })
+      });
+      if (res.ok) { setLabelsSaved(true); setTimeout(() => setLabelsSaved(false), 3000); }
+      else throw new Error('Failed to save minisite settings');
+    } catch (e: any) { console.error(e.message); }
+    finally { setLabelsSaving(false); }
+  }
+
   /* ── Section grouping ──────────────────────────────────────── */
   const { coreSections, commonSections, uniqueSections } = useMemo(() => {
     const core: Section[] = [], common: Section[] = [], unique: Section[] = [];
@@ -244,12 +274,13 @@ export default function VendorStudio() {
   const totalFields     = allFields.filter(f => f.name !== 'initialized').length;
   const filledFields    = allFields.filter(f => { const v = formData[f.section_id]?.[f.name]; if (!v) return false; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'string') return v.trim().length > 0; return !!v; }).length;
   const overallPct      = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
-  const currentList     = activeTab === 'core' ? coreSections : activeTab === 'common' ? commonSections : uniqueSections;
+  const currentList     = activeTab === 'core' ? coreSections : activeTab === 'common' ? commonSections : activeTab === 'unique' ? uniqueSections : [];
   
   const tabDefs         = [
-    { id: 'core',   label: t.tabCore   || 'Core Info',  icon: 'fa-fingerprint', color: '#D4AF37', count: coreSections.length },
-    { id: 'common', label: t.tabCommon || 'Universal',  icon: 'fa-globe',       color: '#3b82f6', count: commonSections.length },
-    { id: 'unique', label: t.tabUnique || 'Unique',     icon: 'fa-star',        color: '#10b981', count: uniqueSections.length },
+    { id: 'core',             label: t.tabCore   || 'Core Info',         icon: 'fa-fingerprint', color: '#D4AF37', count: coreSections.length },
+    { id: 'common',           label: t.tabCommon || 'Universal',         icon: 'fa-globe',       color: '#3b82f6', count: commonSections.length },
+    { id: 'unique',           label: t.tabUnique || 'Unique',            icon: 'fa-star',        color: '#10b981', count: uniqueSections.length },
+    { id: 'minisite_settings',label: '⚙️ Tab Labels & Visibility',        icon: 'fa-sliders-h',   color: '#8b5cf6', count: sections.length },
   ];
 
   /* ── Premium Sub-Tabs Style ────────────────────────────────── */
@@ -365,7 +396,87 @@ export default function VendorStudio() {
         <main style={{ flex: 1, overflowY: 'auto', padding: '2.5rem', background: '#f8fafc' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
-            {/* Business header card for core/basic */}
+            {/* ─── MINISITE SETTINGS PANEL ─────────────────────────── */}
+            {activeTab === 'minisite_settings' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* Header card */}
+                <div style={{ background: '#fff', borderRadius: '24px', padding: '2rem 2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: '14px', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6', fontSize: '1.3rem' }}>
+                      <i className="fas fa-sliders-h"></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>Tab Labels & Visibility</div>
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>Rename navigation tabs & hide sections on your public minisite</div>
+                    </div>
+                  </div>
+                  <button onClick={saveMinisiteSettings} disabled={labelsSaving} style={{ background: labelsSaved ? '#10b981' : '#8b5cf6', color: '#fff', border: 'none', padding: '0.75rem 2rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 900, cursor: labelsSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.2s', boxShadow: '0 4px 16px rgba(139,92,246,0.3)' }}>
+                    {labelsSaving ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : labelsSaved ? <><i className="fas fa-check"></i> Saved!</> : <><i className="fas fa-save"></i> Save Settings</>}
+                  </button>
+                </div>
+
+                {/* Info note */}
+                <div style={{ background: '#ede9fe', borderRadius: '14px', padding: '1rem 1.5rem', border: '1px solid #ddd6fe', fontSize: '0.8rem', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <i className="fas fa-info-circle"></i>
+                  <span>Changes here affect how your minisite navigation looks to visitors. Tab names default to the system section name if left blank.</span>
+                </div>
+
+                {/* Section rows */}
+                {sections.map(s => {
+                  const isHidden = hiddenSections.includes(s.id);
+                  const currentLabel = sectionLabels[s.id] || '';
+                  return (
+                    <div key={s.id} style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem 1.75rem', border: isHidden ? '1.5px solid #fecaca' : '1.5px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }}>
+                      {/* Section Icon & Name */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 200px' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: '10px', background: isHidden ? '#fef2f2' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isHidden ? '#f87171' : '#64748b', fontSize: '0.9rem', border: '1px solid #e2e8f0', flexShrink: 0 }}>
+                          <i className={`fas ${s.icon}`}></i>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: isHidden ? '#94a3b8' : '#1e293b' }}>{s.name}</div>
+                          <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontFamily: 'monospace' }}>{s.id}</div>
+                        </div>
+                      </div>
+
+                      {/* Label Input */}
+                      <div style={{ flex: '2 1 260px' }}>
+                        <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem' }}>CUSTOM TAB LABEL</label>
+                        <input
+                          type="text"
+                          placeholder={s.name + ' (default)'}
+                          value={currentLabel}
+                          onChange={e => setSectionLabels(prev => ({ ...prev, [s.id]: e.target.value }))}
+                          disabled={isHidden}
+                          style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: isHidden ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
+                        />
+                        {currentLabel && <div style={{ fontSize: '0.6rem', color: '#8b5cf6', marginTop: '0.25rem' }}>✓ Visitors will see: <strong>{currentLabel}</strong></div>}
+                      </div>
+
+                      {/* Visibility Toggle */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '130px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => setHiddenSections(prev => isHidden ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 1rem', borderRadius: '10px', border: '1.5px solid', borderColor: isHidden ? '#fca5a5' : '#6ee7b7', background: isHidden ? '#fef2f2' : '#f0fdf4', color: isHidden ? '#ef4444' : '#10b981', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', transition: 'all 0.15s' }}
+                        >
+                          <i className={`fas ${isHidden ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                          {isHidden ? 'HIDDEN' : 'VISIBLE'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Save bottom button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={saveMinisiteSettings} disabled={labelsSaving} style={{ background: labelsSaved ? '#10b981' : '#8b5cf6', color: '#fff', border: 'none', padding: '0.85rem 2.5rem', borderRadius: '14px', fontSize: '0.85rem', fontWeight: 900, cursor: labelsSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.2s', boxShadow: '0 4px 16px rgba(139,92,246,0.3)' }}>
+                    {labelsSaving ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : labelsSaved ? <><i className="fas fa-check"></i> Saved!</> : <><i className="fas fa-cloud-upload-alt"></i> Save Minisite Settings</>}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── NORMAL SECTION CANVAS ───────────────────────────── */}
+            {activeTab !== 'minisite_settings' && (<>
             {activeTab === 'core' && currentSection?.id === 'basic' && (
               <div style={{ background: '#fff', borderRadius: '24px', padding: '2rem', marginBottom: '2rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
@@ -646,6 +757,9 @@ export default function VendorStudio() {
               )}
 
             </div>
+            {/* Close normal section canvas conditional */}
+            </>)}
+
           </div>
         </main>
       </div>
