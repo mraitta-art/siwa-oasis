@@ -34,6 +34,8 @@ export default function BusinessTypesPage() {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [selectedDuplicate, setSelectedDuplicate] = useState<DuplicateGroup | null>(null);
   const [consolidating, setConsolidating] = useState(false);
+  const [quickFixId, setQuickFixId] = useState<string | null>(null);
+  const [quickFixParent, setQuickFixParent] = useState('');
   
   const [showModal, setShowModal] = useState(false);
   const [editingType, setEditingType] = useState<Partial<BizType> | null>(null);
@@ -127,6 +129,26 @@ export default function BusinessTypesPage() {
     await fetch(`/api/jana/types?id=${id}`, { method: 'DELETE' });
     loadTypes();
     checkForDuplicates();
+  }
+
+  async function quickFixParentAssign(orphanId: string) {
+    if (!quickFixParent) {
+      notify('Please select a parent first', 'error');
+      return;
+    }
+    const res = await fetch('/api/jana/types', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: orphanId, parent_id: quickFixParent, is_parent: false })
+    });
+    if (res.ok) {
+      notify(`✅ Assigned to parent successfully`, 'success');
+      setQuickFixId(null);
+      setQuickFixParent('');
+      loadTypes();
+    } else {
+      notify('Failed to assign parent', 'error');
+    }
   }
 
   async function checkForDuplicates() {
@@ -339,18 +361,53 @@ export default function BusinessTypesPage() {
             <p style={{ fontSize: '0.8rem', color: '#9f1239', marginBottom: '1rem' }}>These types are marked as children but have no assigned parent. They appear on the Sections page but are disconnected from the hierarchy. Please edit them to assign a parent, convert them to parents, or delete them.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {types.filter(t => !t.is_parent && Number(t.is_parent) !== 1 && !t.parent_id).map(orphan => (
-                <div key={orphan.id} className="tree-item-advanced" style={{ background: '#fff', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #fecdd3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                     <i className={orphan.icon || 'fas fa-question-circle'} style={{ color: '#e11d48', fontSize: '1rem' }}></i>
-                     <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#be123c' }}>{orphan.name}</div>
-                        <div style={{ fontSize: '0.65rem', color: '#fda4af' }}>ID: {orphan.id} • Orphaned Type</div>
-                     </div>
+                <div key={orphan.id} className="tree-item-advanced" style={{ background: '#fff', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #fecdd3' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                       <i className={orphan.icon || 'fas fa-question-circle'} style={{ color: '#e11d48', fontSize: '1rem' }}></i>
+                       <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#be123c' }}>{orphan.name}</div>
+                          <div style={{ fontSize: '0.65rem', color: '#fda4af' }}>ID: {orphan.id} • Orphaned Type</div>
+                       </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                       <button
+                         className="btn btn-xs"
+                         style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontWeight: 700 }}
+                         onClick={() => { setQuickFixId(quickFixId === orphan.id ? null : orphan.id); setQuickFixParent(''); }}
+                       >
+                         ⚡ Quick Fix
+                       </button>
+                       <button className="btn btn-xs btn-outline" onClick={() => openEditor(orphan)}><i className="fas fa-edit"></i></button>
+                       <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteType(orphan.id)}><i className="fas fa-trash"></i></button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                     <button className="btn btn-xs btn-outline" onClick={() => openEditor(orphan)}><i className="fas fa-edit"></i></button>
-                     <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteType(orphan.id)}><i className="fas fa-trash"></i></button>
-                  </div>
+                  {/* Quick Fix: inline parent assign */}
+                  {quickFixId === orphan.id && (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', background: '#fffbeb', padding: '0.75rem', borderRadius: '6px', border: '1px solid #fcd34d' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#92400e', whiteSpace: 'nowrap' }}>Assign parent:</span>
+                      <select
+                        value={quickFixParent}
+                        onChange={e => setQuickFixParent(e.target.value)}
+                        style={{ flex: 1, padding: '0.4rem', borderRadius: '6px', border: '1px solid #fcd34d', fontSize: '0.85rem' }}
+                      >
+                        <option value="">-- Select parent --</option>
+                        {parents.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      <button
+                        style={{ padding: '0.4rem 1rem', background: '#D4AF37', color: '#1a1a2e', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                        onClick={() => quickFixParentAssign(orphan.id)}
+                      >
+                        ✓ Apply
+                      </button>
+                      <button
+                        style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                        onClick={() => { setQuickFixId(null); setQuickFixParent(''); }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

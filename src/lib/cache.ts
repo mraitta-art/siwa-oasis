@@ -15,13 +15,13 @@ import { query, queryOne } from '@/lib/db';
 // ==========================================
 
 const CACHE_TTL = {
-  business_types: 5 * 60 * 1000,      // 5 minutes
-  sections: 5 * 60 * 1000,             // 5 minutes
+  business_types: 30 * 1000,           // 30 seconds (was 5 min)
+  sections: 30 * 1000,                  // 30 seconds (was 5 min)
   field_definitions: 10 * 60 * 1000,   // 10 minutes
   locations: 15 * 60 * 1000,           // 15 minutes
   website_settings: 2 * 60 * 1000,     // 2 minutes
   website_templates: 2 * 60 * 1000,    // 2 minutes
-  form_fields: 5 * 60 * 1000,          // 5 minutes
+  form_fields: 30 * 1000,              // 30 seconds (was 5 min)
 };
 
 // ==========================================

@@ -132,23 +132,56 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-    
-    // CASCADING DELETES
-    // 1. Delete associated form fields
+
+    // Check if this is a parent type
+    const [typeRow] = await query('SELECT is_parent FROM business_types WHERE id = ?', [id]);
+    const isParent = typeRow && (typeRow.is_parent === 1 || typeRow.is_parent === true);
+
+    if (isParent) {
+      // 1. Get all children of this parent
+      const children = await query('SELECT id FROM business_types WHERE parent_id = ?', [id]);
+      for (const child of children) {
+        // Cascade delete each child's form fields and sections first
+        await execute('DELETE FROM form_fields WHERE business_type_id = ?', [child.id]);
+        await execute('DELETE FROM sections WHERE business_type_id = ?', [child.id]);
+      }
+      // 2. Delete all children
+      await execute('DELETE FROM business_types WHERE parent_id = ?', [id]);
+    }
+
+    // 3. Delete associated form fields of the type itself
     await execute('DELETE FROM form_fields WHERE business_type_id = ?', [id]);
-    
-    // 2. Delete associated sections
+
+    // 4. Delete associated sections of the type itself
     await execute('DELETE FROM sections WHERE business_type_id = ?', [id]);
-    
-    // 3. Delete the business type
+
+    // 5. Remove this type's ID from sections/own_sections JSON arrays of ALL other types
+    const allTypes = await query('SELECT id, sections, own_sections FROM business_types');
+    for (const t of allTypes) {
+      let secs = typeof t.sections === 'string' ? JSON.parse(t.sections || '[]') : (t.sections || []);
+      let ownSecs = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections || '[]') : (t.own_sections || []);
+      const newSecs = secs.filter((s: string) => s !== id);
+      const newOwnSecs = ownSecs.filter((s: string) => s !== id);
+      if (newSecs.length !== secs.length || newOwnSecs.length !== ownSecs.length) {
+        await execute(
+          'UPDATE business_types SET sections = ?, own_sections = ? WHERE id = ?',
+          [JSON.stringify(newSecs), JSON.stringify(newOwnSecs), t.id]
+        );
+      }
+    }
+
+    // 6. Delete the business type itself
     await execute('DELETE FROM business_types WHERE id = ?', [id]);
-    
-    // Invalidate caches
+
+    // Invalidate all relevant caches
     invalidateCache.businessTypes();
     invalidateCache.sections();
     invalidateCache.formFields();
-    
-    return NextResponse.json({ success: true });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: isParent ? 'Parent and all children deleted.' : 'Type deleted.' 
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

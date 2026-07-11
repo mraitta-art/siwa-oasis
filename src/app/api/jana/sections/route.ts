@@ -57,9 +57,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(sortedSections);
     }
 
-    // 2. Otherwise, require admin to see all sections
+    // 2. Otherwise, require admin to see all sections (including inactive)
     await requireAdmin();
-    const sections = await getSections(true);
+    const sections = await getSections(false);
     return NextResponse.json(sections);
   } catch (e: any) { 
     return NextResponse.json({ error: e.message }, { status: 500 }); 
