@@ -12,6 +12,7 @@ interface CarouselSlide {
   type: 'image' | 'youtube' | 'video' | 'branded';
   ctaText?: string;
   ctaLink?: string;
+  targetSectionId?: string;
   displayOrder: number;
   imageFit?: 'cover' | 'contain';
   imagePosition?: 'center' | 'top' | 'bottom';
@@ -59,6 +60,8 @@ export default function HeroCarouselManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [preview, setPreview] = useState<string | null>(null);
+  const [showSectionPicker, setShowSectionPicker] = useState(false);
+  const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
   const [formData, setFormData] = useState<Partial<CarouselSlide>>({
     title: '',
     subtitle: '',
@@ -223,16 +226,16 @@ export default function HeroCarouselManager() {
     try {
       let updated: CarouselSlide[];
       if (editingId) {
-        // Keep original ID to prevent duplication and preserve its exact position!
-        // If it is a dynamic slide, set isOverride flag to indicate it has custom fields.
         const isDynamic = !editingId.startsWith('slide_');
         updated = allSlides.map(s =>
           s.id === editingId
-            ? { 
-                ...s, 
-                ...formData, 
-                id: editingId, 
-                ...(isDynamic ? { isOverride: true } : {}) 
+            ? {
+                ...s,
+                ...formData,
+                id: editingId,
+                ...(isDynamic ? { isOverride: true } : {}),
+                imageFit: (formData.imageFit as 'cover' | 'contain' | undefined) || s.imageFit || 'cover',
+                imagePosition: (formData.imagePosition as 'center' | 'top' | 'bottom' | undefined) || s.imagePosition || 'center',
               } as CarouselSlide
             : s
         );
@@ -245,10 +248,11 @@ export default function HeroCarouselManager() {
           type: formData.type || 'image',
           displayOrder: allSlides.length,
           _source: 'manual',
+          imageFit: (formData.imageFit as 'cover' | 'contain' | undefined) || 'cover',
+          imagePosition: (formData.imagePosition as 'center' | 'top' | 'bottom' | undefined) || 'center',
         };
         updated = [...allSlides, newSlide];
       }
-      // Re-index displayOrder to match current array positions (prevents sort scramble)
       const reIndexed = updated.map((s, i) => ({ ...s, displayOrder: i }));
       setAllSlides(reIndexed);
       const ok = await saveSlideConfig(reIndexed);
@@ -273,7 +277,26 @@ export default function HeroCarouselManager() {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', subtitle: '', caption: '', mediaUrl: '', type: 'image', ctaText: '', ctaLink: '', displayOrder: allSlides.length, imageFit: 'cover', imagePosition: 'center', bgColor: '#000000', overlayOpacity: 0.4, animation: 'kenburns', titleColor: '#FFFFFF', titleSize: 0, subtitleSize: 0, textAlign: 'center', fontFamily: '' });
+    setFormData({
+      title: '',
+      subtitle: '',
+      caption: '',
+      mediaUrl: '',
+      type: 'image',
+      ctaText: '',
+      ctaLink: '',
+      displayOrder: allSlides.length,
+      imageFit: 'cover',
+      imagePosition: 'center',
+      bgColor: '#000000',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+      titleColor: '#FFFFFF',
+      titleSize: 0,
+      subtitleSize: 0,
+      textAlign: 'center',
+      fontFamily: '',
+    });
     setEditingId(null);
     setShowForm(false);
   };
@@ -282,20 +305,6 @@ export default function HeroCarouselManager() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Responsive overrides — keeps the form usable on phone screens */}
-      <style>{`
-        @media (max-width: 640px) {
-          .carousel-form-grid { grid-template-columns: 1fr !important; }
-          .carousel-text-grid { grid-template-columns: 1fr 1fr !important; }
-          .carousel-header-row { flex-direction: column !important; align-items: flex-start !important; }
-          .carousel-slide-row { grid-template-columns: 40px 60px 1fr !important; gap: 0.6rem !important; }
-          .carousel-slide-actions { flex-direction: column !important; gap: 0.35rem !important; }
-        }
-        @media (max-width: 400px) {
-          .carousel-text-grid { grid-template-columns: 1fr !important; }
-          .carousel-slide-row { grid-template-columns: 36px 1fr !important; }
-        }
-      `}</style>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
         {/* Header */}
@@ -380,6 +389,35 @@ export default function HeroCarouselManager() {
                   style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
+              {/* TARGET SECTION (manual or picker) */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TARGET SECTION (optional)</label>
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                  <input value={formData.targetSectionId || ''} onChange={e => setFormData(p => ({ ...p, targetSectionId: e.target.value }))}
+                    placeholder="Enter element id (e.g. offers, gallery) or pick below"
+                    style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                  <button type="button" onClick={async () => {
+                    // Load sections and open picker
+                    try {
+                      const res = await fetch('/api/jana/page-sections?slug=main');
+                      if (res.ok) {
+                        const data = await res.json();
+                        setAvailableSections(data.sections || []);
+                      } else {
+                        setAvailableSections([]);
+                      }
+                    } catch (e) { setAvailableSections([]); }
+                    setShowSectionPicker(true);
+                  }} style={{ background: '#334155', color: '#fff', border: 'none', padding: '0.6rem 0.9rem', borderRadius: '8px', cursor: 'pointer' }}>Select</button>
+                  {formData.targetSectionId && (
+                    <button onClick={() => setFormData(p => ({ ...p, targetSectionId: '' }))} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', padding: '0.4rem 0.6rem', borderRadius: '8px', cursor: 'pointer' }}>Clear</button>
+                  )}
+                </div>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+                  If set, clicking the slide CTA or navigating to this slide (via arrows) will scroll the visitor to the selected section on the homepage.
+                </div>
+              </div>
+
               {/* MEDIA URL / YOUTUBE URL */}
               {formData.type !== 'branded' && (
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -426,6 +464,28 @@ export default function HeroCarouselManager() {
                     </div>
                   )}
                 </div>
+              )}
+
+              {(formData.type === 'image' || formData.type === 'video') && (
+                <>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>IMAGE FIT</label>
+                    <select value={formData.imageFit || 'cover'} onChange={e => setFormData(p => ({ ...p, imageFit: e.target.value as 'cover' | 'contain' }))}
+                      style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                      <option value="cover">Cover (fill placeholder)</option>
+                      <option value="contain">Contain (show full image)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>IMAGE POSITION</label>
+                    <select value={formData.imagePosition || 'center'} onChange={e => setFormData(p => ({ ...p, imagePosition: e.target.value as 'center' | 'top' | 'bottom' }))}
+                      style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                      <option value="center">Center</option>
+                      <option value="top">Top</option>
+                      <option value="bottom">Bottom</option>
+                    </select>
+                  </div>
+                </>
               )}
 
               {/* CTA */}
@@ -518,6 +578,34 @@ export default function HeroCarouselManager() {
               </div>
             </div>
 
+            {/* Section picker modal */}
+            {showSectionPicker && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }}>
+                <div style={{ width: 720, maxWidth: '95%', background: '#0b1220', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <strong style={{ color: '#fff' }}>Select Page Section</strong>
+                    <button onClick={() => setShowSectionPicker(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+                  </div>
+                  <div style={{ maxHeight: '50vh', overflow: 'auto' }}>
+                    {availableSections.length === 0 && (
+                      <div style={{ color: '#94a3b8', padding: '1rem' }}>No sections found for this page.</div>
+                    )}
+                    {availableSections.map(s => (
+                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.6rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <div>
+                          <div style={{ color: '#fff', fontWeight: 700 }}>{s.name}</div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{s.id}</div>
+                        </div>
+                        <div>
+                          <button onClick={() => { setFormData(p => ({ ...p, targetSectionId: s.id })); setShowSectionPicker(false); }} style={{ background: '#D4AF37', color: '#071025', border: 'none', padding: '0.45rem 0.8rem', borderRadius: 8, cursor: 'pointer' }}>Choose</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
               <button onClick={handleSave} disabled={saving}
                 style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.9rem 2rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
@@ -601,12 +689,10 @@ export default function HeroCarouselManager() {
                     {slide.type === 'youtube' && ytId ? (
                       <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : slide.type === 'image' && slide.mediaUrl ? (
-                      <img src={slide.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: slide.bgColor || '#1e293b' }}>
-                        <i className={`fas ${slide.type === 'video' ? 'fa-video' : slide.type === 'youtube' ? 'fa-youtube' : 'fa-star'}`} style={{ color: '#D4AF37', fontSize: '1.5rem' }} />
-                      </div>
-                    )}
+                      <img src={slide.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: slide.imageFit || 'cover', objectPosition: slide.imagePosition || 'center' }} />
+                    ) : slide.type === 'video' && slide.mediaUrl ? (
+                      <video src={slide.mediaUrl} muted style={{ width: '100%', height: '100%', objectFit: slide.imageFit || 'cover', objectPosition: slide.imagePosition || 'center' }} />
+                    ) : null}
                   </div>
 
                   {/* Info */}
@@ -617,6 +703,12 @@ export default function HeroCarouselManager() {
                       <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'rgba(255,255,255,0.05)', color: '#64748b' }}>{slide.type.toUpperCase()}</span>
                     </div>
                     {slide.subtitle && <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0 }}>{slide.subtitle}</p>}
+                    {(slide.type === 'image' || slide.type === 'video') && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '16px', background: 'rgba(255,255,255,0.08)', color: '#94a3b8' }}>Fit: {slide.imageFit || 'cover'}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '16px', background: 'rgba(255,255,255,0.08)', color: '#94a3b8' }}>Position: {slide.imagePosition || 'center'}</span>
+                      </div>
+                    )}
                     {slide.type === 'youtube' && (
                       <p style={{ color: ytId ? '#10b981' : '#ef4444', fontSize: '0.7rem', margin: '0.25rem 0 0', fontWeight: 700 }}>
                         {ytId ? `✅ YouTube ID: ${ytId}` : `❌ Invalid YouTube URL: ${slide.mediaUrl}`}

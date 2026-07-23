@@ -124,6 +124,11 @@ export default function AdminOffersPage() {
           </Link>
           <h1 className="text-4xl font-bold text-white mb-2">🏷️ Offers Manager</h1>
           <p className="text-gray-400">Manage special offers, promotions, and deals</p>
+          <div className="mt-4 flex flex-wrap gap-3 items-center">
+            <Link href="/offers" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#556B2F] text-sm font-semibold text-white hover:bg-[#4b5c26] transition-colors">
+              View live offers page
+            </Link>
+          </div>
         </div>
 
         {/* Controls */}

@@ -32,11 +32,17 @@ export async function GET(request: Request) {
         bt.name AS type_name,
         bt.icon AS type_icon,
         JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".business_logo')) AS logo,
-        JSON_EXTRACT(b.custom_data, '$."discounts-promotions"') AS discount_data
+        JSON_EXTRACT(b.custom_data, '$."discount"') AS discount_data,
+        JSON_EXTRACT(b.custom_data, '$."discounts-promotions"') AS legacy_discount_data,
+        JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers"') AS type_offer_data
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
       WHERE b.status = 'active'
-        AND JSON_EXTRACT(b.custom_data, '$."discounts-promotions"') IS NOT NULL
+        AND (
+          JSON_EXTRACT(b.custom_data, '$."discount"') IS NOT NULL
+          OR JSON_EXTRACT(b.custom_data, '$."discounts-promotions"') IS NOT NULL
+          OR JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers"') IS NOT NULL
+        )
     `;
 
     const params: any[] = [];
@@ -66,14 +72,19 @@ export async function GET(request: Request) {
     const discounts: any[] = [];
 
     rows.forEach(row => {
+      const businessLogo = row.logo || null;
       let data = null;
+      let legacyDiscountData = null;
+      let typeOfferData = null;
       try {
-        data = typeof row.discount_data === 'string' ? JSON.parse(row.discount_data) : row.discount_data;
+        data = row.discount_data ? (typeof row.discount_data === 'string' ? JSON.parse(row.discount_data) : row.discount_data) : null;
+        legacyDiscountData = row.legacy_discount_data ? (typeof row.legacy_discount_data === 'string' ? JSON.parse(row.legacy_discount_data) : row.legacy_discount_data) : null;
+        typeOfferData = row.type_offer_data ? (typeof row.type_offer_data === 'string' ? JSON.parse(row.type_offer_data) : row.type_offer_data) : null;
       } catch { return; }
 
-      if (!data) return;
-
-      const businessLogo = row.logo || null;
+      if (!data && legacyDiscountData) {
+        data = legacyDiscountData;
+      }
 
       // ────────────────────────────────────────────────────────────────
       // SLOT 1
@@ -172,10 +183,20 @@ export async function GET(request: Request) {
                   promo_code: data.promo_code_3 || null,
                   discount_status: data.discount_status_3 || 'active',
                   is_featured: !!data.is_featured_3,
-                  slot: 3
+                  slot: 3,
+                  source: 'studio_slot_3'
                 });
               }
             }
+          }
+        }
+      }
+
+      const typeSpecificDiscount = buildTypeSpecificDiscount(typeOfferData, row, businessLogo);
+      if (typeSpecificDiscount) {
+        if (!featuredOnly || typeOfferData?.is_featured) {
+          if (businessFilter || typeOfferData?.visibility_on_main_site !== false) {
+            discounts.push(typeSpecificDiscount);
           }
         }
       }
@@ -186,4 +207,51 @@ export async function GET(request: Request) {
     console.error('Error fetching discounts:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+}
+
+function buildTypeSpecificDiscount(typeOfferData: any, row: any, businessLogo: string | null) {
+  if (!typeOfferData || typeof typeOfferData !== 'object' || Object.keys(typeOfferData).length === 0) return null;
+
+  const rawDiscounts = typeOfferData.active_discounts || typeOfferData.group_discounts || typeOfferData.shipping_info || null;
+  const discountValue = Array.isArray(rawDiscounts)
+    ? rawDiscounts.filter(Boolean).join(', ')
+    : typeof rawDiscounts === 'string'
+      ? rawDiscounts
+      : null;
+
+  const descriptionParts: string[] = [];
+  if (typeOfferData.special_conditions) descriptionParts.push(typeOfferData.special_conditions);
+  if (typeOfferData.active_discounts) descriptionParts.push(`Active Discounts: ${Array.isArray(typeOfferData.active_discounts) ? typeOfferData.active_discounts.join(', ') : typeOfferData.active_discounts}`);
+  if (typeOfferData.group_discounts) descriptionParts.push(`Group Discounts: ${typeOfferData.group_discounts}`);
+  if (typeOfferData.shipping_info) descriptionParts.push(`Shipping Info: ${typeOfferData.shipping_info}`);
+  if (typeOfferData.price_standard) descriptionParts.push(`Standard Rate: ${typeOfferData.price_standard}`);
+  if (typeOfferData.avg_meal_price) descriptionParts.push(`Average Meal Price: ${typeOfferData.avg_meal_price}`);
+
+  const description = descriptionParts.filter(Boolean).join(' | ') || null;
+  const title = typeOfferData.discount_name || typeOfferData.offer_title || typeOfferData.title || `${row.business_name} Special Rate`;
+
+  if (!title && !description && !discountValue) return null;
+
+  return {
+    business_id: `${row.id}-type-discount`,
+    business_name: row.business_name,
+    business_slug: row.slug,
+    business_logo: businessLogo,
+    type_name: row.type_name,
+    type_icon: row.type_icon,
+    discount_name: title,
+    discount_type: typeOfferData.offer_type || 'special',
+    discount_value: discountValue,
+    applies_to: 'all_services',
+    min_group_size: typeOfferData.offer_min_guests || null,
+    season: 'all_year',
+    valid_from: typeOfferData.offer_valid_from || null,
+    valid_until: typeOfferData.offer_valid_until || null,
+    description,
+    promo_code: typeOfferData.offer_cta_link || null,
+    discount_status: 'active',
+    is_featured: !!typeOfferData.is_featured,
+    slot: 0,
+    source: 'type_section_rates_offers'
+  };
 }

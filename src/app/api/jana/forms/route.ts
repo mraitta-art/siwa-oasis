@@ -36,13 +36,26 @@ export async function GET(request: NextRequest) {
       if (typeId !== 'SECTION_TEMPLATE') {
         // Find if we have a blueprint_schema configured in business_types
         let targetSchema: any = null;
+        const parseSchema = (value: unknown) => {
+          if (!value) return null;
+          if (typeof value === 'object') return value;
+          if (typeof value === 'string') {
+            try {
+              return JSON.parse(value);
+            } catch {
+              return null;
+            }
+          }
+          return null;
+        };
+
         const typeInfo = await queryOne('SELECT blueprint_schema, parent_id FROM business_types WHERE id = ?', [typeId]) as any;
         if (typeInfo?.blueprint_schema) {
-          targetSchema = JSON.parse(typeInfo.blueprint_schema);
+          targetSchema = parseSchema(typeInfo.blueprint_schema);
         } else if (typeInfo?.parent_id) {
           const parentInfo = await queryOne('SELECT blueprint_schema FROM business_types WHERE id = ?', [typeInfo.parent_id]) as any;
           if (parentInfo?.blueprint_schema) {
-            targetSchema = JSON.parse(parentInfo.blueprint_schema);
+            targetSchema = parseSchema(parentInfo.blueprint_schema);
           }
         }
 

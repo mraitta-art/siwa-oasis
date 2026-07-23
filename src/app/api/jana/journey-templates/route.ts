@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     sql += ' ORDER BY display_order ASC';
 
-    const templates = await query(sql);
+    const templates = await safeQuery(sql);
     
     // Parse JSON fields from strings to arrays
     const parsedTemplates = (templates as any[]).map((template) => ({
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         requirements_text = VALUES(requirements_text)
     `;
 
-    await query(sql, [
+    await safeQuery(sql, [
       id,
       name,
       description,
@@ -197,7 +197,7 @@ export async function PUT(request: NextRequest) {
     params.push(id);
     const sql = `UPDATE journey_templates SET ${updates.join(', ')} WHERE id = ?`;
 
-    await query(sql, params);
+    await safeQuery(sql, params);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -215,7 +215,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing template id' }, { status: 400 });
     }
 
-    await query('DELETE FROM journey_templates WHERE id = ?', [id]);
+    await safeQuery('DELETE FROM journey_templates WHERE id = ?', [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

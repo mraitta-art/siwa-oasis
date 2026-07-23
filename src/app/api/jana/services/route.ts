@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     }
     query += ' ORDER BY display_order ASC';
 
-    const services = await db.query(query);
-    return NextResponse.json(services, { status: 200 });
+    const services = await safeQuery(query);
+    return NextResponse.json(services ?? [], { status: 200 });
   } catch (error) {
     console.error('GET /api/jana/services:', error);
     return NextResponse.json({ error: 'Failed to fetch services' }, { status: 500 });
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         display_order = VALUES(display_order)
     `;
 
-    await db.query(query, [id, name, tagline, icon, color, image_url, search_link, display_order || 0]);
+    await safeQuery(query, [id, name, tagline, icon, color, image_url, search_link, display_order || 0]);
 
     return NextResponse.json({ success: true, id }, { status: 201 });
   } catch (error) {
@@ -80,7 +80,7 @@ export async function PUT(request: NextRequest) {
     params.push(id);
     const query = `UPDATE page_services SET ${updates.join(', ')} WHERE id = ?`;
 
-    await db.query(query, params);
+    await safeQuery(query, params);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -98,7 +98,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing service id' }, { status: 400 });
     }
 
-    await db.query('DELETE FROM page_services WHERE id = ?', [id]);
+    await safeQuery('DELETE FROM page_services WHERE id = ?', [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

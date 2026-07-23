@@ -1,5 +1,7 @@
-import { db } from '@/lib/db';
+import { db, queryOne, query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { saveUploadedBuffer } from '@/lib/media-storage';
+import crypto from 'crypto';
 
 export async function POST(request: Request) {
   try {
@@ -19,30 +21,74 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing file or section' }, { status: 400 });
     }
 
-    // In production, upload to: AWS S3, Cloudinary, or similar
-    // For now, we'll create a placeholder URL and store metadata
-    const fileName = `${Date.now()}-${file.name}`;
-    const fileUrl = `/uploads/vendor/${user.id}/${fileName}`;
+    const bytes = Buffer.from(await file.arrayBuffer());
+    
+    // Calculate file hash to detect duplicates
+    const fileHash = crypto.createHash('md5').update(bytes).digest('hex');
 
-    // Store in database
-    const query = `
+    // Check if file with this hash already exists for this vendor
+    try {
+      const existing = await queryOne(
+        `SELECT id, url FROM vendor_gallery WHERE vendor_id = ? AND file_hash = ? LIMIT 1`,
+        [user.id, fileHash]
+      );
+      if (existing) {
+        return Response.json({
+          success: true,
+          url: existing.url,
+          isDuplicate: true,
+          existingId: existing.id,
+          message: 'This file already exists in your gallery. Returning existing URL.'
+        }, { status: 200 });
+      }
+    } catch (hashErr: any) {
+      console.log('[INFO] File hash check skipped:', hashErr.message);
+    }
+
+    const fileName = `${Date.now()}-${file.name}`;
+    const { url: fileUrl } = saveUploadedBuffer(bytes, fileName, `vendor/${user.id}`);
+
+    // Store in database with hash for duplicate detection.
+    // If the `file_hash` column does not exist on the production schema,
+    // fall back to inserting without it so uploads don't fail.
+    const queryWithHash = `
       INSERT INTO vendor_gallery 
-      (id, vendor_id, section_id, url, caption, file_size, mime_type, is_hero, show_on_main, show_on_minisite, created_at)
-      VALUES (UUID(), ?, ?, ?, ?, ?, ?, FALSE, ?, ?, NOW())
+      (id, vendor_id, section_id, url, caption, file_size, mime_type, file_hash, is_hero, show_on_main, show_on_minisite, created_at)
+      VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, NOW())
     `;
 
-    await db.query(query, [
-      user.id,
-      sectionId,
-      fileUrl,
-      caption || file.name,
-      file.size,
-      file.type,
-      showOnMain,
-      showOnMinisite
-    ]);
+    try {
+      await db.query(queryWithHash, [
+        user.id,
+        sectionId,
+        fileUrl,
+        caption || file.name,
+        file.size,
+        file.type,
+        fileHash,
+        showOnMain,
+        showOnMinisite
+      ]);
+    } catch (insertErr: any) {
+      console.log('[INFO] Insert with file_hash failed, retrying without file_hash:', insertErr.message);
+      const queryWithoutHash = `
+        INSERT INTO vendor_gallery 
+        (id, vendor_id, section_id, url, caption, file_size, mime_type, is_hero, show_on_main, show_on_minisite, created_at)
+        VALUES (UUID(), ?, ?, ?, ?, ?, ?, FALSE, ?, ?, NOW())
+      `;
+      await db.query(queryWithoutHash, [
+        user.id,
+        sectionId,
+        fileUrl,
+        caption || file.name,
+        file.size,
+        file.type,
+        showOnMain,
+        showOnMinisite
+      ]);
+    }
 
-    return Response.json({ success: true, url: fileUrl }, { status: 201 });
+    return Response.json({ success: true, url: fileUrl, isDuplicate: false }, { status: 201 });
   } catch (error) {
     console.error('Upload error:', error);
     return Response.json({ error: 'Upload failed' }, { status: 500 });

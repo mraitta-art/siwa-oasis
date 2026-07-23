@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch all requests for this phone number
-    const requests = await query(
+    const requests = await safeQuery(
       `SELECT * FROM journey_requests WHERE customer_phone = ? ORDER BY created_at DESC`,
       [phone]
     ) as any[];
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     // Fetch offers for these requests
     const placeholders = requestIds.map(() => '?').join(',');
-    const offers = await query(
+    const offers = await safeQuery(
       `SELECT jo.*, b.name as business_name, b.type as business_type 
        FROM journey_offers jo
        JOIN businesses b ON jo.business_id = b.id

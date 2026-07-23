@@ -1,12 +1,12 @@
 import React from 'react';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export default async function AuditLogPage() {
   let logs: any[] = [];
   let tableMissing = false;
 
   try {
-    logs = await query('SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100');
+    logs = await safeQuery('SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100');
   } catch (e) {
     tableMissing = true;
     // Use console.log (not warn/error) to avoid stderr output that causes cPanel build failures

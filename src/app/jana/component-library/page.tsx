@@ -7,21 +7,22 @@ interface Component {
   id: string;
   key: string;
   name: string;
-  description: string;
-  icon: string;
+  description?: string | null;
+  icon?: string | null;
   zone: string;
-  category: string;
-  enabled: boolean;
-  manager_url: string;
-  version: string;
-  deprecation_notice?: string;
+  category?: string | null;
+  enabled?: boolean | number | null;
+  manager_url?: string | null;
+  version?: string | null;
+  deprecation_notice?: string | null;
   component_config?: Record<string, any>;
   config_schema?: any;
-  type: string;
-  is_active: boolean;
-  is_global: boolean;
-  usage_count: number;
-  created_at: string;
+  type?: string | null;
+  is_active?: boolean | number | null;
+  is_global?: boolean | number | null;
+  usage_count?: number | null;
+  created_at?: string | null;
+  deprecated?: boolean | number | null;
 }
 
 interface ConfigField {
@@ -47,36 +48,120 @@ export default function ComponentLibrary() {
 
   const dataSources = { sections: [] as any[], fields: [] as any[] };
 
-  const getGradient = (type: string) => 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
-  const getIcon = (type: string) => '📦';
-  const toggleActive = (id: string, active: boolean) => {};
-  const deleteComponent = (id: string) => {};
+  const getGradient = (type?: string | null) => 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
+  const getIcon = (type?: string | null) => '📦';
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const getComponentConfig = (component: Component) => {
+    const raw = (component as any).component_config;
+    if (typeof raw === 'string') {
+      try { return JSON.parse(raw); } catch { return {}; }
+    }
+    return raw || {};
+  };
+
+  const toggleMinisiteAccess = async (component: Component) => {
+    const currentConfig = getComponentConfig(component);
+    const nextConfig = { ...currentConfig, minisite_access: !Boolean(currentConfig.minisite_access) };
+
+    try {
+      const res = await fetch('/api/jana/site-components', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: component.id, component_config: nextConfig })
+      });
+
+      if (res.ok) {
+        showToast(nextConfig.minisite_access ? 'Minisite access enabled' : 'Minisite access disabled', 'success');
+        fetchComponents();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Failed to update minisite access', 'error');
+      }
+    } catch (error) {
+      showToast('Error updating minisite access', 'error');
+    }
+  };
+
+  const fetchComponents = async () => {
+    try {
+      const res = await fetch('/api/jana/site-components');
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load components');
+      }
+
+      setComponents(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      setComponents([]);
+      showToast(error?.message || 'Failed to load components', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleActive = async (id: string, active: boolean) => {
+    try {
+      const res = await fetch('/api/jana/site-components', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, enabled: active })
+      });
+
+      if (res.ok) {
+        showToast(active ? 'Component enabled' : 'Component disabled', 'success');
+        fetchComponents();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Failed to update component', 'error');
+      }
+    } catch (error) {
+      showToast('Error updating component', 'error');
+    }
+  };
+
+  const deleteComponent = async (id: string) => {
+    if (!confirm('Delete this component?')) return;
+
+    try {
+      const res = await fetch(`/api/jana/site-components?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Component deleted', 'success');
+        fetchComponents();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Failed to delete component', 'error');
+      }
+    } catch (error) {
+      showToast('Error deleting component', 'error');
+    }
+  };
+
   const loadComponents = () => fetchComponents();
 
   useEffect(() => {
     fetchComponents();
   }, []);
 
-  const fetchComponents = async () => {
-    try {
-      const res = await fetch('/api/jana/site-components');
-      const data = await res.json();
-      setComponents(data);
-    } catch (error) {
-      showToast('Failed to load components', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const openConfigEditor = async (component: Component) => {
     setSelectedComponent(component);
     try {
       const res = await fetch(`/api/jana/site-components/config/${component.id}`);
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load config');
+      }
+
       setEditingConfig(data.currentConfig || {});
-    } catch (error) {
-      showToast('Failed to load config', 'error');
+    } catch (error: any) {
+      setEditingConfig({});
+      showToast(error?.message || 'Failed to load config', 'error');
     }
     setShowConfigModal(true);
   };
@@ -121,11 +206,6 @@ export default function ComponentLibrary() {
     } catch (error) {
       showToast('Error resetting config', 'error');
     }
-  };
-
-  const showToast = (msg: string, type: 'success' | 'error' | 'info') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
   };
 
   return (
@@ -251,7 +331,7 @@ export default function ComponentLibrary() {
               Active
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#22c55e' }}>
-              {components.filter(c => c.is_active).length}
+              {components.filter(c => Boolean(c.enabled ?? c.is_active)).length}
             </div>
           </div>
           <div style={{
@@ -265,7 +345,7 @@ export default function ComponentLibrary() {
               Carousels
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#D4AF37' }}>
-              {components.filter(c => c.type === 'carousel').length}
+              {components.filter(c => (c.type || c.key || '').toString().includes('carousel')).length}
             </div>
           </div>
           <div style={{
@@ -279,7 +359,7 @@ export default function ComponentLibrary() {
               Blog Sidebars
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#3b82f6' }}>
-              {components.filter(c => c.type === 'blog_sidebar').length}
+              {components.filter(c => (c.type || c.key || '').toString().includes('blog')).length}
             </div>
           </div>
         </div>
@@ -300,8 +380,8 @@ export default function ComponentLibrary() {
           <span style={{ fontWeight: 700, color: '#475569', fontSize: '0.85rem' }}>Filter:</span>
           {[
             { key: 'all', label: `All`, icon: '📦', count: components.length },
-            { key: 'carousel', label: 'Carousels', icon: '🎬', count: components.filter(c => c.type === 'carousel').length },
-            { key: 'blog_sidebar', label: 'Blog Sidebars', icon: '📰', count: components.filter(c => c.type === 'blog_sidebar').length }
+            { key: 'carousel', label: 'Carousels', icon: '🎬', count: components.filter(c => (c.type || c.key || '').toString().includes('carousel')).length },
+            { key: 'blog_sidebar', label: 'Blog Sidebars', icon: '📰', count: components.filter(c => (c.type || c.key || '').toString().includes('blog')).length }
           ].map(filter => (
             <button
               key={filter.key}
@@ -393,7 +473,7 @@ export default function ComponentLibrary() {
                   borderRadius: '16px',
                   padding: '2rem',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                  border: comp.is_active ? '2px solid #22c55e' : '2px solid #e2e8f0',
+                  border: Boolean(comp.enabled ?? comp.is_active) ? '2px solid #22c55e' : '2px solid #e2e8f0',
                   transition: 'all 0.3s ease'
                 }}
                 onMouseEnter={(e) => {
@@ -438,7 +518,7 @@ export default function ComponentLibrary() {
                           fontWeight: 700,
                           textTransform: 'capitalize'
                         }}>
-                          {comp.type.replace('_', ' ')}
+                          {String(comp.type ?? comp.key ?? '').replace(/_/g, ' ')}
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
@@ -452,23 +532,33 @@ export default function ComponentLibrary() {
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
-                          background: comp.is_global ? '#dcfce7' : '#fef3c7',
-                          color: comp.is_global ? '#166534' : '#92400e',
+                          background: Boolean(comp.is_global) ? '#dcfce7' : '#fef3c7',
+                          color: Boolean(comp.is_global) ? '#166534' : '#92400e',
                           borderRadius: '20px',
                           fontSize: '0.8rem',
                           fontWeight: 700
                         }}>
-                          {comp.is_global ? '🌐 Global' : '🔒 Private'}
+                          {Boolean(comp.is_global) ? '🌐 Global' : '🔒 Private'}
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
-                          background: comp.is_active ? '#dcfce7' : '#fee2e2',
-                          color: comp.is_active ? '#166534' : '#991b1b',
+                          background: Boolean(comp.enabled ?? comp.is_active) ? '#dcfce7' : '#fee2e2',
+                          color: Boolean(comp.enabled ?? comp.is_active) ? '#166534' : '#991b1b',
                           borderRadius: '20px',
                           fontSize: '0.8rem',
                           fontWeight: 700
                         }}>
-                          {comp.is_active ? '✓ Active' : '✗ Inactive'}
+                          {Boolean(comp.enabled ?? comp.is_active) ? '✓ Active' : '✗ Inactive'}
+                        </span>
+                        <span style={{
+                          padding: '0.4rem 0.9rem',
+                          background: Boolean(getComponentConfig(comp).minisite_access) ? '#dcfce7' : '#fef3c7',
+                          color: Boolean(getComponentConfig(comp).minisite_access) ? '#166534' : '#92400e',
+                          borderRadius: '20px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700
+                        }}>
+                          {Boolean(getComponentConfig(comp).minisite_access) ? '🧩 Minisite enabled' : '🔒 Hidden from minisites'}
                         </span>
                       </div>
                     </div>
@@ -480,43 +570,92 @@ export default function ComponentLibrary() {
                     )}
 
                     <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#64748b', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
-                      <span style={{ fontWeight: 600 }}>📊 Used {comp.usage_count} {comp.usage_count === 1 ? 'time' : 'times'}</span>
-                      <span style={{ fontWeight: 600 }}>📅 Created {new Date(comp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      <span style={{ fontWeight: 600 }}>📊 Used {comp.usage_count ?? 0} {((comp.usage_count ?? 0) === 1 ? 'time' : 'times')}</span>
+                      <span style={{ fontWeight: 600 }}>📅 Created {comp.created_at ? new Date(comp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown'}</span>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
-                    <Link
-                      href={`/jana/hero-carousel?componentId=${comp.id}`}
+                    {comp.manager_url ? (
+                      <Link
+                        href={`${comp.manager_url}${comp.manager_url.includes('?') ? '&' : '?'}componentId=${encodeURIComponent(comp.id)}`}
+                        style={{
+                          padding: '0.7rem 1.5rem',
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                          color: '#fff',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 8px rgba(59,130,246,0.3)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 6px 12px rgba(59,130,246,0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(59,130,246,0.3)';
+                        }}
+                      >
+                        🔧 Deep Edit
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => openConfigEditor(comp)}
+                        style={{
+                          padding: '0.7rem 1.5rem',
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 8px rgba(59,130,246,0.3)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        ✏️ Edit Config
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openConfigEditor(comp)}
                       style={{
                         padding: '0.7rem 1.5rem',
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
-                        color: '#fff',
+                        background: '#e2e8ff',
+                        color: '#1e3a8a',
+                        border: 'none',
                         borderRadius: '8px',
-                        textDecoration: 'none',
                         fontWeight: 700,
                         fontSize: '0.85rem',
-                        textAlign: 'center',
+                        cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: '0 4px 8px rgba(59,130,246,0.3)'
+                        boxShadow: '0 4px 8px rgba(59,130,246,0.12)'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 12px rgba(59,130,246,0.4)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(59,130,246,0.3)';
                       }}
                     >
-                      ✏️ Edit
-                    </Link>
+                      ⚙️ Configure
+                    </button>
                     <button
-                      onClick={() => toggleActive(comp.id, comp.is_active)}
+                      onClick={() => toggleActive(comp.id, !Boolean(comp.enabled ?? comp.is_active))}
                       style={{
                         padding: '0.7rem 1.5rem',
-                        background: comp.is_active ? 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)' : 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
+                        background: Boolean(comp.enabled ?? comp.is_active) ? 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)' : 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
@@ -524,7 +663,7 @@ export default function ComponentLibrary() {
                         fontSize: '0.85rem',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: comp.is_active ? '0 4px 8px rgba(239,68,68,0.3)' : '0 4px 8px rgba(34,197,94,0.3)'
+                        boxShadow: Boolean(comp.enabled ?? comp.is_active) ? '0 4px 8px rgba(239,68,68,0.3)' : '0 4px 8px rgba(34,197,94,0.3)'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
@@ -533,7 +672,24 @@ export default function ComponentLibrary() {
                         e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      {comp.is_active ? '⏸️ Disable' : '▶️ Enable'}
+                      {Boolean(comp.enabled ?? comp.is_active) ? '⏸️ Disable' : '▶️ Enable'}
+                    </button>
+                    <button
+                      onClick={() => toggleMinisiteAccess(comp)}
+                      style={{
+                        padding: '0.7rem 1.5rem',
+                        background: Boolean(getComponentConfig(comp).minisite_access) ? 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' : 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 8px rgba(100,116,139,0.2)'
+                      }}
+                    >
+                      {Boolean(getComponentConfig(comp).minisite_access) ? '🧩 Allow on Minisite' : '🔒 Hide from Minisite'}
                     </button>
                     <button
                       onClick={() => deleteComponent(comp.id)}
@@ -671,6 +827,7 @@ export default function ComponentLibrary() {
                 const type = formData.get('type');
                 const sourceField = formData.get('sourceField');
 
+                const source = typeof sourceField === 'string' ? sourceField : '';
                 const res = await fetch('/api/jana/component-library', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -680,8 +837,8 @@ export default function ComponentLibrary() {
                     category: 'dynamic',
                     is_global: true,
                     config: {
-                      dataSource: (sourceField as string).startsWith('section:') ? 'form_section' : 'form_field',
-                      sourceField: (sourceField as string).replace('section:', ''),
+                      dataSource: source.startsWith('section:') ? 'form_section' : 'form_field',
+                      sourceField: source.replace('section:', ''),
                       displayStyle: type === 'carousel' ? 'slider' : 'grid'
                     }
                   })

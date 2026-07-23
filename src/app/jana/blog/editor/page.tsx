@@ -81,7 +81,8 @@ function BlogEditorContent() {
     try {
       const res = await fetch(`/api/jana/blog/${postId}`);
       if (res.ok) {
-        const post = await res.json();
+        const data = await res.json();
+        const post = data.post || data;
         setFormData({
           title: post.title || '',
           slug: post.slug || '',
@@ -96,6 +97,9 @@ function BlogEditorContent() {
           meta_keywords: post.meta_keywords || '',
           tags: post.tags?.map((t: any) => t.name) || []
         });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Failed to load post:', errorData.error || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error('Failed to load post:', e);

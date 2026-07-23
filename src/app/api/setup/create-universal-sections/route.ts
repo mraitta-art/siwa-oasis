@@ -55,6 +55,14 @@ const UNIVERSAL_SECTIONS = [
     sort_order: 30,
   },
   {
+    id: 'invest',
+    name: 'Investments & Partnerships',
+    icon: '💸',
+    description: 'Investment and partnership opportunities — a dedicated channel for investor interest',
+    is_universal: true,
+    sort_order: 32,
+  },
+  {
     id: 'auction',
     name: 'Auction & Bidding',
     icon: '🔨',
@@ -63,20 +71,44 @@ const UNIVERSAL_SECTIONS = [
     sort_order: 40,
   },
   {
-    id: 'offers-packages',
-    name: 'Offers & Packages',
+    id: 'offers-promotions',
+    name: 'Offers & Promotions',
     icon: '🎁',
-    description: 'Special offers, seasonal packages, group deals — feeds the main site Offers page',
+    description: 'Promotional deals, limited-time offers, and special pricing — separate from package bundles',
     is_universal: true,
     sort_order: 50,
   },
   {
-    id: 'discounts-promotions',
-    name: 'Discounts & Promotions',
+    id: 'package',
+    name: 'Packages & Bundles',
+    icon: '📦',
+    description: 'Curated packages, bundled experiences, and multi-day deals',
+    is_universal: true,
+    sort_order: 55,
+  },
+  {
+    id: 'discount',
+    name: 'Discounts',
     icon: '🏷️',
-    description: 'Seasonal discounts, early-bird rates, group pricing, loyalty rewards',
+    description: 'Seasonal discounts and promotional savings — separate from offers and packages',
     is_universal: true,
     sort_order: 60,
+  },
+  {
+    id: 'discounts-promotions',
+    name: 'Discounts & Promotions (Legacy)',
+    icon: '🏷️',
+    description: 'Legacy discounts and promotional campaign fields for compatibility with older business data',
+    is_universal: true,
+    sort_order: 61,
+  },
+  {
+    id: 'offers-packages',
+    name: 'Offers & Packages (Legacy)',
+    icon: '🎁',
+    description: 'Legacy combined offers and package fields for compatibility with existing business data',
+    is_universal: true,
+    sort_order: 62,
   },
   {
     id: 'sponsorship',
@@ -202,8 +234,10 @@ const OFFERS_PACKAGES_FIELDS = [
   { name: 'offer_cta_link_3',         label: 'Offer 3: Booking / CTA Link',       field_type: 'text',       required: false, sort_order: 52, is_searchable: false, is_filterable: false, help: 'Inquiry link' },
   { name: 'offer_image_3',            label: 'Offer 3: Cover Image URL',          field_type: 'text',       required: false, sort_order: 53, is_searchable: false, is_filterable: false, help: 'Hero image' },
   { name: 'visibility_on_main_site_3',label: 'Offer 3: Show on Main Offers Page', field_type: 'boolean',    required: false, sort_order: 54, is_searchable: false, is_filterable: false, help: 'Display on collector page' },
-  { name: 'is_featured_3',            label: 'Offer 3: Feature on Top',           field_type: 'boolean',    required: false, sort_order: 55, is_searchable: false, is_filterable: false, help: 'Pin to top' },
+  { name: 'is_featured_3',            label: 'Offer 3: Feature on Top',           field_type: 'boolean',    required: false, sort_order: 55, is_searchable: false, is_filterable: false, help: 'Pin to top of the offers page' },
 ];
+
+const PACKAGE_FIELDS = OFFERS_PACKAGES_FIELDS;
 
 const DISCOUNTS_FIELDS = [
   // Slot 1
@@ -272,9 +306,13 @@ const SECTION_FIELDS_MAP: Record<string, typeof INVESTMENT_FIELDS> = {
   'vibe':                  VIBE_FIELDS,
   'experience':            EXPERIENCE_FIELDS,
   'investment-opportunity': INVESTMENT_FIELDS,
+  'invest':                INVESTMENT_FIELDS,
   'auction':               AUCTION_FIELDS,
-  'offers-packages':       OFFERS_PACKAGES_FIELDS,
+  'offers-promotions':     OFFERS_PROMOTIONS_FIELDS,
+  'package':               PACKAGE_FIELDS,
+  'discount':              DISCOUNTS_FIELDS,
   'discounts-promotions':  DISCOUNTS_FIELDS,
+  'offers-packages':       OFFERS_PACKAGES_FIELDS,
   'sponsorship':           SPONSORSHIP_FIELDS,
 };
 

@@ -110,16 +110,19 @@ export default function AdminDiscountsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-slate-50 text-slate-950 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/admin" className="text-gray-400 hover:text-[#D4AF37] transition-colors mb-4 block">
+          <Link href="/admin" className="text-slate-500 hover:text-[#556B2F] transition-colors mb-4 block">
             ← Admin Dashboard
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">💰 Discounts Manager</h1>
-          <p className="text-gray-400">Manage system-wide discounts and pricing rules</p>
-        </div>
+          <h1 className="text-4xl font-bold text-slate-950 mb-2">💰 Discounts Manager</h1>
+          <p className="text-slate-600">Manage system-wide discounts and pricing rules</p>          <div className="mt-4 flex flex-wrap gap-3 items-center">
+            <Link href="/discounts" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#556B2F] text-sm font-semibold text-white hover:bg-[#4b5c26] transition-colors">
+              View live discounts page
+            </Link>
+          </div>        </div>
 
         {/* Controls */}
         <div className="mb-8 flex gap-4 flex-wrap items-center">

@@ -1,0 +1,35 @@
+{
+  "id": "2",
+  "name": "Services Page",
+  "slug": "/services",
+  "type": "service",
+  "status": "published",
+  "lastModified": "2024-01-14",
+  "title": "Our Services",
+  "description": "Discover all services offered in Siwa Oasis",
+  "theme": "light",
+  "layout": "minimal",
+  "sections": [
+    {
+      "id": "1",
+      "name": "Hero Section",
+      "type": "hero",
+      "order": 1,
+      "enabled": true
+    },
+    {
+      "id": "2",
+      "name": "Our Services",
+      "type": "features",
+      "order": 2,
+      "enabled": true
+    },
+    {
+      "id": "3",
+      "name": "Contact Us",
+      "type": "cta",
+      "order": 3,
+      "enabled": true
+    }
+  ]
+}

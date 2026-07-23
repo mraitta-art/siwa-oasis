@@ -23,18 +23,45 @@ interface BlogPost {
   tags: Array<{id: number; name: string; slug: string}>;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  color: string;
+  icon: string;
+  parent_id: number | null;
+  sort_order: number;
+  post_count: number;
+}
+
 export default function BlogAdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'posts' | 'layouts' | 'templates' | 'integration'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'layouts' | 'templates' | 'integration'>('posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [showEditor, setShowEditor] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [migrationRunning, setMigrationRunning] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(true);
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
+  const [categoryForm, setCategoryForm] = useState<Partial<Category>>({
+    id: null,
+    name: '',
+    slug: '',
+    description: '',
+    color: '#3B82F6',
+    icon: 'fas fa-folder',
+    parent_id: null,
+    sort_order: 0
+  });
 
   useEffect(() => {
     loadPosts();
+    loadCategories();
   }, [filterStatus]);
 
   async function loadPosts() {
@@ -53,6 +80,106 @@ export default function BlogAdminPage() {
       console.error('Failed to load posts:', e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCategories() {
+    setCategoryLoading(true);
+    try {
+      const res = await fetch('/api/jana/blog/categories');
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data || []);
+      }
+    } catch (e) {
+      console.error('Failed to load categories:', e);
+    } finally {
+      setCategoryLoading(false);
+    }
+  }
+
+  function resetCategoryForm() {
+    setCategoryError('');
+    setCategoryForm({
+      id: null,
+      name: '',
+      slug: '',
+      description: '',
+      color: '#3B82F6',
+      icon: 'fas fa-folder',
+      parent_id: null,
+      sort_order: 0
+    });
+  }
+
+  async function saveCategory() {
+    if (!categoryForm.name) {
+      setCategoryError('Category name is required.');
+      return;
+    }
+
+    setCategorySaving(true);
+    setCategoryError('');
+    try {
+      const method = categoryForm.id ? 'PUT' : 'POST';
+      const url = '/api/jana/blog/categories';
+      const body = {
+        ...categoryForm,
+        parent_id: categoryForm.parent_id || null,
+        sort_order: categoryForm.sort_order || 0
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        await loadCategories();
+        resetCategoryForm();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setCategoryError(data.error || `Failed to save category (${res.status})`);
+      }
+    } catch (e: any) {
+      setCategoryError(e.message || 'Failed to save category.');
+    } finally {
+      setCategorySaving(false);
+    }
+  }
+
+  function editCategory(category: Category) {
+    setCategoryError('');
+    setCategoryForm({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      color: category.color,
+      icon: category.icon,
+      parent_id: category.parent_id,
+      sort_order: category.sort_order
+    });
+  }
+
+  async function deleteCategory(id: number) {
+    if (!confirm('Are you sure you want to remove this category?')) return;
+
+    try {
+      const res = await fetch(`/api/jana/blog/categories?id=${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        await loadCategories();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert('❌ Failed to remove category: ' + (data.error || `Server error ${res.status}`));
+      }
+    } catch (e: any) {
+      console.error('Failed to remove category:', e);
+      alert('❌ Failed to remove category: ' + e.message);
     }
   }
 
@@ -204,6 +331,7 @@ export default function BlogAdminPage() {
         }}>
           {[
             { key: 'posts' as const, label: 'Posts', icon: 'fa-newspaper' },
+            { key: 'categories' as const, label: 'Categories', icon: 'fa-tags' },
             { key: 'layouts' as const, label: 'Layout Builder', icon: 'fa-table-cells-large' },
             { key: 'templates' as const, label: 'Templates', icon: 'fa-swatchbook' },
             { key: 'integration' as const, label: 'Integration', icon: 'fa-plug' },
@@ -211,8 +339,8 @@ export default function BlogAdminPage() {
             <button
               key={tab.key}
               onClick={() => {
-                if (tab.key === 'posts') {
-                  setActiveTab('posts');
+                if (tab.key === 'posts' || tab.key === 'categories') {
+                  setActiveTab(tab.key);
                 } else {
                   router.push(`/jana/blog-${tab.key === 'layouts' ? 'layout-builder' : tab.key === 'templates' ? 'templates' : 'integration'}`);
                 }
@@ -336,8 +464,192 @@ export default function BlogAdminPage() {
           ))}
         </div>
 
-        {/* Posts List */}
-        {loading ? (
+        {/* Posts / Categories List */}
+        {activeTab === 'categories' ? (
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '16px',
+              padding: '2rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>Blog Category Settings</h2>
+                  <p style={{ margin: '0.5rem 0 0 0', color: '#64748b' }}>
+                    Add, edit, or remove categories that appear in the blog editor.
+                  </p>
+                </div>
+                <button
+                  onClick={resetCategoryForm}
+                  style={{
+                    padding: '0.8rem 1.2rem',
+                    background: '#f1f5f9',
+                    color: '#334155',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: 700
+                  }}
+                >
+                  New Category
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
+                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                  <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                    Name
+                    <input
+                      value={categoryForm.name || ''}
+                      onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Category name"
+                      style={{ padding: '0.85rem', border: '2px solid #e2e8f0', borderRadius: '10px' }}
+                    />
+                  </label>
+                  <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                    Slug
+                    <input
+                      value={categoryForm.slug || ''}
+                      onChange={(e) => setCategoryForm(prev => ({ ...prev, slug: e.target.value }))}
+                      placeholder="category-slug"
+                      style={{ padding: '0.85rem', border: '2px solid #e2e8f0', borderRadius: '10px' }}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                  <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                    Color
+                    <input
+                      type="color"
+                      value={categoryForm.color || '#3B82F6'}
+                      onChange={(e) => setCategoryForm(prev => ({ ...prev, color: e.target.value }))}
+                      style={{ width: '100%', height: '44px', border: '2px solid #e2e8f0', borderRadius: '10px', padding: '0.2rem' }}
+                    />
+                  </label>
+                  <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                    Icon
+                    <input
+                      value={categoryForm.icon || 'fas fa-folder'}
+                      onChange={(e) => setCategoryForm(prev => ({ ...prev, icon: e.target.value }))}
+                      placeholder="fas fa-folder"
+                      style={{ padding: '0.85rem', border: '2px solid #e2e8f0', borderRadius: '10px' }}
+                    />
+                  </label>
+                </div>
+
+                <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                  Description
+                  <textarea
+                    value={categoryForm.description || ''}
+                    onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Short category description"
+                    rows={3}
+                    style={{ padding: '0.85rem', border: '2px solid #e2e8f0', borderRadius: '10px', resize: 'vertical' }}
+                  />
+                </label>
+
+                <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                  Sort Order
+                  <input
+                    type="number"
+                    value={categoryForm.sort_order ?? 0}
+                    onChange={(e) => setCategoryForm(prev => ({ ...prev, sort_order: Number(e.target.value) }))}
+                    min={0}
+                    style={{ padding: '0.85rem', border: '2px solid #e2e8f0', borderRadius: '10px' }}
+                  />
+                </label>
+
+                {categoryError && (
+                  <div style={{ color: '#dc2626', fontWeight: 700 }}>{categoryError}</div>
+                )}
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <button
+                    onClick={saveCategory}
+                    disabled={categorySaving}
+                    style={{
+                      padding: '1rem 1.5rem',
+                      background: categorySaving ? '#94a3b8' : 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      cursor: categorySaving ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {categorySaving ? 'Saving...' : categoryForm.id ? 'Update Category' : 'Add Category'}
+                  </button>
+                  <button
+                    onClick={resetCategoryForm}
+                    type="button"
+                    style={{
+                      padding: '1rem 1.5rem',
+                      background: '#f8fafc',
+                      color: '#334155',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              background: '#fff',
+              borderRadius: '16px',
+              padding: '2rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>Existing Categories</h3>
+              {categoryLoading ? (
+                <div style={{ marginTop: '1.5rem', color: '#64748b' }}>Loading categories...</div>
+              ) : categories.length === 0 ? (
+                <div style={{ marginTop: '1.5rem', color: '#64748b' }}>No categories found yet.</div>
+              ) : (
+                <div style={{ marginTop: '1.5rem', display: 'grid', gap: '1rem' }}>
+                  {categories.map(category => (
+                    <div key={category.id} style={{ display: 'grid', gap: '0.75rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '999px', background: category.color }}></span>
+                            <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{category.name}</strong>
+                          </div>
+                          <div style={{ color: '#475569', fontSize: '0.9rem' }}>/{category.slug}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => editCategory(category)}
+                            style={{ padding: '0.6rem 1rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteCategory(category.id)}
+                            style={{ padding: '0.6rem 1rem', background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                      {category.description && (
+                        <p style={{ margin: 0, color: '#475569', fontSize: '0.95rem' }}>{category.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '6rem' }}>
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p style={{ color: '#64748b' }}>Loading posts...</p>
@@ -448,7 +760,7 @@ export default function BlogAdminPage() {
 
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                       <Link
-                        href={`/jana/blog/edit?id=${post.id}`}
+                        href={`/jana/blog/editor?id=${post.id}`}
                         style={{
                           padding: '0.6rem 1.5rem',
                           background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',

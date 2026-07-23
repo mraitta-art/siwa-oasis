@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 interface JourneyTemplate {
@@ -347,6 +347,8 @@ function JourneyForm({ template, onSave, onCancel }: JourneyFormProps) {
   const [form, setForm] = useState(template);
   const [highlightsText, setHighlightsText] = useState((form.highlights || []).join('\n'));
   const [uploadingImage, setUploadingImage] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleChange = (field: keyof JourneyTemplate, value: any) => {
     setForm({ ...form, [field]: value });
@@ -387,6 +389,14 @@ function JourneyForm({ template, onSave, onCancel }: JourneyFormProps) {
       setUploadingImage(false);
       if (e.target) e.target.value = '';
     }
+  };
+
+  const triggerCamera = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const triggerFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   const handleRemoveImage = () => {
@@ -544,23 +554,45 @@ function JourneyForm({ template, onSave, onCancel }: JourneyFormProps) {
         {/* Featured Image */}
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)' }}>Featured Image</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleImageUpload}
-              style={{ color: '#fff' }}
-            />
-            {uploadingImage && <span style={{ color: '#D4AF37' }}>Uploading image...</span>}
-            <input
-              type="text"
-              placeholder="Or paste image URL"
-              value={form.featured_image_url}
-              onChange={(e) => handleChange('featured_image_url', e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={triggerCamera}
+              style={{ padding: '0.85rem 1rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+            >
+              📸 Open Camera
+            </button>
+            <button
+              type="button"
+              onClick={triggerFilePicker}
+              style={{ padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+            >
+              📁 Choose File
+            </button>
           </div>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+          {uploadingImage && <span style={{ color: '#D4AF37' }}>Uploading image...</span>}
+          <input
+            type="text"
+            placeholder="Or paste image URL"
+            value={form.featured_image_url}
+            onChange={(e) => handleChange('featured_image_url', e.target.value)}
+            style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
+          />
 
           {form.featured_image_url ? (
             <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

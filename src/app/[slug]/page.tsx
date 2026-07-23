@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     let biz: any = null;
     if (isId) {
       // Fetch by ID to get the slug for redirection
-      const [bizById] = await query<any>(
+      const [bizById] = await safeQuery<any>(
         `SELECT b.*, t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       }
     } else {
       // Fetch by slug directly from DB (avoids SSR self-fetch issues)
-      const [row] = await query<any>(
+      const [row] = await safeQuery<any>(
         `SELECT b.*, t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
@@ -90,7 +90,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
     if (isId) {
       // It's a UUID — fetch by ID and redirect to slug
-      const [bizById] = await query<any>(
+      const [bizById] = await safeQuery<any>(
         `SELECT b.*, t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
@@ -101,7 +101,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       if (bizById?.slug) redirect(`/${bizById.slug}`);
     } else {
       // Fetch by slug directly from DB (avoids SSR self-fetch issues)
-      const [row] = await query<any>(
+      const [row] = await safeQuery<any>(
         `SELECT b.*, t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
@@ -121,7 +121,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
     if (!biz) {
       // Check if a custom landing page exists in website_configs (saved as website_[slug])
-      const [customPage] = await query<any>(
+      const [customPage] = await safeQuery<any>(
         'SELECT type FROM website_configs WHERE type = ? LIMIT 1',
         [`website_${slug}`]
       );
@@ -139,7 +139,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }
 
     // Fetch sections directly from DB
-    const [typeData] = await query<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
+const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
     let sections: any[] = [];
 
     if (typeData) {
@@ -150,13 +150,13 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
       if (sectionIds.length > 0) {
         const placeholders = sectionIds.map(() => '?').join(',');
-        const rows = await query<any>(
+        const rows = await safeQuery<any>(
           `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
           sectionIds
         );
         
         // Fetch field metadata definitions to display user-friendly labels on minisite
-        const fieldDefs = await query<any>(
+        const fieldDefs = await safeQuery<any>(
           `SELECT name, label, section_id FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
           [biz.type_id]
         );
@@ -177,7 +177,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
 
     // Fetch Admin Overrides & Custom Labels for this business
-    const controlsResult = await query<any>(
+    const controlsResult = await safeQuery<any>(
       'SELECT section_id, custom_label, admin_hidden FROM business_section_controls WHERE business_id = ?',
       [biz.id]
     );

@@ -10,10 +10,61 @@ export default function DispatcherPage() {
   const [selectedReq, setSelectedReq] = useState<any>(null);
   const [targetType, setTargetType] = useState('');
   const [targetVendor, setTargetVendor] = useState('');
+  const [vendorOptions, setVendorOptions] = useState<any[]>([]);
+  const [vendorLoading, setVendorLoading] = useState(false);
   const [revealContact, setRevealContact] = useState(false);
   const [dispatching, setDispatching] = useState(false);
 
+  const VENDOR_CATEGORIES = [
+    { id: '', label: '-- All Categories --' },
+    { id: 'hotel', label: 'Accommodation - Hotels' },
+    { id: 'siwa_lodge', label: 'Accommodation - Lodges' },
+    { id: 'desert_camp', label: 'Accommodation - Desert Camps' },
+    { id: 'eco_lodge', label: 'Accommodation - Eco Lodges' },
+    { id: 'restaurant', label: 'Food & Beverage - Restaurants' },
+    { id: 'siwan_kitchen', label: 'Food & Beverage - Traditional Kitchens' },
+    { id: 'cafe_juice', label: 'Food & Beverage - Cafes & Juice Bars' },
+    { id: 'safari_4x4', label: 'Adventure - Safari 4x4' },
+    { id: 'camel_trek', label: 'Adventure - Camel Trek' },
+    { id: 'nature_tour', label: 'Adventure - Nature Tours' },
+    { id: 'heritage_tour', label: 'Cultural - Heritage Tours' },
+    { id: 'sand_bath', label: 'Wellness - Sand Bath' },
+    { id: 'salt_therapy', label: 'Wellness - Salt Therapy' },
+    { id: 'hot_spring', label: 'Wellness - Hot Springs' },
+    { id: 'artisan_shop', label: 'Crafts - Artisan Shops' },
+    { id: 'embroidery', label: 'Crafts - Embroidery Workshops' },
+    { id: 'date_olive', label: 'Crafts - Date & Olive Farms' },
+    { id: 'tuk_tuk', label: 'Logistics - Tuk-Tuk' },
+    { id: 'equipment_rental', label: 'Logistics - Equipment Rental' }
+  ];
+
   useEffect(() => { loadRequests(); }, []);
+
+  useEffect(() => {
+    if (!targetType) {
+      setVendorOptions([]);
+      setTargetVendor('');
+      return;
+    }
+
+    const loadVendors = async () => {
+      setVendorLoading(true);
+      try {
+        const res = await fetch(`/api/businesses?type_id=${encodeURIComponent(targetType)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setVendorOptions(Array.isArray(data) ? data : []);
+        }
+      } catch (e) {
+        console.error('Unable to load vendors for dispatch:', e);
+        setVendorOptions([]);
+      } finally {
+        setVendorLoading(false);
+      }
+    };
+
+    loadVendors();
+  }, [targetType]);
 
   async function loadRequests() {
     setLoading(true);
@@ -123,19 +174,27 @@ export default function DispatcherPage() {
               <div className="form-group">
                 <label className="form-label">Route to Category (Optional)</label>
                 <select className="form-control" value={targetType} onChange={e => setTargetType(e.target.value)}>
-                  <option value="">-- All Categories --</option>
-                  <option value="accommodation">Accommodation</option>
-                  <option value="journey">Journeys & Tours</option>
-                  <option value="real_estate">Real Estate</option>
-                  <option value="restaurant">Restaurants</option>
-                  <option value="shop">Shops</option>
+                  {VENDOR_CATEGORIES.map(category => (
+                    <option key={category.id} value={category.id}>{category.label}</option>
+                  ))}
                 </select>
                 <small style={{ color: '#94a3b8', fontSize: '0.7rem' }}>If set, only vendors in this category will see it.</small>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Route to Specific Vendor (Optional)</label>
-                <input type="text" className="form-control" placeholder="Vendor ID..." value={targetVendor} onChange={e => setTargetVendor(e.target.value)} />
+                {vendorLoading ? (
+                  <div style={{ padding: '0.8rem', background: '#f8fafc', borderRadius: '8px', color: '#475569' }}>Loading vendors...</div>
+                ) : vendorOptions.length > 0 ? (
+                  <select className="form-control" value={targetVendor} onChange={e => setTargetVendor(e.target.value)}>
+                    <option value="">-- Any vendor in selected category --</option>
+                    {vendorOptions.map(vendor => (
+                      <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input type="text" className="form-control" placeholder="Vendor ID..." value={targetVendor} onChange={e => setTargetVendor(e.target.value)} />
+                )}
                 <small style={{ color: '#94a3b8', fontSize: '0.7rem' }}>If set, ONLY this specific vendor will see it.</small>
               </div>
 

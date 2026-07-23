@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 // GET: List published blog posts for public viewing
 export async function GET(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Get published posts
-    const posts = await query(
+    const posts = await safeQuery(
       `SELECT p.*, c.name as category_name, c.slug as category_slug,
               u.display_name as author_name
        FROM blog_posts p
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Get total count
-    const countResult: any = await query(
+    const countResult: any = await safeQuery(
       'SELECT COUNT(*) as total FROM blog_posts WHERE status = ?',
       ['published']
     );
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     // Get tags for each post
     for (const post of posts) {
-      const tags: any = await query(
+      const tags: any = await safeQuery(
         `SELECT t.* FROM blog_tags t 
          JOIN blog_post_tags pt ON t.id = pt.tag_id 
          WHERE pt.post_id = ?`,

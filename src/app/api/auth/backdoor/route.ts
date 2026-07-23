@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_for_development');
+const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 
 export async function GET(req: Request) {
   // Only allow on local dev
@@ -23,13 +24,13 @@ export async function GET(req: Request) {
       .setExpirationTime('24h')
       .sign(JWT_SECRET);
 
-    const res = NextResponse.redirect(new URL('/jana/businesses', req.url));
-    res.cookies.set('siwa_session', token, {
+    const res = NextResponse.redirect(new URL('/jana/blueprints', req.url));
+    res.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,
-      secure: false, // http is fine for localhost
+      secure: false,
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 // 24 hours
+      maxAge: 60 * 60 * 24 * 7
     });
 
     return res;

@@ -3,6 +3,16 @@ import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { getSections, invalidateCache } from '@/lib/cache';
 
+async function getSectionColumns() {
+  const columns = await query(`
+    SELECT COLUMN_NAME
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'sections'
+  `);
+  return new Set((columns as any[]).map((c: any) => c.COLUMN_NAME));
+}
+
 /**
  * GET Sections
  * Public: If type param is provided (returns sections for that typology)
@@ -131,29 +141,41 @@ export async function PUT(request: NextRequest) {
     const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    const updates = [];
+    const availableColumns = await getSectionColumns();
+    const updates: string[] = [];
     const params: any[] = [];
-    if (name !== undefined) { updates.push('name=?'); params.push(name); }
-    if (icon !== undefined) { updates.push('icon=?'); params.push(icon); }
-    if (required !== undefined) { updates.push('required=?'); params.push(required); }
-    if (vendor_editable !== undefined) { updates.push('vendor_editable=?'); params.push(vendor_editable); }
-    if (show_on_public !== undefined) { updates.push('show_on_public=?'); params.push(show_on_public); }
-    if (show_on_minisite !== undefined) { updates.push('show_on_minisite=?'); params.push(show_on_minisite); }
-    if (is_filterable !== undefined) { updates.push('is_filterable=?'); params.push(is_filterable); }
-    if (show_on_card !== undefined) { updates.push('show_on_card=?'); params.push(show_on_card); }
-    if (is_universal !== undefined) { updates.push('is_universal=?'); params.push(is_universal); }
-    if (section_type !== undefined) { updates.push('section_type=?'); params.push(section_type); }
-    if (description !== undefined) { updates.push('description=?'); params.push(description); }
-    if (inheritance_rules !== undefined) { updates.push('inheritance_rules=?'); params.push(typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)); }
-    if (display_order !== undefined) { updates.push('display_order=?'); params.push(display_order); }
-    if (sort_order !== undefined) { updates.push('sort_order=?'); params.push(sort_order); }
-    if (active !== undefined) { updates.push('active=?'); params.push(active); }
-    if (business_type_id !== undefined) { updates.push('business_type_id=?'); params.push(business_type_id || null); }
-    if (propagation_hero !== undefined) { updates.push('propagation_hero=?'); params.push(propagation_hero); }
-    if (propagation_blog !== undefined) { updates.push('propagation_blog=?'); params.push(propagation_blog); }
-    if (propagation_card !== undefined) { updates.push('propagation_card=?'); params.push(propagation_card); }
-    if (enable_gallery !== undefined) { updates.push('enable_gallery=?'); params.push(enable_gallery ? 1 : 0); }
-    if (enable_blog !== undefined) { updates.push('enable_blog=?'); params.push(enable_blog ? 1 : 0); }
+
+    const applyUpdate = (column: string, value: any) => {
+      if (!availableColumns.has(column)) return;
+      updates.push(`${column}=?`);
+      params.push(value);
+    };
+
+    if (name !== undefined) { applyUpdate('name', name); }
+    if (icon !== undefined) { applyUpdate('icon', icon); }
+    if (required !== undefined) { applyUpdate('required', required); }
+    if (vendor_editable !== undefined) { applyUpdate('vendor_editable', vendor_editable); }
+    if (show_on_public !== undefined) { applyUpdate('show_on_public', show_on_public); }
+    if (show_on_minisite !== undefined) { applyUpdate('show_on_minisite', show_on_minisite); }
+    if (is_filterable !== undefined) { applyUpdate('is_filterable', is_filterable); }
+    if (show_on_card !== undefined) { applyUpdate('show_on_card', show_on_card); }
+    if (is_universal !== undefined) { applyUpdate('is_universal', is_universal); }
+    if (section_type !== undefined) { applyUpdate('section_type', section_type); }
+    if (description !== undefined) { applyUpdate('description', description); }
+    if (inheritance_rules !== undefined) { applyUpdate('inheritance_rules', typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)); }
+    if (display_order !== undefined) { applyUpdate('display_order', display_order); }
+    if (sort_order !== undefined) { applyUpdate('sort_order', sort_order); }
+    if (active !== undefined) { applyUpdate('active', active); }
+    if (business_type_id !== undefined) { applyUpdate('business_type_id', business_type_id || null); }
+    if (propagation_hero !== undefined) { applyUpdate('propagation_hero', propagation_hero); }
+    if (propagation_blog !== undefined) { applyUpdate('propagation_blog', propagation_blog); }
+    if (propagation_card !== undefined) { applyUpdate('propagation_card', propagation_card); }
+    if (enable_gallery !== undefined) { applyUpdate('enable_gallery', enable_gallery ? 1 : 0); }
+    if (enable_blog !== undefined) { applyUpdate('enable_blog', enable_blog ? 1 : 0); }
+
+    if (updates.length === 0) {
+      return NextResponse.json({ error: 'No supported section fields to update' }, { status: 400 });
+    }
 
     console.log('[SECTIONS PUT] Attempting to update section:', { id, updates: updates.length });
 
@@ -174,7 +196,11 @@ const RESTRICTED_SECTION_IDS = [
   'vibe',
   'experience',
   'investment-opportunity',
+  'invest',
   'auction',
+  'offers-promotions',
+  'package',
+  'discount',
   'offers-packages',
   'discounts-promotions',
   'sponsorship',

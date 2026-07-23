@@ -2,7 +2,7 @@
 // SIWA OASIS: Search Policy Engine (Final 7-Tier RBAC)
 // ================================================================
 
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 import type { SearchPolicy } from './types';
 
 /** 
@@ -11,7 +11,7 @@ import type { SearchPolicy } from './types';
  */
 export async function getPolicyForRole(role: string): Promise<SearchPolicy | null> {
   // Check custom policies first
-  const custom = await query<SearchPolicy>(
+  const custom = await safeQuery<SearchPolicy>(
     'SELECT * FROM search_policies WHERE role = ? LIMIT 1', [role]
   );
   if (custom.length) {

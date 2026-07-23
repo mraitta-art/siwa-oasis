@@ -1,9 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
-import { query, queryOne, execute } from '@/lib/db';
+import { query as safeQuery, queryOne, execute } from '@/lib/db';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'dev_secret');
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_for_development');
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 
 export interface SessionUser {
@@ -86,9 +86,10 @@ export async function login(email: string, password: string): Promise<SessionUse
     
     if (!user) {
       console.log(`[AUTH DEBUG] User not found: ${email}. Checking if DB is empty...`);
-      const allUsers = await query('SELECT count(*) as count FROM profiles');
+      const allUsers = await safeQuery('SELECT count(*) as count FROM profiles');
+      const totalUsers = allUsers[0]?.count ?? 0;
       
-      if (allUsers[0].count === 0) {
+      if (totalUsers === 0) {
         console.log(`[AUTH DEBUG] Database is EMPTY. Please seed accounts via: npm run init-db`);
         // Demo accounts are now seeded from SQL migrations, not hardcoded here
         const demoAccounts: any[] = [];

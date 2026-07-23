@@ -3,7 +3,7 @@
  * Applies dynamic filters from search engine config — MySQL version
  */
 
-import { query as dbQuery, queryOne } from '@/lib/db';
+import { query as safeQuery, queryOne } from '@/lib/db';
 import type { SearchEngine } from '@/lib/governance/types';
 
 interface QueryCondition {
@@ -63,7 +63,7 @@ export async function executeSearch(
   };
 
   // 1. Fetch field-to-section mapping for deep-scan
-  const dbFields = await dbQuery('SELECT name, section_id FROM form_fields');
+  const dbFields = await safeQuery('SELECT name, section_id FROM form_fields');
   const fieldToSection: Record<string, string> = {};
   dbFields.forEach((f: any) => {
     if (f.section_id) fieldToSection[f.name] = f.section_id;
@@ -94,10 +94,57 @@ export async function executeSearch(
       return;
     }
 
-    // Special: Offers Search (Deep Scan across all section custom_data)
+    // Special: Offers Search (Deep Scan across offer-related custom_data sections)
     if (c.field === 'offers') {
-      sql += ` AND b.custom_data LIKE ?`;
-      params.push(`%${c.value}%`);
+      const term = `%${c.value}%`;
+      sql += ` AND (
+        b.custom_data LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_title_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_title_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_title_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_title_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_title_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_title_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.offers_packages.offers_packages_offer_title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.offers_packages.offer_title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".offer_title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".title')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".price_standard')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".avg_meal_price')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".group_discounts')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".shipping_info')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".special_conditions')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".discount_name')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".discount_description')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".discount_type')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".promo_code')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".discount_name')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".discount_description')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".discount_type')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".promo_code')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_description')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_description_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_description_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_description')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_description_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_description_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_description')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_description_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_description_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_inclusions')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_inclusions_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_inclusions_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_inclusions')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_inclusions_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_inclusions_3')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_inclusions')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_inclusions_2')) LIKE ?
+        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_inclusions_3')) LIKE ?
+      )`;
+      params.push(term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term);
       return;
     }
 
@@ -120,8 +167,8 @@ export async function executeSearch(
   sql += ` ORDER BY b.views DESC LIMIT ? OFFSET ?`;
   params.push(pageSize, offset);
 
-  const results = await dbQuery(sql, params);
-  const [countResult] = await dbQuery('SELECT COUNT(*) as total FROM businesses WHERE published = TRUE AND status = "active"');
+  const results = await safeQuery(sql, params);
+  const [countResult] = await safeQuery('SELECT COUNT(*) as total FROM businesses WHERE published = TRUE AND status = "active"');
 
   return {
     results,

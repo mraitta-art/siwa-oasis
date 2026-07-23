@@ -101,6 +101,7 @@ export default function UnifiedSectionArchitect() {
   const [editField,   setEditField]     = useState<Partial<Field> | null>(null);
   const [saving,      setSaving]        = useState(false);
   const [deletingId,  setDeletingId]    = useState<string|null>(null);
+  const [collapsedPanels, setCollapsedPanels] = useState({ left: false, center: false, right: false });
 
   /* Assigned sections for selected type */
   const [assignedSections, setAssignedSections] = useState<string[]>([]);
@@ -275,6 +276,10 @@ export default function UnifiedSectionArchitect() {
   const currentSection = sections.find(s => s.id === selectedSection);
   const parents  = businessTypes.filter(t => t.is_parent || Number(t.is_parent) === 1);
   const children = (parentId: string) => businessTypes.filter(t => t.parent_id === parentId);
+  const mainGridColumns = `${collapsedPanels.left ? '72px' : '320px'} ${collapsedPanels.center ? '72px' : 'minmax(720px, 1fr)'} ${collapsedPanels.right ? '72px' : '860px'}`;
+  const togglePanel = (panel: 'left' | 'center' | 'right') => {
+    setCollapsedPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
+  };
 
   /* ── Render ─────────────────────────────────────────────────────────── */
   if (loading) return (
@@ -348,123 +353,153 @@ export default function UnifiedSectionArchitect() {
       </header>
 
       {/* ── MAIN 3-PANEL LAYOUT ─────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '260px 1fr 380px', height: 'calc(100vh - 80px)' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: mainGridColumns, height: 'calc(100vh - 80px)', width: '100%', minWidth: '1500px', overflowX: 'auto' }}>
 
         {/* ── PANEL 1: Section List ──────────────────────────────────── */}
-        <nav style={{ background: '#fff', borderRight: '1px solid #f1f5f9', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-          {/* New Section Button */}
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
-            <button
-              onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
-              style={{ ...css.btn('#D4AF37'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              <i className="fas fa-plus" /> New Section
+        <nav style={{ background: '#fff', borderRight: '1px solid #f1f5f9', overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: collapsedPanels.left ? '72px' : '320px', width: collapsedPanels.left ? '72px' : '320px' }}>
+          <div style={{ padding: '0.9rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {!collapsedPanels.left && <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.5px' }}>SECTIONS</span>}
+            <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <i className={`fas fa-chevron-${collapsedPanels.left ? 'right' : 'left'}`} />
             </button>
           </div>
 
-          {/* Section items */}
-          <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto' }}>
-            {sections.map(sec => {
-              const isActive = sec.id === selectedSection;
-              return (
+          {collapsedPanels.left ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.75rem 0', gap: '0.75rem' }}>
+              <div style={{ width: 42, height: 42, borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
+                <i className="fas fa-layer-group" />
+              </div>
+              <button onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }} style={{ width: 42, height: 42, borderRadius: '12px', border: 'none', background: '#D4AF37', color: '#fff', cursor: 'pointer' }}>
+                <i className="fas fa-plus" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
                 <button
-                  key={sec.id}
-                  onClick={() => selectSection(sec)}
-                  style={{
-                    width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
-                    borderRadius: '12px', border: isActive ? '1.5px solid #D4AF3740' : '1.5px solid transparent',
-                    background: isActive ? '#fffbeb' : 'transparent',
-                    cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
-                    display: 'flex', alignItems: 'center', gap: '0.85rem',
-                  }}
+                  onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
+                  style={{ ...css.btn('#D4AF37'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
-                    background: isActive ? '#D4AF37' : '#f1f5f9',
-                    color: isActive ? '#fff' : '#94a3b8',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
-                  }}>
-                    <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
-                  </div>
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {sec.name}
-                    </div>
-                    <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem' }}>
-                      {sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
-                      {sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
-                      {!sec.active        && <span style={{ color: '#ef4444' }}>● Inactive</span>}
-                    </div>
-                  </div>
+                  <i className="fas fa-plus" /> New Section
                 </button>
-              );
-            })}
-          </div>
+              </div>
+
+              <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto' }}>
+                {sections.map(sec => {
+                  const isActive = sec.id === selectedSection;
+                  return (
+                    <button
+                      key={sec.id}
+                      onClick={() => selectSection(sec)}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
+                        borderRadius: '12px', border: isActive ? '1.5px solid #D4AF3740' : '1.5px solid transparent',
+                        background: isActive ? '#fffbeb' : 'transparent',
+                        cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
+                        display: 'flex', alignItems: 'center', gap: '0.85rem',
+                      }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
+                        background: isActive ? '#D4AF37' : '#f1f5f9',
+                        color: isActive ? '#fff' : '#94a3b8',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
+                      }}>
+                        <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
+                      </div>
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {sec.name}
+                        </div>
+                        <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem' }}>
+                          {sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
+                          {sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
+                          {!sec.active        && <span style={{ color: '#ef4444' }}>● Inactive</span>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </nav>
 
         {/* ── PANEL 2: Editor ────────────────────────────────────────── */}
-        <main style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', background: '#f8fafc' }}>
-          {/* Sub-Tabs */}
+        <main style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'auto', background: '#f8fafc', minWidth: collapsedPanels.center ? '72px' : '720px', width: collapsedPanels.center ? '72px' : 'auto' }}>
           <div style={{ background: '#fff', borderBottom: '1px solid #f1f5f9', padding: '0 2rem', display: 'flex', gap: '0.5rem', alignItems: 'center', minHeight: '60px' }}>
-            {[
-              { key: 'meta',   label: 'Section Settings', icon: 'fa-sliders-h' },
-              { key: 'fields', label: 'Field Builder',    icon: 'fa-list-alt', disabled: !selectedSection },
-              { key: 'assign', label: 'Type Assignment',  icon: 'fa-sitemap',  disabled: !selectedSection },
-            ].map(({ key, label, icon, disabled }) => (
-              <button
-                key={key}
-                onClick={() => !disabled && setActiveTab(key as any)}
-                disabled={!!disabled}
-                style={{
-                  ...css.tab(activeTab === key),
-                  opacity: disabled ? 0.35 : 1,
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <i className={`fas ${icon}`} style={{ marginRight: '0.5rem' }} />
-                {label}
-              </button>
-            ))}
-            {currentSection && (
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{
-                  fontSize: '0.65rem', fontWeight: 900, color: currentSection.active ? '#10b981' : '#94a3b8',
-                  background: currentSection.active ? '#dcfce7' : '#f1f5f9',
-                  padding: '4px 10px', borderRadius: '8px',
-                }}>
-                  {currentSection.active ? '● ACTIVE' : '○ INACTIVE'}
-                </span>
-                {['vibe', 'experience', 'investment-opportunity', 'auction', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
+            <button onClick={() => togglePanel('center')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <i className={`fas fa-chevron-${collapsedPanels.center ? 'right' : 'left'}`} />
+            </button>
+            {!collapsedPanels.center && (
+              <>
+                {[
+                  { key: 'meta',   label: 'Section Settings', icon: 'fa-sliders-h' },
+                  { key: 'fields', label: 'Field Builder',    icon: 'fa-list-alt', disabled: !selectedSection },
+                  { key: 'assign', label: 'Type Assignment',  icon: 'fa-sitemap',  disabled: !selectedSection },
+                ].map(({ key, label, icon, disabled }) => (
                   <button
-                    disabled
-                    title="This section is used by the main website's features (e.g. investment, packages, auctions) and cannot be deleted."
+                    key={key}
+                    onClick={() => !disabled && setActiveTab(key as any)}
+                    disabled={!!disabled}
                     style={{
-                      ...css.btn('#94a3b8', true),
-                      padding: '0.5rem 1rem',
-                      fontSize: '0.65rem',
-                      cursor: 'not-allowed',
-                      background: '#f1f5f9',
-                      borderColor: '#cbd5e1',
-                      color: '#94a3b8',
+                      ...css.tab(activeTab === key),
+                      opacity: disabled ? 0.35 : 1,
+                      cursor: disabled ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <i className="fas fa-lock" style={{ marginRight: '0.4rem' }} /> System Locked
+                    <i className={`fas ${icon}`} style={{ marginRight: '0.5rem' }} />
+                    {label}
                   </button>
-                ) : (
-                  <button
-                    onClick={() => setDeletingId(selectedSection)}
-                    style={{ ...css.btn('#ef4444', true), padding: '0.5rem 1rem', fontSize: '0.65rem' }}
-                  >
-                    <i className="fas fa-trash" style={{ marginRight: '0.4rem' }} /> Delete
-                  </button>
+                ))}
+                {currentSection && (
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{
+                      fontSize: '0.65rem', fontWeight: 900, color: currentSection.active ? '#10b981' : '#94a3b8',
+                      background: currentSection.active ? '#dcfce7' : '#f1f5f9',
+                      padding: '4px 10px', borderRadius: '8px',
+                    }}>
+                      {currentSection.active ? '● ACTIVE' : '○ INACTIVE'}
+                    </span>
+                    {['vibe', 'experience', 'investment-opportunity', 'invest', 'auction', 'offers-promotions', 'package', 'discount', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
+                      <button
+                        disabled
+                        title="This section is used by the main website's features (e.g. investment, packages, auctions) and cannot be deleted."
+                        style={{
+                          ...css.btn('#94a3b8', true),
+                          padding: '0.6rem 1rem',
+                          fontSize: '0.7rem',
+                          cursor: 'not-allowed',
+                          background: '#f1f5f9',
+                          borderColor: '#cbd5e1',
+                          color: '#94a3b8',
+                        }}
+                      >
+                        <i className="fas fa-lock" style={{ marginRight: '0.4rem' }} /> System Locked
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setDeletingId(selectedSection)}
+                        style={{ ...css.btn('#ef4444', true), padding: '0.6rem 1rem', fontSize: '0.7rem' }}
+                      >
+                        <i className="fas fa-trash" style={{ marginRight: '0.4rem' }} /> Delete
+                      </button>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 
+          {collapsedPanels.center ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem', padding: '2rem' }}>
+              Editor collapsed. Click the arrow to expand.
+            </div>
+          ) : (
+            <>
           {/* ── TAB: META ─────────────────────────────────────────── */}
           {activeTab === 'meta' && (
-            <div style={{ padding: '2.5rem', maxWidth: '760px' }}>
+            <div style={{ padding: '2.5rem', maxWidth: '960px', width: '100%' }}>
               <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.3rem', fontWeight: 900, color: '#1e293b' }}>
                 {selectedSection ? 'Edit Section' : 'Create New Section'}
               </h2>
@@ -568,7 +603,7 @@ export default function UnifiedSectionArchitect() {
 
           {/* ── TAB: FIELDS ───────────────────────────────────────── */}
           {activeTab === 'fields' && (
-            <div style={{ padding: '2.5rem', maxWidth: '860px' }}>
+            <div style={{ padding: '2rem 1.5rem 2.5rem', maxWidth: '1200px', width: '100%' }}>
               {/* Type Selector for Fields */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
@@ -601,7 +636,7 @@ export default function UnifiedSectionArchitect() {
                   <p style={{ color: '#94a3b8', fontWeight: 700 }}>No fields yet. Click "Add Field" to start.</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                   {[...fields]
                     .filter(f => !selectedType || f.business_type_id === selectedType || f.business_type_id === 'SECTION_TEMPLATE')
                     .sort((a, b) => a.sort_order - b.sort_order)
@@ -615,13 +650,14 @@ export default function UnifiedSectionArchitect() {
                         <div key={f.id} style={{
                           background: '#fff', borderRadius: '18px', padding: '1.25rem 1.5rem',
                           border: isTemplate ? '1.5px solid #D4AF3740' : '1px solid #f1f5f9',
-                          display: 'flex', alignItems: 'center', gap: '1.25rem',
+                          display: 'flex', alignItems: 'flex-start', gap: '1.25rem',
+                          flexWrap: 'wrap', justifyContent: 'space-between',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                         }}>
                           <div style={{ width: 46, height: 46, borderRadius: '14px', background: `${ti?.color || '#eee'}12`, color: ti?.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
                             <i className={`fas ${ti?.icon || 'fa-cube'}`} />
                           </div>
-                          <div style={{ flex: 1 }}>
+                          <div style={{ flex: '1 1 320px', minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                               <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>{f.label}</span>
                               <span style={{ fontSize: '0.55rem', padding: '3px 8px', background: isTemplate ? '#fef3c7' : '#e0f2fe', color: isTemplate ? '#b45309' : '#0369a1', borderRadius: '6px', fontWeight: 900 }}>
@@ -635,12 +671,12 @@ export default function UnifiedSectionArchitect() {
                               {' · '}{ti?.label}
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button onClick={() => setEditField(f)} style={{ width: 36, height: 36, borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <i className="fas fa-cog" style={{ fontSize: '0.8rem' }} />
+                          <div style={{ display: 'flex', gap: '0.6rem', flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', width: '100%', marginTop: '0.5rem' }}>
+                            <button onClick={() => setEditField(f)} style={{ minWidth: '88px', height: '40px', padding: '0 0.8rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                              <i className="fas fa-cog" style={{ fontSize: '0.8rem' }} /> Edit
                             </button>
-                            <button onClick={() => setDeletingId('field_' + f.id)} style={{ width: 36, height: 36, borderRadius: '10px', background: '#fff0f0', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <i className="fas fa-trash" style={{ fontSize: '0.8rem' }} />
+                            <button onClick={() => setDeletingId('field_' + f.id)} style={{ minWidth: '92px', height: '40px', padding: '0 0.8rem', borderRadius: '10px', background: '#fff0f0', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                              <i className="fas fa-trash" style={{ fontSize: '0.8rem' }} /> Delete
                             </button>
                           </div>
                         </div>
@@ -869,83 +905,98 @@ export default function UnifiedSectionArchitect() {
               )}
             </div>
           )}
+            </>
+          )}
         </main>
 
         {/* ── PANEL 3: Quick Stats / Help ─────────────────────────── */}
-        <aside style={{ background: '#fff', borderLeft: '1px solid #f1f5f9', overflowY: 'auto', padding: '2rem 1.75rem' }}>
-          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1.5rem' }}>SYSTEM OVERVIEW</div>
+        <aside style={{ background: '#fff', borderLeft: '1px solid #f1f5f9', overflowY: 'auto', overflowX: 'auto', padding: '2rem 1.75rem', minWidth: collapsedPanels.right ? '72px' : '860px', width: collapsedPanels.right ? '72px' : '860px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <i className={`fas fa-chevron-${collapsedPanels.right ? 'left' : 'right'}`} />
+            </button>
+          </div>
+          {collapsedPanels.right ? (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '1rem' }}>
+              <i className="fas fa-info-circle" style={{ color: '#D4AF37', fontSize: '1.1rem' }} />
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1.5rem' }}>SYSTEM OVERVIEW</div>
 
-          {/* Stats */}
-          {[
+              {/* Stats */}
+              {[
             { label: 'Total Sections',      value: sections.length,                                  color: '#D4AF37', icon: 'fa-layer-group' },
             { label: 'Gallery Enabled',     value: sections.filter(s => s.enable_gallery).length,    color: '#6366f1', icon: 'fa-images' },
             { label: 'Blog Enabled',        value: sections.filter(s => s.enable_blog).length,       color: '#f59e0b', icon: 'fa-feather-alt' },
             { label: 'Active Sections',     value: sections.filter(s => s.active).length,            color: '#10b981', icon: 'fa-eye' },
             { label: 'Business Types',      value: businessTypes.length,                             color: '#3b82f6', icon: 'fa-briefcase' },
-          ].map(({ label, value, color, icon }) => (
-            <div key={label} style={{
-              display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem',
-              background: `${color}08`, borderRadius: '14px', marginBottom: '0.5rem',
-              border: `1px solid ${color}20`,
-            }}>
-              <i className={`fas ${icon}`} style={{ color, fontSize: '0.9rem', width: 20, textAlign: 'center' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>{label}</div>
-              </div>
-              <div style={{ fontWeight: 900, color, fontSize: '1.1rem' }}>{value}</div>
-            </div>
-          ))}
-
-          {/* Current section info */}
-          {currentSection && (
-            <>
-              <div style={{ height: 1, background: '#f1f5f9', margin: '1.5rem 0' }} />
-              <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1rem' }}>SELECTED SECTION</div>
-              <div style={{ background: '#fafafa', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: '12px', background: '#D4AF3715', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
-                    <i className={`fas ${currentSection.icon || 'fa-layer-group'}`} />
+              ].map(({ label, value, color, icon }) => (
+                <div key={label} style={{
+                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem',
+                  background: `${color}08`, borderRadius: '14px', marginBottom: '0.5rem',
+                  border: `1px solid ${color}20`,
+                }}>
+                  <i className={`fas ${icon}`} style={{ color, fontSize: '0.9rem', width: 20, textAlign: 'center' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>{label}</div>
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#1e293b' }}>{currentSection.name}</div>
-                    <code style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{currentSection.id}</code>
-                  </div>
+                  <div style={{ fontWeight: 900, color, fontSize: '1.1rem' }}>{value}</div>
                 </div>
+              ))}
 
-                {[
-                  { label: 'Active',       val: currentSection.active,         color: '#10b981' },
-                  { label: 'Gallery',      val: currentSection.enable_gallery, color: '#6366f1' },
-                  { label: 'Blog',         val: currentSection.enable_blog,    color: '#f59e0b' },
-                  { label: 'Universal',    val: currentSection.is_universal,   color: '#3b82f6' },
-                  { label: 'Vend. Edit',   val: currentSection.vendor_editable,color: '#8b5cf6' },
-                  { label: 'Public',       val: currentSection.show_on_public, color: '#ec4899' },
-                ].map(({ label, val, color }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px solid #f8fafc' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>{label}</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 900, color: val ? color : '#cbd5e1' }}>
-                      {val ? '✓ ON' : '✕ OFF'}
-                    </span>
+              {/* Current section info */}
+              {currentSection && (
+                <>
+                  <div style={{ height: 1, background: '#f1f5f9', margin: '1.5rem 0' }} />
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1rem' }}>SELECTED SECTION</div>
+                  <div style={{ background: '#fafafa', borderRadius: '16px', padding: '1.25rem', border: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                      <div style={{ width: 42, height: 42, borderRadius: '12px', background: '#D4AF3715', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+                        <i className={`fas ${currentSection.icon || 'fa-layer-group'}`} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#1e293b' }}>{currentSection.name}</div>
+                        <code style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{currentSection.id}</code>
+                      </div>
+                    </div>
+
+                    {[
+                      { label: 'Active',       val: currentSection.active,         color: '#10b981' },
+                      { label: 'Gallery',      val: currentSection.enable_gallery, color: '#6366f1' },
+                      { label: 'Blog',         val: currentSection.enable_blog,    color: '#f59e0b' },
+                      { label: 'Universal',    val: currentSection.is_universal,   color: '#3b82f6' },
+                      { label: 'Vend. Edit',   val: currentSection.vendor_editable,color: '#8b5cf6' },
+                      { label: 'Public',       val: currentSection.show_on_public, color: '#ec4899' },
+                    ].map(({ label, val, color }) => (
+                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px solid #f8fafc' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>{label}</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: val ? color : '#cbd5e1' }}>
+                          {val ? '✓ ON' : '✕ OFF'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
+
+              {/* Help tips */}
+              <div style={{ height: 1, background: '#f1f5f9', margin: '1.5rem 0' }} />
+              <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1rem' }}>QUICK GUIDE</div>
+              {[
+                { icon: 'fa-layer-group', tip: 'Select a section on the left to edit it, or click "New Section" to create one.' },
+                { icon: 'fa-images',      tip: '"Gallery Enabled" shows the Gallery tab to vendors for this section.' },
+                { icon: 'fa-feather-alt', tip: '"Blog Enabled" shows the Blog/Story tab to vendors for this section.' },
+                { icon: 'fa-list-alt',    tip: 'The Field Builder tab lets you add form fields specific to a business type.' },
+                { icon: 'fa-sitemap',     tip: 'Use Type Assignment to decide which types get this section.' },
+              ].map(({ icon, tip }, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.85rem', alignItems: 'flex-start' }}>
+                  <i className={`fas ${icon}`} style={{ color: '#D4AF37', marginTop: '2px', fontSize: '0.8rem', width: 16, textAlign: 'center', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', lineHeight: 1.6 }}>{tip}</p>
+                </div>
+              ))}
             </>
           )}
-
-          {/* Help tips */}
-          <div style={{ height: 1, background: '#f1f5f9', margin: '1.5rem 0' }} />
-          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1rem' }}>QUICK GUIDE</div>
-          {[
-            { icon: 'fa-layer-group', tip: 'Select a section on the left to edit it, or click "New Section" to create one.' },
-            { icon: 'fa-images',      tip: '"Gallery Enabled" shows the Gallery tab to vendors for this section.' },
-            { icon: 'fa-feather-alt', tip: '"Blog Enabled" shows the Blog/Story tab to vendors for this section.' },
-            { icon: 'fa-list-alt',    tip: 'The Field Builder tab lets you add form fields specific to a business type.' },
-            { icon: 'fa-sitemap',     tip: 'Use Type Assignment to decide which types get this section.' },
-          ].map(({ icon, tip }, i) => (
-            <div key={i} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.85rem', alignItems: 'flex-start' }}>
-              <i className={`fas ${icon}`} style={{ color: '#D4AF37', marginTop: '2px', fontSize: '0.8rem', width: 16, textAlign: 'center', flexShrink: 0 }} />
-              <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', lineHeight: 1.6 }}>{tip}</p>
-            </div>
-          ))}
         </aside>
       </div>
 

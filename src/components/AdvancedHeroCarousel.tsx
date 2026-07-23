@@ -10,6 +10,8 @@ interface Slide {
   mediaUrl: string | null;
   title: string;
   subtitle: string;
+  // Optional: id of a DOM element on the homepage to scroll to when this slide is activated or its CTA is clicked
+  targetSectionId?: string;
   caption?: string;
   ctaText?: string;
   ctaLink?: string;
@@ -156,21 +158,51 @@ export default function AdvancedHeroCarousel({
   // Per-slide overrides computed inline (after slide is selected below)
   const validSlides = slides.filter(s => s.type === 'branded' || (s.mediaUrl && s.mediaUrl.length > 0));
 
-  const goToNext = useCallback(() => {
+  // Navigation helpers — accept `userInitiated` to control whether we should scroll to a target section
+  const goToNext = useCallback((userInitiated = false) => {
     if (isTransitioning || validSlides.length <= 1) return;
     setDirection('next');
     setIsTransitioning(true);
-    setCurrentSlide((prev) => (prev + 1) % validSlides.length);
+    setCurrentSlide((prev) => {
+      const next = (prev + 1) % validSlides.length;
+      // If user clicked arrow, schedule a scroll to the new slide's target
+      if (userInitiated) {
+        setTimeout(() => {
+          const s = validSlides[next];
+          if (s?.targetSectionId) {
+            const el = document.getElementById(s.targetSectionId) || document.querySelector(`[data-section-id="${s.targetSectionId}"]`);
+            if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+              (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }, transitionDuration + 50);
+      }
+      return next;
+    });
     setTimeout(() => setIsTransitioning(false), transitionDuration);
-  }, [isTransitioning, validSlides.length, transitionDuration]);
+  }, [isTransitioning, validSlides, transitionDuration]);
 
-  const goToPrev = useCallback(() => {
+  const goToPrev = useCallback((userInitiated = false) => {
     if (isTransitioning || validSlides.length <= 1) return;
     setDirection('prev');
     setIsTransitioning(true);
-    setCurrentSlide((prev) => (prev - 1 + validSlides.length) % validSlides.length);
+    setCurrentSlide((prev) => {
+      const next = (prev - 1 + validSlides.length) % validSlides.length;
+      if (userInitiated) {
+        setTimeout(() => {
+          const s = validSlides[next];
+          if (s?.targetSectionId) {
+            const el = document.getElementById(s.targetSectionId) || document.querySelector(`[data-section-id="${s.targetSectionId}"]`);
+            if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+              (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }, transitionDuration + 50);
+      }
+      return next;
+    });
     setTimeout(() => setIsTransitioning(false), transitionDuration);
-  }, [isTransitioning, validSlides.length, transitionDuration]);
+  }, [isTransitioning, validSlides, transitionDuration]);
 
   // Auto-pause when current slide is a YouTube video so visitor can watch fully
   const isYouTubeSlide = validSlides[currentSlide]?.type === 'youtube';
@@ -287,7 +319,19 @@ export default function AdvancedHeroCarousel({
       {/* CLICKABLE SLIDE AREA */}
       {slide.ctaLink ? (
         <a 
-          href={slide.ctaLink} 
+          href={slide.ctaLink}
+          onClick={(e) => {
+            if (slide.targetSectionId) {
+              e.preventDefault();
+              e.stopPropagation();
+              const el = document.getElementById(slide.targetSectionId) || document.querySelector(`[data-section-id="${slide.targetSectionId}"]`);
+              if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+                (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+              return;
+            }
+            // otherwise allow normal navigation
+          }}
           style={{
             position: 'relative', 
             zIndex: 10, 
@@ -446,8 +490,8 @@ export default function AdvancedHeroCarousel({
 
       {showArrows && validSlides.length > 1 && (
         <>
-          <button onClick={(e) => { e.stopPropagation(); goToPrev(); }} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>‹</button>
-          <button onClick={(e) => { e.stopPropagation(); goToNext(); }} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>›</button>
+          <button onClick={(e) => { e.stopPropagation(); goToPrev(true); }} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>‹</button>
+          <button onClick={(e) => { e.stopPropagation(); goToNext(true); }} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>›</button>
         </>
       )}
 

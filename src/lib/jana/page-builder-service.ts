@@ -1,5 +1,5 @@
 import { PageLayout, PageTemplate, AvailableSearchComponent, PageBlock } from './page-builder-types'
-import { query, execute } from '@/lib/db'
+import { query as safeQuery, execute } from '@/lib/db'
 
 // Lightweight in-memory stubs to satisfy imports and enable incremental work
 const store: { pages: PageLayout[]; templates: PageTemplate[] } = {
@@ -44,7 +44,7 @@ async function notifyAdmin(action: string, details: any, userEmail?: string): Pr
 
 export async function getAllPages(): Promise<PageLayout[]> {
   try {
-    const results = await query(
+    const results = await safeQuery(
       `SELECT config FROM website_configs WHERE type LIKE 'website_%' ORDER BY created_at DESC`,
       []
     )
@@ -105,7 +105,7 @@ export async function createPageLayout(data: Partial<PageLayout>): Promise<PageL
 export async function getPageLayout(pageId: string): Promise<PageLayout | null> {
   try {
     // Try to fetch from database first
-    const results = await query(
+    const results = await safeQuery(
       `SELECT config FROM website_configs WHERE type = ? LIMIT 1`,
       [`website_${pageId}`]
     )
@@ -506,7 +506,7 @@ export async function getPageActivityLog(pageId: string): Promise<any[]> {
     const page = await getPageLayout(pageId)
     if (!page) return []
     
-    const results = await query(
+    const results = await safeQuery(
       `SELECT message, user_email, created_at FROM activity_log 
        WHERE message LIKE ? 
        ORDER BY created_at DESC 

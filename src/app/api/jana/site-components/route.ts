@@ -10,10 +10,26 @@ import { v4 as uuidv4 } from 'uuid';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const publicMode = searchParams.get('public') === 'true';
+
+    if (!publicMode) {
+      await requireAdmin();
+    }
+
     const zone = searchParams.get('zone');
     const enabled = searchParams.get('enabled');
     const category = searchParams.get('category');
     const id = searchParams.get('id');
+
+    const tableCheck = await query(`
+      SELECT 1 FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'site_components'
+    `);
+
+    if (tableCheck.length === 0) {
+      return NextResponse.json([]);
+    }
 
     // Get single component by ID
     if (id) {
@@ -72,6 +88,7 @@ export async function POST(request: NextRequest) {
       manager_url,
       default_props,
       required_props,
+      component_config,
       min_version,
       sort_order
     } = body;
@@ -86,8 +103,8 @@ export async function POST(request: NextRequest) {
     const id = uuidv4();
 
     await execute(
-      `INSERT INTO site_components (id, \`key\`, name, description, icon, zone, category, manager_url, default_props, required_props, min_version, sort_order, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO site_components (id, \`key\`, name, description, icon, zone, category, manager_url, default_props, required_props, component_config, min_version, sort_order, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         key,
@@ -99,6 +116,7 @@ export async function POST(request: NextRequest) {
         manager_url || null,
         default_props ? JSON.stringify(default_props) : null,
         required_props ? JSON.stringify(required_props) : null,
+        component_config ? JSON.stringify(component_config) : null,
         min_version || null,
         sort_order || 999,
         user.id
@@ -135,7 +153,8 @@ export async function PUT(request: NextRequest) {
     const setClauses = fields.map(f => `${f} = ?`).join(', ');
     const values = fields.map(f => {
       const val = updates[f];
-      if (f === 'default_props' || f === 'required_props') {
+      if (f === 'default_props' || f === 'required_props' || f === 'component_config' || f === 'config_schema' || f === 'tags') {
+        if (val == null) return null;
         return typeof val === 'string' ? val : JSON.stringify(val);
       }
       return val;

@@ -1,11 +1,11 @@
 import React from 'react';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export default async function VendorsPage() {
   try {
-    const vendors = await query('SELECT p.*, b.name as business_name FROM profiles p LEFT JOIN businesses b ON p.business_id = b.id ORDER BY p.role, p.email');
+    const vendors = await safeQuery('SELECT p.*, b.name as business_name FROM profiles p LEFT JOIN businesses b ON p.business_id = b.id ORDER BY p.role, p.email');
 
     return (
       <>

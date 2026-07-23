@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 interface InvestmentOpportunity {
   id: string;
@@ -167,6 +168,8 @@ export default function MainSiteInvestmentOpportunitiesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+      <MarketplaceHeader title="Investment & Sponsorship Hub" adminPath="/admin/investment-opportunities" activePath="/investment-opportunities" />
+
       {/* Hero Section */}
       <div className="relative overflow-hidden py-16 sm:py-24 border-b border-gray-850">
         <div className="absolute inset-0 opacity-10">
@@ -182,6 +185,17 @@ export default function MainSiteInvestmentOpportunitiesPage() {
           <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
             Find high-yield equity stakes, local partnerships, or promote your brand through premium sponsorships.
           </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a href="/admin/investment-opportunities" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/15 transition">
+              🔧 Moderate investments
+            </a>
+            <a href="/admin/packages" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              📦 Packages dashboard
+            </a>
+            <a href="/admin/offers" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              🎁 Offers dashboard
+            </a>
+          </div>
 
           {/* Hub Tabs */}
           <div className="mt-8 inline-flex p-1.5 bg-gray-900 border border-gray-800 rounded-2xl gap-2">

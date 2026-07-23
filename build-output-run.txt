@@ -1,0 +1,103 @@
+﻿
+> siwa-oasis@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.1.11
+   - Environments: .env.local, .env.production, .env
+   - Experiments (use with caution):
+     ┬╖ webpackBuildWorker
+
+   Creating an optimized production build ...
+node.exe : Failed to compile.
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile.:String) [], Re 
+   moteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/jana/blueprints/[typeId]/page.tsx
+Error:   [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\blueprints\[t
+ypeId]\page.tsx[0m:247:1]
+ [2m244[0m |   );
+ [2m245[0m | 
+ [2m246[0m |   return (
+ [2m247[0m |     <div className="animate-in" style={{ background: '#08090a', 
+minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+     : [35;1m     ^^^[0m
+ [2m248[0m |       <link href="https://fonts.googleapis.com/css2?family=Inter
+:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+ [2m249[0m |       <div style={{ maxWidth: '1400px', margin: '0 auto', 
+padding: '2rem 2rem 4rem' }}>
+ [2m250[0m |         <div className="card" style={{ padding: '2rem', 
+marginBottom: '1.5rem', background: '#0f172a', border: '1px solid 
+rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/jana/blueprints/[typeId]/page.tsx
+
+./src/app/jana/blueprints/page.tsx
+Error:   [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\blueprints\pag
+e.tsx[0m:72:1]
+ [2m69[0m |   const typesWithBlueprint = typologies.filter(t => 
+t.blueprint_schema).length;
+ [2m70[0m | 
+ [2m71[0m |   return (
+ [2m72[0m |     <div className="animate-in" style={{ background: '#08090a', 
+minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+    : [35;1m     ^^^[0m
+ [2m73[0m |       <link href="https://fonts.googleapis.com/css2?family=Inter:
+wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+ [2m74[0m |       <div style={{ maxWidth: '1400px', margin: '0 auto', 
+padding: '2rem 2rem 4rem' }}>
+ [2m75[0m |         {/* Capacity Warning */}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/jana/blueprints/page.tsx
+
+./src/app/jana/layout.tsx
+Error:   [31mx[0m Expression expected
+     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\layout.tsx[0
+m:268:1]
+ [2m265[0m | 
+ [2m266[0m |   // Render sidebar content (shared between desktop sidebar and 
+mobile drawer)
+ [2m267[0m |   const renderSidebarContent = (showLabels: boolean) => (
+ [2m268[0m |     <>
+     : [35;1m     ^[0m
+ [2m269[0m |       {/* Brand Header */}
+ [2m270[0m |       <div style={{
+ [2m271[0m |         padding: showLabels ? '1.25rem 1.25rem' : '1rem 0.5rem',
+     `----
+  [31mx[0m Expected ',', got '< (jsx tag start)'
+     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\layout.tsx[0
+m:270:1]
+ [2m267[0m |   const renderSidebarContent = (showLabels: boolean) => (
+ [2m268[0m |     <>
+ [2m269[0m |       {/* Brand Header */}
+ [2m270[0m |       <div style={{
+     : [35;1m      ^[0m
+ [2m271[0m |         padding: showLabels ? '1.25rem 1.25rem' : '1rem 0.5rem',
+ [2m272[0m |         borderBottom: '1px solid rgba(255,255,255,0.06)',
+ [2m273[0m |         display: 'flex',
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/jana/layout.tsx
+
+
+> Build failed because of webpack errors

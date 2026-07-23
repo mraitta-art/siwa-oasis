@@ -1,0 +1,28 @@
+{
+  "id": "3",
+  "name": "Categories Page",
+  "slug": "/categories",
+  "type": "category",
+  "status": "published",
+  "lastModified": "2024-01-13",
+  "title": "Business Categories",
+  "description": "Explore business directories by category",
+  "theme": "golden",
+  "layout": "showcase",
+  "sections": [
+    {
+      "id": "1",
+      "name": "Hero Section",
+      "type": "hero",
+      "order": 1,
+      "enabled": true
+    },
+    {
+      "id": "2",
+      "name": "Business Categories",
+      "type": "gallery",
+      "order": 2,
+      "enabled": true
+    }
+  ]
+}

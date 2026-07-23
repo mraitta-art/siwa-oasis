@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 interface DiscountItem {
   id: string;
@@ -161,6 +162,8 @@ export default function DiscountsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+      <MarketplaceHeader title="Discounts" adminPath="/admin/discounts" activePath="/discounts" />
+
       {/* Hero */}
       <div className="relative overflow-hidden py-16 sm:py-24">
         <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-[#556B2F] via-transparent to-[#D4AF37]" />
@@ -171,6 +174,17 @@ export default function DiscountsPage() {
           <p className="mt-4 text-gray-400 max-w-xl mx-auto">
             Save more with seasonal deals, group discounts, and exclusive promotions from businesses across Siwa Oasis
           </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a href="/admin/discounts" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/15 transition">
+              🔧 Moderate discounts
+            </a>
+            <a href="/offers" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              🎁 Browse offers
+            </a>
+            <a href="/packages" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              📦 Browse packages
+            </a>
+          </div>
         </div>
       </div>
 

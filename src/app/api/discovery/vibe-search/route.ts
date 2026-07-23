@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
     const { tags, engineId } = await request.json();
 
     if (!tags || !Array.isArray(tags) || tags.length === 0) {
-      const all: any = await query(`
+      const all: any = await safeQuery(`
         SELECT b.*, bt.name as type_name 
         FROM businesses b
         JOIN business_types bt ON b.type_id = bt.id
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     let searchablePaths = ['$.experience_vibe.vibe_tags', '$.vibe.vibe_tags']; // Default
 
     if (engineId) {
-      const engine: any = await query(`
+      const engine: any = await safeQuery(`
         SELECT se.allowed_fields 
         FROM search_engines se 
         WHERE se.id = ?`, [engineId]
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         const fieldNames = typeof engine[0].allowed_fields === 'string' ? JSON.parse(engine[0].allowed_fields) : engine[0].allowed_fields;
         
         // Fetch section_id for each field to build the JSON path, filtered by is_filterable governance
-        const fields: any[] = await query(
+        const fields: any[] = await safeQuery(
           `SELECT ff.name, ff.section_id 
            FROM form_fields ff
            JOIN sections s ON ff.section_id = s.id
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       conditions.push(`(${pathConditions})`);
     });
 
-    const results: any = await query(`
+    const results: any = await safeQuery(`
       SELECT b.*, bt.name as type_name 
       FROM businesses b
       JOIN business_types bt ON b.type_id = bt.id
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     `, params);
     
     // --- GOVERNANCE: FILTER CUSTOM DATA BY SECTION VISIBILITY ---
-    const hiddenSections = await query('SELECT id FROM sections WHERE show_on_card = 0');
+    const hiddenSections = await safeQuery('SELECT id FROM sections WHERE show_on_card = 0');
     const hiddenIds = hiddenSections.map((s: any) => s.id);
 
     const filteredResults = results.map((biz: any) => {

@@ -163,7 +163,18 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
         </AnimatedSection>
       );
 
-    // ─── EXPERIENCE CATEGORIES ────────────────────────────
+    // ─── SERVICE DIRECTORY / CATEGORY CARDS ─────────────────
+    case 'service_directory':
+    case 'services_hub':
+      return (
+        <AnimatedSection>
+          <section>
+            <ServicesHub title={props?.title} subtitle={props?.subtitle} />
+          </section>
+        </AnimatedSection>
+      );
+
+    case 'category_showcase':
     case 'experience_categories':
       return (
         <AnimatedSection>
@@ -174,6 +185,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
       );
 
     // ─── SMART JOURNEY PLANNER ────────────────────────────
+    case 'journey_collection':
     case 'smart_journey_planner':
       return (
         <AnimatedSection>

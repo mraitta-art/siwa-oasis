@@ -1,31 +1,109 @@
+ï»¿node.exe : npm verbose cli C:\Program Files\nodejs\node.exe C:\Users\mega 
+tech\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm verbose cli...\bin\npm-cli.js 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm info using npm@11.5.2
+npm info using node@v22.14.0
+npm verbose title npm run build:windows
+npm verbose argv "run" "build:windows" "--loglevel" "verbose"
+npm verbose logfile logs-max:10 dir:C:\Users\mega 
+tech\AppData\Local\npm-cache\_logs\2026-07-12T13_25_08_381Z-
+npm verbose logfile C:\Users\mega 
+tech\AppData\Local\npm-cache\_logs\2026-07-12T13_25_08_381Z-debug-0.log
 
-> siwa-oasis@0.1.0 build
-> next build
+> siwa-oasis@0.1.0 build:windows
+> set NODE_OPTIONS=--max-old-space-size=2048 && next build
 
-   Gû¦ Next.js 15.1.11
+   Î“Ã»â–“ Next.js 15.1.11
    - Environments: .env.local, .env.production, .env
+   - Experiments (use with caution):
+     â”¬â•– webpackBuildWorker
 
    Creating an optimized production build ...
 Failed to compile.
-System.Management.Automation.RemoteException
-./src/app/vendor/page.tsx
+
+./src/app/jana/blueprints/[typeId]/page.tsx
 Error:   [31mx[0m Unexpected token `div`. Expected jsx identifier
-     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\vendor\page.tsx[0m:271:1]
- [2m268[0m |       </header>
- [2m269[0m | 
- [2m270[0m |       {/* GöÇGöÇGöÇ MAIN CONTENT GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
- [2m271[0m |       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-     : [35;1m       ^^^[0m
- [2m272[0m | 
- [2m273[0m |         {/* SUB-SECTIONS NAVIGATION */}
- [2m274[0m |         <aside style={{ width: '280px', background: '#fff', borderRight: isRTL ? 'none' : '1px solid #e2e8f0', borderLeft: isRTL ? '1px solid #e2e8f0' : 'none', overflowY: 'auto', padding: '1.5rem' }}>
+     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\blueprints\[t
+ypeId]\page.tsx[0m:247:1]
+ [2m244[0m |   );
+ [2m245[0m | 
+ [2m246[0m |   return (
+ [2m247[0m |     <div className="animate-in" style={{ background: '#08090a', 
+minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+     : [35;1m     ^^^[0m
+ [2m248[0m |       <link href="https://fonts.googleapis.com/css2?family=Inter
+:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+ [2m249[0m |       <div style={{ maxWidth: '1400px', margin: '0 auto', 
+padding: '2rem 2rem 4rem' }}>
+ [2m250[0m |         <div className="card" style={{ padding: '2rem', 
+marginBottom: '1.5rem', background: '#0f172a', border: '1px solid 
+rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
      `----
-System.Management.Automation.RemoteException
+
 Caused by:
     Syntax Error
-System.Management.Automation.RemoteException
+
 Import trace for requested module:
-./src/app/vendor/page.tsx
-System.Management.Automation.RemoteException
-System.Management.Automation.RemoteException
+./src/app/jana/blueprints/[typeId]/page.tsx
+
+./src/app/jana/blueprints/page.tsx
+Error:   [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\blueprints\pag
+e.tsx[0m:72:1]
+ [2m69[0m |   const typesWithBlueprint = typologies.filter(t => 
+t.blueprint_schema).length;
+ [2m70[0m | 
+ [2m71[0m |   return (
+ [2m72[0m |     <div className="animate-in" style={{ background: 
+'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)', minHeight: '100vh', 
+color: '#0f172a', fontFamily: "'Inter', sans-serif" }}>
+    : [35;1m     ^^^[0m
+ [2m73[0m |       <link href="https://fonts.googleapis.com/css2?family=Inter:
+wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+ [2m74[0m |       <div className="blueprint-dashboard-shell" style={{ 
+maxWidth: '1440px', margin: '0 auto', padding: 'clamp(1rem, 2vw, 2rem) 
+clamp(1rem, 3vw, 2rem) 3rem' }}>
+ [2m75[0m |         {isNearLimit && (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/jana/blueprints/page.tsx
+
+./src/app/jana/layout.tsx
+Error:   [31mx[0m Unexpected token `React`. Expected jsx identifier
+     ,-[[36;1;4mE:\ANitgravity\siwatoday\siwa-oasis\src\app\jana\layout.tsx[0
+m:268:1]
+ [2m265[0m | 
+ [2m266[0m |   // Render sidebar content (shared between desktop sidebar and 
+mobile drawer)
+ [2m267[0m |   const renderSidebarContent = (showLabels: boolean) => (
+ [2m268[0m |     <React.Fragment>
+     : [35;1m     ^^^^^[0m
+ [2m269[0m |       {/* Brand Header */}
+ [2m270[0m |       <div style={{
+ [2m271[0m |         padding: showLabels ? '1.25rem 1.25rem' : '1rem 0.5rem',
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/jana/layout.tsx
+
+
 > Build failed because of webpack errors
+npm verbose cwd E:\ANitgravity\siwatoday\siwa-oasis
+npm verbose os Windows_NT 10.0.19045
+npm verbose node v22.14.0
+npm verbose npm  v11.5.2
+npm verbose exit 1
+npm verbose code 1

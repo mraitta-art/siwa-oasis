@@ -12,29 +12,59 @@ import { AdminProvider, useAdmin } from '@/context/AdminContext';
    ───────────────────────────────────────────────────────── */
 const NAV_GROUPS = [
   {
-    id: 'foundation',
-    title: 'FOUNDATION',
-    subtitle: 'Schema & Structure',
+    id: 'basics',
+    title: 'BASICS & SETTINGS',
+    subtitle: 'Structure & forms',
     icon: 'fa-cubes',
+    accent: '#60a5fa',
     collapsible: true,
     defaultCollapsed: false,
     items: [
       { name: 'Blueprint Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Unified Section Architect', path: '/jana/sections', icon: 'fa-table-cells' },
+      { name: 'Unified Form Builder', path: '/jana/business-forms', icon: 'fa-file-alt' },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
-      { name: 'Blueprints', path: '/jana/blueprints', icon: 'fa-drafting-compass' },
-      { name: 'Business Forms', path: '/jana/business-forms', icon: 'fa-file-alt' },
+      {
+        name: 'Blueprints',
+        path: '/jana/blueprints',
+        icon: 'fa-drafting-compass',
+        children: [
+          { name: 'Blueprint Canvas', path: '/jana/blueprints', icon: 'fa-cubes', exact: true },
+          { name: 'Atom Registry', path: '/jana/blueprints/atoms', icon: 'fa-atom' },
+        ]
+      },
       { name: 'Vendor Tiers', path: '/jana/tiers', icon: 'fa-shield-alt' },
-      { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
       { name: 'Vibe Expressions', path: '/jana/expressions', icon: 'fa-sparkles' },
     ]
   },
   {
-    id: 'content',
-    title: 'CONTENT',
-    subtitle: 'Media & Components',
+    id: 'data_feed',
+    title: 'DATA FEED & INPUT',
+    subtitle: 'Feed the system',
+    icon: 'fa-database',
+    accent: '#22c55e',
+    collapsible: true,
+    defaultCollapsed: false,
+    items: [
+      { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-building' },
+      { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
+      { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
+      { name: 'Unified Builder', path: '/jana/unified-builder', icon: 'fa-sitemap' },
+      { name: 'Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
+      { name: 'Vendors', path: '/jana/vendors', icon: 'fa-user-tie' },
+      { name: 'Packages', path: '/jana/packages', icon: 'fa-box-open' },
+      { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
+      { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
+      { name: 'Dispatch', path: '/jana/dispatch', icon: 'fa-paper-plane' },
+    ]
+  },
+  {
+    id: 'display',
+    title: 'DISPLAY & CONTENT',
+    subtitle: 'What visitors see',
     icon: 'fa-photo-film',
+    accent: '#a78bfa',
     collapsible: true,
     defaultCollapsed: false,
     items: [
@@ -45,66 +75,26 @@ const NAV_GROUPS = [
       { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
       { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
       { name: 'Components', path: '/jana/components', icon: 'fa-puzzle-piece' },
-      { name: 'Carousel Diagnostic', path: '/jana/carousel-diagnostic', icon: 'fa-stethoscope' },
+      { name: 'Visual Editor', path: '/jana/website', icon: 'fa-palette' },
+      { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },
+      { name: 'Section Status Map', path: '/jana/homepage-editor', icon: 'fa-home' },
+      { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
+      { name: 'Minisite Builder', path: '/jana/minisite', icon: 'fa-store' },
+      { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
+      { name: 'Search Pages', path: '/jana/search-pages', icon: 'fa-filter-list' },
+      { name: 'Search & Compare', path: '/jana/search-compare', icon: 'fa-sliders' },
+      { name: 'Mobile View', path: '/jana/mobile', icon: 'fa-mobile-alt' },
       { name: 'Services', path: '/jana/services-manager', icon: 'fa-concierge-bell' },
       { name: 'Categories', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
       { name: 'Journeys', path: '/jana/journey-templates-manager', icon: 'fa-route' },
     ]
   },
   {
-    id: 'site',
-    title: 'SITE & PAGES',
-    subtitle: 'Public-Facing Design',
-    icon: 'fa-display',
-    collapsible: true,
-    defaultCollapsed: false,
-    items: [
-      { name: 'Visual Editor',       path: '/jana/website',         icon: 'fa-palette' },
-      { name: 'Pages Manager',       path: '/jana/pages',           icon: 'fa-copy' },
-      { name: 'Section Status Map',  path: '/jana/homepage-editor', icon: 'fa-home' },
-      { name: 'Business Wizard',     path: '/jana/page-builder',    icon: 'fa-hat-wizard' },
-      { name: 'Minisite Builder',    path: '/jana/minisite',        icon: 'fa-store' },
-      { name: 'Search Engines',      path: '/jana/search-engines',  icon: 'fa-search' },
-      { name: 'Search Pages',        path: '/jana/search-pages',    icon: 'fa-filter-list' },
-      { name: 'Search & Compare',    path: '/jana/search-compare',  icon: 'fa-sliders' },
-      { name: 'Mobile View',         path: '/jana/mobile',          icon: 'fa-mobile-alt' },
-    ]
-  },
-  {
-    id: 'businesses',
-    title: 'BUSINESSES',
-    subtitle: 'Registry & Operations',
-    icon: 'fa-briefcase',
-    collapsible: true,
-    defaultCollapsed: false,
-    items: [
-      { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-building' },
-      { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
-      { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
-      { name: 'Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
-      { name: 'Vendors', path: '/jana/vendors', icon: 'fa-user-tie' },
-      { name: 'Packages', path: '/jana/packages', icon: 'fa-box-open' },
-      { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
-      { name: 'Dispatch', path: '/jana/dispatch', icon: 'fa-paper-plane' },
-      { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
-    ]
-  },
-  {
-    id: 'tools',
-    title: 'TOOLS & BUILDERS',
-    subtitle: 'Forms & Automation',
-    icon: 'fa-tools',
-    collapsible: true,
-    defaultCollapsed: false,
-    items: [
-      { name: 'Demo Automation', path: '/jana/demo-automation', icon: 'fa-robot' },
-    ]
-  },
-  {
-    id: 'admin_governance',
-    title: 'ADMIN & GOVERNANCE',
-    subtitle: 'Platform Controls',
-    icon: 'fa-shield-halved',
+    id: 'reports',
+    title: 'REPORTS & CONTROL',
+    subtitle: 'Visibility & insights',
+    icon: 'fa-chart-line',
+    accent: '#f59e0b',
     collapsible: true,
     defaultCollapsed: false,
     items: [
@@ -117,7 +107,6 @@ const NAV_GROUPS = [
       { name: 'Investment Opps', path: '/admin/investment-opportunities', icon: 'fa-hand-holding-dollar' },
       { name: 'Journey Requests', path: '/admin/journey-requests', icon: 'fa-route' },
       { name: 'Journey Policies', path: '/admin/journey-policies', icon: 'fa-gavel' },
-      { name: 'Homepages Manager', path: '/admin/homepages-manager', icon: 'fa-house-chimney-window' },
       { name: 'Journey Analytics', path: '/admin/analytics/journey-requests', icon: 'fa-chart-line' },
       { name: 'Vendor Analytics', path: '/admin/analytics/vendor-performance', icon: 'fa-chart-simple' },
     ]
@@ -125,8 +114,9 @@ const NAV_GROUPS = [
   {
     id: 'system',
     title: 'SYSTEM',
-    subtitle: 'Maintenance & Config',
+    subtitle: 'Maintenance & config',
     icon: 'fa-gear',
+    accent: '#94a3b8',
     collapsible: true,
     defaultCollapsed: true,
     items: [
@@ -139,6 +129,7 @@ const NAV_GROUPS = [
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
       { name: 'Curation', path: '/jana/curation', icon: 'fa-filter' },
       { name: 'System Setup', path: '/jana/setup', icon: 'fa-screwdriver-wrench' },
+      { name: 'Demo Automation', path: '/jana/demo-automation', icon: 'fa-robot' },
     ]
   }
 ];
@@ -173,10 +164,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const isActive = (item: any) => {
+  const isActiveItem = (item: any): boolean => {
     if (item.exact) return pathname === item.path;
+    if (item.children) {
+      return item.children.some(isActiveItem) || pathname.startsWith(item.path);
+    }
     return pathname.startsWith(item.path);
   };
+
+  const isActive = isActiveItem;
 
   // AUTO-EXPAND: Ensure any collapsible group containing the active page is expanded
   useEffect(() => {
@@ -203,6 +199,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/types')) return { title: 'Business Types', tip: 'Define parent categories and their children. Assign sections to control what data each type collects.' };
     if (pathname.includes('/sections')) return { title: 'Sections', tip: 'Define reusable data containers — these become available when configuring types.' };
     if (pathname.includes('/templates')) return { title: 'Master Templates', tip: 'Design reusable templates for business types.' };
+    if (pathname.startsWith('/jana/blueprints/atoms')) return { title: 'Atom Registry', tip: 'Manage the shared atom library used by all blueprints.' };
+    if (pathname.startsWith('/jana/blueprints/') && pathname !== '/jana/blueprints') return { title: 'Blueprint Editor', tip: 'Edit type-specific blueprints, media, and mini-blog content.' };
     if (pathname.includes('/blueprints')) return { title: 'Blueprints', tip: 'Visual architecture blueprints — map out the full structure of your marketplace.' };
     if (pathname.includes('/business-forms')) return { title: 'Business Forms', tip: 'Configure forms used during business onboarding and data collection.' };
     if (pathname.includes('/tiers')) return { title: 'Vendor Tiers', tip: 'Define subscription tiers with feature quotas.' };
@@ -236,6 +234,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/businesses')) return { title: 'Business Registry', tip: 'Onboard and manage businesses using forms defined in Foundation.' };
     if (pathname.includes('/orchestrator')) return { title: 'Onboarding Wizard', tip: 'Guided flow: select type, fill data, assign vendor, publish.' };
     if (pathname.includes('/fast-track')) return { title: 'Fast-Track Builder', tip: 'Quickly add businesses with minimal friction.' };
+    if (pathname.includes('/unified-builder')) return { title: 'Unified Builder', tip: 'Centralized workspace for schema, forms, components, pages, and launch actions.' };
     if (pathname.includes('/vendors')) return { title: 'Vendors', tip: 'Assign vendor accounts to manage their own business listings.' };
     if (pathname.includes('/packages')) return { title: 'Packages', tip: 'Create and manage experience packages offered by businesses.' };
     if (pathname.includes('/auctions')) return { title: 'Auctions', tip: 'Manage auction listings for exclusive experiences and investment opportunities.' };
@@ -263,152 +262,64 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Determine sidebar width for desktop
   const sidebarWidth = isMobile ? 0 : (sidebarCollapsed ? 60 : 270);
 
-  // Render sidebar content (shared between desktop sidebar and mobile drawer)
-  const renderSidebarContent = (showLabels: boolean) => (
-    <>
-      {/* Brand Header */}
-      <div style={{
-        padding: showLabels ? '1.25rem 1.25rem' : '1rem 0.5rem',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        justifyContent: showLabels ? 'flex-start' : 'center',
-      }}>
-        <div style={{
-          width: '32px', height: '32px', background: 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)',
-          borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: '0.8rem', color: '#1a1a2e', flexShrink: 0,
-        }}>S</div>
-        {showLabels && (
-          <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '2px' }}>SIWA OASIS</div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>Governance CMS</div>
-          </div>
-        )}
-        {/* Close button on mobile */}
-        {isMobile && (
-          <button
-            onClick={() => setMobileOpen(false)}
-            style={{
-              marginLeft: 'auto', background: 'none', border: 'none',
-              color: 'rgba(255,255,255,0.6)', fontSize: '1.2rem', cursor: 'pointer',
-              padding: '0.25rem',
-            }}
-          >
-            <i className="fas fa-times"></i>
-          </button>
-        )}
-      </div>
+  // Render the sidebar content. `showLabels` controls whether text labels are visible
+  const renderSidebarContent = (showLabels: boolean) => {
+    return (
+      <div style={{ color: '#cbd5e1', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: showLabels ? 'space-between' : 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          {!showLabels ? (
+            <div style={{ fontWeight: 900, color: '#fff' }}>SIWA</div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ fontWeight: 900, color: '#fff' }}>SIWA</div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Governance</div>
+            </div>
+          )}
+          {showLabels && (
+            <button onClick={() => setSidebarCollapsed(s => !s)} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', color: '#fff', borderRadius: '6px', padding: '4px 6px', cursor: 'pointer' }} title="Toggle sidebar">
+              <i className={`fas ${sidebarCollapsed ? 'fa-angle-right' : 'fa-angle-left'}`} />
+            </button>
+          )}
+        </div>
 
-      {/* Desktop collapse toggle (not shown on mobile) */}
-      {!isMobile && (
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          style={{
-            background: 'rgba(255,255,255,0.04)', border: 'none', color: 'rgba(255,255,255,0.4)',
-            padding: '0.5rem', cursor: 'pointer', fontSize: '0.7rem', margin: '0.25rem 0.5rem',
-            borderRadius: '6px', transition: 'all 0.2s',
-          }}
-        >
-          <i className={`fas ${sidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
-          {showLabels && <span style={{ marginLeft: '0.5rem' }}>Collapse</span>}
-        </button>
-      )}
+        <nav style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+          {NAV_GROUPS.map(group => (
+            <div key={group.id} style={{ marginBottom: '0.6rem' }}>
+              <div onClick={() => toggleGroup(group.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: group.collapsible ? 'pointer' : 'default', padding: '0.35rem 0.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <i className={`fas ${group.icon}`} style={{ color: group.accent }} />
+                  {showLabels && <strong style={{ fontSize: '0.78rem', color: '#e6eefb' }}>{group.title}</strong>}
+                </div>
+                {showLabels && group.collapsible && <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{collapsedGroups[group.id] ? '+' : '-'}</div>}
+              </div>
 
-      {/* Nav Groups */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {NAV_GROUPS.map((group) => {
-          const isGroupCollapsed = collapsedGroups[group.id];
-          const hasActiveItem = group.items.some(item => isActive(item));
-
-          return (
-            <div key={group.id} style={{ marginBottom: '0.25rem' }}>
-              {/* Group Header */}
-              {showLabels && (
-                <div
-                  onClick={() => group.collapsible !== false && toggleGroup(group.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.5rem 0.75rem', cursor: group.collapsible !== false ? 'pointer' : 'default',
-                    borderRadius: '6px', marginBottom: '0.15rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <i className={`fas ${group.icon}`} style={{
-                      fontSize: '0.55rem', color: hasActiveItem ? '#D4AF37' : 'rgba(255,255,255,0.25)',
-                      width: '14px', textAlign: 'center',
-                    }}></i>
-                    <div style={{
-                      fontSize: '0.6rem', fontWeight: 800, letterSpacing: '1.5px',
-                      color: hasActiveItem ? '#D4AF37' : 'rgba(255,255,255,0.35)',
-                      transition: 'color 0.2s',
-                    }}>
-                      {group.title}
+              {(!group.collapsible || !collapsedGroups[group.id]) && (
+                <div style={{ marginTop: '0.45rem', display: 'grid', gap: '0.25rem' }}>
+                  {group.items.map((item: any) => (
+                    <div key={item.path} data-sidebar-active={isActive(item) ? 'true' : 'false'} style={{ display: 'flex', alignItems: 'center' }}>
+                      <Link href={item.path} style={{ textDecoration: 'none', color: isActive(item) ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: showLabels ? '0.75rem' : '0' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive(item) ? 'rgba(255,255,255,0.06)' : 'transparent' }}>
+                          <i className={`fas ${item.icon || 'fa-circle'}`} />
+                        </div>
+                        {showLabels && <div style={{ fontSize: '0.86rem', fontWeight: 700 }}>{item.name}</div>}
+                      </Link>
                     </div>
-                  </div>
-                  {group.collapsible !== false && (
-                    <i className={`fas fa-chevron-${isGroupCollapsed ? 'right' : 'down'}`}
-                       style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.2)' }}></i>
-                  )}
+                  ))}
                 </div>
               )}
-
-              {/* Group Items */}
-              {(!isGroupCollapsed || !showLabels) && group.items.map(item => {
-                const active = isActive(item);
-                return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    data-sidebar-active={active ? 'true' : undefined}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.75rem',
-                      padding: showLabels ? '0.55rem 0.75rem 0.55rem 1.25rem' : '0.6rem',
-                      borderRadius: '8px', textDecoration: 'none',
-                      background: active ? 'rgba(212,175,55,0.12)' : 'transparent',
-                      color: active ? '#D4AF37' : 'rgba(255,255,255,0.55)',
-                      fontSize: '0.78rem', fontWeight: active ? 700 : 500,
-                      transition: 'all 0.2s',
-                      justifyContent: showLabels ? 'flex-start' : 'center',
-                      borderLeft: active && showLabels ? '3px solid #D4AF37' : '3px solid transparent',
-                    }}
-                    title={!showLabels ? item.name : undefined}
-                  >
-                    <i className={`fas ${item.icon}`} style={{
-                      width: '16px', textAlign: 'center', fontSize: '0.75rem',
-                      opacity: active ? 1 : 0.6,
-                    }}></i>
-                    {showLabels && <span style={{ flex: 1 }}>{item.name}</span>}
-                    {showLabels && (item as any).badge && (
-                      <span style={{
-                        background: '#D4AF37', color: '#1a1a2e', borderRadius: '20px',
-                        padding: '1px 6px', fontSize: '0.48rem', fontWeight: 900,
-                        letterSpacing: '0.5px', flexShrink: 0,
-                      }}>
-                        {(item as any).badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
             </div>
-          );
-        })}
-      </nav>
+          ))}
+        </nav>
 
-      {/* Footer */}
-      {showLabels && (
-        <div style={{
-          padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)',
-          fontSize: '0.6rem', color: 'rgba(255,255,255,0.25)',
-        }}>
-          <i className="fas fa-shield-alt" style={{ color: '#10b981', marginRight: '0.5rem' }}></i>
-          Governance v3.0 — Production
+        <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+          {showLabels && (
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Logged in as <strong style={{ color: '#fff' }}>Admin</strong></div>
+          )}
         </div>
-      )}
-    </>
-  );
+      </div>
+    );
+  };
+
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f5' }}>

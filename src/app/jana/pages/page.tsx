@@ -107,7 +107,8 @@ export default function PagesManager() {
     });
 
     if (res.ok) {
-      notify(`✅ Page "${slug}" created`);
+      const previewUrl = newType === 'search' ? `/search/${slug}` : `/p/${slug}`;
+      notify(`✅ Page "${slug}" created. Open Visual Editor and save content, then preview at ${previewUrl}`);
       setCreating(false);
       setNewSlug('');
       loadPages();
@@ -179,6 +180,17 @@ export default function PagesManager() {
             {toast.msg}
           </div>
         )}
+
+        {/* Instructions */}
+        <div style={{ marginBottom: '1.75rem', background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(229,231,235,0.08)', borderRadius: '16px', padding: '1.5rem', color: '#cbd5e1' }}>
+          <div style={{ fontWeight: 900, color: '#D4AF37', marginBottom: '0.75rem' }}>How to create and publish a page</div>
+          <ol style={{ margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8, fontSize: '0.95rem' }}>
+            <li>Create a <strong>Content</strong> page to publish under <code style={{ color: '#94a3b8' }}>/p/[slug]</code>, or a <strong>Search</strong> page under <code style={{ color: '#94a3b8' }}>/search/[slug]</code>.</li>
+            <li>Open the page in the Visual Editor and save at least one section so it stops falling back to the homepage.</li>
+            <li>Visit the preview URL shown in the list, or click <em>Edit</em> to continue updating the page.</li>
+            <li>If the new page still looks like the homepage, save the editor again and refresh the preview URL.</li>
+          </ol>
+        </div>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>

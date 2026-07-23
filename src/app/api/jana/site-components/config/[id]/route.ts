@@ -8,6 +8,17 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
+
+    const tableCheck = await query(`
+      SELECT 1 FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'site_components'
+    `);
+
+    if (tableCheck.length === 0) {
+      return Response.json({ error: 'Component registry is not initialized yet' }, { status: 404 });
+    }
+
     const rows = (await query(
       'SELECT id, `key`, name, config_schema, component_config, default_props FROM site_components WHERE id = ?',
       [id]
@@ -27,7 +38,7 @@ export async function GET(
       defaultProps: component.default_props ? JSON.parse(component.default_props) : {}
     });
   } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: error.message || 'Unable to load component config' }, { status: 500 });
   }
 }
 
@@ -67,7 +78,7 @@ export async function PUT(
       id
     });
   } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: error.message || 'Unable to save component config' }, { status: 500 });
   }
 }
 

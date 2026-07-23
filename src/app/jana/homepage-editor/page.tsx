@@ -92,9 +92,15 @@ const SECTION_CATALOGUE: Record<string, {
   },
   ecosystem_map: {
     label: 'Ecosystem Map', icon: '🗺️', color: '#22c55e',
+    deepEditor: '/jana/businesses',
     propsSchema: [
       { key: 'title', label: 'Section Title', type: 'text' },
       { key: 'subtitle', label: 'Section Subtitle', type: 'text' },
+      { key: 'locationName', label: 'Location Name', type: 'text', hint: 'e.g. Business headquarters or landmark' },
+      { key: 'locationCategory', label: 'Location Category', type: 'text', hint: 'e.g. Heritage, Wellness, Lodging' },
+      { key: 'locationDescription', label: 'Location Description', type: 'text', hint: 'Short description shown on the map card' },
+      { key: 'locationLink', label: 'Location Link', type: 'text', hint: 'Optional link to business or POI page' },
+      { key: 'businessOnly', label: 'Business-only map', type: 'toggle', hint: 'Focus on one business location and hide other points' },
     ]
   },
   local_products: {
@@ -277,22 +283,44 @@ export default function HomepageEditor() {
   const totalCount = sections.length;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0f1a', fontFamily: "'Inter', system-ui, sans-serif", color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Inter', system-ui, sans-serif", color: '#0f172a' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        .hp-section-row { transition: all 0.2s ease; }
-        .hp-section-row:hover { background: rgba(255,255,255,0.04) !important; }
-        .hp-section-row.dragging-over { border-color: #D4AF37 !important; background: rgba(212,175,55,0.08) !important; }
-        .hp-prop-input { width: 100%; padding: 0.6rem 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 0.85rem; outline: none; box-sizing: border-box; }
-        .hp-prop-input:focus { border-color: #D4AF37; }
-        .hp-tab { padding: 0.65rem 1.5rem; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.82rem; transition: all 0.2s; }
-        .hp-tab.active { background: #D4AF37; color: #0a0f1a; }
-        .hp-tab:not(.active) { background: rgba(255,255,255,0.06); color: #64748b; }
-        .hp-tab:not(.active):hover { background: rgba(255,255,255,0.1); color: #94a3b8; }
+        .hp-section-row { transition: all 0.2s ease; border-radius: 18px; background: #ffffff; border: 1px solid #e2e8f0; }
+        .hp-section-row:hover { transform: translateY(-1px); box-shadow: 0 18px 45px rgba(15,23,42,0.06) !important; }
+        .hp-section-row.dragging-over { border-color: #2563eb !important; background: #eff6ff !important; }
+        .hp-prop-input { width: 100%; padding: 0.75rem 0.85rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; color: #0f172a; font-size: 0.95rem; outline: none; box-sizing: border-box; }
+        .hp-prop-input:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
+        .hp-tab { padding: 0.85rem 1.4rem; border: none; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 0.92rem; transition: all 0.2s; min-width: 140px; }
+        .hp-tab.active { background: #2563eb; color: #ffffff; box-shadow: 0 12px 30px rgba(37,99,235,0.16); }
+        .hp-tab:not(.active) { background: #ffffff; color: #475569; border: 1px solid #e2e8f0; }
+        .hp-tab:not(.active):hover { background: #eff6ff; color: #1d4ed8; }
+        .hp-button { font-weight: 700; border-radius: 14px; transition: all 0.2s ease; }
+        .hp-button-accent { background: #2563eb; color: #ffffff; border: none; }
+        .hp-button-accent:hover { background: #1d4ed8; }
+        .hp-button-muted { background: #ffffff; color: #475569; border: 1px solid #e2e8f0; }
+        .hp-button-muted:hover { background: #eff6ff; }
+        .hp-inner-panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; }
+        .hp-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; }
+        .hp-add-action { display: inline-flex; justify-content: center; align-items: center; width: 100%; min-height: 56px; }
+        .hp-action-link { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.75rem 1.2rem; border-radius: 14px; font-size: 0.85rem; font-weight: 700; text-decoration: none; }
+        .hp-action-link.primary { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+        .hp-action-link.neutral { background: #ffffff; border: 1px solid #e2e8f0; color: #475569; }
         @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        @media (max-width: 640px) {
-          .hp-header { flex-direction: column !important; gap: 1rem !important; }
-          .hp-section-grid { grid-template-columns: 36px 1fr auto !important; }
+        @media (max-width: 1024px) {
+          .hp-header { flex-direction: column !important; align-items: stretch !important; }
+          .hp-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .hp-actions { justify-content: flex-start !important; }
+          .hp-action-link { width: 100%; justify-content: center; }
+          .hp-tab { min-width: 0; flex: 1; }
+        }
+        @media (max-width: 768px) {
+          .hp-section-grid { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
+          .hp-actions { justify-content: stretch !important; flex-wrap: wrap !important; }
+          .hp-actions a, .hp-actions button { width: 100% !important; }
+          .hp-add-section-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+          .hp-settings-grid { grid-template-columns: 1fr !important; }
+          .hp-card { border-radius: 16px; }
         }
       `}</style>
 
@@ -312,16 +340,16 @@ export default function HomepageEditor() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <a href="/" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1.1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none' }}>
+            <a href="/" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.75rem 1.2rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', color: '#475569', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none' }}>
               👁 Preview
             </a>
-            <Link href="/jana/website?page=main" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1.1rem', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', color: '#D4AF37', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none' }}>
+            <Link href="/jana/website?page=main" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.75rem 1.2rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '14px', color: '#1d4ed8', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none' }}>
               🎨 Visual Builder
             </Link>
             <button
               onClick={save}
               disabled={saving || !dirty}
-              style={{ padding: '0.65rem 1.5rem', background: dirty ? '#D4AF37' : 'rgba(255,255,255,0.05)', color: dirty ? '#0a0f1a' : '#475569', border: 'none', borderRadius: '10px', fontWeight: 900, cursor: dirty ? 'pointer' : 'not-allowed', fontSize: '0.85rem', transition: 'all 0.2s', opacity: saving ? 0.7 : 1 }}
+              style={{ padding: '0.75rem 1.5rem', background: dirty ? '#2563eb' : '#e2e8f0', color: dirty ? '#ffffff' : '#6b7280', border: 'none', borderRadius: '14px', fontWeight: 900, cursor: dirty ? 'pointer' : 'not-allowed', fontSize: '0.9rem', transition: 'all 0.2s', opacity: saving ? 0.9 : 1 }}
             >
               {saving ? '⏳ Saving...' : dirty ? '💾 Save Changes' : '✓ Saved'}
             </button>
@@ -336,22 +364,22 @@ export default function HomepageEditor() {
         )}
 
         {/* ── Stats row ─────────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="hp-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           {[
-            { label: 'Total Sections', value: totalCount, color: '#D4AF37' },
+            { label: 'Total Sections', value: totalCount, color: '#2563eb' },
             { label: 'Visible', value: visibleCount, color: '#10b981' },
             { label: 'Hidden', value: totalCount - visibleCount, color: '#64748b' },
           ].map(stat => (
-            <div key={stat.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1rem 1.25rem' }}>
-              <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.35rem' }}>{stat.label}</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: stat.color }}>{stat.value}</div>
+            <div key={stat.label} className="hp-card" style={{ padding: '1.15rem 1.35rem' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', marginBottom: '0.55rem' }}>{stat.label}</div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: stat.color }}>{stat.value}</div>
             </div>
           ))}
         </div>
 
         {/* ── Progress bar ──────────────────────────────────────────────────── */}
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 10, marginBottom: '1.5rem', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${(visibleCount / Math.max(totalCount, 1)) * 100}%`, background: 'linear-gradient(90deg, #10b981, #D4AF37)', transition: 'width 0.4s ease', borderRadius: 10 }} />
+        <div style={{ height: 6, background: '#e2e8f0', borderRadius: 9999, marginBottom: '1.5rem', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${(visibleCount / Math.max(totalCount, 1)) * 100}%`, background: 'linear-gradient(90deg, #22c55e, #2563eb)', transition: 'width 0.4s ease', borderRadius: 9999 }} />
         </div>
 
         {/* ── Tabs ─────────────────────────────────────────────────────────── */}
@@ -440,7 +468,7 @@ export default function HomepageEditor() {
 
                         {/* ── Expanded props panel ── */}
                         {isExpanded && (
-                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '1.25rem 1rem 1rem', background: 'rgba(0,0,0,0.2)' }}>
+                          <div style={{ borderTop: '1px solid #e2e8f0', padding: '1.25rem 1rem 1rem', background: '#f8fafc' }}>
                             {meta?.propsSchema && meta.propsSchema.length > 0 ? (
                               <>
                                 <div style={{ fontSize: '0.65rem', color: '#D4AF37', fontWeight: 900, letterSpacing: '1.5px', marginBottom: '1rem', textTransform: 'uppercase' }}>⚙ Section Properties</div>
@@ -508,9 +536,9 @@ export default function HomepageEditor() {
 
                 {/* ── Add section panel ─────────────────────────────────────── */}
                 {showAddPanel ? (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 14, padding: '1.25rem' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 900, letterSpacing: '1.5px', marginBottom: '1rem' }}>+ ADD SECTION</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.6rem', marginBottom: '1rem' }}>
+                  <div className="hp-card" style={{ padding: '1.35rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 900, letterSpacing: '1.5px', marginBottom: '1rem' }}>+ ADD SECTION</div>
+                    <div className="hp-add-section-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
                       {Object.entries(SECTION_CATALOGUE).map(([type, meta]) => (
                         <button
                           key={type}
@@ -521,11 +549,11 @@ export default function HomepageEditor() {
                         </button>
                       ))}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={addSection} disabled={!addingType} style={{ padding: '0.65rem 1.5rem', background: addingType ? '#D4AF37' : 'rgba(255,255,255,0.05)', color: addingType ? '#0a0f1a' : '#334155', border: 'none', borderRadius: 8, fontWeight: 900, cursor: addingType ? 'pointer' : 'not-allowed', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <button onClick={addSection} disabled={!addingType} className="hp-button hp-button-accent" style={{ padding: '0.75rem 1.5rem', opacity: addingType ? 1 : 0.65, cursor: addingType ? 'pointer' : 'not-allowed' }}>
                         Add Section
                       </button>
-                      <button onClick={() => { setShowAddPanel(false); setAddingType(''); }} style={{ padding: '0.65rem 1rem', background: 'transparent', color: '#475569', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>
+                      <button onClick={() => { setShowAddPanel(false); setAddingType(''); }} className="hp-button hp-button-muted" style={{ padding: '0.75rem 1.15rem' }}>
                         Cancel
                       </button>
                     </div>
@@ -533,9 +561,9 @@ export default function HomepageEditor() {
                 ) : (
                   <button
                     onClick={() => setShowAddPanel(true)}
-                    style={{ width: '100%', padding: '1rem', background: 'rgba(212,175,55,0.04)', border: '2px dashed rgba(212,175,55,0.2)', borderRadius: 14, color: '#D4AF37', cursor: 'pointer', fontWeight: 800, fontSize: '0.875rem', transition: 'all 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(212,175,55,0.2)'}
+                    style={{ width: '100%', padding: '1rem', background: '#ffffff', border: '2px dashed #c7d2fe', borderRadius: 18, color: '#2563eb', cursor: 'pointer', fontWeight: 800, fontSize: '0.9rem', transition: 'all 0.2s', boxShadow: '0 8px 24px rgba(15,23,42,0.06)' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#93c5fd'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#c7d2fe'}
                   >
                     + Add Section
                   </button>
@@ -549,7 +577,7 @@ export default function HomepageEditor() {
             TAB: SITE SETTINGS
         ═══════════════════════════════════════════════════════════════════ */}
         {tab === 'settings' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+          <div className="hp-settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
             {[
               { key: 'carousel_interval', label: 'Carousel Interval (ms)', type: 'number', hint: '8000 = 8 seconds between slides' },
               { key: 'site_title', label: 'Site Title', type: 'text', hint: 'Shown in browser tab' },
@@ -559,8 +587,8 @@ export default function HomepageEditor() {
               { key: 'whatsapp_number', label: 'WhatsApp Contact', type: 'text', hint: '+201XXXXXXXXX' },
               { key: 'footer_tagline', label: 'Footer Tagline', type: 'text', hint: 'Short brand tagline' },
             ].map(field => (
-              <div key={field.key} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '1.1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.68rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+              <div key={field.key} className="hp-card" style={{ padding: '1.2rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
                   {field.label}
                 </label>
                 <input

@@ -3,6 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
+import ServicesHub from '@/components/ServicesHub';
+import ExperienceCategories from '@/components/ExperienceCategories';
+import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
+import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -13,6 +17,7 @@ export default function VanityBusinessClient({ slug, initialData, sections, sect
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const [isRTL, setIsRTL] = useState(false);
+  const [allowedMinisiteComponentKeys, setAllowedMinisiteComponentKeys] = useState<string[]>([]);
 
   // Detect RTL direction on mount
   useEffect(() => {
@@ -51,6 +56,37 @@ export default function VanityBusinessClient({ slug, initialData, sections, sect
       return () => clearTimeout(timer);
     }
   }, [toast.show]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAllowedComponents = async () => {
+      try {
+        const res = await fetch('/api/jana/site-components?enabled=true&public=true');
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!Array.isArray(data) || !isMounted) return;
+
+        const allowed = data.filter((component: any) => {
+          try {
+            const rawCfg = component.component_config;
+            const cfg = typeof rawCfg === 'string' ? JSON.parse(rawCfg) : (rawCfg || {});
+            return cfg?.minisite_access === true;
+          } catch {
+            return false;
+          }
+        }).map((component: any) => component.key);
+
+        setAllowedMinisiteComponentKeys(allowed);
+      } catch (error) {
+        console.error('Failed to load minisite component permissions', error);
+      }
+    };
+
+    loadAllowedComponents();
+    return () => { isMounted = false; };
+  }, []);
 
   const showToastMessage = (msg: string) => {
     setToast({ message: msg, show: true });
@@ -302,6 +338,31 @@ export default function VanityBusinessClient({ slug, initialData, sections, sect
                 </section>
               );
             })}
+
+            {allowedMinisiteComponentKeys.length > 0 && (
+              <div style={{ marginTop: '4rem', display: 'grid', gap: '2rem' }}>
+                {allowedMinisiteComponentKeys.includes('service_directory') || allowedMinisiteComponentKeys.includes('services_hub') ? (
+                  <section style={{ padding: '2rem 0' }}>
+                    <ServicesHub title="Featured Services" subtitle="Experience the best of this business and its partners." />
+                  </section>
+                ) : null}
+                {allowedMinisiteComponentKeys.includes('experience_categories') || allowedMinisiteComponentKeys.includes('category_showcase') ? (
+                  <section style={{ padding: '2rem 0' }}>
+                    <ExperienceCategories title="Experience Categories" subtitle="Browse curated experiences offered here." />
+                  </section>
+                ) : null}
+                {allowedMinisiteComponentKeys.includes('smart_journey_planner') || allowedMinisiteComponentKeys.includes('journey_collection') ? (
+                  <section style={{ padding: '2rem 0' }}>
+                    <SmartJourneyPlanner title="Plan Your Visit" subtitle="Shape your trip around the highlights of this destination." />
+                  </section>
+                ) : null}
+                {allowedMinisiteComponentKeys.includes('ecosystem_map') ? (
+                  <section style={{ padding: '2rem 0' }}>
+                    <InteractiveEcosystemMap title="Ecosystem Map" subtitle="See how this experience connects to its wider network." />
+                  </section>
+                ) : null}
+              </div>
+            )}
           </main>
           <aside>
             <div style={{ position: 'sticky', top: '100px' }}>

@@ -3,14 +3,14 @@ export const dynamic = 'force-dynamic';
 import React from 'react';
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 import Link from 'next/link';
 
 export default async function SalesmanDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const businesses = await query('SELECT b.*, bt.name as type_name FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id ORDER BY b.created_at DESC LIMIT 20');
+  const businesses = await safeQuery('SELECT b.*, bt.name as type_name FROM businesses b LEFT JOIN business_types bt ON b.type_id = bt.id ORDER BY b.created_at DESC LIMIT 20');
   const leads = (businesses as any[]).filter(b => !b.vendor_id);
   const total = (businesses as any[]).length;
 

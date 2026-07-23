@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface PaletteItem {
@@ -21,9 +22,12 @@ const PALETTE: PaletteItem[] = [
 
   // ── Body zone ──
   { zone: 'body',   key: 'hero_carousel',        name: 'Hero Carousel',            icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
+  { zone: 'body',   key: 'service_directory',     name: 'Add Services Directory',   icon: '🧭', manager: '/jana/businesses',     color: '#6366f1', desc: 'Create a service listing block for your offerings' },
   { zone: 'body',   key: 'services_hub',          name: 'Services Hub',             icon: '🏛️', manager: '/jana/businesses',     color: '#6366f1', desc: 'Directory of all services & categories' },
+  { zone: 'body',   key: 'category_showcase',     name: 'Add Category Cards',      icon: '🎯', manager: null,                  color: '#8b5cf6', desc: 'Show category cards for experiences and offers' },
   { zone: 'body',   key: 'experience_categories', name: 'Experience Categories',    icon: '🎭', manager: null,                  color: '#8b5cf6', desc: 'Interactive category cards' },
   { zone: 'body',   key: 'search_bar',            name: 'Search Engine (Full)',     icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Full-width search block' },
+  { zone: 'body',   key: 'journey_collection',    name: 'Add Journey Block',       icon: '🗺️', manager: '/jana/journey-templates-manager', color: '#14b8a6', desc: 'Show curated journeys or itinerary cards' },
   { zone: 'body',   key: 'smart_journey_planner', name: 'Journey Planner',         icon: '🗓️', manager: null,                  color: '#14b8a6', desc: 'AI-powered trip planning tool' },
   { zone: 'body',   key: 'ecosystem_map',         name: 'Interactive Map',         icon: '🗺️', manager: null,                  color: '#10b981', desc: 'Full ecosystem map of Siwa' },
   { zone: 'body',   key: 'local_products',        name: 'Local Products',          icon: '🫒', manager: null,                  color: '#84cc16', desc: 'Showcase of artisan & local goods' },
@@ -84,6 +88,8 @@ export default function MultiPageSiteBuilder() {
     show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
     logo_url: '', show_watermark: true, logo_height: 40,
   });
+  const searchParams = useSearchParams();
+  const queryPage = searchParams?.get('page') || null;
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ msg, type });
@@ -92,23 +98,32 @@ export default function MultiPageSiteBuilder() {
 
   // Ctrl+S to save
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  });
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        save();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
     fetch('/api/jana/website/list').then(r => r.json()).then(data => {
       if (Array.isArray(data)) {
-        setPages(data.map(p => {
+        const loadedPages = data.map(p => {
           const type_str = p.type || '';
           if (type_str.startsWith('website_search_')) {
             return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
           } else {
             return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
           }
-        }));
+        });
+        setPages(loadedPages);
+        if (queryPage && !loadedPages.some(page => page.slug === queryPage)) {
+          setPages(prev => [...prev, { slug: queryPage, saved: false, type: 'page' as const }]);
+        }
       }
     }).catch(() => {});
 
@@ -144,37 +159,63 @@ export default function MultiPageSiteBuilder() {
 
   // Load layout when page/template changes
   useEffect(() => {
-    if (mode === 'PAGES') {
-      const currentPageData = pages.find(p => p.slug === currentPage);
-      const pageType = currentPageData?.type || 'page';
-      const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
-      
-      fetch(`/api/jana/website?id=${pageId}`).then(r => r.json()).then(data => {
-        const t = data[0];
-        if (!t) {
-          // No config in DB at all — show defaults for main, empty for others
-          setSlots(currentPage === 'main' ? DEFAULT_MAIN_SLOTS : []);
+    if (queryPage && queryPage !== currentPage) {
+      setCurrentPage(queryPage);
+      if (!pages.some(page => page.slug === queryPage)) {
+        setPages(prev => [...prev, { slug: queryPage, saved: false, type: 'page' as const }]);
+      }
+    }
+  }, [queryPage, pages, currentPage]);
+
+  const getPreviewUrl = () => {
+    const currentPageData = pages.find(p => p.slug === currentPage);
+    if (currentPage === 'main') return '/';
+    if (currentPage === 'journeys') return '/journeys';
+    if (currentPageData?.type === 'search') return `/search/${currentPage}`;
+    return `/p/${currentPage}`;
+  };
+
+  useEffect(() => {
+    const loadPageLayout = async () => {
+      if (mode === 'PAGES') {
+        const currentPageData = pages.find(p => p.slug === currentPage);
+        const pageType = currentPageData?.type || 'page';
+        const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
+
+        try {
+          const res = await fetch(`/api/jana/website?id=${pageId}`);
+          const data = await res.json();
+          const t = Array.isArray(data) ? data[0] : data;
+
+          if (!t) {
+            setSlots([]);
+            return;
+          }
+
+          const allLoaded = [
+            ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+            ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+            ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+          ];
+
+          setSlots(allLoaded);
+        } catch {
+          setSlots([]);
+        }
+      } else {
+        const tmpl = templates.find(t => t.id === currentPage);
+        if (!tmpl) {
+          setSlots([]);
           return;
         }
-        if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
+        setTemplateMeta({ name: tmpl.name || '', type_id: tmpl.type_id || '', level: tmpl.level || 'basic' });
+        const comps = Array.isArray(tmpl.layout) ? tmpl.layout : [];
+        setSlots(comps.map((c: any) => ({ id: c.id, key: c.type, zone: (c.zone || 'body') as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })));
+      }
+    };
 
-        const allLoaded = [
-          ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-          ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-          ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-        ];
-
-        // Config exists in DB — always respect it, even if empty (admin cleared the page)
-        setSlots(allLoaded);
-      }).catch(() => setSlots([]));
-    } else {
-      const tmpl = templates.find(t => t.id === currentPage);
-      if (!tmpl) return setSlots([]);
-      setTemplateMeta({ name: tmpl.name || '', type_id: tmpl.type_id || '', level: tmpl.level || 'basic' });
-      const comps = Array.isArray(tmpl.layout) ? tmpl.layout : [];
-      setSlots(comps.map((c: any) => ({ id: c.id, key: c.type, zone: (c.zone || 'body') as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })));
-    }
-  }, [currentPage, mode, templates]);
+    loadPageLayout();
+  }, [currentPage, mode, templates, pages]);
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -199,6 +240,13 @@ export default function MultiPageSiteBuilder() {
     notify(`✅ ${item.name} added`);
   };
   const removeSlot = (id: string) => setSlots(prev => prev.filter(s => s.id !== id));
+  const clearActiveZone = () => {
+    if (slotsFor(activeZone).length === 0) return;
+    const confirmClear = window.confirm(`Remove all ${activeZone} sections from this form?`);
+    if (!confirmClear) return;
+    setSlots(prev => prev.filter(s => s.zone !== activeZone));
+    notify(`🧹 ${activeZone.toUpperCase()} zone cleared`);
+  };
   const moveSlot = (id: string, dir: 'up'|'down') => {
     setSlots(prev => {
       const zone = prev.find(s => s.id === id)?.zone; if (!zone) return prev;
@@ -383,7 +431,7 @@ export default function MultiPageSiteBuilder() {
           <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />
 
           {mode === 'PAGES' && (
-            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer"
+            <a href={getPreviewUrl()} target="_blank" rel="noopener noreferrer"
               style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
               👁 Preview
             </a>
@@ -597,13 +645,17 @@ export default function MultiPageSiteBuilder() {
                   {mode==='PAGES' ? ` · editing ${currentPage}` : ` · template`}
                 </p>
               </div>
-              <div style={{ display:'flex', gap:'5px' }}>
+              <div style={{ display:'flex', gap:'5px', alignItems:'center' }}>
                 {(['header','body','footer'] as Zone[]).map(z => (
                   <button key={z} onClick={()=>setActiveZone(z)}
                     style={{ padding:'0.3rem 0.75rem', border:`1px solid ${activeZone===z?ZONE_COLORS[z]:'#e2e8f0'}`, borderRadius:6, background:activeZone===z?`${ZONE_COLORS[z]}12`:'#fff', color:activeZone===z?ZONE_COLORS[z]:'#94a3b8', fontSize:'0.58rem', fontWeight:800, cursor:'pointer', textTransform:'uppercase', transition:'all 0.18s' }}>
                     {z} ({slotsFor(z).length})
                   </button>
                 ))}
+                <button onClick={clearActiveZone} disabled={slotsFor(activeZone).length===0}
+                  style={{ padding:'0.3rem 0.75rem', border:'1px solid #fecaca', borderRadius:6, background: slotsFor(activeZone).length===0 ? '#f8fafc' : '#fff1f2', color: slotsFor(activeZone).length===0 ? '#cbd5e1' : '#ef4444', fontSize:'0.58rem', fontWeight:800, cursor: slotsFor(activeZone).length===0 ? 'not-allowed' : 'pointer', transition:'all 0.18s' }}>
+                  🧹 Clear {activeZone}
+                </button>
               </div>
             </div>
 

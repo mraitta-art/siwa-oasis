@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function AdminDashboardPage() {
   const [stats] = useState({
@@ -22,6 +22,12 @@ export default function AdminDashboardPage() {
     { id: 4, type: '📋', item: 'Section: "Team Gallery"', business: 'Desert Tours Co', time: '6 hours ago' },
     { id: 5, type: '💰', item: 'Discount: "Bulk Purchase"', business: 'Souk Marketplace', time: '1 day ago' },
   ]);
+
+  const [lastUpdated, setLastUpdated] = useState('');
+
+  useEffect(() => {
+    setLastUpdated(new Date().toLocaleString());
+  }, []);
 
   const adminSections = [
     {
@@ -77,13 +83,34 @@ export default function AdminDashboardPage() {
           href: '/admin/section-visibility',
           color: 'from-pink-900 to-pink-700',
         },
+      ],
+    },
+    {
+      category: '🌐 Public Marketplace',
+      items: [
         {
-          icon: '🏠',
-          label: 'Homepages',
-          description: 'Manage independent homepages',
-          badge: 'Create & edit',
-          href: '/admin/homepages-manager',
-          color: 'from-orange-900 to-orange-700',
+          icon: '🌍',
+          label: 'Offers & Packages',
+          description: 'Preview the live offers and packages page',
+          badge: 'Live page',
+          href: '/offers',
+          color: 'from-emerald-900 to-emerald-700',
+        },
+        {
+          icon: '🏷️',
+          label: 'Discounts',
+          description: 'Preview the live discounts page',
+          badge: 'Live page',
+          href: '/discounts',
+          color: 'from-yellow-900 to-yellow-700',
+        },
+        {
+          icon: '💎',
+          label: 'Investment Hub',
+          description: 'Preview the live investment opportunities page',
+          badge: 'Live page',
+          href: '/investment-opportunities',
+          color: 'from-purple-900 to-purple-700',
         },
       ],
     },
@@ -133,73 +160,78 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#556B2F] to-[#D4AF37] py-8 px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-slate-200 bg-white py-8 px-4 sm:px-6 lg:px-8 shadow-sm">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-            ⚙️ Admin Control Center
-          </h1>
-          <p className="text-white/90">Manage all businesses, approvals, and platform settings</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">⚙️ Admin Control Center</h1>
+          <p className="text-slate-600">Manage businesses, approvals, and platform settings from a clean admin workspace.</p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Quick Overview Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-12">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-[#D4AF37]">{stats.businesses.total}</div>
-            <div className="text-xs text-gray-400">Businesses</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="text-2xl font-semibold text-slate-900">{stats.businesses.total}</div>
+            <div className="text-sm text-slate-500 mt-1">Businesses</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-red-400">{stats.businesses.pending}</div>
-            <div className="text-xs text-gray-400">Pending</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="text-2xl font-semibold text-rose-600">{stats.businesses.pending}</div>
+            <div className="text-sm text-slate-500 mt-1">Pending Approvals</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-[#D4AF37]">{stats.packages.total}</div>
-            <div className="text-xs text-gray-400">Packages</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="text-2xl font-semibold text-slate-900">{stats.packages.total}</div>
+            <div className="text-sm text-slate-500 mt-1">Packages</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-red-400">{stats.packages.pending_approval}</div>
-            <div className="text-xs text-gray-400">Approvals</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="text-2xl font-semibold text-emerald-600">{stats.revenue.total_used}</div>
+            <div className="text-sm text-slate-500 mt-1">Revenue Used</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-[#D4AF37]">{stats.offers.total}</div>
-            <div className="text-xs text-gray-400">Offers</div>
+        </div>
+
+        {/* Action Summary Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-12">
+          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
+            <div className="text-sm text-slate-500">Package Approvals</div>
+            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.packages.pending_approval}</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-[#D4AF37]">{stats.investments.total}</div>
-            <div className="text-xs text-gray-400">Investments</div>
+          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
+            <div className="text-sm text-slate-500">Offer Approvals</div>
+            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.offers.pending_approval}</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-[#D4AF37]">{stats.users.total}</div>
-            <div className="text-xs text-gray-400">Users</div>
+          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
+            <div className="text-sm text-slate-500">New Users</div>
+            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.users.new_this_month}</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-xl font-bold text-green-400">{stats.revenue.total_used}</div>
-            <div className="text-xs text-gray-400">Discounts Used</div>
+          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
+            <div className="text-sm text-slate-500">Investments Pending</div>
+            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.investments.pending_approval}</div>
           </div>
         </div>
 
         {/* Pending Approvals Alert */}
         {pendingApprovals.length > 0 && (
-          <div className="mb-12 bg-yellow-900/30 border border-yellow-800 rounded-lg p-6">
-            <h2 className="text-lg font-bold text-yellow-200 mb-4">
-              ⏳ {pendingApprovals.length} Items Awaiting Approval
-            </h2>
-            <div className="space-y-2">
+          <div className="mb-12 rounded-3xl bg-amber-50 border border-amber-200 p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">⏳ {pendingApprovals.length} items need your review</h2>
+                <p className="mt-1 text-sm text-slate-600">These approvals are waiting for action from the admin team.</p>
+              </div>
+              <button className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 transition-colors">
+                Review approvals
+              </button>
+            </div>
+            <div className="mt-6 space-y-3">
               {pendingApprovals.slice(0, 5).map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-2 bg-gray-900/50 rounded">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{item.type}</span>
+                <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <span className="text-3xl">{item.type}</span>
                     <div>
-                      <p className="text-sm text-white font-semibold">{item.item}</p>
-                      <p className="text-xs text-gray-400">{item.business} • {item.time}</p>
+                      <div className="text-sm font-semibold text-slate-900">{item.item}</div>
+                      <div className="text-sm text-slate-500">{item.business} • {item.time}</div>
                     </div>
                   </div>
-                  <button className="px-3 py-1 text-xs bg-[#556B2F] hover:opacity-90 rounded text-white font-semibold">
-                    Review
-                  </button>
                 </div>
               ))}
             </div>
@@ -208,22 +240,20 @@ export default function AdminDashboardPage() {
 
         {/* Management Sections */}
         {adminSections.map((section, idx) => (
-          <div key={idx} className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6">{section.category}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div key={idx} className="mb-10">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-5">{section.category}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {section.items.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <div className={`bg-gradient-to-br ${item.color} p-1 rounded-lg cursor-pointer hover:shadow-lg hover:shadow-[#D4AF37]/30 transition-all`}>
-                    <div className="bg-gray-900 rounded-lg p-6 h-full flex flex-col justify-between">
-                      <div>
-                        <div className="text-4xl mb-3">{item.icon}</div>
-                        <h3 className="text-lg font-bold text-white mb-1">{item.label}</h3>
-                        <p className="text-sm text-gray-400">{item.description}</p>
-                      </div>
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-xs text-white bg-gray-800 px-2 py-1 rounded font-semibold">{item.badge}</span>
-                        <span className="text-[#D4AF37]">→</span>
-                      </div>
+                <Link key={item.href} href={item.href} className="group">
+                  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <div className={`inline-flex rounded-2xl bg-gradient-to-r px-3 py-2 text-sm font-semibold text-white shadow-sm ${item.color}`}>
+                      {item.icon}
+                    </div>
+                    <h3 className="mt-5 text-xl font-semibold text-slate-900">{item.label}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">{item.description}</p>
+                    <div className="mt-6 flex items-center justify-between text-sm text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-2 py-1">{item.badge}</span>
+                      <span className="font-semibold text-slate-900 transition group-hover:text-emerald-600">View</span>
                     </div>
                   </div>
                 </Link>
@@ -233,24 +263,23 @@ export default function AdminDashboardPage() {
         ))}
 
         {/* Quick Actions */}
-        <div className="bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg p-8 text-center mt-12">
-          <h2 className="text-2xl font-bold text-white mb-4">⚡ Quick Actions</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            <button className="px-6 py-2 bg-white text-[#556B2F] rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-              Review Pending Items
-            </button>
-            <button className="px-6 py-2 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors">
-              View Reports
-            </button>
-            <button className="px-6 py-2 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors">
-              System Settings
-            </button>
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900">⚡ Quick Actions</h2>
+              <p className="mt-2 text-sm text-slate-600">Fast access to the most important admin tasks.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition">Review Pending Items</button>
+              <button className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition">View Reports</button>
+              <button className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition">System Settings</button>
+            </div>
           </div>
         </div>
 
         {/* Footer Info */}
-        <div className="mt-12 text-center text-gray-500 text-sm">
-          <p>Last updated: {new Date().toLocaleString()}</p>
+        <div className="mt-12 text-center text-slate-500 text-sm">
+          <p>Last updated: {lastUpdated || 'Loading...'}</p>
         </div>
       </div>
     </div>

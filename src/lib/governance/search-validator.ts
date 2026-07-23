@@ -1,4 +1,4 @@
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export interface ValidationReport {
   isValid: boolean;
@@ -12,8 +12,8 @@ export interface ValidationReport {
 export async function validateSearchEngine(allowedFields: string[]): Promise<ValidationReport> {
   try {
     // 1. Get all active fields and their section IDs from the database
-    const dbFields = await query('SELECT name, section_id FROM form_fields');
-    const dbSections = await query('SELECT id FROM sections');
+    const dbFields = await safeQuery('SELECT name, section_id FROM form_fields');
+    const dbSections = await safeQuery('SELECT id FROM sections');
     
     const validFieldNames = dbFields.map((f: any) => f.name);
     const validSectionIds = dbSections.map((s: any) => s.id);

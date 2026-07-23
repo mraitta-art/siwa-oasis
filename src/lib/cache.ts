@@ -8,7 +8,7 @@
  */
 
 import { cache } from 'react';
-import { query, queryOne } from '@/lib/db';
+import { query as safeQuery, queryOne } from '@/lib/db';
 
 // ==========================================
 // Configuration
@@ -124,7 +124,7 @@ export const getBusinessTypes = cache(async (activeOnly: boolean = true) => {
     ? 'SELECT * FROM business_types WHERE active = TRUE ORDER BY sort_order'
     : 'SELECT * FROM business_types ORDER BY sort_order';
   
-  const data = await query(sql);
+  const data = await safeQuery(sql);
   
   // Parse JSON fields
   const parsed = data.map((t: any) => ({
@@ -181,7 +181,7 @@ export const getSections = cache(async (activeOnly: boolean = true) => {
     ? 'SELECT * FROM sections WHERE active = TRUE ORDER BY sort_order ASC, name ASC'
     : 'SELECT * FROM sections ORDER BY sort_order ASC, name ASC';
 
-  const data = await query(sql);
+  const data = await safeQuery(sql);
   globalCache.set(cacheKey, data, CACHE_TTL.sections);
 
   return data;
@@ -196,7 +196,7 @@ export const getFieldDefinitions = cache(async () => {
   const cached = globalCache.get(cacheKey);
   if (cached) return cached;
 
-  const data = await query('SELECT * FROM field_definitions ORDER BY category, name');
+  const data = await safeQuery('SELECT * FROM field_definitions ORDER BY category, name');
   globalCache.set(cacheKey, data, CACHE_TTL.field_definitions);
 
   return data;
@@ -216,7 +216,7 @@ export const getLocations = cache(async (type?: string) => {
     : 'SELECT * FROM locations WHERE active = TRUE ORDER BY sort_order, name';
 
   const params = type ? [type] : [];
-  const data = await query(sql, params);
+  const data = await safeQuery(sql, params);
   globalCache.set(cacheKey, data, CACHE_TTL.locations);
 
   return data;
@@ -231,7 +231,7 @@ export const getLocationHierarchy = cache(async () => {
   const cached = globalCache.get(cacheKey);
   if (cached) return cached;
 
-  const locations = await query('SELECT * FROM locations WHERE active = TRUE ORDER BY sort_order, name');
+  const locations = await safeQuery('SELECT * FROM locations WHERE active = TRUE ORDER BY sort_order, name');
   
   // Build hierarchy tree
   const hierarchy: any[] = [];
@@ -264,7 +264,7 @@ export const getWebsiteSettings = cache(async (type: string = 'main') => {
   if (cached) return cached;
 
   const configId = `website_${type}`;
-  const data = await query(
+  const data = await safeQuery(
     'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
     [configId]
   );
@@ -286,7 +286,7 @@ export const getWebsiteTemplate = cache(async (type: string = 'main') => {
   if (cached) return cached;
 
   const configId = `website_${type}`;
-  const data = await query('SELECT config FROM website_configs WHERE type = ?', [configId]);
+  const data = await safeQuery('SELECT config FROM website_configs WHERE type = ?', [configId]);
   
   if (data.length === 0) {
     globalCache.set(cacheKey, null, CACHE_TTL.website_templates);
@@ -323,7 +323,7 @@ export const getFormFields = cache(async (businessTypeId: string, sectionId?: st
     : 'SELECT * FROM form_fields WHERE business_type_id = ? ORDER BY section_id, sort_order';
 
   const params = sectionId ? [businessTypeId, sectionId] : [businessTypeId];
-  const data = await query(sql, params);
+  const data = await safeQuery(sql, params);
 
   // Parse JSON fields
   const parsed = data.map((f: any) => ({

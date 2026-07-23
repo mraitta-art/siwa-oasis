@@ -2,17 +2,20 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 interface Item {
   id: string;
   business_slug: string;
   title: string;
-  type: 'offer' | 'discount';
+  type: string;
+  category: 'offer' | 'package' | 'discount';
   business_name: string;
   brief: string;
   description: string;
   image?: string | null;
   is_featured: boolean;
+  source?: string;
   // offer fields
   price?: number | null;
   original_price?: number | null;
@@ -32,65 +35,53 @@ export default function MainSiteOffersPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'offer' | 'discount'>('all');
   const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<'all' | 'offers' | 'packages' | 'discounts'>('all');
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [offersRes, discountsRes] = await Promise.all([
-          fetch('/api/discovery/offers'),
-          fetch('/api/discovery/discounts')
-        ]);
+        const offersRes = await fetch('/api/discovery/offers');
         const offersData = await offersRes.json();
-        const discountsData = await discountsRes.json();
 
-        let combined: Item[] = [];
-
-        // Map offers (supports both new slot structure and legacy)
         const offerSource = offersData?.offers || offersData?.items || [];
-        combined.push(...offerSource.map((item: any) => ({
-          id: item.business_id || item.id,
-          business_slug: item.business_slug || item.business_id || item.id,
-          title: item.title || item.offer_title || '',
-          business_name: item.business_name || '',
-          brief: (item.description || '').substring(0, 140),
-          description: item.description || '',
-          image: item.image || item.offer_image || null,
-          is_featured: !!item.is_featured,
-          type: 'offer' as const,
-          price: item.price ? parseFloat(item.price) : null,
-          original_price: item.original_price ? parseFloat(item.original_price) : null,
-          discount_pct: item.discount || null,
-          valid_from: item.valid_from || null,
-          valid_until: item.valid_until || null,
-          offer_type: item.type || item.offer_type || 'special_offer',
-        })));
+        const mappedOffers: Item[] = offerSource.map((item: any) => {
+          const rawType = item.type || item.offer_type || item.discount_type || '';
+          const hasDiscount = !!item.discount_value || !!item.discount || !!item.discount_type || !!item.discount_name;
+          const isPackage = rawType === 'package' || rawType === 'experience_package' || item.source?.startsWith('package_') || item.source === 'experience_packages_db';
+          const category: Item['category'] = isPackage ? 'package' : hasDiscount ? 'discount' : 'offer';
+          const title = item.title || item.offer_title || item.discount_name || item.package_name || '';
+          const description = item.description || item.offer_description || item.discount_description || '';
 
-        // Map discounts
-        const discountSource = discountsData?.items || discountsData?.discounts || [];
-        combined.push(...discountSource.map((item: any) => ({
-          id: `${item.business_id}-disc-${item.slot || 1}`,
-          business_slug: item.business_slug || item.business_id || item.id,
-          title: item.discount_name || '',
-          business_name: item.business_name || '',
-          brief: item.description ? item.description.substring(0, 140) : `${item.discount_value || ''}${item.discount_type === 'percent' ? '% off' : ' off'}`,
-          description: item.description || '',
-          image: null,
-          is_featured: !!item.is_featured,
-          type: 'discount' as const,
-          discount_value: item.discount_value || null,
-          discount_type: item.discount_type || null,
-          promo_code: item.promo_code || null,
-          season: item.season || null,
-          valid_from: item.valid_from || null,
-          valid_until: item.valid_until || null,
-          discount_status: item.discount_status || 'active',
-        })));
+          return {
+            id: item.business_id || item.id,
+            business_slug: item.business_slug || item.business_id || item.id,
+            title,
+            type: rawType || (category === 'package' ? 'package' : 'special_offer'),
+            category,
+            business_name: item.business_name || '',
+            brief: (description || title || '').substring(0, 140),
+            description,
+            image: item.image || item.offer_image || null,
+            is_featured: !!item.is_featured,
+            source: item.source,
+            price: item.price ? parseFloat(item.price) : null,
+            original_price: item.original_price ? parseFloat(item.original_price) : null,
+            discount_pct: item.discount || null,
+            valid_from: item.valid_from || item.valid_from_2 || item.valid_from_3 || null,
+            valid_until: item.valid_until || item.valid_until_2 || item.valid_until_3 || null,
+            offer_type: item.type || item.offer_type || 'special_offer',
+            discount_value: item.discount_value || null,
+            discount_type: item.discount_type || null,
+            promo_code: item.promo_code || null,
+            season: item.season || null,
+            discount_status: item.discount_status || '',
+          };
+        });
 
-        setItems(combined);
+        setItems(mappedOffers);
       } catch (e) {
-        console.error('Failed to fetch offers/discounts', e);
+        console.error('Failed to fetch offers', e);
       } finally {
         setLoading(false);
       }
@@ -99,13 +90,15 @@ export default function MainSiteOffersPage() {
   }, []);
 
   const visibleItems = items.filter((item) => {
-    if (filterType !== 'all' && item.type !== filterType) return false;
+    if (filterCategory === 'offers' && item.category !== 'offer') return false;
+    if (filterCategory === 'packages' && item.category !== 'package') return false;
+    if (filterCategory === 'discounts' && item.category !== 'discount') return false;
     if (featuredOnly && !item.is_featured) return false;
     if (searchTerm && !item.title.toLowerCase().includes(searchTerm.toLowerCase()) && !item.business_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
 
-  const featuredItems = items.filter(o => o.is_featured).slice(0, 3);
+  const featuredItems = items.filter(o => o.is_featured && (filterCategory === 'all' || o.category === filterCategory)).slice(0, 3);
 
   function formatDate(d: string | null | undefined) {
     if (!d) return null;
@@ -114,6 +107,8 @@ export default function MainSiteOffersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+      <MarketplaceHeader title="Offers & Packages" adminPath="/admin/offers" activePath="/offers" />
+
       {/* Hero */}
       <div className="relative overflow-hidden py-16 sm:py-24">
         <div className="absolute inset-0 opacity-10">
@@ -122,12 +117,23 @@ export default function MainSiteOffersPage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold sm:text-5xl tracking-tight">
             <span className="bg-gradient-to-r from-[#D4AF37] to-[#FFB700] bg-clip-text text-transparent">
-              Offers &amp; Discounts
+              Offers &amp; Packages
             </span>
           </h1>
           <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
-            Discover special deals and exclusive promotions from businesses across Siwa Oasis
+            Discover special offers, packages, and exclusive deals from businesses across Siwa Oasis
           </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a href="/admin/offers" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/15 transition">
+              🔧 Moderate offers
+            </a>
+            <a href="/packages" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              📦 Browse packages
+            </a>
+            <a href="/discounts" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              🏷️ Browse discounts
+            </a>
+          </div>
         </div>
       </div>
 
@@ -188,25 +194,35 @@ export default function MainSiteOffersPage() {
         <div className="mb-8 flex flex-wrap gap-4 items-center bg-gray-900/60 p-5 rounded-2xl border border-gray-800">
           <input
             type="text"
-            placeholder="Search offers &amp; discounts..."
+            placeholder="Search offers..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 min-w-48 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
           />
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value as any)}
-            className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white focus:outline-none focus:border-[#D4AF37]"
-          >
-            <option value="all">All Types</option>
-            <option value="offer">Offers &amp; Packages</option>
-            <option value="discount">Discounts &amp; Promos</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-semibold text-gray-300">Category:</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value as any)}
+              className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+            >
+              <option value="all">All</option>
+              <option value="offers">Offers</option>
+              <option value="packages">Packages</option>
+              <option value="discounts">Discounts</option>
+            </select>
+          </div>
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={featuredOnly} onChange={e => setFeaturedOnly(e.target.checked)} className="w-4 h-4 accent-[#D4AF37]" />
             <span className="text-sm font-semibold text-gray-300">⭐ Featured only</span>
           </label>
-          <span className="text-xs text-gray-500 ml-auto">{visibleItems.length} result{visibleItems.length !== 1 ? 's' : ''}</span>
+          <Link
+            href="/discounts"
+            className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white hover:border-[#D4AF37] transition-all"
+          >
+            View Discounts
+          </Link>
+          <span className="text-xs text-gray-500 ml-auto">{visibleItems.length} item{visibleItems.length !== 1 ? 's' : ''}</span>
         </div>
 
         {/* Loading */}
@@ -285,7 +301,7 @@ export default function MainSiteOffersPage() {
         {!loading && visibleItems.length === 0 && (
           <div className="text-center py-20">
             <div className="text-5xl mb-4">🔍</div>
-            <p className="text-gray-400 text-lg mb-2">No offers or discounts found</p>
+            <p className="text-gray-400 text-lg mb-2">No offers found</p>
             <p className="text-gray-600 text-sm">Try adjusting your search or filters</p>
           </div>
         )}

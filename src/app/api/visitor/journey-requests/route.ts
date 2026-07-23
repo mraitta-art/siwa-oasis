@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { listJourneyRequests, createJourneyRequest, updateJourneyRequest } from './store';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,38 +13,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine which policy this request matches
-    const requestType = body.request_type || 'custom_request';
-    const duration = body.duration_days || 3;
-    const itemCount = (body.requested_items || []).length;
-    const budget = body.budget_usd_max || 0;
-
-    // Simple policy matching logic
-    let matchedPolicyId = 'policy_001'; // Default to Quick Custom Journeys
-    let shouldAutoApprove = false;
-
-    if (itemCount <= 5 && duration <= 7 && budget <= 500) {
-      matchedPolicyId = 'policy_001';
-      shouldAutoApprove = true;
-    } else if (duration > 7 || budget > 500) {
-      matchedPolicyId = 'policy_002';
-      shouldAutoApprove = false;
-    }
-
-    // Generate request ID
-    const requestId = Math.random().toString(36).substring(7);
+    const savedRequest = createJourneyRequest({
+      ...body,
+      request_type: body.request_type || 'custom_request',
+      matched_policy_id: body.matched_policy_id || 'policy_001',
+      status: body.selected_offer ? 'awaiting_penetration' : 'under_review',
+      approval_decision: body.selected_offer ? 'selected_offer_attached' : 'pending',
+      interested_vendors: 0
+    });
 
     return NextResponse.json({
       success: true,
-      id: requestId,
-      request: {
-        id: requestId,
-        ...body,
-        matched_policy_id: matchedPolicyId,
-        status: shouldAutoApprove ? 'approved' : 'under_review',
-        approval_decision: shouldAutoApprove ? 'auto_approved' : 'pending',
-        created_at: new Date()
-      }
+      id: savedRequest.id,
+      request: savedRequest
     });
   } catch (error) {
     return NextResponse.json(
@@ -59,38 +41,13 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const visitorId = searchParams.get('visitor_id');
 
-    // Mock response
-    const requests = [
-      {
-        id: 'req_001',
-        visitor_email: 'visitor@example.com',
-        visitor_name: 'Ahmed',
-        title: 'Siwa Wellness Escape',
-        description: 'Looking for spa, desert, and authentic food',
-        duration_days: 3,
-        budget_usd_max: 450,
-        vibe: 'wellness',
-        status: 'approved',
-        created_at: new Date()
-      },
-      {
-        id: 'req_002',
-        visitor_email: 'adventure@example.com',
-        visitor_name: 'Sarah',
-        title: 'Adventure & Photography',
-        description: 'Dunes, lakes, wildlife photography',
-        duration_days: 5,
-        budget_usd_max: 800,
-        vibe: 'adventure',
-        status: 'under_review',
-        created_at: new Date()
-      }
-    ];
-
+    const requests = listJourneyRequests();
     let filtered = requests;
+
     if (status) {
       filtered = filtered.filter(r => r.status === status);
     }
+
     if (visitorId) {
       filtered = filtered.filter(r => r.visitor_email === visitorId);
     }
@@ -107,3 +64,30 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const requestId = body.id;
+
+    if (!requestId) {
+      return NextResponse.json({ error: 'Request id is required' }, { status: 400 });
+    }
+
+    const updated = updateJourneyRequest(requestId, body);
+    if (!updated) {
+      return NextResponse.json({ error: 'Journey request not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      request: updated
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to update journey request' },
+      { status: 500 }
+    );
+  }
+}
+

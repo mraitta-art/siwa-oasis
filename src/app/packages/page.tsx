@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 interface Package {
   id: string;
@@ -28,10 +29,8 @@ export default function PackagesPage() {
       .then(r => r.json())
       .then(j => { 
         if (j?.success && Array.isArray(j.offers)) {
-          // Filter to show only items that are packages (e.g. type is package or has package-related title/description, or by default all if offers represent packages)
-          // We can show all offers returned as packages since offers page also includes discounts.
           const packages = j.offers
-            .filter((item: any) => item.type === 'package' || item.type === 'experience_package' || !item.type || item.type === 'special_offer')
+            .filter((item: any) => item.type === 'package' || item.type === 'experience_package' || item.source?.startsWith('package_') || item.source === 'experience_packages_db')
             .map((item: any) => ({
               id: item.business_id || item.id,
               business_slug: item.business_slug || item.business_id,
@@ -63,6 +62,8 @@ export default function PackagesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+      <MarketplaceHeader title="Packages" adminPath="/admin/packages" activePath="/packages" />
+
       {/* Hero Section */}
       <div className="relative overflow-hidden py-16 sm:py-24">
         <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-[#556B2F] via-transparent to-[#D4AF37]" />
@@ -75,6 +76,17 @@ export default function PackagesPage() {
           <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
             Explore premium pre-designed packages and desert experiences crafted by local experts
           </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a href="/admin/packages" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/15 transition">
+              🔧 Moderate packages
+            </a>
+            <a href="/offers" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              🎁 Browse offers
+            </a>
+            <a href="/discounts" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
+              🏷️ Browse discounts
+            </a>
+          </div>
         </div>
       </div>
 

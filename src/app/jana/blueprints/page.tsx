@@ -69,70 +69,72 @@ export default function BlueprintDashboard() {
   const typesWithBlueprint = typologies.filter(t => t.blueprint_schema).length;
 
   return (
-    <div style={{ background: '#08090a', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+    <div className="animate-in" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)', minHeight: '100vh', color: '#0f172a', fontFamily: "'Inter', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-
-      {/* Capacity Warning */}
-      {isNearLimit && (
-        <div style={{ margin: '2rem 3rem 0', padding: '1.25rem 1.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <i className="fas fa-exclamation-triangle" style={{ color: '#ef4444', fontSize: '1.25rem' }} />
-            <div>
-              <div style={{ fontWeight: 900, color: '#ef4444', fontSize: '0.9rem' }}>CAPACITY WARNING</div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Platform at {Math.round((totalVendors / capacityLimit) * 100)}% capacity ({totalVendors}/{capacityLimit} vendors)</div>
+      <div className="blueprint-dashboard-shell" style={{ maxWidth: '1440px', margin: '0 auto', padding: 'clamp(1rem, 2vw, 2rem) clamp(1rem, 3vw, 2rem) 3rem' }}>
+        {isNearLimit && (
+          <div className="card" style={{ marginBottom: '1.25rem', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(254,242,242,0.95)', borderRadius: '18px', boxShadow: '0 8px 24px rgba(15,23,42,0.05)' }}>
+            <div style={{ padding: '1.1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+                <i className="fas fa-exclamation-triangle" style={{ color: '#ef4444', fontSize: '1.1rem' }} />
+                <div>
+                  <div style={{ fontWeight: 900, color: '#ef4444', fontSize: '0.8rem' }}>CAPACITY WARNING</div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Platform at {Math.round((totalVendors / capacityLimit) * 100)}% capacity ({totalVendors}/{capacityLimit} vendors)</div>
+                </div>
+              </div>
+              <button style={{ padding: '0.6rem 1.1rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>SCALE</button>
             </div>
           </div>
-          <button style={{ padding: '0.6rem 1.2rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>SCALE</button>
-        </div>
-      )}
+        )}
 
-      {/* Header */}
-      <div style={{ padding: '3rem 3rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '4px', marginBottom: '0.75rem' }}>GOVERNANCE COMMAND CENTER</div>
-          <h1 style={{ fontSize: '3rem', fontWeight: 900, margin: 0, letterSpacing: '-1.5px', background: 'linear-gradient(135deg,#fff 40%,#94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Global Blueprint Status
-          </h1>
+        <div className="card blueprint-hero" style={{ padding: 'clamp(1.25rem, 2vw, 2rem)', marginBottom: '1.25rem', borderRadius: '24px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', border: '1px solid rgba(148,163,184,0.2)', boxShadow: '0 18px 50px rgba(15,23,42,0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ maxWidth: '760px' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#6366f1', letterSpacing: '3px', marginBottom: '0.65rem' }}>GOVERNANCE COMMAND CENTER</div>
+              <h1 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 900, margin: 0, letterSpacing: '-1px', color: '#0f172a' }}>
+                Global Blueprint Status
+              </h1>
+              <p style={{ margin: '0.7rem 0 0', color: '#475569', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '660px' }}>
+                Review blueprint coverage, chapter readiness, and typology health from a single streamlined workspace.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.9rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {[
+                { val: typologies.length, label: 'TYPOLOGIES' },
+                { val: typesWithBlueprint, label: 'CONFIGURED' },
+                { val: totalAtoms, label: 'ATOMS', color: '#6366f1' },
+                { val: totalVendors, label: 'VENDORS' },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign: 'center', minWidth: '72px' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 900, color: s.color || '#0f172a' }}>{s.val}</div>
+                  <div style={{ fontSize: '0.5rem', fontWeight: 900, color: '#64748b', letterSpacing: '1px', marginTop: '2px' }}>{s.label}</div>
+                </div>
+              ))}
+              <div style={{ width: '1px', height: '46px', background: 'rgba(148,163,184,0.24)' }} />
+              <Link href="/jana/blueprints/atoms">
+                <button style={{ padding: '0.75rem 1.15rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 10px 24px rgba(99,102,241,0.18)' }}>
+                  ⚛️ ATOM REGISTRY
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          {/* Stats */}
-          {[
-            { val: typologies.length, label: 'TYPOLOGIES' },
-            { val: typesWithBlueprint, label: 'CONFIGURED' },
-            { val: totalAtoms, label: 'ATOMS', color: '#6366f1' },
-            { val: totalVendors, label: 'VENDORS' },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 900, color: s.color || '#10b981' }}>{s.val}</div>
-              <div style={{ fontSize: '0.55rem', fontWeight: 900, color: '#475569', letterSpacing: '1px' }}>{s.label}</div>
+
+        <div className="blueprint-legend" style={{ padding: '1rem 1.2rem', marginBottom: '1.25rem', background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.8rem', boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#475569', letterSpacing: '2px', display: 'flex', alignItems: 'center' }}>LAYER LEGEND</div>
+          {LEGEND.map(l => (
+            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem' }}>{l.icon}</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: l.color }}>{l.label}</span>
+              <span style={{ fontSize: '0.65rem', color: '#475569' }}>{l.desc}</span>
             </div>
           ))}
-          <div style={{ width: '1px', height: '50px', background: 'rgba(255,255,255,0.06)' }} />
-          <Link href="/jana/blueprints/atoms">
-            <button style={{ padding: '0.8rem 1.4rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              ⚛️ ATOM REGISTRY
-            </button>
-          </Link>
         </div>
-      </div>
 
-      {/* Legend Bar */}
-      <div style={{ padding: '1rem 3rem', background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#475569', letterSpacing: '2px' }}>LAYER LEGEND</span>
-        {LEGEND.map(l => (
-          <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.85rem' }}>{l.icon}</span>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: l.color }}>{l.label}</span>
-            <span style={{ fontSize: '0.65rem', color: '#475569' }}>{l.desc}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Typology Grid */}
-      <div style={{ padding: '3rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.75rem' }}>
+        <div className="blueprint-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.25rem' }}>
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ height: '260px', background: 'rgba(255,255,255,0.03)', borderRadius: '24px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div key={i} style={{ height: '260px', background: 'rgba(248,250,252,0.95)', borderRadius: '24px', border: '1px solid rgba(226,232,240,0.95)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           ))
         ) : typologies.map(t => {
           const layerCounts = getLayerCounts(t);
@@ -141,12 +143,13 @@ export default function BlueprintDashboard() {
           const activeChapters = 8 - (t.hidden_sections?.length || 0);
 
           return (
-            <div key={t.id} style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: `1px solid ${hasSchema ? color + '33' : 'rgba(255,255,255,0.07)'}`,
-              borderRadius: '24px', padding: '2rem',
+            <div key={t.id} className="blueprint-card" style={{
+              background: 'rgba(255,255,255,0.95)',
+              border: `1px solid ${hasSchema ? color + '33' : 'rgba(148,163,184,0.18)'}`,
+              borderRadius: '22px', padding: '1.35rem',
               position: 'relative', overflow: 'hidden',
               transition: 'all 0.25s',
+              boxShadow: '0 10px 30px rgba(15,23,42,0.06)',
             }}
               onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 20px 60px ${color}18`; }}
               onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
@@ -176,14 +179,14 @@ export default function BlueprintDashboard() {
               </div>
 
               {/* Stats Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <div className="blueprint-card-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 {[
                   { v: activeChapters, label: 'CHAPTERS', sub: '/8', color: color },
                   { v: t.business_count || 0, label: 'UNITS', color: '#94a3b8' },
                   { v: layerCounts.l1, label: '🔵 STD', color: '#6366f1' },
                   { v: layerCounts.l2, label: '🟠 PRIV', color: '#f59e0b' },
                 ].map(s => (
-                  <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '0.75rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={s.label} style={{ background: 'rgba(248,250,252,0.95)', borderRadius: '12px', padding: '0.75rem', textAlign: 'center', border: '1px solid rgba(226,232,240,0.95)' }}>
                     <div style={{ fontSize: '1.1rem', fontWeight: 900, color: s.color }}>{s.v}<span style={{ fontSize: '0.6rem', color: '#475569', fontWeight: 600 }}>{s.sub || ''}</span></div>
                     <div style={{ fontSize: '0.5rem', fontWeight: 900, color: '#475569', letterSpacing: '0.5px', marginTop: '2px' }}>{s.label}</div>
                   </div>
@@ -210,11 +213,11 @@ export default function BlueprintDashboard() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <Link href={`/jana/blueprints/${t.id}`} style={{ flex: 1, textDecoration: 'none' }}>
-                  <button style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', background: `linear-gradient(135deg, ${color}, ${color}cc)`, color: '#000', border: 'none', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', letterSpacing: '0.5px' }}>
+                  <button style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', background: `linear-gradient(135deg, ${color}, ${color}cc)`, color: '#fff', border: 'none', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', letterSpacing: '0.5px', boxShadow: '0 8px 18px rgba(15,23,42,0.08)' }}>
                     ✏️ EDIT BLUEPRINT
                   </button>
                 </Link>
-                <button style={{ padding: '0.8rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>
+                <button style={{ padding: '0.8rem 1rem', borderRadius: '12px', background: '#f8fafc', color: '#334155', border: '1px solid rgba(148,163,184,0.2)', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>
                   SYNC
                 </button>
               </div>
@@ -222,8 +225,16 @@ export default function BlueprintDashboard() {
           );
         })}
       </div>
+      </div>
 
-      <style>{`@keyframes pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }`}</style>
+      <style>{`@keyframes pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+      @media (max-width: 768px) {
+        .blueprint-dashboard-shell { padding: 1rem !important; }
+        .blueprint-hero { padding: 1.25rem !important; }
+        .blueprint-legend { padding: 1rem !important; grid-template-columns: 1fr !important; }
+        .blueprint-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+        .blueprint-card-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      }`}</style>
     </div>
   );
 }

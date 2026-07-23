@@ -19,6 +19,7 @@
     "sync:dry": "node scripts/smart-sync.js --dry",
     "sync:code": "node scripts/smart-sync.js --skip-db",
     "sync:db": "node scripts/smart-sync.js --skip-build",
+    "sync:from-prod": "node scripts/sync-from-production.js",
     "sync:quick": "node scripts/smart-sync.js --quick",
     "sync:force": "node scripts/smart-sync.js --force",
     "sync:db:raw": "node scripts/sync_database.js",
@@ -33,7 +34,9 @@
     "live:status": "node scripts/live-deploy.js --status",
     "secure": "node scripts/security-check.js",
     "deploy": "node scripts/security-check.js && node scripts/live-deploy.js --once",
-    "deploy:safe": "node scripts/security-check.js && node scripts/live-deploy.js --once"
+    "deploy:safe": "node scripts/security-check.js && node scripts/live-deploy.js --once",
+    "backup:media": "node scripts/backup-media.js",
+    "restore:media": "node scripts/restore-media.js"
   },
   "engines": {
     "node": ">=20.0.0"

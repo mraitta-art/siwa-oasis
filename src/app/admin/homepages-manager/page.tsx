@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 
 interface Homepage {
@@ -18,31 +18,42 @@ export default function HomepagesManagerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [visibleCount, setVisibleCount] = useState(20);
+  const mountedRef = useRef(true);
+  const [creating, setCreating] = useState(false);
+
   const [showNewForm, setShowNewForm] = useState(false);
   const [newPageName, setNewPageName] = useState('');
   const [newPageType, setNewPageType] = useState<'main' | 'category' | 'service' | 'custom'>('custom');
 
   const fetchHomepages = async () => {
+    const controller = new AbortController();
     try {
       setIsLoading(true);
       setError(null);
-      const res = await fetch('/api/homepages');
+      const res = await fetch('/api/homepages', { signal: controller.signal });
       const data = await res.json();
+      if (!mountedRef.current) return;
       if (data.success) {
         setHomepages(data.homepages || []);
       } else {
         setError(data.error || 'Failed to fetch homepages');
       }
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error(err);
-      setError('An error occurred while loading pages.');
+      if (mountedRef.current) setError('An error occurred while loading pages.');
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchHomepages();
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const handleCreateHomepage = async () => {
@@ -50,8 +61,9 @@ export default function HomepagesManagerPage() {
 
     try {
       setError(null);
-      const generatedSlug = newPageName.trim() === 'Main Homepage' 
-        ? '/' 
+      setCreating(true);
+      const generatedSlug = newPageName.trim() === 'Main Homepage'
+        ? '/'
         : `/${newPageName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
 
       const res = await fetch('/api/homepages', {
@@ -68,17 +80,20 @@ export default function HomepagesManagerPage() {
       if (data.success) {
         setNewPageName('');
         setShowNewForm(false);
-        fetchHomepages();
+        // optimistic insert to avoid full refetch
+        setHomepages(prev => [{ id: data.id || String(Date.now()), name: newPageName, slug: generatedSlug, type: newPageType, status: 'draft', lastModified: new Date().toISOString(), sections: 0 }, ...prev]);
       } else {
         alert('Failed to create homepage: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
       console.error(err);
       alert('Error creating homepage');
+    } finally {
+      setCreating(false);
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: 'draft' | 'published' | 'archived') => {
+  const handleStatusChange = useCallback(async (id: string, newStatus: 'draft' | 'published' | 'archived') => {
     try {
       const res = await fetch(`/api/homepages/${id}`, {
         method: 'POST',
@@ -87,9 +102,7 @@ export default function HomepagesManagerPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setHomepages(prev =>
-          prev.map(p => (p.id === id ? { ...p, status: newStatus } : p))
-        );
+        setHomepages(prev => prev.map(p => (p.id === id ? { ...p, status: newStatus } : p)));
       } else {
         alert('Failed to update status: ' + (data.error || 'Unknown error'));
       }
@@ -97,9 +110,9 @@ export default function HomepagesManagerPage() {
       console.error(err);
       alert('Error updating status');
     }
-  };
+  }, []);
 
-  const handleDeleteHomepage = async (id: string, name: string) => {
+  const handleDeleteHomepage = useCallback(async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete the homepage "${name}"? This will permanently delete its sections configuration file.`)) {
       return;
     }
@@ -118,7 +131,7 @@ export default function HomepagesManagerPage() {
       console.error(err);
       alert('Error deleting homepage');
     }
-  };
+  }, []);
 
   const getStatusBadgeStyles = (status: string) => {
     switch (status) {
@@ -269,91 +282,98 @@ export default function HomepagesManagerPage() {
             </button>
           </div>
         ) : (
-          /* Homepages List Grid */
-          <div className="grid grid-cols-1 gap-6">
-            {homepages.map((homepage) => (
-              <div
-                key={homepage.id}
-                className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-350 transition-all duration-150 flex flex-col justify-between"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2.5 mb-2">
-                      <h3 className="text-lg font-black text-slate-900 leading-tight">
-                        {homepage.name}
-                      </h3>
-                      <span className="text-[10px] px-2 py-0.5 border border-slate-200 text-slate-500 rounded font-bold uppercase tracking-wider">
-                        {getTypeLabel(homepage.type).split(' ').slice(1).join(' ')}
-                      </span>
+          <>
+            {/* Homepages List Grid */}
+            <div className="grid grid-cols-1 gap-6">
+              {homepages.slice(0, visibleCount).map((homepage) => (
+                <div
+                  key={homepage.id}
+                  className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-350 transition-all duration-150 flex flex-col justify-between"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                        <h3 className="text-lg font-black text-slate-900 leading-tight">
+                          {homepage.name}
+                        </h3>
+                        <span className="text-[10px] px-2 py-0.5 border border-slate-200 text-slate-500 rounded font-bold uppercase tracking-wider">
+                          {getTypeLabel(homepage.type).split(' ').slice(1).join(' ')}
+                        </span>
+                      </div>
+                      <p className="text-slate-500 text-xs font-semibold">
+                        URL: <span className="font-mono text-slate-700 bg-slate-50 border border-slate-150 px-1 py-0.5 rounded">{homepage.slug}</span>
+                      </p>
                     </div>
-                    <p className="text-slate-500 text-xs font-semibold">
-                      URL: <span className="font-mono text-slate-700 bg-slate-50 border border-slate-150 px-1 py-0.5 rounded">{homepage.slug}</span>
-                    </p>
+
+                    <div className="flex items-center gap-2 select-none">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Status:</span>
+                      <select
+                        value={homepage.status}
+                        onChange={(e) => handleStatusChange(homepage.id, e.target.value as any)}
+                        className={`px-3 py-1 rounded border text-xs font-bold cursor-pointer focus:outline-none focus:ring-0 ${getStatusBadgeStyles(homepage.status)}`}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 select-none">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Status:</span>
-                    <select
-                      value={homepage.status}
-                      onChange={(e) => handleStatusChange(homepage.id, e.target.value as any)}
-                      className={`px-3 py-1 rounded border text-xs font-bold cursor-pointer focus:outline-none focus:ring-0 ${getStatusBadgeStyles(homepage.status)}`}
+                  {/* Dashboard Stats */}
+                  <div className="grid grid-cols-3 gap-3 mb-5 border border-slate-150 rounded-lg p-3 text-center">
+                    <div>
+                      <div className="text-base font-black text-slate-800">{homepage.sections}</div>
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400 mt-0.5">Sections</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-600 py-0.5">{homepage.lastModified}</div>
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Last Saved</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-600 py-0.5">Filesystem JSON</div>
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Data Source</div>
+                    </div>
+                  </div>
+
+                  {/* Action Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-slate-100">
+                    <div className="flex gap-2 flex-wrap">
+                      <Link
+                        href={`/admin/homepage-editor/${homepage.id}`}
+                        className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all duration-150"
+                      >
+                        ✏️ Edit Sections
+                      </Link>
+                      <Link
+                        href={`/admin/homepage-sections/${homepage.id}`}
+                        className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all duration-150"
+                      >
+                        📋 Section Details
+                      </Link>
+                      <Link
+                        href={`/admin/homepage-preview/${homepage.id}`}
+                        className="px-3.5 py-1.5 border border-slate-250 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all duration-150"
+                      >
+                        👁️ Real Preview
+                      </Link>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteHomepage(homepage.id, homepage.name)}
+                      className="px-3 py-1.5 border border-slate-200 hover:border-rose-350 hover:bg-rose-50 text-rose-600 text-xs font-bold rounded-lg transition-all duration-150"
                     >
-                      <option value="draft">Draft</option>
-                      <option value="published">Published</option>
-                      <option value="archived">Archived</option>
-                    </select>
+                      🗑️ Delete
+                    </button>
                   </div>
                 </div>
-
-                {/* Dashboard Stats */}
-                <div className="grid grid-cols-3 gap-3 mb-5 border border-slate-150 rounded-lg p-3 text-center">
-                  <div>
-                    <div className="text-base font-black text-slate-800">{homepage.sections}</div>
-                    <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400 mt-0.5">Sections</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-600 py-0.5">{homepage.lastModified}</div>
-                    <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Last Saved</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-600 py-0.5">Filesystem JSON</div>
-                    <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Data Source</div>
-                  </div>
-                </div>
-
-                {/* Action Toolbar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-slate-100">
-                  <div className="flex gap-2 flex-wrap">
-                    <Link
-                      href={`/admin/homepage-editor/${homepage.id}`}
-                      className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all duration-150"
-                    >
-                      ✏️ Edit Sections
-                    </Link>
-                    <Link
-                      href={`/admin/homepage-sections/${homepage.id}`}
-                      className="px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all duration-150"
-                    >
-                      📋 Section Details
-                    </Link>
-                    <Link
-                      href={`/admin/homepage-preview/${homepage.id}`}
-                      className="px-3.5 py-1.5 border border-slate-250 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-all duration-150"
-                    >
-                      👁️ Real Preview
-                    </Link>
-                  </div>
-
-                  <button
-                    onClick={() => handleDeleteHomepage(homepage.id, homepage.name)}
-                    className="px-3 py-1.5 border border-slate-200 hover:border-rose-350 hover:bg-rose-50 text-rose-600 text-xs font-bold rounded-lg transition-all duration-150"
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
+              ))}
+            </div>
+            {homepages.length > visibleCount && (
+              <div className="mt-6 flex justify-center">
+                <button onClick={() => setVisibleCount(c => c + 20)} className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold bg-white">Load more</button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* Quick Stats footer block */}
@@ -377,9 +397,9 @@ export default function HomepagesManagerPage() {
               <div className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">In Draft</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-              <div className="text-2xl font-black text-slate-900 mb-0.5">
-                {homepages.reduce((sum, h) => sum + h.sections, 0)}
-              </div>
+                <div className="text-2xl font-black text-slate-900 mb-0.5">
+                  {useMemo(() => homepages.reduce((sum, h) => sum + h.sections, 0), [homepages])}
+                </div>
               <div className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Combined Sections</div>
             </div>
           </div>

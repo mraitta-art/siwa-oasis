@@ -91,9 +91,25 @@ function buildThemeCSS(s: SiteSettings | null): string {
   }
 }
 
+function dedupeSections(sections: LayoutSection[]): LayoutSection[] {
+  const seen = new Set<string>();
+  return sections.filter(section => {
+    const props = section.props || {};
+    const sortedProps = Object.keys(props).sort().reduce((acc, key) => {
+      acc[key] = (props as any)[key];
+      return acc;
+    }, {} as Record<string, unknown>);
+    const key = `${section.type}:${JSON.stringify(sortedProps)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default function Home() {
-  const [layout, setLayout] = useState<LayoutSection[]>(DEFAULT_LAYOUT);
+  const [layout, setLayout] = useState<LayoutSection[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [builderLoaded, setBuilderLoaded] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -103,17 +119,28 @@ export default function Home() {
           const data = await res.json();
           const config = data[0];
           if (config) {
-            const allComponents: LayoutSection[] = [
+            const allComponents: LayoutSection[] = dedupeSections([
               ...(config.header_components || []),
               ...(config.body_components || []),
               ...(config.footer_components || [])
-            ];
-            if (allComponents.length > 0) setLayout(allComponents);
+            ]);
+            if (allComponents.length > 0) {
+              setLayout(allComponents);
+            } else {
+              setLayout(DEFAULT_LAYOUT);
+            }
             if (config.site_settings) setSettings(config.site_settings);
+          } else {
+            setLayout(DEFAULT_LAYOUT);
           }
+        } else {
+          setLayout(DEFAULT_LAYOUT);
         }
-      } catch (e) { 
+      } catch (e) {
         console.error('Homepage init fail:', e);
+        setLayout(DEFAULT_LAYOUT);
+      } finally {
+        setBuilderLoaded(true);
       }
     }
     init();
@@ -159,31 +186,31 @@ export default function Home() {
       )}
 
       {/* 🌍 FOOTER — always dark cinematic */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8rem 4rem', background: '#0a0f1d', color: '#fff' }}>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '8rem 4rem', background: '#2b1409', color: '#f7e7d0' }}>
          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '4rem' }}>
             <div>
                {settings?.logo_url ? (
                  <img src={settings.logo_url} alt={settings.site_name} style={{ height: `${(settings.logo_height || 40) * 1.2}px`, marginBottom: '1.5rem', objectFit: 'contain' }} />
                ) : (
-                 <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#fff', marginBottom: '1.5rem' }}>SIWA.TODAY</div>
+                 <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#f7e7d0', marginBottom: '1.5rem' }}>SIWA.TODAY</div>
                )}
-               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.</p>
+               <p style={{ color: 'rgba(247,231,208,0.72)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.</p>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
-               <Link href="/search/vibe" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
-               <Link href="#discovery" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage DNA</Link>
+               <Link href="/search/vibe" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
+               <Link href="#discovery" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage DNA</Link>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>GOVERNANCE</span>
-               <Link href="/admin" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Admin / Partner Login</Link>
-               <Link href="/investment" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
+               <Link href="/admin" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Admin / Partner Login</Link>
+               <Link href="/investment" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
             </div>
          </div>
 
-         <div style={{ marginTop: '8rem', paddingTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', opacity: 0.3, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px' }}>
+         <div style={{ marginTop: '8rem', paddingTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center', opacity: 0.7, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px', color: 'rgba(247,231,208,0.7)' }}>
             © {new Date().getFullYear()} SIWA.TODAY • ALL RIGHTS RESERVED.
          </div>
       </footer>

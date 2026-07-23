@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     }
     query += ' ORDER BY display_order ASC';
 
-    const categories = await db.query(query);
-    return NextResponse.json(categories, { status: 200 });
+    const categories = await safeQuery(query);
+    return NextResponse.json(categories ?? [], { status: 200 });
   } catch (error) {
     console.error('GET /api/jana/experience-categories:', error);
     return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         display_order = VALUES(display_order)
     `;
 
-    await db.query(query, [id, title, subtitle, icon, image_url, color, link, display_order || 0]);
+    await safeQuery(query, [id, title, subtitle, icon, image_url, color, link, display_order || 0]);
 
     return NextResponse.json({ success: true, id }, { status: 201 });
   } catch (error) {
@@ -80,7 +80,7 @@ export async function PUT(request: NextRequest) {
     params.push(id);
     const query = `UPDATE page_experience_categories SET ${updates.join(', ')} WHERE id = ?`;
 
-    await db.query(query, params);
+    await safeQuery(query, params);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -98,7 +98,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing category id' }, { status: 400 });
     }
 
-    await db.query('DELETE FROM page_experience_categories WHERE id = ?', [id]);
+    await safeQuery('DELETE FROM page_experience_categories WHERE id = ?', [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

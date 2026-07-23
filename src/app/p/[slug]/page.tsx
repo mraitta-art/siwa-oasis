@@ -35,28 +35,33 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // Resolve params then fetch page data
-    Promise.resolve(params).then(({ slug: s }) => {
+    async function loadPage() {
+      const { slug: s } = await Promise.resolve(params);
       setSlug(s);
-      fetch(`/api/jana/website?id=website_${s}`)
-        .then(r => r.json())
-        .then(data => {
-          const cfg = Array.isArray(data) ? data[0] : null;
-          if (!cfg) {
-            setNotFound(true);
-          } else {
-            const all = [
-              ...(cfg.header_components || []),
-              ...(cfg.body_components || []),
-              ...(cfg.footer_components || []),
-            ];
-            setLayout(all);
-            setSettings(cfg.site_settings || null);
-          }
-        })
-        .catch(() => setNotFound(true))
-        .finally(() => setLoading(false));
-    });
+
+      const tryFetch = async (pageId: string) => {
+        const res = await fetch(`/api/jana/website?id=${pageId}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return Array.isArray(data) ? data[0] : data;
+      };
+
+      const cfg = await tryFetch(`website_${s}`);
+      if (!cfg) {
+        setNotFound(true);
+      } else {
+        const all = [
+          ...(cfg.header_components || []),
+          ...(cfg.body_components || []),
+          ...(cfg.footer_components || []),
+        ];
+        setLayout(all);
+        setSettings(cfg.site_settings || null);
+      }
+      setLoading(false);
+    }
+
+    loadPage();
   }, [params]);
 
   if (loading) {

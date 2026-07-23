@@ -1,5 +1,5 @@
 import React from 'react';
-import { query, queryOne } from '@/lib/db';
+import { query as safeQuery, queryOne } from '@/lib/db';
 
 export default async function AdminDashboardPage() {
   // Fetch live stats safely from MySQL
@@ -7,12 +7,12 @@ export default async function AdminDashboardPage() {
   
   try {
     const results = await Promise.all([
-      query('SELECT COUNT(*) as count FROM businesses').catch(() => [{count: 0}]),
-      query('SELECT COUNT(*) as count FROM profiles WHERE role = "vendor" AND active = TRUE').catch(() => [{count: 0}]),
-      query('SELECT COUNT(*) as count FROM businesses WHERE vendor_id IS NOT NULL AND approved_by_vendor = FALSE').catch(() => [{count: 0}]),
-      query('SELECT COALESCE(SUM(views), 0) as total FROM businesses').catch(() => [{total: 0}]),
-      query('SELECT COUNT(*) as count FROM business_types').catch(() => [{count: 0}]),
-      query('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 10').catch(() => []),
+      safeQuery('SELECT COUNT(*) as count FROM businesses').catch(() => [{count: 0}]),
+      safeQuery('SELECT COUNT(*) as count FROM profiles WHERE role = "vendor" AND active = TRUE').catch(() => [{count: 0}]),
+      safeQuery('SELECT COUNT(*) as count FROM businesses WHERE vendor_id IS NOT NULL AND approved_by_vendor = FALSE').catch(() => [{count: 0}]),
+      safeQuery('SELECT COALESCE(SUM(views), 0) as total FROM businesses').catch(() => [{total: 0}]),
+      safeQuery('SELECT COUNT(*) as count FROM business_types').catch(() => [{count: 0}]),
+      safeQuery('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 10').catch(() => []),
     ]);
     
     [bizCount] = results[0];
@@ -37,10 +37,10 @@ export default async function AdminDashboardPage() {
 
       <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', padding: '1.5rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-           <h3 style={{ margin: 0, fontWeight: 900 }}><i className="fas fa-bolt"></i> FAST-TRACK STUDIO</h3>
-           <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9, fontSize: '0.85rem' }}>The high-speed bridge between architecture and live minisite generation.</p>
+           <h3 style={{ margin: 0, fontWeight: 900 }}><i className="fas fa-sitemap"></i> UNIFIED BUILDER</h3>
+           <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9, fontSize: '0.85rem' }}>One workspace for the main builder actions: sections, forms, components, pages, and fast-track launch.</p>
         </div>
-        <a href="/jana/fast-track" className="btn" style={{ padding: '0.75rem 2rem', textDecoration: 'none', fontWeight: 800, background: '#fff', color: '#059669', borderRadius: '0.5rem' }}>OPEN STUDIO</a>
+        <a href="/jana/unified-builder" className="btn" style={{ padding: '0.75rem 2rem', textDecoration: 'none', fontWeight: 800, background: '#fff', color: '#059669', borderRadius: '0.5rem' }}>OPEN WORKSPACE</a>
       </div>
 
       <div style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', padding: '1.5rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

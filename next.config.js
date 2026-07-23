@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 const nextConfig = {
   // Type checking and linting — suppressed to allow deployment
   typescript: {
@@ -12,6 +13,7 @@ const nextConfig = {
   experimental: {
     webpackBuildWorker: false,
   },
+
   // Client-side polyfills for server-only Node modules
   webpack: (config, { isServer }) => {
     if (!isServer) {

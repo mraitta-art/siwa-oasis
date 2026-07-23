@@ -232,10 +232,11 @@ export default function BlueprintEditor() {
   };
 
   const color = typology?.icon_color || '#6366f1';
+  const pageBodyStyle: React.CSSProperties = { maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' };
 
   if (loading) return (
-    <div style={{ background: '#08090a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter,sans-serif' }}>
-      <div style={{ textAlign: 'center' }}>
+    <div className="animate-in" style={{ background: '#08090a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+      <div className="card" style={{ padding: '2rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem', textAlign: 'center' }}>
         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚛️</div>
         <div style={{ color: '#475569', fontWeight: 700 }}>Loading Blueprint Editor...</div>
       </div>
@@ -243,44 +244,60 @@ export default function BlueprintEditor() {
   );
 
   return (
-    <div style={{ background: '#08090a', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+    <div className="animate-in" style={{ background: '#08090a', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-
-      {/* Top Bar */}
-      <div style={{ padding: '1.5rem 3rem', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link href="/jana/blueprints" style={{ color: '#6366f1', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', letterSpacing: '2px' }}>← BLUEPRINTS</Link>
-          <span style={{ color: '#334155' }}>/</span>
-          <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className={typology?.icon || 'fas fa-building'} style={{ color, fontSize: '0.9rem' }} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.5px' }}>{typology?.name?.toUpperCase()}</div>
-            <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 700 }}>Blueprint Editor · {typeId}</div>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 2rem 4rem' }}>
+        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                <Link href="/jana/blueprints" style={{ color: '#6366f1', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', letterSpacing: '2px' }}>← BLUEPRINTS</Link>
+                <span style={{ color: '#334155' }}>/</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '2px' }}>BLUEPRINT EDITOR</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className={typology?.icon || 'fas fa-building'} style={{ color, fontSize: '1rem' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.05rem' }}>{typology?.name || 'Blueprint Type'}</h1>
+                  <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500, maxWidth: '760px' }}>
+                    Edit type-specific blueprint rules, media assets, carousel pin order, and mini blog content for this business category.
+                  </p>
+                  <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '0.45rem 0.95rem', fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>
+                    Type ID: {typeId}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Link href={`/jana/blueprints/atoms`}>
+                <button style={ghostBtn}>⚛️ Atom Registry</button>
+              </Link>
+              <button onClick={() => setActiveTab('schema')} style={{ ...ghostBtn, borderColor: color + '55', color: '#fff' }}>
+                🧬 Schema
+              </button>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link href={`/jana/blueprints/atoms`}>
-            <button style={ghostBtn}>⚛️ Atom Registry</button>
-          </Link>
+
+        {/* Tab Bar */}
+        <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', borderRadius: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ padding: '0 0.5rem', display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.01)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {TABS.map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                style={{ padding: '0.9rem 1.65rem', background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent', border: 'none', borderRadius: '999px', color: activeTab === tab.id ? '#fff' : '#94a3b8', fontWeight: activeTab === tab.id ? 900 : 700, fontSize: '0.85rem', cursor: 'pointer', borderBottom: activeTab === tab.id ? `2px solid ${color}` : '2px solid transparent', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>{tab.icon}</span> {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Tab Bar */}
-      <div style={{ padding: '0 3rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '0', background: 'rgba(255,255,255,0.01)' }}>
-        {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            style={{ padding: '1.1rem 2rem', background: 'none', border: 'none', color: activeTab === tab.id ? '#fff' : '#475569', fontWeight: activeTab === tab.id ? 900 : 700, fontSize: '0.85rem', cursor: 'pointer', borderBottom: activeTab === tab.id ? `2px solid ${color}` : '2px solid transparent', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>{tab.icon}</span> {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* TAB 1 — FIELD SCHEMA                                       */}
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {activeTab === 'schema' && (
-        <div style={{ padding: '2.5rem 3rem', maxWidth: '1100px' }}>
+        <div style={pageBodyStyle}>
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* TAB 1 — FIELD SCHEMA                                       */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {activeTab === 'schema' && (
+        <div className="card" style={{ padding: '2.5rem 2.5rem', maxWidth: '1100px', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
             <div>
               <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>🧬 Field Schema</h2>
@@ -334,7 +351,7 @@ export default function BlueprintEditor() {
       {/* TAB 2 — MEDIA GALLERY                                      */}
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       {activeTab === 'gallery' && (
-        <div style={{ padding: '2.5rem 3rem' }}>
+        <div className="card" style={{ padding: '2.5rem 2.5rem', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
             <div>
               <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>🖼️ Media Gallery</h2>
@@ -417,7 +434,7 @@ export default function BlueprintEditor() {
       {/* TAB 3 — CAROUSEL PINS                                      */}
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       {activeTab === 'pins' && (
-        <div style={{ padding: '2.5rem 3rem', display: 'grid', gridTemplateColumns: '1fr 420px', gap: '2.5rem', alignItems: 'start' }}>
+        <div className="card" style={{ padding: '2.5rem 2.5rem', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 420px', gap: '2.5rem', alignItems: 'start' }}>
           {/* Left — Reorder list */}
           <div>
             <div style={{ marginBottom: '2rem' }}>
@@ -488,7 +505,7 @@ export default function BlueprintEditor() {
       {/* TAB 4 — MINI BLOG                                          */}
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       {activeTab === 'blog' && (
-        <div style={{ padding: '2.5rem 3rem', maxWidth: '1000px' }}>
+        <div className="card" style={{ padding: '2.5rem 2.5rem', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem', maxWidth: '1000px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
             <div>
               <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>📝 Mini Blog</h2>
@@ -590,6 +607,8 @@ export default function BlueprintEditor() {
           )}
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

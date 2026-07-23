@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 /**
  * GET /api/discovery/vibe-config
@@ -14,11 +14,11 @@ export async function GET(request: NextRequest) {
     let targetFields = ["vibe_tags"]; // Default baseline
 
     // 1. DISCOVERY: Find all fields from sections marked as 'is_filterable' AND marked as 'searchable'
-    const filterableSections: any[] = await query("SELECT id FROM sections WHERE is_filterable = 1");
+    const filterableSections: any[] = await safeQuery("SELECT id FROM sections WHERE is_filterable = 1");
     if (filterableSections.length > 0) {
       const sectionIds = filterableSections.map(s => s.id);
       const sectionPlaceholders = sectionIds.map(() => '?').join(',');
-      const autoFields: any[] = await query(
+      const autoFields: any[] = await safeQuery(
         `SELECT name FROM form_fields WHERE section_id IN (${sectionPlaceholders}) AND field_type IN ('select', 'multiselect', 'checkbox_group') AND searchable = 1`,
         sectionIds
       );
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // 2. SPECIFIC: Add fields allowed by the specific engine
     if (engineId) {
-      const [engine]: any = await query("SELECT allowed_fields FROM search_engines WHERE id = ?", [engineId]);
+      const [engine]: any = await safeQuery("SELECT allowed_fields FROM search_engines WHERE id = ?", [engineId]);
       if (engine && engine.allowed_fields) {
         const engineFields = typeof engine.allowed_fields === 'string' ? JSON.parse(engine.allowed_fields) : engine.allowed_fields;
         engineFields.forEach((f: string) => {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     // 3. AGGREGATION: Fetch options for all identified fields
     const placeholders = targetFields.map(() => '?').join(',');
-    const fields: any[] = await query(
+    const fields: any[] = await safeQuery(
       `SELECT options FROM form_fields WHERE name IN (${placeholders})`,
       targetFields
     );

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 // GET: Fetch all open journey requests (for vendors to browse)
 export async function GET(request: Request) {
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     sql += ` ORDER BY created_at DESC LIMIT ?`;
     params.push(limit);
 
-    let rows = await query(sql, params) as any[];
+    let rows = await safeQuery(sql, params) as any[];
 
     // Mask data for vendors if admin chose to hide contact
     if (!asAdmin) {
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     );
 
     // Fetch inserted row
-    const rows = await query(
+    const rows = await safeQuery(
       `SELECT * FROM journey_requests WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 1`,
       [customer_phone]
     ) as any[];

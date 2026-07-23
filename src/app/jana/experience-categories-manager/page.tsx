@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 interface Category {
@@ -83,6 +83,34 @@ export default function CategoriesManager() {
     }
   };
 
+  const handleMove = async (id: string, direction: -1 | 1) => {
+    const sorted = [...categories].sort((a, b) => a.display_order - b.display_order || a.title.localeCompare(b.title));
+    const index = sorted.findIndex((item) => item.id === id);
+    if (index === -1) return;
+
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= sorted.length) return;
+
+    const current = sorted[index];
+    const target = sorted[targetIndex];
+
+    try {
+      await fetch('/api/jana/experience-categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: current.id, display_order: target.display_order }),
+      });
+      await fetch('/api/jana/experience-categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: target.id, display_order: current.display_order }),
+      });
+      fetchCategories();
+    } catch (error) {
+      console.error('Failed to move category:', error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this category?')) return;
     try {
@@ -144,7 +172,13 @@ export default function CategoriesManager() {
               </div>
 
               {/* Image Preview */}
-              <img src={category.image_url} alt={category.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px', marginBottom: '1rem' }} />
+              {category.image_url ? (
+                <img src={category.image_url} alt={category.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px', marginBottom: '1rem' }} />
+              ) : (
+                <div style={{ width: '100%', height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', marginBottom: '1rem', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+                  No image selected
+                </div>
+              )}
 
               {/* Content */}
               <div style={{ marginBottom: '1rem' }}>
@@ -158,12 +192,29 @@ export default function CategoriesManager() {
               {/* Order */}
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem' }}>Display Order</label>
-                <input
-                  type="number"
-                  value={category.display_order}
-                  onChange={(e) => handleReorder(category.id, parseInt(e.target.value))}
-                  style={{ width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
-                />
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleMove(category.id, -1)}
+                    disabled={category.display_order === 1}
+                    style={{ width: '3rem', padding: '0.5rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff', cursor: category.display_order === 1 ? 'not-allowed' : 'pointer' }}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMove(category.id, 1)}
+                    style={{ width: '3rem', padding: '0.5rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff', cursor: 'pointer' }}
+                  >
+                    ↓
+                  </button>
+                  <input
+                    type="number"
+                    value={category.display_order}
+                    onChange={(e) => handleReorder(category.id, parseInt(e.target.value))}
+                    style={{ flex: 1, padding: '0.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
+                  />
+                </div>
               </div>
 
               {/* Actions */}
@@ -206,10 +257,54 @@ interface CategoryFormProps {
 
 function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
   const [form, setForm] = useState(category);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleChange = (field: keyof Category, value: any) => {
     setForm({ ...form, [field]: value });
   };
+
+  async function uploadFile(file: File) {
+    const reader = new FileReader();
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const filename = `${Date.now()}_${file.name}`;
+    const resp = await fetch('/api/uploads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, data: dataUrl }),
+    });
+    const j = await resp.json();
+    if (!j?.success || !j.url) {
+      throw new Error(j?.error || 'Upload failed');
+    }
+    return j.url;
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const url = await uploadFile(file);
+      handleChange('image_url', url);
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      alert('Image upload failed. Please try again.');
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const triggerCamera = () => cameraInputRef.current?.click();
+  const triggerFilePicker = () => fileInputRef.current?.click();
+  const handleRemoveImage = () => handleChange('image_url', '');
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto 2rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '2rem' }}>
@@ -278,9 +373,53 @@ function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
             type="text"
             value={form.image_url}
             onChange={(e) => handleChange('image_url', e.target.value)}
+            placeholder="Paste an image URL or upload from device"
             style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
           />
-          {form.image_url && <img src={form.image_url} alt="preview" style={{ marginTop: '1rem', maxWidth: '200px', borderRadius: '4px' }} />}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={triggerCamera}
+              style={{ padding: '0.75rem 1rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+            >
+              📸 Camera
+            </button>
+            <button
+              type="button"
+              onClick={triggerFilePicker}
+              style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+            >
+              📁 Upload Photo
+            </button>
+            {uploadingImage && <span style={{ color: '#D4AF37', alignSelf: 'center' }}>Uploading image...</span>}
+          </div>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+          {form.image_url && (
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <img src={form.image_url} alt="preview" style={{ maxWidth: '200px', borderRadius: '4px', objectFit: 'cover' }} />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.8)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Remove Image
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Link */}
@@ -292,6 +431,29 @@ function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
             onChange={(e) => handleChange('link', e.target.value)}
             style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
           />
+        </div>
+
+        {/* Display Order & Visibility */}
+        <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)' }}>Display Order</label>
+            <input
+              type="number"
+              value={form.display_order}
+              onChange={(e) => handleChange('display_order', parseInt(e.target.value) || 1)}
+              style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.8rem' }}>
+            <input
+              id="visibleToggle"
+              type="checkbox"
+              checked={form.is_visible}
+              onChange={(e) => handleChange('is_visible', e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: '#D4AF37' }}
+            />
+            <label htmlFor="visibleToggle" style={{ color: 'rgba(255,255,255,0.8)' }}>Visible</label>
+          </div>
         </div>
       </div>
 

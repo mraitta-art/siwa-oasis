@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query as safeQuery } from '@/lib/db';
 
 // Dynamic carousel endpoint that aggregates data from multiple sources
 interface Slide {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     // 1. Load active businesses/services
     try {
-      const services = await query(
+      const services = await safeQuery(
         `SELECT id, name, tagline, image_url, icon 
          FROM page_services 
          WHERE is_visible = 1 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Load active journeys
     try {
-      const journeys = await query(
+      const journeys = await safeQuery(
         `SELECT id, name, description, featured_image_url, duration_days, estimated_cost_usd_min, estimated_cost_usd_max
          FROM journey_templates 
          WHERE is_visible = 1 AND is_investment_journey = 0
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Load active investment journeys
     try {
-      const investmentJourneys = await query(
+      const investmentJourneys = await safeQuery(
         `SELECT id, name, description, featured_image_url, duration_days, estimated_cost_usd_min, estimated_cost_usd_max, minimum_investment_usd, estimated_roi_percent
          FROM journey_templates 
          WHERE is_visible = 1 AND is_investment_journey = 1
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
       const fallbackTypes = ['hero_carousel_main', 'hero_carousel_discovery'];
       for (const type of fallbackTypes) {
         try {
-          const savedConfig = await query(
+          const savedConfig = await safeQuery(
             `SELECT config FROM website_configs WHERE type = ? LIMIT 1`,
             [type]
           );
