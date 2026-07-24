@@ -112,20 +112,43 @@ export async function POST(request: NextRequest) {
     }
 
     const files = fs.readdirSync(DATA_DIR).filter(file => file.endsWith('.json'));
+    let nameConflict = false;
+    let slugConflict = false;
+    const existingNames = new Set<string>();
+    const existingSlugs = new Set<string>();
+
     for (const file of files) {
       const filePath = path.join(DATA_DIR, file);
       try {
         const raw = fs.readFileSync(filePath, 'utf-8');
         const data = JSON.parse(raw);
-        if (data.name.toLowerCase() === name.toLowerCase()) {
-          return NextResponse.json({ success: false, error: `A homepage with the name '${name}' already exists.` }, { status: 409 });
-        }
-        if (data.slug.toLowerCase() === slug.toLowerCase()) {
-          return NextResponse.json({ success: false, error: `A homepage with the URL slug '${slug}' already exists.` }, { status: 409 });
-        }
+        if (data.name) existingNames.add(data.name.toLowerCase());
+        if (data.slug) existingSlugs.add(data.slug.toLowerCase());
       } catch (e) {
         // ignore corrupted files
       }
+    }
+
+    if (existingNames.has(name.toLowerCase())) nameConflict = true;
+    if (existingSlugs.has(slug.toLowerCase())) slugConflict = true;
+
+    if (nameConflict || slugConflict) {
+      // Generate a suggestion
+      let counter = 1;
+      let suggestionName = `${name} (${counter})`;
+      let suggestionSlug = `${slug}-${counter}`;
+      
+      while (existingNames.has(suggestionName.toLowerCase()) || existingSlugs.has(suggestionSlug.toLowerCase())) {
+        counter++;
+        suggestionName = `${name} (${counter})`;
+        suggestionSlug = `${slug}-${counter}`;
+      }
+
+      return NextResponse.json({ 
+        success: false, 
+        error: `A homepage with this ${nameConflict ? 'name' : 'URL slug'} already exists.`,
+        suggestion: { name: suggestionName, slug: suggestionSlug }
+      }, { status: 409 });
     }
 
     const id = Date.now().toString();

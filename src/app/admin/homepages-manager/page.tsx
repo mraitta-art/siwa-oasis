@@ -83,7 +83,11 @@ export default function HomepagesManagerPage() {
         // optimistic insert to avoid full refetch
         setHomepages(prev => [{ id: data.id || String(Date.now()), name: newPageName, slug: generatedSlug, type: newPageType, status: 'draft', lastModified: new Date().toISOString(), sections: 0 }, ...prev]);
       } else {
-        alert('Failed to create homepage: ' + (data.error || 'Unknown error'));
+        if (data.suggestion && confirm(`${data.error}\n\nWould you like to use "${data.suggestion.name}" instead?`)) {
+          setNewPageName(data.suggestion.name);
+          return;
+        }
+        if (!data.suggestion) alert('Failed to create homepage: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
       console.error(err);
