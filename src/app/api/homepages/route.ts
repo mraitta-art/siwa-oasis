@@ -111,6 +111,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing name, type, or slug' }, { status: 400 });
     }
 
+    const files = fs.readdirSync(DATA_DIR).filter(file => file.endsWith('.json'));
+    for (const file of files) {
+      const filePath = path.join(DATA_DIR, file);
+      try {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(raw);
+        if (data.name.toLowerCase() === name.toLowerCase()) {
+          return NextResponse.json({ success: false, error: `A homepage with the name '${name}' already exists.` }, { status: 409 });
+        }
+        if (data.slug.toLowerCase() === slug.toLowerCase()) {
+          return NextResponse.json({ success: false, error: `A homepage with the URL slug '${slug}' already exists.` }, { status: 409 });
+        }
+      } catch (e) {
+        // ignore corrupted files
+      }
+    }
+
     const id = Date.now().toString();
     const newPage = {
       id,
