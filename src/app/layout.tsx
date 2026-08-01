@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import AnalyticsTracker from '@/components/AnalyticsTracker';
 
 export const metadata: Metadata = {
   title: 'SIWA OASIS | The Premium Desert Marketplace',
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         {children}
+        <AnalyticsTracker />
       </body>
     </html>
   );
 }
+
