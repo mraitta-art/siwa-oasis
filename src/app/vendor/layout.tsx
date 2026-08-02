@@ -38,7 +38,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // ── Unified nav structure ──────────────────────────────────────────────
+  // ── Unified clean nav structure (zero repetitions) ──────────────────────
   const navGroups = [
     {
       title: 'Dashboard',
@@ -48,30 +48,14 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
       ],
     },
     {
-      title: 'My Business',
+      title: 'Business & Minisite',
       items: [
-        { name: 'Business Profile',  href: '/vendor/sections',  icon: 'fa-building' },
-        { name: 'Media Gallery',     href: '/vendor/media',     icon: 'fa-images' },
-        { name: 'Claim a Listing',   href: '/vendor/claim',     icon: 'fa-unlock' },
+        { name: 'Content & Profile',  href: '/vendor/sections',   icon: 'fa-layer-group' },
+        { name: 'Media Gallery',      href: '/vendor/media',      icon: 'fa-images' },
+        { name: 'Theme & Publish',    href: '/vendor/minisite',   icon: 'fa-globe',   badge: 'LIVE' },
+        { name: 'Setup Wizard',       href: '/vendor/onboarding', icon: 'fa-magic',   badge: 'SETUP' },
+        { name: 'Claim a Listing',    href: '/vendor/claim',      icon: 'fa-unlock' },
       ],
-    },
-    // Builder group — items swap based on builderMode
-    {
-      title: 'Site Builder',
-      isBuilder: true,
-      items: builderMode === 'minisite'
-        ? [
-            { name: 'Content Sections',  href: '/vendor/sections',   icon: 'fa-layer-group' },
-            { name: 'Theme & Colors',    href: '/vendor/minisite',   icon: 'fa-palette' },
-            { name: 'Publish / Go Live', href: '/vendor/minisite',   icon: 'fa-globe',       badge: 'LIVE' },
-            { name: 'Setup Wizard',      href: '/vendor/onboarding', icon: 'fa-magic',       badge: 'SETUP' },
-          ]
-        : [
-            { name: 'Homepage Sections', href: '/jana/homepage-editor', icon: 'fa-home' },
-            { name: 'Carousel Builder',  href: '/jana/carousel',        icon: 'fa-film' },
-            { name: 'Blog Posts',        href: '/jana/blog',            icon: 'fa-newspaper' },
-            { name: 'Preview Site',      href: '/',                     icon: 'fa-eye',        badge: 'VIEW' },
-          ],
     },
     {
       title: 'Marketplace',
@@ -85,48 +69,6 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
 
   const active = (href: string) =>
     pathname === href || (href !== '/vendor' && pathname.startsWith(href + '/'));
-
-  // ── Builder mode toggle component ─────────────────────────────────────
-  const BuilderToggle = () => (
-    <div style={{
-      margin: '0.5rem 0 0.5rem',
-      background: '#f8fafc',
-      border: '1px solid #e2e8f0',
-      borderRadius: '12px',
-      padding: '4px',
-      display: 'flex',
-      gap: '3px',
-    }}>
-      {(['minisite', 'mainsite'] as const).map(mode => (
-        <button
-          key={mode}
-          onClick={() => setBuilderMode(mode)}
-          style={{
-            flex: 1,
-            padding: '0.35rem 0.5rem',
-            borderRadius: '9px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.65rem',
-            fontWeight: 800,
-            letterSpacing: '0.5px',
-            transition: 'all 0.15s',
-            background: builderMode === mode
-              ? mode === 'minisite'
-                ? 'linear-gradient(135deg,#D4AF37,#f0c842)'
-                : 'linear-gradient(135deg,#6366f1,#8b5cf6)'
-              : 'transparent',
-            color: builderMode === mode
-              ? mode === 'minisite' ? '#5a3e00' : '#fff'
-              : '#94a3b8',
-            boxShadow: builderMode === mode ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
-          }}
-        >
-          {mode === 'minisite' ? '🌐 My Minisite' : '🏠 Main Site'}
-        </button>
-      ))}
-    </div>
-  );
 
   const sidebarContent = (
     <>
@@ -178,22 +120,9 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
               fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8',
               letterSpacing: '1.5px', textTransform: 'uppercase',
               padding: '0 0.5rem', marginBottom: '0.35rem',
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
             }}>
               {group.title}
-              {group.isBuilder && (
-                <span style={{
-                  background: builderMode === 'minisite' ? '#fef3c7' : '#ede9fe',
-                  color: builderMode === 'minisite' ? '#92702a' : '#6366f1',
-                  borderRadius: '20px', padding: '1px 6px', fontSize: '0.5rem', fontWeight: 900,
-                }}>
-                  {builderMode === 'minisite' ? 'MINISITE' : 'MAIN SITE'}
-                </span>
-              )}
             </div>
-
-            {/* Builder toggle — shown only in the builder group */}
-            {group.isBuilder && <BuilderToggle />}
 
             <nav>
               {group.items.map((item: any) => (
