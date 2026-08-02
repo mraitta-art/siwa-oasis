@@ -98,6 +98,7 @@ const NAV_GROUPS = [
     collapsible: true,
     defaultCollapsed: false,
     items: [
+      { name: 'Visitor Analytics', path: '/jana/analytics', icon: 'fa-chart-area', badge: 'LIVE' },
       { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
       { name: 'Section Visibility', path: '/admin/section-visibility', icon: 'fa-eye' },
       { name: 'POI Settings', path: '/admin/poi-settings', icon: 'fa-location-dot' },
