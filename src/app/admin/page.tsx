@@ -160,77 +160,82 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 font-sans">
       {/* Header */}
-      <div className="border-b border-slate-200 bg-white py-8 px-4 sm:px-6 lg:px-8 shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">⚙️ Admin Control Center</h1>
-          <p className="text-slate-600">Manage businesses, approvals, and platform settings from a clean admin workspace.</p>
+      <div className="border-b border-amber-100 bg-white py-10 px-4 sm:px-6 lg:px-8 shadow-sm">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              <span className="text-[#D4AF37]">⚙️</span> Admin Control Center
+            </h1>
+            <p className="text-slate-500 mt-2 text-sm sm:text-base">Manage businesses, approvals, and platform settings from a clean admin workspace.</p>
+          </div>
+          <Link href="/jana" className="inline-flex items-center gap-2 self-start md:self-center px-5 py-2.5 rounded-full border border-amber-200 bg-amber-50 text-[#D4AF37] hover:bg-amber-100 transition font-bold text-sm">
+            ← Return to Jana
+          </Link>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Quick Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-2xl font-semibold text-slate-900">{stats.businesses.total}</div>
-            <div className="text-sm text-slate-500 mt-1">Businesses</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
+            <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Businesses</div>
+            <div className="text-3xl font-black text-slate-800 mt-2">{stats.businesses.total}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-2xl font-semibold text-rose-600">{stats.businesses.pending}</div>
-            <div className="text-sm text-slate-500 mt-1">Pending Approvals</div>
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
+            <div className="text-sm font-bold text-rose-400 uppercase tracking-wider">Pending Approvals</div>
+            <div className="text-3xl font-black text-rose-600 mt-2">{stats.businesses.pending}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-2xl font-semibold text-slate-900">{stats.packages.total}</div>
-            <div className="text-sm text-slate-500 mt-1">Packages</div>
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
+            <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Packages</div>
+            <div className="text-3xl font-black text-slate-800 mt-2">{stats.packages.total}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-2xl font-semibold text-emerald-600">{stats.revenue.total_used}</div>
-            <div className="text-sm text-slate-500 mt-1">Revenue Used</div>
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
+            <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Platform Revenue</div>
+            <div className="text-3xl font-black text-[#D4AF37] mt-2">{stats.revenue.total_used}</div>
           </div>
         </div>
 
         {/* Action Summary Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-12">
-          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
-            <div className="text-sm text-slate-500">Package Approvals</div>
-            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.packages.pending_approval}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
+            <div className="text-xs font-bold text-slate-400 uppercase">Package Queue</div>
+            <div className="mt-1 text-lg font-bold text-slate-800">{stats.packages.pending_approval} pending</div>
           </div>
-          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
-            <div className="text-sm text-slate-500">Offer Approvals</div>
-            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.offers.pending_approval}</div>
+          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
+            <div className="text-xs font-bold text-slate-400 uppercase">Offers Queue</div>
+            <div className="mt-1 text-lg font-bold text-slate-800">{stats.offers.pending_approval} pending</div>
           </div>
-          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
-            <div className="text-sm text-slate-500">New Users</div>
-            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.users.new_this_month}</div>
+          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
+            <div className="text-xs font-bold text-slate-400 uppercase">New Users</div>
+            <div className="mt-1 text-lg font-bold text-slate-800">+{stats.users.new_this_month}</div>
           </div>
-          <div className="rounded-2xl bg-slate-100 p-5 border border-slate-200">
-            <div className="text-sm text-slate-500">Investments Pending</div>
-            <div className="mt-2 text-xl font-semibold text-slate-900">{stats.investments.pending_approval}</div>
+          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
+            <div className="text-xs font-bold text-slate-400 uppercase">Investments</div>
+            <div className="mt-1 text-lg font-bold text-slate-800">{stats.investments.pending_approval} pending</div>
           </div>
         </div>
 
         {/* Pending Approvals Alert */}
         {pendingApprovals.length > 0 && (
-          <div className="mb-12 rounded-3xl bg-amber-50 border border-amber-200 p-6">
+          <div className="mb-12 rounded-3xl bg-amber-50/40 border border-amber-200/60 p-8 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">⏳ {pendingApprovals.length} items need your review</h2>
-                <p className="mt-1 text-sm text-slate-600">These approvals are waiting for action from the admin team.</p>
+                <h2 className="text-xl font-bold text-slate-800">⏳ Approvals Pending Action ({pendingApprovals.length})</h2>
+                <p className="mt-1 text-sm text-slate-500">These items require administrative verification before appearing publicly.</p>
               </div>
-              <button className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 transition-colors">
-                Review approvals
+              <button className="rounded-full bg-[#D4AF37] px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-amber-600 transition">
+                Process Approvals
               </button>
             </div>
-            <div className="mt-6 space-y-3">
-              {pendingApprovals.slice(0, 5).map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start gap-4">
-                    <span className="text-3xl">{item.type}</span>
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">{item.item}</div>
-                      <div className="text-sm text-slate-500">{item.business} • {item.time}</div>
-                    </div>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {pendingApprovals.slice(0, 4).map((item) => (
+                <div key={item.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm flex items-start gap-4">
+                  <span className="text-2xl bg-amber-50 p-2.5 rounded-xl">{item.type}</span>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">{item.item}</div>
+                    <div className="text-xs text-slate-400 mt-1 font-semibold">{item.business} • {item.time}</div>
                   </div>
                 </div>
               ))}
@@ -240,20 +245,22 @@ export default function AdminDashboardPage() {
 
         {/* Management Sections */}
         {adminSections.map((section, idx) => (
-          <div key={idx} className="mb-10">
-            <h2 className="text-2xl font-semibold text-slate-900 mb-5">{section.category}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div key={idx} className="mb-12">
+            <h2 className="text-lg font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-3">{section.category}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {section.items.map((item) => (
                 <Link key={item.href} href={item.href} className="group">
-                  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className={`inline-flex rounded-2xl bg-gradient-to-r px-3 py-2 text-sm font-semibold text-white shadow-sm ${item.color}`}>
-                      {item.icon}
+                  <div className="h-full flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-amber-200">
+                    <div>
+                      <div className={`inline-flex rounded-xl bg-amber-50 p-3 text-lg font-bold text-[#D4AF37]`}>
+                        {item.icon}
+                      </div>
+                      <h3 className="mt-5 text-lg font-extrabold text-slate-800 group-hover:text-[#D4AF37] transition">{item.label}</h3>
+                      <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-400">{item.description}</p>
                     </div>
-                    <h3 className="mt-5 text-xl font-semibold text-slate-900">{item.label}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">{item.description}</p>
-                    <div className="mt-6 flex items-center justify-between text-sm text-slate-600">
-                      <span className="rounded-full bg-slate-100 px-2 py-1">{item.badge}</span>
-                      <span className="font-semibold text-slate-900 transition group-hover:text-emerald-600">View</span>
+                    <div className="mt-8 pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500 font-bold">
+                      <span className="rounded-full bg-slate-50 px-2.5 py-1 text-slate-400">{item.badge}</span>
+                      <span className="text-[#D4AF37] transition group-hover:underline">Open Drawer →</span>
                     </div>
                   </div>
                 </Link>
@@ -263,23 +270,22 @@ export default function AdminDashboardPage() {
         ))}
 
         {/* Quick Actions */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="rounded-3xl border border-amber-100 bg-[#fffdfb] p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900">⚡ Quick Actions</h2>
-              <p className="mt-2 text-sm text-slate-600">Fast access to the most important admin tasks.</p>
+              <h2 className="text-xl font-bold text-slate-800">⚡ System Shortcuts</h2>
+              <p className="mt-1 text-xs font-semibold text-slate-400">Fast access to global parameters and logs.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition">Review Pending Items</button>
-              <button className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition">View Reports</button>
-              <button className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition">System Settings</button>
+              <Link href="/jana/data-manager" className="rounded-full bg-slate-950 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-850 transition">Data Manager</Link>
+              <Link href="/jana/diagnostic" className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">System Diagnostics</Link>
             </div>
           </div>
         </div>
 
         {/* Footer Info */}
-        <div className="mt-12 text-center text-slate-500 text-sm">
-          <p>Last updated: {lastUpdated || 'Loading...'}</p>
+        <div className="mt-16 text-center text-slate-400 text-xs font-semibold">
+          <p>Control center last updated: {lastUpdated || 'Loading...'}</p>
         </div>
       </div>
     </div>

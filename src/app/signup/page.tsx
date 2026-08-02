@@ -506,7 +506,7 @@ export default function VendorSignup() {
         /* Root */
         .signup-root {
           min-height: 100vh;
-          background: #080c18;
+          background: #fbfbf9;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -514,7 +514,7 @@ export default function VendorSignup() {
           position: relative;
           overflow: hidden;
           font-family: 'Inter', system-ui, sans-serif;
-          color: #fff;
+          color: #334155;
         }
 
         /* Animated orbs */
@@ -522,22 +522,22 @@ export default function VendorSignup() {
         .bg-orb {
           position: absolute;
           border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.18;
-          animation: orbFloat 8s ease-in-out infinite alternate;
+          filter: blur(120px);
+          opacity: 0.25;
+          animation: orbFloat 10s ease-in-out infinite alternate;
         }
-        .orb1 { width: 500px; height: 500px; background: #D4AF37; top: -150px; right: -100px; }
-        .orb2 { width: 400px; height: 400px; background: #7c3aed; bottom: -120px; left: -80px; animation-delay: -3s; }
-        .orb3 { width: 300px; height: 300px; background: #0ea5e9; top: 50%; left: 40%; animation-delay: -6s; }
+        .orb1 { width: 500px; height: 500px; background: #e6dfd3; top: -150px; right: -100px; }
+        .orb2 { width: 400px; height: 400px; background: #fdf6e2; bottom: -120px; left: -80px; animation-delay: -3s; }
+        .orb3 { width: 300px; height: 300px; background: #f4eae1; top: 50%; left: 40%; animation-delay: -6s; }
         @keyframes orbFloat {
           from { transform: translate(0, 0) scale(1); }
-          to   { transform: translate(30px, -30px) scale(1.1); }
+          to   { transform: translate(40px, -40px) scale(1.1); }
         }
 
         /* Wrap */
         .signup-wrap {
           width: 100%;
-          max-width: 560px;
+          max-width: 580px;
           position: relative;
           z-index: 1;
         }
@@ -547,11 +547,10 @@ export default function VendorSignup() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
+          padding: 0 0.5rem;
         }
         .back-btn, .login-link {
-          color: rgba(255,255,255,0.5);
-          text-decoration: none;
           font-size: 0.8rem;
           font-weight: 700;
           display: flex;
