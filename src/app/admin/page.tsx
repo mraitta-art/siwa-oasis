@@ -24,9 +24,15 @@ export default function AdminDashboardPage() {
   ]);
 
   const [lastUpdated, setLastUpdated] = useState('');
+  const [deployStatus, setDeployStatus] = useState<{ running: boolean; lastDeploy?: { status: string; triggeredAt: string; durationMs?: number; commitHash?: string } | null } | null>(null);
 
   useEffect(() => {
     setLastUpdated(new Date().toLocaleString());
+    // Fetch deploy status for the widget
+    fetch('/api/admin/deployment/status')
+      .then(r => r.json())
+      .then(d => setDeployStatus(d))
+      .catch(() => {});
   }, []);
 
   const adminSections = [
@@ -82,6 +88,14 @@ export default function AdminDashboardPage() {
           badge: `${stats.sections.pending_approval} pending`,
           href: '/admin/section-visibility',
           color: 'from-pink-900 to-pink-700',
+        },
+        {
+          icon: '💡',
+          label: 'Field Requests',
+          description: 'Review custom vendor field suggestions',
+          badge: 'Suggest System',
+          href: '/admin/field-requests',
+          color: 'from-amber-900 to-amber-700',
         },
       ],
     },
@@ -268,6 +282,27 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         ))}
+
+        {/* ── Deployment Control Center Widget ── */}
+        <div className="mb-8 rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ background: 'linear-gradient(135deg, #0f0c29ee, #302b63ee)' }}>
+          <div className="p-6 flex flex-col md:flex-row md:items-center gap-6">
+            {/* Status Ring */}
+            <div style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, background: deployStatus?.running ? 'radial-gradient(circle, #f59e0b55, #f59e0b11)' : deployStatus?.lastDeploy?.status === 'failed' ? 'radial-gradient(circle, #ef444455, #ef444411)' : 'radial-gradient(circle, #22c55e55, #22c55e11)', border: `3px solid ${deployStatus?.running ? '#f59e0b' : deployStatus?.lastDeploy?.status === 'failed' ? '#ef4444' : '#22c55e'}`, boxShadow: `0 0 18px ${deployStatus?.running ? '#f59e0b44' : deployStatus?.lastDeploy?.status === 'failed' ? '#ef444444' : '#22c55e44'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+              {deployStatus?.running ? '⚙️' : deployStatus?.lastDeploy?.status === 'failed' ? '❌' : '🚀'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: '#f1f5f9' }}>🚀 Deployment Control Center</h2>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                {deployStatus?.running ? '⚙️ Deployment in progress…' :
+                  deployStatus?.lastDeploy ? `Last deploy: ${deployStatus.lastDeploy.status === 'success' ? '✅ Success' : '❌ Failed'} · ${deployStatus.lastDeploy.triggeredAt ? new Date(deployStatus.lastDeploy.triggeredAt).toLocaleString() : ''}` :
+                  'No deployments recorded yet. Click to start your first deploy.'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <Link href="/admin/deployment" style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 8, color: '#fff', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>Open Control Center →</Link>
+            </div>
+          </div>
+        </div>
 
         {/* Quick Actions */}
         <div className="rounded-3xl border border-amber-100 bg-[#fffdfb] p-8 shadow-sm">

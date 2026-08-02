@@ -36,404 +36,188 @@ export default function AdminPOISettingsPage() {
   });
 
   const [vendorPermissions, setVendorPermissions] = useState<VendorPermission[]>([
-    {
-      business_id: '1',
-      business_name: 'Desert Tours Co',
-      can_create_packages: true,
-      can_create_offers: true,
-      can_create_discounts: false,
-      packages_limit: 20,
-      offers_limit: 50,
-      discounts_limit: 0,
-      requires_approval: true,
-      status: 'active',
-    },
-    {
-      business_id: '2',
-      business_name: 'Siwa Palace Hotel',
-      can_create_packages: true,
-      can_create_offers: true,
-      can_create_discounts: false,
-      packages_limit: 30,
-      offers_limit: 100,
-      discounts_limit: 0,
-      requires_approval: true,
-      status: 'active',
-    },
-    {
-      business_id: '3',
-      business_name: 'Restaurant Siwa',
-      can_create_packages: false,
-      can_create_offers: true,
-      can_create_discounts: false,
-      packages_limit: 0,
-      offers_limit: 50,
-      discounts_limit: 0,
-      requires_approval: false,
-      status: 'active',
-    },
+    { business_id: '1', business_name: 'Desert Tours Co',   can_create_packages: true,  can_create_offers: true, can_create_discounts: false, packages_limit: 20, offers_limit: 50, discounts_limit: 0, requires_approval: true,  status: 'active' },
+    { business_id: '2', business_name: 'Siwa Palace Hotel', can_create_packages: true,  can_create_offers: true, can_create_discounts: false, packages_limit: 30, offers_limit: 100, discounts_limit: 0, requires_approval: true, status: 'active' },
+    { business_id: '3', business_name: 'Restaurant Siwa',  can_create_packages: false, can_create_offers: true, can_create_discounts: false, packages_limit: 0,  offers_limit: 50, discounts_limit: 0, requires_approval: false, status: 'active' },
   ]);
 
   const [activeTab, setActiveTab] = useState<'global' | 'vendor'>('global');
   const [editingVendor, setEditingVendor] = useState<string | null>(null);
 
   const handleGlobalChange = (key: string, value: any) => {
-    setGlobalSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setGlobalSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  /* Reusable toggle row */
+  const ToggleRow = ({ label, subLabel, settingKey }: { label: string; subLabel?: string; settingKey: keyof typeof globalSettings }) => (
+    <div className="flex items-center justify-between p-4 bg-slate-50/70 border border-slate-100 rounded-2xl">
+      <div>
+        <div className="text-slate-800 font-extrabold text-sm">{label}</div>
+        {subLabel && <div className="text-xs text-slate-400 font-semibold mt-0.5">{subLabel}</div>}
+      </div>
+      <label className="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          checked={globalSettings[settingKey] as boolean}
+          onChange={(e) => handleGlobalChange(settingKey, e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]"></div>
+      </label>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 font-sans p-6 sm:p-10">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
-        <div className="mb-8">
-          <Link href="/admin" className="text-gray-400 hover:text-[#D4AF37] transition-colors mb-4 block">
-            ← Admin Dashboard
+        <div className="mb-8 border-b border-slate-100 pb-6">
+          <Link href="/admin" className="text-slate-400 hover:text-[#D4AF37] font-bold text-xs uppercase tracking-wider transition mb-3 block">
+            ← Control Center
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">⚙️ Packages & Offers Settings</h1>
-          <p className="text-gray-400">Configure global settings and vendor permissions</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-1 flex items-center gap-2">
+            <span className="text-[#D4AF37]">⚙️</span> Packages &amp; Offers Settings
+          </h1>
+          <p className="text-slate-400 text-sm font-semibold">Configure global settings and vendor permissions for all businesses</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-gray-800">
-          <button
-            onClick={() => setActiveTab('global')}
-            className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'global'
-                ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            🌍 Global Settings
-          </button>
-          <button
-            onClick={() => setActiveTab('vendor')}
-            className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'vendor'
-                ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            👥 Vendor Permissions
-          </button>
+        <div className="flex gap-2 mb-8 bg-slate-50 border border-slate-100 rounded-2xl p-1.5 w-fit">
+          {(['global', 'vendor'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2.5 font-bold text-sm rounded-xl transition ${
+                activeTab === tab
+                  ? 'bg-white text-[#D4AF37] shadow-sm border border-slate-100'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {tab === 'global' ? '🌍 Global Settings' : '👥 Vendor Permissions'}
+            </button>
+          ))}
         </div>
 
-        {/* Global Settings */}
+        {/* ── GLOBAL SETTINGS ── */}
         {activeTab === 'global' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
+
             {/* Vendor Feature Access */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">👥 Vendor Feature Access</h2>
-              <p className="text-gray-400 mb-6">Enable/disable features for all vendors (can be overridden per vendor)</p>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div>
-                    <div className="text-white font-semibold">Allow Vendors to Create Packages</div>
-                    <div className="text-sm text-gray-400">Product bundles, service packages, combos</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.vendors_can_create_packages}
-                      onChange={(e) =>
-                        handleGlobalChange('vendors_can_create_packages', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div>
-                    <div className="text-white font-semibold">Allow Vendors to Create Offers</div>
-                    <div className="text-sm text-gray-400">Discounts, promotions, special deals</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.vendors_can_create_offers}
-                      onChange={(e) =>
-                        handleGlobalChange('vendors_can_create_offers', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div>
-                    <div className="text-white font-semibold">Allow Vendors to Create Discounts</div>
-                    <div className="text-sm text-gray-400">System-wide or targeted discounts</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.vendors_can_create_discounts}
-                      onChange={(e) =>
-                        handleGlobalChange('vendors_can_create_discounts', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+              <h2 className="text-xl font-extrabold text-slate-800 mb-1">👥 Vendor Feature Access</h2>
+              <p className="text-slate-400 text-sm font-semibold mb-6">Enable or disable features for all vendors (can be overridden per vendor)</p>
+              <div className="space-y-3">
+                <ToggleRow settingKey="vendors_can_create_packages" label="Allow Vendors to Create Packages" subLabel="Product bundles, service packages, combos" />
+                <ToggleRow settingKey="vendors_can_create_offers"   label="Allow Vendors to Create Offers"   subLabel="Discounts, promotions, special deals" />
+                <ToggleRow settingKey="vendors_can_create_discounts" label="Allow Vendors to Create Discounts" subLabel="System-wide or targeted discounts" />
               </div>
             </div>
 
             {/* Default Limits */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">📊 Default Limits per Vendor</h2>
-              <p className="text-gray-400 mb-6">These limits apply by default unless overridden per vendor</p>
-
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+              <h2 className="text-xl font-extrabold text-slate-800 mb-1">📊 Default Limits per Vendor</h2>
+              <p className="text-slate-400 text-sm font-semibold mb-6">These limits apply by default unless overridden per vendor</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Default Package Limit</label>
-                  <input
-                    type="number"
-                    value={globalSettings.default_packages_limit}
-                    onChange={(e) =>
-                      handleGlobalChange('default_packages_limit', parseInt(e.target.value))
-                    }
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">packages per vendor</div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Default Offer Limit</label>
-                  <input
-                    type="number"
-                    value={globalSettings.default_offers_limit}
-                    onChange={(e) =>
-                      handleGlobalChange('default_offers_limit', parseInt(e.target.value))
-                    }
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">offers per vendor</div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Default Discount Limit</label>
-                  <input
-                    type="number"
-                    value={globalSettings.default_discounts_limit}
-                    onChange={(e) =>
-                      handleGlobalChange('default_discounts_limit', parseInt(e.target.value))
-                    }
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">discounts per vendor</div>
-                </div>
+                {[
+                  { key: 'default_packages_limit',  label: 'Default Package Limit',  unit: 'packages per vendor' },
+                  { key: 'default_offers_limit',    label: 'Default Offer Limit',    unit: 'offers per vendor' },
+                  { key: 'default_discounts_limit', label: 'Default Discount Limit', unit: 'discounts per vendor' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{f.label}</label>
+                    <input
+                      type="number"
+                      value={(globalSettings as any)[f.key]}
+                      onChange={(e) => handleGlobalChange(f.key, parseInt(e.target.value))}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-amber-50"
+                    />
+                    <div className="text-xs text-slate-400 font-semibold mt-1">{f.unit}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Approval Settings */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">✓ Approval Requirements</h2>
-              <p className="text-gray-400 mb-6">Require admin approval before items go live</p>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div className="text-white font-semibold">Packages Require Approval</div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.packages_require_approval}
-                      onChange={(e) =>
-                        handleGlobalChange('packages_require_approval', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div className="text-white font-semibold">Offers Require Approval</div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.offers_require_approval}
-                      onChange={(e) =>
-                        handleGlobalChange('offers_require_approval', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div className="text-white font-semibold">Discounts Require Approval</div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.discounts_require_approval}
-                      onChange={(e) =>
-                        handleGlobalChange('discounts_require_approval', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+              <h2 className="text-xl font-extrabold text-slate-800 mb-1">✅ Approval Requirements</h2>
+              <p className="text-slate-400 text-sm font-semibold mb-6">Require admin approval before items go live</p>
+              <div className="space-y-3">
+                <ToggleRow settingKey="packages_require_approval"  label="Packages Require Approval" />
+                <ToggleRow settingKey="offers_require_approval"    label="Offers Require Approval" />
+                <ToggleRow settingKey="discounts_require_approval" label="Discounts Require Approval" />
               </div>
             </div>
 
             {/* Display Settings */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">🎨 Display Settings</h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div className="text-white font-semibold">Show Savings Percentage</div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.show_savings_percentage}
-                      onChange={(e) =>
-                        handleGlobalChange('show_savings_percentage', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div className="text-white font-semibold">Show Original Price (Strikethrough)</div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.show_original_price}
-                      onChange={(e) =>
-                        handleGlobalChange('show_original_price', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded">
-                  <div className="text-white font-semibold">Highlight Featured Deals</div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={globalSettings.highlight_featured_deals}
-                      onChange={(e) =>
-                        handleGlobalChange('highlight_featured_deals', e.target.checked)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#556B2F]"></div>
-                  </label>
-                </div>
-
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+              <h2 className="text-xl font-extrabold text-slate-800 mb-1">🎨 Display Settings</h2>
+              <div className="space-y-3 mt-4">
+                <ToggleRow settingKey="show_savings_percentage"    label="Show Savings Percentage" />
+                <ToggleRow settingKey="show_original_price"        label="Show Original Price (Strikethrough)" />
+                <ToggleRow settingKey="highlight_featured_deals"   label="Highlight Featured Deals" />
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Max Featured Deals to Show</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Max Featured Deals to Show</label>
                   <input
                     type="number"
                     value={globalSettings.max_featured_count}
-                    onChange={(e) =>
-                      handleGlobalChange('max_featured_count', parseInt(e.target.value))
-                    }
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                    onChange={(e) => handleGlobalChange('max_featured_count', parseInt(e.target.value))}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-amber-50"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Save Button */}
-            <button className="px-8 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity w-full">
+            {/* Save */}
+            <button className="px-8 py-3 bg-[#D4AF37] hover:bg-amber-600 rounded-2xl text-white font-bold transition shadow-sm w-full">
               💾 Save Global Settings
             </button>
           </div>
         )}
 
-        {/* Vendor Permissions */}
+        {/* ── VENDOR PERMISSIONS ── */}
         {activeTab === 'vendor' && (
           <div>
-            <div className="mb-6">
-              <p className="text-gray-400 mb-4">Override default permissions for individual vendors</p>
-            </div>
-
+            <p className="text-slate-400 text-sm font-semibold mb-6">Override default permissions for individual vendors</p>
             <div className="space-y-4">
               {vendorPermissions.map((vendor) => (
                 <div
                   key={vendor.business_id}
-                  className="bg-gray-900 border border-gray-800 rounded-lg p-6 hover:border-[#D4AF37] transition-colors"
+                  className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:border-amber-200 transition"
                 >
                   {editingVendor === vendor.business_id ? (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                        <label className="flex items-center gap-2 p-3 bg-gray-800 rounded">
-                          <input
-                            type="checkbox"
-                            checked={vendor.can_create_packages}
-                            onChange={(e) => {
-                              const updated = vendorPermissions.map((v) =>
-                                v.business_id === vendor.business_id
-                                  ? { ...v, can_create_packages: e.target.checked }
-                                  : v
-                              );
-                              setVendorPermissions(updated);
-                            }}
-                            className="w-4 h-4 accent-[#D4AF37]"
-                          />
-                          <span className="text-white text-sm font-semibold">Create Packages</span>
-                        </label>
-
-                        <label className="flex items-center gap-2 p-3 bg-gray-800 rounded">
-                          <input
-                            type="checkbox"
-                            checked={vendor.can_create_offers}
-                            onChange={(e) => {
-                              const updated = vendorPermissions.map((v) =>
-                                v.business_id === vendor.business_id
-                                  ? { ...v, can_create_offers: e.target.checked }
-                                  : v
-                              );
-                              setVendorPermissions(updated);
-                            }}
-                            className="w-4 h-4 accent-[#D4AF37]"
-                          />
-                          <span className="text-white text-sm font-semibold">Create Offers</span>
-                        </label>
-
-                        <label className="flex items-center gap-2 p-3 bg-gray-800 rounded">
-                          <input
-                            type="checkbox"
-                            checked={vendor.can_create_discounts}
-                            onChange={(e) => {
-                              const updated = vendorPermissions.map((v) =>
-                                v.business_id === vendor.business_id
-                                  ? { ...v, can_create_discounts: e.target.checked }
-                                  : v
-                              );
-                              setVendorPermissions(updated);
-                            }}
-                            className="w-4 h-4 accent-[#D4AF37]"
-                          />
-                          <span className="text-white text-sm font-semibold">Create Discounts</span>
-                        </label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                        {[
+                          { key: 'can_create_packages',  label: 'Create Packages' },
+                          { key: 'can_create_offers',    label: 'Create Offers' },
+                          { key: 'can_create_discounts', label: 'Create Discounts' },
+                        ].map(f => (
+                          <label key={f.key} className="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={(vendor as any)[f.key]}
+                              onChange={(e) => {
+                                setVendorPermissions(vendorPermissions.map(v =>
+                                  v.business_id === vendor.business_id ? { ...v, [f.key]: e.target.checked } : v
+                                ));
+                              }}
+                              className="w-4 h-4 accent-[#D4AF37]"
+                            />
+                            <span className="text-slate-700 text-sm font-semibold">{f.label}</span>
+                          </label>
+                        ))}
                       </div>
-
                       <div className="flex gap-3">
                         <button
                           onClick={() => setEditingVendor(null)}
-                          className="px-4 py-2 bg-[#556B2F] rounded text-white font-semibold hover:opacity-90 transition-opacity"
+                          className="px-5 py-2.5 bg-[#D4AF37] hover:bg-amber-600 rounded-2xl text-white font-bold transition text-sm"
                         >
                           ✓ Save
                         </button>
                         <button
                           onClick={() => setEditingVendor(null)}
-                          className="px-4 py-2 bg-gray-800 rounded text-white font-semibold hover:bg-gray-700 transition-colors"
+                          className="px-5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition text-sm"
                         >
                           ✕ Cancel
                         </button>
@@ -443,34 +227,24 @@ export default function AdminPOISettingsPage() {
                     <>
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <h3 className="text-lg font-bold text-white mb-1">{vendor.business_name}</h3>
-                          <div className="flex gap-4 text-sm">
-                            {vendor.can_create_packages && (
-                              <span className="text-green-400">✓ Packages</span>
-                            )}
-                            {vendor.can_create_offers && (
-                              <span className="text-green-400">✓ Offers</span>
-                            )}
-                            {vendor.can_create_discounts && (
-                              <span className="text-green-400">✓ Discounts</span>
-                            )}
+                          <h3 className="text-base font-extrabold text-slate-900 mb-2">{vendor.business_name}</h3>
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            {vendor.can_create_packages  && <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/50">✓ Packages</span>}
+                            {vendor.can_create_offers    && <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/50">✓ Offers</span>}
+                            {vendor.can_create_discounts && <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/50">✓ Discounts</span>}
                           </div>
                         </div>
-
-                        <span
-                          className={`px-3 py-1 rounded font-semibold text-sm ${
-                            vendor.status === 'active'
-                              ? 'bg-green-900 text-green-200'
-                              : 'bg-red-900 text-red-200'
-                          }`}
-                        >
+                        <span className={`px-3 py-1 rounded-xl font-bold text-xs border ${
+                          vendor.status === 'active'
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200/50'
+                            : 'bg-rose-50 text-rose-600 border-rose-200/50'
+                        }`}>
                           {vendor.status}
                         </span>
                       </div>
-
                       <button
                         onClick={() => setEditingVendor(vendor.business_id)}
-                        className="px-4 py-2 bg-[#556B2F] rounded text-white font-semibold hover:opacity-90 transition-opacity"
+                        className="px-5 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-2xl text-slate-700 font-bold transition text-sm"
                       >
                         ✏️ Edit Permissions
                       </button>

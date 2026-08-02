@@ -1,193 +1,342 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface BusinessData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  is_published: boolean;
+  custom_data: any;
+}
+
+interface Section {
+  id: string;
+  name: string;
+  icon: string;
+  fields: { name: string; value: any }[];
+}
+
+interface StoryData {
+  business: BusinessData;
+  structure: Section[];
+  typology: { child: any; parent: any };
+}
 
 export default function VendorDashboardPage() {
-  const [stats] = useState({
-    packages: { total: 12, active: 10, pending: 2, sold: 145 },
-    offers: { total: 8, active: 6, pending: 2, used: 324 },
-    discounts: { total: 5, active: 4, pending: 1, used: 89 },
-    investments: { total: 3, active: 2, pending: 1, inquiries: 27 },
-    sections: { total: 6, visible: 5, pending: 1 },
-  });
+  const [story, setStory] = useState<StoryData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [profilePct, setProfilePct] = useState(0);
 
-  const [recentActivity] = useState([
-    { id: 1, type: 'offer', message: 'New offer "50% Off" approved', time: '2 hours ago', status: '✅' },
-    { id: 2, type: 'inquiry', message: 'New inquiry on Winter Package', time: '4 hours ago', status: '💬' },
-    { id: 3, type: 'investment', message: 'New investor application received', time: '1 day ago', status: '📊' },
-    { id: 4, type: 'section', message: 'Gallery section now featured', time: '2 days ago', status: '⭐' },
-    { id: 5, type: 'package', message: 'Package "3-Night Stay" visible on main site', time: '3 days ago', status: '👁️' },
-  ]);
+  const recentActivity = [
+    { id: 1, icon: '✨', message: 'Profile info saved successfully', time: '2 hours ago', color: 'bg-emerald-50/40 text-emerald-700 border-emerald-100/60' },
+    { id: 2, icon: '💬', message: 'New custom journey request received', time: '4 hours ago', color: 'bg-indigo-50/40 text-indigo-700 border-indigo-100/60' },
+    { id: 3, icon: '📸', message: 'New cover photo uploaded', time: '1 day ago', color: 'bg-amber-50/40 text-amber-700 border-amber-100/60' },
+    { id: 4, icon: '🏆', message: 'Minisite gallery section featured', time: '2 days ago', color: 'bg-purple-50/40 text-purple-700 border-purple-100/60' },
+  ];
 
-  const dashboardItems = [
-    {
-      icon: '📦',
-      label: 'Packages',
-      description: 'Manage product bundles & deals',
-      stats: `${stats.packages.active}/${stats.packages.total} active`,
-      href: '/vendor/packages',
-      color: 'from-blue-900 to-blue-700',
-    },
-    {
-      icon: '🎁',
-      label: 'Offers',
-      description: 'Create & manage promotions',
-      stats: `${stats.offers.active}/${stats.offers.total} active`,
-      href: '/vendor/offers',
-      color: 'from-green-900 to-green-700',
-    },
-    {
-      icon: '💰',
-      label: 'Discounts',
-      description: 'Set up discount campaigns',
-      stats: `${stats.discounts.active}/${stats.discounts.total} active`,
-      href: '/vendor/discounts',
-      color: 'from-yellow-900 to-yellow-700',
-    },
-    {
-      icon: '💵',
-      label: 'Investments',
-      description: 'Manage investment opportunities',
-      stats: `${stats.investments.inquiries} inquiries`,
-      href: '/vendor/investment-opportunities',
-      color: 'from-purple-900 to-purple-700',
-    },
-    {
-      icon: '📋',
-      label: 'Sections',
-      description: 'Manage minisite sections',
-      stats: `${stats.sections.visible} visible`,
-      href: '/vendor/sections',
-      color: 'from-slate-900 to-slate-700',
-    },
-    {
-      icon: '🔓',
-      label: 'Claim Business',
-      description: 'Claim a listing and activate your minisite',
-      stats: 'Browse unclaimed names',
-      href: '/vendor/claim',
-      color: 'from-amber-900 to-amber-700',
-    },
-    {
-      icon: '⚙️',
-      label: 'Settings',
-      description: 'Profile & preferences',
-      stats: 'Configure',
-      href: '/vendor/settings',
-      color: 'from-gray-900 to-gray-700',
-    },
+  useEffect(() => {
+    fetch('/api/vendor/story')
+      .then(r => r.json())
+      .then((data: StoryData) => {
+        if (data?.business) {
+          setStory(data);
+          // Calculate completion percentage
+          const total = data.structure.reduce((a, s) => a + s.fields.length, 0);
+          const filled = data.structure.reduce((a, s) => a + s.fields.filter(f => f.value !== null && f.value !== '' && f.value !== undefined).length, 0);
+          setProfilePct(total > 0 ? Math.round((filled / total) * 100) : 0);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const checklistItems = [
+    { label: 'Specify Business Name & Description', href: '/vendor/sections', done: !!(story?.business?.description) },
+    { label: 'Upload Panoramic Cover Photo', href: '/vendor/media', done: false },
+    { label: 'Add Contact Details & Social Links', href: '/vendor/sections', done: false },
+    { label: 'Upload at least 3 Gallery Images', href: '/vendor/media', done: false },
+    { label: 'Publish Minisite Live to Public', href: '/vendor/minisite', done: !!(story?.business?.is_published) },
+  ];
+  const completedChecklist = checklistItems.filter(i => i.done).length;
+
+  const quickActions = [
+    { icon: '🏗️', label: 'Identity & Profile', desc: 'Manage core fields and custom details', href: '/vendor/sections', bg: 'from-amber-50/50 to-amber-100/30', border: 'hover:border-amber-300' },
+    { icon: '📸', label: 'Media Assets', desc: 'Drag-and-drop gallery manager', href: '/vendor/media', bg: 'from-purple-50/50 to-purple-100/30', border: 'hover:border-purple-300' },
+    { icon: '🌐', label: 'Minisite Studio', desc: 'Theme colors, vanity URL, visibility', href: '/vendor/minisite', bg: 'from-emerald-50/50 to-emerald-100/30', border: 'hover:border-emerald-300' },
+    { icon: '🗺️', label: 'Journey Inquiries', desc: 'View custom traveler itineraries', href: '/vendor/journey-requests', bg: 'from-blue-50/50 to-blue-100/30', border: 'hover:border-blue-300' },
+    { icon: '📦', label: 'Deals & Packages', desc: 'Create promotional experiences', href: '/vendor/packages', bg: 'from-orange-50/50 to-orange-100/30', border: 'hover:border-orange-300' },
+    { icon: '💰', label: 'Investment Listings', desc: 'Register local capital opportunities', href: '/vendor/investment-opportunities', bg: 'from-pink-50/50 to-pink-100/30', border: 'hover:border-pink-300' },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#556B2F] to-[#D4AF37] py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-            🏪 Vendor Dashboard
+    <div className="min-h-screen pb-12">
+      {/* Welcome Banner */}
+      <div 
+        className="relative rounded-[32px] p-8 md:p-10 mb-8 overflow-hidden shadow-md border border-amber-200/40 bg-gradient-to-r from-[#D4AF37] via-amber-500 to-amber-600 transition-all duration-300 hover:shadow-lg"
+        style={{
+          boxShadow: '0 10px 30px -10px rgba(212, 175, 55, 0.3)',
+        }}
+      >
+        {/* Decorative elements */}
+        <div className="absolute right-0 bottom-0 text-[180px] leading-none opacity-[0.08] select-none pointer-events-none translate-y-10 translate-x-5">🏪</div>
+        <div className="absolute left-[40%] top-[-20%] w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 max-w-3xl">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/20 text-white backdrop-blur-sm mb-3">
+            ✨ Vendor Overview Panel
+          </span>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">
+            {loading ? 'Initializing workspace...' : (story?.business?.name || 'Your Siwan Venture')}
           </h1>
-          <p className="text-white/90">Manage your business, content, and offerings</p>
+          <p className="text-amber-50/90 text-sm md:text-base font-medium mb-6 leading-relaxed max-w-2xl">
+            {story?.typology?.parent?.name && story?.typology?.child?.name
+              ? `Authorized vendor of ${story.typology.parent.name} • ${story.typology.child.name}`
+              : 'Complete your registration checklist to unlock the full potential of your vanity minisite.'}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link 
+              href="/vendor/onboarding" 
+              className="px-5 py-2.5 bg-white text-amber-800 font-extrabold text-xs md:text-sm rounded-2xl hover:bg-amber-50 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
+            >
+              🪄 Onboarding Wizard
+            </Link>
+            {story?.business?.slug && (
+              <Link 
+                href={`/${story.business.slug}`} 
+                target="_blank" 
+                className="px-5 py-2.5 bg-amber-700/30 text-white font-extrabold text-xs md:text-sm rounded-2xl hover:bg-amber-700/50 transition-all duration-200 border border-white/20 backdrop-blur-sm flex items-center gap-2"
+              >
+                <i className="fas fa-external-link-alt text-[10px]"></i> View My Minisite
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <div className="text-2xl font-bold text-[#D4AF37]">{stats.packages.total}</div>
-            <div className="text-xs text-gray-400">Packages</div>
-            <div className="text-xs text-green-400 mt-1">{stats.packages.active} active</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <div className="text-2xl font-bold text-[#D4AF37]">{stats.offers.total}</div>
-            <div className="text-xs text-gray-400">Offers</div>
-            <div className="text-xs text-green-400 mt-1">{stats.offers.active} active</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <div className="text-2xl font-bold text-[#D4AF37]">{stats.discounts.total}</div>
-            <div className="text-xs text-gray-400">Discounts</div>
-            <div className="text-xs text-green-400 mt-1">{stats.discounts.active} active</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <div className="text-2xl font-bold text-[#D4AF37]">{stats.investments.inquiries}</div>
-            <div className="text-xs text-gray-400">Inquiries</div>
-            <div className="text-xs text-green-400 mt-1">{stats.investments.total} investments</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <div className="text-2xl font-bold text-[#D4AF37]">{stats.sections.visible}</div>
-            <div className="text-xs text-gray-400">Sections</div>
-            <div className="text-xs text-green-400 mt-1">On minisite</div>
-          </div>
-        </div>
-
-        {/* Main Management Grid */}
-        <h2 className="text-2xl font-bold text-white mb-6">📊 Management Center</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {dashboardItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <div className={`bg-gradient-to-br ${item.color} p-1 rounded-lg cursor-pointer hover:shadow-lg hover:shadow-[#D4AF37]/30 transition-all`}>
-                <div className="bg-gray-900 rounded-lg p-6 h-full flex flex-col justify-between">
-                  <div>
-                    <div className="text-4xl mb-3">{item.icon}</div>
-                    <h3 className="text-lg font-bold text-white mb-1">{item.label}</h3>
-                    <p className="text-sm text-gray-400 mb-4">{item.description}</p>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">{item.stats}</span>
-                    <span className="text-[#D4AF37]">→</span>
-                  </div>
-                </div>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column (Checklist + Actions) */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Launch Checklist */}
+          <div className="bg-white border border-amber-100/50 rounded-[32px] p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                  <span className="text-[#D4AF37]">🚀</span> Launch Checklist
+                </h2>
+                <p className="text-xs font-semibold text-slate-400 mt-1">
+                  Complete these steps to build trust and rank higher in discovery searches.
+                </p>
               </div>
-            </Link>
-          ))}
-        </div>
+              <div className="text-right sm:text-right flex items-center gap-3 sm:flex-col sm:gap-0">
+                <span className="text-3xl font-black text-[#D4AF37]">
+                  {Math.round((completedChecklist / checklistItems.length) * 100)}%
+                </span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  {completedChecklist} of {checklistItems.length} Done
+                </span>
+              </div>
+            </div>
 
-        {/* Recent Activity */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">📈 Recent Activity</h2>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-            {recentActivity.map((activity, idx) => (
+            {/* Custom Progress Bar */}
+            <div className="w-full h-3 bg-slate-100 rounded-full mb-6 overflow-hidden p-0.5 border border-slate-200/30">
               <div
-                key={activity.id}
-                className={`px-6 py-4 ${idx !== recentActivity.length - 1 ? 'border-b border-gray-800' : ''} hover:bg-gray-800 transition-colors`}
-              >
-                <div className="flex items-start gap-4">
-                  <span className="text-2xl">{activity.status}</span>
-                  <div className="flex-1">
-                    <p className="text-white font-semibold">{activity.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{ 
+                  width: `${Math.round((completedChecklist / checklistItems.length) * 100)}%`, 
+                  background: 'linear-gradient(90deg, #D4AF37 0%, #f59e0b 100%)',
+                  boxShadow: '0 2px 6px rgba(212,175,55,0.4)'
+                }}
+              />
+            </div>
+
+            {/* Checklist Items */}
+            <div className="grid gap-3">
+              {checklistItems.map((item, i) => (
+                <Link 
+                  key={i} 
+                  href={item.href} 
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200 group ${
+                    item.done 
+                      ? 'bg-emerald-50/30 border-emerald-100 hover:bg-emerald-50/50' 
+                      : 'bg-slate-50/60 border-slate-100 hover:border-amber-200 hover:bg-amber-50/10'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 transition-all duration-300 ${
+                    item.done 
+                      ? 'bg-emerald-500 text-white scale-105 shadow-sm shadow-emerald-200' 
+                      : 'bg-white border border-slate-200 text-slate-400 group-hover:border-amber-300 group-hover:text-amber-500'
+                  }`}>
+                    {item.done ? '✓' : (i + 1)}
                   </div>
-                </div>
-              </div>
-            ))}
+                  <span className={`flex-1 text-sm font-bold transition-all ${
+                    item.done ? 'text-slate-400 line-through' : 'text-slate-700'
+                  }`}>
+                    {item.label}
+                  </span>
+                  {!item.done && (
+                    <i className="fas fa-chevron-right text-slate-300 group-hover:text-[#D4AF37] text-xs transition-transform duration-200 group-hover:translate-x-1"></i>
+                  )}
+                </Link>
+              ))}
+            </div>
           </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white border border-amber-100/50 rounded-[32px] p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-black text-slate-800 tracking-tight mb-5 flex items-center gap-2">
+              <span className="text-[#D4AF37]">⚡</span> Dashboard Quick Actions
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {quickActions.map((action, i) => (
+                <Link 
+                  key={i} 
+                  href={action.href}
+                  className={`group p-5 rounded-3xl border border-slate-100 bg-gradient-to-br ${action.bg} ${action.border} transition-all duration-300 hover:shadow-md hover:-translate-y-1 flex flex-col justify-between`}
+                  style={{ minHeight: '140px' }}
+                >
+                  <div>
+                    <div className="text-3xl mb-3 filter drop-shadow-sm transition-transform duration-300 group-hover:scale-110 origin-left inline-block">
+                      {action.icon}
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-800 mb-1 leading-snug">
+                      {action.label}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-semibold leading-normal">
+                    {action.desc}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Ready to Grow?</h2>
-          <p className="text-white/90 mb-6">Create new offerings and expand your reach</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              href="/vendor/packages"
-              className="px-6 py-2 bg-white text-[#556B2F] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+        {/* Right Column (Analytics / Health / Activity) */}
+        <div className="space-y-8">
+          
+          {/* Profile Health */}
+          <div className="bg-white border border-amber-100/50 rounded-[32px] p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-black text-slate-800 tracking-tight">📊 Profile Completeness</h2>
+            <p className="text-xs font-semibold text-slate-400 mt-1 mb-6">Percentage of profile attributes completed.</p>
+
+            <div className="flex items-center justify-center mb-6">
+              <div className="relative w-28 h-28">
+                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                  <circle cx="18" cy="18" r="16" fill="none" stroke="#f1f5f9" strokeWidth="2.5"/>
+                  <circle cx="18" cy="18" r="16" fill="none" stroke="url(#goldGradient)" strokeWidth="3"
+                    strokeDasharray={`${profilePct} 100`} strokeLinecap="round" className="transition-all duration-1000"/>
+                  <defs>
+                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#D4AF37" />
+                      <stop offset="100%" stopColor="#f59e0b" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-black text-[#D4AF37]">{profilePct}%</span>
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Health</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Individual Sections */}
+            <div className="space-y-3.5 mb-6">
+              {loading ? (
+                <>
+                  <div className="h-10 bg-slate-50 rounded-xl animate-pulse" />
+                  <div className="h-10 bg-slate-50 rounded-xl animate-pulse" />
+                </>
+              ) : (
+                story?.structure?.slice(0, 4).map(s => {
+                  const filled = s.fields.filter(f => f.value !== null && f.value !== '' && f.value !== undefined).length;
+                  const pct = s.fields.length > 0 ? Math.round((filled / s.fields.length) * 100) : 0;
+                  return (
+                    <div key={s.id} className="space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-600 flex items-center gap-1.5">
+                          <span>{s.icon || '📋'}</span>
+                          {s.name}
+                        </span>
+                        <span className="font-black text-[#D4AF37]">{pct}%</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/20">
+                        <div 
+                          className="h-full rounded-full transition-all duration-500" 
+                          style={{ 
+                            width: `${pct}%`, 
+                            background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #D4AF37, #f59e0b)' 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <Link 
+              href="/vendor/sections" 
+              className="flex items-center justify-center gap-2 w-full py-3 bg-[#D4AF37] hover:bg-amber-600 text-white font-extrabold text-sm rounded-2xl transition-all duration-200 shadow-sm shadow-amber-100"
             >
-              + New Package
-            </Link>
-            <Link
-              href="/vendor/offers"
-              className="px-6 py-2 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
-            >
-              + New Offer
-            </Link>
-            <Link
-              href="/vendor/investment-opportunities"
-              className="px-6 py-2 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
-            >
-              + New Investment
+              ✏️ Customize Content Sections
             </Link>
           </div>
+
+          {/* Minisite Status */}
+          <div className={`border rounded-[32px] p-6 shadow-sm transition-all duration-300 hover:shadow-md ${
+            story?.business?.is_published 
+              ? 'bg-emerald-50/30 border-emerald-100/60' 
+              : 'bg-white border-amber-100/50'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">🌐 Minisite Status</h2>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${
+                story?.business?.is_published 
+                  ? 'bg-emerald-500 text-white border-transparent' 
+                  : 'bg-amber-500 text-white border-transparent animate-pulse'
+              }`}>
+                {story?.business?.is_published ? '● Published' : '○ Draft Mode'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-semibold mb-5 leading-relaxed">
+              {story?.business?.is_published
+                ? 'Your Siwa Oasis vanity website is fully indexed and visible to global travelers.'
+                : 'Your changes are stored safely. Publish to overwrite the active live version.'}
+            </p>
+            <Link 
+              href="/vendor/minisite" 
+              className={`flex items-center justify-center gap-2 w-full py-3 font-extrabold text-sm rounded-2xl transition-all duration-200 ${
+                story?.business?.is_published 
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-100' 
+                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm'
+              }`}
+            >
+              {story?.business?.is_published ? '⚙️ Open Minisite Settings' : '🚀 Publish To Live Site'}
+            </Link>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-white border border-amber-100/50 rounded-[32px] p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+            <h2 className="text-lg font-black text-slate-800 tracking-tight mb-4">📈 Status Log</h2>
+            <div className="grid gap-3">
+              {recentActivity.map(item => (
+                <div key={item.id} className={`flex items-start gap-3.5 p-4 rounded-2xl border transition-all hover:bg-white/80 ${item.color}`}>
+                  <span className="text-xl flex-shrink-0 filter drop-shadow-sm">{item.icon}</span>
+                  <div>
+                    <p className="text-xs font-bold leading-snug">{item.message}</p>
+                    <p className="text-[10px] opacity-60 font-black uppercase tracking-widest mt-1">{item.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

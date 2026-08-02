@@ -1,7 +1,6 @@
 'use client';
-export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface GalleryItem {
   id: string;
@@ -17,57 +16,18 @@ interface Section {
   name: string;
 }
 
-const S = {
-  wrap: { minHeight: '100vh', background: '#f8fafc', padding: '2rem' },
-  container: { maxWidth: '1200px', margin: '0 auto' },
-  header: { marginBottom: '2rem' },
-  title: { fontSize: '2rem', fontWeight: 900, color: '#1a1a2e', marginBottom: '0.5rem' },
-  subtitle: { color: '#64748b' },
-  tabsContainer: { display: 'flex', gap: '1rem', borderBottom: '2px solid #e2e8f0', marginBottom: '2rem', overflowX: 'auto' as const },
-  tab: (active: boolean) => ({
-    padding: '1rem 1.5rem',
-    background: 'none',
-    border: 'none',
-    borderBottom: active ? '3px solid #D4AF37' : 'none',
-    cursor: 'pointer',
-    fontWeight: active ? 'bold' : '500',
-    color: active ? '#D4AF37' : '#64748b',
-    fontSize: '1rem'
-  }),
-  uploadZone: { background: '#fff', border: '2px dashed #D4AF37', borderRadius: '16px', padding: '3rem', textAlign: 'center' as const, cursor: 'pointer', transition: 'all 0.3s' },
-  uploadZoneHover: { background: '#D4AF3710' },
-  uploadIcon: { fontSize: '3rem', marginBottom: '1rem' },
-  buttonGroup: { display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' as const },
-  button: { padding: '0.75rem 1.5rem', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' },
-  buttonPrimary: { background: '#556B2F', color: '#D4AF37' },
-  buttonSecondary: { background: '#e2e8f0', color: '#1a1a2e' },
-  gallery: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '2rem' },
-  galleryItem: { background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' },
-  galleryImage: { height: '200px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  galleryInfo: { padding: '1rem' },
-  caption: { fontSize: '0.9rem', fontWeight: 'bold', color: '#1a1a2e', marginBottom: '0.5rem' },
-  date: { fontSize: '0.75rem', color: '#94a3b8' },
-  actions: { display: 'flex', gap: '0.5rem', marginTop: '0.75rem' },
-  actionButton: { flex: 1, padding: '0.5rem', fontSize: '0.75rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
-  heroButton: { background: '#10b981', color: '#fff' },
-  deleteButton: { background: '#ef4444', color: '#fff' },
-  message: { padding: '1rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: 'bold' }
-};
-
 export default function VendorMediaPage() {
   const [activeTab, setActiveTab] = useState<'upload' | 'gallery' | 'manage'>('upload');
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState('');
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    loadSections();
-    loadGallery();
-  }, []);
+  useEffect(() => { loadSections(); loadGallery(); }, []);
 
   async function loadSections() {
     try {
@@ -75,9 +35,7 @@ export default function VendorMediaPage() {
       const data = await res.json();
       setSections(Array.isArray(data) ? data : []);
       if (data.length > 0) setSelectedSection(data[0].id);
-    } catch (err) {
-      console.error('Load sections error:', err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function loadGallery() {
@@ -85,21 +43,14 @@ export default function VendorMediaPage() {
       const res = await fetch('/api/vendor/gallery');
       const data = await res.json();
       setGallery(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Load gallery error:', err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function handleFileUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
-    if (!selectedSection) {
-      showMessage('error', 'Please select a section first');
-      return;
-    }
-
+    if (!selectedSection) { showMessage('error', 'Please select a section first'); return; }
     setLoading(true);
     setUploadProgress(0);
-
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -107,65 +58,41 @@ export default function VendorMediaPage() {
         formData.append('file', file);
         formData.append('sectionId', selectedSection);
         formData.append('caption', file.name.replace(/\.[^/.]+$/, ''));
-
         const xhr = new XMLHttpRequest();
-
         xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = ((i + e.loaded / e.total) / files.length) * 100;
-            setUploadProgress(Math.round(percentComplete));
-          }
+          if (e.lengthComputable) setUploadProgress(Math.round(((i + e.loaded / e.total) / files.length) * 100));
         });
-
         await new Promise((resolve, reject) => {
-          xhr.onload = () => {
-            if (xhr.status === 200 || xhr.status === 201) {
-              resolve(xhr.responseText);
-            } else {
-              reject(new Error('Upload failed'));
-            }
-          };
-          xhr.onerror = () => reject(new Error('Upload failed'));
+          xhr.onload = () => (xhr.status === 200 || xhr.status === 201) ? resolve(xhr.responseText) : reject();
+          xhr.onerror = () => reject();
           xhr.open('POST', '/api/vendor/gallery/upload');
           xhr.send(formData);
         });
       }
-
-      showMessage('success', `✓ Uploaded ${files.length} image(s)`);
+      showMessage('success', `✓ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded successfully`);
       setUploadProgress(0);
       await loadGallery();
-    } catch (err) {
+      setActiveTab('gallery');
+    } catch {
       showMessage('error', 'Upload failed. Please try again.');
-      console.error('Upload error:', err);
     } finally {
       setLoading(false);
     }
   }
 
-  async function setAsHero(itemId: string) {
+  async function setAsHero(id: string) {
     try {
-      const res = await fetch(`/api/vendor/gallery/${itemId}/hero`, { method: 'PATCH' });
-      if (res.ok) {
-        showMessage('success', '✓ Set as hero image');
-        await loadGallery();
-      }
-    } catch (err) {
-      showMessage('error', 'Failed to update image');
-    }
+      const res = await fetch(`/api/vendor/gallery/${id}/hero`, { method: 'PATCH' });
+      if (res.ok) { showMessage('success', '⭐ Set as hero image'); await loadGallery(); }
+    } catch { showMessage('error', 'Failed to update'); }
   }
 
-  async function deleteImage(itemId: string) {
+  async function deleteImage(id: string) {
     if (!confirm('Delete this image?')) return;
-    
     try {
-      const res = await fetch(`/api/vendor/gallery/${itemId}`, { method: 'DELETE' });
-      if (res.ok) {
-        showMessage('success', '✓ Image deleted');
-        await loadGallery();
-      }
-    } catch (err) {
-      showMessage('error', 'Failed to delete image');
-    }
+      const res = await fetch(`/api/vendor/gallery/${id}`, { method: 'DELETE' });
+      if (res.ok) { showMessage('success', '✓ Image deleted'); await loadGallery(); }
+    } catch { showMessage('error', 'Failed to delete'); }
   }
 
   function showMessage(type: 'success' | 'error', text: string) {
@@ -173,244 +100,225 @@ export default function VendorMediaPage() {
     setTimeout(() => setMessage(null), 4000);
   }
 
+  const approvalBadge = (status?: string) => {
+    if (status === 'approved') return 'bg-emerald-500 text-white';
+    if (status === 'rejected') return 'bg-rose-500 text-white';
+    return 'bg-amber-400 text-white';
+  };
+
+  const tabs = [
+    { key: 'upload',  label: '📤 Upload',  count: null },
+    { key: 'gallery', label: '🖼️ Gallery',  count: gallery.length },
+    { key: 'manage',  label: '⚙️ Manage',   count: null },
+  ] as const;
+
   return (
-    <div style={S.wrap}>
-      <div style={S.container}>
-        {/* Header */}
-        <div style={S.header}>
-          <h1 style={S.title}>📸 Media Gallery Manager</h1>
-          <p style={S.subtitle}>Upload photos directly from your camera to section galleries</p>
+    <div>
+      {/* Header */}
+      <div className="mb-6 border-b border-slate-100 pb-5">
+        <h1 className="text-2xl font-extrabold text-slate-900 mb-1">📸 Media Gallery</h1>
+        <p className="text-slate-400 font-semibold text-sm">Upload and manage photos for your minisite sections</p>
+      </div>
+
+      {/* Toast message */}
+      {message && (
+        <div className={`mb-5 flex items-center gap-3 px-5 py-3.5 rounded-2xl border text-sm font-bold ${
+          message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'
+        }`}>
+          {message.text}
         </div>
+      )}
 
-        {/* Messages */}
-        {message && (
-          <div style={{...S.message, background: message.type === 'success' ? '#dcfce7' : '#fee2e2', color: message.type === 'success' ? '#166534' : '#991b1b'}}>
-            {message.text}
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={S.tabsContainer}>
-          <button style={S.tab(activeTab === 'upload')} onClick={() => setActiveTab('upload')}>
-            📤 Upload
+      {/* Tab bar */}
+      <div className="flex gap-2 bg-slate-50 border border-slate-100 rounded-2xl p-1.5 w-fit mb-6">
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition whitespace-nowrap flex items-center gap-2 ${
+              activeTab === tab.key ? 'bg-white text-[#D4AF37] shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            {tab.label}
+            {tab.count !== null && tab.count > 0 && (
+              <span className={`text-xs font-extrabold px-1.5 py-0.5 rounded-lg ${activeTab === tab.key ? 'bg-amber-50 text-[#D4AF37]' : 'bg-slate-100 text-slate-500'}`}>
+                {tab.count}
+              </span>
+            )}
           </button>
-          <button style={S.tab(activeTab === 'gallery')} onClick={() => setActiveTab('gallery')}>
-            🖼️ Gallery
-          </button>
-          <button style={S.tab(activeTab === 'manage')} onClick={() => setActiveTab('manage')}>
-            ⚙️ Manage
-          </button>
-        </div>
+        ))}
+      </div>
 
-        {/* Upload Tab */}
-        {activeTab === 'upload' && (
-          <div>
-            {/* Section Selector */}
-            <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1a1a2e' }}>
-                Select Section to Upload To
-              </label>
-              <select 
-                value={selectedSection} 
-                onChange={e => setSelectedSection(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
-              >
-                <option value="">Choose a section...</option>
-                {sections.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Upload Zone */}
-            <div 
-              style={{...S.uploadZone, ...(dragOver ? S.uploadZoneHover : {})}}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-                handleFileUpload(e.dataTransfer.files);
-              }}
+      {/* ── UPLOAD TAB ── */}
+      {activeTab === 'upload' && (
+        <div className="space-y-5">
+          {/* Section selector */}
+          <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm">
+            <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+              📂 Upload to Section
+            </label>
+            <select
+              value={selectedSection}
+              onChange={e => setSelectedSection(e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-amber-50 transition"
             >
-              <div style={S.uploadIcon}>📸</div>
-              <h3 style={{ marginBottom: '0.5rem', color: '#1a1a2e' }}>
-                Drag & Drop Photos Here
+              <option value="">Choose a section...</option>
+              {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          {/* Drop zone */}
+          <div
+            className={`bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden`}
+          >
+            <div
+              className={`border-2 border-dashed m-5 rounded-2xl p-10 text-center cursor-pointer transition ${
+                dragOver ? 'border-[#D4AF37] bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-amber-300 hover:bg-amber-50/40'
+              }`}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
+              onClick={() => fileRef.current?.click()}
+            >
+              <div className="text-5xl mb-3">{loading ? '⏳' : '📸'}</div>
+              <h3 className="font-extrabold text-slate-700 text-lg mb-1">
+                {loading ? `Uploading... ${uploadProgress}%` : 'Drag & Drop Photos Here'}
               </h3>
-              <p style={{ color: '#64748b', marginBottom: '1rem' }}>
-                or click buttons below to select
-              </p>
+              <p className="text-slate-400 text-sm font-semibold mb-4">or use the buttons below</p>
 
-              <div style={S.buttonGroup}>
-                <label style={{...S.button, ...S.buttonPrimary, display: 'inline-block'}}>
-                  📱 Camera (Mobile)
-                  <input 
-                    type="file" 
-                    accept="image/*,video/*" 
-                    capture="environment"
-                    multiple
-                    onChange={e => handleFileUpload(e.target.files)}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-                
-                <label style={{...S.button, ...S.buttonSecondary, display: 'inline-block'}}>
-                  📁 File Gallery
-                  <input 
-                    type="file" 
-                    accept="image/*,video/*" 
-                    multiple
-                    onChange={e => handleFileUpload(e.target.files)}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-              </div>
-
+              {/* Progress bar */}
               {uploadProgress > 0 && uploadProgress < 100 && (
-                <div style={{ marginTop: '2rem' }}>
-                  <div style={{ background: '#e2e8f0', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div 
-                      style={{ 
-                        background: '#D4AF37', 
-                        height: '100%', 
-                        width: `${uploadProgress}%`,
-                        transition: 'width 0.3s'
-                      }}
-                    />
-                  </div>
-                  <p style={{ marginTop: '0.5rem', color: '#64748b' }}>{uploadProgress}% uploaded</p>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mx-auto max-w-xs mb-4">
+                  <div className="h-full bg-[#D4AF37] rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
               )}
+
+              <div className="flex gap-3 justify-center flex-wrap">
+                <label className="px-5 py-2.5 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold text-sm rounded-2xl transition cursor-pointer shadow-sm">
+                  📁 Browse Files
+                  <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e => handleFileUpload(e.target.files)} />
+                </label>
+                <label className="px-5 py-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-2xl transition cursor-pointer">
+                  📱 Camera
+                  <input type="file" accept="image/*,video/*" capture="environment" multiple className="hidden" onChange={e => handleFileUpload(e.target.files)} />
+                </label>
+              </div>
             </div>
 
-            {/* Info Box */}
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '1.5rem', marginTop: '2rem', color: '#166534' }}>
-              <p style={{ margin: 0, fontWeight: 'bold', marginBottom: '0.5rem' }}>✓ Direct Camera Upload</p>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem', fontSize: '0.9rem' }}>
-                <li>Works on mobile and desktop</li>
-                <li>Supports JPG, PNG, GIF, WebP, MP4</li>
-                <li>Max 10MB per file</li>
-                <li>Unlimited uploads per section</li>
+            {/* Tips */}
+            <div className="mx-5 mb-5 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-emerald-700 font-semibold">
+              <p className="font-extrabold mb-1">✓ Tips for great photos</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Use natural light for food, accommodation and nature shots</li>
+                <li>Upload JPG, PNG, WebP or MP4 (max 10MB per file)</li>
+                <li>Mark your best photo as "Hero" — it becomes your cover photo</li>
+                <li>All photos are reviewed by our team before going live</li>
               </ul>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Gallery Tab */}
-        {activeTab === 'gallery' && (
-          <div>
-            {gallery.length > 0 ? (
-              <>
-                <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
-                  {gallery.length} image{gallery.length !== 1 ? 's' : ''} uploaded
-                </p>
-                <div style={S.gallery}>
-                  {gallery.map(item => (
-                    <div key={item.id} style={S.galleryItem}>
-                      <div style={S.galleryImage}>
-                        <img 
-                          src={item.url} 
-                          alt={item.caption}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        {/* Approval Badge */}
-                        {item.approval_status && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '0.5rem',
-                            right: '0.5rem',
-                            padding: '0.4rem 0.8rem',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#fff',
-                            background: item.approval_status === 'approved' ? '#10b981' :
-                                       item.approval_status === 'rejected' ? '#ef4444' : '#fbbf24'
-                          }}>
-                            {item.approval_status === 'approved' ? '✓ Approved' :
-                             item.approval_status === 'rejected' ? '✗ Rejected' :
-                             '⏳ Pending'}
-                          </div>
-                        )}
-                      </div>
-                      <div style={S.galleryInfo}>
-                        <div style={S.caption}>{item.caption}</div>
-                        <div style={S.date}>{new Date(item.uploadedAt).toLocaleDateString()}</div>
-                        <div style={S.actions}>
-                          <button 
-                            style={{...S.actionButton, ...S.heroButton}}
-                            onClick={() => setAsHero(item.id)}
-                            disabled={item.isHero || item.approval_status === 'rejected'}
-                            title={item.approval_status === 'rejected' ? 'Cannot set rejected image as hero' : ''}
-                          >
-                            {item.isHero ? '⭐ Hero' : 'Set as Hero'}
-                          </button>
-                          <button 
-                            style={{...S.actionButton, ...S.deleteButton}}
-                            onClick={() => deleteImage(item.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', background: '#fff', borderRadius: '12px' }}>
-                <p style={{ color: '#94a3b8', fontSize: '1.1rem' }}>No images uploaded yet</p>
-                <button 
-                  onClick={() => setActiveTab('upload')}
-                  style={{...S.button, ...S.buttonPrimary, marginTop: '1rem'}}
-                >
-                  Upload Your First Image
+      {/* ── GALLERY TAB ── */}
+      {activeTab === 'gallery' && (
+        <div>
+          {gallery.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+              <div className="text-5xl mb-3">🖼️</div>
+              <h3 className="font-extrabold text-slate-700 mb-2">No Photos Yet</h3>
+              <p className="text-slate-400 text-sm font-semibold mb-4">Upload your first photo to get started</p>
+              <button onClick={() => setActiveTab('upload')} className="px-6 py-2.5 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold text-sm rounded-2xl transition">
+                Upload Photos
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-sm font-extrabold text-slate-500">{gallery.length} photo{gallery.length !== 1 ? 's' : ''} uploaded</p>
+                <button onClick={() => setActiveTab('upload')} className="px-4 py-2 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition">
+                  + Upload More
                 </button>
               </div>
-            )}
-          </div>
-        )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {gallery.map(item => (
+                  <div key={item.id} className={`relative rounded-2xl overflow-hidden border-2 transition group ${item.isHero ? 'border-[#D4AF37] shadow-lg shadow-amber-100' : 'border-slate-100 hover:border-slate-200'}`}>
+                    <img src={item.url} alt={item.caption} className="w-full h-36 object-cover" />
 
-        {/* Manage Tab */}
-        {activeTab === 'manage' && (
-          <div>
-            <div style={{ background: '#fff', borderRadius: '12px', padding: '2rem' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#1a1a2e' }}>
-                Gallery Settings
-              </h2>
+                    {/* Hero badge */}
+                    {item.isHero && (
+                      <div className="absolute top-2 left-2 bg-[#D4AF37] text-white text-xs font-extrabold px-2 py-0.5 rounded-lg shadow">
+                        ⭐ Hero
+                      </div>
+                    )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid #e2e8f0' }}>
-                  <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#1a1a2e' }}>🎯 Auto-Feature Best Photo</h3>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input type="checkbox" defaultChecked style={{ cursor: 'pointer' }} />
-                    <span>Automatically set highest-quality image as hero</span>
-                  </label>
-                  <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.5rem' }}>Hero images appear prominently in minisite carousels</p>
-                </div>
+                    {/* Approval badge */}
+                    {item.approval_status && (
+                      <div className={`absolute top-2 right-2 text-xs font-extrabold px-2 py-0.5 rounded-lg shadow ${approvalBadge(item.approval_status)}`}>
+                        {item.approval_status === 'approved' ? '✓' : item.approval_status === 'rejected' ? '✗' : '⏳'}
+                      </div>
+                    )}
 
-                <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid #e2e8f0' }}>
-                  <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#1a1a2e' }}>📧 Email on Upload</h3>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input type="checkbox" style={{ cursor: 'pointer' }} />
-                    <span>Send me email when all images are processed</span>
-                  </label>
-                </div>
+                    {/* Hover actions */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-end p-2 gap-1.5">
+                      {!item.isHero && item.approval_status !== 'rejected' && (
+                        <button onClick={() => setAsHero(item.id)} className="flex-1 py-1.5 bg-[#D4AF37] text-white text-xs font-extrabold rounded-xl transition">
+                          ⭐ Hero
+                        </button>
+                      )}
+                      <button onClick={() => deleteImage(item.id)} className="flex-1 py-1.5 bg-rose-500 text-white text-xs font-extrabold rounded-xl transition">
+                        🗑️
+                      </button>
+                    </div>
 
-                <div>
-                  <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#1a1a2e' }}>🗑️ Bulk Actions</h3>
-                  <button style={{...S.button, background: '#ef4444', color: '#fff', marginRight: '0.5rem'}}>
-                    Delete All
-                  </button>
-                  <button style={{...S.button, background: '#3b82f6', color: '#fff'}}>
-                    Download Folder
-                  </button>
-                </div>
+                    {/* Caption */}
+                    <div className="p-2.5 bg-white">
+                      <p className="text-xs font-bold text-slate-600 truncate">{item.caption || 'Untitled'}</p>
+                      <p className="text-xs text-slate-400">{new Date(item.uploadedAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MANAGE TAB ── */}
+      {activeTab === 'manage' && (
+        <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6">
+          <h2 className="text-lg font-extrabold text-slate-800">⚙️ Gallery Settings</h2>
+
+          <div className="space-y-4">
+            {[
+              { icon: '🎯', title: 'Auto-Feature Best Photo', desc: 'Automatically set highest-quality image as hero', checked: true },
+              { icon: '📧', title: 'Email on Upload', desc: 'Get notified when images are processed', checked: false },
+              { icon: '🌐', title: 'Show on Main Site', desc: 'Allow approved photos to appear in site galleries', checked: true },
+            ].map(setting => (
+              <div key={setting.title} className="flex items-center justify-between p-4 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                <div>
+                  <div className="text-sm font-extrabold text-slate-800">{setting.icon} {setting.title}</div>
+                  <div className="text-xs text-slate-400 font-semibold mt-0.5">{setting.desc}</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" defaultChecked={setting.checked} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]"></div>
+                </label>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+
+          {gallery.length > 0 && (
+            <div className="border-t border-slate-100 pt-5">
+              <h3 className="text-sm font-extrabold text-slate-700 mb-3">🗑️ Bulk Actions</h3>
+              <div className="flex gap-3">
+                <button onClick={() => confirm('Delete ALL photos? This cannot be undone.') && null} className="px-4 py-2.5 bg-rose-50 border border-rose-200 text-rose-600 font-bold text-sm rounded-2xl hover:bg-rose-100 transition">
+                  Delete All Photos
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

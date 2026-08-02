@@ -101,44 +101,48 @@ export default function AdminInvestmentOpportunitiesPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'published':
-        return 'bg-green-900 text-green-200';
+        return 'bg-emerald-50 text-emerald-600 border border-emerald-200/50';
       case 'draft':
-        return 'bg-yellow-900 text-yellow-200';
+        return 'bg-amber-50 text-amber-600 border border-amber-200/50';
       case 'closed':
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-slate-50 text-slate-400 border border-slate-200/50';
       case 'funded':
-        return 'bg-blue-900 text-blue-200';
+        return 'bg-blue-50 text-blue-600 border border-blue-200/50';
       default:
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-slate-50 text-slate-400';
     }
   };
 
   const getApprovalColor = (approval: string) => {
     switch (approval) {
       case 'approved':
-        return 'bg-green-900 text-green-200';
+        return 'bg-emerald-50 text-emerald-600 border border-emerald-200/50';
       case 'pending':
-        return 'bg-yellow-900 text-yellow-200';
+        return 'bg-amber-50 text-amber-600 border border-amber-200/50';
       case 'rejected':
-        return 'bg-red-900 text-red-200';
+        return 'bg-rose-50 text-rose-600 border border-rose-200/50';
       default:
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-slate-50 text-slate-400';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 p-6 sm:p-10 font-sans">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <Link href="/admin" className="text-gray-400 hover:text-[#D4AF37] transition-colors mb-4 block">
-            ← Admin Dashboard
+        <div className="mb-8 border-b border-slate-100 pb-6">
+          <Link href="/admin" className="text-slate-400 hover:text-[#D4AF37] font-bold text-xs uppercase tracking-wider transition-colors mb-4 block">
+            ← Control Center
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">💰 Investment Opportunities</h1>
-          <p className="text-gray-400">Manage business investment listings and investor inquiries</p>
-          <div className="mt-4 flex flex-wrap gap-3 items-center">
-            <Link href="/investment-opportunities" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#556B2F] text-sm font-semibold text-white hover:bg-[#4b5c26] transition-colors">
-              View live investment page
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-900 mb-1 flex items-center gap-2">
+                <span className="text-[#D4AF37]">💎</span> Investment Opportunities
+              </h1>
+              <p className="text-slate-500 text-sm">Review, approve, and promote investment listings and investor inquiries</p>
+            </div>
+            <Link href="/investment-opportunities" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-200 bg-amber-50 text-[#D4AF37] hover:bg-amber-100 transition font-bold text-xs uppercase tracking-wider">
+              View live investments page
             </Link>
           </div>
         </div>
@@ -147,7 +151,7 @@ export default function AdminInvestmentOpportunitiesPage() {
         <div className="mb-8 flex gap-4 flex-wrap items-center">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+            className="px-6 py-3 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-sm"
           >
             + New Opportunity
           </button>
@@ -155,7 +159,7 @@ export default function AdminInvestmentOpportunitiesPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
           >
             <option value="all">All Status</option>
             <option value="published">Published</option>
@@ -167,7 +171,7 @@ export default function AdminInvestmentOpportunitiesPage() {
           <select
             value={filterApproval}
             onChange={(e) => setFilterApproval(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
           >
             <option value="all">All Approvals</option>
             <option value="pending">Pending Review</option>
@@ -178,174 +182,160 @@ export default function AdminInvestmentOpportunitiesPage() {
           <select
             value={filterVisibility}
             onChange={(e) => setFilterVisibility(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
           >
             <option value="all">All Visibility</option>
             <option value="visible">Visible on Main Site</option>
             <option value="hidden">Hidden from Main Site</option>
           </select>
 
-          <div className="text-gray-400 text-sm ml-auto">
+          <div className="text-slate-400 text-xs font-bold uppercase tracking-wider ml-auto">
             Showing {filteredOpportunities.length} of {opportunities.length}
           </div>
         </div>
 
-        {/* Opportunities Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Opportunity</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Business</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Type</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Investment Range</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">ROI</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Investors</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Status</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Visibility</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOpportunities.map((opp) => (
-                <tr key={opp.id} className="border-b border-gray-900 hover:bg-gray-900 transition-colors">
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="text-white font-semibold flex items-center gap-2">
-                        <span className="text-xl">{getTypeIcon(opp.opportunity_type)}</span>
-                        {opp.opportunity_title}
+        {/* Table */}
+        <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm mb-12">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-black uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left">Opportunity</th>
+                  <th className="px-6 py-4 text-left">Business</th>
+                  <th className="px-6 py-4 text-left">Type</th>
+                  <th className="px-6 py-4 text-left">Investment Range</th>
+                  <th className="px-6 py-4 text-left">ROI</th>
+                  <th className="px-6 py-4 text-left">Investors</th>
+                  <th className="px-6 py-4 text-left">Status</th>
+                  <th className="px-6 py-4 text-left">Approval</th>
+                  <th className="px-6 py-4 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredOpportunities.map((opp) => (
+                  <tr key={opp.id} className="hover:bg-slate-50/50 transition-colors text-sm text-slate-700">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-slate-800 font-extrabold flex items-center gap-2">
+                          <span className="text-lg bg-amber-50 p-1.5 rounded-lg">{getTypeIcon(opp.opportunity_type)}</span>
+                          {opp.opportunity_title}
+                        </div>
+                        {opp.visibility_on_main_site && (
+                          <span className="mt-1 inline-block px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                            Visible on main
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">{opp.inquiries_count} inquiries</div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-300">{opp.business_name}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm px-2 py-1 bg-gray-800 rounded text-gray-300 capitalize">
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-600">{opp.business_name}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                       {opp.opportunity_type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-white font-semibold text-sm">
-                      ${opp.investment_amount_min.toLocaleString()} - ${opp.investment_amount_max.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-[#D4AF37] font-bold">{opp.expected_roi_percent}%</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-white font-semibold">
-                      {opp.investors_current}/{opp.target_investors}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      <div className="w-20 h-1 bg-gray-800 rounded mt-1 overflow-hidden">
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-slate-800 font-black">
+                        ${opp.investment_amount_min.toLocaleString()} - ${opp.investment_amount_max.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-[#D4AF37] font-black">{opp.expected_roi_percent}%</div>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-500">
+                      <div>{opp.investors_current}/{opp.target_investors}</div>
+                      <div className="w-20 h-1 bg-slate-100 rounded mt-1 overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-[#556B2F] to-[#D4AF37]"
+                          className="h-full bg-gradient-to-r from-[#D4AF37] to-amber-500"
                           style={{ width: `${(opp.investors_current / opp.target_investors) * 100}%` }}
                         ></div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded font-semibold ${getStatusColor(opp.status)}`}>
-                      {opp.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-semibold ${
-                        opp.visibility_on_main_site
-                          ? 'bg-green-900 text-green-200'
-                          : 'bg-gray-800 text-gray-300'
-                      }`}
-                    >
-                      {opp.visibility_on_main_site ? '👁️ Visible' : '🙈 Hidden'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1 text-xs bg-[#556B2F] hover:opacity-90 rounded text-white transition-opacity">
-                        ✏️ Edit
-                      </button>
-                      <button
-                        className="px-3 py-1 text-xs rounded text-white transition-opacity font-semibold"
-                        style={{
-                          backgroundColor: opp.visibility_on_main_site ? '#7c3aed' : '#3b82f6',
-                        }}
-                      >
-                        {opp.visibility_on_main_site ? '🙈 Hide' : '👁️ Show'}
-                      </button>
-                      {opp.approval_status === 'pending' && (
-                        <>
-                          <button className="px-3 py-1 text-xs bg-green-900 hover:bg-green-800 rounded text-green-200 transition-colors">
-                            ✓ Approve
-                          </button>
-                          <button className="px-3 py-1 text-xs bg-red-900 hover:bg-red-800 rounded text-red-200 transition-colors">
-                            ✕ Reject
-                          </button>
-                        </>
-                      )}
-                      <button className="px-3 py-1 text-xs bg-red-900 hover:bg-red-800 rounded text-red-200 transition-colors">
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${getStatusColor(opp.status)}`}>
+                        {opp.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${getApprovalColor(opp.approval_status)}`}>
+                        {opp.approval_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 font-bold transition">
+                          ✏️ Edit
+                        </button>
+                        {opp.approval_status === 'pending' && (
+                          <>
+                            <button className="px-3.5 py-1.5 text-xs bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-emerald-700 font-bold transition">
+                              ✓ Approve
+                            </button>
+                            <button className="px-3.5 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
+                              ✕ Reject
+                            </button>
+                          </>
+                        )}
+                        <button className="px-3.5 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-[#D4AF37] mb-2">{opportunities.length}</div>
-            <div className="text-gray-400 text-sm">Total Opportunities</div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-[#D4AF37] mb-1">{opportunities.length}</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Opportunities</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-green-500 mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-emerald-600 mb-1">
               {opportunities.filter((o) => o.status === 'published').length}
             </div>
-            <div className="text-gray-400 text-sm">Published</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Published</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-blue-500 mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-blue-600 mb-1">
               {opportunities.filter((o) => o.visibility_on_main_site).length}
             </div>
-            <div className="text-gray-400 text-sm">Visible on Main</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Visible on Main</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-yellow-500 mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-amber-600 mb-1">
               {opportunities.reduce((sum, o) => sum + o.inquiries_count, 0)}
             </div>
-            <div className="text-gray-400 text-sm">Total Inquiries</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Inquiries</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-purple-500 mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-[#D4AF37] mb-1">
               {opportunities.reduce((sum, o) => sum + o.investors_current, 0)}
             </div>
-            <div className="text-gray-400 text-sm">Active Investors</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Investors</div>
           </div>
         </div>
 
         {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-white mb-6">Create Investment Opportunity</h2>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-black text-slate-800 mb-6">Create Investment Opportunity</h2>
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Opportunity Title</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Opportunity Title</label>
                   <input
                     type="text"
                     placeholder="e.g., Desert Tours Expansion"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Opportunity Type</label>
-                  <select className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Opportunity Type</label>
+                  <select className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white">
                     <option>Equity</option>
                     <option>Partnership</option>
                     <option>Franchise</option>
@@ -356,59 +346,59 @@ export default function AdminInvestmentOpportunitiesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Min Investment</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Min Investment (USD)</label>
                     <input
                       type="number"
                       placeholder="50000"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Max Investment</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Max Investment (USD)</label>
                     <input
                       type="number"
                       placeholder="250000"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Expected ROI (%)</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Expected ROI (%)</label>
                     <input
                       type="number"
                       placeholder="25"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Target Investors</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Target Investors</label>
                     <input
                       type="number"
                       placeholder="5"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Description</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</label>
                   <textarea
                     placeholder="Describe this investment opportunity"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full px-4 py-3 bg-slate-50/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     rows={3}
                   />
                 </div>
 
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 p-3 bg-gray-800 rounded">
-                    <input type="checkbox" className="w-4 h-4 accent-[#D4AF37]" />
-                    <span className="text-white text-sm font-semibold">Feature on Main Site</span>
+                <div className="flex gap-6 pt-2">
+                  <label className="flex items-center gap-2.5 text-slate-600 font-semibold text-sm cursor-pointer">
+                    <input type="checkbox" className="w-4.5 h-4.5 rounded border-slate-300 accent-[#D4AF37]" />
+                    <span>Feature on Main Site</span>
                   </label>
-                  <label className="flex items-center gap-2 p-3 bg-gray-800 rounded">
-                    <input type="checkbox" className="w-4 h-4 accent-[#D4AF37]" />
-                    <span className="text-white text-sm font-semibold">Requires Approval</span>
+                  <label className="flex items-center gap-2.5 text-slate-600 font-semibold text-sm cursor-pointer">
+                    <input type="checkbox" className="w-4.5 h-4.5 rounded border-slate-300 accent-[#D4AF37]" />
+                    <span>Requires Approval</span>
                   </label>
                 </div>
               </div>
@@ -416,11 +406,11 @@ export default function AdminInvestmentOpportunitiesPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-2 bg-gray-800 rounded text-white font-semibold hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition"
                 >
                   Cancel
                 </button>
-                <button className="px-6 py-2 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded text-white font-semibold hover:opacity-90 transition-opacity">
+                <button className="px-6 py-2.5 bg-[#D4AF37] hover:bg-amber-600 rounded-2xl text-white font-bold transition">
                   Create Opportunity
                 </button>
               </div>

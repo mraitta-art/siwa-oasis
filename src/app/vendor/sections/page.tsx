@@ -51,7 +51,66 @@ export default function VendorStudio() {
   const [blogSaving, setBlogSaving]     = useState(false);
 
   /* ── Load ──────────────────────────────────────────────────── */
-  useEffect(() => { loadStory(); }, []);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestSection, setRequestSection] = useState('');
+  const [requestFieldName, setRequestFieldName] = useState('');
+  const [requestFieldLabel, setRequestFieldLabel] = useState('');
+  const [requestFieldType, setRequestFieldType] = useState('text');
+  const [requestReason, setRequestReason] = useState('');
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+  const [requestMsg, setRequestMsg] = useState('');
+  const [vendorRequests, setVendorRequests] = useState<any[]>([]);
+
+  useEffect(() => { 
+    loadStory(); 
+    fetchFieldRequests();
+  }, []);
+
+  async function fetchFieldRequests() {
+    try {
+      const res = await fetch('/api/vendor/field-requests');
+      const data = await res.json();
+      if (data.requests) setVendorRequests(data.requests);
+    } catch {}
+  }
+
+  async function submitFieldRequest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!requestSection || !requestFieldLabel || !requestFieldName) {
+      setRequestMsg('❌ Please fill in all required fields.');
+      return;
+    }
+    setRequestSubmitting(true);
+    setRequestMsg('');
+    try {
+      const res = await fetch('/api/vendor/field-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          section_id: requestSection,
+          field_name: requestFieldName,
+          field_label: requestFieldLabel,
+          field_type: requestFieldType,
+          reason: requestReason
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRequestMsg('✅ Suggestion sent successfully to admin!');
+        setRequestFieldLabel('');
+        setRequestFieldName('');
+        setRequestReason('');
+        fetchFieldRequests();
+      } else {
+        setRequestMsg(`❌ ${data.error || 'Failed to submit suggestion'}`);
+      }
+    } catch {
+      setRequestMsg('❌ Network error. Please try again.');
+    } finally {
+      setRequestSubmitting(false);
+      setTimeout(() => setRequestMsg(''), 5000);
+    }
+  }
 
   async function loadStory() {
     try {
@@ -397,8 +456,38 @@ export default function VendorStudio() {
                     <div style={{ fontSize: '0.6rem', color: secPct === 100 ? '#10b981' : '#94a3b8', fontWeight: 700, marginTop: '2px' }}>{secPct === 100 ? 'Complete' : `${secPct}%`}</div>
                   </div>
                 </button>
-              );
             })}
+          </div>
+
+          {/* Request custom fields */}
+          <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <button
+              onClick={() => {
+                if (sections.length > 0) setRequestSection(sections[0].id);
+                setShowRequestModal(true);
+              }}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: '10px',
+                border: '1.5px dashed #D4AF37',
+                background: '#fffdf5',
+                color: '#92702a',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = '#fef8ee'; }}
+              onMouseOut={e => { e.currentTarget.style.background = '#fffdf5'; }}
+            >
+              <i className="fas fa-lightbulb" style={{ color: '#D4AF37' }}></i>
+              Suggest Custom Field
+            </button>
           </div>
         </aside>
 
@@ -793,6 +882,198 @@ export default function VendorStudio() {
           </div>
         </main>
       </div>
+
+      {/* ─── CUSTOM FIELD REQUEST MODAL ───────────────────────── */}
+      {showRequestModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1.5rem',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '650px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            border: '1.5px solid #fde68a',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.5rem 2rem',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '10px', background: '#fdf8ee', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+                  <i className="fas fa-lightbulb"></i>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Suggest Custom Field</h3>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>Propose additional fields to website administrators</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRequestModal(false)}
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '2rem' }}>
+              <form onSubmit={submitFieldRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Select Section */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Target Profile Section *</label>
+                  <select
+                    value={requestSection}
+                    onChange={e => setRequestSection(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', fontSize: '0.85rem', color: '#1e293b', outline: 'none', boxSizing: 'border-box' }}
+                  >
+                    {sections.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.id})</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Field Label & Name */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Field Display Label *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Campfire Area Size"
+                      value={requestFieldLabel}
+                      onChange={e => {
+                        setRequestFieldLabel(e.target.value);
+                        // Auto-generate a clean system key
+                        setRequestFieldName(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30));
+                      }}
+                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '0.85rem', color: '#1e293b', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>System Key (Automatic)</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={requestFieldName}
+                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#f8fafc', fontSize: '0.85rem', color: '#94a3b8', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Field Type */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Field Data Type *</label>
+                  <select
+                    value={requestFieldType}
+                    onChange={e => setRequestFieldType(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', fontSize: '0.85rem', color: '#1e293b', outline: 'none', boxSizing: 'border-box' }}
+                  >
+                    <option value="text">Single Line Text</option>
+                    <option value="textarea">Multi-line Narrative / Textarea</option>
+                    <option value="boolean">Yes / No Toggle</option>
+                    <option value="select">Dropdown Choice Selector</option>
+                    <option value="multiselect">Multi-select Checklist Choices</option>
+                  </select>
+                </div>
+
+                {/* Business Case / Reason */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Business Requirement / Reason *</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Describe how this field helps represent your business..."
+                    value={requestReason}
+                    onChange={e => setRequestReason(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '0.85rem', color: '#1e293b', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                  />
+                </div>
+
+                {requestMsg && (
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    fontSize: '0.8rem',
+                    textAlign: 'center',
+                    background: requestMsg.startsWith('✅') ? '#ecfdf5' : '#fef2f2',
+                    color: requestMsg.startsWith('✅') ? '#047857' : '#b91c1c',
+                    border: requestMsg.startsWith('✅') ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                  }}>
+                    {requestMsg}
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowRequestModal(false)}
+                    style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={requestSubmitting}
+                    style={{ flex: 2, padding: '0.85rem', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg,#D4AF37,#f0c842)', color: '#5a3e00', fontWeight: 900, fontSize: '0.85rem', cursor: requestSubmitting ? 'wait' : 'pointer', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}
+                  >
+                    {requestSubmitting ? 'Sending...' : 'Submit Suggestion'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Log of suggestions */}
+              <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
+                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.5px' }}>YOUR SUGGESTIONS LOG</h4>
+                {vendorRequests.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>No past suggestions found.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
+                    {vendorRequests.map(r => (
+                      <div key={r.id} style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>{r.field_label}</div>
+                          <div style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '2px' }}>Section: {r.section_name || r.section_id} · Type: {r.field_type}</div>
+                        </div>
+                        <div>
+                          <span style={{
+                            fontSize: '0.6rem',
+                            fontWeight: 900,
+                            padding: '3px 8px',
+                            borderRadius: '20px',
+                            background: r.status === 'approved' ? '#dcfce7' : r.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                            color: r.status === 'approved' ? '#15803d' : r.status === 'rejected' ? '#b91c1c' : '#d97706',
+                            textTransform: 'uppercase',
+                          }}>
+                            {r.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

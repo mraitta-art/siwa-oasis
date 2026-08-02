@@ -1,0 +1,5 @@
+﻿src/app/api/journeys/route.ts(104,11): error TS2304: Cannot find name 'query'.
+src/app/jana/blog/page.tsx(52,5): error TS2322: Type 'null' is not assignable to type 'number | undefined'.
+src/app/jana/blog/page.tsx(104,7): error TS2322: Type 'null' is not assignable to type 'number | undefined'.
+src/app/offers/page.tsx(101,89): error TS2367: This comparison appears to be unintentional because the types '"package" | "discount" | "offer"' and '"discounts" | "offers" | "packages"' have no overlap.
+src/app/page.tsx(209,144): error TS1117: An object literal cannot have multiple properties with the same name.

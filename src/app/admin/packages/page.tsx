@@ -81,41 +81,45 @@ export default function AdminPackagesPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-900 text-green-200';
+        return 'bg-emerald-50 text-emerald-600 border border-emerald-200/50';
       case 'inactive':
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-slate-50 text-slate-400 border border-slate-200/50';
       case 'draft':
-        return 'bg-yellow-900 text-yellow-200';
+        return 'bg-amber-50 text-amber-600 border border-amber-200/50';
       default:
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-slate-50 text-slate-400';
     }
   };
 
   const getApprovalColor = (approval: string) => {
     switch (approval) {
       case 'approved':
-        return 'bg-green-900 text-green-200';
+        return 'bg-emerald-50 text-emerald-600 border border-emerald-200/50';
       case 'pending':
-        return 'bg-yellow-900 text-yellow-200';
+        return 'bg-amber-50 text-amber-600 border border-amber-200/50';
       case 'rejected':
-        return 'bg-red-900 text-red-200';
+        return 'bg-rose-50 text-rose-600 border border-rose-200/50';
       default:
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-slate-50 text-slate-400';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 p-6 sm:p-10 font-sans">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <Link href="/admin" className="text-gray-400 hover:text-[#D4AF37] transition-colors mb-4 block">
-            ← Admin Dashboard
+        <div className="mb-8 border-b border-slate-100 pb-6">
+          <Link href="/admin" className="text-slate-400 hover:text-[#D4AF37] font-bold text-xs uppercase tracking-wider transition-colors mb-4 block">
+            ← Control Center
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">📦 Packages Manager</h1>
-          <p className="text-gray-400">Manage product bundles and service packages</p>
-          <div className="mt-4 flex flex-wrap gap-3 items-center">
-            <Link href="/packages" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#556B2F] text-sm font-semibold text-white hover:bg-[#4b5c26] transition-colors">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-900 mb-1 flex items-center gap-2">
+                <span className="text-[#D4AF37]">📦</span> Packages Manager
+              </h1>
+              <p className="text-slate-500 text-sm">Approve and edit product bundles and service packages</p>
+            </div>
+            <Link href="/packages" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-200 bg-amber-50 text-[#D4AF37] hover:bg-amber-100 transition font-bold text-xs uppercase tracking-wider">
               View live packages page
             </Link>
           </div>
@@ -125,7 +129,7 @@ export default function AdminPackagesPage() {
         <div className="mb-8 flex gap-4 flex-wrap items-center">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+            className="px-6 py-3 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-sm"
           >
             + New Package
           </button>
@@ -133,7 +137,7 @@ export default function AdminPackagesPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -144,7 +148,7 @@ export default function AdminPackagesPage() {
           <select
             value={filterApproval}
             onChange={(e) => setFilterApproval(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
           >
             <option value="all">All Approvals</option>
             <option value="pending">Pending Review</option>
@@ -152,135 +156,137 @@ export default function AdminPackagesPage() {
             <option value="rejected">Rejected</option>
           </select>
 
-          <div className="text-gray-400 text-sm ml-auto">
+          <div className="text-slate-400 text-xs font-bold uppercase tracking-wider ml-auto">
             Showing {filteredPackages.length} of {packages.length}
           </div>
         </div>
 
         {/* Packages Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Package Name</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Business</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Type</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Price</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Savings</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Sales</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Status</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Approval</th>
-                <th className="px-4 py-3 text-left text-gray-300 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPackages.map((pkg) => (
-                <tr key={pkg.id} className="border-b border-gray-900 hover:bg-gray-900 transition-colors">
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="text-white font-semibold">{pkg.package_name}</div>
-                      <div className="text-xs text-gray-500">Expires: {pkg.valid_until}</div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-300">{pkg.business_name}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm px-2 py-1 bg-gray-800 rounded text-gray-300">
-                      {pkg.package_type === 'service_package' ? '⚙️ Service' : '📦 ' + pkg.package_type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-white font-semibold">${pkg.package_price}</div>
-                    <div className="text-xs text-gray-500 line-through">${pkg.base_price}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-[#D4AF37] font-bold">{pkg.savings_percentage}%</div>
-                    <div className="text-xs text-gray-500">${pkg.base_price - pkg.package_price}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-white">{pkg.quantity_sold}</div>
-                    <div className="text-xs text-gray-500">of {pkg.quantity_available}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded font-semibold ${getStatusColor(pkg.status)}`}>
-                      {pkg.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded font-semibold ${getApprovalColor(pkg.approval_status)}`}>
-                      {pkg.approval_status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1 text-xs bg-[#556B2F] hover:opacity-90 rounded text-white transition-opacity">
-                        ✏️ Edit
-                      </button>
-                      {pkg.approval_status === 'pending' && (
-                        <>
-                          <button className="px-3 py-1 text-xs bg-green-900 hover:bg-green-800 rounded text-green-200 transition-colors">
-                            ✓ Approve
-                          </button>
-                          <button className="px-3 py-1 text-xs bg-red-900 hover:bg-red-800 rounded text-red-200 transition-colors">
-                            ✕ Reject
-                          </button>
-                        </>
-                      )}
-                      <button className="px-3 py-1 text-xs bg-red-900 hover:bg-red-800 rounded text-red-200 transition-colors">
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </td>
+        <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm mb-12">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-black uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left">Package Name</th>
+                  <th className="px-6 py-4 text-left">Business</th>
+                  <th className="px-6 py-4 text-left">Type</th>
+                  <th className="px-6 py-4 text-left">Price</th>
+                  <th className="px-6 py-4 text-left">Savings</th>
+                  <th className="px-6 py-4 text-left">Sales</th>
+                  <th className="px-6 py-4 text-left">Status</th>
+                  <th className="px-6 py-4 text-left">Approval</th>
+                  <th className="px-6 py-4 text-left">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredPackages.map((pkg) => (
+                  <tr key={pkg.id} className="hover:bg-slate-50/50 transition-colors text-sm text-slate-700">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-slate-800 font-extrabold">{pkg.package_name}</div>
+                        <div className="text-xs text-slate-400 font-semibold mt-1">Expires: {pkg.valid_until}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-600">{pkg.business_name}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs px-2.5 py-1 bg-slate-50 border border-slate-200/50 rounded-lg font-bold text-slate-500 uppercase tracking-wider">
+                        {pkg.package_type === 'service_package' ? '⚙️ Service' : '📦 ' + pkg.package_type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-slate-800 font-black">${pkg.package_price}</div>
+                      <div className="text-xs text-slate-400 font-semibold line-through mt-0.5">${pkg.base_price}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-[#D4AF37] font-black">{pkg.savings_percentage}%</div>
+                      <div className="text-xs text-slate-400 font-semibold mt-0.5">${pkg.base_price - pkg.package_price} off</div>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-600">
+                      <div>{pkg.quantity_sold} sold</div>
+                      <div className="text-xs text-slate-400 font-semibold mt-0.5">of {pkg.quantity_available}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${getStatusColor(pkg.status)}`}>
+                        {pkg.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${getApprovalColor(pkg.approval_status)}`}>
+                        {pkg.approval_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 font-bold transition">
+                          ✏️ Edit
+                        </button>
+                        {pkg.approval_status === 'pending' && (
+                          <>
+                            <button className="px-3 py-1.5 text-xs bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-emerald-700 font-bold transition">
+                              ✓ Approve
+                            </button>
+                            <button className="px-3 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
+                              ✕ Reject
+                            </button>
+                          </>
+                        )}
+                        <button className="px-3 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-[#D4AF37] mb-2">{packages.length}</div>
-            <div className="text-gray-400">Total Packages</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-[#D4AF37] mb-1">{packages.length}</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Packages</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-green-500 mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-emerald-600 mb-1">
               {packages.filter((p) => p.status === 'active').length}
             </div>
-            <div className="text-gray-400">Active</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-yellow-500 mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-amber-600 mb-1">
               {packages.filter((p) => p.approval_status === 'pending').length}
             </div>
-            <div className="text-gray-400">Pending Approval</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Review</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-[#D4AF37] mb-2">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div className="text-2xl font-black text-[#D4AF37] mb-1">
               {packages.reduce((sum, p) => sum + p.quantity_sold, 0)}
             </div>
-            <div className="text-gray-400">Total Sold</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Units Sold</div>
           </div>
         </div>
 
         {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 max-w-2xl w-full">
-              <h2 className="text-2xl font-bold text-white mb-6">Create New Package</h2>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 max-w-2xl w-full shadow-2xl">
+              <h2 className="text-2xl font-black text-slate-800 mb-6">Create New Package</h2>
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Package Name</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Package Name</label>
                   <input
                     type="text"
                     placeholder="e.g., Desert Safari Premium"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Package Type</label>
-                  <select className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Package Type</label>
+                  <select className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white">
                     <option>Bundle</option>
                     <option>Service Package</option>
                     <option>Tier</option>
@@ -290,28 +296,28 @@ export default function AdminPackagesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Base Price</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Base Price (USD)</label>
                     <input
                       type="number"
-                      placeholder="$250"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="250"
+                      className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Package Price</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Package Price (USD)</label>
                     <input
                       type="number"
-                      placeholder="$180"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="180"
+                      className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Description</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</label>
                   <textarea
                     placeholder="Describe what's included in this package"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
                     rows={3}
                   />
                 </div>
@@ -320,11 +326,11 @@ export default function AdminPackagesPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-2 bg-gray-800 rounded text-white font-semibold hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition"
                 >
                   Cancel
                 </button>
-                <button className="px-6 py-2 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded text-white font-semibold hover:opacity-90 transition-opacity">
+                <button className="px-6 py-2.5 bg-[#D4AF37] hover:bg-amber-600 rounded-2xl text-white font-bold transition">
                   Create Package
                 </button>
               </div>

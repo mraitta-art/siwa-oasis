@@ -506,7 +506,7 @@ export default function VendorSignup() {
         /* Root */
         .signup-root {
           min-height: 100vh;
-          background: #fbfbf9;
+          background: #fcfbfa;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -517,18 +517,18 @@ export default function VendorSignup() {
           color: #334155;
         }
 
-        /* Animated orbs */
+        /* Animated orbs — subtle warm tones */
         .signup-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
         .bg-orb {
           position: absolute;
           border-radius: 50%;
           filter: blur(120px);
-          opacity: 0.25;
+          opacity: 0.35;
           animation: orbFloat 10s ease-in-out infinite alternate;
         }
-        .orb1 { width: 500px; height: 500px; background: #e6dfd3; top: -150px; right: -100px; }
-        .orb2 { width: 400px; height: 400px; background: #fdf6e2; bottom: -120px; left: -80px; animation-delay: -3s; }
-        .orb3 { width: 300px; height: 300px; background: #f4eae1; top: 50%; left: 40%; animation-delay: -6s; }
+        .orb1 { width: 500px; height: 500px; background: #fdf0c8; top: -150px; right: -100px; }
+        .orb2 { width: 400px; height: 400px; background: #e8f4e8; bottom: -120px; left: -80px; animation-delay: -3s; }
+        .orb3 { width: 300px; height: 300px; background: #fef9ec; top: 50%; left: 40%; animation-delay: -6s; }
         @keyframes orbFloat {
           from { transform: translate(0, 0) scale(1); }
           to   { transform: translate(40px, -40px) scale(1.1); }
@@ -551,12 +551,15 @@ export default function VendorSignup() {
           padding: 0 0.5rem;
         }
         .back-btn, .login-link {
-          font-size: 0.8rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 800;
           display: flex;
           align-items: center;
           gap: 0.4rem;
           transition: color 0.2s;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         .back-btn:hover, .login-link:hover { color: #D4AF37; }
         .brand {
@@ -564,9 +567,9 @@ export default function VendorSignup() {
           align-items: center;
           gap: 0.6rem;
           font-weight: 900;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           letter-spacing: 3px;
-          color: #fff;
+          color: #1e293b;
         }
         .brand-icon {
           color: #D4AF37;
@@ -577,12 +580,11 @@ export default function VendorSignup() {
 
         /* Card */
         .signup-card {
-          background: rgba(255,255,255,0.04);
-          backdrop-filter: blur(24px);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: #ffffff;
+          border: 1px solid #f1f5f9;
           border-radius: 28px;
           padding: 2.5rem;
-          box-shadow: 0 40px 100px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+          box-shadow: 0 4px 40px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
         }
 
         /* Progress */
@@ -602,12 +604,12 @@ export default function VendorSignup() {
         .prog-circle {
           width: 36px; height: 36px;
           border-radius: 50%;
-          border: 2px solid rgba(255,255,255,0.15);
+          border: 2px solid #e2e8f0;
           display: flex; align-items: center; justify-content: center;
           font-size: 0.75rem; font-weight: 900;
-          color: rgba(255,255,255,0.3);
+          color: #cbd5e1;
           transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
-          background: transparent;
+          background: #f8fafc;
         }
         .prog-step.done .prog-circle {
           background: #22c55e;
@@ -625,7 +627,8 @@ export default function VendorSignup() {
           font-size: 0.62rem;
           font-weight: 800;
           letter-spacing: 0.5px;
-          color: rgba(255,255,255,0.3);
+          text-transform: uppercase;
+          color: #cbd5e1;
           transition: color 0.3s;
         }
         .prog-step.active .prog-label { color: #D4AF37; }
@@ -634,7 +637,7 @@ export default function VendorSignup() {
         .prog-line {
           flex: 1;
           height: 2px;
-          background: rgba(255,255,255,0.1);
+          background: #e2e8f0;
           transition: background 0.4s;
           margin: 0 0.5rem;
           margin-bottom: 1.25rem;
@@ -657,14 +660,13 @@ export default function VendorSignup() {
           font-weight: 900;
           letter-spacing: -0.5px;
           margin: 0 0 0.4rem;
-          background: linear-gradient(135deg, #fff 60%, rgba(255,255,255,0.5));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          color: #0f172a;
         }
         .step-sub {
-          color: rgba(255,255,255,0.45);
+          color: #64748b;
           font-size: 0.9rem;
           margin: 0;
+          font-weight: 500;
         }
 
         /* Fields */
@@ -673,11 +675,11 @@ export default function VendorSignup() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           font-weight: 800;
           letter-spacing: 1px;
           text-transform: uppercase;
-          color: rgba(255,255,255,0.5);
+          color: #94a3b8;
           margin-bottom: 0.6rem;
         }
         .filter-tag {
@@ -695,15 +697,15 @@ export default function VendorSignup() {
           position: relative;
           display: flex;
           align-items: center;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: #f8fafc;
+          border: 1.5px solid #e2e8f0;
           border-radius: 14px;
           transition: all 0.25s;
         }
         .field-wrap:focus-within {
           border-color: #D4AF37;
-          background: rgba(212,175,55,0.06);
-          box-shadow: 0 0 0 4px rgba(212,175,55,0.12);
+          background: #fffdf5;
+          box-shadow: 0 0 0 4px rgba(212,175,55,0.10);
         }
         .field-wrap.is-err {
           border-color: #ef4444;
@@ -711,7 +713,7 @@ export default function VendorSignup() {
         }
         .field-icon {
           padding: 0 0 0 1.1rem;
-          color: rgba(255,255,255,0.3);
+          color: #cbd5e1;
           font-size: 0.85rem;
           pointer-events: none;
         }
@@ -721,15 +723,16 @@ export default function VendorSignup() {
           border: none;
           outline: none;
           padding: 1rem 1rem 1rem 0.75rem;
-          color: #fff;
+          color: #1e293b;
           font-size: 0.95rem;
           font-family: inherit;
+          font-weight: 600;
         }
-        .field-input::placeholder { color: rgba(255,255,255,0.25); }
+        .field-input::placeholder { color: #cbd5e1; font-weight: 500; }
         .pw-toggle {
           background: none;
           border: none;
-          color: rgba(255,255,255,0.3);
+          color: #cbd5e1;
           padding: 0 1rem;
           cursor: pointer;
           font-size: 0.85rem;
@@ -761,6 +764,7 @@ export default function VendorSignup() {
           height: 4px;
           flex: 1;
           border-radius: 2px;
+          background: #e2e8f0;
           transition: background 0.3s;
         }
         .strength-label {
@@ -782,23 +786,24 @@ export default function VendorSignup() {
           gap: 0.5rem;
           padding: 0.6rem 1rem;
           border-radius: 50px;
-          border: 1.5px solid rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.04);
-          color: rgba(255,255,255,0.6);
+          border: 1.5px solid #e2e8f0;
+          background: #f8fafc;
+          color: #64748b;
           font-size: 0.8rem;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s;
         }
         .parent-card:hover {
-          border-color: rgba(255,255,255,0.25);
-          background: rgba(255,255,255,0.08);
+          border-color: #D4AF37;
+          background: #fffdf5;
+          color: #92702a;
         }
         .parent-card.active {
           border-color: var(--accent);
-          background: color-mix(in srgb, var(--accent) 15%, transparent);
-          color: #fff;
-          box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 30%, transparent);
+          background: color-mix(in srgb, var(--accent) 10%, #ffffff);
+          color: #92702a;
+          box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 20%, transparent);
         }
 
         /* Child type cards */
@@ -811,8 +816,8 @@ export default function VendorSignup() {
           padding-right: 0.25rem;
         }
         .child-grid::-webkit-scrollbar { width: 4px; }
-        .child-grid::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 2px; }
-        .child-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+        .child-grid::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 2px; }
+        .child-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
         .child-card {
           display: flex;
@@ -820,22 +825,23 @@ export default function VendorSignup() {
           gap: 1rem;
           padding: 0.9rem 1rem;
           border-radius: 14px;
-          border: 1.5px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.03);
+          border: 1.5px solid #f1f5f9;
+          background: #f8fafc;
           cursor: pointer;
           text-align: left;
           transition: all 0.2s;
           position: relative;
         }
         .child-card:hover {
-          border-color: rgba(255,255,255,0.18);
-          background: rgba(255,255,255,0.06);
+          border-color: #e2e8f0;
+          background: #fff;
           transform: translateX(4px);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         }
         .child-card.active {
           border-color: var(--accent);
-          background: color-mix(in srgb, var(--accent) 10%, transparent);
-          box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 20%, transparent);
+          background: color-mix(in srgb, var(--accent) 8%, #ffffff);
+          box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 15%, transparent);
         }
         .child-icon-wrap {
           width: 40px; height: 40px;
@@ -844,17 +850,19 @@ export default function VendorSignup() {
           font-size: 1rem;
           flex-shrink: 0;
           transition: transform 0.2s;
+          background: #f1f5f9;
         }
+        .child-card.active .child-icon-wrap { background: color-mix(in srgb, var(--accent) 15%, #ffffff); }
         .child-card:hover .child-icon-wrap,
         .child-card.active .child-icon-wrap { transform: scale(1.1); }
         .child-info { flex: 1; }
-        .child-name { display: block; font-size: 0.88rem; font-weight: 800; color: #fff; margin-bottom: 0.1rem; }
-        .child-desc { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.4); line-height: 1.4; }
+        .child-name { display: block; font-size: 0.88rem; font-weight: 800; color: #1e293b; margin-bottom: 0.1rem; }
+        .child-desc { display: block; font-size: 0.72rem; color: #94a3b8; line-height: 1.4; }
         .child-check {
           width: 22px; height: 22px;
           border-radius: 50%;
           background: #D4AF37;
-          color: #1a1a1a;
+          color: #fff;
           display: flex; align-items: center; justify-content: center;
           font-size: 0.6rem;
           opacity: 0;
@@ -875,8 +883,8 @@ export default function VendorSignup() {
           padding-right: 0.25rem;
         }
         .biz-list::-webkit-scrollbar { width: 4px; }
-        .biz-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 2px; }
-        .biz-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+        .biz-list::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 2px; }
+        .biz-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
         .biz-card {
           display: flex;
@@ -884,20 +892,21 @@ export default function VendorSignup() {
           gap: 1rem;
           padding: 1rem;
           border-radius: 14px;
-          border: 1.5px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.03);
+          border: 1.5px solid #f1f5f9;
+          background: #f8fafc;
           cursor: pointer;
           text-align: left;
           transition: all 0.2s;
         }
         .biz-card:hover {
-          border-color: rgba(255,255,255,0.18);
-          background: rgba(255,255,255,0.06);
+          border-color: #e2e8f0;
+          background: #fff;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         }
         .biz-card.active {
           border-color: var(--accent, #D4AF37);
-          background: color-mix(in srgb, var(--accent, #D4AF37) 10%, transparent);
-          box-shadow: 0 4px 20px color-mix(in srgb, var(--accent, #D4AF37) 20%, transparent);
+          background: color-mix(in srgb, var(--accent, #D4AF37) 8%, #ffffff);
+          box-shadow: 0 4px 20px color-mix(in srgb, var(--accent, #D4AF37) 15%, transparent);
         }
         .biz-avatar {
           width: 44px; height: 44px;
@@ -905,10 +914,11 @@ export default function VendorSignup() {
           display: flex; align-items: center; justify-content: center;
           font-size: 1.1rem;
           flex-shrink: 0;
+          background: #f1f5f9;
         }
         .biz-info { flex: 1; }
-        .biz-name { display: block; font-size: 0.95rem; font-weight: 800; color: #fff; }
-        .biz-slug { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.35); margin-top: 0.1rem; }
+        .biz-name { display: block; font-size: 0.95rem; font-weight: 800; color: #1e293b; }
+        .biz-slug { display: block; font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem; }
         .biz-check {
           color: #D4AF37;
           font-size: 1.3rem;
@@ -925,19 +935,20 @@ export default function VendorSignup() {
           gap: 0.6rem;
           padding: 0.6rem 1rem;
           border-radius: 50px;
-          border: 1.5px solid;
-          background: rgba(255,255,255,0.04);
+          border: 1.5px solid #fde68a;
+          background: #fffdf5;
           margin-bottom: 1.25rem;
           font-size: 0.8rem;
           font-weight: 700;
+          color: #92702a;
         }
-        .pill-sep { color: rgba(255,255,255,0.2); }
-        .pill-parent { color: rgba(255,255,255,0.5); font-weight: 600; }
+        .pill-sep { color: #fbbf24; }
+        .pill-parent { color: #92702a; font-weight: 700; }
         .pill-change {
           margin-left: auto;
           background: none;
           border: none;
-          color: rgba(255,255,255,0.3);
+          color: #94a3b8;
           font-size: 0.72rem;
           font-weight: 700;
           cursor: pointer;
@@ -954,9 +965,9 @@ export default function VendorSignup() {
           height: 64px;
           border-radius: 14px;
           background: linear-gradient(90deg,
-            rgba(255,255,255,0.05) 25%,
-            rgba(255,255,255,0.1) 50%,
-            rgba(255,255,255,0.05) 75%
+            #f1f5f9 25%,
+            #e2e8f0 50%,
+            #f1f5f9 75%
           );
           background-size: 200% 100%;
           animation: shimmer 1.5s infinite;
@@ -974,25 +985,26 @@ export default function VendorSignup() {
           text-align: center;
           gap: 0.75rem;
           padding: 2.5rem 1rem;
-          background: rgba(239,68,68,0.05);
-          border: 1px solid rgba(239,68,68,0.2);
+          background: #fff8f8;
+          border: 1px solid rgba(239,68,68,0.15);
           border-radius: 16px;
           margin-bottom: 1.25rem;
-          color: rgba(255,255,255,0.7);
+          color: #64748b;
           font-size: 0.9rem;
         }
         .no-biz-notice i { font-size: 2rem; color: #ef4444; opacity: 0.7; }
-        .no-biz-notice strong { color: #fff; font-size: 1rem; }
-        .no-biz-notice p { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.6; margin: 0; }
+        .no-biz-notice strong { color: #ef4444; font-size: 1rem; }
+        .no-biz-notice p { font-size: 0.82rem; color: #94a3b8; line-height: 1.6; margin: 0; }
 
         /* Empty notice */
         .empty-notice {
           padding: 1rem;
           border-radius: 12px;
-          background: rgba(255,255,255,0.04);
-          border: 1px dashed rgba(255,255,255,0.12);
-          color: rgba(255,255,255,0.4);
+          background: #f8fafc;
+          border: 1px dashed #e2e8f0;
+          color: #94a3b8;
           font-size: 0.82rem;
+          font-weight: 600;
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -1000,8 +1012,8 @@ export default function VendorSignup() {
 
         /* Summary box */
         .summary-box {
-          background: rgba(212,175,55,0.06);
-          border: 1px solid rgba(212,175,55,0.2);
+          background: #fffdf5;
+          border: 1.5px solid #fde68a;
           border-radius: 14px;
           padding: 1rem 1.25rem;
           margin-bottom: 1.25rem;
@@ -1011,12 +1023,12 @@ export default function VendorSignup() {
           justify-content: space-between;
           align-items: center;
           padding: 0.4rem 0;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          border-bottom: 1px solid #f1f5f9;
           font-size: 0.82rem;
         }
         .summary-row:last-child { border-bottom: none; }
-        .summary-key { color: rgba(255,255,255,0.4); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .summary-val { color: #fff; font-weight: 700; }
+        .summary-key { color: #94a3b8; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-val { color: #1e293b; font-weight: 800; }
 
         /* Error */
         .form-error {
@@ -1024,12 +1036,12 @@ export default function VendorSignup() {
           align-items: center;
           gap: 0.5rem;
           padding: 0.75rem 1rem;
-          background: rgba(239,68,68,0.1);
-          border: 1px solid rgba(239,68,68,0.25);
+          background: #fff8f8;
+          border: 1px solid rgba(239,68,68,0.2);
           border-radius: 12px;
-          color: #fca5a5;
+          color: #ef4444;
           font-size: 0.82rem;
-          font-weight: 600;
+          font-weight: 700;
           margin-bottom: 1.25rem;
           animation: errShake 0.4s ease;
         }
@@ -1046,7 +1058,7 @@ export default function VendorSignup() {
           border-radius: 14px;
           border: none;
           background: linear-gradient(135deg, #D4AF37, #f0c842);
-          color: #1a1000;
+          color: #5a3e00;
           font-weight: 900;
           font-size: 0.9rem;
           cursor: pointer;
@@ -1071,7 +1083,7 @@ export default function VendorSignup() {
           border-radius: 14px;
           border: none;
           background: linear-gradient(135deg, #D4AF37, #f0c842);
-          color: #1a1000;
+          color: #5a3e00;
           font-weight: 900;
           font-size: 0.9rem;
           cursor: pointer;
@@ -1091,9 +1103,9 @@ export default function VendorSignup() {
         .btn-back {
           padding: 1rem 1.5rem;
           border-radius: 14px;
-          border: 1.5px solid rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.04);
-          color: rgba(255,255,255,0.6);
+          border: 1.5px solid #e2e8f0;
+          background: #f8fafc;
+          color: #64748b;
           font-weight: 800;
           font-size: 0.85rem;
           cursor: pointer;
@@ -1103,8 +1115,9 @@ export default function VendorSignup() {
           transition: all 0.2s;
         }
         .btn-back:hover {
-          border-color: rgba(255,255,255,0.25);
-          color: #fff;
+          border-color: #D4AF37;
+          color: #92702a;
+          background: #fffdf5;
         }
 
         .btn-row {
@@ -1118,7 +1131,8 @@ export default function VendorSignup() {
           text-align: center;
           margin-top: 1.25rem;
           font-size: 0.82rem;
-          color: rgba(255,255,255,0.35);
+          color: #94a3b8;
+          font-weight: 500;
         }
         .signup-footer a {
           color: #D4AF37;

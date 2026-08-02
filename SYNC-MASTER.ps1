@@ -95,6 +95,9 @@ function Write-Menu {
     Write-Host ""
     Write-Host "   [8]  💻  Start Local Dev Server (npm run dev)" -ForegroundColor DarkCyan
     Write-Host ""
+    Write-Host "   [9]  ⏰  Start Schedule Runner" -ForegroundColor Yellow
+    Write-Host "            (Background auto-deploy daemon — reads deploy-schedule.json)" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "   [Q]  ❌  Quit" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  ──────────────────────────────────────────────────────────" -ForegroundColor DarkGray
@@ -247,6 +250,20 @@ while ($true) {
                 "cd '$ProjectRoot'; Write-Host '💻 DEV SERVER' -ForegroundColor Cyan; npm run dev"
             )
             Write-Host "  ✅ Dev server launching at http://localhost:3000" -ForegroundColor Green
+            Start-Sleep -Seconds 2
+        }
+
+        '9' {
+            Write-Host "  ⏰ Starting Schedule Runner..." -ForegroundColor Yellow
+            Write-Host "  Reads deploy-schedule.json every minute and auto-deploys on schedule." -ForegroundColor DarkGray
+            Write-Host "  Press Ctrl+C in the new window to stop." -ForegroundColor DarkGray
+            Write-Host ""
+            Start-Process powershell -ArgumentList @(
+                "-NoExit",
+                "-Command",
+                "cd '$ProjectRoot'; Write-Host '⏰ SIWA SCHEDULE RUNNER' -ForegroundColor Yellow; node scripts/schedule-runner.js"
+            )
+            Write-Host "  ✅ Schedule runner launched in a new window." -ForegroundColor Green
             Start-Sleep -Seconds 2
         }
 

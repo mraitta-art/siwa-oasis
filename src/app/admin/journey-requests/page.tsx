@@ -71,163 +71,164 @@ export default function AdminJourneyRequestsPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <CheckCircle className="text-green-400" size={18} />;
-      case 'rejected':
-        return <XCircle className="text-red-400" size={18} />;
-      case 'under_review':
-        return <Clock className="text-yellow-400" size={18} />;
-      case 'vendor_quoted':
-        return <AlertCircle className="text-blue-400" size={18} />;
-      default:
-        return <Clock className="text-gray-400" size={18} />;
+      case 'approved':    return <CheckCircle className="text-emerald-500" size={16} />;
+      case 'rejected':    return <XCircle className="text-rose-500" size={16} />;
+      case 'under_review': return <Clock className="text-amber-500" size={16} />;
+      case 'vendor_quoted': return <AlertCircle className="text-blue-500" size={16} />;
+      default:            return <Clock className="text-slate-400" size={16} />;
     }
   };
 
-  const getVibeColor = (vibe: string) => {
-    const colors: Record<string, string> = {
-      wellness: 'bg-green-900 text-green-200',
-      adventure: 'bg-orange-900 text-orange-200',
-      culinary: 'bg-red-900 text-red-200',
-      cultural: 'bg-purple-900 text-purple-200',
-      luxury: 'bg-yellow-900 text-yellow-200'
+  const getVibeBadge = (vibe: string) => {
+    const styles: Record<string, string> = {
+      wellness:  'bg-emerald-50 text-emerald-700 border-emerald-200',
+      adventure: 'bg-orange-50 text-orange-700 border-orange-200',
+      culinary:  'bg-rose-50 text-rose-700 border-rose-200',
+      cultural:  'bg-purple-50 text-purple-700 border-purple-200',
+      luxury:    'bg-amber-50 text-amber-700 border-amber-200',
     };
-    return colors[vibe] || 'bg-gray-700 text-gray-200';
+    return styles[vibe] || 'bg-slate-50 text-slate-600 border-slate-200';
   };
 
   const stats = {
-    total: requests.length,
-    approved: requests.filter(r => r.status === 'approved').length,
-    pending: requests.filter(r => r.status === 'under_review').length,
-    quoted: requests.filter(r => r.status === 'vendor_quoted').length,
+    total:          requests.length,
+    approved:       requests.filter(r => r.status === 'approved').length,
+    pending:        requests.filter(r => r.status === 'under_review').length,
+    quoted:         requests.filter(r => r.status === 'vendor_quoted').length,
     vendorInterest: requests.reduce((sum, r) => sum + r.interested_vendor_count, 0)
   };
 
+  const filters = [
+    { key: 'all',          label: 'All' },
+    { key: 'under_review', label: '⏳ Under Review' },
+    { key: 'approved',     label: '✅ Approved' },
+    { key: 'vendor_quoted', label: '💬 Vendor Quoted' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
+
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-[#FFD700] mb-2">Journey Requests Dashboard</h1>
-          <p className="text-gray-400">Review visitor requests, approve/assign to vendors, track engagement</p>
+        <div className="mb-8 border-b border-slate-100 pb-6">
+          <Link href="/admin" className="text-slate-400 hover:text-[#D4AF37] font-bold text-xs uppercase tracking-wider transition mb-3 block">
+            ← Control Center
+          </Link>
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-1">
+            🗺️ Journey Requests
+          </h1>
+          <p className="text-slate-400 text-sm font-semibold">Review visitor requests, assign to vendors and track engagement</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-[#556B2F]">
-            <div className="text-gray-400 text-sm mb-2">Total Requests</div>
-            <div className="text-3xl font-bold text-[#FFD700]">{stats.total}</div>
-          </div>
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-green-700">
-            <div className="text-gray-400 text-sm mb-2">Approved</div>
-            <div className="text-3xl font-bold text-green-400">{stats.approved}</div>
-          </div>
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-yellow-700">
-            <div className="text-gray-400 text-sm mb-2">Under Review</div>
-            <div className="text-3xl font-bold text-yellow-400">{stats.pending}</div>
-          </div>
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-blue-700">
-            <div className="text-gray-400 text-sm mb-2">Vendor Quoted</div>
-            <div className="text-3xl font-bold text-blue-400">{stats.quoted}</div>
-          </div>
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-[#FFD700]">
-            <div className="text-gray-400 text-sm mb-2">Vendor Interest</div>
-            <div className="text-3xl font-bold text-[#FFD700]">{stats.vendorInterest}</div>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
+          {[
+            { label: 'Total', value: stats.total, color: 'text-[#D4AF37]', bg: 'bg-amber-50 border-amber-200/60' },
+            { label: 'Approved', value: stats.approved, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200/60' },
+            { label: 'Under Review', value: stats.pending, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200/60' },
+            { label: 'Vendor Quoted', value: stats.quoted, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200/60' },
+            { label: 'Vendor Interest', value: stats.vendorInterest, color: 'text-[#D4AF37]', bg: 'bg-amber-50 border-amber-200/60' },
+          ].map(s => (
+            <div key={s.label} className={`${s.bg} border rounded-2xl p-5`}>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{s.label}</div>
+              <div className={`text-3xl font-extrabold ${s.color}`}>{s.value}</div>
+            </div>
+          ))}
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {['all', 'under_review', 'approved', 'vendor_quoted'].map(status => (
+        <div className="flex gap-2 mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-1.5 w-fit">
+          {filters.map(f => (
             <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-semibold transition whitespace-nowrap ${
-                filter === status
-                  ? 'bg-[#556B2F] text-[#FFD700]'
-                  : 'bg-[#2a2a2a] text-gray-300 hover:bg-[#333333]'
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-4 py-2 rounded-xl font-bold text-sm transition whitespace-nowrap ${
+                filter === f.key
+                  ? 'bg-white text-[#D4AF37] shadow-sm border border-slate-100'
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              {status === 'all' ? 'All Requests' : status.replace(/_/g, ' ').toUpperCase()}
+              {f.label}
             </button>
           ))}
         </div>
 
-        {/* Requests Table */}
+        {/* Table */}
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading requests...</div>
+          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400 font-semibold shadow-sm">
+            Loading requests...
+          </div>
         ) : requests.length === 0 ? (
-          <div className="bg-[#2a2a2a] p-12 rounded-lg text-center">
-            <AlertCircle className="mx-auto mb-4 text-gray-600" size={48} />
-            <p className="text-gray-400">No journey requests found</p>
+          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm">
+            <AlertCircle className="mx-auto mb-4 text-slate-300" size={48} />
+            <p className="text-slate-400 font-semibold">No journey requests found</p>
           </div>
         ) : (
-          <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full">
-              <thead className="bg-[#556B2F]">
-                <tr>
-                  <th className="px-6 py-4 text-left">Request</th>
-                  <th className="px-6 py-4 text-left">Visitor</th>
-                  <th className="px-6 py-4 text-center">Duration</th>
-                  <th className="px-6 py-4 text-center">Budget</th>
-                  <th className="px-6 py-4 text-center">Vibe</th>
-                  <th className="px-6 py-4 text-center">Status</th>
-                  <th className="px-6 py-4 text-center">Interest</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/70">
+                  <th className="px-6 py-4 text-left text-xs font-extrabold text-slate-400 uppercase tracking-wider">Request</th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold text-slate-400 uppercase tracking-wider">Visitor</th>
+                  <th className="px-6 py-4 text-center text-xs font-extrabold text-slate-400 uppercase tracking-wider">Duration</th>
+                  <th className="px-6 py-4 text-center text-xs font-extrabold text-slate-400 uppercase tracking-wider">Budget</th>
+                  <th className="px-6 py-4 text-center text-xs font-extrabold text-slate-400 uppercase tracking-wider">Vibe</th>
+                  <th className="px-6 py-4 text-center text-xs font-extrabold text-slate-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-center text-xs font-extrabold text-slate-400 uppercase tracking-wider">Interest</th>
+                  <th className="px-6 py-4 text-right text-xs font-extrabold text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#3a3a3a]">
+              <tbody className="divide-y divide-slate-50">
                 {requests.map((request) => (
-                  <tr key={request.id} className="hover:bg-[#333333] transition">
+                  <tr key={request.id} className="hover:bg-slate-50/60 transition">
                     <td className="px-6 py-4">
-                      <Link href={`/admin/journey-requests/${request.id}`} className="hover:text-[#FFD700] transition">
-                        <div className="font-semibold text-white">{request.title}</div>
-                        <div className="text-sm text-gray-400">{request.id.substring(0, 8)}...</div>
+                      <Link href={`/admin/journey-requests/${request.id}`} className="hover:text-[#D4AF37] transition">
+                        <div className="font-extrabold text-slate-800 text-sm">{request.title}</div>
+                        <div className="text-xs text-slate-400 font-mono mt-0.5">{request.id.substring(0, 8)}...</div>
                       </Link>
                     </td>
                     <td className="px-6 py-4">
-                      <div>
-                        <div className="font-semibold">{request.visitor_name}</div>
-                        <div className="text-sm text-gray-400">{request.visitor_email}</div>
-                      </div>
+                      <div className="font-bold text-slate-800 text-sm">{request.visitor_name}</div>
+                      <div className="text-xs text-slate-400">{request.visitor_email}</div>
                     </td>
-                    <td className="px-6 py-4 text-center">{request.duration_days} days</td>
-                    <td className="px-6 py-4 text-center font-semibold text-[#FFD700]">${request.budget_usd_max}</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-slate-600">{request.duration_days}d</td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getVibeColor(request.vibe)}`}>
+                      <span className="font-extrabold text-[#D4AF37]">${request.budget_usd_max}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${getVibeBadge(request.vibe)}`}>
                         {request.vibe}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1.5">
                         {getStatusIcon(request.status)}
-                        <span className="text-sm">{request.status.replace(/_/g, ' ')}</span>
+                        <span className="text-xs font-semibold text-slate-600">{request.status.replace(/_/g, ' ')}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       {request.interested_vendor_count > 0 ? (
-                        <span className="flex items-center justify-center gap-1 text-green-400 font-bold">
-                          <Users size={16} />
+                        <span className="flex items-center justify-center gap-1 text-emerald-600 font-bold text-sm">
+                          <Users size={14} />
                           {request.interested_vendor_count}
                         </span>
                       ) : (
-                        <span className="text-gray-500">-</span>
+                        <span className="text-slate-300 text-sm">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleForward(request.id)}
-                          className="px-3 py-1 bg-[#556B2F] text-[#FFD700] rounded hover:opacity-90 text-sm font-semibold"
-                          title="Forward to vendor"
+                          className="px-3 py-1.5 bg-[#D4AF37] hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition"
                         >
                           Forward
                         </button>
                         <Link
                           href={`/admin/journey-requests/${request.id}`}
-                          className="text-[#FFD700] hover:text-white transition inline-block"
+                          className="text-slate-400 hover:text-[#D4AF37] transition"
                         >
-                          <MessageSquare size={18} />
+                          <MessageSquare size={16} />
                         </Link>
                       </div>
                     </td>
@@ -239,29 +240,31 @@ export default function AdminJourneyRequestsPage() {
         )}
 
         {/* Info Panel */}
-        <div className="mt-8 grid grid-cols-2 gap-6">
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border-l-4 border-green-600">
-            <h3 className="text-lg font-bold text-green-400 mb-3">How It Works</h3>
-            <ul className="text-sm text-gray-300 space-y-2">
-              <li>✓ Visitor submits journey request</li>
-              <li>✓ System matches to policy + vendors</li>
-              <li>✓ Admin reviews approval if needed</li>
-              <li>✓ Vendors notified + send quotes</li>
-              <li>✓ Journey created + booked</li>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm border-l-4 border-l-emerald-400">
+            <h3 className="text-base font-extrabold text-slate-800 mb-3 flex items-center gap-2">
+              <span className="text-emerald-500">✓</span> How It Works
+            </h3>
+            <ul className="text-sm text-slate-500 font-semibold space-y-2">
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-emerald-400 shrink-0" /> Visitor submits journey request</li>
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-emerald-400 shrink-0" /> System matches to policy + vendors</li>
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-emerald-400 shrink-0" /> Admin reviews approval if needed</li>
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-emerald-400 shrink-0" /> Vendors notified + send quotes</li>
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-emerald-400 shrink-0" /> Journey created + booked</li>
             </ul>
           </div>
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border-l-4 border-[#FFD700]">
-            <h3 className="text-lg font-bold text-[#FFD700] mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <Link href="/admin/journey-policies" className="block text-[#FFD700] hover:text-white transition">
-                → Configure Policies
-              </Link>
-              <Link href="/admin/journey-requests?status=under_review" className="block text-[#FFD700] hover:text-white transition">
-                → Review Pending Requests
-              </Link>
-              <Link href="/admin/analytics/journey-requests" className="block text-[#FFD700] hover:text-white transition">
-                → View Analytics
-              </Link>
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm border-l-4 border-l-[#D4AF37]">
+            <h3 className="text-base font-extrabold text-slate-800 mb-3">⚡ Quick Actions</h3>
+            <div className="space-y-2.5">
+              {[
+                { href: '/admin/journey-policies', label: 'Configure Policies' },
+                { href: '/admin/journey-requests?status=under_review', label: 'Review Pending Requests' },
+                { href: '/admin/analytics', label: 'View Analytics' },
+              ].map(a => (
+                <Link key={a.href} href={a.href} className="flex items-center gap-2 text-sm font-bold text-[#D4AF37] hover:text-amber-700 transition">
+                  <span>→</span> {a.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
