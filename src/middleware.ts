@@ -28,6 +28,11 @@ async function verifySession(request: NextRequest): Promise<{ role: string } | n
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Safety: warn if running production with the fallback JWT secret
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.error('[SECURITY] JWT_SECRET env var is not set — using insecure fallback in production!');
+  }
+
   // Find matching guard
   for (const [prefix, allowedRoles] of Object.entries(ROUTE_GUARDS)) {
     if (pathname.startsWith(prefix)) {
@@ -36,7 +41,11 @@ export async function middleware(request: NextRequest) {
         if (pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Unauthorized. Admin session required.' }, { status: 401 });
         }
-        return NextResponse.redirect(new URL('/login?error=admin_required', request.url));
+        // Redirect to login, tagging the error type AND the original destination
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('error', 'admin_required');
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
       }
       break;
     }

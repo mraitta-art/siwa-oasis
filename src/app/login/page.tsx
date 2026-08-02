@@ -1,14 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [adminRequired, setAdminRequired] = useState(false);
+  const [redirectTo, setRedirectTo] = useState('/jana');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const errParam = searchParams.get('error');
+    const redirectParam = searchParams.get('redirect');
+    if (errParam === 'admin_required') setAdminRequired(true);
+    if (redirectParam) setRedirectTo(decodeURIComponent(redirectParam));
+  }, [searchParams]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -24,7 +34,10 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || 'Login failed'); setLoading(false); return; }
 
       const role = data.user.role;
-      if (['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(role)) {
+      if (['super_admin', 'content_admin', 'sales_manager'].includes(role)) {
+        // If they were trying to reach a specific protected page, send them there
+        router.push(redirectTo.startsWith('/') ? redirectTo : '/admin');
+      } else if (role === 'support_agent') {
         router.push('/jana');
       } else if (role === 'salesman') {
         router.push('/salesman');
@@ -58,13 +71,24 @@ export default function LoginPage() {
       <div style={{ width: '100%', maxWidth: 440, padding: '1.5rem' }}>
         <div style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.4)' }}>
 
+          {/* Admin-required banner */}
+          {adminRequired && (
+            <div style={{ background: '#fef3c7', border: '1.5px solid #fcd34d', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontSize: '1.1rem' }}>🔒</span>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#92400e' }}>Admin access required</div>
+                <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.1rem' }}>Please sign in with an admin account to continue.</div>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
               <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
             </div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>SIWA OASIS</h1>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.35rem' }}>Admin Dashboard Sign In</p>
+            <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.35rem' }}>Secure Sign In</p>
           </div>
 
           {/* Form */}
