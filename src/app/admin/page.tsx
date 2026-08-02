@@ -3,326 +3,343 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+/* ─── Types ─────────────────────────────────────────────── */
+interface StatCard { label: string; value: string | number; sub?: string; color: string; icon: string; }
+interface NavGroup { title: string; items: { label: string; icon: string; href: string; badge?: string; badgeColor?: string }[] }
+
+/* ─── Sidebar nav groups ─────────────────────────────────── */
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: 'Overview',
+    items: [
+      { label: 'Dashboard', icon: '🏠', href: '/admin' },
+      { label: 'Analytics', icon: '📊', href: '/admin/analytics' },
+      { label: 'Deployment', icon: '🚀', href: '/admin/deployment', badge: 'LIVE', badgeColor: '#22c55e' },
+    ],
+  },
+  {
+    title: 'Approvals',
+    items: [
+      { label: 'Packages', icon: '📦', href: '/admin/packages', badge: '12', badgeColor: '#f59e0b' },
+      { label: 'Offers', icon: '🎁', href: '/admin/offers', badge: '8', badgeColor: '#f59e0b' },
+      { label: 'Discounts', icon: '💰', href: '/admin/discounts', badge: '3', badgeColor: '#f59e0b' },
+      { label: 'Investment Ops', icon: '💵', href: '/admin/investment-opportunities', badge: '6', badgeColor: '#f59e0b' },
+      { label: 'Field Requests', icon: '💡', href: '/admin/field-requests' },
+      { label: 'Submissions', icon: '📥', href: '/admin/submissions' },
+    ],
+  },
+  {
+    title: 'Content',
+    items: [
+      { label: 'Section Visibility', icon: '👁️', href: '/admin/section-visibility' },
+      { label: 'Section Overrides', icon: '🛡️', href: '/admin/section-overrides' },
+      { label: 'Blog Approval', icon: '📝', href: '/admin/blog-approval' },
+      { label: 'Image Curation', icon: '🖼️', href: '/admin/image-curation' },
+      { label: 'Homepage Editor', icon: '🏗️', href: '/admin/homepage-editor' },
+      { label: 'Homepage Sections', icon: '📄', href: '/admin/homepage-sections' },
+    ],
+  },
+  {
+    title: 'Journeys',
+    items: [
+      { label: 'Journey Requests', icon: '🗺️', href: '/admin/journey-requests', badge: 'NEW', badgeColor: '#6366f1' },
+      { label: 'Journey Config', icon: '⚙️', href: '/admin/journey-config' },
+      { label: 'Journey Policies', icon: '📋', href: '/admin/journey-policies' },
+    ],
+  },
+  {
+    title: 'Management',
+    items: [
+      { label: 'Businesses', icon: '🏪', href: '/admin/sections' },
+      { label: 'POI Settings', icon: '📍', href: '/admin/poi-settings' },
+      { label: 'Vendor Comms', icon: '💬', href: '/admin/vendor-communication' },
+      { label: 'Visitor Merge', icon: '🔀', href: '/admin/visitor-merge' },
+    ],
+  },
+];
+
+const GOLD  = '#D4AF37';
+const GOLD2 = '#f0c842';
+
 export default function AdminDashboardPage() {
-  const [stats] = useState({
-    businesses: { total: 47, active: 42, pending: 5, new_this_month: 8 },
-    packages: { total: 234, pending_approval: 12, visible: 198, featured: 28 },
-    offers: { total: 189, pending_approval: 8, active: 156 },
-    discounts: { total: 95, pending_approval: 3, auto_apply: 42 },
-    investments: { total: 34, pending_approval: 6, applications: 127 },
-    sections: { total: 156, pending_approval: 5, featured: 31 },
-    users: { total: 1200, new_this_month: 145 },
-    revenue: { total_used: '$47,234', pending: '$8,920' },
-  });
-
-  const [pendingApprovals] = useState([
-    { id: 1, type: '📦', item: 'Package: "Luxury Desert Tour"', business: 'Desert Tours Co', time: '30 mins ago' },
-    { id: 2, type: '🎁', item: 'Offer: "Buy 2 Get 1 Free"', business: 'Restaurant Siwa', time: '2 hours ago' },
-    { id: 3, type: '💵', item: 'Investment: "Resort Expansion"', business: 'Siwa Palace Hotel', time: '4 hours ago' },
-    { id: 4, type: '📋', item: 'Section: "Team Gallery"', business: 'Desert Tours Co', time: '6 hours ago' },
-    { id: 5, type: '💰', item: 'Discount: "Bulk Purchase"', business: 'Souk Marketplace', time: '1 day ago' },
-  ]);
-
-  const [lastUpdated, setLastUpdated] = useState('');
-  const [deployStatus, setDeployStatus] = useState<{ running: boolean; lastDeploy?: { status: string; triggeredAt: string; durationMs?: number; commitHash?: string } | null } | null>(null);
+  const [deployStatus, setDeployStatus] = useState<{
+    running: boolean;
+    lastDeploy?: { status: string; triggeredAt: string; commitHash?: string } | null;
+  } | null>(null);
+  const [activePath, setActivePath] = useState('/admin');
+  const [now, setNow] = useState('');
 
   useEffect(() => {
-    setLastUpdated(new Date().toLocaleString());
-    // Fetch deploy status for the widget
+    setNow(new Date().toLocaleString());
+    setActivePath(window.location.pathname);
     fetch('/api/admin/deployment/status')
       .then(r => r.json())
       .then(d => setDeployStatus(d))
       .catch(() => {});
   }, []);
 
-  const adminSections = [
-    {
-      category: '📦 Inventory Management',
-      items: [
-        {
-          icon: '📦',
-          label: 'Packages',
-          description: 'Approve & manage packages',
-          badge: `${stats.packages.pending_approval} pending`,
-          href: '/admin/packages',
-          color: 'from-blue-900 to-blue-700',
-        },
-        {
-          icon: '🎁',
-          label: 'Offers',
-          description: 'Review & feature offers',
-          badge: `${stats.offers.pending_approval} pending`,
-          href: '/admin/offers',
-          color: 'from-green-900 to-green-700',
-        },
-        {
-          icon: '💰',
-          label: 'Discounts',
-          description: 'Manage discount campaigns',
-          badge: `${stats.discounts.pending_approval} pending`,
-          href: '/admin/discounts',
-          color: 'from-yellow-900 to-yellow-700',
-        },
-      ],
-    },
-    {
-      category: '💵 Investment & Opportunities',
-      items: [
-        {
-          icon: '💵',
-          label: 'Investment Opps',
-          description: 'Approve investment listings',
-          badge: `${stats.investments.pending_approval} pending`,
-          href: '/admin/investment-opportunities',
-          color: 'from-purple-900 to-purple-700',
-        },
-      ],
-    },
-    {
-      category: '🌐 Content Management',
-      items: [
-        {
-          icon: '📋',
-          label: 'Section Visibility',
-          description: 'Control minisite & main site',
-          badge: `${stats.sections.pending_approval} pending`,
-          href: '/admin/section-visibility',
-          color: 'from-pink-900 to-pink-700',
-        },
-        {
-          icon: '💡',
-          label: 'Field Requests',
-          description: 'Review custom vendor field suggestions',
-          badge: 'Suggest System',
-          href: '/admin/field-requests',
-          color: 'from-amber-900 to-amber-700',
-        },
-      ],
-    },
-    {
-      category: '🌐 Public Marketplace',
-      items: [
-        {
-          icon: '🌍',
-          label: 'Offers & Packages',
-          description: 'Preview the live offers and packages page',
-          badge: 'Live page',
-          href: '/offers',
-          color: 'from-emerald-900 to-emerald-700',
-        },
-        {
-          icon: '🏷️',
-          label: 'Discounts',
-          description: 'Preview the live discounts page',
-          badge: 'Live page',
-          href: '/discounts',
-          color: 'from-yellow-900 to-yellow-700',
-        },
-        {
-          icon: '💎',
-          label: 'Investment Hub',
-          description: 'Preview the live investment opportunities page',
-          badge: 'Live page',
-          href: '/investment-opportunities',
-          color: 'from-purple-900 to-purple-700',
-        },
-      ],
-    },
-    {
-      category: '🛡️ Governance & Tier Overrides',
-      items: [
-        {
-          icon: '🛡️',
-          label: 'Section Overrides',
-          description: 'Grant vendors access to premium sections ("asked & excused")',
-          badge: 'Override tiers',
-          href: '/admin/section-overrides',
-          color: 'from-amber-900 to-amber-700',
-        },
-        {
-          icon: '📊',
-          label: 'POI Settings',
-          description: 'Global & vendor permissions',
-          badge: 'Configure',
-          href: '/admin/poi-settings',
-          color: 'from-indigo-900 to-indigo-700',
-        },
-      ],
-    },
-
-    {
-      category: '👥 Business & User Management',
-      items: [
-        {
-          icon: '🏪',
-          label: 'Businesses',
-          description: 'Manage all vendor accounts',
-          badge: `${stats.businesses.pending} pending`,
-          href: '/admin/businesses',
-          color: 'from-red-900 to-red-700',
-        },
-        {
-          icon: '👤',
-          label: 'Users',
-          description: 'Manage user accounts',
-          badge: `${stats.users.new_this_month} new`,
-          href: '/admin/users',
-          color: 'from-cyan-900 to-cyan-700',
-        },
-      ],
-    },
+  const stats: StatCard[] = [
+    { label: 'Total Businesses',  value: 47,        sub: '+8 this month',      color: GOLD,      icon: '🏪' },
+    { label: 'Pending Approvals', value: 34,        sub: 'Across all queues',  color: '#f59e0b', icon: '⏳' },
+    { label: 'Active Packages',   value: 198,       sub: '12 awaiting review', color: '#6366f1', icon: '📦' },
+    { label: 'New Users',         value: 145,       sub: 'This month',         color: '#22c55e', icon: '👥' },
+    { label: 'Platform Revenue',  value: '$47,234', sub: '$8,920 pending',     color: GOLD2,     icon: '💳' },
+    { label: 'Journey Requests',  value: 23,        sub: '5 unread today',     color: '#ec4899', icon: '🗺️' },
+    { label: 'Active Offers',     value: 156,       sub: '8 awaiting review',  color: '#14b8a6', icon: '🎁' },
+    { label: 'Investment Opps',   value: 34,        sub: '6 pending approval', color: '#8b5cf6', icon: '💵' },
   ];
 
+  const pendingItems = [
+    { id: 1, icon: '📦', title: 'Package: "Luxury Desert Tour"',  business: 'Desert Tours Co',   time: '30 min ago', href: '/admin/packages',                 urgency: 'high' },
+    { id: 2, icon: '🎁', title: 'Offer: "Buy 2 Get 1 Free"',      business: 'Restaurant Siwa',   time: '2 hrs ago',  href: '/admin/offers',                   urgency: 'high' },
+    { id: 3, icon: '💵', title: 'Investment: "Resort Expansion"', business: 'Siwa Palace Hotel', time: '4 hrs ago',  href: '/admin/investment-opportunities', urgency: 'med'  },
+    { id: 4, icon: '📋', title: 'Section: "Team Gallery"',        business: 'Desert Tours Co',   time: '6 hrs ago',  href: '/admin/section-visibility',       urgency: 'med'  },
+    { id: 5, icon: '💰', title: 'Discount: "Bulk Purchase"',      business: 'Souk Marketplace',  time: '1 day ago',  href: '/admin/discounts',                urgency: 'low'  },
+    { id: 6, icon: '💡', title: 'Field Request: "Opening Hours"', business: 'Shali Eco Lodge',   time: '2 days ago', href: '/admin/field-requests',           urgency: 'low'  },
+  ];
+
+  const quickLaunch = [
+    { icon: '📊', label: 'Analytics',        href: '/admin/analytics',            color: '#6366f1' },
+    { icon: '🗺️', label: 'Journey Requests', href: '/admin/journey-requests',     color: '#ec4899' },
+    { icon: '👁️', label: 'Visibility',       href: '/admin/section-visibility',   color: '#14b8a6' },
+    { icon: '🏗️', label: 'HP Editor',        href: '/admin/homepage-editor',      color: '#f59e0b' },
+    { icon: '🔀', label: 'Visitor Merge',    href: '/admin/visitor-merge',        color: '#8b5cf6' },
+    { icon: '💬', label: 'Vendor Comms',     href: '/admin/vendor-communication', color: '#22c55e' },
+    { icon: '🖼️', label: 'Images',           href: '/admin/image-curation',       color: '#f97316' },
+    { icon: '🚀', label: 'Deployment',       href: '/admin/deployment',           color: '#0ea5e9' },
+  ];
+
+  const deployOK    = !deployStatus?.running && deployStatus?.lastDeploy?.status !== 'failed';
+  const deployColor = deployStatus?.running
+    ? '#f59e0b'
+    : deployStatus?.lastDeploy?.status === 'failed' ? '#ef4444' : '#22c55e';
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+
   return (
-    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 font-sans">
-      {/* Header */}
-      <div className="border-b border-amber-100 bg-white py-10 px-4 sm:px-6 lg:px-8 shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#080b14', fontFamily: '"Inter","Segoe UI",sans-serif', color: '#e2e8f0' }}>
+
+      {/* ══════════════ SIDEBAR ══════════════ */}
+      <aside style={{
+        width: 240, flexShrink: 0,
+        background: 'linear-gradient(180deg,#0d1117 0%,#0f1923 100%)',
+        borderRight: '1px solid rgba(212,175,55,0.12)',
+        display: 'flex', flexDirection: 'column',
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
+        overflowY: 'auto', overflowX: 'hidden',
+      }}>
+        {/* Brand */}
+        <div style={{ padding: '1.25rem 1rem 1rem', borderBottom: '1px solid rgba(212,175,55,0.1)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg,${GOLD},${GOLD2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#3d2800', flexShrink: 0, boxShadow: `0 0 20px ${GOLD}44` }}>⚙️</div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <span className="text-[#D4AF37]">⚙️</span> Admin Control Center
-            </h1>
-            <p className="text-slate-500 mt-2 text-sm sm:text-base">Manage businesses, approvals, and platform settings from a clean admin workspace.</p>
+            <div style={{ fontWeight: 900, fontSize: '0.75rem', color: '#f8fafc', letterSpacing: 2 }}>ADMIN</div>
+            <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 700, letterSpacing: 1 }}>CONTROL CENTER</div>
           </div>
-          <Link href="/jana" className="inline-flex items-center gap-2 self-start md:self-center px-5 py-2.5 rounded-full border border-amber-200 bg-amber-50 text-[#D4AF37] hover:bg-amber-100 transition font-bold text-sm">
-            ← Return to Jana
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '0.75rem 0.5rem', overflowY: 'auto' }}>
+          {NAV_GROUPS.map(group => (
+            <div key={group.title} style={{ marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.55rem', fontWeight: 900, color: '#475569', letterSpacing: '2px', textTransform: 'uppercase', padding: '0 0.5rem', marginBottom: '0.4rem' }}>
+                {group.title}
+              </div>
+              {group.items.map(item => {
+                const isActive = activePath === item.href;
+                return (
+                  <Link key={item.href} href={item.href} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
+                    padding: '0.5rem 0.75rem', borderRadius: 10, textDecoration: 'none', marginBottom: '0.1rem',
+                    background: isActive ? `linear-gradient(90deg,${GOLD}22,transparent)` : 'transparent',
+                    border: isActive ? `1px solid ${GOLD}33` : '1px solid transparent',
+                    color: isActive ? GOLD : '#94a3b8',
+                    fontSize: '0.78rem', fontWeight: isActive ? 800 : 500, transition: 'all 0.15s',
+                  }}>
+                    <span style={{ fontSize: '0.85rem' }}>{item.icon}</span>
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.badge && (
+                      <span style={{ background: item.badgeColor ?? '#475569', color: '#fff', borderRadius: 20, padding: '1px 7px', fontSize: '0.5rem', fontWeight: 900 }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* Sidebar footer */}
+        <div style={{ padding: '1rem', borderTop: '1px solid rgba(212,175,55,0.1)' }}>
+          <Link href="/jana" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>
+            ← Back to Jana CMS
           </Link>
         </div>
-      </div>
+      </aside>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Quick Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
-            <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Businesses</div>
-            <div className="text-3xl font-black text-slate-800 mt-2">{stats.businesses.total}</div>
-          </div>
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
-            <div className="text-sm font-bold text-rose-400 uppercase tracking-wider">Pending Approvals</div>
-            <div className="text-3xl font-black text-rose-600 mt-2">{stats.businesses.pending}</div>
-          </div>
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
-            <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Packages</div>
-            <div className="text-3xl font-black text-slate-800 mt-2">{stats.packages.total}</div>
-          </div>
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md">
-            <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Platform Revenue</div>
-            <div className="text-3xl font-black text-[#D4AF37] mt-2">{stats.revenue.total_used}</div>
-          </div>
-        </div>
+      {/* ══════════════ MAIN ══════════════ */}
+      <main style={{ flex: 1, marginLeft: 240, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Action Summary Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
-            <div className="text-xs font-bold text-slate-400 uppercase">Package Queue</div>
-            <div className="mt-1 text-lg font-bold text-slate-800">{stats.packages.pending_approval} pending</div>
+        {/* Top bar */}
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 30,
+          background: 'rgba(8,11,20,0.88)', backdropFilter: 'blur(14px)',
+          borderBottom: '1px solid rgba(212,175,55,0.1)',
+          padding: '0 2rem', height: 64,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <h1 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#f1f5f9', letterSpacing: 1 }}>Admin Dashboard</h1>
+            <span style={{ fontSize: '0.58rem', background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, padding: '2px 10px', fontWeight: 900, letterSpacing: '1px' }}>LIVE</span>
           </div>
-          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
-            <div className="text-xs font-bold text-slate-400 uppercase">Offers Queue</div>
-            <div className="mt-1 text-lg font-bold text-slate-800">{stats.offers.pending_approval} pending</div>
-          </div>
-          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
-            <div className="text-xs font-bold text-slate-400 uppercase">New Users</div>
-            <div className="mt-1 text-lg font-bold text-slate-800">+{stats.users.new_this_month}</div>
-          </div>
-          <div className="rounded-2xl bg-amber-50/50 p-4 border border-amber-100/50 text-center">
-            <div className="text-xs font-bold text-slate-400 uppercase">Investments</div>
-            <div className="mt-1 text-lg font-bold text-slate-800">{stats.investments.pending_approval} pending</div>
-          </div>
-        </div>
-
-        {/* Pending Approvals Alert */}
-        {pendingApprovals.length > 0 && (
-          <div className="mb-12 rounded-3xl bg-amber-50/40 border border-amber-200/60 p-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">⏳ Approvals Pending Action ({pendingApprovals.length})</h2>
-                <p className="mt-1 text-sm text-slate-500">These items require administrative verification before appearing publicly.</p>
-              </div>
-              <button className="rounded-full bg-[#D4AF37] px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-amber-600 transition">
-                Process Approvals
-              </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ fontSize: '0.62rem', color: '#475569', fontWeight: 700 }}>{now}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${deployColor}44`, borderRadius: 20, padding: '4px 12px' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: deployColor, boxShadow: `0 0 8px ${deployColor}`, flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontSize: '0.58rem', fontWeight: 900, color: deployColor }}>
+                {deployStatus?.running ? 'DEPLOYING' : deployStatus?.lastDeploy?.status === 'failed' ? 'FAILED' : 'DEPLOYED'}
+              </span>
             </div>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pendingApprovals.slice(0, 4).map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm flex items-start gap-4">
-                  <span className="text-2xl bg-amber-50 p-2.5 rounded-xl">{item.type}</span>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">{item.item}</div>
-                    <div className="text-xs text-slate-400 mt-1 font-semibold">{item.business} • {item.time}</div>
-                  </div>
+            <Link href="/admin/deployment" style={{ padding: '6px 14px', background: `linear-gradient(135deg,${GOLD},${GOLD2})`, borderRadius: 8, color: '#3d2800', fontWeight: 800, fontSize: '0.7rem', textDecoration: 'none' }}>
+              🚀 Deploy
+            </Link>
+          </div>
+        </header>
+
+        <div style={{ padding: '2rem', flex: 1 }}>
+
+          {/* Welcome strip */}
+          <div style={{ marginBottom: '2rem', background: 'linear-gradient(135deg,rgba(212,175,55,0.08),rgba(99,102,241,0.06))', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 20, padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.5px' }}>Good {greeting}, Admin 👋</div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.25rem', fontWeight: 600 }}>Siwa Oasis Platform · {pendingItems.length} items awaiting your action today</div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <Link href="/admin/journey-requests" style={{ padding: '0.6rem 1.25rem', background: 'rgba(236,72,153,0.15)', border: '1px solid rgba(236,72,153,0.3)', borderRadius: 10, color: '#f472b6', fontWeight: 700, fontSize: '0.75rem', textDecoration: 'none' }}>🗺️ Journey Requests</Link>
+              <Link href="/admin/analytics"        style={{ padding: '0.6rem 1.25rem', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, color: '#818cf8', fontWeight: 700, fontSize: '0.75rem', textDecoration: 'none' }}>📊 Analytics</Link>
+            </div>
+          </div>
+
+          {/* KPI cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(195px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '1.25rem 1.5rem', position: 'relative', overflow: 'hidden', transition: 'transform 0.2s,border-color 0.2s', cursor: 'default' }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(-3px)'; el.style.borderColor = `${s.color}44`; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(0)'; el.style.borderColor = 'rgba(255,255,255,0.07)'; }}
+              >
+                <div style={{ position: 'absolute', top: 0, right: 0, width: 64, height: 64, background: `radial-gradient(circle,${s.color}22,transparent)`, pointerEvents: 'none' }} />
+                <div style={{ fontSize: '1.4rem', marginBottom: '0.75rem' }}>{s.icon}</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', marginTop: '0.35rem' }}>{s.label}</div>
+                {s.sub && <div style={{ fontSize: '0.6rem', color: '#475569', marginTop: '0.25rem', fontWeight: 600 }}>{s.sub}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* Approvals + Quick Launch */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 330px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+
+            {/* Approval inbox */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, overflow: 'hidden' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#f1f5f9' }}>⏳ Approval Inbox</div>
+                  <div style={{ fontSize: '0.63rem', color: '#475569', marginTop: '0.15rem', fontWeight: 600 }}>Items requiring your review</div>
                 </div>
+                <span style={{ background: '#f59e0b', color: '#3d2800', borderRadius: 20, padding: '3px 10px', fontSize: '0.63rem', fontWeight: 900 }}>{pendingItems.length} pending</span>
+              </div>
+              {pendingItems.map((item, i) => (
+                <Link key={item.id} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem', borderBottom: i < pendingItems.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', textDecoration: 'none', transition: 'background 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'}
+                >
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: item.urgency === 'high' ? 'rgba(245,158,11,0.12)' : item.urgency === 'med' ? 'rgba(99,102,241,0.12)' : 'rgba(100,116,139,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                    {item.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                    <div style={{ fontSize: '0.62rem', color: '#475569', fontWeight: 600, marginTop: '0.2rem' }}>{item.business} · {item.time}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, width: 8, height: 8, borderRadius: '50%', background: item.urgency === 'high' ? '#f59e0b' : item.urgency === 'med' ? '#6366f1' : '#334155', boxShadow: item.urgency === 'high' ? '0 0 8px #f59e0b' : 'none' }} />
+                </Link>
               ))}
             </div>
-          </div>
-        )}
 
-        {/* Management Sections */}
-        {adminSections.map((section, idx) => (
-          <div key={idx} className="mb-12">
-            <h2 className="text-lg font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-3">{section.category}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {section.items.map((item) => (
-                <Link key={item.href} href={item.href} className="group">
-                  <div className="h-full flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-amber-200">
-                    <div>
-                      <div className={`inline-flex rounded-xl bg-amber-50 p-3 text-lg font-bold text-[#D4AF37]`}>
-                        {item.icon}
-                      </div>
-                      <h3 className="mt-5 text-lg font-extrabold text-slate-800 group-hover:text-[#D4AF37] transition">{item.label}</h3>
-                      <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-400">{item.description}</p>
-                    </div>
-                    <div className="mt-8 pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500 font-bold">
-                      <span className="rounded-full bg-slate-50 px-2.5 py-1 text-slate-400">{item.badge}</span>
-                      <span className="text-[#D4AF37] transition group-hover:underline">Open Drawer →</span>
-                    </div>
-                  </div>
+            {/* Quick launch */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, overflow: 'hidden' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#f1f5f9' }}>⚡ Quick Launch</div>
+                <div style={{ fontSize: '0.63rem', color: '#475569', marginTop: '0.15rem', fontWeight: 600 }}>Fast access to key tools</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.7rem', padding: '1.25rem' }}>
+                {quickLaunch.map((q, i) => (
+                  <Link key={i} href={q.href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', padding: '1rem 0.5rem', borderRadius: 14, border: `1px solid ${q.color}22`, background: `${q.color}0d`, textDecoration: 'none', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = `${q.color}20`; el.style.borderColor = `${q.color}55`; el.style.transform = 'scale(1.04)'; }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = `${q.color}0d`; el.style.borderColor = `${q.color}22`; el.style.transform = 'scale(1)'; }}
+                  >
+                    <span style={{ fontSize: '1.5rem' }}>{q.icon}</span>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 800, color: q.color, textAlign: 'center', letterSpacing: '0.5px' }}>{q.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* All management areas */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#475569', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '1rem' }}>All Management Areas</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '0.85rem' }}>
+              {NAV_GROUPS.slice(1).flatMap(g => g.items).map((item, i) => (
+                <Link key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.9rem 1.2rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, textDecoration: 'none', color: '#94a3b8', transition: 'all 0.18s', fontSize: '0.8rem', fontWeight: 600 }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(212,175,55,0.08)'; el.style.borderColor = 'rgba(212,175,55,0.25)'; el.style.color = GOLD; el.style.transform = 'translateX(4px)'; }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(255,255,255,0.025)'; el.style.borderColor = 'rgba(255,255,255,0.06)'; el.style.color = '#94a3b8'; el.style.transform = 'translateX(0)'; }}
+                >
+                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.badge && (
+                    <span style={{ background: item.badgeColor ?? '#334155', color: '#fff', borderRadius: 20, padding: '1px 8px', fontSize: '0.5rem', fontWeight: 900 }}>{item.badge}</span>
+                  )}
+                  <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>›</span>
                 </Link>
               ))}
             </div>
           </div>
-        ))}
 
-        {/* ── Deployment Control Center Widget ── */}
-        <div className="mb-8 rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ background: 'linear-gradient(135deg, #0f0c29ee, #302b63ee)' }}>
-          <div className="p-6 flex flex-col md:flex-row md:items-center gap-6">
-            {/* Status Ring */}
-            <div style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, background: deployStatus?.running ? 'radial-gradient(circle, #f59e0b55, #f59e0b11)' : deployStatus?.lastDeploy?.status === 'failed' ? 'radial-gradient(circle, #ef444455, #ef444411)' : 'radial-gradient(circle, #22c55e55, #22c55e11)', border: `3px solid ${deployStatus?.running ? '#f59e0b' : deployStatus?.lastDeploy?.status === 'failed' ? '#ef4444' : '#22c55e'}`, boxShadow: `0 0 18px ${deployStatus?.running ? '#f59e0b44' : deployStatus?.lastDeploy?.status === 'failed' ? '#ef444444' : '#22c55e44'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-              {deployStatus?.running ? '⚙️' : deployStatus?.lastDeploy?.status === 'failed' ? '❌' : '🚀'}
+          {/* Deployment banner */}
+          <div style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg,#0f0c29,#1e1b4b)', border: `1px solid ${deployColor}33`, borderRadius: 20, padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ width: 54, height: 54, borderRadius: '50%', background: `radial-gradient(circle,${deployColor}33,transparent)`, border: `2.5px solid ${deployColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0, boxShadow: `0 0 20px ${deployColor}44` }}>
+              {deployStatus?.running ? '⚙️' : deployOK ? '✅' : '❌'}
             </div>
-            <div style={{ flex: 1 }}>
-              <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: '#f1f5f9' }}>🚀 Deployment Control Center</h2>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
-                {deployStatus?.running ? '⚙️ Deployment in progress…' :
-                  deployStatus?.lastDeploy ? `Last deploy: ${deployStatus.lastDeploy.status === 'success' ? '✅ Success' : '❌ Failed'} · ${deployStatus.lastDeploy.triggeredAt ? new Date(deployStatus.lastDeploy.triggeredAt).toLocaleString() : ''}` :
-                  'No deployments recorded yet. Click to start your first deploy.'}
-              </p>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f1f5f9' }}>🚀 Deployment Status</div>
+              <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '0.3rem', fontWeight: 600 }}>
+                {deployStatus?.running ? '⚙️ Deployment in progress…'
+                  : deployStatus?.lastDeploy
+                    ? `Last deploy: ${deployStatus.lastDeploy.status === 'success' ? '✅ Succeeded' : '❌ Failed'} · ${deployStatus.lastDeploy.triggeredAt ? new Date(deployStatus.lastDeploy.triggeredAt).toLocaleString() : ''}`
+                    : 'No deployments recorded yet.'}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Link href="/admin/deployment" style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 8, color: '#fff', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>Open Control Center →</Link>
-            </div>
+            <Link href="/admin/deployment" style={{ padding: '0.65rem 1.5rem', background: `linear-gradient(135deg,${GOLD},${GOLD2})`, borderRadius: 10, color: '#3d2800', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none', flexShrink: 0, boxShadow: `0 4px 20px ${GOLD}33` }}>
+              Open Control Center →
+            </Link>
+          </div>
+
+          {/* Footer */}
+          <div style={{ textAlign: 'center', color: '#1e293b', fontSize: '0.62rem', fontWeight: 600, paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            Siwa Oasis Admin · Control Center · Last loaded {now || '…'}
           </div>
         </div>
+      </main>
 
-        {/* Quick Actions */}
-        <div className="rounded-3xl border border-amber-100 bg-[#fffdfb] p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">⚡ System Shortcuts</h2>
-              <p className="mt-1 text-xs font-semibold text-slate-400">Fast access to global parameters and logs.</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/jana/data-manager" className="rounded-full bg-slate-950 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-850 transition">Data Manager</Link>
-              <Link href="/jana/diagnostic" className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">System Diagnostics</Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-16 text-center text-slate-400 text-xs font-semibold">
-          <p>Control center last updated: {lastUpdated || 'Loading...'}</p>
-        </div>
-      </div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.25); border-radius: 4px; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+      `}</style>
     </div>
   );
 }
