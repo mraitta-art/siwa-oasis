@@ -7,9 +7,11 @@ const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 
 // Unified role-based route protection table
 const ROUTE_GUARDS: Record<string, string[]> = {
-  '/jana':     ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
-  '/vendor':   ['super_admin', 'content_admin', 'vendor'],
-  '/salesman': ['super_admin', 'sales_manager', 'salesman'],
+  '/admin':      ['super_admin', 'content_admin', 'sales_manager'],
+  '/api/admin':  ['super_admin', 'content_admin', 'sales_manager'],
+  '/jana':       ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
+  '/vendor':     ['super_admin', 'content_admin', 'vendor'],
+  '/salesman':   ['super_admin', 'sales_manager', 'salesman'],
 };
 
 async function verifySession(request: NextRequest): Promise<{ role: string } | null> {
@@ -31,7 +33,10 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith(prefix)) {
       const session = await verifySession(request);
       if (!session || !allowedRoles.includes(session.role)) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json({ error: 'Unauthorized. Admin session required.' }, { status: 401 });
+        }
+        return NextResponse.redirect(new URL('/login?error=admin_required', request.url));
       }
       break;
     }
@@ -42,6 +47,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/admin', '/admin/:path*',
+    '/api/admin/:path*',
     '/jana', '/jana/:path*', 
     '/vendor', '/vendor/:path*', 
     '/salesman', '/salesman/:path*'
