@@ -98,7 +98,12 @@ export default function MainSiteOffersPage() {
     return true;
   });
 
-  const featuredItems = items.filter(o => o.is_featured && (filterCategory === 'all' || o.category === filterCategory)).slice(0, 3);
+  const featuredItems = items.filter(o => o.is_featured && (
+    filterCategory === 'all' || 
+    (filterCategory === 'offers' && o.category === 'offer') ||
+    (filterCategory === 'packages' && o.category === 'package') ||
+    (filterCategory === 'discounts' && o.category === 'discount')
+  )).slice(0, 3);
 
   function formatDate(d: string | null | undefined) {
     if (!d) return null;

@@ -49,7 +49,7 @@ export default function BlogAdminPage() {
   const [categorySaving, setCategorySaving] = useState(false);
   const [categoryError, setCategoryError] = useState('');
   const [categoryForm, setCategoryForm] = useState<Partial<Category>>({
-    id: null,
+    id: undefined,
     name: '',
     slug: '',
     description: '',
@@ -101,7 +101,7 @@ export default function BlogAdminPage() {
   function resetCategoryForm() {
     setCategoryError('');
     setCategoryForm({
-      id: null,
+      id: undefined,
       name: '',
       slug: '',
       description: '',

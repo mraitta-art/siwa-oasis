@@ -456,6 +456,7 @@ export default function VendorStudio() {
                     <div style={{ fontSize: '0.6rem', color: secPct === 100 ? '#10b981' : '#94a3b8', fontWeight: 700, marginTop: '2px' }}>{secPct === 100 ? 'Complete' : `${secPct}%`}</div>
                   </div>
                 </button>
+              );
             })}
           </div>
 

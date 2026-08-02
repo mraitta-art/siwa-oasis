@@ -206,7 +206,7 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>PARTNERS & GOVERNANCE</span>
                <Link href="/login" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Vendor Portal</Link>
-               <Link href="/signup" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', color: primary }}>Become a Partner (Free Minisite)</Link>
+               <Link href="/signup" style={{ textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', color: primary }}>Become a Partner (Free Minisite)</Link>
                <Link href="/investment-opportunities" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
             </div>
          </div>

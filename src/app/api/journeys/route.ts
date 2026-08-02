@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     }
 
     // Insert marketplace request
-    await query(
+    await safeQuery(
       `INSERT INTO journey_requests 
         (customer_name, customer_email, customer_phone, request_type, vibe, duration, pace, interests, budget, group_size, arrival_date, special_requests, itinerary_name, itinerary_summary, custom_details, status, distribution_status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 'admin_review')`,
