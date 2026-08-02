@@ -274,10 +274,7 @@ export default function UnifiedSectionArchitect() {
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
   const currentSection = sections.find(s => s.id === selectedSection);
-  const parents  = businessTypes.filter(t => 
-    (t.is_parent || Number(t.is_parent) === 1) && 
-    ['accommodation', 'food', 'adventure', 'wellness'].includes(t.id)
-  );
+  const parents  = businessTypes.filter(t => (t.is_parent || Number(t.is_parent) === 1) && ['accommodation', 'food', 'adventure', 'wellness'].includes(t.id));
   const children = (parentId: string) => businessTypes.filter(t => t.parent_id === parentId);
   const mainGridColumns = `${collapsedPanels.left ? '0px' : '320px'} ${collapsedPanels.center ? '72px' : 'minmax(720px, 1fr)'} ${collapsedPanels.right ? '0px' : '360px'}`;
   const togglePanel = (panel: 'left' | 'center' | 'right') => {
@@ -359,24 +356,24 @@ export default function UnifiedSectionArchitect() {
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: mainGridColumns, height: 'calc(100vh - 80px)', width: '100%', minWidth: '1500px', overflowX: 'auto' }}>
 
         {/* ── PANEL 1: Section List ──────────────────────────────────── */}
-        <nav style={{ 
-          background: '#fff', borderRight: collapsedPanels.left ? 'none' : '1px solid #f1f5f9', 
-          overflowY: 'auto', display: 'flex', flexDirection: 'column', 
-          minWidth: collapsedPanels.left ? '0px' : '320px', 
+        <nav style={{
+          background: '#fff', borderRight: collapsedPanels.left ? 'none' : '1px solid #f1f5f9',
+          overflowY: 'auto', display: 'flex', flexDirection: 'column',
+          minWidth: collapsedPanels.left ? '0px' : '320px',
           width: collapsedPanels.left ? '0px' : '320px',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflowX: 'hidden'
+          overflowX: 'hidden',
         }}>
-          <div style={{ padding: '0.9rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: '300px' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.5px' }}>SECTIONS</span>
-            <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <i className="fas fa-chevron-left" />
-            </button>
-          </div>
-
           {!collapsedPanels.left && (
             <>
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '0.9rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: '300px' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.5px' }}>SECTIONS</span>
+                <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fas fa-chevron-left" />
+                </button>
+              </div>
+
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px' }}>
                 <button
                   onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
                   style={{ ...css.btn('#D4AF37'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
@@ -385,7 +382,7 @@ export default function UnifiedSectionArchitect() {
                 </button>
               </div>
 
-              <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto' }}>
+              <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
                 {sections.map(sec => {
                   const isActive = sec.id === selectedSection;
                   return (
@@ -430,7 +427,7 @@ export default function UnifiedSectionArchitect() {
         <main style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'auto', background: '#f8fafc', minWidth: collapsedPanels.center ? '72px' : '720px', width: collapsedPanels.center ? '72px' : 'auto' }}>
           <div style={{ background: '#fff', borderBottom: '1px solid #f1f5f9', padding: '0 2rem', display: 'flex', gap: '0.5rem', alignItems: 'center', minHeight: '60px' }}>
             {collapsedPanels.left && (
-              <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#D4AF37', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.5rem', flexShrink: 0 }} title="Show Sections Drawer">
+              <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#D4AF37', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Show Sections Drawer">
                 <i className="fas fa-bars" />
               </button>
             )}
@@ -494,8 +491,9 @@ export default function UnifiedSectionArchitect() {
                   </div>
                 )}
               </>
+            )}
             {collapsedPanels.right && !collapsedPanels.center && (
-              <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: currentSection ? '0.5rem' : 'auto', flexShrink: 0 }} title="Show Stats & Info Drawer">
+              <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', flexShrink: 0 }} title="Show Stats &amp; Info Drawer">
                 <i className="fas fa-info-circle" />
               </button>
             )}
@@ -920,24 +918,21 @@ export default function UnifiedSectionArchitect() {
         </main>
 
         {/* ── PANEL 3: Quick Stats / Help ─────────────────────────── */}
-        <aside style={{ 
-          background: '#fff', borderLeft: collapsedPanels.right ? 'none' : '1px solid #f1f5f9', 
-          overflowY: 'auto', 
-          padding: collapsedPanels.right ? '0' : '2rem 1.75rem', 
-          minWidth: collapsedPanels.right ? '0px' : '360px', 
+        <aside style={{
+          background: '#fff', borderLeft: collapsedPanels.right ? 'none' : '1px solid #f1f5f9',
+          overflowY: 'auto', overflowX: 'hidden',
+          padding: collapsedPanels.right ? '0' : '2rem 1.75rem',
+          minWidth: collapsedPanels.right ? '0px' : '360px',
           width: collapsedPanels.right ? '0px' : '360px',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflowX: 'hidden'
         }}>
           {!collapsedPanels.right && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', minWidth: '320px' }}>
-              <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="fas fa-chevron-right" />
-              </button>
-            </div>
-          )}
-          {!collapsedPanels.right && (
             <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', minWidth: '320px' }}>
+                <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fas fa-chevron-right" />
+                </button>
+              </div>
               <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1.5rem' }}>SYSTEM OVERVIEW</div>
 
               {/* Stats */}
