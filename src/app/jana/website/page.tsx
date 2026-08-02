@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -50,7 +50,7 @@ interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?:
 interface PageMeta { slug: string; saved: boolean; type?: 'page' | 'search'; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
-export default function MultiPageSiteBuilder() {
+function MultiPageSiteBuilderComponent() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
   const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
   const [types, setTypes]               = useState<any[]>([]);
@@ -909,3 +909,15 @@ const modalSub:   React.CSSProperties = { margin:'0 0 1.25rem', fontSize:'0.75re
 const modalInput: React.CSSProperties = { width:'100%', padding:'0.85rem 1rem', borderRadius:12, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', marginBottom:'0.65rem', boxSizing:'border-box' };
 const modalCancelBtn: React.CSSProperties = { flex:1, padding:'0.8rem', border:'1.5px solid #e2e8f0', borderRadius:12, fontWeight:800, cursor:'pointer', color:'#64748b', background:'#fff', fontSize:'0.78rem' };
 const modalConfirmBtn = (bg:string, color:string): React.CSSProperties => ({ flex:2, padding:'0.8rem', background:bg, border:'none', borderRadius:12, color, fontWeight:900, cursor:'pointer', fontSize:'0.82rem' });
+
+export default function MultiPageSiteBuilder() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+        <div style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '1rem' }}>LOADING SITE BUILDER…</div>
+      </div>
+    }>
+      <MultiPageSiteBuilderComponent />
+    </Suspense>
+  );
+}
