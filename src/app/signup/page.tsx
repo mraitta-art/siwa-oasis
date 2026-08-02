@@ -675,16 +675,16 @@ export default function VendorSignup() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.68rem;
+          font-size: 0.72rem;
           font-weight: 800;
           letter-spacing: 1px;
           text-transform: uppercase;
-          color: #94a3b8;
+          color: #475569;
           margin-bottom: 0.6rem;
         }
         .filter-tag {
           background: rgba(212,175,55,0.15);
-          color: #D4AF37;
+          color: #92702a;
           border-radius: 20px;
           padding: 2px 8px;
           font-size: 0.6rem;
@@ -698,14 +698,14 @@ export default function VendorSignup() {
           display: flex;
           align-items: center;
           background: #f8fafc;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid #cbd5e1;
           border-radius: 14px;
           transition: all 0.25s;
         }
         .field-wrap:focus-within {
           border-color: #D4AF37;
           background: #fffdf5;
-          box-shadow: 0 0 0 4px rgba(212,175,55,0.10);
+          box-shadow: 0 0 0 4px rgba(212,175,55,0.15);
         }
         .field-wrap.is-err {
           border-color: #ef4444;
@@ -713,7 +713,7 @@ export default function VendorSignup() {
         }
         .field-icon {
           padding: 0 0 0 1.1rem;
-          color: #cbd5e1;
+          color: #64748b;
           font-size: 0.85rem;
           pointer-events: none;
         }
@@ -723,12 +723,12 @@ export default function VendorSignup() {
           border: none;
           outline: none;
           padding: 1rem 1rem 1rem 0.75rem;
-          color: #1e293b;
+          color: #0f172a;
           font-size: 0.95rem;
           font-family: inherit;
-          font-weight: 600;
+          font-weight: 700;
         }
-        .field-input::placeholder { color: #cbd5e1; font-weight: 500; }
+        .field-input::placeholder { color: #94a3b8; font-weight: 500; }
         .pw-toggle {
           background: none;
           border: none;
