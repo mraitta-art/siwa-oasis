@@ -505,8 +505,8 @@ export default function VendorDashboardPage() {
           <div className="vd-hero-inner">
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="vd-hero-badge">
-                <i className="fas fa-star" style={{ fontSize: '0.6rem' }} />
-                Vendor Overview
+                <i className="fas fa-certificate" style={{ fontSize: '0.6rem' }} />
+                System Category Blueprint
               </div>
               <h1 className="vd-hero-title">
                 {loading ? (
@@ -514,19 +514,34 @@ export default function VendorDashboardPage() {
                 ) : (
                   <>
                     Welcome back,{' '}
-                    <span>{story?.business?.name?.split(' ')[0] || 'Vendor'}</span>
+                    <span>{story?.business?.name || 'Vendor Account'}</span>
                   </>
                 )}
               </h1>
-              <p className="vd-hero-sub">
-                {story?.typology?.parent?.name && story?.typology?.child?.name
-                  ? `${story.typology.parent.name} · ${story.typology.child.name}`
-                  : 'Manage your business presence and connect with travelers.'}
-              </p>
+              
+              {/* Category Hierarchy Taxonomy */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', margin: '0.5rem 0 1.25rem' }}>
+                {story?.typology?.parent && (
+                  <span style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '4px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <i className={`fas ${story.typology.parent.icon || 'fa-folder'}`} style={{ color: story.typology.parent.color || '#D4AF37' }} />
+                    {story.typology.parent.name}
+                  </span>
+                )}
+                {story?.typology?.child && (
+                  <>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontWeight: 900 }}>➔</span>
+                    <span style={{ background: 'rgba(212,175,55,0.18)', border: '1px solid rgba(212,175,55,0.35)', color: '#f0c842', fontSize: '0.72rem', fontWeight: 900, padding: '4px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <i className={`fas ${story.typology.child.icon || 'fa-tag'}`} />
+                      {story.typology.child.name}
+                    </span>
+                  </>
+                )}
+              </div>
+
               <div className="vd-hero-actions">
                 <Link href="/vendor/sections" className="vd-hero-btn-primary">
                   <i className="fas fa-pen" />
-                  Edit Profile
+                  Edit Business Profile
                 </Link>
                 {story?.business?.slug && (
                   <Link href={`/${story.business.slug}`} target="_blank" className="vd-hero-btn-ghost">
@@ -545,7 +560,29 @@ export default function VendorDashboardPage() {
               <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.07)', margin: '0.5rem 0' }} />
               <div className="vd-hero-status-label">Profile</div>
               <div className="vd-hero-status-val" style={{ color: '#D4AF37' }}>{profilePct}%</div>
+        </div>
+
+        {/* ─── Admin Notification & Category Blueprint Card ─── */}
+        <div style={{ background: '#ffffff', border: '1px solid #eef0f5', borderRadius: '20px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <div style={{ width: 42, height: 42, borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+            <i className="fas fa-bullhorn" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+                📢 Admin System Notice & Category Taxonomy Specs
+              </span>
+              <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>Active Blueprint</span>
             </div>
+            <p style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
+              {story?.typology?.parent && story?.typology?.child ? (
+                <>
+                  Welcome! Your business <strong>"{story.business.name}"</strong> is classified under <strong>{story.typology.parent.name} ➔ {story.typology.child.name}</strong>. Admin has configured <strong>{story.structure.length} active content sections</strong> tailored specifically for your category hierarchy.
+                </>
+              ) : (
+                'System notice: Complete your business sections to rank higher in Siwa Oasis search results.'
+              )}
+            </p>
           </div>
         </div>
 
