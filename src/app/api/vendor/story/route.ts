@@ -125,9 +125,12 @@ export async function GET(req: NextRequest) {
       business: {
         id: biz.id,
         name: biz.name,
+        slug: biz.slug || biz.id,
+        description: biz.description || '',
         type_id: biz.type_id,
         status: biz.status,
         published: biz.published,
+        is_published: !!(biz.published === 1 || biz.published === true || biz.status === 'active'),
         tier: biz.subscription_tier
       },
       // ── TYPOLOGY IDENTITY ─────────────────────────────────

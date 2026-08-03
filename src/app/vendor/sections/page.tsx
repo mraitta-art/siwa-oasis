@@ -408,8 +408,8 @@ export default function VendorStudio() {
               </div>
             </div>
 
-            <Link href={`/business/${business?.id}`} target="_blank" style={{ border: '1px solid #e2e8f0', color: '#64748b', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <i className="fas fa-external-link-alt"></i> Preview
+            <Link href={`/${business?.slug || business?.id}`} target="_blank" style={{ border: '1px solid #e2e8f0', color: '#64748b', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <i className="fas fa-external-link-alt"></i> Preview Minisite
             </Link>
 
             <button onClick={saveChanges} disabled={saving} style={{ background: saveOk ? '#10b981' : '#0f172a', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, cursor: saving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
