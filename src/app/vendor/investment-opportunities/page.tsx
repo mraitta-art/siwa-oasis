@@ -164,7 +164,7 @@ export default function VendorInvestmentOpportunitiesPage() {
         <div className="vi-grid">
           {opportunities.map(op => (
             <div key={op.id} className="vi-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <span className={`vi-badge ${op.status}`}>{op.status}</span>
                 <span className="vi-badge roi">📈 Expected ROI: {op.expected_roi_percent}%</span>
               </div>

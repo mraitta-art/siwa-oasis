@@ -106,7 +106,7 @@ export default function VendorAnalyticsPage() {
       <div className="va-root">
 
         {/* Header */}
-        <div style={{ marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginBottom: '4px' }}>
               📊 Analytics & Traffic
@@ -176,7 +176,7 @@ export default function VendorAnalyticsPage() {
                 );
               })}
             </div>
-            <div style={{ display: 'flex', justifyBetween: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
               <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>Peak day: Saturday (95 views)</span>
               <Link href="/vendor/sections" style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none' }}>
                 Add more content to boost traffic →

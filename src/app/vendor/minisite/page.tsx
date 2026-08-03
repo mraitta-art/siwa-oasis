@@ -201,7 +201,7 @@ export default function VendorMinisitePage() {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyCenter: 'center', height: '300px', color: '#94a3b8', fontWeight: 600 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#94a3b8', fontWeight: 600 }}>
       Loading minisite settings...
     </div>
   );

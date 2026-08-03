@@ -566,7 +566,7 @@ export default function VendorDashboardPage() {
 
         {/* ─── Admin Notification & Category Blueprint Card ─── */}
         <div style={{ background: '#ffffff', border: '1px solid #eef0f5', borderRadius: '20px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-          <div style={{ width: 42, height: 42, borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+          <div style={{ width: 42, height: 42, borderRadius: '12px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
             <i className="fas fa-bullhorn" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
