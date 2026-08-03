@@ -3,6 +3,18 @@ import { execute, query, queryOne } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')        // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')   // Remove all non-word chars
+    .replace(/\-\-+/g, '-')      // Replace multiple - with single -
+    .replace(/^-+/, '')          // Trim - from start
+    .replace(/-+$/, '');         // Trim - from end
+}
+
 /**
  * VENDOR REGISTRATION API - GET
  * Returns a list of all businesses for a specific typology ID available for vendor registration/co-ownership.
@@ -33,14 +45,14 @@ export async function GET(req: NextRequest) {
 
 /**
  * VENDOR REGISTRATION API - POST
- * Links a new vendor Profile to an existing admin-created Business record.
- * Supports multi-vendor registration / co-ownership per business.
+ * Links a new vendor Profile to an existing or newly created Business record under the selected category.
+ * Supports multi-vendor registration / co-ownership per business and custom business name registration.
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, displayName, businessId, businessType } = await req.json();
+    const { email, password, displayName, businessId, newBusinessName, businessType } = await req.json();
 
-    if (!email || !password || !businessId || !businessType) {
+    if (!email || !password || (!businessId && !newBusinessName) || !businessType) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
     }
 
@@ -50,41 +62,82 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
 
-    // 2. Validate that the business exists under the correct type
-    const businessRow = await queryOne(
-      'SELECT id, name, vendor_id, subscription_tier, template_id FROM businesses WHERE id = ? AND type_id = ?',
-      [businessId, businessType]
-    ) as any;
+    let targetBusinessId = businessId;
+    let templateId = 'essentials_free';
+    let tier = 'free';
 
-    if (!businessRow) {
-      return NextResponse.json({ error: 'Selected business not found or category mismatch' }, { status: 404 });
+    // 2. If vendor entered a custom new business name, create a new business record under this category
+    if (!targetBusinessId && newBusinessName) {
+      targetBusinessId = randomUUID();
+      const rawSlug = slugify(newBusinessName) || `biz-${Date.now().toString(36)}`;
+      let finalSlug = rawSlug;
+
+      // Ensure unique slug
+      const slugCheck = (await query('SELECT id FROM businesses WHERE slug = ?', [rawSlug])) as any[];
+      if (slugCheck.length > 0) {
+        finalSlug = `${rawSlug}-${Date.now().toString(36).slice(-4)}`;
+      }
+
+      await execute(
+        `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, status, created_at)
+         VALUES (?, ?, ?, ?, 'free', 'active', NOW())`,
+        [targetBusinessId, newBusinessName.trim(), finalSlug, businessType]
+      );
+    } else {
+      // Validate existing business
+      const businessRow = (await queryOne(
+        'SELECT id, name, vendor_id, subscription_tier, template_id FROM businesses WHERE id = ? AND type_id = ?',
+        [targetBusinessId, businessType]
+      )) as any;
+
+      if (!businessRow) {
+        return NextResponse.json({ error: 'Selected business not found or category mismatch' }, { status: 404 });
+      }
+      templateId = businessRow.template_id || 'essentials_free';
+      tier = businessRow.subscription_tier || 'free';
+
+      // 3. If existing business has no primary vendor, claim it
+      if (!businessRow.vendor_id || businessRow.vendor_id === '' || businessRow.vendor_id === 'anonymous') {
+        const primaryUserId = randomUUID();
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await execute(
+          'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [primaryUserId, email, hashedPassword, 'vendor', displayName, targetBusinessId, tier, true]
+        );
+
+        await execute(
+          `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
+          [primaryUserId, targetBusinessId]
+        );
+
+        return NextResponse.json({
+          success: true,
+          message: 'Welcome to Siwa Oasis! Your studio is ready.',
+          userId: primaryUserId,
+          businessId: targetBusinessId,
+          templateId,
+          tier
+        });
+      }
     }
 
-    // 3. Prepare IDs and hashing
+    // 4. Create the Profile linked to the selected business_id
     const userId = randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create the Profile linked to the selected business_id
     await execute(
       'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, email, hashedPassword, 'vendor', displayName, businessId, businessRow.subscription_tier || 'free', true]
+      [userId, email, hashedPassword, 'vendor', displayName, targetBusinessId, tier, true]
     );
-
-    // 5. If business has no primary vendor assigned yet, set this user as primary vendor owner
-    if (!businessRow.vendor_id || businessRow.vendor_id === '' || businessRow.vendor_id === 'anonymous') {
-      await execute(
-        `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
-        [userId, businessId]
-      );
-    }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Welcome to the Oasis! Your vendor account has been created.',
+      message: 'Welcome to Siwa Oasis! Your vendor account has been created.',
       userId,
-      businessId,
-      templateId: businessRow.template_id || 'essentials_free',
-      tier: businessRow.subscription_tier || 'free'
+      businessId: targetBusinessId,
+      templateId,
+      tier
     });
 
   } catch (error: any) {

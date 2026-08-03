@@ -58,9 +58,11 @@ export default function VendorSignup() {
   const [childId,     setChildId]     = useState<string | null>(null);   // selected child type
 
   /* ── business selection ─────────────── */
-  const [businesses,  setBusinesses]  = useState<Business[]>([]);
-  const [businessId,  setBusinessId]  = useState<string>('');
-  const [busLoading,  setBusLoading]  = useState(false);
+  const [businesses,       setBusinesses]       = useState<Business[]>([]);
+  const [businessId,       setBusinessId]       = useState<string>('');
+  const [busLoading,       setBusLoading]       = useState(false);
+  const [registerMode,     setRegisterMode]     = useState<'select'|'new'>('select');
+  const [newBusinessName,  setNewBusinessName]  = useState<string>('');
 
   /* ── submission ─────────────────────── */
   const [loading,   setLoading]   = useState(false);
@@ -85,10 +87,12 @@ export default function VendorSignup() {
 
   /* ── load businesses when child type chosen ── */
   useEffect(() => {
-    if (!childId) { setBusinesses([]); setBusinessId(''); return; }
+    if (!childId) { setBusinesses([]); setBusinessId(''); setNewBusinessName(''); return; }
     setBusLoading(true);
     setBusinesses([]);
     setBusinessId('');
+    setNewBusinessName('');
+    setRegisterMode('select');
     fetch(`/api/signup/vendor?type_id=${childId}`)
       .then(r => r.json())
       .then((data: Business[]) => setBusinesses(Array.isArray(data) ? data : []))
@@ -131,16 +135,18 @@ export default function VendorSignup() {
   /* ── submit ──────────────────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessId) { setError('Please select your business'); return; }
+    if (registerMode === 'select' && !businessId) { setError('Please select your business'); return; }
+    if (registerMode === 'new' && !newBusinessName.trim()) { setError('Please enter your business name'); return; }
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch('/api/signup/vendor', {
+      const res = await fetch('/api/signup/vendor', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           email, password, displayName,
-          businessId,
+          businessId:      registerMode === 'select' ? businessId : undefined,
+          newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
         }),
       });
@@ -387,8 +393,8 @@ export default function VendorSignup() {
           {step === 3 && (
             <div className="form-step animate-in">
               <div className="step-header">
-                <h1 className="step-title">Select Your Business</h1>
-                <p className="step-sub">Find your pre-registered business in the registry</p>
+                <h1 className="step-title">Your Business</h1>
+                <p className="step-sub">Join an existing listing or register your own vendor name</p>
               </div>
 
               {/* Context pill */}
@@ -402,56 +408,97 @@ export default function VendorSignup() {
                       <span className="pill-parent">{selectedParent.name}</span>
                     </>
                   )}
-                  <button
-                    type="button"
-                    className="pill-change"
-                    onClick={() => setStep(2)}
-                  >
+                  <button type="button" className="pill-change" onClick={() => setStep(2)}>
                     Change <i className="fas fa-pen" />
                   </button>
                 </div>
               )}
 
+              {/* ── Mode toggle ── */}
+              <div className="mode-toggle">
+                <button
+                  type="button"
+                  className={`mode-tab ${registerMode === 'select' ? 'active' : ''}`}
+                  onClick={() => { setRegisterMode('select'); setNewBusinessName(''); }}
+                >
+                  <i className="fas fa-list" /> Select Existing
+                </button>
+                <button
+                  type="button"
+                  className={`mode-tab ${registerMode === 'new' ? 'active' : ''}`}
+                  onClick={() => { setRegisterMode('new'); setBusinessId(''); }}
+                >
+                  <i className="fas fa-plus-circle" /> Register New Name
+                </button>
+              </div>
+
               {error && <div className="form-error"><i className="fas fa-exclamation-circle" /> {error}</div>}
 
-              {/* Business list */}
-              {busLoading ? (
-                <div className="skeleton-list">
-                  {[1,2,3].map(i => <div key={i} className="skeleton-item" />)}
-                </div>
-              ) : businesses.length === 0 ? (
-                <div className="no-biz-notice">
-                  <i className="fas fa-store-slash" />
-                  <strong>No available businesses found</strong>
-                  <p>No unassigned businesses exist for this category yet.<br/>Please contact an admin to pre-register your business.</p>
-                </div>
-              ) : (
-                <div className="biz-list">
-                  {businesses.map(biz => (
-                    <button
-                      key={biz.id}
-                      type="button"
-                      className={`biz-card ${businessId === biz.id ? 'active' : ''}`}
-                      onClick={() => setBusinessId(biz.id)}
-                      style={{ '--accent': selectedChild?.icon_color || '#D4AF37' } as React.CSSProperties}
-                    >
-                      <div className="biz-avatar" style={{ background: `${selectedChild?.icon_color || '#D4AF37'}22` }}>
-                        <i className={selectedChild?.icon || 'fas fa-building'} style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
-                      </div>
-                      <div className="biz-info">
-                        <span className="biz-name">{biz.name}</span>
-                        <span className="biz-slug">/{biz.slug}</span>
-                      </div>
-                      <div className={`biz-check ${businessId === biz.id ? 'visible' : ''}`}>
-                        <i className="fas fa-check-circle" />
-                      </div>
-                    </button>
-                  ))}
+              {/* ── SELECT mode: show existing businesses ── */}
+              {registerMode === 'select' && (
+                busLoading ? (
+                  <div className="skeleton-list">
+                    {[1,2,3].map(i => <div key={i} className="skeleton-item" />)}
+                  </div>
+                ) : businesses.length === 0 ? (
+                  <div className="no-biz-notice">
+                    <i className="fas fa-store-slash" />
+                    <strong>No listings found for this category</strong>
+                    <p>You can register your own vendor name below — use the <em>Register New Name</em> tab above.</p>
+                  </div>
+                ) : (
+                  <div className="biz-list">
+                    {businesses.map(biz => (
+                      <button
+                        key={biz.id}
+                        type="button"
+                        className={`biz-card ${businessId === biz.id ? 'active' : ''}`}
+                        onClick={() => setBusinessId(biz.id)}
+                        style={{ '--accent': selectedChild?.icon_color || '#D4AF37' } as React.CSSProperties}
+                      >
+                        <div className="biz-avatar" style={{ background: `${selectedChild?.icon_color || '#D4AF37'}22` }}>
+                          <i className={selectedChild?.icon || 'fas fa-building'} style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
+                        </div>
+                        <div className="biz-info">
+                          <span className="biz-name">{biz.name}</span>
+                          <span className="biz-slug">/{biz.slug}</span>
+                        </div>
+                        <div className={`biz-check ${businessId === biz.id ? 'visible' : ''}`}>
+                          <i className="fas fa-check-circle" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {/* ── NEW mode: enter custom business name ── */}
+              {registerMode === 'new' && (
+                <div className="new-biz-section">
+                  <div className="new-biz-info">
+                    <i className="fas fa-info-circle" style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
+                    <p>Your business will be registered as a new vendor under <strong>{selectedChild?.name}</strong>. Multiple vendors can operate independently within the same category.</p>
+                  </div>
+                  <div className="field-group">
+                    <label className="field-label">Your Business / Trade Name</label>
+                    <div className={`field-wrap ${error && !newBusinessName ? 'is-err' : ''}`}>
+                      <i className="fas fa-store field-icon" />
+                      <input
+                        type="text"
+                        className="field-input"
+                        placeholder={`e.g. Al-Nakhla Dates Trading Co.`}
+                        value={newBusinessName}
+                        onChange={e => { setNewBusinessName(e.target.value); setError(''); }}
+                        autoFocus
+                      />
+                    </div>
+                    <span className="field-hint">This will be your public vendor name on Siwa Oasis</span>
+                  </div>
                 </div>
               )}
 
               {/* Summary box */}
-              {businessId && selectedBiz && (
+              {((registerMode === 'select' && businessId && selectedBiz) || (registerMode === 'new' && newBusinessName)) && (
                 <div className="summary-box">
                   <div className="summary-row">
                     <span className="summary-key">Vendor</span>
@@ -463,12 +510,18 @@ export default function VendorSignup() {
                   </div>
                   <div className="summary-row">
                     <span className="summary-key">Business</span>
-                    <span className="summary-val">{selectedBiz.name}</span>
+                    <span className="summary-val">{registerMode === 'new' ? newBusinessName : selectedBiz?.name}</span>
                   </div>
                   <div className="summary-row">
                     <span className="summary-key">Category</span>
                     <span className="summary-val">{selectedChild?.name}</span>
                   </div>
+                  {registerMode === 'new' && (
+                    <div className="summary-row">
+                      <span className="summary-key">Status</span>
+                      <span className="summary-val" style={{ color: '#22c55e' }}>✓ New registration</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -480,7 +533,7 @@ export default function VendorSignup() {
                   <button
                     type="submit"
                     className="btn-submit"
-                    disabled={loading || !businessId || businesses.length === 0}
+                    disabled={loading || (registerMode === 'select' && !businessId) || (registerMode === 'new' && !newBusinessName.trim())}
                   >
                     {loading ? (
                       <><i className="fas fa-circle-notch fa-spin" /> Creating Studio...</>
@@ -958,6 +1011,65 @@ export default function VendorSignup() {
           transition: color 0.2s;
         }
         .pill-change:hover { color: #D4AF37; }
+
+        /* Mode toggle (Select Existing / Register New) */
+        .mode-toggle {
+          display: flex;
+          gap: 0.5rem;
+          background: #f8fafc;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 0.35rem;
+          margin-bottom: 1.25rem;
+        }
+        .mode-tab {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.45rem;
+          padding: 0.65rem 1rem;
+          border-radius: 10px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .mode-tab:hover { color: #1e293b; background: #fff; }
+        .mode-tab.active {
+          background: #D4AF37;
+          color: #1a1a1a;
+          box-shadow: 0 2px 10px rgba(212,175,55,0.35);
+        }
+
+        /* New business name section */
+        .new-biz-section { margin-bottom: 1.25rem; }
+        .new-biz-info {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 0.9rem 1rem;
+          background: #fffdf5;
+          border: 1.5px solid #fde68a;
+          border-radius: 12px;
+          margin-bottom: 1.25rem;
+        }
+        .new-biz-info i { font-size: 1rem; margin-top: 0.1rem; flex-shrink: 0; }
+        .new-biz-info p { margin: 0; font-size: 0.82rem; color: #64748b; line-height: 1.6; }
+        .new-biz-info strong { color: #92702a; }
+
+        /* Field hint */
+        .field-hint {
+          display: block;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: #94a3b8;
+          margin-top: 0.4rem;
+          padding-left: 0.25rem;
+        }
 
         /* Skeleton */
         .skeleton-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
