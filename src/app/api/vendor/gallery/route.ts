@@ -13,26 +13,29 @@ export async function GET(request: Request) {
 
     let query = `
       SELECT 
-        id,
-        url,
-        caption,
-        is_hero,
-        show_on_main,
-        show_on_minisite,
-        approval_status,
-        created_at as uploadedAt
-      FROM vendor_gallery
-      WHERE vendor_id = ?
+        g.id,
+        g.url,
+        g.caption,
+        g.is_hero,
+        g.section_id,
+        s.name as section_name,
+        g.show_on_main,
+        g.show_on_minisite,
+        g.approval_status,
+        g.created_at as uploadedAt
+      FROM vendor_gallery g
+      LEFT JOIN sections s ON g.section_id = s.id
+      WHERE g.vendor_id = ?
     `;
 
     const params: any[] = [user.id];
 
     if (sectionId) {
-      query += ` AND section_id = ?`;
+      query += ` AND g.section_id = ?`;
       params.push(sectionId);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT 100`;
+    query += ` ORDER BY g.created_at DESC LIMIT 100`;
 
     const items = await db.query(query, params);
     return Response.json(items || []);
