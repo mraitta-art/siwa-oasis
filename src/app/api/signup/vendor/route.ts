@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 
 /**
  * VENDOR REGISTRATION API - GET
- * Returns a list of all unassigned businesses for a specific typology ID.
+ * Returns a list of all businesses for a specific typology ID available for vendor registration/co-ownership.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -16,17 +16,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'typology type_id is required' }, { status: 400 });
     }
 
-    // Query businesses of this type that don't have a vendor_id assigned yet
-    const unassigned = await query(
+    // Query all businesses of this type available for vendor account registration
+    const list = await query(
       `SELECT id, name, slug FROM businesses 
-       WHERE type_id = ? AND (vendor_id IS NULL OR vendor_id = '') 
+       WHERE type_id = ? 
        ORDER BY name ASC`,
       [typeId]
     );
 
-    return NextResponse.json(unassigned);
+    return NextResponse.json(list);
   } catch (error: any) {
-    console.error('Error fetching unassigned businesses:', error);
+    console.error('Error fetching businesses for registration:', error);
     return NextResponse.json({ error: 'Failed to retrieve available businesses.' }, { status: 500 });
   }
 }
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
 /**
  * VENDOR REGISTRATION API - POST
  * Links a new vendor Profile to an existing admin-created Business record.
+ * Supports multi-vendor registration / co-ownership per business.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
 
-    // 2. Validate that the business exists under the correct type and is unassigned
+    // 2. Validate that the business exists under the correct type
     const businessRow = await queryOne(
       'SELECT id, name, vendor_id, subscription_tier, template_id FROM businesses WHERE id = ? AND type_id = ?',
       [businessId, businessType]
@@ -59,29 +60,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Selected business not found or category mismatch' }, { status: 404 });
     }
 
-    if (businessRow.vendor_id) {
-      return NextResponse.json({ error: 'This business has already been claimed by another vendor.' }, { status: 400 });
-    }
-
     // 3. Prepare IDs and hashing
     const userId = randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create the Profile FIRST — must exist before businesses can reference it via FK
+    // 4. Create the Profile linked to the selected business_id
     await execute(
       'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [userId, email, hashedPassword, 'vendor', displayName, businessId, businessRow.subscription_tier || 'free', true]
     );
 
-    // 5. Now link the business to the new vendor profile (FK constraint: vendor_id → profiles.id)
-    await execute(
-      `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
-      [userId, businessId]
-    );
+    // 5. If business has no primary vendor assigned yet, set this user as primary vendor owner
+    if (!businessRow.vendor_id || businessRow.vendor_id === '' || businessRow.vendor_id === 'anonymous') {
+      await execute(
+        `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
+        [userId, businessId]
+      );
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Welcome to the Oasis! Your heritage studio is ready.',
+      message: 'Welcome to the Oasis! Your vendor account has been created.',
       userId,
       businessId,
       templateId: businessRow.template_id || 'essentials_free',
