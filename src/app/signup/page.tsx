@@ -95,8 +95,13 @@ export default function VendorSignup() {
     setRegisterMode('select');
     fetch(`/api/signup/vendor?type_id=${childId}`)
       .then(r => r.json())
-      .then((data: Business[]) => setBusinesses(Array.isArray(data) ? data : []))
-      .catch(() => setBusinesses([]))
+      .then((data: Business[]) => {
+        const list = Array.isArray(data) ? data : [];
+        setBusinesses(list);
+        // Auto-switch to Register New Name when category has no businesses yet
+        if (list.length === 0) setRegisterMode('new');
+      })
+      .catch(() => { setBusinesses([]); setRegisterMode('new'); })
       .finally(() => setBusLoading(false));
   }, [childId]);
 
@@ -443,8 +448,16 @@ export default function VendorSignup() {
                 ) : businesses.length === 0 ? (
                   <div className="no-biz-notice">
                     <i className="fas fa-store-slash" />
-                    <strong>No listings found for this category</strong>
-                    <p>You can register your own vendor name below — use the <em>Register New Name</em> tab above.</p>
+                    <strong>Be the first vendor in this category!</strong>
+                    <p>No businesses are registered here yet. Register your trade name now — team members can join you later.</p>
+                    <button
+                      type="button"
+                      className="btn-next"
+                      style={{ marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.6rem 1.4rem' }}
+                      onClick={() => setRegisterMode('new')}
+                    >
+                      <i className="fas fa-plus-circle" /> Register New Name
+                    </button>
                   </div>
                 ) : (
                   <div className="biz-list">
@@ -477,7 +490,11 @@ export default function VendorSignup() {
                 <div className="new-biz-section">
                   <div className="new-biz-info">
                     <i className="fas fa-info-circle" style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
-                    <p>Your business will be registered as a new vendor under <strong>{selectedChild?.name}</strong>. Multiple vendors can operate independently within the same category.</p>
+                    <p>
+                      Register your trade name under <strong>{selectedChild?.name}</strong>.
+                      Your listing will appear in this category so team members and co-owners
+                      can also sign up and access the same business dashboard.
+                    </p>
                   </div>
                   <div className="field-group">
                     <label className="field-label">Your Business / Trade Name</label>
