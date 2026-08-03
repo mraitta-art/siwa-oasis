@@ -15,6 +15,20 @@ function slugify(text: string): string {
     .replace(/-+$/, '');
 }
 
+/** Read vendor_registration_mode from admin_settings */
+async function getRegistrationMode(): Promise<'open' | 'approval_required'> {
+  try {
+    const row = (await queryOne(
+      `SELECT config FROM website_configs WHERE type = 'admin_settings' LIMIT 1`
+    )) as any;
+    if (!row) return 'open';
+    const cfg = typeof row.config === 'string' ? JSON.parse(row.config) : row.config;
+    return cfg?.vendor_registration_mode === 'approval_required' ? 'approval_required' : 'open';
+  } catch {
+    return 'open'; // fail-safe: always allow registration
+  }
+}
+
 /**
  * VENDOR REGISTRATION API - GET
  * Returns ALL businesses for a given category type.
@@ -74,6 +88,12 @@ export async function POST(req: NextRequest) {
     const userId   = randomUUID();
     const hashedPw = await bcrypt.hash(password, 10);
 
+    // Check global registration mode set by admin
+    const regMode        = await getRegistrationMode();
+    const needsApproval  = regMode === 'approval_required';
+    const approvalStatus = needsApproval ? 'pending' : 'approved';
+    const isActive       = !needsApproval; // inactive until admin approves
+
     /* ─────────────────────────────────────────────────────────
        MODE B — Register a brand-new business name
        is_shared = 1 so team members can join later
@@ -96,11 +116,21 @@ export async function POST(req: NextRequest) {
         [targetBizId, newBusinessName.trim(), finalSlug, businessType, userId]
       );
 
-      // Create the vendor profile as primary owner
+      // Create the vendor profile
       await execute(
-        'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [userId, email, hashedPw, 'vendor', displayName, targetBizId, 'free', true]
+        'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, email, hashedPw, 'vendor', displayName, targetBizId, 'free', isActive, approvalStatus]
       );
+
+      if (needsApproval) {
+        return NextResponse.json({
+          success:  true,
+          pending:  true,
+          message:  'Your registration request has been submitted. The admin will review and approve your account shortly.',
+          userId,
+          businessId: targetBizId,
+        }, { status: 202 });
+      }
 
       return NextResponse.json({
         success:    true,
@@ -133,16 +163,26 @@ export async function POST(req: NextRequest) {
 
     // 3. Create the vendor profile linked to this business
     await execute(
-      'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, email, hashedPw, 'vendor', displayName, businessId, tier, true]
+      'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, email, hashedPw, 'vendor', displayName, businessId, tier, isActive, approvalStatus]
     );
 
-    // 4. Claim primary ownership if not yet taken
-    if (isPrimary) {
+    // 4. Claim primary ownership if not yet taken (only if approved)
+    if (isPrimary && !needsApproval) {
       await execute(
         `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
         [userId, businessId]
       );
+    }
+
+    if (needsApproval) {
+      return NextResponse.json({
+        success: true,
+        pending: true,
+        message: 'Your registration request has been submitted. The admin will review and approve your account shortly.',
+        userId,
+        businessId,
+      }, { status: 202 });
     }
 
     return NextResponse.json({

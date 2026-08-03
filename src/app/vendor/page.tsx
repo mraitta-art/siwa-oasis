@@ -560,6 +560,8 @@ export default function VendorDashboardPage() {
               <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.07)', margin: '0.5rem 0' }} />
               <div className="vd-hero-status-label">Profile</div>
               <div className="vd-hero-status-val" style={{ color: '#D4AF37' }}>{profilePct}%</div>
+            </div>
+          </div>
         </div>
 
         {/* ─── Admin Notification & Category Blueprint Card ─── */}

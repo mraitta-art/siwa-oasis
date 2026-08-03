@@ -65,9 +65,11 @@ export default function VendorSignup() {
   const [newBusinessName,  setNewBusinessName]  = useState<string>('');
 
   /* ── submission ─────────────────────── */
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState('');
-  const [fieldErr,  setFieldErr]  = useState<Record<string, string>>({});
+  const [loading,            setLoading]            = useState(false);
+  const [error,              setError]              = useState('');
+  const [fieldErr,           setFieldErr]           = useState<Record<string, string>>({});
+  const [registrationStatus, setRegistrationStatus] = useState<'idle'|'pending'|'approved'>('idle');
+  const [pendingBizName,     setPendingBizName]     = useState('');
 
   /* ── load types once ─────────────────── */
   useEffect(() => {
@@ -156,11 +158,18 @@ export default function VendorSignup() {
         }),
       });
       const data = await res.json();
-      if (data.success) {
-        router.push('/login?registered=true');
-      } else {
+      if (!data.success) {
         setError(data.error || 'Registration failed. Please try again.');
+        return;
       }
+      // 202 = pending admin approval
+      if (res.status === 202 || data.pending) {
+        setPendingBizName(registerMode === 'new' ? newBusinessName.trim() : (businesses.find(b => b.id === businessId)?.name || 'your business'));
+        setRegistrationStatus('pending');
+        return;
+      }
+      // 200 = immediately approved (open mode)
+      router.push('/login?registered=true');
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -176,6 +185,83 @@ export default function VendorSignup() {
   /* ─────────────────────────────────────────────────────────────
      RENDER
   ───────────────────────────────────────────────────────────── */
+  /* ── Pending approval screen ─── */
+  if (registrationStatus === 'pending') {
+    return (
+      <div className="signup-root">
+        <div className="signup-bg">
+          <div className="bg-orb orb1" />
+          <div className="bg-orb orb2" />
+          <div className="bg-orb orb3" />
+        </div>
+        <div className="signup-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+          <div className="signup-card" style={{ maxWidth: 520, textAlign: 'center', padding: '3rem 2.5rem' }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #f59e0b22, #d97706aa)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1.5rem', fontSize: '2rem',
+              boxShadow: '0 0 40px #f59e0b44'
+            }}>
+              <i className="fas fa-hourglass-half" style={{ color: '#f59e0b', animation: 'spin 3s linear infinite' }} />
+            </div>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '0.75rem' }}>
+              Registration Submitted!
+            </h1>
+            <p style={{ color: '#94a3b8', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+              Your vendor request for <strong style={{ color: '#D4AF37' }}>{pendingBizName}</strong> has been received.
+              The admin will review and approve your account — you will be able to log in once approved.
+            </p>
+            <div style={{
+              background: '#1e293b', border: '1px solid #f59e0b44',
+              borderRadius: 12, padding: '1rem 1.25rem',
+              marginBottom: '2rem', textAlign: 'left'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                <i className="fas fa-envelope" style={{ color: '#f59e0b', fontSize: '0.85rem' }} />
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Registered email</span>
+              </div>
+              <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{email}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                background: '#0f172a', borderRadius: 10, padding: '0.85rem 1rem',
+                border: '1px solid #334155'
+              }}>
+                <i className="fas fa-check-circle" style={{ color: '#22c55e', fontSize: '1rem' }} />
+                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Account created and waiting for review</span>
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                background: '#0f172a', borderRadius: 10, padding: '0.85rem 1rem',
+                border: '1px solid #334155'
+              }}>
+                <i className="fas fa-bell" style={{ color: '#f59e0b', fontSize: '1rem' }} />
+                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Admin notified — approval usually within 24 hours</span>
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                background: '#0f172a', borderRadius: 10, padding: '0.85rem 1rem',
+                border: '1px solid #334155'
+              }}>
+                <i className="fas fa-unlock" style={{ color: '#60a5fa', fontSize: '1rem' }} />
+                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>You can log in once your account is approved</span>
+              </div>
+            </div>
+            <Link href="/" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              marginTop: '2rem', color: '#D4AF37', fontWeight: 600,
+              textDecoration: 'none', fontSize: '0.95rem'
+            }}>
+              <i className="fas fa-home" /> Return to Homepage
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="signup-root">
 
