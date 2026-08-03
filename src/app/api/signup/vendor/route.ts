@@ -8,16 +8,17 @@ function slugify(text: string): string {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')        // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')   // Remove all non-word chars
-    .replace(/\-\-+/g, '-')      // Replace multiple - with single -
-    .replace(/^-+/, '')          // Trim - from start
-    .replace(/-+$/, '');         // Trim - from end
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 }
 
 /**
  * VENDOR REGISTRATION API - GET
- * Returns a list of all businesses for a specific typology ID available for vendor registration/co-ownership.
+ * Returns businesses available for vendor signup (is_shared = 1, admin-created open listings only).
+ * Self-registered (is_shared = 0) businesses are LOCKED and not shown here.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -28,10 +29,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'typology type_id is required' }, { status: 400 });
     }
 
-    // Query all businesses of this type available for vendor account registration
+    // Only return admin-created open listings (is_shared = 1)
     const list = await query(
       `SELECT id, name, slug FROM businesses 
-       WHERE type_id = ? 
+       WHERE type_id = ? AND is_shared = 1
        ORDER BY name ASC`,
       [typeId]
     );
@@ -45,8 +46,18 @@ export async function GET(req: NextRequest) {
 
 /**
  * VENDOR REGISTRATION API - POST
- * Links a new vendor Profile to an existing or newly created Business record under the selected category.
- * Supports multi-vendor registration / co-ownership per business and custom business name registration.
+ *
+ * Two registration modes:
+ *
+ * MODE A — "Select Existing" (businessId provided):
+ *   - Business must exist, type must match, and is_shared must = 1
+ *   - If no primary vendor yet: sets this user as primary owner
+ *   - If already has primary vendor: creates a team co-vendor profile linked to the business
+ *
+ * MODE B — "Register New Name" (newBusinessName provided):
+ *   - Creates a brand-new business record with is_shared = 0 (LOCKED to single owner)
+ *   - Only this registering vendor can ever manage it
+ *   - No other vendor can claim or join it via signup
  */
 export async function POST(req: NextRequest) {
   try {
@@ -56,88 +67,103 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
     }
 
-    // 1. Check if email exists
+    // 1. Check email uniqueness
     const existing = (await query('SELECT id FROM profiles WHERE email = ?', [email])) as any[];
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
 
-    let targetBusinessId = businessId;
-    let templateId = 'essentials_free';
-    let tier = 'free';
+    const userId        = randomUUID();
+    const hashedPw      = await bcrypt.hash(password, 10);
+    let   targetBizId   = businessId;
+    let   templateId    = 'essentials_free';
+    let   tier          = 'free';
 
-    // 2. If vendor entered a custom new business name, create a new business record under this category
-    if (!targetBusinessId && newBusinessName) {
-      targetBusinessId = randomUUID();
+    /* ─────────────────────────────────────────────────────────
+       MODE B — Register a brand-new independent business name
+    ───────────────────────────────────────────────────────── */
+    if (!targetBizId && newBusinessName) {
+      targetBizId = randomUUID();
+
       const rawSlug = slugify(newBusinessName) || `biz-${Date.now().toString(36)}`;
       let finalSlug = rawSlug;
 
-      // Ensure unique slug
+      // Ensure slug uniqueness
       const slugCheck = (await query('SELECT id FROM businesses WHERE slug = ?', [rawSlug])) as any[];
       if (slugCheck.length > 0) {
         finalSlug = `${rawSlug}-${Date.now().toString(36).slice(-4)}`;
       }
 
+      // Create the business: is_shared = 0 → locked to single owner forever
       await execute(
-        `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, status, created_at)
-         VALUES (?, ?, ?, ?, 'free', 'active', NOW())`,
-        [targetBusinessId, newBusinessName.trim(), finalSlug, businessType]
+        `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, status, is_shared, created_at)
+         VALUES (?, ?, ?, ?, ?, 'free', 'active', 0, NOW())`,
+        [targetBizId, newBusinessName.trim(), finalSlug, businessType, userId]
       );
-    } else {
-      // Validate existing business
-      const businessRow = (await queryOne(
-        'SELECT id, name, vendor_id, subscription_tier, template_id FROM businesses WHERE id = ? AND type_id = ?',
-        [targetBusinessId, businessType]
-      )) as any;
 
-      if (!businessRow) {
-        return NextResponse.json({ error: 'Selected business not found or category mismatch' }, { status: 404 });
-      }
-      templateId = businessRow.template_id || 'essentials_free';
-      tier = businessRow.subscription_tier || 'free';
+      // Create the vendor profile
+      await execute(
+        'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, email, hashedPw, 'vendor', displayName, targetBizId, 'free', true]
+      );
 
-      // 3. If existing business has no primary vendor, claim it
-      if (!businessRow.vendor_id || businessRow.vendor_id === '' || businessRow.vendor_id === 'anonymous') {
-        const primaryUserId = randomUUID();
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        await execute(
-          'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [primaryUserId, email, hashedPassword, 'vendor', displayName, targetBusinessId, tier, true]
-        );
-
-        await execute(
-          `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
-          [primaryUserId, targetBusinessId]
-        );
-
-        return NextResponse.json({
-          success: true,
-          message: 'Welcome to Siwa Oasis! Your studio is ready.',
-          userId: primaryUserId,
-          businessId: targetBusinessId,
-          templateId,
-          tier
-        });
-      }
+      return NextResponse.json({
+        success: true,
+        message: 'Welcome to Siwa Oasis! Your independent vendor studio is ready.',
+        userId,
+        businessId: targetBizId,
+        templateId: 'essentials_free',
+        tier: 'free',
+        ownership: 'independent'
+      });
     }
 
-    // 4. Create the Profile linked to the selected business_id
-    const userId = randomUUID();
-    const hashedPassword = await bcrypt.hash(password, 10);
+    /* ─────────────────────────────────────────────────────────
+       MODE A — Join an existing shared (admin-created) listing
+    ───────────────────────────────────────────────────────── */
 
+    // 2. Validate business: must exist, correct type, AND is_shared = 1
+    const businessRow = (await queryOne(
+      'SELECT id, name, vendor_id, subscription_tier, template_id, is_shared FROM businesses WHERE id = ? AND type_id = ?',
+      [targetBizId, businessType]
+    )) as any;
+
+    if (!businessRow) {
+      return NextResponse.json({ error: 'Selected business not found or category mismatch' }, { status: 404 });
+    }
+
+    // Block joining a locked independent business
+    if (!businessRow.is_shared) {
+      return NextResponse.json({
+        error: 'This business is independently registered and cannot be joined by other vendors.'
+      }, { status: 403 });
+    }
+
+    templateId = businessRow.template_id || 'essentials_free';
+    tier       = businessRow.subscription_tier || 'free';
+
+    // 3. Create vendor profile linked to this shared business
     await execute(
       'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, email, hashedPassword, 'vendor', displayName, targetBusinessId, tier, true]
+      [userId, email, hashedPw, 'vendor', displayName, targetBizId, tier, true]
     );
 
-    return NextResponse.json({ 
-      success: true, 
+    // 4. If no primary vendor yet, claim primary ownership
+    if (!businessRow.vendor_id || businessRow.vendor_id === '' || businessRow.vendor_id === 'anonymous') {
+      await execute(
+        `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
+        [userId, targetBizId]
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
       message: 'Welcome to Siwa Oasis! Your vendor account has been created.',
       userId,
-      businessId: targetBusinessId,
+      businessId: targetBizId,
       templateId,
-      tier
+      tier,
+      ownership: businessRow.vendor_id ? 'co-vendor' : 'primary'
     });
 
   } catch (error: any) {
