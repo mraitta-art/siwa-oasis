@@ -1,7 +1,7 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useState } from 'react';
 
 interface InvestmentOpportunity {
   id: string;
@@ -21,348 +21,239 @@ interface InvestmentOpportunity {
   valid_until: string;
 }
 
+const INV_CSS = `
+  .vi-root {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    color: #0f172a;
+  }
+  .vi-card {
+    background: #ffffff; border: 1px solid #eef0f5; border-radius: 22px;
+    padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.2s; position: relative;
+  }
+  .vi-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
+  .vi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
+
+  .vi-badge {
+    font-size: 0.58rem; font-weight: 900; padding: 3px 9px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .vi-badge.published { background: rgba(34,197,94,0.1); color: #16a34a; border: 1px solid rgba(34,197,94,0.2); }
+  .vi-badge.draft { background: rgba(245,158,11,0.1); color: #d97706; border: 1px solid rgba(245,158,11,0.2); }
+  .vi-badge.roi { background: rgba(212,175,55,0.15); color: #D4AF37; border: 1px solid rgba(212,175,55,0.3); }
+
+  .vi-modal-overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.6);
+    backdrop-filter: blur(4px); z-index: 500;
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .vi-modal {
+    background: #fff; border-radius: 24px; padding: 2rem;
+    max-width: 540px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  }
+`;
+
 export default function VendorInvestmentOpportunitiesPage() {
   const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([
     {
       id: '1',
-      opportunity_title: 'Desert Tours Expansion',
+      opportunity_title: 'Eco-Lodge Palm Grove Expansion',
       opportunity_type: 'equity',
       investment_amount_min: 50000,
-      investment_amount_max: 250000,
-      expected_roi_percent: 25,
+      investment_amount_max: 200000,
+      expected_roi_percent: 24,
       status: 'published',
       approval_status: 'approved',
       visibility_on_main_site: true,
       is_featured: true,
-      investors_current: 3,
+      investors_current: 2,
       target_investors: 5,
-      inquiries_count: 18,
-      applications_count: 8,
+      inquiries_count: 14,
+      applications_count: 5,
       valid_until: '2026-12-31',
     },
     {
       id: '2',
-      opportunity_title: 'New Safari Camp Launch',
-      opportunity_type: 'partnership',
-      investment_amount_min: 75000,
-      investment_amount_max: 150000,
-      expected_roi_percent: 20,
+      opportunity_title: 'Organic Date Bottling & Export Joint Venture',
+      opportunity_type: 'joint_venture',
+      investment_amount_min: 30000,
+      investment_amount_max: 100000,
+      expected_roi_percent: 18,
       status: 'draft',
       approval_status: 'pending',
       visibility_on_main_site: false,
       is_featured: false,
       investors_current: 0,
       target_investors: 3,
-      inquiries_count: 0,
+      inquiries_count: 2,
       applications_count: 0,
-      valid_until: '2026-08-31',
+      valid_until: '2026-09-30',
     },
   ]);
 
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [slug, setSlug] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [title, setTitle] = useState('');
+  const [minAmt, setMinAmt] = useState('');
+  const [maxAmt, setMaxAmt] = useState('');
+  const [roi, setRoi] = useState('');
 
-  const filteredOpportunities = opportunities.filter((opp) => {
-    if (filterStatus !== 'all' && opp.status !== filterStatus) return false;
-    return true;
-  });
+  useEffect(() => {
+    fetch('/api/vendor/story')
+      .then(r => r.json())
+      .then(d => { if (d?.business) setSlug(d.business.slug || d.business.id || ''); })
+      .catch(() => {});
+  }, []);
 
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      equity: '📊',
-      partnership: '🤝',
-      franchise: '🏢',
-      joint_venture: '🔗',
-      sponsorship: '🎯',
+  function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title || !minAmt) return;
+    const created: InvestmentOpportunity = {
+      id: Date.now().toString(),
+      opportunity_title: title,
+      opportunity_type: 'equity',
+      investment_amount_min: Number(minAmt),
+      investment_amount_max: Number(maxAmt) || Number(minAmt) * 2,
+      expected_roi_percent: Number(roi) || 15,
+      status: 'published',
+      approval_status: 'approved',
+      visibility_on_main_site: true,
+      is_featured: false,
+      investors_current: 0,
+      target_investors: 5,
+      inquiries_count: 0,
+      applications_count: 0,
+      valid_until: '2026-12-31',
     };
-    return icons[type] || '💰';
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published':
-        return 'bg-green-900 text-green-200';
-      case 'draft':
-        return 'bg-yellow-900 text-yellow-200';
-      case 'funded':
-        return 'bg-blue-900 text-blue-200';
-      case 'closed':
-        return 'bg-gray-800 text-gray-300';
-      default:
-        return 'bg-gray-800 text-gray-300';
-    }
-  };
-
-  const getApprovalColor = (approval: string) => {
-    switch (approval) {
-      case 'approved':
-        return 'bg-green-900 text-green-200';
-      case 'pending':
-        return 'bg-yellow-900 text-yellow-200';
-      case 'rejected':
-        return 'bg-red-900 text-red-200';
-      default:
-        return 'bg-gray-800 text-gray-300';
-    }
-  };
+    setOpportunities([created, ...opportunities]);
+    setShowModal(false);
+    setTitle(''); setMinAmt(''); setMaxAmt(''); setRoi('');
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/vendor" className="text-gray-400 hover:text-[#D4AF37] transition-colors mb-4 block">
-            ← Vendor Dashboard
-          </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">💰 Investment Opportunities</h1>
-          <p className="text-gray-400">Create and manage investment opportunities for your business</p>
-        </div>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: INV_CSS }} />
+      <div className="vi-root">
 
-        {/* Info Alert */}
-        <div className="mb-6 p-4 bg-blue-900 border border-blue-800 rounded-lg">
-          <div className="text-blue-200 text-sm">
-            <strong>ℹ️ Admin Control:</strong> Your opportunities need admin approval before showing on main
-            website. You can still manage them here on your mini website.
+        {/* Top Header */}
+        <div style={{ marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginBottom: '4px' }}>
+              💰 Investment Opportunities
+            </h1>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>
+              Register capital & joint venture opportunities for local or global investors
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            {slug && (
+              <Link href={`/${slug}`} target="_blank" style={{ fontSize: '0.75rem', fontWeight: 800, color: '#D4AF37', background: '#fdf8ee', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #fde68a', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <i className="fas fa-external-link-alt" style={{ fontSize: '0.65rem' }} /> Preview Minisite
+              </Link>
+            )}
+            <button
+              onClick={() => setShowModal(true)}
+              style={{ background: 'linear-gradient(135deg, #D4AF37, #f0c842)', color: '#1a1000', border: 'none', padding: '0.55rem 1.25rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(212,175,55,0.3)' }}
+            >
+              <i className="fas fa-plus" /> List Opportunity
+            </button>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="mb-8 flex gap-4 flex-wrap items-center">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
-          >
-            + New Opportunity
-          </button>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
-          >
-            <option value="all">All Status</option>
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="funded">Funded</option>
-            <option value="closed">Closed</option>
-          </select>
-
-          <div className="text-gray-400 text-sm ml-auto">
-            Showing {filteredOpportunities.length} of {opportunities.length}
-          </div>
-        </div>
-
-        {/* Opportunities Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {filteredOpportunities.map((opp) => (
-            <div key={opp.id} className="bg-gray-900 border border-gray-800 rounded-lg p-6 hover:border-[#D4AF37] transition-colors">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-3xl">{getTypeIcon(opp.opportunity_type)}</span>
-                    {opp.is_featured && (
-                      <span className="px-2 py-1 bg-[#D4AF37] text-black text-xs font-bold rounded">⭐ Featured</span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">{opp.opportunity_title}</h3>
-                  <div className="flex gap-2 text-xs text-gray-400 mb-2">
-                    <span>{opp.opportunity_type}</span>
-                    <span>•</span>
-                    <span>{opp.expected_roi_percent}% ROI</span>
-                  </div>
-                </div>
+        {/* Cards Grid */}
+        <div className="vi-grid">
+          {opportunities.map(op => (
+            <div key={op.id} className="vi-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginBottom: '0.75rem' }}>
+                <span className={`vi-badge ${op.status}`}>{op.status}</span>
+                <span className="vi-badge roi">📈 Expected ROI: {op.expected_roi_percent}%</span>
               </div>
 
-              {/* Investment Details */}
-              <div className="bg-gray-800 rounded p-4 mb-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-gray-500 text-xs">Investment Range</div>
-                    <div className="text-white font-semibold text-sm">
-                      ${opp.investment_amount_min.toLocaleString()} - ${opp.investment_amount_max.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-500 text-xs">Investors</div>
-                    <div className="text-white font-semibold text-sm">
-                      {opp.investors_current}/{opp.target_investors}
-                    </div>
-                  </div>
-                </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem', lineHeight: 1.35 }}>
+                {op.opportunity_title}
+              </h3>
 
-                {/* Progress Bar */}
-                <div className="mt-3">
-                  <div className="w-full h-2 bg-gray-700 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#556B2F] to-[#D4AF37]"
-                      style={{ width: `${(opp.investors_current / opp.target_investors) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#D4AF37', marginBottom: '1rem' }}>
+                ${op.investment_amount_min.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>to ${op.investment_amount_max.toLocaleString()}</span>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 mb-4 text-center text-sm">
-                <div>
-                  <div className="text-2xl font-bold text-[#D4AF37]">{opp.inquiries_count}</div>
-                  <div className="text-xs text-gray-500">Inquiries</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-400">{opp.applications_count}</div>
-                  <div className="text-xs text-gray-500">Applications</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-400">{opp.visibility_on_main_site ? '👁️' : '🙈'}</div>
-                  <div className="text-xs text-gray-500">{opp.visibility_on_main_site ? 'Visible' : 'Hidden'}</div>
-                </div>
+              <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginBottom: '1rem' }}>
+                <div>Inquiries: <strong style={{ color: '#0f172a' }}>{op.inquiries_count}</strong></div>
+                <div>Investors: <strong style={{ color: '#0f172a' }}>{op.investors_current}/{op.target_investors}</strong></div>
               </div>
 
-              {/* Status Badges */}
-              <div className="flex gap-2 mb-4">
-                <span className={`flex-1 text-xs px-2 py-1 rounded font-semibold text-center ${getStatusColor(opp.status)}`}>
-                  {opp.status}
-                </span>
-                <span className={`flex-1 text-xs px-2 py-1 rounded font-semibold text-center ${getApprovalColor(opp.approval_status)}`}>
-                  {opp.approval_status}
-                </span>
-              </div>
-
-              <div className="text-xs text-gray-500 mb-4 text-center">
-                Expires: {opp.valid_until}
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 text-sm bg-[#556B2F] hover:opacity-90 rounded text-white font-semibold transition-opacity">
-                  ✏️ Edit
-                </button>
-                <button className="flex-1 px-3 py-2 text-sm bg-blue-900 hover:bg-blue-800 rounded text-blue-200 font-semibold transition-colors">
-                  📊 Analytics
-                </button>
-                <button className="px-3 py-2 text-sm bg-red-900 hover:bg-red-800 rounded text-red-200 font-semibold transition-colors">
-                  🗑️
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
+                <span>Type: <strong style={{ color: '#334155', textTransform: 'capitalize' }}>{op.opportunity_type}</strong></span>
+                <span>Valid until {op.valid_until}</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Stats Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-[#D4AF37] mb-2">{opportunities.length}</div>
-            <div className="text-gray-400 text-sm">Total Opportunities</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-green-500 mb-2">
-              {opportunities.filter((o) => o.status === 'published').length}
-            </div>
-            <div className="text-gray-400 text-sm">Published</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-yellow-500 mb-2">
-              {opportunities.reduce((sum, o) => sum + o.inquiries_count, 0)}
-            </div>
-            <div className="text-gray-400 text-sm">Total Inquiries</div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <div className="text-3xl font-bold text-purple-500 mb-2">
-              ${opportunities.reduce((sum, o) => sum + o.investors_current, 0) * 100000}
-            </div>
-            <div className="text-gray-400 text-sm">Capital Raised</div>
-          </div>
-        </div>
-
         {/* Create Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-white mb-6">Create Investment Opportunity</h2>
-
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Opportunity Title</label>
+        {showModal && (
+          <div className="vi-modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="vi-modal" onClick={e => e.stopPropagation()}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', marginBottom: '1.25rem' }}>List New Investment Opportunity</h2>
+              <form onSubmit={handleCreate}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Opportunity Title</label>
                   <input
                     type="text"
-                    placeholder="e.g., Desert Tours Expansion"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                    required
+                    placeholder="e.g. Ecolodge Solar Power & Eco Water Station"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Opportunity Type</label>
-                  <select className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]">
-                    <option>Equity</option>
-                    <option>Partnership</option>
-                    <option>Franchise</option>
-                    <option>Joint Venture</option>
-                    <option>Sponsorship</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Min Investment</label>
+                    <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Min Amount ($)</label>
                     <input
                       type="number"
-                      placeholder="50000"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      required
+                      placeholder="25000"
+                      value={minAmt}
+                      onChange={e => setMinAmt(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Max Investment</label>
+                    <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Max Amount ($)</label>
                     <input
                       type="number"
-                      placeholder="250000"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Expected ROI (%)</label>
-                    <input
-                      type="number"
-                      placeholder="25"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="100000"
+                      value={maxAmt}
+                      onChange={e => setMaxAmt(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">Target Investors</label>
+                    <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Est. ROI (%)</label>
                     <input
                       type="number"
-                      placeholder="5"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="20"
+                      value={roi}
+                      onChange={e => setRoi(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Description</label>
-                  <textarea
-                    placeholder="Describe your investment opportunity"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-[#D4AF37]"
-                    rows={3}
-                  />
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setShowModal(false)} style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 800, cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ padding: '0.6rem 1.5rem', borderRadius: '12px', background: '#D4AF37', color: '#1a1000', border: 'none', fontWeight: 900, cursor: 'pointer' }}>
+                    List Opportunity
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-2 bg-gray-800 rounded text-white font-semibold hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button className="px-6 py-2 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded text-white font-semibold hover:opacity-90 transition-opacity">
-                  Create Opportunity
-                </button>
-              </div>
+              </form>
             </div>
           </div>
         )}
+
       </div>
-    </div>
+    </>
   );
 }

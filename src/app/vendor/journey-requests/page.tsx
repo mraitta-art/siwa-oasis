@@ -597,25 +597,25 @@ export default function VendorJourneyRequests() {
     <div style={{ color: '#fff' }}>
 
       {/* ── PAGE HEADER ── */}
-      <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '3px', fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+          <div style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '2px', fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
             MARKETPLACE
           </div>
-          <h1 style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 900, margin: 0 }}>Customer Requests</h1>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-            Real customers looking for services matching your business — waiting for your best offer.
+          <h1 style={{ color: '#0f172a', fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Customer Journey Requests</h1>
+          <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.4rem', fontWeight: 500 }}>
+            Real travelers looking for custom experiences — respond with your tailored packages.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <TierBadge tier={tier} />
           {!caps.journey_submit_offer && (
-            <Link href="/vendor/upgrade" style={{
-              padding: '0.6rem 1.25rem', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 900,
-              background: '#D4AF37', color: '#1a1a2e', textDecoration: 'none', letterSpacing: '0.5px',
+            <Link href="/vendor/minisite" style={{
+              padding: '0.55rem 1.1rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800,
+              background: '#D4AF37', color: '#1a1000', textDecoration: 'none',
               display: 'flex', alignItems: 'center', gap: '0.4rem',
             }}>
-              <i className="fas fa-arrow-up" /> Upgrade
+              <i className="fas fa-arrow-up" /> Upgrade Tier
             </Link>
           )}
         </div>
@@ -631,8 +631,8 @@ export default function VendorJourneyRequests() {
       )}
 
       {/* ── TIER CAPABILITY MATRIX ── */}
-      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '1.25rem 1.5rem', marginBottom: '2rem' }}>
-        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '0.85rem' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #eef0f5', borderRadius: '22px', padding: '1.25rem 1.5rem', marginBottom: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.85rem' }}>
           YOUR ACCESS LEVEL — <span style={{ color: tierInfo.color }}>{tierInfo.label.toUpperCase()}</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
