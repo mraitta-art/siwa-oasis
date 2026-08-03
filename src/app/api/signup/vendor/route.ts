@@ -67,16 +67,16 @@ export async function POST(req: NextRequest) {
     const userId = randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Update the Business Record: Link the vendor_id and set active status
-    await execute(
-      `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
-      [userId, businessId]
-    );
-
-    // 5. Create the Profile and link to the business
+    // 4. Create the Profile FIRST — must exist before businesses can reference it via FK
     await execute(
       'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [userId, email, hashedPassword, 'vendor', displayName, businessId, businessRow.subscription_tier || 'free', true]
+    );
+
+    // 5. Now link the business to the new vendor profile (FK constraint: vendor_id → profiles.id)
+    await execute(
+      `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
+      [userId, businessId]
     );
 
     return NextResponse.json({ 
@@ -88,8 +88,13 @@ export async function POST(req: NextRequest) {
       tier: businessRow.subscription_tier || 'free'
     });
 
-  } catch (error) {
-    console.error('Registration Error:', error);
-    return NextResponse.json({ error: 'System busy. Please try again later.' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Registration Error:', error.message || error);
+    const msg = error.code === 'ER_DUP_ENTRY'
+      ? 'An account with this email already exists.'
+      : error.code === 'ER_NO_REFERENCED_ROW_2'
+      ? 'Business reference error — please try again.'
+      : 'Registration failed. Please try again.';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
