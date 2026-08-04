@@ -38,10 +38,15 @@ export default function BusinessOrchestrator() {
 
         if (bizData.error) throw new Error(bizData.error);
         
-        // Fetch Typology Blueprint
-        const typeRes = await fetch(`/api/jana/business-types?id=${bizData.type_id}`);
-        const typeData = await typeRes.json();
-        const blueprint = typeData.blueprint || { hidden_sections: [], hidden_fields: [] };
+        // Fetch Typology Blueprint (type data is returned directly from /api/jana/types)
+        const typeRes = await fetch(`/api/jana/types?id=${bizData.type_id}`);
+        const typeData = typeRes.ok ? await typeRes.json() : {};
+        // The types API returns the type object directly (not wrapped in { blueprint }).
+        // hidden_sections / hidden_fields may be stored as JSON on the type or may not exist.
+        const blueprint = typeData.blueprint || {
+          hidden_sections: typeData.hidden_sections || [],
+          hidden_fields: typeData.hidden_fields || [],
+        };
 
         setBiz({ ...bizData, blueprint });
         setSections(secData);

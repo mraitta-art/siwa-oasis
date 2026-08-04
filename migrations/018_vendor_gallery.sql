@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS vendor_gallery (
     id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
     vendor_id VARCHAR(100) NOT NULL,
-    section_id VARCHAR(36) NOT NULL,
+    section_id VARCHAR(100) NOT NULL,
     
     -- File information
     url VARCHAR(500) NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS vendor_gallery (
     INDEX idx_created_at (created_at),
     
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Feature subscription table (for coming soon notifications)
 CREATE TABLE IF NOT EXISTS feature_subscriptions (

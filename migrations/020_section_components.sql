@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS section_components (
     INDEX idx_display_order (display_order),
     
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Component data - Vendors fill in data for components
 CREATE TABLE IF NOT EXISTS section_component_data (

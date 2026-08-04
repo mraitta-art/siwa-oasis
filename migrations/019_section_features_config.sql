@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS section_blogs (
     
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Create view for vendor section content management
 CREATE OR REPLACE VIEW vw_section_content_manager AS
