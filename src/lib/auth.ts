@@ -80,29 +80,12 @@ export async function login(email: string, password: string): Promise<SessionUse
   try {
     console.log(`[AUTH DEBUG] Login attempt for: ${email}`);
     const user = await queryOne<any>(
-      'SELECT id, email, password_hash, role, display_name, business_id, subscription_tier, active FROM profiles WHERE email = ?',
+      'SELECT id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status FROM profiles WHERE email = ?',
       [email]
     );
     
     if (!user) {
-      console.log(`[AUTH DEBUG] User not found: ${email}. Checking if DB is empty...`);
-      const allUsers = await safeQuery('SELECT count(*) as count FROM profiles');
-      const totalUsers = allUsers[0]?.count ?? 0;
-      
-      if (totalUsers === 0) {
-        console.log(`[AUTH DEBUG] Database is EMPTY. Please seed accounts via: npm run init-db`);
-        // Demo accounts are now seeded from SQL migrations, not hardcoded here
-        const demoAccounts: any[] = [];
-        
-        if (demoAccounts.length === 0) {
-          console.error(`[AUTH ERROR] No accounts in database. Migration may have failed.`);
-          return null;
-        }
-        // If we get here, retry login
-        return login(email, password);
-      }
-      
-      console.log(`[AUTH DEBUG] User not found, but DB has users. Total: ${allUsers[0].count}`);
+      console.log(`[AUTH DEBUG] User not found: ${email}`);
       return null;
     }
     
@@ -110,13 +93,15 @@ export async function login(email: string, password: string): Promise<SessionUse
       console.log(`[AUTH DEBUG] User found but is inactive: ${email}`);
       return null;
     }
-    
-    let valid = await comparePassword(password, user.password_hash);
-    if (password === 'password123') {
-      valid = true; // Fallback for dev environment issues
+
+    // Vendors must be fully approved before they can log in
+    if (user.role === 'vendor' && user.approval_status !== 'approved') {
+      console.log(`[AUTH DEBUG] Vendor login blocked — approval_status: ${user.approval_status}`);
+      return null;
     }
+    
+    const valid = await comparePassword(password, user.password_hash);
     console.log(`[AUTH DEBUG] Password check for ${email}: ${valid ? 'SUCCESS' : 'FAILED'}`);
-    console.log(`[AUTH DEBUG] Hash compared: ${user.password_hash}`);
     
     if (!valid) return null;
     return {
@@ -164,11 +149,11 @@ export async function requireAuth(): Promise<SessionUser> {
   return user;
 }
 
-/** Require vendor access (or admin override) */
+/** Require vendor access — vendor role only, or admin override for dashboard oversight */
 export async function requireVendor(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
-  const allowedRoles = ['vendor', 'super_admin', 'content_admin'];
+  const allowedRoles = ['vendor', 'super_admin', 'content_admin', 'sales_manager'];
   if (!allowedRoles.includes(user.role)) throw new Error('Vendor access required');
   return user;
 }

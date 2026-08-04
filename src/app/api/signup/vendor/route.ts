@@ -43,10 +43,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'typology type_id is required' }, { status: 400 });
     }
 
-    // Return ALL businesses in this category (both admin-created and vendor-registered)
+    // Return only UNCLAIMED businesses (one-vendor policy: already-owned are not joinable)
     const list = await query(
       `SELECT id, name, slug FROM businesses 
        WHERE type_id = ?
+         AND is_master = 0
+         AND (vendor_id IS NULL OR vendor_id = '' OR vendor_id = 'anonymous')
        ORDER BY name ASC`,
       [typeId]
     );
@@ -109,11 +111,12 @@ export async function POST(req: NextRequest) {
         finalSlug = `${rawSlug}-${Date.now().toString(36).slice(-4)}`;
       }
 
-      // Create the business — is_shared = 1 (open for team access)
+      // Create the business — is_shared = 0 (one vendor only policy)
+      const isClaimedVal = needsApproval ? 0 : 1;
       await execute(
-        `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, status, is_shared, created_at)
-         VALUES (?, ?, ?, ?, ?, 'free', 'active', 1, NOW())`,
-        [targetBizId, newBusinessName.trim(), finalSlug, businessType, userId]
+        `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, status, is_shared, is_claimed, approved_by_vendor, created_at)
+         VALUES (?, ?, ?, ?, ?, 'free', 'active', 0, ?, ?, NOW())`,
+        [targetBizId, newBusinessName.trim(), finalSlug, businessType, userId, isClaimedVal, isClaimedVal]
       );
 
       // Create the vendor profile
@@ -161,6 +164,14 @@ export async function POST(req: NextRequest) {
     const tier       = businessRow.subscription_tier || 'free';
     const isPrimary  = !businessRow.vendor_id || businessRow.vendor_id === '' || businessRow.vendor_id === 'anonymous';
 
+    // One-vendor-per-business policy: block if already claimed by a real vendor
+    if (!isPrimary) {
+      return NextResponse.json(
+        { error: 'This business is already registered by another vendor. Each business can only have one owner.' },
+        { status: 409 }
+      );
+    }
+
     // 3. Create the vendor profile linked to this business
     await execute(
       'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -170,7 +181,7 @@ export async function POST(req: NextRequest) {
     // 4. Claim primary ownership if not yet taken (only if approved)
     if (isPrimary && !needsApproval) {
       await execute(
-        `UPDATE businesses SET vendor_id = ?, status = 'active' WHERE id = ?`,
+        `UPDATE businesses SET vendor_id = ?, status = 'active', is_claimed = 1, approved_by_vendor = 1 WHERE id = ?`,
         [userId, businessId]
       );
     }

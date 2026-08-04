@@ -12,7 +12,19 @@ import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
  * VANITY URL CLIENT COMPONENT
  * Handles the interactive minisite UI.
  */
-export default function VanityBusinessClient({ slug, initialData, sections, sectionLabels = {} }: { slug: string, initialData: any, sections: any[], sectionLabels?: Record<string, string> }) {
+export default function VanityBusinessClient({ 
+  slug, 
+  initialData, 
+  sections, 
+  sectionLabels = {}, 
+  isMasterTemplate = false 
+}: { 
+  slug: string, 
+  initialData: any, 
+  sections: any[], 
+  sectionLabels?: Record<string, string>,
+  isMasterTemplate?: boolean 
+}) {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
@@ -100,9 +112,9 @@ export default function VanityBusinessClient({ slug, initialData, sections, sect
   
   // Resolve Brand Assets from Chapter 1 (HERITAGE & IDENTITY)
   const identity = data.sec_1_identity || {};
-  const dynamicPhone = identity.phone || data.phone || '+20 (12) SIWA-OASIS';
-  const dynamicEmail = identity.email || data.email || '';
-  const dynamicAddress = identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt';
+  const dynamicPhone = isMasterTemplate ? '+20 (10) SIWA-TODAY' : (identity.phone || data.phone || '+20 (12) SIWA-OASIS');
+  const dynamicEmail = isMasterTemplate ? 'hello@siwa.today' : (identity.email || data.email || '');
+  const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
   const dynamicLogo = identity.business_logo || identity.logo || data.business_logo || data.logo || undefined;
 
   const handleShare = async () => {
@@ -126,6 +138,45 @@ export default function VanityBusinessClient({ slug, initialData, sections, sect
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem' }}>
+      {isMasterTemplate && (
+        <div style={{ 
+          background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)', 
+          color: '#fff', 
+          padding: '0.75rem 1.5rem', 
+          textAlign: 'center', 
+          fontSize: '0.8rem', 
+          fontWeight: 800, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: '1rem',
+          flexWrap: 'wrap',
+          borderBottom: '2px solid #fbbf24',
+          position: 'relative',
+          zIndex: 9999
+        }}>
+          <span>
+            <i className="fas fa-magic" style={{ color: '#fbbf24', marginRight: '0.5rem' }}></i>
+            PREVIEWING CATEGORY MASTER TEMPLATE: This page acts as a design blueprint.
+          </span>
+          <Link 
+            href="/signup?role=vendor" 
+            style={{ 
+              background: '#fbbf24', 
+              color: '#1e1b4b', 
+              padding: '4px 12px', 
+              borderRadius: '20px', 
+              textDecoration: 'none', 
+              fontSize: '0.7rem', 
+              fontWeight: 900,
+              boxShadow: '0 4px 10px rgba(251,191,36,0.3)',
+              display: 'inline-block'
+            }}
+          >
+            USE THIS TEMPLATE FOR YOUR BUSINESS
+          </Link>
+        </div>
+      )}
       <AutomatedMinisiteHero 
         businessName={biz.name}
         businessLogo={biz.tier_features?.allow_custom_logo ? dynamicLogo : undefined}

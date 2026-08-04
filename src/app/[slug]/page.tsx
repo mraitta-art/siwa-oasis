@@ -203,7 +203,7 @@ const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM busi
       finalLabels[s.id] = label;
     });
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} />;
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} isMasterTemplate={biz.is_master === 1} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (

@@ -115,7 +115,9 @@ export async function PATCH(req: NextRequest) {
           await execute(
             `UPDATE businesses 
              SET status = 'active', 
-                 vendor_id = ? 
+                 vendor_id = ?,
+                 is_claimed = 1,
+                 approved_by_vendor = 1
              WHERE id = ?`,
             [isUnowned ? userId : business.vendor_id, businessId]
           );
@@ -156,9 +158,11 @@ export async function PATCH(req: NextRequest) {
             await execute(
               `UPDATE businesses 
                SET status = 'inactive', 
-                   vendor_id = ? 
+                   vendor_id = ?,
+                   is_claimed = ?,
+                   approved_by_vendor = ?
                WHERE id = ?`,
-              [isOwner ? 'anonymous' : business.vendor_id, businessId]
+              [isOwner ? 'anonymous' : business.vendor_id, isOwner ? 0 : 1, isOwner ? 0 : 1, businessId]
             );
           }
         }

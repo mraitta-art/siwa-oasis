@@ -130,6 +130,63 @@ export default function BusinessRegistryPage() {
     loadBusinesses();
   }
 
+  async function cloneBusiness(id: string, name: string) {
+    const newName = prompt(`Clone template: "${name}"\n\nEnter the Trade Name for the new business instance:`, `${name} Cloned`);
+    if (!newName) return;
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/jana/businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newName,
+          clone_from_id: id,
+          is_master: false
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        notify(`Cloned successfully as "${newName}"`, 'success');
+        loadBusinesses();
+        // Redirect to edit page
+        window.location.href = `/jana/businesses/${data.id}/edit`;
+      } else {
+        const err = await res.json();
+        notify(err.error || 'Cloning failed', 'error');
+      }
+    } catch (e) {
+      notify('Cloning request failed', 'error');
+    }
+    setIsSyncing(false);
+  }
+
+  async function assignVendor(businessId: string, newVendorId: string) {
+    setIsSyncing(true);
+    try {
+      const isClaimed = newVendorId !== 'anonymous' && newVendorId !== '';
+      const res = await fetch('/api/jana/businesses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: businessId,
+          vendor_id: isClaimed ? newVendorId : 'anonymous',
+          is_claimed: isClaimed,
+          approved_by_vendor: isClaimed
+        })
+      });
+      if (res.ok) {
+        notify('Vendor assignment updated', 'success');
+        loadBusinesses();
+      } else {
+        const err = await res.json();
+        notify(err.error || 'Failed to update vendor assignment', 'error');
+      }
+    } catch (e) {
+      notify('Failed to update vendor assignment', 'error');
+    }
+    setIsSyncing(false);
+  }
+
   const handleFieldChange = (name: string, value: any) => {
     setNewBiz(prev => ({
       ...prev,
@@ -259,6 +316,17 @@ export default function BusinessRegistryPage() {
                 )}
               </select>
             </div>
+            {/* Vendor */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>ASSIGN VENDOR (OPTIONAL)</label>
+              <select className="form-control" value={newBiz.vendor_id}
+                onChange={e => setNewBiz({...newBiz, vendor_id: e.target.value})}>
+                <option value="">-- Keep Unclaimed (Anonymous) --</option>
+                {vendors.map((v: any) => (
+                  <option key={v.id} value={v.id}>{v.display_name || v.email} ({v.email})</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {(() => {
@@ -300,7 +368,18 @@ export default function BusinessRegistryPage() {
               <tr key={b.id} style={{ background: selectedIds.includes(b.id) ? '#f8fafc' : 'transparent' }}>
                 <td><input type="checkbox" checked={selectedIds.includes(b.id)} onChange={() => toggleSelect(b.id)} /></td>
                 <td>
-                  <div style={{ fontWeight: 800 }}>{b.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ fontWeight: 800 }}>{b.name}</div>
+                    {(b as any).is_master === 1 && (
+                      <span style={{ 
+                        fontSize: '0.55rem', fontWeight: 900, background: '#1e1b4b', 
+                        color: '#fbbf24', padding: '2px 6px', borderRadius: '4px', 
+                        border: '1px solid #fbbf24', letterSpacing: '0.5px' 
+                      }}>
+                        MASTER TEMPLATE
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>ID: {b.id.slice(0, 8)}...</div>
                 </td>
                 <td>
@@ -360,21 +439,39 @@ export default function BusinessRegistryPage() {
                   </div>
                 </td>
                 <td>
-                  {(() => {
-                    const isAnon = !b.vendor_id || b.vendor_id === 'anonymous' || !b.vendor_email;
-                    if (isAnon) return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: '999px', border: '1px solid #fcd34d' }}>
-                        🔓 Unclaimed
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <select
+                      value={b.vendor_id || 'anonymous'}
+                      onChange={(e) => assignVendor(b.id, e.target.value)}
+                      className="form-control"
+                      style={{ 
+                        fontSize: '0.75rem', 
+                        padding: '0.2rem 0.5rem', 
+                        height: 'auto', 
+                        borderColor: b.vendor_id && b.vendor_id !== 'anonymous' ? '#10b981' : '#fcd34d',
+                        background: b.vendor_id && b.vendor_id !== 'anonymous' ? '#f0fdf4' : '#fffbeb',
+                        color: b.vendor_id && b.vendor_id !== 'anonymous' ? '#166534' : '#92400e',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        borderRadius: '6px',
+                        width: '100%',
+                        maxWidth: '220px',
+                        appearance: 'auto'
+                      }}
+                    >
+                      <option value="anonymous">🔓 Unclaimed (Anonymous)</option>
+                      {vendors.map((v: any) => (
+                        <option key={v.id} value={v.id}>
+                          👤 {v.display_name || v.email}
+                        </option>
+                      ))}
+                    </select>
+                    {b.vendor_id && b.vendor_id !== 'anonymous' && !b.approved_by_vendor && (
+                      <span className="badge badge-warning" style={{ fontSize: '0.6rem', display: 'block', width: 'fit-content' }}>
+                        PENDING VENDOR APPROVAL
                       </span>
-                    );
-                    return (
-                      <div style={{ fontSize: '0.8rem' }}>
-                        <i className="fas fa-user-circle" style={{ color: '#6b7280', marginRight: '4px' }}></i>
-                        {b.vendor_email}
-                        {!b.approved_by_vendor && <span className="badge badge-warning" style={{ fontSize: '0.6rem', display: 'block', width: 'fit-content', marginTop: '0.2rem' }}>PENDING VENDOR</span>}
-                      </div>
-                    );
-                  })()}
+                    )}
+                  </div>
                 </td>
                 <td>
                   <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{b.views.toLocaleString()} <span style={{ color: '#9ca3af', fontWeight: 400 }}>views</span></div>
@@ -417,6 +514,9 @@ export default function BusinessRegistryPage() {
                         <Link href={`/jana/businesses/${b.id}/promote`} className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="Promote to New Template">
                           <i className="fas fa-rocket"></i> PROMOTE
                         </Link>
+                        <button className="btn btn-xs btn-outline" style={{ color: '#d97706', borderColor: '#d97706' }} onClick={() => cloneBusiness(b.id, b.name)} title="Clone Business Instance">
+                          <i className="fas fa-copy"></i> CLONE
+                        </button>
                         <Link href={`/jana/businesses/${b.id}/orchestrate`} className="btn btn-xs btn-premium" title="Orchestrate Unified DNA">
                           <i className="fas fa-wand-sparkles"></i> ORCHESTRATE
                         </Link>

@@ -10,7 +10,7 @@ const ROUTE_GUARDS: Record<string, string[]> = {
   '/admin':      ['super_admin', 'content_admin', 'sales_manager'],
   '/api/admin':  ['super_admin', 'content_admin', 'sales_manager'],
   '/jana':       ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
-  '/vendor':     ['super_admin', 'content_admin', 'vendor'],
+  '/vendor':     ['vendor', 'super_admin', 'content_admin', 'sales_manager'],
   '/salesman':   ['super_admin', 'sales_manager', 'salesman'],
 };
 
@@ -38,14 +38,14 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith(prefix)) {
       const session = await verifySession(request);
       if (!session || !allowedRoles.includes(session.role)) {
-        if (pathname.startsWith('/api/')) {
-          return NextResponse.json({ error: 'Unauthorized. Admin session required.' }, { status: 401 });
-        }
-        // Redirect to login, tagging the error type AND the original destination
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('error', 'admin_required');
-        loginUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(loginUrl);
+        // Redirect with appropriate error message for vendor routes
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized. Valid session required.' }, { status: 401 });
+      }
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('error', pathname.startsWith('/vendor') ? 'vendor_required' : 'admin_required');
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
       }
       break;
     }

@@ -101,14 +101,55 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    let { name, type_id, subscription_tier = 'free', vendor_id = null, template_id = null, custom_data = {}, status = 'active', is_standalone = false } = body;
+    let { 
+      name, 
+      type_id, 
+      subscription_tier = 'free', 
+      vendor_id = null, 
+      template_id = null, 
+      custom_data = {}, 
+      status = 'active', 
+      is_standalone = false,
+      clone_from_id = null,
+      is_master = false,
+      is_shared = false
+    } = body;
 
     // Sanitize: Treat empty string as null for foreign key compliance
     if (vendor_id === '') vendor_id = null;
     if (template_id === '') template_id = null;
 
-    if (!name || !type_id) {
-      return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // CLONING SYSTEM / INHERITANCE
+    // ══════════════════════════════════════════════════════════════
+    if (clone_from_id) {
+      const src = await queryOne(
+        'SELECT type_id, subscription_tier, template_id, custom_data, is_standalone FROM businesses WHERE id = ?',
+        [clone_from_id]
+      ) as any;
+      
+      if (!src) {
+        return NextResponse.json({ error: 'Source template business not found' }, { status: 404 });
+      }
+
+      type_id = src.type_id;
+      subscription_tier = src.subscription_tier;
+      template_id = src.template_id;
+      is_standalone = src.is_standalone === 1 || src.is_standalone === true;
+      
+      try {
+        custom_data = typeof src.custom_data === 'string' ? JSON.parse(src.custom_data) : src.custom_data || {};
+      } catch (e) {
+        custom_data = src.custom_data || {};
+      }
+    }
+
+    if (!type_id) {
+      return NextResponse.json({ error: 'Business type (typology) is required' }, { status: 400 });
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -116,7 +157,7 @@ export async function POST(request: NextRequest) {
     // Parent/container types are classification buckets — not registrants.
     // ══════════════════════════════════════════════════════════════
     const selectedType = await queryOne(
-      'SELECT id, name, is_parent, parent_id FROM business_types WHERE id = ?',
+      'SELECT id, name, is_parent, parent_id, default_template_id FROM business_types WHERE id = ?',
       [type_id]
     ) as any;
     if (!selectedType) {
@@ -186,12 +227,16 @@ export async function POST(request: NextRequest) {
     }
 
     const id = crypto.randomUUID();
+    const isMasterVal = is_master ? 1 : 0;
+    const isSharedVal = is_shared ? 1 : 0;
+    const isClaimedVal = (vendor_id && vendor_id !== 'anonymous') ? 1 : 0;
+
     await execute(
-      `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone ? 1 : 0, JSON.stringify(custom_data), status, 1]
+      `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone ? 1 : 0, JSON.stringify(custom_data), status, 1, isMasterVal, isSharedVal, isClaimedVal]
     );
 
-    return NextResponse.json({ id, name, slug, type_id, vendor_id }, { status: 201 });
+    return NextResponse.json({ id, name, slug, type_id, vendor_id, is_master: isMasterVal, is_claimed: isClaimedVal }, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
@@ -250,9 +295,9 @@ export async function PUT(request: NextRequest) {
     const sets: string[] = [];
     const params: any[] = [];
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key)) {
+      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key) ? (value ? 1 : 0) : value);
+        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key) ? (value ? 1 : 0) : value);
         
         // Also update slug if name is changed
         if (key === 'name' && typeof value === 'string') {
@@ -306,9 +351,9 @@ export async function PATCH(request: NextRequest) {
     const params: any[] = [];
 
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key)) {
+      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured'].includes(key) ? (value ? 1 : 0) : value);
+        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key) ? (value ? 1 : 0) : value);
         
         if (key === 'name' && typeof value === 'string') {
           sets.push(`slug = ?`);
