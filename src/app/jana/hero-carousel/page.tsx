@@ -88,12 +88,11 @@ export default function HeroCarouselManager() {
     setTimeout(() => setMessage({ type: '', text: '' }), 6000);
   };
 
-  // Load ALL slides from the dynamic endpoint — same view as homepage
+  // Load ALL slides from the static home carousel config
   const loadAllSlides = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch what the homepage actually sees
-      const res = await fetch('/api/jana/hero-carousel-dynamic?businesses=true&journeys=true&investment=true&registration=true');
+      const res = await fetch('/api/jana/hero-carousel?siteId=discovery');
       if (res.ok) {
         const data = await res.json();
         const fetched: CarouselSlide[] = (data.slides || []).map((s: any, i: number) => ({
@@ -133,7 +132,7 @@ export default function HeroCarouselManager() {
       body: JSON.stringify({ 
         slides: slidesToSave, 
         deletedDynamicIds: deletedIds, 
-        siteId: 'main' 
+        siteId: 'discovery' 
       }),
     });
     return res.ok;

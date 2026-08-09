@@ -98,12 +98,8 @@ export default function AdvancedHeroCarousel({
       async function fetchSlides() {
         try {
           let url: string;
-          
-          if (isDynamic) {
-            // Fetch from dynamic carousel endpoint with parameters
-            const params = new URLSearchParams();
-            params.set('businesses', includeDynamicOptions.businesses !== false ? 'true' : 'false');
-            params.set('journeys', includeDynamicOptions.journeys !== false ? 'true' : 'false');
+          const effectiveIsDynamic = isDynamic && carouselName !== 'discovery';
+          if (effectiveIsDynamic) {
             params.set('investment', includeDynamicOptions.investment !== false ? 'true' : 'false');
             params.set('registration', includeDynamicOptions.registration !== false ? 'true' : 'false');
             url = `/api/jana/hero-carousel-dynamic?${params.toString()}`;

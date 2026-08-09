@@ -136,7 +136,7 @@ const SECTION_CATALOGUE: Record<string, {
 };
 
 const DEFAULT_HOMEPAGE: SectionSlot[] = [
-  { id: 'hero_carousel_1', type: 'hero_carousel', visible: true, props: { carousel_id: 'main_hero', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, showIndicators: true, showArrows: true, showProgress: true } },
+  { id: 'hero_carousel_1', type: 'hero_carousel', visible: true, props: { carousel_id: 'discovery', isDynamic: false, includeBusinesses: false, includeJourneys: false, includeInvestment: false, showIndicators: true, showArrows: true, showProgress: true } },
   { id: 'search_bar_1', type: 'search_bar', visible: true, props: {} },
   { id: 'experience_categories_1', type: 'experience_categories', visible: true, props: { title: 'Explore Siwa', subtitle: 'Discover authentic experiences' } },
   { id: 'featured_vibe_1', type: 'featured_vibe', visible: true, props: {} },

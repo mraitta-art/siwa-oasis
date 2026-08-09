@@ -63,7 +63,7 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
     // ─── HERO ──────────────────────────────────────────────
     case 'hero_carousel': {
       const carouselId = props?.carousel_id || props?.siteId || 'main_hero';
-      const isDynamic = props?.isDynamic !== false; // Default to dynamic for homepage
+      const isDynamic = props?.isDynamic !== false && carouselId !== 'discovery'; // discovery always uses static slides
       // Build visualSettings from slot props so title fonts/colors/position apply
       const visualSettings = {
         titleColor:    props?.titleColor    || undefined,

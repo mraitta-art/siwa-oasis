@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { slides, siteId = 'main' } = body;
+    const { slides, deletedDynamicIds = [], siteId = 'main' } = body;
     const configType = `hero_carousel_${siteId}`;
     
     if (!slides || !Array.isArray(slides)) {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    const config = JSON.stringify({ slides, siteId });
+    const config = JSON.stringify({ slides, deletedDynamicIds, siteId });
     
     // Insert or update
     await execute(

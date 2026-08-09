@@ -23,7 +23,7 @@ interface SiteSettings {
 }
 
 const DEFAULT_LAYOUT: LayoutSection[] = [
-  { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: true, includeBusinesses: true, includeJourneys: true, includeInvestment: true, includeRegistration: true } },
+  { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: false, includeBusinesses: false, includeJourneys: false, includeInvestment: false, includeRegistration: false } },
   { id: 'h2', type: 'services_hub', props: {} },
   { id: 'h3', type: 'experience_categories', props: {} },
   { id: 'h4', type: 'search_bar', props: {} },
