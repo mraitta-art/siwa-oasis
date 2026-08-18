@@ -7,6 +7,7 @@
  * 3. Cache invalidation hooks for admin mutations
  */
 
+import { cache } from 'react';
 import { query as safeQuery, queryOne } from '@/lib/db';
 
 // ==========================================
