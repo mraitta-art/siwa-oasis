@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, execute } from '@/lib/db';
+import { query, execute, normalizeCustomData } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 
 /**
@@ -61,8 +61,8 @@ export async function GET(req: NextRequest) {
       [typesToFetch]
     )) as any[];
 
-    // 4. Parse custom_data
-    const currentData = biz.custom_data ? (typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data) : {};
+    // 4. Parse & Normalize custom_data
+    const currentData = normalizeCustomData(biz.custom_data);
 
     // 5. Group fields by section for the UI
     const sections: Record<string, any> = {};
@@ -173,9 +173,7 @@ export async function POST(req: NextRequest) {
       'SELECT custom_data FROM businesses WHERE id = ?',
       [user.businessId]
     )) as any[];
-    const currentData = existing.length > 0 && existing[0].custom_data
-      ? (typeof existing[0].custom_data === 'string' ? JSON.parse(existing[0].custom_data) : existing[0].custom_data)
-      : {};
+    const currentData = existing.length > 0 ? normalizeCustomData(existing[0].custom_data) : {};
 
     // Merge new section field data
     const merged = { ...currentData, ...(data || {}) };

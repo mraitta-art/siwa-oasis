@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
-import { query as safeQuery } from '@/lib/db';
+import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,8 +44,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
     if (!biz) return { title: 'Business Not Found - Siwa Today' };
 
-    // Robust JSON Parsing
-    try { if (typeof biz.custom_data === 'string') biz.custom_data = JSON.parse(biz.custom_data); } catch {}
+    // Robust JSON Parsing & Normalization
+    if (biz) {
+      biz.custom_data = normalizeCustomData(biz.custom_data);
+    }
     try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
     try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
 
@@ -112,9 +114,9 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       biz = row ?? null;
     }
 
-    // Parse JSON fields
+    // Parse & Normalize JSON fields
     if (biz) {
-      try { if (typeof biz.custom_data === 'string') biz.custom_data = JSON.parse(biz.custom_data); } catch {}
+      biz.custom_data = normalizeCustomData(biz.custom_data);
       try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
       try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
     }

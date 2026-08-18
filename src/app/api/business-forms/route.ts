@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { query, queryOne, execute } from '@/lib/db';
+import { query, queryOne, execute, normalizeCustomData } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
 
@@ -35,10 +35,7 @@ export async function GET(req: Request) {
 
     // Parse JSON custom_data and map fields for client compatibility
     const mapped = results.map(biz => {
-      let customData = {};
-      try {
-        customData = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data || {};
-      } catch (e) {}
+      const customData = normalizeCustomData(biz.custom_data);
 
       const basic = (customData as any).basic || {};
       return {

@@ -210,3 +210,48 @@ export async function transaction<T>(fn: (conn: mysql.PoolConnection) => Promise
     conn.release();
   }
 }
+
+/** Consolidates legacy custom_data section keys into new core keys */
+export function normalizeCustomData(rawCustomData: any): any {
+  if (!rawCustomData) return {};
+  let c: any = {};
+  try {
+    c = typeof rawCustomData === 'string' ? JSON.parse(rawCustomData) : rawCustomData;
+  } catch (e) {
+    c = {};
+  }
+  
+  const basic = {
+    ...(c.business_info || {}),
+    ...(c.sec_1_identity || {}),
+    ...(c.about || {}),
+    ...(c.basic || {})
+  };
+  
+  const vibe = {
+    ...(c.sec_3_services || {}),
+    ...(c.vibe || {})
+  };
+  
+  const experience = {
+    ...(c.services || {}),
+    ...(c.experience || {})
+  };
+  
+  const offers = {
+    ...(c.discount || {}),
+    ...(c.package || {}),
+    ...(c['offers-promotions'] || {}),
+    ...(c['discounts-promotions'] || {}),
+    ...(c['offers-packages'] || {}),
+    ...(c.offers || {})
+  };
+
+  return {
+    ...c,
+    basic,
+    vibe,
+    experience,
+    offers,
+  };
+}
