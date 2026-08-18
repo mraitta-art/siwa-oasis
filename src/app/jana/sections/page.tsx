@@ -85,6 +85,19 @@ const BLANK_FIELD = (sectionId: string, typeId?: string): Partial<Field> => ({
   version_type: 'latest',
 });
 
+/* ─── Core Sections (essential for every vendor) ─────────────────────── */
+const CORE_SECTIONS: Record<string, { color: string; label: string; emoji: string }> = {
+  basic:        { color: '#10b981', label: 'Identity & Contact',       emoji: '🏷️' },
+  vibe:         { color: '#8b5cf6', label: 'Vibe & Atmosphere',        emoji: '✨' },
+  experience:   { color: '#f59e0b', label: 'Experiences & Activities',  emoji: '🎯' },
+  location:     { color: '#3b82f6', label: 'Location & Map',           emoji: '📍' },
+  gallery:      { color: '#ec4899', label: 'Gallery & Media',          emoji: '🖼️' },
+  offers:       { color: '#ef4444', label: 'Offers & Packages',        emoji: '🎁' },
+  testimonials: { color: '#06b6d4', label: 'Reviews & Testimonials',   emoji: '⭐' },
+};
+
+const isCoreSection = (id: string) => id in CORE_SECTIONS;
+
 /* ─── Component ─────────────────────────────────────────────────────── */
 export default function UnifiedSectionArchitect() {
   /* State */
