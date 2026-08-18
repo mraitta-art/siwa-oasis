@@ -282,22 +282,29 @@ export default function InteractiveTiersPage() {
                     ))}
                   </div>
 
-                  <h4 style={{ fontSize: '0.8rem', marginTop: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>PUBLIC VISIBILITY SECTIONS</h4>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
-                    {sections.map(s => (
-                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.25rem 0', cursor: 'pointer' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={(editData.features.allowed_public_sections || []).includes(s.id)}
-                          onChange={e => {
-                            const current = editData.features.allowed_public_sections || [];
-                            const next = e.target.checked ? [...current, s.id] : current.filter((id: string) => id !== s.id);
-                            setEditData({...editData, features: {...editData.features, allowed_public_sections: next}});
-                          }}
-                        />
-                        {s.name}
-                      </label>
-                    ))}
+                  <h4 style={{ fontSize: '0.8rem', marginTop: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>ALLOWED SECTIONS</h4>
+                  <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.25rem', marginBottom: '0.5rem' }}>Select which sections vendors on this tier can display on their public minisite.</div>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px' }}>
+                    {sections.map(s => {
+                      const coreColors: Record<string, string> = { basic: '#10b981', vibe: '#8b5cf6', experience: '#f59e0b', location: '#3b82f6', gallery: '#ec4899', offers: '#ef4444', testimonials: '#06b6d4' };
+                      const isCore = s.id in coreColors;
+                      const color = coreColors[s.id];
+                      return (
+                        <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.35rem 0.5rem', cursor: 'pointer', borderRadius: '6px', marginBottom: '2px', background: (editData.features.allowedSections || []).includes(s.id) ? (isCore ? color + '08' : '#f0fdf4') : 'transparent', borderLeft: isCore ? `3px solid ${color}` : '3px solid transparent' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={(editData.features.allowedSections || []).includes(s.id)}
+                            onChange={e => {
+                              const current = editData.features.allowedSections || [];
+                              const next = e.target.checked ? [...current, s.id] : current.filter((id: string) => id !== s.id);
+                              setEditData({...editData, features: {...editData.features, allowedSections: next}});
+                            }}
+                          />
+                          <span style={{ fontWeight: 700 }}>{s.name}</span>
+                          {isCore && <span style={{ fontSize: '0.5rem', fontWeight: 900, background: color + '18', color, padding: '1px 5px', borderRadius: '4px' }}>CORE</span>}
+                        </label>
+                      );
+                    })}
                   </div>
 
                   <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
@@ -396,14 +403,19 @@ export default function InteractiveTiersPage() {
                   </div>
                   
                   <div style={{ marginTop: '1rem', borderTop: '1px dashed #eee', paddingTop: '1rem' }}>
-                    <h5 style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Public Sections</h5>
+                    <h5 style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Allowed Sections</h5>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                      {(features.allowed_public_sections || []).length > 0 ? (
-                        features.allowed_public_sections.map((sid: string) => (
-                          <span key={sid} style={{ fontSize: '0.6rem', background: '#f1f5f9', color: '#475569', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{sid}</span>
-                        ))
+                      {(features.allowedSections || features.allowed_public_sections || []).length > 0 ? (
+                        (features.allowedSections || features.allowed_public_sections).map((sid: string) => {
+                          const coreColors: Record<string, string> = { basic: '#10b981', vibe: '#8b5cf6', experience: '#f59e0b', location: '#3b82f6', gallery: '#ec4899', offers: '#ef4444', testimonials: '#06b6d4' };
+                          const isCore = sid in coreColors;
+                          const color = coreColors[sid] || '#475569';
+                          return (
+                            <span key={sid} style={{ fontSize: '0.6rem', background: isCore ? color + '15' : '#f1f5f9', color: isCore ? color : '#475569', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 700, borderLeft: isCore ? `2px solid ${color}` : 'none' }}>{sid}</span>
+                          );
+                        })
                       ) : (
-                        <span style={{ fontSize: '0.6rem', color: '#cbd5e1' }}>None selected</span>
+                        <span style={{ fontSize: '0.6rem', color: '#cbd5e1' }}>All sections visible</span>
                       )}
                     </div>
                   </div>

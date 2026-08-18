@@ -21,6 +21,7 @@ export default function TemplateArchitect() {
   const { notify } = useAdmin();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [businessTypes, setBusinessTypes] = useState<any[]>([]);
+  const [allSections, setAllSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<Partial<Template> | null>(null);
   const [formStep, setFormStep] = useState(1); // 1=Parent, 2=Name+Level, 3=Components
@@ -35,6 +36,7 @@ export default function TemplateArchitect() {
   useEffect(() => {
     fetchTemplates();
     fetch('/api/jana/types').then(r => r.json()).then(data => setBusinessTypes(Array.isArray(data) ? data : []));
+    fetch('/api/jana/sections').then(r => r.json()).then(data => setAllSections(Array.isArray(data) ? data : []));
   }, []);
 
   // Reset step when opening form
@@ -343,32 +345,34 @@ export default function TemplateArchitect() {
                     </h3>
                     <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                       <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', padding: '0.5rem', letterSpacing: '0.5px' }}>HIDE SECTIONS FOR THIS BLUEPRINT</div>
-                      {(() => {
-                        // Fetch sections if we haven't already (already done in parent or similar)
-                        // For now we assume sections are loaded or use a placeholder if not
-                        // Let's add a quick state to hold sections in this component
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            {businessTypes.find(t => t.id === editingTemplate?.type_id)?.sections?.map((sid: string) => (
-                              <label key={sid} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', border: '1px solid #f1f5f9' }}>
-                                <input 
-                                  type="checkbox" 
-                                  checked={!!editingTemplate?.features?.hidden_sections?.includes(sid)}
-                                  onChange={e => {
-                                    const current = editingTemplate?.features?.hidden_sections || [];
-                                    const next = e.target.checked ? [...current, sid] : current.filter((id: string) => id !== sid);
-                                    setEditingTemplate({ ...editingTemplate, features: { ...editingTemplate?.features, hidden_sections: next } });
-                                  }} 
-                                />
-                                <span style={{ fontWeight: 700 }}>{sid.replace(/_/g, ' ').toUpperCase()}</span>
-                              </label>
-                            ))}
-                            {(!businessTypes.find(t => t.id === editingTemplate?.type_id)?.sections || businessTypes.find(t => t.id === editingTemplate?.type_id)?.sections?.length === 0) && (
-                              <div style={{ padding: '1rem', fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>No sections linked to this type.</div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {allSections.map((sec: any) => {
+                          const coreColors: Record<string, string> = { basic: '#10b981', vibe: '#8b5cf6', experience: '#f59e0b', location: '#3b82f6', gallery: '#ec4899', offers: '#ef4444', testimonials: '#06b6d4' };
+                          const isCore = sec.id in coreColors;
+                          const color = coreColors[sec.id];
+                          const isHidden = !!editingTemplate?.features?.hidden_sections?.includes(sec.id);
+                          return (
+                            <label key={sec.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: isHidden ? '#fef2f2' : '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', border: `1px solid ${isHidden ? '#fecaca' : '#f1f5f9'}`, borderLeft: isCore ? `3px solid ${color}` : '3px solid transparent' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isHidden}
+                                onChange={e => {
+                                  const current = editingTemplate?.features?.hidden_sections || [];
+                                  const next = e.target.checked ? [...current, sec.id] : current.filter((id: string) => id !== sec.id);
+                                  setEditingTemplate({ ...editingTemplate, features: { ...editingTemplate?.features, hidden_sections: next } });
+                                }} 
+                              />
+                              <i className={`fas ${sec.icon || 'fa-layer-group'}`} style={{ color: isCore ? color : '#94a3b8', fontSize: '0.8rem' }} />
+                              <span style={{ fontWeight: 700 }}>{sec.name}</span>
+                              {isCore && <span style={{ fontSize: '0.5rem', fontWeight: 900, background: color + '18', color, padding: '1px 5px', borderRadius: '4px', marginLeft: 'auto' }}>CORE</span>}
+                              {isHidden && <span style={{ fontSize: '0.5rem', fontWeight: 900, background: '#fee2e2', color: '#ef4444', padding: '1px 5px', borderRadius: '4px' }}>HIDDEN</span>}
+                            </label>
+                          );
+                        })}
+                        {allSections.length === 0 && (
+                          <div style={{ padding: '1rem', fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>No sections found. Create sections in the Section Architect first.</div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
