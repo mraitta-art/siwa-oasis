@@ -435,11 +435,44 @@ export default function VanityBusinessClient({
                       <div className="grid-2" style={{ marginBottom: '2.5rem' }}>
                         {Object.entries(secData).map(([key, val]) => {
                           if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
-                          if (val === null || val === undefined || val === '') return null;
 
                           const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
                           const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
-                          const rendered = renderFieldValue(key, val, matchedField);
+                          
+                          // 1. DYNAMIC GATE: If price field is blank or set to 'call', show a Call for Price CTA
+                          let finalVal = val;
+                          const isPriceField = key.includes('price');
+                          if (isPriceField && (!val || String(val).toLowerCase() === 'call' || String(val).toLowerCase() === 'call us')) {
+                            finalVal = `call_for_price_fallback`;
+                          }
+
+                          if (finalVal === null || finalVal === undefined || finalVal === '') return null;
+
+                          // 2. FEATURE GATE: Blur prices on public minisite for unverified free tier listings to encourage promotion
+                          const isGated = isPriceField && !isTrusted && biz.subscription_tier === 'free';
+
+                          if (isGated) {
+                            return (
+                              <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                                <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
+                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
+                                  <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <i className="fas fa-lock" /> VERIFIED ONLY
+                                  </span>
+                                  <span style={{ fontSize: '0.5rem', color: '#94a3b8', fontWeight: 700 }}>Unlock upon official verification</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // 3. Render Field
+                          const rendered = finalVal === 'call_for_price_fallback' ? (
+                            <a href={`tel:${dynamicPhone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
+                              <i className="fas fa-phone-alt" /> CALL FOR PRICE
+                            </a>
+                          ) : renderFieldValue(key, finalVal, matchedField);
+
                           if (!rendered) return null;
 
                           return (
