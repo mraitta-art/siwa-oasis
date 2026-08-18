@@ -27,27 +27,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await requireAdmin();
     const { id: businessId } = await params;
     const body = await req.json();
-    const { sectionId, adminLockedLabel, adminHidden, adminDisabled } = body;
+    const { sectionId, adminLockedLabel, adminHidden, adminDisabled, ctaPhone } = body;
 
     if (!sectionId) {
       return NextResponse.json({ error: 'sectionId is required' }, { status: 400 });
     }
 
     await execute(
-      `INSERT INTO business_section_controls (id, business_id, section_id, admin_locked_label, admin_hidden, admin_disabled) 
-       VALUES (UUID(), ?, ?, ?, ?, ?)
+      `INSERT INTO business_section_controls (id, business_id, section_id, admin_locked_label, admin_hidden, admin_disabled, cta_phone) 
+       VALUES (UUID(), ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE 
        admin_locked_label = ?, 
        admin_hidden = ?, 
-       admin_disabled = ?`,
+       admin_disabled = ?,
+       cta_phone = ?`,
       [
-        businessId, sectionId, 
-        adminLockedLabel ? 1 : 0, 
-        adminHidden ? 1 : 0, 
+        businessId, sectionId,
+        adminLockedLabel ? 1 : 0,
+        adminHidden ? 1 : 0,
         adminDisabled ? 1 : 0,
-        adminLockedLabel ? 1 : 0, 
-        adminHidden ? 1 : 0, 
-        adminDisabled ? 1 : 0
+        ctaPhone || null,
+        // ON DUPLICATE KEY values
+        adminLockedLabel ? 1 : 0,
+        adminHidden ? 1 : 0,
+        adminDisabled ? 1 : 0,
+        ctaPhone || null,
       ]
     );
 

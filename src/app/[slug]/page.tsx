@@ -233,13 +233,19 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
     // Fetch Admin Overrides & Custom Labels for this business
     const controlsResult = await safeQuery<any>(
-      'SELECT section_id, custom_label, admin_hidden FROM business_section_controls WHERE business_id = ?',
+      'SELECT section_id, custom_label, admin_hidden, cta_phone FROM business_section_controls WHERE business_id = ?',
       [biz.id]
     );
     const sectionControls: Record<string, any> = {};
     controlsResult.forEach(c => {
       sectionControls[c.section_id] = c;
     });
+
+    // Embed cta_phone into sections so VanityBusinessClient can use it
+    sections = sections.map((s: any) => ({
+      ...s,
+      cta_phone: sectionControls[s.id]?.cta_phone || null,
+    }));
 
     sections = sections.filter((s: any) => {
       if (tierAllowed && Array.isArray(tierAllowed) && !tierAllowed.includes(s.id)) return false;

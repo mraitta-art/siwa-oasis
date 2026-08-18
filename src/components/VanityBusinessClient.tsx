@@ -467,8 +467,10 @@ export default function VanityBusinessClient({
                           }
 
                           // 3. Render Field
+                          // Phone priority: admin CTA override → vendor's own number
+                          const ctaPhoneNumber = section.cta_phone || dynamicPhone;
                           const rendered = finalVal === 'call_for_price_fallback' ? (
-                            <a href={`tel:${dynamicPhone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
+                            <a href={`tel:${ctaPhoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
                               <i className="fas fa-phone-alt" /> CALL FOR PRICE
                             </a>
                           ) : renderFieldValue(key, finalVal, matchedField);

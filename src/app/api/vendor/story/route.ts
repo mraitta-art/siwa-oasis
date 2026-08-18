@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
 
     // 8. Fetch Section Controls (Admin Overrides & Custom Labels)
     const controlsResult = await query(
-      'SELECT section_id, custom_label, admin_locked_label, admin_hidden, admin_disabled FROM business_section_controls WHERE business_id = ?',
+      'SELECT section_id, custom_label, admin_locked_label, admin_hidden, admin_disabled, cta_phone FROM business_section_controls WHERE business_id = ?',
       [biz.id]
     ) as any[];
     const sectionControls: Record<string, any> = {};
@@ -117,7 +117,8 @@ export async function GET(req: NextRequest) {
         custom_label: c.custom_label,
         admin_locked_label: c.admin_locked_label === 1,
         admin_hidden: c.admin_hidden === 1,
-        admin_disabled: c.admin_disabled === 1
+        admin_disabled: c.admin_disabled === 1,
+        cta_phone: c.cta_phone || null,
       };
     });
 

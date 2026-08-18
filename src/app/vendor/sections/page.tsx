@@ -666,6 +666,30 @@ export default function VendorStudio() {
               {/* ── PANEL: FIELDS ─────────────────────────────── */}
               {sectionPanel === 'fields' && (
                 <div style={{ padding: '2.5rem' }}>
+
+                  {/* Smart "Call for Price" tip — shown if section has price fields */}
+                  {allFields.filter(f => f.section_id === activeSection && f.name?.includes('price')).length > 0 && (
+                    <div style={{ marginBottom: '2rem', padding: '1rem 1.25rem', background: 'linear-gradient(135deg, #fffdf0, #fef3c7)', border: '1px solid #fde68a', borderRadius: '14px', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1rem' }}>
+                        <i className="fas fa-phone-alt" />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.8rem', color: '#92400e', marginBottom: '0.25rem' }}>
+                          💡 Call Us for Price Option
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#78350f', lineHeight: 1.6 }}>
+                          Leave a price field <strong>blank</strong> or type <code style={{ background: '#fef9c3', padding: '0 4px', borderRadius: '4px' }}>call</code> to automatically show a <strong>"📞 CALL FOR PRICE"</strong> button on your public listing that dials your business phone.
+                          {sectionControls[activeSection || '']?.cta_phone && (
+                            <span style={{ display: 'block', marginTop: '0.35rem', color: '#065f46', fontWeight: 700 }}>
+                              <i className="fas fa-shield-alt" style={{ marginRight: '4px', color: '#10b981' }} />
+                              Admin CTA phone override active: <strong>{sectionControls[activeSection || '']?.cta_phone}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <DynamicForm
                     fields={allFields.filter(f => f.section_id === activeSection)}
                     data={formData}

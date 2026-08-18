@@ -80,7 +80,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
   }
 
   async function toggleAdminControl(sectionId: string, field: 'admin_locked_label' | 'admin_hidden' | 'admin_disabled') {
-    const current = adminControls[sectionId] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0 };
+    const current = adminControls[sectionId] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0, cta_phone: '' };
     const nextVal = current[field] === 1 ? 0 : 1;
     
     // Optimistic UI update
@@ -98,6 +98,25 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
           adminLockedLabel: field === 'admin_locked_label' ? nextVal : current.admin_locked_label,
           adminHidden: field === 'admin_hidden' ? nextVal : current.admin_hidden,
           adminDisabled: field === 'admin_disabled' ? nextVal : current.admin_disabled,
+          ctaPhone: current.cta_phone || null,
+        })
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  async function saveCtaPhone(sectionId: string, phone: string) {
+    const current = adminControls[sectionId] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0 };
+    setAdminControls(prev => ({ ...prev, [sectionId]: { ...current, cta_phone: phone } }));
+    try {
+      await fetch(`/api/admin/businesses/${id}/section-controls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionId,
+          adminLockedLabel: current.admin_locked_label,
+          adminHidden: current.admin_hidden,
+          adminDisabled: current.admin_disabled,
+          ctaPhone: phone || null,
         })
       });
     } catch (e) { console.error(e); }
@@ -152,7 +171,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#1e293b' }}>Section Controls (Admin)</h4>
                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       {sections.map(s => {
-                        const ctrl = adminControls[s.id] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0 };
+                        const ctrl = adminControls[s.id] || { admin_locked_label: 0, admin_hidden: 0, admin_disabled: 0, cta_phone: '' };
                         return (
                           <li key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
@@ -174,6 +193,32 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
                                  <input type="checkbox" checked={ctrl.admin_disabled === 1} onChange={() => toggleAdminControl(s.id, 'admin_disabled')} />
                                  Disable Vendor Editing
                                </label>
+                               {/* CTA Phone Override */}
+                               <div style={{ marginTop: '0.25rem' }}>
+                                 <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>
+                                   📞 CTA PHONE OVERRIDE
+                                 </div>
+                                 <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                   <input
+                                     type="tel"
+                                     placeholder="e.g. +20 111 234 5678"
+                                     value={ctrl.cta_phone || ''}
+                                     onChange={e => setAdminControls(prev => ({ ...prev, [s.id]: { ...ctrl, cta_phone: e.target.value } }))}
+                                     style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.68rem', border: '1px solid #e2e8f0', borderRadius: '6px', outline: 'none' }}
+                                   />
+                                   <button
+                                     onClick={() => saveCtaPhone(s.id, ctrl.cta_phone || '')}
+                                     style={{ padding: '0.3rem 0.6rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer' }}
+                                   >
+                                     Save
+                                   </button>
+                                 </div>
+                                 {ctrl.cta_phone && (
+                                   <div style={{ fontSize: '0.58rem', color: '#10b981', marginTop: '0.2rem', fontWeight: 700 }}>
+                                     ✓ Active: {ctrl.cta_phone}
+                                   </div>
+                                 )}
+                               </div>
                              </div>
                           </li>
                         );
