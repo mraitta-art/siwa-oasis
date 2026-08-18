@@ -386,40 +386,80 @@ export default function UnifiedSectionArchitect() {
                 </button>
               </div>
 
+              {/* Core Sections Legend */}
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', background: '#f0fdf4' }}>
+                <div style={{ fontSize: '0.58rem', fontWeight: 900, color: '#10b981', letterSpacing: '1.5px', marginBottom: '0.4rem' }}>🛡️ CORE SECTIONS (ESSENTIAL)</div>
+                <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.5, fontWeight: 600 }}>
+                  These 7 sections contain the essential fields every vendor must fill. They are color-coded for quick identification.
+                </div>
+              </div>
+
               <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
-                {sections.map(sec => {
+                {/* Render core sections first, then the rest */}
+                {[...sections].sort((a, b) => {
+                  const aCore = isCoreSection(a.id) ? 0 : 1;
+                  const bCore = isCoreSection(b.id) ? 0 : 1;
+                  if (aCore !== bCore) return aCore - bCore;
+                  return 0;
+                }).map((sec, idx, arr) => {
                   const isActive = sec.id === selectedSection;
+                  const core = CORE_SECTIONS[sec.id];
+                  const isCore = !!core;
+                  const prevWasCore = idx > 0 && isCoreSection(arr[idx - 1].id);
+                  const showDivider = !isCore && (idx === 0 || prevWasCore);
+
                   return (
-                    <button
-                      key={sec.id}
-                      onClick={() => selectSection(sec)}
-                      style={{
-                        width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
-                        borderRadius: '12px', border: isActive ? '1.5px solid #D4AF3740' : '1.5px solid transparent',
-                        background: isActive ? '#fffbeb' : 'transparent',
-                        cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
-                        display: 'flex', alignItems: 'center', gap: '0.85rem',
-                      }}
-                    >
-                      <div style={{
-                        width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
-                        background: isActive ? '#D4AF37' : '#f1f5f9',
-                        color: isActive ? '#fff' : '#94a3b8',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
-                      }}>
-                        <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
-                      </div>
-                      <div style={{ flex: 1, overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {sec.name}
+                    <div key={sec.id}>
+                      {showDivider && (
+                        <div style={{ padding: '0.6rem 1rem', margin: '0.5rem 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>OTHER SECTIONS</span>
+                          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
                         </div>
-                        <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem' }}>
-                          {sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
-                          {sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
-                          {!sec.active        && <span style={{ color: '#ef4444' }}>● Inactive</span>}
+                      )}
+                      <button
+                        onClick={() => selectSection(sec)}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
+                          borderRadius: '12px',
+                          border: isActive ? `1.5px solid ${isCore ? core.color + '60' : '#D4AF3740'}` : '1.5px solid transparent',
+                          borderLeft: isCore ? `3px solid ${core.color}` : undefined,
+                          background: isActive ? (isCore ? core.color + '08' : '#fffbeb') : 'transparent',
+                          cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
+                          display: 'flex', alignItems: 'center', gap: '0.85rem',
+                        }}
+                      >
+                        <div style={{
+                          width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
+                          background: isActive ? (isCore ? core.color : '#D4AF37') : (isCore ? core.color + '15' : '#f1f5f9'),
+                          color: isActive ? '#fff' : (isCore ? core.color : '#94a3b8'),
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
+                        }}>
+                          <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
                         </div>
-                      </div>
-                    </button>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {sec.name}
+                            </span>
+                            {isCore && (
+                              <span style={{
+                                fontSize: '0.5rem', fontWeight: 900, letterSpacing: '0.5px',
+                                background: core.color + '18', color: core.color,
+                                padding: '1px 6px', borderRadius: '6px', border: `1px solid ${core.color}30`,
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}>CORE</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            {isCore && <span style={{ color: core.color }}>{core.emoji} {core.label}</span>}
+                            {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
+                            {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
+                            {!sec.active && <span style={{ color: '#ef4444' }}>● Inactive</span>}
+                          </div>
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
