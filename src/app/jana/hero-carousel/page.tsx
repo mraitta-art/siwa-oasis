@@ -62,7 +62,8 @@ export default function HeroCarouselManager() {
   const [preview, setPreview] = useState<string | null>(null);
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
-  const [formData, setFormData] = useState<Partial<CarouselSlide>>({
+
+  const defaultFormData: Partial<CarouselSlide> = {
     title: '',
     subtitle: '',
     caption: '',
@@ -81,7 +82,9 @@ export default function HeroCarouselManager() {
     subtitleSize: 0,
     textAlign: 'center',
     fontFamily: '',
-  });
+  };
+
+  const [formData, setFormData] = useState<Partial<CarouselSlide>>(defaultFormData);
 
   const showMsg = (type: string, text: string) => {
     setMessage({ type, text });
@@ -192,19 +195,30 @@ export default function HeroCarouselManager() {
         fd.append('businessName', 'General');
         fd.append('sectionName', 'Hero');
         const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
-        if (res.ok) {
-          const data = await res.json();
-          const isVideo = file.type.startsWith('video/');
-          setFormData(prev => ({
-            ...prev,
-            mediaUrl: data.url,
-            type: isVideo ? 'video' : 'image',
-          }));
-          showMsg('success', `${isVideo ? 'Video' : 'Image'} uploaded!`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          const message = data?.error || 'Upload failed. Check file type or auth.';
+          showMsg('error', message);
+          continue;
         }
+
+        const fileUrl = data.url || data.localUrl || '';
+        if (!fileUrl) {
+          showMsg('error', 'Upload succeeded but no URL was returned.');
+          continue;
+        }
+
+        const isVideo = file.type.startsWith('video/');
+        setFormData(prev => ({
+          ...prev,
+          mediaUrl: fileUrl,
+          type: isVideo ? 'video' : 'image',
+        }));
+        showMsg('success', `${isVideo ? 'Video' : 'Image'} uploaded!`);
       }
-    } catch {
-      showMsg('error', 'Upload failed');
+    } catch (err: any) {
+      showMsg('error', err?.message || 'Upload failed');
     } finally {
       setSaving(false);
       e.target.value = '';
@@ -269,7 +283,12 @@ export default function HeroCarouselManager() {
   };
 
   const startEdit = (slide: CarouselSlide) => {
-    setFormData({ ...slide });
+    setFormData({
+      ...defaultFormData,
+      ...slide,
+      mediaUrl: slide.mediaUrl || '',
+      displayOrder: slide.displayOrder ?? allSlides.length,
+    });
     setEditingId(slide.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -277,24 +296,8 @@ export default function HeroCarouselManager() {
 
   const resetForm = () => {
     setFormData({
-      title: '',
-      subtitle: '',
-      caption: '',
-      mediaUrl: '',
-      type: 'image',
-      ctaText: '',
-      ctaLink: '',
+      ...defaultFormData,
       displayOrder: allSlides.length,
-      imageFit: 'cover',
-      imagePosition: 'center',
-      bgColor: '#000000',
-      overlayOpacity: 0.4,
-      animation: 'kenburns',
-      titleColor: '#FFFFFF',
-      titleSize: 0,
-      subtitleSize: 0,
-      textAlign: 'center',
-      fontFamily: '',
     });
     setEditingId(null);
     setShowForm(false);
@@ -460,6 +463,17 @@ export default function HeroCarouselManager() {
                         </div>
                       </div>
                       <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(0,0,0,0.7)', color: '#10b981', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>✓ YOUTUBE PREVIEW</div>
+                    </div>
+                  )}
+
+                  {(formData.type === 'image' || formData.type === 'video') && formData.mediaUrl && (
+                    <div style={{ marginTop: '0.75rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', padding: '0.75rem', maxWidth: 420, background: '#0f172a' }}>
+                      <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem' }}>{formData.type === 'video' ? 'Uploaded video preview' : 'Uploaded image preview'}</div>
+                      {formData.type === 'video' ? (
+                        <video controls src={formData.mediaUrl} style={{ width: '100%', borderRadius: 10, maxHeight: 280, background: '#000' }} />
+                      ) : (
+                        <img src={formData.mediaUrl} alt="Uploaded preview" style={{ width: '100%', borderRadius: 10, objectFit: 'contain', maxHeight: 280 }} />
+                      )}
                     </div>
                   )}
                 </div>

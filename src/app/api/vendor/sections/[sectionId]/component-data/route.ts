@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { getCurrentUser, requireVendor } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(
@@ -6,19 +7,19 @@ export async function GET(
   { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
+    const user = await requireVendor();
     const { sectionId } = await params;
 
     const query = `
       SELECT sc.id, scd.id as data_id, scd.data, scd.status, scd.title
       FROM section_components sc
-      LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id
+      LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id AND scd.business_id = ?
       WHERE sc.section_id = ?
       ORDER BY sc.display_order, scd.display_order
     `;
 
-    const [rows] = await db.query(query, [sectionId]);
+    const [rows] = await db.query(query, [user.businessId, sectionId]);
 
-    // Group by component_id
     const grouped: Record<string, any[]> = {};
     rows?.forEach((row: any) => {
       if (!grouped[row.id]) {
@@ -46,23 +47,22 @@ export async function POST(
   { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
+    const user = await requireVendor();
     const { sectionId } = await params;
     const componentData = await request.json();
 
-    // Get current user business context (simplified - use from auth)
-    const businessId = 'placeholder-business-id'; // Would come from auth/context
+    if (!user.businessId) {
+      return Response.json({ error: 'Business context missing' }, { status: 403 });
+    }
 
-    // For each component
     for (const [componentId, instances] of Object.entries(componentData)) {
       const dataArray = instances as any[];
 
-      // Delete old data
       await db.query(
-        'DELETE FROM section_component_data WHERE section_component_id = ?',
-        [componentId]
+        'DELETE FROM section_component_data WHERE section_component_id = ? AND business_id = ?',
+        [componentId, user.businessId]
       );
 
-      // Insert new data
       for (let idx = 0; idx < dataArray.length; idx++) {
         const inst = dataArray[idx];
         if (!inst.data || Object.keys(inst.data).length === 0) continue;
@@ -74,7 +74,7 @@ export async function POST(
           [
             uuidv4(),
             componentId,
-            businessId,
+            user.businessId,
             JSON.stringify(inst.data),
             'published',
             idx

@@ -41,7 +41,14 @@ export default function AtomRegistryPage() {
       if (filterChapter !== 'all') params.set('chapter', filterChapter);
       if (filterLayer !== 'all') params.set('layer', filterLayer);
       const res = await fetch(`/api/jana/blueprints/atoms?${params}`);
-      setAtoms(await res.json());
+      if (!res.ok) {
+        setAtoms([]);
+        return;
+      }
+      const data = await res.json();
+      setAtoms(Array.isArray(data) ? data : []);
+    } catch {
+      setAtoms([]);
     } finally { setLoading(false); }
   }, [filterChapter, filterLayer]);
 
@@ -88,10 +95,10 @@ export default function AtomRegistryPage() {
     fetchAtoms();
   };
 
-  const filtered = atoms.filter(a => {
+  const filtered = Array.isArray(atoms) ? atoms.filter(a => {
     const q = search.toLowerCase();
-    return !q || a.id.includes(q) || a.label.toLowerCase().includes(q);
-  });
+    return !q || (a.id && a.id.includes(q)) || (a.label && a.label.toLowerCase().includes(q));
+  }) : [];
 
   const groupedByChapter = CHAPTERS.reduce((acc, ch) => {
     acc[ch] = filtered.filter(a => a.chapter === ch);

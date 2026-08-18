@@ -7,6 +7,7 @@ import ServicesHub from '@/components/ServicesHub';
 import ExperienceCategories from '@/components/ExperienceCategories';
 import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
+import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -17,13 +18,17 @@ export default function VanityBusinessClient({
   initialData, 
   sections, 
   sectionLabels = {}, 
-  isMasterTemplate = false 
+  sectionComponents = {},
+  isMasterTemplate = false,
+  isTrusted = false
 }: { 
   slug: string, 
   initialData: any, 
   sections: any[], 
   sectionLabels?: Record<string, string>,
-  isMasterTemplate?: boolean 
+  sectionComponents?: Record<string, any[]>,
+  isMasterTemplate?: boolean,
+  isTrusted?: boolean
 }) {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -110,12 +115,16 @@ export default function VanityBusinessClient({
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
   
-  // Resolve Brand Assets from Chapter 1 (HERITAGE & IDENTITY)
-  const identity = data.sec_1_identity || {};
+  // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
+  const identity = data.basic || data.sec_1_identity || data.business_info || {};
   const dynamicPhone = isMasterTemplate ? '+20 (10) SIWA-TODAY' : (identity.phone || data.phone || '+20 (12) SIWA-OASIS');
   const dynamicEmail = isMasterTemplate ? 'hello@siwa.today' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
-  const dynamicLogo = identity.business_logo || identity.logo || data.business_logo || data.logo || undefined;
+  const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;
+  const dynamicInstagram = identity.instagram_handle || data.instagram_handle || '';
+  const dynamicFacebook = identity.facebook_link || data.facebook_link || '';
+  const dynamicTiktok = identity.tiktok_handle || data.tiktok_handle || '';
+  const dynamicWechat = identity.wechat_id || data.wechat_id || '';
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
@@ -192,8 +201,22 @@ export default function VanityBusinessClient({
 
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
         <div className="container minisite-nav-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1200px', padding: '0 1.5rem' }}>
-          <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '250px' }}>
-            {(biz?.name || '').toUpperCase()}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+            <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+              {(biz?.name || '').toUpperCase()}
+            </div>
+            {isTrusted && (
+              <span style={{ 
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '2px 8px', borderRadius: '12px',
+                background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)',
+                color: '#D4AF37', fontSize: '0.55rem', fontWeight: 900,
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+                flexShrink: 0
+              }} title="Verified Authentic Heritage Business">
+                <i className="fas fa-check-circle" /> TRUSTED
+              </span>
+            )}
           </div>
           
           {/* Desktop tabs */}
@@ -269,11 +292,70 @@ export default function VanityBusinessClient({
           <main>
             {activeSections.filter(s => s.id === activeTab).map(section => {
               const secData = data[section.id];
+              const sectionComponentInstances = sectionComponents[section.id] || [];
               const customLabel = sectionLabels[section.id] || section.name;
-              if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {customLabel}.</div>;
+
+              // Core DB-backed assets
+              const dbBlog = Array.isArray(section.blogs) && section.blogs.length > 0 ? section.blogs[0] : null;
+              const dbGallery = Array.isArray(section.gallery) ? section.gallery : null;
+
+              // Hide completely empty sections from public view
+              const hasContent = secData || sectionComponentInstances.length > 0 || dbBlog || (dbGallery && dbGallery.length > 0);
+              if (!hasContent) return null;
+
+              // Filter gallery items by placement
+              const carouselImages = dbGallery 
+                ? dbGallery.filter((img: any) => img.placement === 'carousel' || img.placement === 'both')
+                : (secData?.section_gallery && Array.isArray(secData.section_gallery) ? secData.section_gallery : []);
+
+              const bodyImages = dbGallery
+                ? dbGallery.filter((img: any) => img.placement === 'body' || img.placement === 'both')
+                : [];
+
+              // Helpers for type-aware rendering
+              const renderFieldValue = (key: string, val: any, fieldDef: any) => {
+                const fieldType = fieldDef?.field_type || 'text';
+                const opts = fieldDef?.options ? (typeof fieldDef.options === 'string' ? JSON.parse(fieldDef.options) : fieldDef.options) : null;
+                if (val === null || val === undefined || val === '') return null;
+
+                // star_rating → gold stars
+                if (fieldType === 'star_rating') {
+                  const stars = Math.round(Number(val)) || 0;
+                  return <div style={{ display: 'flex', gap: '0.15rem' }}>{Array.from({ length: 5 }, (_, i) => <i key={i} className="fas fa-star" style={{ color: i < stars ? '#f59e0b' : '#e2e8f0', fontSize: '1rem' }} />)}</div>;
+                }
+                // boolean → badge
+                if (fieldType === 'boolean') {
+                  return <span style={{ padding: '0.2rem 0.7rem', borderRadius: '20px', background: val ? '#dcfce7' : '#fee2e2', color: val ? '#15803d' : '#b91c1c', fontWeight: 800, fontSize: '0.75rem' }}>{val ? '✓ Yes' : '✗ No'}</span>;
+                }
+                // multiselect / array → colored tag badges
+                if (fieldType === 'multiselect' || Array.isArray(val)) {
+                  const tags = Array.isArray(val) ? val : String(val).split(',');
+                  return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>{tags.map((tag: string, i: number) => <span key={i} style={{ padding: '0.2rem 0.7rem', borderRadius: '20px', background: '#fef9c3', color: '#854d0e', fontWeight: 700, fontSize: '0.75rem' }}>{tag.trim()}</span>)}</div>;
+                }
+                // select → pill badge
+                if (fieldType === 'select') {
+                  return <span style={{ padding: '0.25rem 0.8rem', borderRadius: '20px', background: '#f0f9ff', color: '#0369a1', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #bae6fd' }}>{String(val)}</span>;
+                }
+                // youtube → thumbnail link
+                if (fieldType === 'youtube') {
+                  const ytId = String(val).match(/(?:youtu.be\/|v=)([^&?/]+)/)?.[1];
+                  return ytId ? <a href={String(val)} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#dc2626', fontWeight: 700, textDecoration: 'none' }}><i className="fab fa-youtube" /> Watch on YouTube</a> : <span style={{ fontSize: '0.85rem' }}>{String(val)}</span>;
+                }
+                // action_button → CTA button
+                if (fieldType === 'action_button') {
+                  return <a href={String(val)} target="_blank" rel="noopener" style={{ display: 'inline-block', padding: '0.5rem 1.25rem', background: '#D4AF37', color: '#fff', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none' }}>Book Now →</a>;
+                }
+                // rich_text → safe HTML
+                if (fieldType === 'rich_text') {
+                  return <div dangerouslySetInnerHTML={{ __html: String(val) }} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.7 }} />;
+                }
+                // default → text
+                return <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>{String(val)}</span>;
+              };
 
               return (
                 <section key={section.id} id={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem', scrollMarginTop: '100px' }}>
+                  {/* Section Title */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                     <div style={{ width: '48px', height: '48px', background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
                       <i className={`fas ${section.icon || 'fa-layer-group'}`}></i>
@@ -285,82 +367,111 @@ export default function VanityBusinessClient({
                   </div>
 
                   <div>
-                    {secData.section_blog ? (
-                      <div className="rich-content" dangerouslySetInnerHTML={{ __html: secData.section_blog }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
-                    ) : (
-                      <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
-                        {secData.section_news || secData.description || `Experience the finest of ${section.name} at our establishment.`}
+                    {/* CAROUSEL IMAGES (Top placement) */}
+                    {carouselImages.length > 0 && (
+                      <div style={{ marginBottom: '2.5rem', borderRadius: '24px', overflow: 'hidden', border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
+                        <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '1rem', padding: '1rem', background: '#f8fafc' }}>
+                          {carouselImages.map((item: any, idx: number) => {
+                            const url = typeof item === 'object' ? item.url : item;
+                            const caption = typeof item === 'object' ? item.caption : '';
+                            const isVideo = url && (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.includes('/video/upload/'));
+                            return (
+                              <div key={idx} style={{ flex: '0 0 85%', minWidth: '280px', scrollSnapAlign: 'start', borderRadius: '16px', overflow: 'hidden', background: '#000', height: '340px', position: 'relative' }}>
+                                {isVideo ? (
+                                  <video src={url} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <img src={url} alt={caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                )}
+                                {/* Rich Slide Overlay */}
+                                {(() => {
+                                  const raw = typeof item === 'object' ? item.slide_data : null;
+                                  const sd = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
+                                  const showOverlay = sd.show_overlay !== false;
+                                  const hasContent = sd.title || caption || (sd.cta_label && sd.cta_url);
+                                  if (!showOverlay || !hasContent) return null;
+                                  return (
+                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.88))', padding: '2rem 1.25rem 1.25rem' }}>
+                                      {sd.title && (
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff', lineHeight: 1.25, marginBottom: caption ? '0.35rem' : 0, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                                          {sd.title}
+                                        </div>
+                                      )}
+                                      {caption && (
+                                        <div style={{ fontSize: '0.8rem', color: '#e2e8f0', fontWeight: 500, lineHeight: 1.4, marginBottom: (sd.cta_label && sd.cta_url) ? '0.75rem' : 0 }}>
+                                          {caption}
+                                        </div>
+                                      )}
+                                      {sd.cta_label && sd.cta_url && (
+                                        <a href={sd.cta_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.4rem 1rem', background: '#D4AF37', color: '#1a1a1a', borderRadius: '8px', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', letterSpacing: '0.3px' }}>
+                                          {sd.cta_label} →
+                                        </a>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 
-                    <div className="grid-2">
-                      {Object.entries(secData).map(([key, val]) => {
-                        if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic'].includes(key)) return null;
-                        
-                        const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
-                        const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
+                    {/* BLOG / NARRATIVE */}
+                    {dbBlog ? (
+                      <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
+                        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
+                        <div className="rich-content" dangerouslySetInnerHTML={{ __html: dbBlog.content }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                      </div>
+                    ) : secData?.section_blog ? (
+                      <div className="rich-content" dangerouslySetInnerHTML={{ __html: secData.section_blog }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
+                    ) : secData?.description ? (
+                      <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
+                        {secData.section_news || secData.description}
+                      </div>
+                    ) : null}
 
-                        return (
-                          <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{Array.isArray(val) ? val.join(', ') : String(val)}</div>
+                    {/* CUSTOM FIELDS GRID */}
+                    {secData && (
+                      <div className="grid-2" style={{ marginBottom: '2.5rem' }}>
+                        {Object.entries(secData).map(([key, val]) => {
+                          if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
+                          if (val === null || val === undefined || val === '') return null;
+
+                          const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
+                          const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
+                          const rendered = renderFieldValue(key, val, matchedField);
+                          if (!rendered) return null;
+
+                          return (
+                            <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{rendered}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* DYNAMIC COMPONENT INSTANCES */}
+                    {sectionComponentInstances.length > 0 && (
+                      <div style={{ marginTop: '2.5rem', marginBottom: '2.5rem' }}>
+                        {sectionComponentInstances.map(component => (
+                          <div key={component.id} style={{ marginBottom: '2rem' }}>
+                            <DynamicComponentRenderer component={component} />
                           </div>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    )}
 
-                    {secData.section_gallery && Array.isArray(secData.section_gallery) && (
+                    {/* BODY IMAGES (In-line / Bottom grid placement) */}
+                    {bodyImages.length > 0 && (
                       <div style={{ marginTop: '2.5rem' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-                          {secData.section_gallery.map((item: any, i: number) => {
-                            const isObj = typeof item === 'object';
-                            const mediaUrl = isObj ? item.url : item;
-                            const caption = isObj ? item.caption : '';
-                            const displayMode = isObj ? item.display_mode : 'image';
-                            const bgColor = isObj ? item.bg_color : '#fff';
+                          {bodyImages.map((item: any, i: number) => {
+                            const mediaUrl = typeof item === 'object' ? item.url : item;
+                            const caption = typeof item === 'object' ? item.caption : '';
                             const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.mov') || mediaUrl.includes('/video/upload/'));
                             
-                            const hasMedia = !!mediaUrl;
-                            const hasCaption = !!caption;
-
-                            if (displayMode === 'text_only' || (!hasMedia && hasCaption)) {
-                              return (
-                                <div key={i} style={{ 
-                                  borderRadius: '20px', padding: '2.5rem', background: hasMedia ? bgColor : 'linear-gradient(135deg, #0f172a, #1e293b)', 
-                                  border: '1px solid rgba(212,175,55,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', 
-                                  justifyContent: 'center', textAlign: 'center', minHeight: '280px', position: 'relative',
-                                  boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)', gridColumn: caption?.length > 100 ? '1 / -1' : 'auto'
-                                }}>
-                                  {/* SIWA TODAY WATERMARK FALLBACK */}
-                                  {!hasMedia && (
-                                    <div style={{ 
-                                      position: 'absolute', top: '1.5rem', fontSize: '0.6rem', fontWeight: 900, 
-                                      color: '#D4AF37', letterSpacing: '4px', opacity: 0.5 
-                                    }}>
-                                      SIWA TODAY • HERITAGE ARCHIVE
-                                    </div>
-                                  )}
-                                  
-                                  <div style={{ 
-                                    fontSize: '1.2rem', fontWeight: 700, lineHeight: 1.6, 
-                                    color: (bgColor === '#1e293b' || bgColor === '#000' || !hasMedia) ? '#fff' : '#1e293b',
-                                    fontStyle: 'italic', fontFamily: 'serif'
-                                  }}>
-                                    "{caption}"
-                                  </div>
-
-                                  {!hasMedia && (
-                                    <div style={{ 
-                                      position: 'absolute', bottom: '1.5rem', fontSize: '0.5rem', 
-                                      color: 'rgba(255,255,255,0.2)', fontWeight: 800 
-                                    }}>
-                                      VERIFIED NARRATIVE
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            }
-
                             return (
                               <div key={i} style={{ 
                                 borderRadius: '20px', overflow: 'hidden', background: '#fff', 
@@ -371,7 +482,7 @@ export default function VanityBusinessClient({
                                   {isVideo ? (
                                     <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   ) : (
-                                    <img src={mediaUrl} alt={caption || `${section.name} gallery ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={mediaUrl} alt={caption || `${section.name} image ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   )}
                                 </div>
                                 {caption && (

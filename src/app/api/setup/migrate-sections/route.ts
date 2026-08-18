@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
     // 4. Fix Form Fields Table
     await safeExecute('Add section_origin column', "ALTER TABLE form_fields ADD section_origin ENUM('inherited', 'own', 'template') DEFAULT 'own'");
     await safeExecute('Add required_feature column', "ALTER TABLE form_fields ADD required_feature VARCHAR(100) DEFAULT NULL");
+    await safeExecute('Add version_type column', "ALTER TABLE form_fields ADD version_type ENUM('initial', 'latest') DEFAULT 'latest'");
+    await safeExecute('Drop old field uniqueness constraint', "ALTER TABLE form_fields DROP INDEX uk_field");
+    await safeExecute('Add versioned unique constraint', "ALTER TABLE form_fields ADD UNIQUE KEY uk_field (business_type_id, section_id, name, version_type)");
     await safeExecute('Sync template origin', "UPDATE form_fields SET section_origin = 'template' WHERE business_type_id = 'SECTION_TEMPLATE'");
 
     // 5. Materialize Structural Fields

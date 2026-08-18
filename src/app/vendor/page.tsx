@@ -11,6 +11,8 @@ interface BusinessData {
   description: string;
   is_published?: boolean;
   published?: boolean;
+  is_trusted?: boolean;
+  minisite_visible_until?: string | null;
 }
 interface Section {
   id: string;
@@ -417,19 +419,23 @@ export default function VendorDashboardPage() {
   const [loading,     setLoading]     = useState(true);
   const [requests,    setRequests]    = useState<JourneyRequest[]>([]);
   const [profilePct,  setProfilePct]  = useState(0);
+  const [verificationStatus, setVerificationStatus] = useState<string>('unverified');
+  const [trustRejectionNote, setTrustRejectionNote] = useState<string | null>(null);
 
   /* ── Fetch data ── */
   useEffect(() => {
     /* Story / profile */
     fetch('/api/vendor/story')
       .then(r => r.json())
-      .then((data: StoryData) => {
+      .then((data: any) => {
         if (data?.business) {
           setStory(data);
-          const total  = data.structure.reduce((a, s) => a + s.fields.length, 0);
-          const filled = data.structure.reduce((a, s) =>
-            a + s.fields.filter(f => f.value != null && f.value !== '').length, 0);
+          const total  = data.structure.reduce((a: number, s: any) => a + s.fields.length, 0);
+          const filled = data.structure.reduce((a: number, s: any) =>
+            a + s.fields.filter((f: any) => f.value != null && f.value !== '').length, 0);
           setProfilePct(total > 0 ? Math.round((filled / total) * 100) : 0);
+          setVerificationStatus(data.verificationStatus || 'unverified');
+          setTrustRejectionNote(data.trustRejectionNote || null);
         }
       })
       .catch(() => {})
@@ -447,6 +453,16 @@ export default function VendorDashboardPage() {
 
   /* ── Derived ── */
   const isPublished = !!(story?.business?.is_published || story?.business?.published);
+  const isTrusted = !!story?.business?.is_trusted;
+  const visibleUntil = story?.business?.minisite_visible_until;
+
+  const daysRemaining = (() => {
+    if (!visibleUntil) return null;
+    const diff = new Date(visibleUntil).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  })();
+
+  const isExpired = daysRemaining !== null && daysRemaining <= 0 && !isTrusted;
 
   const checklistItems = [
     {
@@ -586,6 +602,104 @@ export default function VendorDashboardPage() {
               )}
             </p>
           </div>
+        </div>
+
+        {/* ─── Identity & Authority Verification Card ─── */}
+        <div style={{ 
+          background: '#ffffff', 
+          border: '1px solid #eef0f5', 
+          borderRadius: '20px', 
+          padding: '1.25rem 1.5rem', 
+          marginBottom: '1.5rem', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)', 
+          display: 'flex', 
+          alignItems: 'flex-start', 
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          {(() => {
+            let cardBg = 'rgba(212,175,55,0.08)';
+            let cardBorder = 'rgba(212,175,55,0.2)';
+            let iconBg = 'rgba(212,175,55,0.1)';
+            let iconColor = '#D4AF37';
+            let iconClass = 'fa-shield-halved';
+            let badgeText = 'Identity & Authority Verification';
+            let statusLabel = 'UNVERIFIED';
+            let title = 'Verify Your Business Identity';
+            let desc = '';
+
+            if (verificationStatus === 'verified') {
+              cardBg = 'rgba(34,197,94,0.04)';
+              cardBorder = 'rgba(34,197,94,0.15)';
+              iconBg = 'rgba(34,197,94,0.1)';
+              iconColor = '#22c55e';
+              iconClass = 'fa-check-circle';
+              statusLabel = 'VERIFIED';
+              title = '✓ Trusted Vendor Profile';
+              desc = 'Your identity, authority, and ownership are fully verified. Your minisite has received the gold Trusted badge and is permanently live in the registry.';
+            } else if (verificationStatus === 'pending') {
+              cardBg = 'rgba(59,130,246,0.04)';
+              cardBorder = 'rgba(59,130,246,0.15)';
+              iconBg = 'rgba(59,130,246,0.1)';
+              iconColor = '#3b82f6';
+              iconClass = 'fa-hourglass-half';
+              statusLabel = 'UNDER REVIEW';
+              title = 'Verification Documents Under Review';
+              desc = 'Your uploaded ID and ownership documents are currently being audited by the Siwa Today admin team. Review typically takes 24-48 hours. Your profile visibility is temporarily protected.';
+            } else if (verificationStatus === 'rejected') {
+              cardBg = 'rgba(239,68,68,0.04)';
+              cardBorder = 'rgba(239,68,68,0.15)';
+              iconBg = 'rgba(239,68,68,0.1)';
+              iconColor = '#ef4444';
+              iconClass = 'fa-circle-xmark';
+              statusLabel = 'REJECTED';
+              title = 'Verification Request Rejected';
+              desc = `Your verification application could not be approved. Reason: "${trustRejectionNote || 'Invalid documents.'}". Please update and upload valid documents to reactivate your listing visibility.`;
+            } else {
+              // Unverified status
+              if (isExpired) {
+                cardBg = 'rgba(239,68,68,0.05)';
+                cardBorder = 'rgba(239,68,68,0.2)';
+                iconBg = 'rgba(239,68,68,0.1)';
+                iconColor = '#ef4444';
+                iconClass = 'fa-lock';
+                title = 'Minisite Offline — Verification Required';
+                desc = 'Your 30-day trial visibility window has expired. Your minisite is currently hidden from the public. To reactivate it and keep your data, you must upload your National ID and business ownership documentation.';
+              } else {
+                title = 'Complete Verification to Secure Trusted Badge';
+                desc = daysRemaining !== null
+                  ? `Your minisite is currently online, but your 30-day temporary visibility window has ${daysRemaining} days remaining. Upload your documents now to achieve Trusted status and ensure your profile stays permanently online.`
+                  : 'Upload your National ID and business ownership certificate to achieve Trusted status and display a gold badge on your minisite.';
+              }
+            }
+
+            return (
+              <>
+                <div style={{ width: 42, height: 42, borderRadius: '12px', background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                  <i className={`fas ${iconClass}`} />
+                </div>
+                <div style={{ flex: 1, minWidth: '260px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 900, color: iconColor, textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+                      🛡️ {badgeText}
+                    </span>
+                    <span style={{ fontSize: '0.6rem', color: iconColor, background: cardBg, border: `1px solid ${cardBorder}`, padding: '2px 8px', borderRadius: '10px', fontWeight: 800 }}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b', margin: '4px 0 6px' }}>{title}</h3>
+                  <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.55, margin: '0 0 1rem' }}>
+                    {desc}
+                  </p>
+                  {verificationStatus !== 'verified' && (
+                    <Link href="/vendor/verification" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: iconColor, color: '#ffffff', textDecoration: 'none', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.2s', border: 'none', cursor: 'pointer' }}>
+                      <i className="fas fa-file-shield" /> {verificationStatus === 'rejected' ? 'Re-upload Documents' : 'Upload Docs & Verify'}
+                    </Link>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* ─── KPI Strip ─── */}

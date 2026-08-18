@@ -50,12 +50,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
 
     const data = biz.custom_data || {};
-    const identity = data.sec_1_identity || {};
-    const vibe = data.sec_3_services || {};
+    const identity = data.basic || data.sec_1_identity || data.business_info || {};
+    const vibe = data.vibe || data.sec_3_services || {};
     
-    const description = identity.section_blog 
-      ? identity.section_blog.substring(0, 160).replace(/<[^>]*>/g, '') 
-      : `Discover the unique ${biz.name} experience in Siwa Oasis. ${vibe.view_types?.join(', ') || ''}`;
+    const description = identity.description || identity.section_blog 
+      ? (identity.description || identity.section_blog).substring(0, 160).replace(/<[^>]*>/g, '') 
+      : `Discover the unique ${biz.name} experience in Siwa Oasis.`;
 
     const logoUrl = identity.business_logo || identity.logo || data.business_info?.business_logo || data.business_info?.logo;
     const ogImage = logoUrl || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62';
@@ -119,6 +119,37 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
     }
 
+    // Expiration check: 30 days trial/temporary visibility window for unverified vendors
+    if (biz) {
+      const isExpired = biz.is_master !== 1 && !biz.is_trusted && biz.minisite_visible_until && new Date(biz.minisite_visible_until) < new Date();
+      if (isExpired) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
+            <div style={{ maxWidth: '540px', width: '100%', background: 'rgba(30, 41, 59, 0.4)', border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: '24px', padding: '3rem 2rem', textAlign: 'center', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                <i className="fas fa-lock" style={{ color: '#D4AF37', fontSize: '2rem' }} />
+              </div>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#f8fafc', marginBottom: '1rem', letterSpacing: '-0.5px' }}>
+                Listing Under Verification
+              </h1>
+              <p style={{ color: '#94a3b8', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+                To ensure registry authenticity, <strong style={{ color: '#D4AF37' }}>{biz.name}</strong> is temporarily offline.
+                If you are the business owner, please log into your dashboard and complete your identity & authority verification.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.8rem 1.5rem', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#1a1000', borderRadius: '12px', fontWeight: 800, fontSize: '0.88rem', textDecoration: 'none', boxShadow: '0 4px 14px rgba(212,175,55,0.25)', transition: 'transform 0.2s' }}>
+                  Owner Login
+                </Link>
+                <Link href="/" style={{ fontSize: '0.85rem', color: '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
+                  Back to Siwa Today Registry
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+
     if (!biz) {
       // Check if a custom landing page exists in website_configs (saved as website_[slug])
       const [customPage] = await safeQuery<any>(
@@ -139,11 +170,12 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }
 
     // Fetch sections directly from DB
-const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
+    const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
     let sections: any[] = [];
+    let sectionIds: string[] = [];
 
     if (typeData) {
-      const sectionIds = [
+      sectionIds = [
         ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
         ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
       ];
@@ -157,15 +189,36 @@ const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM busi
         
         // Fetch field metadata definitions to display user-friendly labels on minisite
         const fieldDefs = await safeQuery<any>(
-          `SELECT name, label, section_id FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
+          `SELECT name, label, section_id, field_type, options FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
           [biz.type_id]
+        );
+
+        // Fetch approved vendor gallery items
+        const galleryItems = await safeQuery<any>(
+          `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
+           FROM vendor_gallery 
+           WHERE business_id = ? AND approval_status = 'approved' AND show_on_minisite = 1`,
+          [biz.id]
+        );
+
+        // Fetch published section blog posts
+        const blogPosts = await safeQuery<any>(
+          `SELECT id, title, content, excerpt, section_id, show_on_main, show_on_minisite, status 
+           FROM section_blogs 
+           WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1 
+           ORDER BY published_at DESC`,
+          [biz.id]
         );
 
         sections = rows.map((s: any) => {
           const sFields = fieldDefs.filter((f: any) => f.section_id === s.id);
+          const sGallery = galleryItems.filter((g: any) => g.section_id === s.id);
+          const sBlogs = blogPosts.filter((b: any) => b.section_id === s.id);
           return {
             ...s,
-            fields: sFields
+            fields: sFields,
+            gallery: sGallery,
+            blogs: sBlogs
           };
         });
       }
@@ -203,7 +256,63 @@ const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM busi
       finalLabels[s.id] = label;
     });
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} isMasterTemplate={biz.is_master === 1} />;
+    let sectionComponents: Record<string, any[]> = {};
+    if (sectionIds.length > 0) {
+      const componentRows = await safeQuery<any>(
+        `SELECT sc.id as component_id, sc.section_id, sc.component_type, sc.label as component_label, sc.config,
+                scd.id as data_id, scd.data as data_json, scd.status as data_status, scd.title as data_title, scd.display_order as data_display_order
+         FROM section_components sc
+         LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id AND scd.business_id = ?
+         WHERE sc.section_id IN (${sectionIds.map(() => '?').join(',')})
+         ORDER BY sc.section_id, sc.display_order, scd.display_order`,
+        [biz.id, ...sectionIds]
+      );
+
+      const componentMap: Record<string, any> = {};
+      componentRows.forEach((row: any) => {
+        if (!componentMap[row.component_id]) {
+          let config = {};
+          try {
+            config = typeof row.config === 'string' ? JSON.parse(row.config) : row.config || {};
+          } catch {
+            config = {};
+          }
+
+          componentMap[row.component_id] = {
+            id: row.component_id,
+            sectionId: row.section_id,
+            type: row.component_type,
+            label: row.component_label,
+            config,
+            instances: [] as any[]
+          };
+        }
+
+        if (row.data_id) {
+          componentMap[row.component_id].instances.push({
+            id: row.data_id,
+            title: row.data_title,
+            status: row.data_status,
+            data: JSON.parse(row.data_json || '{}')
+          });
+        }
+      });
+
+      Object.values(componentMap).forEach((component: any) => {
+        if (!sectionComponents[component.sectionId]) {
+          sectionComponents[component.sectionId] = [];
+        }
+        sectionComponents[component.sectionId].push(...component.instances.map((instance: any, index: number) => ({
+          id: `${component.id}-${instance.id || index}`,
+          type: component.type,
+          props: instance.data || {},
+          label: component.label,
+          title: instance.title || undefined
+        })));
+      });
+    }
+
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (

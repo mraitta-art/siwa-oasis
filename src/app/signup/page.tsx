@@ -44,13 +44,18 @@ export default function VendorSignup() {
   const router = useRouter();
 
   /* ── step state ─────────────────────── */
-  const [step, setStep] = useState<1 | 2 | 3>(1);   // 1=Account 2=Category/Child 3=Business
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);   // 1=Account 2=Category 3=Business 4=Terms
 
   /* ── form data ──────────────────────── */
-  const [displayName, setDisplayName] = useState('');
-  const [email,       setEmail]       = useState('');
-  const [password,    setPassword]    = useState('');
-  const [showPw,      setShowPw]      = useState(false);
+  const [displayName,    setDisplayName]    = useState('');
+  const [email,          setEmail]          = useState('');
+  const [phone,          setPhone]          = useState('');
+  const [password,       setPassword]       = useState('');
+  const [confirmPw,      setConfirmPw]      = useState('');
+  const [showPw,         setShowPw]         = useState(false);
+  const [showConfirmPw,  setShowConfirmPw]  = useState(false);
+  const [emailChecking,  setEmailChecking]  = useState(false);  // blur-time email check
+  const [phoneChecking,  setPhoneChecking]  = useState(false);  // blur-time phone check
 
   /* ── type selection ──────────────────── */
   const [allTypes,    setAllTypes]    = useState<BizType[]>([]);
@@ -70,6 +75,7 @@ export default function VendorSignup() {
   const [fieldErr,           setFieldErr]           = useState<Record<string, string>>({});
   const [registrationStatus, setRegistrationStatus] = useState<'idle'|'pending'|'approved'>('idle');
   const [pendingBizName,     setPendingBizName]     = useState('');
+  const [termsAccepted,      setTermsAccepted]      = useState(false);
 
   /* ── load types once ─────────────────── */
   useEffect(() => {
@@ -107,14 +113,46 @@ export default function VendorSignup() {
       .finally(() => setBusLoading(false));
   }, [childId]);
 
+  /* ── blur-time email uniqueness check ───────────────── */
+  const checkEmailUnique = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return;
+    setEmailChecking(true);
+    try {
+      const r = await fetch(`/api/signup/check-email?email=${encodeURIComponent(email)}`);
+      const d = await r.json();
+      if (d.taken) {
+        setFieldErr(p => ({ ...p, email: 'An account with this email already exists' }));
+      }
+    } catch { /* silent — validated again at submit */ }
+    finally { setEmailChecking(false); }
+  };
+
+  /* ── blur-time phone uniqueness check ───────────────── */
+  const checkPhoneUnique = async () => {
+    if (!phone || !/^\+?[0-9\s\-]{8,20}$/.test(phone.trim())) return;
+    setPhoneChecking(true);
+    try {
+      const r = await fetch(`/api/signup/check-email?phone=${encodeURIComponent(phone.trim())}`);
+      const d = await r.json();
+      if (d.taken) {
+        setFieldErr(p => ({ ...p, phone: 'An account with this phone number already exists' }));
+      }
+    } catch { /* silent — validated again at submit */ }
+    finally { setPhoneChecking(false); }
+  };
+
   /* ── step 1 validation ───────────────── */
   const validateStep1 = () => {
     const errs: Record<string, string> = {};
     if (!displayName.trim()) errs.displayName = 'Full name is required';
     if (!email.trim())       errs.email       = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
+    if (!phone.trim())       errs.phone       = 'Phone number is required';
+    else if (!/^\+?[0-9\s\-]{8,20}$/.test(phone.trim())) errs.phone = 'Invalid phone number format';
     if (!password)           errs.password    = 'Password is required';
     else if (password.length < 8) errs.password = 'At least 8 characters';
+    if (!confirmPw)          errs.confirmPw   = 'Please confirm your password';
+    else if (password !== confirmPw) errs.confirmPw = 'Passwords do not match';
     setFieldErr(errs);
     return Object.keys(errs).length === 0;
   };
@@ -151,10 +189,11 @@ export default function VendorSignup() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          email, password, displayName,
+          email, password, displayName, phone,
           businessId:      registerMode === 'select' ? businessId : undefined,
           newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
+          termsAccepted,
         }),
       });
       const data = await res.json();
@@ -168,7 +207,18 @@ export default function VendorSignup() {
         setRegistrationStatus('pending');
         return;
       }
-      // 200 = immediately approved (open mode)
+      // 200 = open mode — auto-login so vendor lands directly on dashboard
+      try {
+        const loginRes = await fetch('/api/auth/login', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email, password }),
+        });
+        if (loginRes.ok) {
+          router.push('/vendor');
+          return;
+        }
+      } catch { /* fall through to login page */ }
       router.push('/login?registered=true');
     } catch {
       setError('Network error. Please try again.');
@@ -293,7 +343,7 @@ export default function VendorSignup() {
 
           {/* Progress Bar */}
           <div className="progress-wrap">
-            {([1,2,3] as const).map(n => (
+            {([1,2,3,4] as const).map(n => (
               <React.Fragment key={n}>
                 <div className={`prog-step ${step >= n ? 'done' : ''} ${step === n ? 'active' : ''}`}>
                   <div className="prog-circle">
@@ -302,10 +352,10 @@ export default function VendorSignup() {
                       : n}
                   </div>
                   <span className="prog-label">
-                    {n === 1 ? 'Account' : n === 2 ? 'Category' : 'Business'}
+                    {n === 1 ? 'Account' : n === 2 ? 'Category' : n === 3 ? 'Business' : 'Agreement'}
                   </span>
                 </div>
-                {n < 3 && <div className={`prog-line ${step > n ? 'filled' : ''}`} />}
+                {n < 4 && <div className={`prog-line ${step > n ? 'filled' : ''}`} />}
               </React.Fragment>
             ))}
           </div>
@@ -344,9 +394,28 @@ export default function VendorSignup() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={e => { setEmail(e.target.value); setFieldErr(p => ({...p, email: ''})); }}
+                    onBlur={checkEmailUnique}
                   />
+                  {emailChecking && <i className="fas fa-circle-notch fa-spin" style={{ position: 'absolute', right: '0.8rem', color: '#94a3b8' }} />}
                 </div>
                 {fieldErr.email && <span className="field-err">{fieldErr.email}</span>}
+              </div>
+
+              <div className="field-group">
+                <label className="field-label">Phone Number</label>
+                <div className={`field-wrap ${fieldErr.phone ? 'is-err' : ''}`}>
+                  <i className="fas fa-phone field-icon" />
+                  <input
+                    type="tel"
+                    className="field-input"
+                    placeholder="e.g. +20 100 123 4567"
+                    value={phone}
+                    onChange={e => { setPhone(e.target.value); setFieldErr(p => ({...p, phone: ''})); }}
+                    onBlur={checkPhoneUnique}
+                  />
+                  {phoneChecking && <i className="fas fa-circle-notch fa-spin" style={{ position: 'absolute', right: '0.8rem', color: '#94a3b8' }} />}
+                </div>
+                {fieldErr.phone && <span className="field-err">{fieldErr.phone}</span>}
               </div>
 
               <div className="field-group">
@@ -387,6 +456,35 @@ export default function VendorSignup() {
                       {strength.label}
                     </span>
                   </div>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="field-group">
+                <label className="field-label">Confirm Password</label>
+                <div className={`field-wrap ${fieldErr.confirmPw ? 'is-err' : ''}`}>
+                  <i className="fas fa-shield-alt field-icon" />
+                  <input
+                    type={showConfirmPw ? 'text' : 'password'}
+                    className="field-input"
+                    placeholder="Repeat your password"
+                    value={confirmPw}
+                    onChange={e => { setConfirmPw(e.target.value); setFieldErr(p => ({...p, confirmPw: ''})); }}
+                  />
+                  <button
+                    type="button"
+                    className="pw-toggle"
+                    onClick={() => setShowConfirmPw(p => !p)}
+                    tabIndex={-1}
+                  >
+                    <i className={`fas ${showConfirmPw ? 'fa-eye-slash' : 'fa-eye'}`} />
+                  </button>
+                </div>
+                {fieldErr.confirmPw && <span className="field-err">{fieldErr.confirmPw}</span>}
+                {confirmPw && password && confirmPw === password && (
+                  <span className="field-hint" style={{ color: '#22c55e' }}>
+                    <i className="fas fa-check" /> Passwords match
+                  </span>
                 )}
               </div>
 
@@ -485,7 +583,7 @@ export default function VendorSignup() {
             <div className="form-step animate-in">
               <div className="step-header">
                 <h1 className="step-title">Your Business</h1>
-                <p className="step-sub">Join an existing listing or register your own vendor name</p>
+                <p className="step-sub">Claim an unclaimed listing or register your own business name</p>
               </div>
 
               {/* Context pill */}
@@ -535,7 +633,7 @@ export default function VendorSignup() {
                   <div className="no-biz-notice">
                     <i className="fas fa-store-slash" />
                     <strong>Be the first vendor in this category!</strong>
-                    <p>No businesses are registered here yet. Register your trade name now — team members can join you later.</p>
+                    <p>No unclaimed listings in this category yet. Register your business name and become the sole owner of your profile.</p>
                     <button
                       type="button"
                       className="btn-next"
@@ -546,30 +644,37 @@ export default function VendorSignup() {
                     </button>
                   </div>
                 ) : (
-                  <div className="biz-list">
-                    {businesses.map(biz => (
-                      <button
-                        key={biz.id}
-                        type="button"
-                        className={`biz-card ${businessId === biz.id ? 'active' : ''}`}
-                        onClick={() => setBusinessId(biz.id)}
-                        style={{ '--accent': selectedChild?.icon_color || '#D4AF37' } as React.CSSProperties}
-                      >
-                        <div className="biz-avatar" style={{ background: `${selectedChild?.icon_color || '#D4AF37'}22` }}>
-                          <i className={selectedChild?.icon || 'fas fa-building'} style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
-                        </div>
-                        <div className="biz-info">
-                          <span className="biz-name">{biz.name}</span>
-                          <span className="biz-slug">/{biz.slug}</span>
-                        </div>
-                        <div className={`biz-check ${businessId === biz.id ? 'visible' : ''}`}>
-                          <i className="fas fa-check-circle" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <p className="field-hint" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fas fa-info-circle" style={{ color: '#94a3b8' }} />
+                      Only unclaimed listings are shown. If your business isn't listed, use "Register New Name".
+                    </p>
+                    <div className="biz-list">
+                      {businesses.map(biz => (
+                        <button
+                          key={biz.id}
+                          type="button"
+                          className={`biz-card ${businessId === biz.id ? 'active' : ''}`}
+                          onClick={() => setBusinessId(biz.id)}
+                          style={{ '--accent': selectedChild?.icon_color || '#D4AF37' } as React.CSSProperties}
+                        >
+                          <div className="biz-avatar" style={{ background: `${selectedChild?.icon_color || '#D4AF37'}22` }}>
+                            <i className={selectedChild?.icon || 'fas fa-building'} style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
+                          </div>
+                          <div className="biz-info">
+                            <span className="biz-name">{biz.name}</span>
+                            <span className="biz-slug">/{biz.slug}</span>
+                          </div>
+                          <div className={`biz-check ${businessId === biz.id ? 'visible' : ''}`}>
+                            <i className="fas fa-check-circle" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )
-              )}
+              )}\n
+
 
               {/* ── NEW mode: enter custom business name ── */}
               {registerMode === 'new' && (
@@ -577,9 +682,8 @@ export default function VendorSignup() {
                   <div className="new-biz-info">
                     <i className="fas fa-info-circle" style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
                     <p>
-                      Register your trade name under <strong>{selectedChild?.name}</strong>.
-                      Your listing will appear in this category so team members and co-owners
-                      can also sign up and access the same business dashboard.
+                      Register your business name under <strong>{selectedChild?.name}</strong>.
+                      You will be the sole owner of this listing — only you can manage it from your vendor dashboard.
                     </p>
                   </div>
                   <div className="field-group">
@@ -612,6 +716,10 @@ export default function VendorSignup() {
                     <span className="summary-val">{email}</span>
                   </div>
                   <div className="summary-row">
+                    <span className="summary-key">Phone</span>
+                    <span className="summary-val">{phone}</span>
+                  </div>
+                  <div className="summary-row">
                     <span className="summary-key">Business</span>
                     <span className="summary-val">{registerMode === 'new' ? newBusinessName : selectedBiz?.name}</span>
                   </div>
@@ -634,9 +742,88 @@ export default function VendorSignup() {
                     <i className="fas fa-arrow-left" /> Back
                   </button>
                   <button
+                    type="button"
+                    className="btn-next"
+                    disabled={(registerMode === 'select' && !businessId) || (registerMode === 'new' && !newBusinessName.trim())}
+                    onClick={() => setStep(4)}
+                  >
+                    Continue <i className="fas fa-arrow-right" />
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ─────── STEP 4: Responsibility Agreement ─────── */}
+          {step === 4 && (
+            <div className="form-step animate-in">
+              <div className="step-header">
+                <h1 className="step-title">Vendor Agreement</h1>
+                <p className="step-sub">Read and accept before launching your studio</p>
+              </div>
+
+              {/* Agreement Card */}
+              <div style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: 16, padding: '1.5rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(212,175,55,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <i className="fas fa-shield-halved" style={{ color: '#D4AF37', fontSize: '1rem' }} />
+                  </div>
+                  <span style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.9rem' }}>Vendor Responsibility Agreement</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {[
+                    'I am legally authorized to manage and represent this business listing.',
+                    'All content, photos, prices, and offers I publish are accurate and lawful.',
+                    'I accept full legal responsibility for any bookings, claims, or transactions made through my listing.',
+                    'I understand that misrepresentation or policy violations may result in immediate suspension.',
+                    'This listing will display without a Trusted badge until my identity is verified by the Siwa Today team.',
+                  ].map((clause, i) => (
+                    <li key={i} style={{ color: 'rgba(248,250,252,0.75)', fontSize: '0.82rem', lineHeight: 1.6 }}>
+                      {clause}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Trust Badge Notice */}
+              <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '0.9rem 1.1rem', marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <i className="fas fa-circle-info" style={{ color: '#818cf8', marginTop: '0.1rem', flexShrink: 0 }} />
+                <span style={{ color: 'rgba(248,250,252,0.6)', fontSize: '0.78rem', lineHeight: 1.6 }}>
+                  After registration, you can upload your <strong style={{ color: '#a5b4fc' }}>National ID</strong> and <strong style={{ color: '#a5b4fc' }}>ownership proof</strong> from your dashboard to receive the <strong style={{ color: '#D4AF37' }}>✓ Trusted Vendor</strong> badge on your public minisite.
+                </span>
+              </div>
+
+              {/* Checkbox */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+                <div
+                  onClick={() => setTermsAccepted(p => !p)}
+                  style={{
+                    width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: '0.1rem',
+                    border: termsAccepted ? '2px solid #D4AF37' : '2px solid rgba(255,255,255,0.2)',
+                    background: termsAccepted ? '#D4AF37' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s', cursor: 'pointer',
+                  }}
+                >
+                  {termsAccepted && <i className="fas fa-check" style={{ color: '#1a1000', fontSize: '0.7rem', fontWeight: 900 }} />}
+                </div>
+                <span style={{ color: 'rgba(248,250,252,0.8)', fontSize: '0.83rem', lineHeight: 1.6 }}>
+                  I have read and I accept the Vendor Responsibility Agreement. I understand this is a legally binding commitment.
+                </span>
+              </label>
+
+              {error && <div className="form-error"><i className="fas fa-exclamation-circle" /> {error}</div>}
+
+              <form onSubmit={handleSubmit}>
+                <div className="btn-row">
+                  <button type="button" className="btn-back" onClick={() => setStep(3)}>
+                    <i className="fas fa-arrow-left" /> Back
+                  </button>
+                  <button
                     type="submit"
                     className="btn-submit"
-                    disabled={loading || (registerMode === 'select' && !businessId) || (registerMode === 'new' && !newBusinessName.trim())}
+                    disabled={loading || !termsAccepted}
+                    style={{ opacity: termsAccepted ? 1 : 0.5 }}
                   >
                     {loading ? (
                       <><i className="fas fa-circle-notch fa-spin" /> Creating Studio...</>

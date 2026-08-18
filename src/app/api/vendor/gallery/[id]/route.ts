@@ -37,6 +37,23 @@ export async function PATCH(
       values.push(body.show_on_minisite ? 1 : 0);
     }
 
+    if (body.placement !== undefined) {
+      updates.push('placement = ?');
+      values.push(body.placement);
+    }
+
+    if (body.section_id !== undefined) {
+      updates.push('section_id = ?');
+      values.push(body.section_id);
+    }
+
+    if (body.slide_data !== undefined) {
+      updates.push('slide_data = ?');
+      values.push(typeof body.slide_data === 'string'
+        ? body.slide_data
+        : JSON.stringify(body.slide_data));
+    }
+
     if (updates.length === 0) {
       return Response.json({ error: 'No fields to update' }, { status: 400 });
     }

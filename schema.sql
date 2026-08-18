@@ -106,10 +106,11 @@ CREATE TABLE form_fields (
   default_value TEXT,
   sort_order INT DEFAULT 0,
   required_feature VARCHAR(100) DEFAULT NULL,
+  version_type ENUM('initial', 'latest') DEFAULT 'latest',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (business_type_id) REFERENCES business_types(id) ON DELETE CASCADE,
   FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
-  UNIQUE KEY uk_field (business_type_id, section_id, name)
+  UNIQUE KEY uk_field (business_type_id, section_id, name, version_type)
 );
 
 -- 6. CUSTOM EXPRESSIONS (Vibe/Terminology Engine)

@@ -7,7 +7,6 @@
  * 3. Cache invalidation hooks for admin mutations
  */
 
-import { cache } from 'react';
 import { query as safeQuery, queryOne } from '@/lib/db';
 
 // ==========================================
@@ -112,21 +111,18 @@ export { globalCache };
 /**
  * Get all business types (cached)
  */
-export const getBusinessTypes = cache(async (activeOnly: boolean = true) => {
+export async function getBusinessTypes(activeOnly: boolean = true) {
   const cacheKey = `business_types:${activeOnly}`;
   
-  // Check in-memory cache first
   const cached = globalCache.get<typeof import('@/lib/db').query>(cacheKey);
   if (cached) return cached;
 
-  // Fetch from database
   const sql = activeOnly 
     ? 'SELECT * FROM business_types WHERE active = TRUE ORDER BY sort_order'
     : 'SELECT * FROM business_types ORDER BY sort_order';
   
   const data = await safeQuery(sql);
   
-  // Parse JSON fields
   const parsed = data.map((t: any) => ({
     ...t,
     sections: typeof t.sections === 'string' ? JSON.parse(t.sections) : t.sections || [],
@@ -134,16 +130,15 @@ export const getBusinessTypes = cache(async (activeOnly: boolean = true) => {
     blueprint: typeof t.blueprint === 'string' ? JSON.parse(t.blueprint) : t.blueprint || null,
   }));
 
-  // Store in cache
   globalCache.set(cacheKey, parsed, CACHE_TTL.business_types);
 
   return parsed;
-});
+}
 
 /**
  * Get single business type by ID (cached)
  */
-export const getBusinessTypeById = cache(async (id: string) => {
+export async function getBusinessTypeById(id: string) {
   const cacheKey = `business_type:${id}`;
   
   const cached = globalCache.get(cacheKey);
@@ -166,7 +161,7 @@ export const getBusinessTypeById = cache(async (id: string) => {
   globalCache.set(cacheKey, parsed, CACHE_TTL.business_types);
 
   return parsed;
-});
+}
 
 /**
  * Get all sections (cached)

@@ -22,19 +22,6 @@ interface SiteSettings {
   carousel_interval?: number;
 }
 
-const DEFAULT_LAYOUT: LayoutSection[] = [
-  { id: 'h1', type: 'hero_carousel', props: { siteId: 'discovery', isDynamic: false, includeBusinesses: false, includeJourneys: false, includeInvestment: false, includeRegistration: false } },
-  { id: 'h2', type: 'services_hub', props: {} },
-  { id: 'h3', type: 'experience_categories', props: {} },
-  { id: 'h4', type: 'search_bar', props: {} },
-  { id: 'h5', type: 'smart_journey_planner', props: {} },
-  { id: 'h6', type: 'ecosystem_map', props: {} },
-  { id: 'h7', type: 'local_products', props: {} },
-  { id: 'h8', type: 'investment_feed', props: { title: 'Heritage Investment Opportunities', subtitle: 'HERITAGE CAPITAL' } },
-  { id: 'h9', type: 'storytelling_section', props: {} },
-  { id: 'h10', type: 'partner_cta', props: {} }
-];
-
 // ── Luminance helper — determines if a hex color is "light" ──────────────────
 function isLight(hex: string | undefined): boolean {
   if (!hex) return true;
@@ -110,35 +97,36 @@ export default function Home() {
   const [layout, setLayout] = useState<LayoutSection[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [builderLoaded, setBuilderLoaded] = useState(false);
+  const [hasBuilderConfig, setHasBuilderConfig] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function init() {
       try {
         const res = await fetch('/api/jana/website?id=website_main');
-        if (res.ok) {
-          const data = await res.json();
-          const config = data[0];
-          if (config) {
-            const allComponents: LayoutSection[] = dedupeSections([
-              ...(config.header_components || []),
-              ...(config.body_components || []),
-              ...(config.footer_components || [])
-            ]);
-            if (allComponents.length > 0) {
-              setLayout(allComponents);
-            } else {
-              setLayout(DEFAULT_LAYOUT);
-            }
-            if (config.site_settings) setSettings(config.site_settings);
-          } else {
-            setLayout(DEFAULT_LAYOUT);
-          }
+        if (!res.ok) {
+          setHasBuilderConfig(false);
+          return;
+        }
+
+        const data = await res.json();
+        const config = Array.isArray(data) ? data[0] : data;
+
+        const allComponents: LayoutSection[] = dedupeSections([
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || [])
+        ]);
+
+        if (allComponents.length > 0) {
+          setLayout(allComponents);
+          setHasBuilderConfig(true);
+          if (config.site_settings) setSettings(config.site_settings);
         } else {
-          setLayout(DEFAULT_LAYOUT);
+          setHasBuilderConfig(false);
         }
       } catch (e) {
         console.error('Homepage init fail:', e);
-        setLayout(DEFAULT_LAYOUT);
+        setHasBuilderConfig(false);
       } finally {
         setBuilderLoaded(true);
       }
@@ -176,7 +164,27 @@ export default function Home() {
       </nav>
 
       {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING */}
-      <DynamicHomepageRenderer layout={layout} settings={settings} />
+      {builderLoaded ? (
+        hasBuilderConfig ? (
+          <DynamicHomepageRenderer layout={layout} settings={settings} />
+        ) : (
+          <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
+            <div style={{ maxWidth: '720px' }}>
+              <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#D4AF37', fontWeight: 900 }}>Homepage Builder Required</h1>
+              <p style={{ color: '#eee', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2rem' }}>
+                This homepage is controlled by the admin builder. Create or publish a <code style={{ background: 'rgba(255,255,255,0.08)', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>website_main</code> configuration in the portal architect to display content here.
+              </p>
+              <Link href="/jana/website?page=homepage" style={{ display: 'inline-block', padding: '1rem 2rem', background: '#D4AF37', color: '#000', borderRadius: '999px', fontWeight: 900, textDecoration: 'none' }}>
+                Open Homepage Builder
+              </Link>
+            </div>
+          </div>
+        )
+      ) : (
+        <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
+          <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.8rem' }}>LOADING BUILDER CONTENT…</div>
+        </div>
+      )}
 
       {/* GLOBAL WATERMARK */}
       {settings?.show_watermark !== false && (

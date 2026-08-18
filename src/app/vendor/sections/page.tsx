@@ -9,7 +9,7 @@ import { useLang } from '@/context/LangContext';
 interface Field { id: string; name: string; label: string; field_type: string; required: boolean; value: any; options?: any; help_text?: string; business_type_id?: string; }
 interface Section { id: string; name: string; icon: string; fields: Field[]; enable_gallery: boolean; enable_blog: boolean; }
 interface Typology { child: { id: string; name: string; icon: string; color: string } | null; parent: { id: string; name: string; icon: string; color: string } | null; }
-interface GalleryItem { id: string; url: string; caption: string; is_hero: boolean; show_on_main: boolean; show_on_minisite: boolean; approval_status: string; uploadedAt: string; }
+interface GalleryItem { id: string; url: string; caption: string; slide_data?: { title?: string; cta_label?: string; cta_url?: string; show_overlay?: boolean } | null; is_hero: boolean; show_on_main: boolean; show_on_minisite: boolean; approval_status: string; uploadedAt: string; }
 interface BlogPost { id: string; title: string; excerpt: string; status: string; show_on_main: boolean; show_on_minisite: boolean; created_at: string; published_at: string | null; }
 
 export default function VendorStudio() {
@@ -169,7 +169,12 @@ export default function VendorStudio() {
   async function loadGallery(sectionId: string) {
     setGalleryLoading(true);
     try {
-      const res = await fetch(`/api/vendor/gallery?section=${sectionId}`);
+      // When viewing the Gallery section, load ALL images (central hub view)
+      // For other sections, filter to that section only
+      const url = sectionId === 'gallery'
+        ? '/api/vendor/gallery'
+        : `/api/vendor/gallery?section=${sectionId}`;
+      const res = await fetch(url);
       const data = await res.json();
       setGallery(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -314,6 +319,12 @@ export default function VendorStudio() {
   const { coreSections, commonSections, uniqueSections } = useMemo(() => {
     const core: Section[] = [], common: Section[] = [], unique: Section[] = [];
     sections.forEach(s => {
+      // Check tier allowed sections
+      const isAllowed = !tierFeatures.allowedSections || (Array.isArray(tierFeatures.allowedSections) && tierFeatures.allowedSections.includes(s.id));
+      // Check admin hidden override
+      const isAdminHidden = sectionControls[s.id]?.admin_hidden === true || sectionControls[s.id]?.admin_hidden === 1;
+      if (!isAllowed || isAdminHidden) return; // skip if blocked
+
       if (s.id === 'basic') core.push(s);
       else {
         const hasUnique = s.fields.some(f => f.business_type_id === typology.child?.id);
@@ -321,7 +332,7 @@ export default function VendorStudio() {
       }
     });
     return { coreSections: core, commonSections: common, uniqueSections: unique };
-  }, [sections, typology]);
+  }, [sections, typology, tierFeatures, sectionControls]);
 
   useEffect(() => {
     const list = activeTab === 'core' ? coreSections : activeTab === 'common' ? commonSections : uniqueSections;
@@ -389,11 +400,20 @@ export default function VendorStudio() {
         <div style={{ padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ width: 40, height: 40, borderRadius: '12px', background: `${accentColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentColor }}>
-              <i className="fas fa-sun" style={{ fontSize: '1.2rem' }}></i>
+              <i className={`fas ${typology.child?.icon || 'fa-sun'}`} style={{ fontSize: '1.2rem' }}></i>
             </div>
             <div>
-              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>Siwa Oasis Studio</div>
-              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '1px' }}>Vendor Engine</div>
+              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {business?.name || 'Siwa Oasis Studio'}
+                {typology.child && (
+                  <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.6rem', borderRadius: '20px', background: `${accentColor}20`, color: accentColor, fontWeight: 800 }}>
+                    {typology.child.name}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.5px' }}>
+                {typology.parent ? `Industry: ${typology.parent.name}` : 'Vendor Studio Engine'}
+              </div>
             </div>
           </div>
 
@@ -603,7 +623,7 @@ export default function VendorStudio() {
             {/* Premium Section Canvas Card */}
             <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
 
-              {sectionControls[activeTab]?.admin_disabled ? (
+              {sectionControls[activeSection || '']?.admin_disabled ? (
                 <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
                   <div style={{ width: 64, height: 64, borderRadius: '16px', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1.5rem' }}>
                     <i className="fas fa-ban"></i>
@@ -689,6 +709,23 @@ export default function VendorStudio() {
                     </div>
                   </div>
 
+                  {/* Central Hub Banner — only shown on the Gallery section */}
+                  {activeSection === 'gallery' && (
+                    <div style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)', border: '1px solid #c7d2fe', borderRadius: '14px', padding: '1.1rem 1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                      <div style={{ flexShrink: 0, width: 38, height: 38, background: '#6366f1', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.1rem' }}>
+                        <i className="fas fa-photo-film" />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#4338ca', marginBottom: '0.2rem' }}>
+                          Central Media Hub — All Your Photos &amp; Videos in One Place
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6366f1', lineHeight: 1.5 }}>
+                          Upload once, then use the <strong>SEND TO SECTION</strong> dropdown on each image to distribute it to any section (Vibe, Experiences, Offers, etc.). Set the <strong>Placement Mode</strong> to control whether it appears in the section's <em>Carousel</em>, <em>Page Body</em>, or <em>Both</em>.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {galleryLoading && (
                     <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
                       <i className="fas fa-spinner fa-spin fa-2x"></i>
@@ -718,6 +755,13 @@ export default function VendorStudio() {
                               <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(16,185,129,0.9)', color: '#fff', fontSize: '0.6rem', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px' }}>✓ APPROVED</div>
                             )}
                             <button onClick={() => deleteImage(img.id)} style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(239,68,68,0.85)', color: '#fff', border: 'none', borderRadius: '8px', width: 28, height: 28, cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>✕</button>
+                            {/* Section assignment badge — Central Hub view only */}
+                            {activeSection === 'gallery' && (img as any).section_id && (img as any).section_id !== 'gallery' && (
+                              <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(99,102,241,0.92)', color: '#fff', fontSize: '0.58rem', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <i className="fas fa-share-nodes" style={{ fontSize: '0.55rem' }} />
+                                {sections.find(s => s.id === (img as any).section_id)?.name || (img as any).section_id}
+                              </div>
+                            )}
                           </div>
 
                           {/* Controls & Edit fields */}
@@ -733,6 +777,50 @@ export default function VendorStudio() {
                               placeholder="Image description..."
                               style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.8rem', color: '#1e293b', background: '#f8fafc', boxSizing: 'border-box', outline: 'none' }}
                             />
+
+                            <div style={{ marginTop: '0.75rem' }}>
+                              <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.25rem' }}>Placement Mode</label>
+                              <select
+                                value={(img as any).placement || 'both'}
+                                onChange={e => {
+                                  const newPlacement = e.target.value;
+                                  setGallery(prev => prev.map(i => i.id === img.id ? { ...i, placement: newPlacement } : i));
+                                  updateImage(img.id, { placement: newPlacement } as any);
+                                }}
+                                style={{ width: '100%', padding: '0.4rem 0.5rem', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.75rem', color: '#475569', background: '#f8fafc', outline: 'none' }}
+                              >
+                                <option value="both">Both (Carousel & Page Body)</option>
+                                <option value="carousel">Carousel Only</option>
+                                <option value="body">Page Body Only</option>
+                                <option value="admin_only">Admin Only (Hide on Minisite)</option>
+                              </select>
+                            </div>
+
+                            {/* ── Send to Section (Central Gallery Hub) ── */}
+                            {activeSection === 'gallery' && (
+                              <div style={{ marginTop: '0.75rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#6366f1', marginBottom: '0.25rem', letterSpacing: '0.5px' }}>
+                                  <i className="fas fa-share-nodes" style={{ marginRight: '0.35rem' }} />
+                                  SEND TO SECTION
+                                </label>
+                                <select
+                                  value={(img as any).section_id || 'gallery'}
+                                  onChange={e => {
+                                    const newSectionId = e.target.value;
+                                    setGallery(prev => prev.map(i => i.id === img.id ? { ...i, section_id: newSectionId } : i));
+                                    updateImage(img.id, { section_id: newSectionId } as any);
+                                  }}
+                                  style={{ width: '100%', padding: '0.4rem 0.5rem', border: '1px solid #c7d2fe', borderRadius: '8px', fontSize: '0.75rem', color: '#4338ca', background: '#eef2ff', outline: 'none', fontWeight: 700 }}
+                                >
+                                  {sections.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                  ))}
+                                </select>
+                                <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.3rem', lineHeight: 1.4 }}>
+                                  Image will appear in the chosen section using the Placement Mode above.
+                                </div>
+                              </div>
+                            )}
 
                             {/* Visibility Toggles */}
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'space-between' }}>
@@ -756,6 +844,86 @@ export default function VendorStudio() {
                                 Mini Site
                               </label>
                             </div>
+
+                            {/* ── Slide Overlay Editor ───────────────── */}
+                            {(() => {
+                              const sd = (img as any).slide_data
+                                ? (typeof (img as any).slide_data === 'string'
+                                    ? JSON.parse((img as any).slide_data)
+                                    : (img as any).slide_data)
+                                : {};
+                              const showOverlay = sd.show_overlay !== false;
+
+                              const saveSlideData = (patch: Record<string, any>) => {
+                                const next = { ...sd, ...patch };
+                                setGallery(prev => prev.map(i => i.id === img.id ? { ...i, slide_data: next } : i));
+                                updateImage(img.id, { slide_data: next } as any);
+                              };
+
+                              return (
+                                <div style={{ marginTop: '0.85rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                                  {/* Header row */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showOverlay ? '0.75rem' : 0 }}>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', letterSpacing: '0.5px' }}>
+                                      <i className="fas fa-layer-group" style={{ marginRight: '0.3rem' }} />
+                                      SLIDE OVERLAY
+                                    </span>
+                                    {/* Show / Hide toggle */}
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.7rem', color: showOverlay ? '#f59e0b' : '#94a3b8', fontWeight: 700 }}>
+                                      <button
+                                        onClick={() => saveSlideData({ show_overlay: !showOverlay })}
+                                        style={{ ...toggleStyle(showOverlay), background: showOverlay ? '#f59e0b' : '#e2e8f0' } as any}
+                                      >
+                                        <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: showOverlay ? 16 : 2, transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                                      </button>
+                                      {showOverlay ? 'Visible' : 'Hidden'}
+                                    </label>
+                                  </div>
+
+                                  {showOverlay && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                      {/* Title */}
+                                      <div>
+                                        <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.2rem' }}>SLIDE TITLE</label>
+                                        <input
+                                          type="text"
+                                          defaultValue={sd.title || ''}
+                                          onBlur={e => saveSlideData({ title: e.target.value })}
+                                          placeholder="e.g. Desert Sunset Safari"
+                                          style={{ width: '100%', padding: '0.45rem 0.65rem', border: '1px solid #fcd34d', borderRadius: '7px', fontSize: '0.78rem', color: '#1e293b', background: '#fffbeb', boxSizing: 'border-box', outline: 'none', fontWeight: 600 }}
+                                        />
+                                      </div>
+                                      {/* CTA Label */}
+                                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                                        <div>
+                                          <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.2rem' }}>BUTTON LABEL</label>
+                                          <input
+                                            type="text"
+                                            defaultValue={sd.cta_label || ''}
+                                            onBlur={e => saveSlideData({ cta_label: e.target.value })}
+                                            placeholder="e.g. Book Now"
+                                            style={{ width: '100%', padding: '0.4rem 0.5rem', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.75rem', color: '#1e293b', background: '#f8fafc', boxSizing: 'border-box', outline: 'none' }}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.2rem' }}>BUTTON URL</label>
+                                          <input
+                                            type="url"
+                                            defaultValue={sd.cta_url || ''}
+                                            onBlur={e => saveSlideData({ cta_url: e.target.value })}
+                                            placeholder="https://..."
+                                            style={{ width: '100%', padding: '0.4rem 0.5rem', border: '1px solid #e2e8f0', borderRadius: '7px', fontSize: '0.75rem', color: '#1e293b', background: '#f8fafc', boxSizing: 'border-box', outline: 'none' }}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div style={{ fontSize: '0.58rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                                        Caption field above = subtitle text on slide. Title + Button are optional.
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       ))}

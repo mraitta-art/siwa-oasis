@@ -15,9 +15,9 @@ async function getRegistrationMode(): Promise<string> {
   const row = (await queryOne(
     `SELECT config FROM website_configs WHERE type = 'admin_settings' LIMIT 1`
   )) as any;
-  if (!row) return 'open';
+  if (!row) return 'approval_required';
   const cfg = typeof row.config === 'string' ? JSON.parse(row.config) : row.config;
-  return cfg?.vendor_registration_mode || 'open';
+  return cfg?.vendor_registration_mode || 'approval_required';
 }
 
 export async function GET(req: NextRequest) {
@@ -33,13 +33,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ mode });
     }
 
-    // Return vendors filtered by approval_status
     const approvalStatus = status || 'pending';
     const vendors = await query(
-      `SELECT p.id, p.display_name, p.email, p.approval_status, p.rejection_reason,
+      `SELECT p.id, p.id as userId, p.display_name, p.email, p.phone, p.approval_status, p.rejection_reason,
               p.active, p.created_at,
               b.name as business_name, b.slug as business_slug,
-              bt.name as category_name, bt.icon as category_icon
+              bt.name as category_name, bt.name as category, bt.icon as category_icon
        FROM profiles p
        LEFT JOIN businesses b  ON p.business_id = b.id
        LEFT JOIN business_types bt ON b.type_id = bt.id

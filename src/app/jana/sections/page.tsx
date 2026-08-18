@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
+import TagInput from '@/components/TagInput';
 
 /* ─── Types ────────────────────────────────────────────────────────── */
 interface BusinessType {
@@ -21,6 +22,7 @@ interface Field {
   id: string; name: string; label: string; field_type: string;
   section_id: string; business_type_id: string;
   required: boolean; vendor_editable: boolean; show_on_public: boolean;
+  version_type?: 'initial' | 'latest';
   options?: any; help_text?: string; sort_order: number;
 }
 
@@ -80,6 +82,7 @@ const BLANK_FIELD = (sectionId: string, typeId?: string): Partial<Field> => ({
   label: '', name: `field_${Date.now()}`,
   field_type: 'text', sort_order: 99,
   required: false, vendor_editable: true, show_on_public: true,
+  version_type: 'latest',
 });
 
 /* ─── Component ─────────────────────────────────────────────────────── */
@@ -100,6 +103,7 @@ export default function UnifiedSectionArchitect() {
   const [editSection, setEditSection]   = useState<Partial<Section>>(BLANK_SECTION());
   const [editField,   setEditField]     = useState<Partial<Field> | null>(null);
   const [saving,      setSaving]        = useState(false);
+  const [versionSaveMode, setVersionSaveMode] = useState<'initial'|'latest'>('latest');
   const [deletingId,  setDeletingId]    = useState<string|null>(null);
   const [collapsedPanels, setCollapsedPanels] = useState({ left: false, center: false, right: false });
 
@@ -673,6 +677,7 @@ export default function UnifiedSectionArchitect() {
                               </span>
                               {f.required && <span style={{ fontSize: '0.55rem', padding: '3px 8px', background: '#fee2e2', color: '#ef4444', borderRadius: '6px', fontWeight: 900 }}>REQUIRED</span>}
                               {!f.vendor_editable && <span style={{ fontSize: '0.55rem', padding: '3px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '6px', fontWeight: 900 }}>ADMIN ONLY</span>}
+                            {f.version_type && <span style={{ fontSize: '0.55rem', padding: '3px 8px', background: f.version_type === 'initial' ? '#eef2ff' : '#ecfdf5', color: f.version_type === 'initial' ? '#3730a3' : '#166534', borderRadius: '6px', fontWeight: 900 }}>{f.version_type.toUpperCase()}</span>}
                             </div>
                             <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '4px', fontWeight: 700 }}>
                               <code style={{ background: '#f8fafc', padding: '1px 6px', borderRadius: '4px' }}>{f.name}</code>
@@ -730,6 +735,17 @@ export default function UnifiedSectionArchitect() {
                         <input style={{ ...css.input(), opacity: editField.id ? 0.5 : 1 }} value={editField.name || ''} onChange={e => setEditField(f => ({ ...f!, name: e.target.value }))} disabled={!!editField.id} placeholder="e.g. num_rooms" />
                       </div>
 
+                      <div>
+                        <label style={css.label()}>Save Version</label>
+                        <select
+                          value={editField.version_type || 'latest'}
+                          onChange={e => setEditField(f => ({ ...f!, version_type: e.target.value as 'initial' | 'latest' }))}
+                          style={css.input()}
+                        >
+                          <option value="latest">Latest Update</option>
+                          <option value="initial">Initial Default</option>
+                        </select>
+                      </div>
 
                       <div>
                         <label style={css.label()}>Field Type</label>
@@ -753,12 +769,12 @@ export default function UnifiedSectionArchitect() {
 
                       {['select', 'multiselect', 'checkbox_group'].includes(editField.field_type || '') && (
                         <div>
-                          <label style={css.label()}>Options (comma-separated)</label>
-                          <textarea
-                            style={{ ...css.input(), minHeight: '72px', resize: 'vertical', fontFamily: 'inherit' }}
-                            value={Array.isArray(editField.options) ? editField.options.join(', ') : editField.options || ''}
-                            onChange={e => setEditField(f => ({ ...f!, options: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }))}
-                            placeholder="Option A, Option B, Option C"
+                          <label style={css.label()}>Options</label>
+                          <TagInput
+                            value={Array.isArray(editField.options) ? editField.options : []}
+                            onChange={options => setEditField(f => ({ ...f!, options }))}
+                            placeholder="Add an option and press Enter"
+                            label="Options"
                           />
                         </div>
                       )}

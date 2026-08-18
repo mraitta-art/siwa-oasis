@@ -121,6 +121,11 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // Fetch profile fields for verification status
+    const profileRes = (await query('SELECT verification_status, trust_rejection_note FROM profiles WHERE id = ?', [user.id])) as any[];
+    const verificationStatus = profileRes.length > 0 ? profileRes[0].verification_status : 'unverified';
+    const trustRejectionNote = profileRes.length > 0 ? profileRes[0].trust_rejection_note : null;
+
     return NextResponse.json({
       business: {
         id: biz.id,
@@ -131,8 +136,12 @@ export async function GET(req: NextRequest) {
         status: biz.status,
         published: biz.published,
         is_published: !!(biz.published === 1 || biz.published === true || biz.status === 'active'),
-        tier: biz.subscription_tier
+        tier: biz.subscription_tier,
+        is_trusted: biz.is_trusted === 1,
+        minisite_visible_until: biz.minisite_visible_until
       },
+      verificationStatus,
+      trustRejectionNote,
       // ── TYPOLOGY IDENTITY ─────────────────────────────────
       typology: {
         child: childType  ? { id: childType.id,  name: childType.name,  icon: childType.icon,  color: childType.icon_color  } : null,

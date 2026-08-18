@@ -20,11 +20,19 @@ export default function ServicesManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Service | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Load services
   useEffect(() => {
     fetchServices();
   }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), 5000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const fetchServices = async () => {
     try {
@@ -32,14 +40,21 @@ export default function ServicesManager() {
       if (res.ok) {
         const data = await res.json();
         setServices(data);
+      } else {
+        const error = await res.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to load services' });
       }
     } catch (error) {
       console.error('Failed to load services:', error);
+      setMessage({ type: 'error', text: 'Failed to load services. Check your connection.' });
     }
     setLoading(false);
   };
 
   const handleSave = async (service: Service) => {
+    setSaving(true);
+    setMessage(null);
+
     try {
       const res = await fetch('/api/jana/services', {
         method: 'POST',
@@ -48,48 +63,78 @@ export default function ServicesManager() {
       });
 
       if (res.ok) {
-        fetchServices();
+        setMessage({ type: 'success', text: 'Service saved successfully.' });
+        await fetchServices();
         setEditing(null);
         setShowForm(false);
+      } else {
+        const error = await res.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to save service.' });
       }
     } catch (error) {
       console.error('Failed to save service:', error);
+      setMessage({ type: 'error', text: 'Failed to save service. Please try again.' });
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleToggleVisibility = async (id: string, currentVisibility: boolean) => {
     try {
-      await fetch('/api/jana/services', {
+      const res = await fetch('/api/jana/services', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, is_visible: !currentVisibility }),
       });
+
+      if (!res.ok) {
+        const error = await res.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to toggle visibility.' });
+      } else {
+        setMessage({ type: 'success', text: 'Visibility updated successfully.' });
+      }
       fetchServices();
     } catch (error) {
       console.error('Failed to toggle visibility:', error);
+      setMessage({ type: 'error', text: 'Failed to toggle visibility.' });
     }
   };
 
   const handleReorder = async (id: string, newOrder: number) => {
     try {
-      await fetch('/api/jana/services', {
+      const res = await fetch('/api/jana/services', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, display_order: newOrder }),
       });
+
+      if (!res.ok) {
+        const error = await res.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to reorder service.' });
+      } else {
+        setMessage({ type: 'success', text: 'Service order updated.' });
+      }
       fetchServices();
     } catch (error) {
       console.error('Failed to reorder:', error);
+      setMessage({ type: 'error', text: 'Failed to reorder service.' });
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this service?')) return;
     try {
-      await fetch(`/api/jana/services?id=${id}`, { method: 'DELETE' });
-      fetchServices();
+      const res = await fetch(`/api/jana/services?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const error = await res.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to delete service.' });
+      } else {
+        setMessage({ type: 'success', text: 'Service deleted successfully.' });
+        fetchServices();
+      }
     } catch (error) {
       console.error('Failed to delete:', error);
+      setMessage({ type: 'error', text: 'Failed to delete service.' });
     }
   };
 
@@ -103,6 +148,22 @@ export default function ServicesManager() {
           <h1 style={{ margin: 0, fontSize: '2rem', color: '#D4AF37' }}>Services Manager</h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0.5rem 0 0 0' }}>Manage homepage service pillars</p>
         </div>
+      </div>
+      {message && (
+        <div
+          style={{
+            maxWidth: '1400px',
+            margin: '0 auto 1rem',
+            padding: '1rem 1.5rem',
+            borderRadius: '10px',
+            background: message.type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)',
+            color: message.type === 'success' ? '#10b981' : '#f87171',
+            border: message.type === 'success' ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(239,68,68,0.25)',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
             onClick={() => { setEditing(null); setShowForm(!showForm); }}
@@ -122,7 +183,6 @@ export default function ServicesManager() {
             Back to Website Builder
           </Link>
         </div>
-      </div>
 
       {/* New/Edit Form */}
       {showForm && (
@@ -207,9 +267,31 @@ interface ServiceFormProps {
 function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
   const [form, setForm] = useState(service);
 
+  useEffect(() => {
+    setForm(service);
+  }, [service]);
+
   const handleChange = (field: keyof Service, value: any) => {
     setForm({ ...form, [field]: value });
   };
+
+  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        handleChange('image_url', reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const canSave = Boolean(form.id && form.name && form.icon);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto 2rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '2rem' }}>
@@ -271,16 +353,30 @@ function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
           />
         </div>
 
-        {/* Image URL */}
+        {/* Image URL / Upload */}
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)' }}>Image URL</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)' }}>Image URL or upload</label>
           <input
             type="text"
             value={form.image_url}
             onChange={(e) => handleChange('image_url', e.target.value)}
+            placeholder="Paste an image URL or use the upload field"
             style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: '#fff' }}
           />
-          {form.image_url && <img src={form.image_url} alt="preview" style={{ marginTop: '1rem', maxWidth: '200px', borderRadius: '4px' }} />}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageFileChange}
+            style={{ width: '100%', marginTop: '0.75rem', color: '#fff' }}
+          />
+          {form.image_url && (
+            <img
+              src={form.image_url}
+              alt="preview"
+              style={{ marginTop: '1rem', maxWidth: '200px', borderRadius: '4px', objectFit: 'cover' }}
+            />
+          )}
         </div>
 
         {/* Search Link */}
@@ -296,10 +392,20 @@ function ServiceForm({ service, onSave, onCancel }: ServiceFormProps) {
       </div>
 
       {/* Buttons */}
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', alignItems: 'center' }}>
         <button
           onClick={() => onSave(form)}
-          style={{ padding: '0.75rem 1.5rem', background: '#D4AF37', color: '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+          disabled={!canSave}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: canSave ? '#D4AF37' : 'rgba(212,175,55,0.4)',
+            color: '#000',
+            border: 'none',
+            borderRadius: '4px',
+            fontWeight: 'bold',
+            cursor: canSave ? 'pointer' : 'not-allowed',
+            opacity: canSave ? 1 : 0.7,
+          }}
         >
           💾 Save Service
         </button>

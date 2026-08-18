@@ -10,6 +10,7 @@ interface Vendor {
   userId: string;
   display_name: string;
   email: string;
+  phone?: string;
   business_name: string;
   category: string;
   created_at: string;
@@ -57,7 +58,7 @@ export default function VendorApprovalsPage() {
       const res = await fetch(`/api/jana/vendor-approvals?status=${activeTab}`);
       if (res.ok) {
         const data = await res.json();
-        setVendors(data.vendors || []);
+        setVendors(Array.isArray(data) ? data : data.vendors || []);
       } else {
         setVendors([]);
       }
@@ -521,6 +522,12 @@ export default function VendorApprovalsPage() {
                   <i className="fas fa-envelope"></i>
                   <span>{vendor.email}</span>
                 </div>
+                {vendor.phone && (
+                  <div className="detail-row">
+                    <i className="fas fa-phone"></i>
+                    <span>{vendor.phone}</span>
+                  </div>
+                )}
                 <div className="detail-row">
                   <i className="fas fa-tag"></i>
                   <span>{vendor.category}</span>

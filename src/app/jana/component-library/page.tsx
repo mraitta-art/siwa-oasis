@@ -40,6 +40,7 @@ export default function ComponentLibrary() {
   const [loading, setLoading] = useState(true);
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
+  const [editingConfigText, setEditingConfigText] = useState('');
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterType, setFilterType] = useState('all');
@@ -57,7 +58,7 @@ export default function ComponentLibrary() {
   };
 
   const getComponentConfig = (component: Component) => {
-    const raw = (component as any).component_config;
+    const raw = (component as any).config;
     if (typeof raw === 'string') {
       try { return JSON.parse(raw); } catch { return {}; }
     }
@@ -69,10 +70,10 @@ export default function ComponentLibrary() {
     const nextConfig = { ...currentConfig, minisite_access: !Boolean(currentConfig.minisite_access) };
 
     try {
-      const res = await fetch('/api/jana/site-components', {
+      const res = await fetch(`/api/jana/component-library/${component.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: component.id, component_config: nextConfig })
+        body: JSON.stringify({ config: nextConfig })
       });
 
       if (res.ok) {
@@ -89,7 +90,7 @@ export default function ComponentLibrary() {
 
   const fetchComponents = async () => {
     try {
-      const res = await fetch('/api/jana/site-components');
+      const res = await fetch('/api/jana/component-library');
       const data = await res.json();
 
       if (!res.ok) {
@@ -107,10 +108,10 @@ export default function ComponentLibrary() {
 
   const toggleActive = async (id: string, active: boolean) => {
     try {
-      const res = await fetch('/api/jana/site-components', {
+      const res = await fetch(`/api/jana/component-library/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, enabled: active })
+        body: JSON.stringify({ is_active: active })
       });
 
       if (res.ok) {
@@ -129,7 +130,7 @@ export default function ComponentLibrary() {
     if (!confirm('Delete this component?')) return;
 
     try {
-      const res = await fetch(`/api/jana/site-components?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/jana/component-library/${id}`, { method: 'DELETE' });
       if (res.ok) {
         showToast('Component deleted', 'success');
         fetchComponents();
@@ -151,16 +152,19 @@ export default function ComponentLibrary() {
   const openConfigEditor = async (component: Component) => {
     setSelectedComponent(component);
     try {
-      const res = await fetch(`/api/jana/site-components/config/${component.id}`);
+      const res = await fetch(`/api/jana/component-library/${component.id}`);
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to load config');
+        throw new Error(data?.error || 'Failed to load component');
       }
 
-      setEditingConfig(data.currentConfig || {});
+      const currentConfig = (data?.config && typeof data.config === 'string') ? JSON.parse(data.config) : data?.config || {};
+      setEditingConfig(currentConfig);
+      setEditingConfigText(JSON.stringify(currentConfig, null, 2));
     } catch (error: any) {
       setEditingConfig({});
+      setEditingConfigText('{}');
       showToast(error?.message || 'Failed to load config', 'error');
     }
     setShowConfigModal(true);
@@ -169,11 +173,19 @@ export default function ComponentLibrary() {
   const saveConfig = async () => {
     if (!selectedComponent) return;
 
+    let parsedConfig: Record<string, any> = {};
     try {
-      const res = await fetch(`/api/jana/site-components/config/${selectedComponent.id}`, {
+      parsedConfig = editingConfigText ? JSON.parse(editingConfigText) : {};
+    } catch (error: any) {
+      showToast('Invalid JSON configuration', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/jana/component-library/${selectedComponent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ component_config: editingConfig })
+        body: JSON.stringify({ config: parsedConfig })
       });
 
       if (res.ok) {
@@ -181,7 +193,8 @@ export default function ComponentLibrary() {
         setShowConfigModal(false);
         fetchComponents();
       } else {
-        showToast('Failed to save config', 'error');
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Failed to save config', 'error');
       }
     } catch (error) {
       showToast('Error saving config', 'error');
@@ -190,18 +203,24 @@ export default function ComponentLibrary() {
 
   const resetConfig = async () => {
     if (!selectedComponent) return;
-    if (!confirm('Reset to default configuration?')) return;
+    if (!confirm('Reset configuration to an empty object?')) return;
 
     try {
-      const res = await fetch(`/api/jana/site-components/config/${selectedComponent.id}`, {
-        method: 'DELETE'
+      const res = await fetch(`/api/jana/component-library/${selectedComponent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: {} })
       });
 
       if (res.ok) {
         showToast('✅ Configuration reset', 'success');
         setEditingConfig({});
+        setEditingConfigText('{}');
         setShowConfigModal(false);
         fetchComponents();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Failed to reset config', 'error');
       }
     } catch (error) {
       showToast('Error resetting config', 'error');
@@ -892,6 +911,50 @@ export default function ComponentLibrary() {
                   <button type="submit" style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)', color: '#0f172a', border: 'none', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }}>Create Component</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {showConfigModal && selectedComponent && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: '#fff', width: '100%', maxWidth: '720px', borderRadius: '18px', padding: '1.75rem', boxShadow: '0 24px 60px rgba(15,23,42,0.35)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Edit Component Config</h2>
+                  <p style={{ margin: '0.5rem 0 0 0', color: '#475569', fontSize: '0.95rem' }}>{selectedComponent.name}</p>
+                </div>
+                <button onClick={() => setShowConfigModal(false)} style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+              </div>
+              <textarea
+                value={editingConfigText}
+                onChange={(e) => setEditingConfigText(e.target.value)}
+                style={{ width: '100%', minHeight: '320px', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: '0.95rem', color: '#0f172a', resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={resetConfig}
+                  style={{ padding: '0.9rem 1.25rem', background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Reset To Blank
+                </button>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfigModal(false)}
+                    style={{ padding: '0.9rem 1.25rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveConfig}
+                    style={{ padding: '0.9rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    Save Config
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

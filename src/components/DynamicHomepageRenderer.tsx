@@ -235,16 +235,6 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
         </AnimatedSection>
       );
 
-    // ─── SERVICES HUB ─────────────────────────────────────
-    case 'services_hub':
-      return (
-        <AnimatedSection>
-          <section>
-            <ServicesHub title={props?.title} subtitle={props?.subtitle} />
-          </section>
-        </AnimatedSection>
-      );
-
     // ─── UNKNOWN ──────────────────────────────────────────
     default:
       if (process.env.NODE_ENV === 'development') {
@@ -262,8 +252,34 @@ const SectionRenderer = ({ type, props, siteSettings }: SectionProps) => {
   }
 };
 
+function logDuplicateSectionIds(layout: any[]) {
+  if (process.env.NODE_ENV !== 'development') return;
+  const idCounts = new Map<string, number>();
+
+  layout.forEach((section) => {
+    if (!section || typeof section !== 'object') return;
+    const id = section.id;
+    if (typeof id === 'string' && id.trim().length > 0) {
+      idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
+    }
+  });
+
+  const duplicates = Array.from(idCounts.entries()).filter(([, count]) => count > 1);
+  if (duplicates.length > 0) {
+    console.warn(
+      'Duplicate homepage builder section ids detected. This can cause React key collisions or unexpected renderer behavior.',
+      duplicates.map(([id, count]) => `${id} (${count})`).join(', '),
+      layout
+    );
+  }
+}
+
 // ── Main renderer ─────────────────────────────────────────────────────────────
 export default function DynamicHomepageRenderer({ layout, settings }: { layout: any[], settings: any }) {
+  React.useEffect(() => {
+    logDuplicateSectionIds(layout);
+  }, [layout]);
+
   return (
     <div style={{ background: 'var(--bg)' }}>
       {layout.map((section, idx) => {
@@ -271,7 +287,7 @@ export default function DynamicHomepageRenderer({ layout, settings }: { layout: 
         try {
           return (
             <SectionRenderer 
-              key={section.id || idx}
+              key={`${section.id ?? section.type ?? 'section'}-${idx}`}
               type={section.type ?? ''} 
               props={section.props} 
               siteSettings={settings} 

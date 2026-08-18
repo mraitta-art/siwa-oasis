@@ -16,11 +16,13 @@ export async function GET(request: Request) {
         g.id,
         g.url,
         g.caption,
+        g.slide_data,
         g.is_hero,
         g.section_id,
         s.name as section_name,
         g.show_on_main,
         g.show_on_minisite,
+        g.placement,
         g.approval_status,
         g.created_at as uploadedAt
       FROM vendor_gallery g

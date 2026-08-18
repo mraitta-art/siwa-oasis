@@ -26,6 +26,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Investment Ops', icon: '💵', href: '/admin/investment-opportunities', badge: '6', badgeColor: '#f59e0b' },
       { label: 'Field Requests', icon: '💡', href: '/admin/field-requests' },
       { label: 'Submissions', icon: '📥', href: '/admin/submissions' },
+      { label: 'Verification', icon: '🛡️', href: '/admin/verification', badge: 'NEW', badgeColor: '#fbbf24' },
     ],
   },
   {

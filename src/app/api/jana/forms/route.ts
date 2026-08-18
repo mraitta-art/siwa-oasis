@@ -116,7 +116,8 @@ export async function GET(request: NextRequest) {
                 validation: {},
                 acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
                 sort_order: f.sort_order,
-                section_origin: 'template'
+                section_origin: 'template',
+                version_type: 'latest'
               });
             });
 
@@ -223,12 +224,16 @@ export async function GET(request: NextRequest) {
       
       // 3. Process and deduplicate
       const fieldMap = new Map();
+      const explicitFieldNames = new Set<string>();
       
       // A. Add explicit fields from DB
       for (const f of allFields) {
-        const key = `${f.section_id}:${f.name}`;
+        const versionType = f.version_type || 'latest';
+        const key = `${f.section_id}:${f.name}:${versionType}`;
+        explicitFieldNames.add(`${f.section_id}:${f.name}`);
         fieldMap.set(key, {
           ...f,
+          version_type: versionType,
           options: (() => { try { return typeof f.options === 'string' ? JSON.parse(f.options) : f.options; } catch(e) { return f.options; } })(),
           validation: (() => { try { return typeof f.validation === 'string' ? JSON.parse(f.validation) : f.validation; } catch(e) { return f.validation; } })(),
           acl: (() => { try { return typeof f.acl === 'string' ? JSON.parse(f.acl) : f.acl; } catch(e) { return f.acl; } })(),
@@ -237,9 +242,10 @@ export async function GET(request: NextRequest) {
       }
 
       // B. AUTO-INJECT Structural Defaults (Mini-Blog & Gallery) only if NOT already in DB
+      const hasExplicitField = (sid: string, name: string) => explicitFieldNames.has(`${sid}:${name}`);
       sectionIdsArray.forEach(sid => {
         const blogKey = `${sid}:section_blog`;
-        if (!fieldMap.has(blogKey)) {
+        if (!hasExplicitField(sid, 'section_blog')) {
           fieldMap.set(blogKey, {
             id: `auto-blog-${sid}`,
             section_id: sid,
@@ -247,7 +253,7 @@ export async function GET(request: NextRequest) {
             label: 'Master Section Story (Rich Text)',
             field_type: 'rich_text',
             required_feature: 'hero_automation',
-            sort_order: 1, 
+            sort_order: 1,
             help_text: 'Use this advanced editor to design the full story for this section on the page.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
@@ -255,15 +261,15 @@ export async function GET(request: NextRequest) {
         }
 
         const newsKey = `${sid}:section_news`;
-        if (!fieldMap.has(newsKey)) {
+        if (!hasExplicitField(sid, 'section_news')) {
           fieldMap.set(newsKey, {
             id: `auto-news-${sid}`,
             section_id: sid,
             name: 'section_news',
             label: 'Carousel Cinematic Teaser (Mini-Blog)',
             field_type: 'textarea',
-            required_feature: 'hero_automation', 
-            sort_order: -2, 
+            required_feature: 'hero_automation',
+            sort_order: -2,
             help_text: 'This short text will appear as captions on the automated hero.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
@@ -271,15 +277,15 @@ export async function GET(request: NextRequest) {
         }
 
         const galleryKey = `${sid}:section_gallery`;
-        if (!fieldMap.has(galleryKey)) {
+        if (!hasExplicitField(sid, 'section_gallery')) {
           fieldMap.set(galleryKey, {
             id: `auto-gallery-${sid}`,
             section_id: sid,
             name: 'section_gallery',
             label: 'Section Gallery (Serialized Captions)',
             field_type: 'gallery',
-            required_feature: 'hero_automation', 
-            sort_order: -1, 
+            required_feature: 'hero_automation',
+            sort_order: -1,
             help_text: 'Add photos. Each photo caption becomes a slide title in the automated carousel.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
@@ -287,7 +293,7 @@ export async function GET(request: NextRequest) {
         }
 
         const promoteKey = `${sid}:feature_on_main`;
-        if (!fieldMap.has(promoteKey)) {
+        if (!hasExplicitField(sid, 'feature_on_main')) {
           fieldMap.set(promoteKey, {
             id: `auto-promote-${sid}`,
             section_id: sid,
@@ -295,7 +301,7 @@ export async function GET(request: NextRequest) {
             label: 'FEATURE ON MAIN WEBSITE',
             field_type: 'checkbox',
             required_feature: 'hero_automation',
-            sort_order: -3, 
+            sort_order: -3,
             help_text: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
@@ -318,8 +324,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { business_type_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature } = body;
+    const { business_type_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, version_type } = body;
     const section_id = body.section_id || 'basic';
+    const finalVersionType = version_type === 'initial' ? 'initial' : 'latest';
 
     if (!business_type_id || !name || !label || !field_type) {
       return NextResponse.json({ error: 'Missing required fields: business_type_id, name, label, field_type' }, { status: 400 });
@@ -355,14 +362,14 @@ export async function POST(request: NextRequest) {
 
     try {
       await execute(
-        `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin, version_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id, business_type_id, section_id, name, label, field_type,
           required ? 1 : 0, vendor_editable ?? 1, searchable ? 1 : 0, help_text || null,
           finalOptions, finalValidation, finalAcl,
           default_value || null, finalSortOrder, required_feature || null,
-          body.section_origin || 'own'
+          body.section_origin || 'own', finalVersionType
         ]
       );
       console.log('[FORMS POST] Field created successfully');
@@ -382,8 +389,60 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, label, required, vendor_editable, searchable, help_text, sort_order, options, section_id, is_hidden, acl, validation, field_type, required_feature } = body;
+    const { id, label, required, vendor_editable, searchable, help_text, sort_order, options, section_id, is_hidden, acl, validation, field_type, required_feature, version_type } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    const currentField = await queryOne('SELECT * FROM form_fields WHERE id = ?', [id]) as any;
+    const targetVersionType = version_type === 'initial' ? 'initial' : 'latest';
+    const currentFieldVersionType = currentField?.version_type || 'latest';
+
+    // If we're saving to a different version than the current record, keep the current record intact
+    // and create/update the sibling version record instead.
+    if (currentField && currentFieldVersionType !== targetVersionType) {
+      const existingSibling = await queryOne(
+        'SELECT * FROM form_fields WHERE business_type_id = ? AND section_id = ? AND name = ? AND version_type = ?',
+        [currentField.business_type_id, currentField.section_id, currentField.name, targetVersionType]
+      ) as any;
+
+      const siblingId = existingSibling?.id || crypto.randomUUID();
+      const fieldPayload = {
+        ...currentField,
+        ...body,
+        id: siblingId,
+        version_type: targetVersionType,
+        section_id: section_id || currentField.section_id,
+        field_type: field_type || currentField.field_type,
+        name: currentField.name,
+        business_type_id: currentField.business_type_id,
+        label: label || currentField.label,
+      };
+
+      await execute(
+        `REPLACE INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature, version_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          fieldPayload.id,
+          fieldPayload.business_type_id,
+          fieldPayload.section_id,
+          fieldPayload.name,
+          fieldPayload.label,
+          fieldPayload.field_type,
+          fieldPayload.required ? 1 : 0,
+          fieldPayload.vendor_editable ?? 1,
+          fieldPayload.searchable ? 1 : 0,
+          fieldPayload.help_text || null,
+          fieldPayload.options ? (typeof fieldPayload.options === 'string' ? fieldPayload.options : JSON.stringify(fieldPayload.options)) : null,
+          fieldPayload.validation ? (typeof fieldPayload.validation === 'string' ? fieldPayload.validation : JSON.stringify(fieldPayload.validation)) : JSON.stringify({}),
+          fieldPayload.acl ? (typeof fieldPayload.acl === 'string' ? fieldPayload.acl : JSON.stringify(fieldPayload.acl)) : JSON.stringify({ read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
+          sort_order !== undefined ? sort_order : currentField.sort_order || 0,
+          fieldPayload.section_origin || currentField.section_origin || 'own',
+          required_feature || currentField.required_feature || null,
+          targetVersionType,
+        ]
+      );
+
+      return NextResponse.json({ success: true, id: siblingId });
+    }
 
     const updates = [];
     const params = [];
@@ -399,6 +458,7 @@ export async function PUT(request: NextRequest) {
     if (acl !== undefined) { updates.push('acl=?'); params.push(typeof acl === 'string' ? acl : JSON.stringify(acl)); }
     if (validation !== undefined) { updates.push('validation=?'); params.push(typeof validation === 'string' ? validation : JSON.stringify(validation)); }
     if (required_feature !== undefined) { updates.push('required_feature=?'); params.push(required_feature); }
+    if (version_type !== undefined) { updates.push('version_type=?'); params.push(targetVersionType); }
 
     if (updates.length > 0) {
       params.push(id);
@@ -409,8 +469,8 @@ export async function PUT(request: NextRequest) {
         console.log(`[FORMS PUT] Virtual ID ${id} detected. Materializing...`);
         const name = body.name || id.split('-').pop(); // Extract name from auto-blog-sid
         await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature)
-           VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'template', ?)`,
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature, version_type)
+           VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'template', ?, ?)`,
           [
             id, 
             section_id || 'basic', 
@@ -425,7 +485,8 @@ export async function PUT(request: NextRequest) {
             JSON.stringify(validation || {}),
             JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
             sort_order || 0,
-            required_feature || null
+            required_feature || null,
+            targetVersionType
           ]
         );
       }

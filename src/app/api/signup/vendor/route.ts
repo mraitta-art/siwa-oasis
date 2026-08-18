@@ -21,11 +21,11 @@ async function getRegistrationMode(): Promise<'open' | 'approval_required'> {
     const row = (await queryOne(
       `SELECT config FROM website_configs WHERE type = 'admin_settings' LIMIT 1`
     )) as any;
-    if (!row) return 'open';
+    if (!row) return 'approval_required';
     const cfg = typeof row.config === 'string' ? JSON.parse(row.config) : row.config;
-    return cfg?.vendor_registration_mode === 'approval_required' ? 'approval_required' : 'open';
+    return cfg?.vendor_registration_mode === 'open' ? 'open' : 'approval_required';
   } catch {
-    return 'open'; // fail-safe: always allow registration
+    return 'approval_required';
   }
 }
 
@@ -63,28 +63,56 @@ export async function GET(req: NextRequest) {
 /**
  * VENDOR REGISTRATION API - POST
  *
+ * One-vendor-per-business policy is enforced:
+ *
  * MODE A — "Select Existing" (businessId provided):
- *   - Any existing business can be joined by multiple vendor accounts (team access)
- *   - First vendor to register becomes the primary owner
- *   - Subsequent vendors become co-vendors (team members)
+ *   - Only UNCLAIMED listings are selectable (GET filters them)
+ *   - If already claimed, returns 409 — no sharing allowed
+ *   - Claiming vendor becomes the sole primary owner
  *
  * MODE B — "Register New Name" (newBusinessName provided):
- *   - Creates a brand-new business record (is_shared = 1, open for team access)
- *   - Registering vendor becomes primary owner
- *   - Team members can later join by selecting it from the "Select Existing" list
+ *   - Creates a brand-new business record (is_shared = 0, one vendor only)
+ *   - Registering vendor becomes the sole primary owner
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, displayName, businessId, newBusinessName, businessType } = await req.json();
+    const { email, password, displayName, phone, businessId, newBusinessName, businessType, termsAccepted } = await req.json();
 
-    if (!email || !password || (!businessId && !newBusinessName) || !businessType) {
+    if (!email || !password || !phone || (!businessId && !newBusinessName) || !businessType) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
     }
+
+    if (!termsAccepted) {
+      return NextResponse.json({ error: 'You must accept the Vendor Responsibility Agreement to register' }, { status: 400 });
+    }
+
+    const acceptedAt = new Date();
+    const acceptedIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || '0.0.0.0';
 
     // 1. Check email uniqueness
     const existing = (await query('SELECT id FROM profiles WHERE email = ?', [email])) as any[];
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
+    }
+
+    // 1b. Check phone uniqueness
+    const existingPhone = (await query('SELECT id FROM profiles WHERE phone = ?', [phone.trim()])) as any[];
+    if (existingPhone.length > 0) {
+      return NextResponse.json({ error: 'Phone number already registered' }, { status: 400 });
+    }
+
+    // 1c. Enforce child-only business type requirement
+    const typeCheck = (await query('SELECT is_parent, name FROM business_types WHERE id = ?', [businessType])) as any[];
+    if (typeCheck.length === 0) {
+      return NextResponse.json({ error: 'Selected business category does not exist' }, { status: 400 });
+    }
+    if (typeCheck[0].is_parent) {
+      return NextResponse.json(
+        { error: 'Please select a specific subcategory (e.g. Ecolodge, Siwan Kitchen) rather than an industry parent category.' },
+        { status: 400 }
+      );
     }
 
     const userId   = randomUUID();
@@ -98,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     /* ─────────────────────────────────────────────────────────
        MODE B — Register a brand-new business name
-       is_shared = 1 so team members can join later
+       is_shared = 0 — one vendor only, no team access
     ───────────────────────────────────────────────────────── */
     if (!businessId && newBusinessName) {
       const targetBizId = randomUUID();
@@ -111,18 +139,18 @@ export async function POST(req: NextRequest) {
         finalSlug = `${rawSlug}-${Date.now().toString(36).slice(-4)}`;
       }
 
-      // Create the business — is_shared = 0 (one vendor only policy)
+      // 1. Create vendor profile FIRST — prevents orphaned business if this fails
+      await execute(
+        'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, email, phone.trim(), hashedPw, 'vendor', displayName, targetBizId, 'free', isActive, approvalStatus, acceptedAt, acceptedIp]
+      );
+
+      // 2. Create the business — is_shared = 0 (one vendor only policy)
       const isClaimedVal = needsApproval ? 0 : 1;
       await execute(
         `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, status, is_shared, is_claimed, approved_by_vendor, created_at)
          VALUES (?, ?, ?, ?, ?, 'free', 'active', 0, ?, ?, NOW())`,
         [targetBizId, newBusinessName.trim(), finalSlug, businessType, userId, isClaimedVal, isClaimedVal]
-      );
-
-      // Create the vendor profile
-      await execute(
-        'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [userId, email, hashedPw, 'vendor', displayName, targetBizId, 'free', isActive, approvalStatus]
       );
 
       if (needsApproval) {
@@ -174,8 +202,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Create the vendor profile linked to this business
     await execute(
-      'INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, email, hashedPw, 'vendor', displayName, businessId, tier, isActive, approvalStatus]
+      'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, email, phone.trim(), hashedPw, 'vendor', displayName, businessId, tier, isActive, approvalStatus]
     );
 
     // 4. Claim primary ownership if not yet taken (only if approved)
@@ -211,7 +239,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Registration Error:', error.message || error);
     const msg = error.code === 'ER_DUP_ENTRY'
-      ? 'An account with this email already exists.'
+      ? (error.message?.includes('phone') ? 'An account with this phone number already exists.' : 'An account with this email already exists.')
       : error.code === 'ER_NO_REFERENCED_ROW_2'
       ? 'Business reference error — please try again.'
       : 'Registration failed. Please try again.';
