@@ -227,7 +227,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }
 
     // --- MULTI-LAYERED SECTION GOVERNANCE ---
-    const tierAllowed = biz.tier_features?.allowed_public_sections;
+    const tierAllowed = biz.tier_features?.allowedSections || biz.tier_features?.allowed_public_sections;
     const templateHidden = biz.template_features?.hidden_sections;
     const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
 
