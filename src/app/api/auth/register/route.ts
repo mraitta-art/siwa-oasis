@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
 
     await transaction(async (conn) => {
       await conn.query(
-        `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, status, is_trusted, minisite_visible_until, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
+        `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, template_id, status, is_trusted, minisite_visible_until, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, 'essentials_free', ?, 0, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
         [businessId, businessName, slug, typologyId, userId, 'free', 'pending']
       );
 
