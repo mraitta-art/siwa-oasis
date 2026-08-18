@@ -101,6 +101,7 @@ const isCoreSection = (id: string) => id in CORE_SECTIONS;
 /* ─── Component ─────────────────────────────────────────────────────── */
 export default function UnifiedSectionArchitect() {
   /* State */
+  const [sidebarMode,    setSidebarMode]   = useState<'sections' | 'forms'>('sections');
   const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
   const [sections,       setSections]      = useState<Section[]>([]);
   const [fields,         setFields]        = useState<Field[]>([]);
@@ -289,6 +290,110 @@ export default function UnifiedSectionArchitect() {
     setSaving(false);
   };
 
+  /* ── Form Builder: Reordering / Adding / Removing Sections ──────────── */
+  const moveSection = async (index: number, direction: 'up' | 'down') => {
+    if (!selectedType) return;
+    const nextSections = [...assignedSections];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= nextSections.length) return;
+    
+    // Swap
+    const temp = nextSections[index];
+    nextSections[index] = nextSections[targetIndex];
+    nextSections[targetIndex] = temp;
+    
+    setAssignedSections(nextSections);
+    
+    setSaving(true);
+    try {
+      const t = businessTypes.find(type => type.id === selectedType);
+      if (!t) return;
+      const isParent = t.is_parent || Number(t.is_parent) === 1;
+      const body = {
+        ...t,
+        sections: isParent ? nextSections : (t.sections || []),
+        own_sections: isParent ? (t.own_sections || []) : nextSections,
+      };
+      const res = await fetch('/api/jana/types', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        notify('Section order updated!');
+        await loadAll();
+      } else {
+        notify('Failed to save order', 'error');
+      }
+    } catch {
+      notify('Failed to save order', 'error');
+    }
+    setSaving(false);
+  };
+
+  const addSectionToType = async (sectionId: string) => {
+    if (!selectedType) return;
+    if (assignedSections.includes(sectionId)) return;
+    
+    const nextSections = [...assignedSections, sectionId];
+    setAssignedSections(nextSections);
+    
+    setSaving(true);
+    try {
+      const t = businessTypes.find(type => type.id === selectedType);
+      if (!t) return;
+      const isParent = t.is_parent || Number(t.is_parent) === 1;
+      const body = {
+        ...t,
+        sections: isParent ? nextSections : (t.sections || []),
+        own_sections: isParent ? (t.own_sections || []) : nextSections,
+      };
+      const res = await fetch('/api/jana/types', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        notify('Section added to form!');
+        await loadAll();
+      } else {
+        notify('Failed to add section', 'error');
+      }
+    } catch {
+      notify('Failed to add section', 'error');
+    }
+    setSaving(false);
+  };
+
+  const removeSectionFromType = async (sectionId: string) => {
+    if (!selectedType) return;
+    const nextSections = assignedSections.filter(id => id !== sectionId);
+    setAssignedSections(nextSections);
+    
+    setSaving(true);
+    try {
+      const t = businessTypes.find(type => type.id === selectedType);
+      if (!t) return;
+      const isParent = t.is_parent || Number(t.is_parent) === 1;
+      const body = {
+        ...t,
+        sections: isParent ? nextSections : (t.sections || []),
+        own_sections: isParent ? (t.own_sections || []) : nextSections,
+      };
+      const res = await fetch('/api/jana/types', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        notify('Section removed from form!');
+        await loadAll();
+        if (selectedSection === sectionId) {
+          setSelectedSection('');
+        }
+      } else {
+        notify('Failed to remove section', 'error');
+      }
+    } catch {
+      notify('Failed to remove section', 'error');
+    }
+    setSaving(false);
+  };
+
   /* ── Derived ─────────────────────────────────────────────────────────── */
   const currentSection = sections.find(s => s.id === selectedSection);
   const parents  = businessTypes.filter(t => (t.is_parent || Number(t.is_parent) === 1) && ['accommodation', 'food', 'adventure', 'wellness'].includes(t.id));
@@ -372,7 +477,7 @@ export default function UnifiedSectionArchitect() {
       {/* ── MAIN 3-PANEL LAYOUT ─────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: mainGridColumns, height: 'calc(100vh - 80px)', width: '100%', minWidth: '1500px', overflowX: 'auto' }}>
 
-        {/* ── PANEL 1: Section List ──────────────────────────────────── */}
+        {/* ── PANEL 1: Section List / Forms Builder ──────────────────── */}
         <nav style={{
           background: '#fff', borderRight: collapsedPanels.left ? 'none' : '1px solid #f1f5f9',
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
@@ -383,106 +488,355 @@ export default function UnifiedSectionArchitect() {
         }}>
           {!collapsedPanels.left && (
             <>
+              {/* Sidebar Mode Toggle */}
               <div style={{ padding: '0.9rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: '300px' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.5px' }}>SECTIONS</span>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
+                  <button 
+                    onClick={() => { setSidebarMode('sections'); setSelectedSection(''); }}
+                    style={{
+                      padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, border: 'none', cursor: 'pointer',
+                      background: sidebarMode === 'sections' ? '#fff' : 'transparent',
+                      color: sidebarMode === 'sections' ? '#1e293b' : '#64748b',
+                      boxShadow: sidebarMode === 'sections' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    SECTIONS
+                  </button>
+                  <button 
+                    onClick={() => { setSidebarMode('forms'); setSelectedSection(''); }}
+                    style={{
+                      padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, border: 'none', cursor: 'pointer',
+                      background: sidebarMode === 'forms' ? '#fff' : 'transparent',
+                      color: sidebarMode === 'forms' ? '#1e293b' : '#64748b',
+                      boxShadow: sidebarMode === 'forms' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    FORMS (TYPES)
+                  </button>
+                </div>
                 <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className="fas fa-chevron-left" />
                 </button>
               </div>
 
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px' }}>
-                <button
-                  onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
-                  style={{ ...css.btn('#D4AF37'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                >
-                  <i className="fas fa-plus" /> New Section
-                </button>
-              </div>
+              {sidebarMode === 'sections' ? (
+                <>
+                  <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px' }}>
+                    <button
+                      onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
+                      style={{ ...css.btn('#D4AF37'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                      <i className="fas fa-plus" /> New Section
+                    </button>
+                  </div>
 
-              {/* Core Sections Legend */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', background: '#f0fdf4' }}>
-                <div style={{ fontSize: '0.58rem', fontWeight: 900, color: '#10b981', letterSpacing: '1.5px', marginBottom: '0.4rem' }}>🛡️ CORE SECTIONS (ESSENTIAL)</div>
-                <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.5, fontWeight: 600 }}>
-                  These 7 sections contain the essential fields every vendor must fill. They are color-coded for quick identification.
-                </div>
-              </div>
+                  {/* Core Sections Legend */}
+                  <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', background: '#f0fdf4' }}>
+                    <div style={{ fontSize: '0.58rem', fontWeight: 900, color: '#10b981', letterSpacing: '1.5px', marginBottom: '0.4rem' }}>🛡️ CORE SECTIONS (ESSENTIAL)</div>
+                    <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.5, fontWeight: 600 }}>
+                      These 7 sections contain the essential fields every vendor must fill. They are color-coded for quick identification.
+                    </div>
+                  </div>
 
-              <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
-                {/* Render core sections first, then the rest */}
-                {[...sections].sort((a, b) => {
-                  const aCore = isCoreSection(a.id) ? 0 : 1;
-                  const bCore = isCoreSection(b.id) ? 0 : 1;
-                  if (aCore !== bCore) return aCore - bCore;
-                  return 0;
-                }).map((sec, idx, arr) => {
-                  const isActive = sec.id === selectedSection;
-                  const core = CORE_SECTIONS[sec.id];
-                  const isCore = !!core;
-                  const prevWasCore = idx > 0 && isCoreSection(arr[idx - 1].id);
-                  const showDivider = !isCore && (idx === 0 || prevWasCore);
+                  <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
+                    {/* Render core sections first, then the rest */}
+                    {[...sections].sort((a, b) => {
+                      const aCore = isCoreSection(a.id) ? 0 : 1;
+                      const bCore = isCoreSection(b.id) ? 0 : 1;
+                      if (aCore !== bCore) return aCore - bCore;
+                      return 0;
+                    }).map((sec, idx, arr) => {
+                      const isActive = sec.id === selectedSection;
+                      const core = CORE_SECTIONS[sec.id];
+                      const isCore = !!core;
+                      const prevWasCore = idx > 0 && isCoreSection(arr[idx - 1].id);
+                      const showDivider = !isCore && (idx === 0 || prevWasCore);
+
+                      return (
+                        <div key={sec.id}>
+                          {showDivider && (
+                            <div style={{ padding: '0.6rem 1rem', margin: '0.5rem 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                              <span style={{ fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>OTHER SECTIONS</span>
+                              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                            </div>
+                          )}
+                          <button
+                            onClick={() => selectSection(sec)}
+                            style={{
+                              width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
+                              borderRadius: '12px',
+                              borderStyle: 'solid',
+                              borderTopWidth: '1.5px',
+                              borderBottomWidth: '1.5px',
+                              borderRightWidth: '1.5px',
+                              borderLeftWidth: isCore ? '3px' : '1.5px',
+                              borderTopColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
+                              borderBottomColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
+                              borderRightColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
+                              borderLeftColor: isCore ? core.color : (isActive ? '#D4AF3740' : 'transparent'),
+                              background: isActive ? (isCore ? core.color + '08' : '#fffbeb') : 'transparent',
+                              cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
+                              display: 'flex', alignItems: 'center', gap: '0.85rem',
+                            }}
+                          >
+                            <div style={{
+                              width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
+                              background: isActive ? (isCore ? core.color : '#D4AF37') : (isCore ? core.color + '15' : '#f1f5f9'),
+                              color: isActive ? '#fff' : (isCore ? core.color : '#94a3b8'),
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
+                            }}>
+                              <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
+                            </div>
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {sec.name}
+                                </span>
+                                {isCore && (
+                                  <span style={{
+                                    fontSize: '0.5rem', fontWeight: 900, letterSpacing: '0.5px',
+                                    background: core.color + '18', color: core.color,
+                                    padding: '1px 6px', borderRadius: '6px', border: `1px solid ${core.color}30`,
+                                    whiteSpace: 'nowrap', flexShrink: 0,
+                                  }}>CORE</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                {isCore && <span style={{ color: core.color }}>{core.emoji} {core.label}</span>}
+                                {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
+                                {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
+                                {!sec.active && <span style={{ color: '#ef4444' }}>● Inactive</span>}
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                /* Forms (Types) Mode Rendering */
+                (() => {
+                  const currentType = businessTypes.find(t => t.id === selectedType);
+                  if (!currentType) {
+                    return (
+                      <>
+                        <div style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', background: '#f8fafc' }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#64748b', letterSpacing: '1px' }}>SELECT FORM/TYPOLOGY</span>
+                        </div>
+                        <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
+                          {parents.map(pt => {
+                            const childList = businessTypes.filter(t => t.parent_id === pt.id);
+                            const isSelected = selectedType === pt.id;
+                            return (
+                              <div key={pt.id} style={{ marginBottom: '0.75rem' }}>
+                                {/* Parent Row */}
+                                <button
+                                  onClick={() => selectType(pt.id)}
+                                  style={{
+                                    width: '100%', textAlign: 'left', padding: '0.75rem',
+                                    borderRadius: '10px', border: isSelected ? '1.5px solid #D4AF3750' : '1.5px solid transparent',
+                                    background: isSelected ? '#fffbeb' : '#f8fafc', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                    transition: 'all 0.2s',
+                                  }}
+                                >
+                                  <div style={{
+                                    width: 28, height: 28, borderRadius: '8px',
+                                    background: pt.icon_color || '#D4AF37', color: '#fff',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem',
+                                  }}>
+                                    <i className={`fas ${pt.icon || 'fa-building'}`} />
+                                  </div>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 900, fontSize: '0.8rem', color: '#1e293b' }}>{pt.name}</div>
+                                    <div style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>PARENT CLASS</div>
+                                  </div>
+                                </button>
+
+                                {/* Indented Children */}
+                                {childList.length > 0 && (
+                                  <div style={{ marginLeft: '1.25rem', borderLeft: '1.5px dashed #e2e8f0', paddingLeft: '0.5rem', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    {childList.map(ct => {
+                                      const isChildSelected = selectedType === ct.id;
+                                      return (
+                                        <button
+                                          key={ct.id}
+                                          onClick={() => selectType(ct.id)}
+                                          style={{
+                                            width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
+                                            borderRadius: '8px', border: isChildSelected ? '1px solid #D4AF3740' : '1px solid transparent',
+                                            background: isChildSelected ? '#fffbeb' : 'transparent', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                            transition: 'all 0.2s',
+                                          }}
+                                        >
+                                          <i className={`fas ${ct.icon || 'fa-tag'}`} style={{ color: ct.icon_color || '#64748b', fontSize: '0.7rem' }} />
+                                          <span style={{ fontWeight: 700, fontSize: '0.75rem', color: '#475569' }}>{ct.name}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  }
+
+                  // A form type is selected! Show its sections layout
+                  const parentType = currentType.parent_id ? businessTypes.find(pt => pt.id === currentType.parent_id) : null;
+                  const inheritedIds = parentType ? (parentType.sections || []) : [];
+                  const specificIds = assignedSections;
+                  
+                  // Find all remaining sections that are not already assigned to this type
+                  const unusedSections = sections.filter(s => !specificIds.includes(s.id) && !inheritedIds.includes(s.id));
 
                   return (
-                    <div key={sec.id}>
-                      {showDivider && (
-                        <div style={{ padding: '0.6rem 1rem', margin: '0.5rem 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
-                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>OTHER SECTIONS</span>
-                          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
-                        </div>
-                      )}
-                      <button
-                        onClick={() => selectSection(sec)}
-                        style={{
-                          width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
-                          borderRadius: '12px',
-                          borderStyle: 'solid',
-                          borderTopWidth: '1.5px',
-                          borderBottomWidth: '1.5px',
-                          borderRightWidth: '1.5px',
-                          borderLeftWidth: isCore ? '3px' : '1.5px',
-                          borderTopColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
-                          borderBottomColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
-                          borderRightColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
-                          borderLeftColor: isCore ? core.color : (isActive ? '#D4AF3740' : 'transparent'),
-                          background: isActive ? (isCore ? core.color + '08' : '#fffbeb') : 'transparent',
-                          cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
-                          display: 'flex', alignItems: 'center', gap: '0.85rem',
-                        }}
-                      >
-                        <div style={{
-                          width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
-                          background: isActive ? (isCore ? core.color : '#D4AF37') : (isCore ? core.color + '15' : '#f1f5f9'),
-                          color: isActive ? '#fff' : (isCore ? core.color : '#94a3b8'),
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
-                        }}>
-                          <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
-                        </div>
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {sec.name}
-                            </span>
-                            {isCore && (
-                              <span style={{
-                                fontSize: '0.5rem', fontWeight: 900, letterSpacing: '0.5px',
-                                background: core.color + '18', color: core.color,
-                                padding: '1px 6px', borderRadius: '6px', border: `1px solid ${core.color}30`,
-                                whiteSpace: 'nowrap', flexShrink: 0,
-                              }}>CORE</span>
-                            )}
+                    <>
+                      <div style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => { setSelectedType(''); setSelectedSection(''); }}
+                          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D4AF37', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', padding: 0 }}
+                        >
+                          <i className="fas fa-arrow-left" /> BACK TO FORMS
+                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.25rem' }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '8px', background: currentType.icon_color || '#D4AF37', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>
+                            <i className={`fas ${currentType.icon || 'fa-building'}`} />
                           </div>
-                          <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {isCore && <span style={{ color: core.color }}>{core.emoji} {core.label}</span>}
-                            {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
-                            {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
-                            {!sec.active && <span style={{ color: '#ef4444' }}>● Inactive</span>}
+                          <div>
+                            <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#1e293b' }}>{currentType.name} Form</div>
+                            <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>
+                              {currentType.is_parent ? 'Parent Class Form' : `Child of ${parentType?.name || 'Unknown'}`}
+                            </div>
                           </div>
                         </div>
-                      </button>
-                    </div>
+                      </div>
+
+                      <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        
+                        {/* 1. Inherited Sections (Read-Only) */}
+                        {inheritedIds.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <div style={{ fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', padding: '0.25rem 0.5rem' }}>🔒 INHERITED SECTIONS (GLOBAL)</div>
+                            {inheritedIds.map((sid: string) => {
+                              const sec = sections.find(s => s.id === sid);
+                              if (!sec) return null;
+                              const isActive = sec.id === selectedSection;
+                              return (
+                                <button
+                                  key={sec.id}
+                                  onClick={() => selectSection(sec)}
+                                  style={{
+                                    width: '100%', textAlign: 'left', padding: '0.6rem 0.75rem',
+                                    borderRadius: '8px', border: isActive ? '1px solid #cbd5e1' : '1px solid #f1f5f9',
+                                    background: isActive ? '#f8fafc' : '#fafafa', opacity: 0.85,
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                    transition: 'all 0.2s',
+                                  }}
+                                >
+                                  <i className={`fas ${sec.icon || 'fa-layer-group'}`} style={{ color: '#94a3b8', fontSize: '0.75rem' }} />
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>{sec.name}</span>
+                                  <i className="fas fa-lock" style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#94a3b8' }} title="Inherited from parent type. Modify at parent form level." />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* 2. Specific/Own Sections (Reorderable) */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{ fontSize: '0.55rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px', padding: '0.25rem 0.5rem' }}>✨ SPECIFIC SECTIONS LAYOUT</div>
+                          {specificIds.map((sid: string, index: number) => {
+                            const sec = sections.find(s => s.id === sid);
+                            if (!sec) return null;
+                            const isActive = sec.id === selectedSection;
+                            return (
+                              <div 
+                                key={sec.id}
+                                style={{
+                                  padding: '0.6rem 0.75rem', borderRadius: '8px',
+                                  border: isActive ? '1.5px solid #D4AF3750' : '1px solid #e2e8f0',
+                                  background: isActive ? '#fffbeb' : '#fff',
+                                  display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '2px',
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <button
+                                  onClick={() => selectSection(sec)}
+                                  style={{
+                                    flex: 1, background: 'none', border: 'none', textAlign: 'left',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: 0
+                                  }}
+                                >
+                                  <i className={`fas ${sec.icon || 'fa-layer-group'}`} style={{ color: isActive ? '#D4AF37' : '#64748b', fontSize: '0.8rem' }} />
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isActive ? '#1e293b' : '#475569' }}>{sec.name}</span>
+                                </button>
+
+                                {/* Move Actions */}
+                                <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                                  <button 
+                                    disabled={index === 0}
+                                    onClick={() => moveSection(index, 'up')}
+                                    style={{ border: 'none', background: '#f1f5f9', width: 22, height: 22, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: index === 0 ? '#cbd5e1' : '#64748b', cursor: index === 0 ? 'not-allowed' : 'pointer', fontSize: '0.65rem', transition: 'all 0.2s' }}
+                                    title="Move Up"
+                                  >
+                                    <i className="fas fa-chevron-up" />
+                                  </button>
+                                  <button 
+                                    disabled={index === specificIds.length - 1}
+                                    onClick={() => moveSection(index, 'down')}
+                                    style={{ border: 'none', background: '#f1f5f9', width: 22, height: 22, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: index === specificIds.length - 1 ? '#cbd5e1' : '#64748b', cursor: index === specificIds.length - 1 ? 'not-allowed' : 'pointer', fontSize: '0.65rem', transition: 'all 0.2s' }}
+                                    title="Move Down"
+                                  >
+                                    <i className="fas fa-chevron-down" />
+                                  </button>
+                                  <button 
+                                    onClick={() => removeSectionFromType(sec.id)}
+                                    style={{ border: 'none', background: '#fee2e2', width: 22, height: 22, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', cursor: 'pointer', fontSize: '0.65rem', transition: 'all 0.2s' }}
+                                    title="Remove Section from Form"
+                                  >
+                                    <i className="fas fa-trash-alt" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {specificIds.length === 0 && (
+                            <div style={{ padding: '1.25rem', border: '1.5px dashed #e2e8f0', borderRadius: '8px', textAlign: 'center', fontSize: '0.7rem', color: '#94a3b8' }}>
+                              No custom sections added.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 3. Add Section to Form Dropdown */}
+                        {unusedSections.length > 0 && (
+                          <div style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                            <label style={{ ...css.label(), fontSize: '0.55rem', marginBottom: '0.3rem' }}>+ ADD SECTION TO FORM</label>
+                            <select
+                              value=""
+                              onChange={e => e.target.value && addSectionToType(e.target.value)}
+                              style={{ ...css.input(), padding: '0.5rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer' }}
+                            >
+                              <option value="">-- Select Section to Add --</option>
+                              {unusedSections.map(s => (
+                                <option key={s.id} value={s.id}>{s.name} ({s.id})</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                      </div>
+                    </>
                   );
-                })}
-              </div>
+                })()
+              )}
             </>
           )}
         </nav>
