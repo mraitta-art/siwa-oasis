@@ -299,15 +299,22 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
     let sectionComponents: Record<string, any[]> = {};
     if (sectionIds.length > 0) {
-      const componentRows = await safeQuery<any>(
-        `SELECT sc.id as component_id, sc.section_id, sc.component_type, sc.label as component_label, sc.config,
-                scd.id as data_id, scd.data as data_json, scd.status as data_status, scd.title as data_title, scd.display_order as data_display_order
-         FROM section_components sc
-         LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id AND scd.business_id = ?
-         WHERE sc.section_id IN (${sectionIds.map(() => '?').join(',')})
-         ORDER BY sc.section_id, sc.display_order, scd.display_order`,
-        [biz.id, ...sectionIds]
-      );
+      // Component data is an optional enhancement. Older production databases
+      // may not have migration 020 yet, so the base minisite must still render.
+      let componentRows: any[] = [];
+      try {
+        componentRows = await safeQuery<any>(
+          `SELECT sc.id as component_id, sc.section_id, sc.component_type, sc.label as component_label, sc.config,
+                  scd.id as data_id, scd.data as data_json, scd.status as data_status, scd.title as data_title, scd.display_order as data_display_order
+           FROM section_components sc
+           LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id AND scd.business_id = ?
+           WHERE sc.section_id IN (${sectionIds.map(() => '?').join(',')})
+           ORDER BY sc.section_id, sc.display_order, scd.display_order`,
+          [biz.id, ...sectionIds]
+        );
+      } catch (componentError: any) {
+        console.warn('[MINISITE COMPONENTS SKIPPED]', componentError?.message);
+      }
 
       const componentMap: Record<string, any> = {};
       componentRows.forEach((row: any) => {
