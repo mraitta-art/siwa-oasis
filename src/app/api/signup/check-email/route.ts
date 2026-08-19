@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
 // GET /api/signup/check-email?email=xxx or ?phone=yyy
-// Returns { taken: boolean } — used for real-time validation on signup form blur
+// Returns { taken: boolean } Ã¹ used for real-time validation on signup form blur
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email')?.toLowerCase().trim();
