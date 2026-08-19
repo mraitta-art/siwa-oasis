@@ -110,7 +110,9 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   if (Array.isArray(fields)) {
     fields.forEach(field => {
       // ACL check
-      if (field.acl?.read && !field.acl.read.includes(userRole || 'public')) return;
+      const currentRole = userRole || 'public';
+      const isPrivilegedAdmin = ['admin', 'super_admin', 'content_admin'].includes(currentRole);
+      if (field.acl?.read && !isPrivilegedAdmin && !field.acl.read.includes(currentRole)) return;
 
       const sid = (field as any).section_id || 'basic';
       if (!groupedFields[sid]) {
