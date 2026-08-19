@@ -23,6 +23,22 @@ interface Business {
   slug: string;
 }
 
+const COUNTRY_CODES = [
+  ['EG', 'Egypt', '+20'], ['AE', 'United Arab Emirates', '+971'], ['SA', 'Saudi Arabia', '+966'],
+  ['MA', 'Morocco', '+212'], ['TN', 'Tunisia', '+216'], ['DZ', 'Algeria', '+213'], ['LY', 'Libya', '+218'],
+  ['SD', 'Sudan', '+249'], ['JO', 'Jordan', '+962'], ['LB', 'Lebanon', '+961'], ['TR', 'Türkiye', '+90'],
+  ['QA', 'Qatar', '+974'], ['KW', 'Kuwait', '+965'], ['BH', 'Bahrain', '+973'], ['OM', 'Oman', '+968'],
+  ['GB', 'United Kingdom', '+44'], ['US', 'United States', '+1'], ['CA', 'Canada', '+1'], ['AU', 'Australia', '+61'],
+  ['DE', 'Germany', '+49'], ['FR', 'France', '+33'], ['IT', 'Italy', '+39'], ['ES', 'Spain', '+34'],
+  ['NL', 'Netherlands', '+31'], ['BE', 'Belgium', '+32'], ['CH', 'Switzerland', '+41'], ['AT', 'Austria', '+43'],
+  ['SE', 'Sweden', '+46'], ['NO', 'Norway', '+47'], ['DK', 'Denmark', '+45'], ['FI', 'Finland', '+358'],
+  ['IN', 'India', '+91'], ['PK', 'Pakistan', '+92'], ['CN', 'China', '+86'], ['JP', 'Japan', '+81'],
+  ['KR', 'South Korea', '+82'], ['SG', 'Singapore', '+65'], ['MY', 'Malaysia', '+60'], ['ID', 'Indonesia', '+62'],
+  ['TH', 'Thailand', '+66'], ['PH', 'Philippines', '+63'], ['VN', 'Vietnam', '+84'], ['ZA', 'South Africa', '+27'],
+  ['NG', 'Nigeria', '+234'], ['KE', 'Kenya', '+254'], ['GH', 'Ghana', '+233'], ['BR', 'Brazil', '+55'],
+  ['MX', 'Mexico', '+52'], ['AR', 'Argentina', '+54'], ['CL', 'Chile', '+56'],
+].map(([value, label, code]) => ({ value, label, code }));
+
 /* ─────────────────────────────────────────────────────────────
    PASSWORD STRENGTH
 ───────────────────────────────────────────────────────────── */
@@ -49,6 +65,7 @@ export default function VendorSignup() {
   /* ── form data ──────────────────────── */
   const [displayName,    setDisplayName]    = useState('');
   const [email,          setEmail]          = useState('');
+  const [countryCode,    setCountryCode]    = useState('+20');
   const [phone,          setPhone]          = useState('');
   const [password,       setPassword]       = useState('');
   const [confirmPw,      setConfirmPw]      = useState('');
@@ -129,10 +146,11 @@ export default function VendorSignup() {
 
   /* ── blur-time phone uniqueness check ───────────────── */
   const checkPhoneUnique = async () => {
-    if (!phone || !/^\+?[0-9\s\-]{8,20}$/.test(phone.trim())) return;
+    const normalizedPhone = `${countryCode}${phone.replace(/\D/g, '')}`;
+    if (!phone || !/^\+[1-9][0-9]{7,14}$/.test(normalizedPhone)) return;
     setPhoneChecking(true);
     try {
-      const r = await fetch(`/api/signup/check-email?phone=${encodeURIComponent(phone.trim())}`);
+      const r = await fetch(`/api/signup/check-email?phone=${encodeURIComponent(normalizedPhone)}`);
       const d = await r.json();
       if (d.taken) {
         setFieldErr(p => ({ ...p, phone: 'An account with this phone number already exists' }));
@@ -144,11 +162,12 @@ export default function VendorSignup() {
   /* ── step 1 validation ───────────────── */
   const validateStep1 = () => {
     const errs: Record<string, string> = {};
+    const normalizedPhone = `${countryCode}${phone.replace(/\D/g, '')}`;
     if (!displayName.trim()) errs.displayName = 'Full name is required';
     if (!email.trim())       errs.email       = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
     if (!phone.trim())       errs.phone       = 'Phone number is required';
-    else if (!/^\+?[0-9\s\-]{8,20}$/.test(phone.trim())) errs.phone = 'Invalid phone number format';
+    else if (!/^\+[1-9][0-9]{7,14}$/.test(normalizedPhone)) errs.phone = 'Enter a valid phone number for the selected country';
     if (!password)           errs.password    = 'Password is required';
     else if (password.length < 8) errs.password = 'At least 8 characters';
     if (!confirmPw)          errs.confirmPw   = 'Please confirm your password';
@@ -189,7 +208,7 @@ export default function VendorSignup() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          email, password, displayName, phone,
+          email, password, displayName, phone: `${countryCode}${phone.replace(/\D/g, '')}`,
           businessId:      registerMode === 'select' ? businessId : undefined,
           newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
@@ -403,12 +422,24 @@ export default function VendorSignup() {
 
               <div className="field-group">
                 <label className="field-label">Phone Number</label>
-                <div className={`field-wrap ${fieldErr.phone ? 'is-err' : ''}`}>
+                <div className={`phone-field ${fieldErr.phone ? 'is-err' : ''}`}>
                   <i className="fas fa-phone field-icon" />
+                  <select
+                    className="country-select"
+                    aria-label="Country calling code"
+                    value={countryCode}
+                    onChange={e => { setCountryCode(e.target.value); setFieldErr(p => ({ ...p, phone: '' })); }}
+                  >
+                    {COUNTRY_CODES.map(country => (
+                      <option key={`${country.value}-${country.code}`} value={country.code}>
+                        {country.label} ({country.code})
+                      </option>
+                    ))}
+                  </select>
                   <input
                     type="tel"
-                    className="field-input"
-                    placeholder="e.g. +20 100 123 4567"
+                    className="phone-input"
+                    placeholder="100 123 4567"
                     value={phone}
                     onChange={e => { setPhone(e.target.value); setFieldErr(p => ({...p, phone: ''})); }}
                     onBlur={checkPhoneUnique}
@@ -416,6 +447,7 @@ export default function VendorSignup() {
                   {phoneChecking && <i className="fas fa-circle-notch fa-spin" style={{ position: 'absolute', right: '0.8rem', color: '#94a3b8' }} />}
                 </div>
                 {fieldErr.phone && <span className="field-err">{fieldErr.phone}</span>}
+                <span className="field-hint">Saved internationally as {countryCode}{phone.replace(/\D/g, '') || '...'}</span>
               </div>
 
               <div className="field-group">
@@ -1053,6 +1085,44 @@ export default function VendorSignup() {
         .field-wrap.is-err {
           border-color: #ef4444;
           box-shadow: 0 0 0 4px rgba(239,68,68,0.1);
+        }
+        .phone-field {
+          display: flex;
+          align-items: center;
+          min-height: 52px;
+          background: #f8fafc;
+          border: 1.5px solid #cbd5e1;
+          border-radius: 14px;
+          transition: all 0.25s;
+        }
+        .phone-field:focus-within {
+          border-color: #D4AF37;
+          background: #fffdf5;
+          box-shadow: 0 0 0 4px rgba(212,175,55,0.15);
+        }
+        .phone-field.is-err { border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.1); }
+        .phone-field .field-icon { padding-left: 1.1rem; }
+        .country-select {
+          width: 112px;
+          margin-left: 0.55rem;
+          padding: 0.55rem 0.25rem;
+          border: 0;
+          border-right: 1px solid #cbd5e1;
+          background: transparent;
+          color: #334155;
+          font-size: 0.72rem;
+          font-weight: 700;
+          outline: none;
+        }
+        .phone-input {
+          min-width: 0;
+          flex: 1;
+          padding: 1rem 0.8rem;
+          border: 0;
+          outline: none;
+          background: transparent;
+          color: #334155;
+          font: inherit;
         }
         .field-icon {
           padding: 0 0 0 1.1rem;
