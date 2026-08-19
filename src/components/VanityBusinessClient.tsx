@@ -117,7 +117,7 @@ export default function VanityBusinessClient({
   
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
   const identity = data.basic || data.sec_1_identity || data.business_info || {};
-  const dynamicPhone = isMasterTemplate ? '+20 (10) SIWA-TODAY' : (identity.phone || data.phone || '+20 (12) SIWA-OASIS');
+  const dynamicPhone = isMasterTemplate ? '+20 (10) SIWA-TODAY' : (biz.vendor_phone || identity.phone || data.phone || '+20 (12) SIWA-OASIS');
   const dynamicEmail = isMasterTemplate ? 'hello@siwa.today' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
   const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;

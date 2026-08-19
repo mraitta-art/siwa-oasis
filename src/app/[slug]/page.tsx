@@ -19,7 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     if (isId) {
       // Fetch by ID to get the slug for redirection
       const [bizById] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+        `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
+          t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
@@ -32,7 +33,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     } else {
       // Fetch by slug directly from DB (avoids SSR self-fetch issues)
       const [row] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+        `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
+          t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
