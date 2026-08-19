@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 // ─── STYLES ─────────────────────────────────────────────────────────────────
 const S = {
@@ -143,9 +144,9 @@ export default function VisitorDashboard() {
             <i className="fas fa-inbox" style={{ fontSize: '3rem', color: 'rgba(255,255,255,0.2)', marginBottom: '1.5rem' }} />
             <h2 style={{ fontSize: '1.5rem', color: '#fff', marginBottom: '1rem' }}>No Requests Found</h2>
             <p style={{ color: 'rgba(255,255,255,0.5)', maxWidth: '400px', margin: '0 auto' }}>You haven't submitted any visitor requests yet. Head over to the Marketplace to get started.</p>
-            <a href="/" style={{ display: 'inline-block', marginTop: '2rem', ...S.btn, width: 'auto', padding: '1rem 2rem', textDecoration: 'none' }}>
+            <Link href="/" style={{ display: 'inline-block', marginTop: '2rem', ...S.btn, width: 'auto', padding: '1rem 2rem', textDecoration: 'none' }}>
               CREATE A REQUEST
-            </a>
+            </Link>
           </div>
         ) : (
           <div>

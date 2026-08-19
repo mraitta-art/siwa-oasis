@@ -72,7 +72,7 @@ export default function LocalProductsShowcase({ products, title, subtitle }: Pro
           const list: ProductItem[] = [];
           data.forEach((biz: any) => {
             const market = biz.custom_data?.sec_9_marketplace_catalog || {};
-            let rawList = market.product_list || [];
+            const rawList = market.product_list || [];
             
             let parsedList: any[] = [];
             try {

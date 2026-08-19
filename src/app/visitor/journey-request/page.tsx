@@ -55,8 +55,6 @@ export default function VisitorJourneyRequestPage() {
     business_name: '',
     notes: ''
   });
-  const [submitted, setSubmitted] = useState(false);
-  const [savedRequestId, setSavedRequestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -114,40 +112,16 @@ export default function VisitorJourneyRequestPage() {
 
       const responseData = await response.json();
       if (response.ok && responseData?.id) {
-        setSavedRequestId(responseData.id);
         router.push(`/visitor/journey-request/${responseData.id}`);
       } else {
         setError(responseData?.error || 'Failed to submit request');
       }
-    } catch (err) {
+    } catch {
       setError('Network error');
     } finally {
       setLoading(false);
     }
   };
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-[#1a1a1a] text-white flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 bg-[#2a2a2a] p-8 rounded-lg border-2 border-green-600 text-center">
-          <div className="text-4xl mb-4">✓</div>
-          <h2 className="text-2xl font-bold text-[#FFD700] mb-3">Request Submitted!</h2>
-          <p className="text-gray-300 mb-6">
-            Your journey request has been submitted. We'll review it and notify vendors who match your needs. You'll hear back within 24 hours.
-          </p>
-          <p className="text-sm text-gray-400 mb-4">
-            Confirmation email sent to: <strong>{formData.visitor_email}</strong>
-          </p>
-          <button
-            onClick={() => window.history.back()}
-            className="w-full bg-[#556B2F] hover:bg-[#6B8234] text-white py-3 rounded-lg font-bold transition"
-          >
-            Back to Journey Builder
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const VENDOR_CATEGORIES = [
     { id: '', label: 'No preference' },

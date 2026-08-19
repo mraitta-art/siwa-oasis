@@ -35,19 +35,6 @@ export default function AutomatedMinisiteHero({
   tierFeatures = {},
   settings = {}
 }: AutomatedMinisiteHeroProps) {
-  // Lock Check
-  if (!tierFeatures.hero_automation) {
-    return (
-      <div style={{ height: settings.height || '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: '#fff' }}>
-          <i className="fas fa-sun fa-3x" style={{ color: settings.primaryColor || '#D4AF37', marginBottom: '1.5rem' }}></i>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>AUTHENTIC EXPERIENCE</h2>
-          <p style={{ opacity: 0.6 }}>Scroll to explore {businessName}</p>
-        </div>
-      </div>
-    );
-  }
-
   const slides = useMemo(() => {
     const allSlides: any[] = [];
     const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
@@ -175,6 +162,19 @@ export default function AutomatedMinisiteHero({
     const finalLimit = tierFeatures.maxSlides || 10;
     return allSlides.slice(0, finalLimit);
   }, [customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
+
+  // Lock Check
+  if (!tierFeatures.hero_automation) {
+    return (
+      <div style={{ height: settings.height || '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#fff' }}>
+          <i className="fas fa-sun fa-3x" style={{ color: settings.primaryColor || '#D4AF37', marginBottom: '1.5rem' }}></i>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>AUTHENTIC EXPERIENCE</h2>
+          <p style={{ opacity: 0.6 }}>Scroll to explore {businessName}</p>
+        </div>
+      </div>
+    );
+  }
 
   const visual = customData.visual_dna || {};
 
