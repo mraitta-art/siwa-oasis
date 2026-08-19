@@ -28,16 +28,17 @@ export default function BusinessOrchestrator() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [bizRes, secRes] = await Promise.all([
-          fetch(`/api/jana/businesses?id=${id}`),
-          fetch(`/api/jana/sections`)
-        ]);
-        
+        const bizRes = await fetch(`/api/jana/businesses?id=${id}`);
         const bizData = await bizRes.json();
-        const secData = await secRes.json();
-
         if (bizData.error) throw new Error(bizData.error);
-        
+
+        const secRes = await fetch(`/api/jana/sections?type=${encodeURIComponent(bizData.type_id)}`);
+        const orderedSectionsResponse = await secRes.json();
+        const orderedSections = Array.isArray(orderedSectionsResponse)
+          ? orderedSectionsResponse
+          : [];
+        const secData = orderedSections;
+
         // Fetch Typology Blueprint (type data is returned directly from /api/jana/types)
         const typeRes = await fetch(`/api/jana/types?id=${bizData.type_id}`);
         const typeData = typeRes.ok ? await typeRes.json() : {};
@@ -48,7 +49,10 @@ export default function BusinessOrchestrator() {
           hidden_fields: typeData.hidden_fields || [],
         };
 
-        setBiz({ ...bizData, blueprint });
+        const customData = bizData.custom_data && typeof bizData.custom_data === 'string'
+          ? JSON.parse(bizData.custom_data)
+          : (bizData.custom_data || {});
+        setBiz({ ...bizData, custom_data: customData, blueprint });
         setSections(secData);
         
         const fieldRes = await fetch(`/api/jana/forms?type=${bizData.type_id}`);
@@ -64,10 +68,8 @@ export default function BusinessOrchestrator() {
         if (targetSection) {
           setActiveSectionId(targetSection);
         } else {
-          const templateSections = bizData.template_sections || [];
-          const firstActive = secData.find((s: any) => 
-            (bizData.custom_data?.[s.id] || templateSections.includes(s.id))
-          );
+          const hiddenSections = customData.basic?.hidden_sections || customData.hidden_sections || [];
+          const firstActive = secData.find((s: any) => !hiddenSections.includes(s.id));
           if (firstActive) setActiveSectionId(firstActive.id);
         }
         
@@ -120,9 +122,11 @@ export default function BusinessOrchestrator() {
   if (loading) return <div className="loader-screen">ORCHESTRATING DNA...</div>;
   if (!biz) return <div className="loader-screen" style={{ color: '#ef4444' }}>BUSINESS ENTITY NOT FOUND</div>;
 
-  const templateSections = biz.template_sections || [];
-  // Admin Command Center: Make all sections available for edit
-  const activeSectionIds = sections.map(s => s.id);
+  const hiddenSections = Array.isArray(biz.custom_data?.basic?.hidden_sections)
+    ? biz.custom_data.basic.hidden_sections
+    : (Array.isArray(biz.custom_data?.hidden_sections) ? biz.custom_data.hidden_sections : []);
+  const visibleSections = sections.filter(section => !hiddenSections.includes(section.id));
+  const activeSectionIds = visibleSections.map(section => section.id);
 
   return (
     <div className="orchestrator-page">
@@ -241,6 +245,9 @@ export default function BusinessOrchestrator() {
                               const hidden = [...(biz.custom_data?.basic?.hidden_sections || [])];
                               const nextHidden = isHidden ? hidden.filter(id => id !== s.id) : [...hidden, s.id];
                               updateCustomData('basic', 'hidden_sections', nextHidden);
+                              if (!isHidden && activeSectionId === s.id) {
+                                setActiveSectionId(sections.find(section => !nextHidden.includes(section.id))?.id || null);
+                              }
                             }}
                             style={{
                               background: isHidden ? '#334155' : '#6366f1',
@@ -269,7 +276,7 @@ export default function BusinessOrchestrator() {
               <aside className="dna-sidebar" style={{ width: '280px', flexShrink: 0, position: 'sticky', top: '2rem', height: 'fit-content' }}>
                 <div style={{ fontSize: '0.55rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '1rem', paddingLeft: '1rem' }}>ACTIVE DNA LAYERS</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {sections.filter(s => activeSectionIds.includes(s.id)).map(s => {
+                  {visibleSections.filter(s => activeSectionIds.includes(s.id)).map(s => {
                     // Mock progress logic: check if custom_data[s.id] has more than just 'initialized'
                     const sData = biz.custom_data?.[s.id] || {};
                     const dataPoints = Object.keys(sData).filter(k => k !== 'initialized' && sData[k]).length;
@@ -303,8 +310,8 @@ export default function BusinessOrchestrator() {
                       borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}>
                       <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0, letterSpacing: '-1px', color: '#0f172a' }}>
-                        <i className={`fas ${sections.find(s => s.id === activeSectionId)?.icon}`} style={{ color: '#D4AF37', marginRight: '1rem' }}></i>
-                        {sections.find(s => s.id === activeSectionId)?.name} Feeding
+                        <i className={`fas ${visibleSections.find(s => s.id === activeSectionId)?.icon}`} style={{ color: '#D4AF37', marginRight: '1rem' }}></i>
+                        {visibleSections.find(s => s.id === activeSectionId)?.name} Feeding
                       </h2>
                       <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>LAYER: {activeSectionId.toUpperCase()}</div>
                     </div>
