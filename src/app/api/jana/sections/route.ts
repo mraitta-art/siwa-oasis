@@ -80,19 +80,19 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery = true, enable_blog = true } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery = true, enable_blog = true, curation_policy = 'manual_review' } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
     console.log('[SECTIONS POST] Attempting to create section:', { id, name, business_type_id, is_universal });
 
     try {
       await execute(
-        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog, curation_policy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id, name, icon || 'fa-info-circle', required || false, vendor_editable !== false, show_on_public !== false, show_on_minisite !== false, is_filterable || false, show_on_card || false, is_universal || false, section_type || 'general', description || null, 
           inheritance_rules ? (typeof inheritance_rules === 'string' ? inheritance_rules : JSON.stringify(inheritance_rules)) : null, 
           display_order || 0, sort_order || 0, active !== false, business_type_id || null,
           propagation_hero || false, propagation_blog || false, propagation_card || false,
-          enable_gallery ? 1 : 0, enable_blog ? 1 : 0
+          enable_gallery ? 1 : 0, enable_blog ? 1 : 0, curation_policy
         ]
       );
       console.log('[SECTIONS POST] Section created successfully');
@@ -138,7 +138,7 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog } = body;
+    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog, curation_policy } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const availableColumns = await getSectionColumns();
@@ -172,6 +172,7 @@ export async function PUT(request: NextRequest) {
     if (propagation_card !== undefined) { applyUpdate('propagation_card', propagation_card); }
     if (enable_gallery !== undefined) { applyUpdate('enable_gallery', enable_gallery ? 1 : 0); }
     if (enable_blog !== undefined) { applyUpdate('enable_blog', enable_blog ? 1 : 0); }
+    if (curation_policy !== undefined) { applyUpdate('curation_policy', curation_policy); }
 
     if (updates.length === 0) {
       return NextResponse.json({ error: 'No supported section fields to update' }, { status: 400 });

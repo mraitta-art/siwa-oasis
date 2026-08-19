@@ -53,7 +53,9 @@ export async function GET(req: NextRequest) {
 
     // 3. Fetch the Form Fields (The Structure/DNA) — also pull section feature flags
     const fields = (await query(
-      'SELECT f.*, s.name as section_name, s.icon as section_icon, s.enable_gallery, s.enable_blog ' +
+      'SELECT f.*, s.name as section_name, s.icon as section_icon, s.enable_gallery, s.enable_blog, ' +
+      's.required as section_required, s.vendor_editable as section_vendor_editable, ' +
+      's.inheritance_rules as section_inheritance_rules, s.curation_policy as section_curation_policy ' +
       'FROM form_fields f ' +
       'JOIN sections s ON f.section_id = s.id ' +
       'WHERE f.business_type_id IN (?) ' +
@@ -68,10 +70,36 @@ export async function GET(req: NextRequest) {
     const sections: Record<string, any> = {};
     fields.forEach(f => {
       if (!sections[f.section_id]) {
+        // Parse section overrides for the direct child typology (biz.type_id)
+        const rules = (() => {
+          try {
+            return typeof f.section_inheritance_rules === 'string'
+              ? JSON.parse(f.section_inheritance_rules)
+              : f.section_inheritance_rules || {};
+          } catch {
+            return {};
+          }
+        })();
+        const typologyRules = rules.typologies?.[biz.type_id] || {};
+        
+        // Resolve required status: Typology Required Override -> Base Section Required
+        const isRequiredOverride = typologyRules.required_override;
+        const sectionRequired = isRequiredOverride === 'required'
+          ? true
+          : (isRequiredOverride === 'optional' ? false : f.section_required !== 0);
+
+        // Resolve Order Lock override
+        const orderLocked = !!typologyRules.order_locked;
+
         sections[f.section_id] = {
           id: f.section_id,
           name: f.section_name,
           icon: f.section_icon,
+          required: sectionRequired,
+          vendor_editable: f.section_vendor_editable !== 0,
+          curation_policy: f.section_curation_policy || 'manual_review',
+          order_locked: orderLocked,
+          cta_phone_override: typologyRules.cta_phone || null,
           // Feature flags — admin-controlled per section
           enable_gallery: f.enable_gallery !== 0,
           enable_blog:    f.enable_blog    !== 0,

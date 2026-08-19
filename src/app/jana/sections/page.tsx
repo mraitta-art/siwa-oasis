@@ -16,6 +16,9 @@ interface Section {
   active: boolean; is_universal: boolean; sort_order: number;
   enable_gallery: boolean; enable_blog: boolean;
   vendor_editable: boolean; show_on_public: boolean;
+  curation_policy?: 'auto_approve' | 'manual_review' | 'admin_only';
+  required?: boolean;
+  inheritance_rules?: any;
 }
 
 interface Field {
@@ -24,6 +27,7 @@ interface Field {
   required: boolean; vendor_editable: boolean; show_on_public: boolean;
   version_type?: 'initial' | 'latest';
   options?: any; help_text?: string; sort_order: number;
+  required_feature?: string;
 }
 
 const FIELD_TYPES = [
@@ -75,6 +79,7 @@ const BLANK_SECTION = (): Partial<Section> => ({
   active: true, is_universal: false, sort_order: 0,
   enable_gallery: true, enable_blog: true,
   vendor_editable: true, show_on_public: true,
+  curation_policy: 'manual_review',
 });
 
 const BLANK_FIELD = (sectionId: string, typeId?: string): Partial<Field> => ({
@@ -288,6 +293,24 @@ export default function UnifiedSectionArchitect() {
       else { notify('Save failed', 'error'); }
     } catch { notify('Save failed', 'error'); }
     setSaving(false);
+  };
+
+  const saveSectionOverrides = async (secId: string, updatedRules: any) => {
+    try {
+      const res = await fetch('/api/jana/sections', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: secId, inheritance_rules: updatedRules }),
+      });
+      if (res.ok) {
+        notify('Section overrides saved!');
+        setSections(prev => prev.map(s => s.id === secId ? { ...s, inheritance_rules: updatedRules } : s));
+      } else {
+        notify('Failed to save overrides', 'error');
+      }
+    } catch {
+      notify('Failed to save overrides', 'error');
+    }
   };
 
   /* ── Form Builder: Reordering / Adding / Removing Sections ──────────── */
@@ -967,6 +990,20 @@ export default function UnifiedSectionArchitect() {
                     placeholder="Brief description of this section's purpose…"
                   />
                 </div>
+
+                {/* Curation Policy */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={css.label()}>Curation Policy (Media & Content uploads)</label>
+                  <select
+                    style={css.input()}
+                    value={editSection.curation_policy || 'manual_review'}
+                    onChange={e => setEditSection(s => ({ ...s, curation_policy: e.target.value as any }))}
+                  >
+                    <option value="auto_approve">Auto-Approve (Gallery/Blogs go live instantly)</option>
+                    <option value="manual_review">Manual Review (Requires admin moderation before publish)</option>
+                    <option value="admin_only">Admin Only (Vendors cannot upload media or write blogs)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Feature Flags */}
@@ -1198,6 +1235,21 @@ export default function UnifiedSectionArchitect() {
                         <input style={css.input()} value={editField.help_text || ''} onChange={e => setEditField(f => ({ ...f!, help_text: e.target.value }))} placeholder="Guidance shown below the field" />
                       </div>
 
+                      <div>
+                        <label style={css.label()}>Feature/Tier Lock (Required Feature)</label>
+                        <select
+                          value={editField.required_feature || ''}
+                          onChange={e => setEditField(f => ({ ...f!, required_feature: e.target.value || undefined }))}
+                          style={css.input()}
+                        >
+                          <option value="">No Tier Lock (Available to All Tiers)</option>
+                          <option value="allowedSections">Allowed Sections Only</option>
+                          <option value="canCustomizeTemplate">Custom Templates Feature (Gold+)</option>
+                          <option value="hero_automation">Cinema Hero/Blogs Feature (Premium+)</option>
+                          <option value="investment_gating">Investment Opportunity Flag (Gold+)</option>
+                        </select>
+                      </div>
+
                       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                         {[
                           { key: 'required',        label: 'Required' },
@@ -1285,45 +1337,122 @@ export default function UnifiedSectionArchitect() {
                     </div>
                     {sections.map(sec => {
                       const checked = assignedSections.includes(sec.id);
+                      
+                      const rules = (() => {
+                        try {
+                          return typeof sec.inheritance_rules === 'string'
+                            ? JSON.parse(sec.inheritance_rules)
+                            : sec.inheritance_rules || {};
+                        } catch {
+                          return {};
+                        }
+                      })();
+                      const typologyRules = rules.typologies?.[selectedType] || {};
+                      const requiredOverride = typologyRules.required_override || 'default';
+                      const orderLocked = !!typologyRules.order_locked;
+                      const ctaPhone = typologyRules.cta_phone || '';
+
+                      const handleOverrideChange = (key: string, value: any) => {
+                        const updatedTypologies = {
+                          ...(rules.typologies || {}),
+                          [selectedType]: {
+                            ...(rules.typologies?.[selectedType] || {}),
+                            [key]: value
+                          }
+                        };
+                        const updatedRules = {
+                          ...rules,
+                          typologies: updatedTypologies
+                        };
+                        saveSectionOverrides(sec.id, updatedRules);
+                      };
+
                       return (
-                        <div
-                          key={sec.id}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem',
-                            borderBottom: '1px solid #f8fafc',
-                            background: checked ? '#fffbeb' : '#fff', transition: 'background 0.2s',
-                          }}
-                        >
-                          <input type="checkbox" checked={checked} onChange={() => toggleAssign(sec.id)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#D4AF37', flexShrink: 0 }} />
-                          <div style={{ width: 36, height: 36, borderRadius: '10px', background: checked ? '#D4AF3715' : '#f8fafc', color: checked ? '#D4AF37' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>
-                            <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{sec.name}</div>
-                            <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.5rem' }}>
-                              {sec.enable_gallery && <span style={{ color: '#6366f1' }}>Gallery</span>}
-                              {sec.enable_blog    && <span style={{ color: '#f59e0b' }}>Blog</span>}
-                              {sec.is_universal   && <span style={{ color: '#3b82f6' }}>Universal</span>}
-                            </div>
-                          </div>
-                          {/* Edit section button — jumps to meta tab with this section loaded */}
-                          <button
-                            type="button"
-                            title="Edit this section"
-                            onClick={() => { selectSection(sec); setActiveTab('meta'); }}
+                        <div key={sec.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <div
                             style={{
-                              flexShrink: 0, width: 32, height: 32, borderRadius: '8px',
-                              background: '#f1f5f9', border: '1px solid #e2e8f0',
-                              color: '#6366f1', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: '0.75rem', transition: 'all 0.2s',
+                              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem',
+                              background: checked ? '#fffbeb' : '#fff', transition: 'background 0.2s',
                             }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#6366f115'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#6366f1'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f1f5f9'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#e2e8f0'; }}
                           >
-                            <i className="fas fa-pen" />
-                          </button>
-                          {checked && <i className="fas fa-check-circle" style={{ color: '#D4AF37', fontSize: '1.1rem', flexShrink: 0 }} />}
+                            <input type="checkbox" checked={checked} onChange={() => toggleAssign(sec.id)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#D4AF37', flexShrink: 0 }} />
+                            <div style={{ width: 36, height: 36, borderRadius: '10px', background: checked ? '#D4AF3715' : '#f8fafc', color: checked ? '#D4AF37' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>
+                              <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{sec.name}</div>
+                              <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.5rem' }}>
+                                {sec.enable_gallery && <span style={{ color: '#6366f1' }}>Gallery</span>}
+                                {sec.enable_blog    && <span style={{ color: '#f59e0b' }}>Blog</span>}
+                                {sec.is_universal   && <span style={{ color: '#3b82f6' }}>Universal</span>}
+                              </div>
+                            </div>
+                            {/* Edit section button — jumps to meta tab with this section loaded */}
+                            <button
+                              type="button"
+                              title="Edit this section"
+                              onClick={() => { selectSection(sec); setActiveTab('meta'); }}
+                              style={{
+                                flexShrink: 0, width: 32, height: 32, borderRadius: '8px',
+                                background: '#f1f5f9', border: '1px solid #e2e8f0',
+                                color: '#6366f1', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.75rem', transition: 'all 0.2s',
+                              }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#6366f115'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#6366f1'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f1f5f9'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#e2e8f0'; }}
+                            >
+                              <i className="fas fa-pen" />
+                            </button>
+                            {checked && <i className="fas fa-check-circle" style={{ color: '#D4AF37', fontSize: '1.1rem', flexShrink: 0 }} />}
+                          </div>
+
+                          {/* Typology Level Overrides Drawer */}
+                          {checked && (
+                            <div style={{
+                              background: '#fafbfc', borderTop: '1px solid #f1f5f9', padding: '0.75rem 1.5rem 1rem 3.5rem',
+                              display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '1rem', alignItems: 'end'
+                            }}>
+                              {/* 1. Required Override */}
+                              <div>
+                                <label style={{ ...css.label(), fontSize: '0.52rem', marginBottom: '0.25rem' }}>Required override</label>
+                                <select
+                                  value={requiredOverride}
+                                  onChange={e => handleOverrideChange('required_override', e.target.value)}
+                                  style={{ ...css.input(), padding: '0.4rem 0.75rem', fontSize: '0.72rem' }}
+                                >
+                                  <option value="default">Default ({sec.required ? 'Required' : 'Optional'})</option>
+                                  <option value="required">Force Required</option>
+                                  <option value="optional">Force Optional</option>
+                                </select>
+                              </div>
+
+                              {/* 2. Order Locked Toggle */}
+                              <div style={{ display: 'flex', alignItems: 'center', height: '32px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800, color: '#475569' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={orderLocked}
+                                    onChange={e => handleOverrideChange('order_locked', e.target.checked)}
+                                    style={{ accentColor: '#D4AF37' }}
+                                  />
+                                  Lock Layout Order
+                                </label>
+                              </div>
+
+                              {/* 3. Typology default CTA phone */}
+                              <div>
+                                <label style={{ ...css.label(), fontSize: '0.52rem', marginBottom: '0.25rem' }}>Default CTA Phone</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. +2012000000"
+                                  value={ctaPhone}
+                                  onChange={e => handleOverrideChange('cta_phone', e.target.value)}
+                                  style={{ ...css.input(), padding: '0.4rem 0.75rem', fontSize: '0.72rem' }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

@@ -152,7 +152,13 @@ export async function GET(request: NextRequest) {
             });
           }
 
-          let fieldsList = Array.from(fieldMap.values());
+          let fieldsList = Array.from(fieldMap.values()).map(f => {
+            const readRoles = Array.isArray(f.acl?.read) ? f.acl.read : ['public'];
+            return {
+              ...f,
+              show_on_public: readRoles.includes('public')
+            };
+          });
           if (section) {
             fieldsList = fieldsList.filter(f => f.section_id === section);
           }
@@ -309,11 +315,29 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      return NextResponse.json(Array.from(fieldMap.values()).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+      const fieldsList = Array.from(fieldMap.values()).map(f => {
+        const readRoles = Array.isArray(f.acl?.read) ? f.acl.read : ['public'];
+        return {
+          ...f,
+          show_on_public: readRoles.includes('public')
+        };
+      });
+      return NextResponse.json(fieldsList.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
     }
 
-    const fields = await query('SELECT * FROM form_fields ORDER BY business_type_id, section_id, sort_order');
-    return NextResponse.json(fields);
+    const fields = await query('SELECT * FROM form_fields ORDER BY business_type_id, section_id, sort_order') as any[];
+    const mappedFields = fields.map(f => {
+      const parsedAcl = (() => { try { return typeof f.acl === 'string' ? JSON.parse(f.acl) : f.acl; } catch { return {}; } })();
+      const readRoles = Array.isArray(parsedAcl?.read) ? parsedAcl.read : ['public'];
+      return {
+        ...f,
+        options: (() => { try { return typeof f.options === 'string' ? JSON.parse(f.options) : f.options; } catch { return f.options; } })(),
+        validation: (() => { try { return typeof f.validation === 'string' ? JSON.parse(f.validation) : f.validation; } catch { return f.validation; } })(),
+        acl: parsedAcl,
+        show_on_public: readRoles.includes('public')
+      };
+    });
+    return NextResponse.json(mappedFields);
   } catch (e: any) { 
     console.error('[FORMS API ERROR]', e);
     return NextResponse.json({ error: e.message }, { status: 500 }); 
@@ -350,9 +374,21 @@ export async function POST(request: NextRequest) {
     const [maxOrder] = await query('SELECT COALESCE(MAX(sort_order), 0) as m FROM form_fields WHERE business_type_id = ? AND section_id = ?', [business_type_id, section_id]);
 
     const finalSortOrder = sort_order ?? (((maxOrder as any)?.m || 0) + 1);
-    const finalAcl = typeof acl === 'string' ? acl : JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] });
     const finalValidation = typeof validation === 'string' ? validation : JSON.stringify(validation || {});
     const finalOptions = options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null;
+
+    // Resolve ACL based on show_on_public flag
+    let aclObj = acl ? (typeof acl === 'string' ? JSON.parse(acl) : acl) : { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] };
+    if (body.show_on_public !== undefined) {
+      const show = !!body.show_on_public;
+      if (!aclObj.read) aclObj.read = [];
+      if (show && !aclObj.read.includes('public')) {
+        aclObj.read.push('public');
+      } else if (!show) {
+        aclObj.read = aclObj.read.filter((r: string) => r !== 'public');
+      }
+    }
+    const finalAcl = JSON.stringify(aclObj);
 
     console.log('[FORMS POST] Creating field with params:', {
       id, business_type_id, section_id, name, label, field_type, 
@@ -444,6 +480,28 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: true, id: siblingId });
     }
 
+    // Resolve ACL updates based on show_on_public flag
+    let finalAclString = undefined;
+    if (body.show_on_public !== undefined || acl !== undefined) {
+      let aclObj = acl ? (typeof acl === 'string' ? JSON.parse(acl) : acl) : null;
+      if (!aclObj && currentField?.acl) {
+        aclObj = typeof currentField.acl === 'string' ? JSON.parse(currentField.acl) : currentField.acl;
+      }
+      if (!aclObj) {
+        aclObj = { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] };
+      }
+      if (body.show_on_public !== undefined) {
+        const show = !!body.show_on_public;
+        if (!aclObj.read) aclObj.read = [];
+        if (show && !aclObj.read.includes('public')) {
+          aclObj.read.push('public');
+        } else if (!show) {
+          aclObj.read = aclObj.read.filter((r: string) => r !== 'public');
+        }
+      }
+      finalAclString = JSON.stringify(aclObj);
+    }
+
     const updates = [];
     const params = [];
     if (label !== undefined) { updates.push('label=?'); params.push(label); }
@@ -455,7 +513,8 @@ export async function PUT(request: NextRequest) {
     if (sort_order !== undefined) { updates.push('sort_order=?'); params.push(sort_order); }
     if (options !== undefined) { updates.push('options=?'); params.push(typeof options === 'string' ? options : JSON.stringify(options)); }
     if (section_id !== undefined) { updates.push('section_id=?'); params.push(section_id); }
-    if (acl !== undefined) { updates.push('acl=?'); params.push(typeof acl === 'string' ? acl : JSON.stringify(acl)); }
+    if (finalAclString !== undefined) { updates.push('acl=?'); params.push(finalAclString); }
+    else if (acl !== undefined) { updates.push('acl=?'); params.push(typeof acl === 'string' ? acl : JSON.stringify(acl)); }
     if (validation !== undefined) { updates.push('validation=?'); params.push(typeof validation === 'string' ? validation : JSON.stringify(validation)); }
     if (required_feature !== undefined) { updates.push('required_feature=?'); params.push(required_feature); }
     if (version_type !== undefined) { updates.push('version_type=?'); params.push(targetVersionType); }

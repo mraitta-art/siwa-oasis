@@ -437,6 +437,11 @@ export default function VanityBusinessClient({
                           if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
 
                           const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
+                          
+                          // Check public visibility policy
+                          const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
+                          if (!isPublic) return null;
+
                           const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
                           
                           // 1. DYNAMIC GATE: If price field is blank or set to 'call', show a Call for Price CTA
@@ -467,8 +472,8 @@ export default function VanityBusinessClient({
                           }
 
                           // 3. Render Field
-                          // Phone priority: admin CTA override → vendor's own number
-                          const ctaPhoneNumber = section.cta_phone || dynamicPhone;
+                          // Phone priority: admin CTA override → typology default override → vendor's own number
+                          const ctaPhoneNumber = section.cta_phone || section.cta_phone_override || dynamicPhone;
                           const rendered = finalVal === 'call_for_price_fallback' ? (
                             <a href={`tel:${ctaPhoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
                               <i className="fas fa-phone-alt" /> CALL FOR PRICE

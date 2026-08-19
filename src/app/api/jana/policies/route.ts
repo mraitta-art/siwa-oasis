@@ -5,11 +5,22 @@ import { requireAdmin } from '@/lib/auth';
 export async function GET() {
   try {
     await requireAdmin();
-    const policies = await query('SELECT * FROM search_policies ORDER BY name');
-    return NextResponse.json(policies.map((p: any) => ({
-      ...p,
-      allowed_fields: typeof p.allowed_fields === 'string' ? JSON.parse(p.allowed_fields) : p.allowed_fields || [],
-    })));
+    const policies = await query('SELECT * FROM search_policies ORDER BY name') as any[];
+    const overrides = await query(`
+      SELECT bsc.*, b.name as business_name, s.name as section_name 
+      FROM business_section_controls bsc 
+      JOIN businesses b ON bsc.business_id = b.id 
+      LEFT JOIN sections s ON bsc.section_id = s.id
+      ORDER BY b.name, s.name
+    `) as any[];
+
+    return NextResponse.json({
+      policies: policies.map((p: any) => ({
+        ...p,
+        allowed_fields: typeof p.allowed_fields === 'string' ? JSON.parse(p.allowed_fields) : p.allowed_fields || [],
+      })),
+      overrides
+    });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
 

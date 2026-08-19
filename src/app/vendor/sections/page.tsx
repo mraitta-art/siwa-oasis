@@ -7,7 +7,7 @@ import { useLang } from '@/context/LangContext';
 
 /* ─── Interfaces ───────────────────────────────────────────────── */
 interface Field { id: string; name: string; label: string; field_type: string; required: boolean; value: any; options?: any; help_text?: string; business_type_id?: string; }
-interface Section { id: string; name: string; icon: string; fields: Field[]; enable_gallery: boolean; enable_blog: boolean; }
+interface Section { id: string; name: string; icon: string; fields: Field[]; enable_gallery: boolean; enable_blog: boolean; required?: boolean; order_locked?: boolean; }
 interface Typology { child: { id: string; name: string; icon: string; color: string } | null; parent: { id: string; name: string; icon: string; color: string } | null; }
 interface GalleryItem { id: string; url: string; caption: string; slide_data?: { title?: string; cta_label?: string; cta_url?: string; show_overlay?: boolean } | null; is_hero: boolean; show_on_main: boolean; show_on_minisite: boolean; approval_status: string; uploadedAt: string; }
 interface BlogPost { id: string; title: string; excerpt: string; status: string; show_on_main: boolean; show_on_minisite: boolean; created_at: string; published_at: string | null; }
@@ -582,10 +582,21 @@ export default function VendorStudio() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '130px', justifyContent: 'flex-end' }}>
                         <button
                           onClick={() => setHiddenSections(prev => isHidden ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 1rem', borderRadius: '10px', border: '1.5px solid', borderColor: isHidden ? '#fca5a5' : '#6ee7b7', background: isHidden ? '#fef2f2' : '#f0fdf4', color: isHidden ? '#ef4444' : '#10b981', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', transition: 'all 0.15s' }}
+                          disabled={s.required || s.order_locked}
+                          title={s.required ? "Required section" : s.order_locked ? "Order locked by admin policy" : ""}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 1rem', borderRadius: '10px',
+                            border: '1.5px solid',
+                            borderColor: (s.required || s.order_locked) ? '#e2e8f0' : (isHidden ? '#fca5a5' : '#6ee7b7'),
+                            background: (s.required || s.order_locked) ? '#f8fafc' : (isHidden ? '#fef2f2' : '#f0fdf4'),
+                            color: (s.required || s.order_locked) ? '#cbd5e1' : (isHidden ? '#ef4444' : '#10b981'),
+                            fontWeight: 800, fontSize: '0.72rem',
+                            cursor: (s.required || s.order_locked) ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.15s'
+                          }}
                         >
-                          <i className={`fas ${isHidden ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                          {isHidden ? 'HIDDEN' : 'VISIBLE'}
+                          <i className={`fas ${(s.required || s.order_locked) ? 'fa-lock' : (isHidden ? 'fa-eye-slash' : 'fa-eye')}`}></i>
+                          {(s.required || s.order_locked) ? 'LOCKED' : (isHidden ? 'HIDDEN' : 'VISIBLE')}
                         </button>
                       </div>
                     </div>

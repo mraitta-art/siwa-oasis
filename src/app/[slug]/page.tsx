@@ -191,7 +191,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         
         // Fetch field metadata definitions to display user-friendly labels on minisite
         const fieldDefs = await safeQuery<any>(
-          `SELECT name, label, section_id, field_type, options FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
+          `SELECT name, label, section_id, field_type, options, acl, required_feature FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
           [biz.type_id]
         );
 
@@ -213,11 +213,42 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         );
 
         sections = rows.map((s: any) => {
-          const sFields = fieldDefs.filter((f: any) => f.section_id === s.id);
+          const sFields = fieldDefs.filter((f: any) => f.section_id === s.id).map((f: any) => ({
+            ...f,
+            acl: (() => { try { return typeof f.acl === 'string' ? JSON.parse(f.acl) : f.acl || {}; } catch { return {}; } })()
+          }));
           const sGallery = galleryItems.filter((g: any) => g.section_id === s.id);
           const sBlogs = blogPosts.filter((b: any) => b.section_id === s.id);
+
+          // Resolve Typology-Level Overrides for this specific business typology (biz.type_id)
+          const rules = (() => {
+            try {
+              return typeof s.inheritance_rules === 'string'
+                ? JSON.parse(s.inheritance_rules)
+                : s.inheritance_rules || {};
+            } catch {
+              return {};
+            }
+          })();
+          const typologyRules = rules.typologies?.[biz.type_id] || {};
+          
+          // Resolve required override
+          const isRequiredOverride = typologyRules.required_override;
+          const resolvedRequired = isRequiredOverride === 'required'
+            ? true
+            : (isRequiredOverride === 'optional' ? false : s.required !== 0);
+
+          // Resolve order locked
+          const orderLocked = !!typologyRules.order_locked;
+
+          // Resolve CTA phone override
+          const resolvedCtaPhone = typologyRules.cta_phone || null;
+
           return {
             ...s,
+            required: resolvedRequired,
+            order_locked: orderLocked,
+            cta_phone_override: resolvedCtaPhone,
             fields: sFields,
             gallery: sGallery,
             blogs: sBlogs
