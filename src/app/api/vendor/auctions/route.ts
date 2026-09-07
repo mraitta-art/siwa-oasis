@@ -61,7 +61,7 @@ const auctionsDb: Record<
     auction_end_time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
     show_visitor_contact: false, // HIDDEN - New field
     contact_visibility_level: "none", // No contact shown
-    admin_contact_email: "vendor-replies@siwatoday.com", // New field
+    admin_contact_email: "vendor-replies@siwify.com", // New field
     bid_history: [
       {
         vendor_name: "Chef A",

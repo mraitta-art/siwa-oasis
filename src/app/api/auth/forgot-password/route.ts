@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryOne, execute } from '@/lib/db';
 import crypto from 'crypto';
+import { getPublicAppUrl } from '@/lib/public-url';
 
 // POST: Request a password reset link
 export async function POST(request: NextRequest) {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     );
 
     // In a real app, send email here. For now, we return the token (simulated link)
-    console.log(`[AUTH] Reset Link: http://localhost:3001/jana/reset-password?token=${token}`);
+    console.log(`[AUTH] Reset Link: ${getPublicAppUrl().replace(/\/$/, '')}/jana/reset-password?token=${token}`);
 
     return NextResponse.json({ 
       success: true, 

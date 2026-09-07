@@ -12,6 +12,7 @@ interface PaletteItem {
   color: string;
   desc: string;
   isDynamic?: boolean;
+  defaultProps?: Record<string, unknown>;
 }
 
 // ── Component catalogue — SYNCED with DynamicHomepageRenderer ─────────────────
@@ -36,6 +37,7 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'blog',                  name: 'Blog / Articles',         icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Latest blog posts feed' },
   { zone: 'body',   key: 'featured_vibe',         name: 'Featured Vibe Story',     icon: '🪄', manager: null,                  color: '#D4AF37', desc: 'Highlighted experience story' },
   { zone: 'body',   key: 'investment_feed',       name: 'Investment Marketplace',  icon: '💎', manager: null,                  color: '#ec4899', desc: 'Heritage investment opportunities' },
+  { zone: 'body',   key: 'discovery_gateway',      name: 'Discovery Gateway',       icon: '🧭', manager: null,                  color: '#0f766e', desc: 'Primary navigation to experiences, journeys, deals, and investments' },
   { zone: 'body',   key: 'services',              name: 'Business Listings CTA',   icon: '🏢', manager: '/jana/businesses',     color: '#10b981', desc: 'Simple verified-businesses banner' },
 
   // ── Footer zone ──
@@ -62,6 +64,7 @@ function MultiPageSiteBuilderComponent() {
   const [saving, setSaving]             = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [dynamicComponents, setDynamic] = useState<PaletteItem[]>([]);
+  const [runtimeComponents, setRuntimeComponents] = useState<PaletteItem[]>([]);
   const [searchEngines, setSearchEngines] = useState<any[]>([]);
   const [tiers, setTiers]               = useState<any[]>([]);
   const [toast, setToast]               = useState<{ msg: string; type: 'success'|'error'|'info' }|null>(null);
@@ -139,6 +142,20 @@ function MultiPageSiteBuilderComponent() {
       })));
     }).catch(() => {});
 
+    fetch('/api/jana/site-components?enabled=true').then(r => r.json()).then(data => {
+      if (!Array.isArray(data)) return;
+      setRuntimeComponents(data.map(c => ({
+        zone: c.zone,
+        key: c.key,
+        name: c.name,
+        icon: c.icon || '📦',
+        manager: c.manager_url || null,
+        color: c.zone === 'header' ? '#D4AF37' : c.zone === 'footer' ? '#64748b' : '#10b981',
+        desc: c.description || 'Registered site component',
+        defaultProps: typeof c.component_config === 'string' ? JSON.parse(c.component_config) : (c.component_config || {}),
+      })));
+    }).catch(() => {});
+
     fetch('/api/jana/search-engines').then(r => r.json()).then(d => setSearchEngines(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/jana/types').then(r => r.json()).then(d => setTypes(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/jana/tiers').then(r => r.json()).then(d => setTiers(Array.isArray(d) ? d : [])).catch(() => {});
@@ -146,7 +163,7 @@ function MultiPageSiteBuilderComponent() {
 
   // Default layout seeded into the builder when no modules are saved yet
   const DEFAULT_MAIN_SLOTS: Slot[] = [
-    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'discovery' } },
+    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'main_hero' } },
     { id: 'h2', key: 'services_hub',          zone: 'body', label: 'Services Hub',          props: {} },
     { id: 'h3', key: 'experience_categories', zone: 'body', label: 'Experience Categories', props: {} },
     { id: 'h4', key: 'search_bar',            zone: 'body', label: 'Search Engine (Full)',  props: {} },
@@ -156,6 +173,8 @@ function MultiPageSiteBuilderComponent() {
     { id: 'h8', key: 'storytelling_section',  zone: 'body', label: 'Storytelling',          props: {} },
     { id: 'h9', key: 'partner_cta',           zone: 'body', label: 'Partner CTA',           props: {} },
   ];
+
+  const pageCarouselId = (pageSlug = currentPage) => `${pageSlug || 'main'}_hero`;
 
   // Load layout when page/template changes
   useEffect(() => {
@@ -193,12 +212,13 @@ function MultiPageSiteBuilderComponent() {
           }
 
           const allLoaded = [
-            ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-            ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
-            ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+            ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
+            ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
+            ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
           ];
 
-          setSlots(allLoaded);
+          const hasSavedLayout = ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(t[key]));
+          setSlots(hasSavedLayout ? allLoaded : currentPage === 'main' ? DEFAULT_MAIN_SLOTS : [{ id: `${currentPage}_hero`, key: 'hero_carousel', zone: 'body', label: 'Hero Carousel', carousel_id: pageCarouselId(), props: { carousel_id: pageCarouselId() } }]);
         } catch {
           setSlots([]);
         }
@@ -223,7 +243,8 @@ function MultiPageSiteBuilderComponent() {
   };
 
   // ── Slot helpers ────────────────────────────────────────────────────────────
-  const FULL_PALETTE = [...PALETTE, ...dynamicComponents];
+  const fallbackPalette = runtimeComponents.length === 0 ? PALETTE : [];
+  const FULL_PALETTE = [...runtimeComponents, ...fallbackPalette, ...dynamicComponents];
   const palettFor = (z: Zone) => FULL_PALETTE.filter(p => p.zone === z);
   const slotsFor  = (z: Zone) => slots.filter(s => s.zone === z);
 
@@ -232,11 +253,13 @@ function MultiPageSiteBuilderComponent() {
     if (isAdded(item)) {
       // Allow re-adding with a unique ID for power users
       const count = slots.filter(s => s.key === item.key && s.zone === item.zone).length;
-      setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: `${item.name} #${count + 1}` }]);
+      const carousel_id = item.key === 'hero_carousel' ? `${pageCarouselId()}_${count + 1}` : undefined;
+      setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: `${item.name} #${count + 1}`, carousel_id, props: { ...(item.defaultProps || {}), ...(carousel_id ? { carousel_id } : {}) } }]);
       notify(`✅ ${item.name} #${count + 1} added`);
       return;
     }
-    setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: item.name }]);
+    const carousel_id = item.key === 'hero_carousel' ? pageCarouselId() : undefined;
+    setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: item.name, carousel_id, props: { ...(item.defaultProps || {}), ...(carousel_id ? { carousel_id } : {}) } }]);
     notify(`✅ ${item.name} added`);
   };
   const removeSlot = (id: string) => setSlots(prev => prev.filter(s => s.id !== id));
@@ -267,7 +290,7 @@ function MultiPageSiteBuilderComponent() {
   const save = async () => {
     setSaving(true);
     try {
-      const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id, ...(s.props || {}) } });
+      const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.key === 'hero_carousel' ? (s.carousel_id || pageCarouselId()) : s.carousel_id, ...(s.props || {}) } });
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
@@ -712,6 +735,40 @@ function MultiPageSiteBuilderComponent() {
                       {slot.key === 'hero_carousel' && (
                         <ConfigBox label="CAROUSEL CONTENT ID">
                           <input value={slot.props?.carousel_id||slot.carousel_id||''} onChange={e=>updateSlotProp(slot.id,'carousel_id',e.target.value.toLowerCase().replace(/\s+/g,'_'))} placeholder={mode==='TEMPLATES'?"Leave empty (uses Vendor photos)":"e.g. main_hero"} style={{...fieldStyle('100%'),width:'100%'}} />
+                        </ConfigBox>
+                      )}
+
+                      {slot.key === 'discovery_gateway' && (
+                        <ConfigBox label="DISCOVERY GATEWAY CONTENT">
+                          <div style={{ display:'grid', gap:'0.5rem' }}>
+                            <input value={slot.props?.eyebrow || ''} onChange={e=>updateSlotProp(slot.id,'eyebrow',e.target.value)} placeholder="Eyebrow, e.g. DISCOVER SIWA" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input value={slot.props?.title || ''} onChange={e=>updateSlotProp(slot.id,'title',e.target.value)} placeholder="Heading, e.g. Start with an experience" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input value={slot.props?.subtitle || ''} onChange={e=>updateSlotProp(slot.id,'subtitle',e.target.value)} placeholder="Supporting description" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <textarea
+                              value={Array.isArray(slot.props?.destinations) ? JSON.stringify(slot.props.destinations, null, 2) : (slot.props?.destinations || '')}
+                              onChange={e=>{
+                                const value = e.target.value;
+                                if (!value.trim()) {
+                                  setSlots(prev => prev.map(s => {
+                                    if (s.id !== slot.id) return s;
+                                    const props = { ...(s.props || {}) };
+                                    delete props.destinations;
+                                    return { ...s, props };
+                                  }));
+                                  return;
+                                }
+                                try {
+                                  const destinations = JSON.parse(value);
+                                  if (Array.isArray(destinations)) {
+                                    setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, props: { ...(s.props || {}), destinations } } : s));
+                                  }
+                                } catch { /* Keep the last valid value while editing JSON. */ }
+                              }}
+                              placeholder='[] to remove all cards, or [{"href":"/search/vibe","label":"Experiences","description":"...","icon":"fa-compass","color":"#0f766e"}]'
+                              style={{ width:'100%', minHeight:150, padding:'0.55rem 0.65rem', border:'1.5px solid #e2e8f0', borderRadius:7, fontSize:'0.68rem', fontFamily:'monospace', boxSizing:'border-box' }}
+                            />
+                            <div style={{ fontSize:'0.58rem', color:'#64748b' }}>Edit or delete cards as JSON. Leave this empty to use the default cards.</div>
+                          </div>
                         </ConfigBox>
                       )}
 

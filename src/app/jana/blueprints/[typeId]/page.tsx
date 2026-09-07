@@ -301,7 +301,7 @@ export default function BlueprintEditor() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
             <div>
               <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>🧬 Field Schema</h2>
-              <p style={{ color: '#475569', fontSize: '0.8rem', margin: '0.35rem 0 0', fontWeight: 500 }}>Configure which fields are active per chapter for this business type</p>
+              <p style={{ color: '#475569', fontSize: '0.8rem', margin: '0.35rem 0 0', fontWeight: 500 }}>Configure which fields are active per chapter for this category or typology</p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               {saveMsg && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: saveMsg.startsWith('✅') ? '#10b981' : '#ef4444' }}>{saveMsg}</span>}
@@ -522,7 +522,7 @@ export default function BlueprintEditor() {
             <div style={{ padding: '3rem', textAlign: 'center', border: '2px dashed rgba(255,255,255,0.08)', borderRadius: '16px', color: '#374151' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📝</div>
               <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>No posts yet</div>
-              <div style={{ fontSize: '0.75rem', marginTop: '0.4rem' }}>Create the first post for this business type</div>
+              <div style={{ fontSize: '0.75rem', marginTop: '0.4rem' }}>Create the first post for this category or typology</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

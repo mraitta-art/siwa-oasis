@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     if (!vendor_id) {
       // Look up the system anonymous profile
       const anonProfile = await queryOne(
-        `SELECT id FROM profiles WHERE role = 'anonymous' OR id = 'anonymous' OR email = 'anonymous@siwa.today' LIMIT 1`
+        `SELECT id FROM profiles WHERE role = 'anonymous' OR id = 'anonymous' OR email = 'anonymous@siwify.com' LIMIT 1`
       ) as any;
       vendor_id = anonProfile?.id || 'anonymous';
     }

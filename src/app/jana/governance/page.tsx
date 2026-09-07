@@ -12,7 +12,7 @@ export default function GovernanceDashboard() {
     {
       id: 'typology',
       title: 'Typology Architect',
-      description: 'Define the hierarchy of business types, from parents to specialized children.',
+      description: 'Define the hierarchy of business categories, from parent categories to specialized child typologies.',
       icon: 'fa-folder-tree',
       path: '/jana/types',
       color: '#8b5cf6',

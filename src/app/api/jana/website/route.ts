@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { getWebsiteTemplate, invalidateCache } from '@/lib/cache';
+import { isSupportedComponent, validateComponentProps } from '@/lib/component-contracts';
+
+function normalizeComponents(components: unknown) {
+  if (!Array.isArray(components)) return [];
+  return components.filter((component: any) => component && typeof component.type === 'string').map((component: any) => ({
+    ...component,
+    props: isSupportedComponent(component.type)
+      ? validateComponentProps(component.type, component.props)
+      : (component.props && typeof component.props === 'object' ? component.props : {}),
+  }));
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +45,12 @@ export async function POST(request: NextRequest) {
     const { id, header_components = [], body_components = [], footer_components = [], site_settings = {} } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    const config = JSON.stringify({ header_components, body_components, footer_components, site_settings });
+    const config = JSON.stringify({
+      header_components: normalizeComponents(header_components),
+      body_components: normalizeComponents(body_components),
+      footer_components: normalizeComponents(footer_components),
+      site_settings,
+    });
 
     await execute(
       `INSERT INTO website_configs (type, config) VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)`,

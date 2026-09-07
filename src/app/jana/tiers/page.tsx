@@ -49,6 +49,13 @@ export default function InteractiveTiersPage() {
       body: JSON.stringify(payload)
     });
     if (res.ok) {
+      if (payload.default_template_id) {
+        await fetch('/api/jana/template-governance', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templateId: payload.default_template_id, tierId: payload.id }),
+        });
+      }
       setEditId(null);
       loadData();
       alert('Policy updated platform-wide!');

@@ -37,9 +37,12 @@ export async function POST(request: NextRequest) {
 
       // Body
       { key: 'hero_carousel', name: 'Hero Carousel', zone: 'body', category: 'Hero', icon: '🎬', manager_url: '/jana/hero-carousel', sort_order: 10 },
+      { key: 'service_directory', name: 'Services Directory', zone: 'body', category: 'Content', icon: '🧭', manager_url: '/jana/businesses', sort_order: 15 },
       { key: 'services_hub', name: 'Services Hub', zone: 'body', category: 'Content', icon: '🏛️', manager_url: '/jana/businesses', sort_order: 20 },
+      { key: 'category_showcase', name: 'Category Cards', zone: 'body', category: 'Content', icon: '🎯', manager_url: null, sort_order: 25 },
       { key: 'experience_categories', name: 'Experience Categories', zone: 'body', category: 'Content', icon: '🎭', manager_url: null, sort_order: 30 },
       { key: 'search_bar', name: 'Search Engine (Full)', zone: 'body', category: 'Search', icon: '🔍', manager_url: '/jana/search-engines', sort_order: 40 },
+      { key: 'journey_collection', name: 'Journey Collection', zone: 'body', category: 'Content', icon: '🗺️', manager_url: '/jana/journey-templates-manager', sort_order: 45 },
       { key: 'smart_journey_planner', name: 'Journey Planner', zone: 'body', category: 'Content', icon: '🗓️', manager_url: null, sort_order: 50 },
       { key: 'ecosystem_map', name: 'Interactive Map', zone: 'body', category: 'Content', icon: '🗺️', manager_url: null, sort_order: 60 },
       { key: 'local_products', name: 'Local Products', zone: 'body', category: 'Commerce', icon: '🫒', manager_url: null, sort_order: 70 },
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
       { key: 'blog', name: 'Blog / Articles', zone: 'body', category: 'Content', icon: '📰', manager_url: '/jana/blog', sort_order: 100 },
       { key: 'featured_vibe', name: 'Featured Vibe Story', zone: 'body', category: 'Content', icon: '🪄', manager_url: null, sort_order: 110 },
       { key: 'investment_feed', name: 'Investment Marketplace', zone: 'body', category: 'Commerce', icon: '💎', manager_url: null, sort_order: 120 },
+      { key: 'discovery_gateway', name: 'Discovery Gateway', zone: 'body', category: 'Navigation', icon: '🧭', manager_url: null, sort_order: 125 },
       { key: 'services', name: 'Business Listings CTA', zone: 'body', category: 'Content', icon: '🏢', manager_url: '/jana/businesses', sort_order: 130 },
       { key: 'testimonials', name: 'Testimonials', zone: 'body', category: 'Content', icon: '⭐', manager_url: null, sort_order: 140 },
       { key: 'newsletter', name: 'Newsletter Signup', zone: 'body', category: 'CTA', icon: '📧', manager_url: null, sort_order: 150 },

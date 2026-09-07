@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { login, createToken, setSessionCookie } from '@/lib/auth';
+import { login, createToken } from '@/lib/auth';
 import { execute as dbExec } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
-    if (!email || !password) {
+    const { email: rawEmail, password } = await request.json();
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    if (!email || typeof password !== 'string' || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
@@ -34,14 +35,18 @@ export async function POST(request: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true, user });
-    response.cookies.set(process.env.SESSION_COOKIE_NAME || 'siwa_session', token, {
+    const cookieOptions: Parameters<typeof response.cookies.set>[2] = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.siwa.today' : undefined,
-    });
+    };
+    const cookieDomain = process.env.COOKIE_DOMAIN?.trim();
+    if (cookieDomain) {
+      cookieOptions.domain = cookieDomain;
+    }
+    response.cookies.set(process.env.SESSION_COOKIE_NAME || 'siwa_session', token, cookieOptions);
 
     return response;
   } catch (error: any) {

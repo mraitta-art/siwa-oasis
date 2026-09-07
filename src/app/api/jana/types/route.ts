@@ -43,6 +43,15 @@ export async function POST(request: NextRequest) {
     log(`[TYPES POST] Attempt: ${JSON.stringify(body)}`);
     const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [], default_template_id = null } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
+    if (!is_parent && (!parent_id || parent_id === id)) {
+      return NextResponse.json({ error: 'A child typology must be assigned to a valid parent category.' }, { status: 400 });
+    }
+    if (!is_parent) {
+      const parent = await query('SELECT id, is_parent, active FROM business_types WHERE id = ?', [parent_id]);
+      if (!parent.length || !parent[0].is_parent || !parent[0].active || parent_id === 'SECTION_TEMPLATE') {
+        return NextResponse.json({ error: 'Selected parent category is not active or does not exist.' }, { status: 400 });
+      }
+    }
 
     // ✅ VALIDATION: Check for duplicate names
     const existingWithName = await query(
@@ -92,6 +101,15 @@ export async function PUT(request: NextRequest) {
     log(`[TYPES PUT] Attempt: ${JSON.stringify(body)}`);
     const { id, name, icon, icon_color, description, is_parent, parent_id, active, sections, own_sections, default_template_id } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    if (!is_parent && (!parent_id || parent_id === id)) {
+      return NextResponse.json({ error: 'A child typology must be assigned to a valid parent category.' }, { status: 400 });
+    }
+    if (!is_parent) {
+      const parent = await query('SELECT id, is_parent, active FROM business_types WHERE id = ?', [parent_id]);
+      if (!parent.length || !parent[0].is_parent || !parent[0].active || parent_id === 'SECTION_TEMPLATE') {
+        return NextResponse.json({ error: 'Selected parent category is not active or does not exist.' }, { status: 400 });
+      }
+    }
 
     // ✅ VALIDATION: Check for duplicate names (excluding current type)
     if (name) {

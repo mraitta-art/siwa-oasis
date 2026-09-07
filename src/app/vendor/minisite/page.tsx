@@ -19,6 +19,7 @@ interface MinisiteSettings {
   slug: string;
   minisite_color?: string;
   minisite_font?: string;
+  section_label_edit_enabled?: boolean;
 }
 
 const COLOR_PRESETS = [
@@ -102,6 +103,12 @@ export default function VendorMinisitePage() {
         minisite_color: biz.minisite_color || '#D4AF37',
         minisite_font: biz.minisite_font || 'Inter',
       });
+
+      const settingsResponse = await fetch('/api/vendor/minisite/settings');
+      if (settingsResponse.ok) {
+        const savedSettings = await settingsResponse.json();
+        setSettings(current => current ? { ...current, section_label_edit_enabled: !!savedSettings.section_label_edit_enabled } : current);
+      }
 
       if (data.structure) {
         const customData = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data || '{}') : (biz.custom_data || {});
@@ -290,7 +297,7 @@ export default function VendorMinisitePage() {
         {/* Section Visibility & Ordering */}
         <div className="ms-card">
           <h2 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.25rem' }}>📋 Minisite Sections & Ordering</h2>
-          <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '1.25rem' }}>Toggle visibility and reorder navigation tabs on your public minisite</p>
+          <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '1.25rem' }}>Toggle visibility and reorder navigation tabs on your public minisite. Section titles are locked by admin by default.</p>
 
           {sections.map((sec, i) => (
             <div key={sec.id} className="ms-sec-item">
@@ -304,6 +311,8 @@ export default function VendorMinisitePage() {
                 type="text"
                 value={sec.label}
                 onChange={e => updateLabel(sec.id, e.target.value)}
+                disabled={!settings?.section_label_edit_enabled}
+                title={settings?.section_label_edit_enabled ? 'Edit section title' : 'Section title editing is locked by admin'}
                 style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.82rem', fontWeight: 700, color: sec.visible ? '#0f172a' : '#94a3b8', textDecoration: sec.visible ? 'none' : 'line-through' }}
               />
               <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>

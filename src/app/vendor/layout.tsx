@@ -30,14 +30,21 @@ const NAV_GROUPS = [
       { name: 'Content & Profile',  href: '/vendor/sections',              faIcon: 'fa-layer-group' },
       { name: 'Media Gallery',      href: '/vendor/media',                 faIcon: 'fa-images' },
       { name: 'Theme & Publish',    href: '/vendor/minisite',              faIcon: 'fa-globe',      badge: 'LIVE' },
+      { name: 'Template Library',   href: '/vendor/templates',              faIcon: 'fa-palette' },
     ],
   },
   {
-    title: 'Marketplace',
+    title: 'Sales & Leads',
     items: [
       { name: 'Journey Requests',   href: '/vendor/journey-requests',      faIcon: 'fa-route',      badge: 'REQ' },
       { name: 'My Packages',        href: '/vendor/packages',              faIcon: 'fa-box-open' },
-      { name: 'Investments',        href: '/vendor/investment-opportunities', faIcon: 'fa-chart-bar' },
+    ],
+  },
+  {
+    title: 'Account & Services',
+    items: [
+      { name: 'Plan, QR & Services', href: '/vendor/services', faIcon: 'fa-layer-group' },
+      { name: 'Verification', href: '/vendor/verification', faIcon: 'fa-user-check' },
     ],
   },
 ];
@@ -47,7 +54,7 @@ const MOBILE_TABS = [
   { name: 'Content',  href: '/vendor/sections',          faIcon: 'fa-layer-group' },
   { name: 'Media',    href: '/vendor/media',             faIcon: 'fa-images' },
   { name: 'Requests', href: '/vendor/journey-requests',  faIcon: 'fa-route' },
-  { name: 'Publish',  href: '/vendor/minisite',          faIcon: 'fa-globe' },
+  { name: 'Services', href: '/vendor/services',           faIcon: 'fa-qrcode' },
 ];
 
 /* ─── CSS injected once ───────────────────────────────────── */

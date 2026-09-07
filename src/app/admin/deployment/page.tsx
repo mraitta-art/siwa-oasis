@@ -168,7 +168,7 @@ export default function DeploymentPage() {
       await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: '🔔 Test alarm from Siwa.Today Deploy Control Center' }),
+        body: JSON.stringify({ text: '🔔 Test alarm from Siwify Deploy Control Center' }),
       });
       setScheduleMsg('✅ Test webhook sent!');
     } catch {
@@ -277,7 +277,7 @@ export default function DeploymentPage() {
               1. All local code changes are committed to Git<br />
               2. Changes are pushed to GitHub automatically<br />
               3. Vercel detects the push and rebuilds the live site<br />
-              4. Live site at siwa.today updates in ~2–4 minutes
+              4. Live site at siwify.com updates in ~2–4 minutes
             </div>
           </div>
 
@@ -446,7 +446,7 @@ export default function DeploymentPage() {
                     type="email"
                     value={ls.alarms.emailAddress}
                     onChange={e => setLocalSchedule(prev => prev ? { ...prev, alarms: { ...prev.alarms, emailAddress: e.target.value } } : prev)}
-                    placeholder="admin@siwa.today"
+                    placeholder="admin@siwify.com"
                     style={{ width: '100%', padding: '0.625rem 0.875rem', background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                   <p style={{ fontSize: '0.7rem', color: '#475569', marginTop: 4 }}>Email alerts require an SMTP service (Resend / Nodemailer) — configure in .env</p>

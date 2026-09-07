@@ -52,7 +52,10 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Management',
     items: [
       { label: 'Businesses', icon: '🏪', href: '/admin/sections' },
+      { label: 'Vendor Services', icon: '⚙️', href: '/jana/vendor-services', badge: 'NEW', badgeColor: '#22c55e' },
+      { label: 'Vendor Directory', icon: '👥', href: '/jana/vendors' },
       { label: 'POI Settings', icon: '📍', href: '/admin/poi-settings' },
+      { label: 'Vendor Issues', icon: '🚨', href: '/admin/vendor-issues', badge: 'NEW', badgeColor: '#ef4444' },
       { label: 'Vendor Comms', icon: '💬', href: '/admin/vendor-communication' },
       { label: 'Visitor Merge', icon: '🔀', href: '/admin/visitor-merge' },
     ],
@@ -106,7 +109,9 @@ export default function AdminDashboardPage() {
     { icon: '🏗️', label: 'HP Editor',        href: '/admin/homepage-editor',      color: '#f59e0b' },
     { icon: '🔀', label: 'Visitor Merge',    href: '/admin/visitor-merge',        color: '#8b5cf6' },
     { icon: '💬', label: 'Vendor Comms',     href: '/admin/vendor-communication', color: '#22c55e' },
-    { icon: '🖼️', label: 'Images',           href: '/admin/image-curation',       color: '#f97316' },
+    { icon: '⚙️', label: 'Vendor Services',  href: '/jana/vendor-services',       color: '#f0c842' },
+    { icon: '�', label: 'Vendor Issues',    href: '/admin/vendor-issues',         color: '#ef4444' },
+    { icon: '�🖼️', label: 'Images',           href: '/admin/image-curation',       color: '#f97316' },
     { icon: '🚀', label: 'Deployment',       href: '/admin/deployment',           color: '#0ea5e9' },
   ];
 

@@ -19,6 +19,16 @@ export async function POST(req: NextRequest) {
 
     const { published } = await req.json();
 
+    if (published) {
+      const contacts = await query(
+        'SELECT COUNT(*) AS count FROM vendor_contacts WHERE vendor_id = ? AND is_active = TRUE AND phone IS NOT NULL AND phone <> "" AND full_name IS NOT NULL AND full_name <> "" AND job_title IS NOT NULL AND job_title <> ""',
+        [user.id]
+      ) as any[];
+      if (Number(contacts[0]?.count || 0) < 3) {
+        return NextResponse.json({ error: 'Add at least three named mobile contacts before publishing your free minisite.', requiredContacts: 3 }, { status: 400 });
+      }
+    }
+
     await execute(
       'UPDATE businesses SET is_published = ?, updated_at = NOW() WHERE id = ?',
       [published ? 1 : 0, user.businessId]

@@ -30,6 +30,11 @@ export default function ComponentRegistryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingComponent, setEditingComponent] = useState<SiteComponent | null>(null);
+  const [configComponent, setConfigComponent] = useState<SiteComponent | null>(null);
+  const [configText, setConfigText] = useState('{}');
+  const [configSchema, setConfigSchema] = useState<{ fields?: Array<{ name: string; type: string; label: string; default?: unknown; options?: string[]; min?: number; max?: number }> }>({});
+  const [configValues, setConfigValues] = useState<Record<string, unknown>>({});
+  const [configMode, setConfigMode] = useState<'visual' | 'json'>('visual');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   type FormData = { key: string; name: string; description: string; icon: string; zone: 'header' | 'body' | 'footer'; category: string; manager_url: string; sort_order: number; };
@@ -132,6 +137,48 @@ export default function ComponentRegistryPage() {
     }
   }
 
+  async function openConfigEditor(comp: SiteComponent) {
+    try {
+      const res = await fetch(`/api/jana/site-components/config/${comp.id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load component configuration');
+      setConfigComponent(comp);
+      const currentConfig = data.currentConfig || {};
+      setConfigSchema(data.schema || {});
+      setConfigValues(currentConfig);
+      setConfigText(JSON.stringify(currentConfig, null, 2));
+      setConfigMode(data.schema?.fields?.length ? 'visual' : 'json');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to load component configuration', 'error');
+    }
+  }
+
+  async function saveConfig() {
+    if (!configComponent) return;
+    let componentConfig: unknown;
+    try {
+      componentConfig = configMode === 'json' ? JSON.parse(configText || '{}') : configValues;
+    } catch {
+      showToast('Configuration must be valid JSON', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/jana/site-components/config/${configComponent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ component_config: componentConfig }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save configuration');
+      showToast('Component configuration saved', 'success');
+      setConfigComponent(null);
+      loadComponents();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save configuration', 'error');
+    }
+  }
+
   function showToast(msg: string, type: 'success' | 'error') {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -177,8 +224,8 @@ export default function ComponentRegistryPage() {
       <div style={{ maxWidth: 1200, margin: '0 auto', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900 }}>Component Registry</h1>
-            <p style={{ margin: '0.5rem 0 0 0', opacity: 0.6 }}>Control which components are available in the site builder</p>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900 }}>Runtime Component Registry</h1>
+            <p style={{ margin: '0.5rem 0 0 0', opacity: 0.6 }}>Control the components used by the live website renderer. Reusable page components are managed in Component Library.</p>
           </div>
           <button
             onClick={() => openModal()}
@@ -354,6 +401,12 @@ export default function ComponentRegistryPage() {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
                   <button
+                    onClick={() => openConfigEditor(comp)}
+                    style={{ flex: 1, padding: '0.5rem', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '0.375rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    Configure
+                  </button>
+                  <button
                     onClick={() => openModal(comp)}
                     style={{
                       flex: 1,
@@ -391,6 +444,49 @@ export default function ComponentRegistryPage() {
           </div>
         )}
       </div>
+
+      {configComponent && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }} onClick={() => setConfigComponent(null)}>
+          <div style={{ background: '#fff', borderRadius: '1rem', padding: '2rem', maxWidth: 720, width: '90%' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.4rem', fontWeight: 900 }}>Configure {configComponent.name}</h2>
+            <p style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.85rem' }}>Universal configuration editor. Specialized manager: {configComponent.manager_url || 'none'}.</p>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setConfigMode('visual')} style={{ padding: '0.5rem 0.75rem', border: 0, borderRadius: '0.4rem', background: configMode === 'visual' ? '#166534' : '#e2e8f0', color: configMode === 'visual' ? '#fff' : '#334155', fontWeight: 700, cursor: 'pointer' }}>Visual Editor</button>
+              <button onClick={() => { setConfigText(JSON.stringify(configValues, null, 2)); setConfigMode('json'); }} style={{ padding: '0.5rem 0.75rem', border: 0, borderRadius: '0.4rem', background: configMode === 'json' ? '#166534' : '#e2e8f0', color: configMode === 'json' ? '#fff' : '#334155', fontWeight: 700, cursor: 'pointer' }}>Advanced JSON</button>
+            </div>
+            {configMode === 'visual' ? (
+              configSchema.fields?.length ? (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {configSchema.fields.map(field => {
+                    const value = configValues[field.name] ?? field.default ?? '';
+                    const updateValue = (next: unknown) => setConfigValues(current => ({ ...current, [field.name]: next }));
+                    return (
+                      <label key={field.name} style={{ display: 'grid', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                        {field.label}
+                        {field.type === 'boolean' || field.type === 'toggle' ? (
+                          <input type="checkbox" checked={Boolean(value)} onChange={e => updateValue(e.target.checked)} style={{ width: 18, height: 18 }} />
+                        ) : field.type === 'select' ? (
+                          <select value={String(value)} onChange={e => updateValue(e.target.value)} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '0.45rem' }}>
+                            {(field.options || []).map(option => <option key={option} value={option}>{option}</option>)}
+                          </select>
+                        ) : (
+                          <input type={field.type === 'number' ? 'number' : 'text'} value={String(value)} min={field.min} max={field.max} onChange={e => updateValue(field.type === 'number' ? Number(e.target.value) : e.target.value)} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '0.45rem' }} />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : <p style={{ color: '#64748b' }}>No visual schema is defined for this component yet. Use Advanced JSON or its specialized manager.</p>
+            ) : (
+              <textarea value={configText} onChange={e => setConfigText(e.target.value)} spellCheck={false} style={{ width: '100%', minHeight: 280, boxSizing: 'border-box', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontFamily: 'monospace', fontSize: '0.85rem' }} />
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+              <button onClick={() => setConfigComponent(null)} style={{ padding: '0.65rem 1rem', border: '1px solid #cbd5e1', background: '#fff', borderRadius: '0.5rem', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={saveConfig} style={{ padding: '0.65rem 1rem', border: 0, background: '#166534', color: '#fff', borderRadius: '0.5rem', fontWeight: 700, cursor: 'pointer' }}>Save configuration</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (

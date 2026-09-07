@@ -8,6 +8,7 @@ import ExperienceCategories from '@/components/ExperienceCategories';
 import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
+import MinisiteQRCode from '@/components/MinisiteQRCode';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -118,7 +119,7 @@ export default function VanityBusinessClient({
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
   const identity = data.basic || data.sec_1_identity || data.business_info || {};
   const dynamicPhone = isMasterTemplate ? '+20 (10) SIWA-TODAY' : (biz.vendor_phone || identity.phone || data.phone || '+20 (12) SIWA-OASIS');
-  const dynamicEmail = isMasterTemplate ? 'hello@siwa.today' : (identity.email || data.email || '');
+  const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
   const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;
   const dynamicInstagram = identity.instagram_handle || data.instagram_handle || '';
@@ -573,7 +574,7 @@ export default function VanityBusinessClient({
                 <div style={{ background: '#1e293b', padding: '2.5rem', borderRadius: '24px', color: '#fff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', border: '1px solid rgba(212,175,55,0.3)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div style={{ width: '8px', height: '8px', background: '#D4AF37', borderRadius: '50%' }}></div>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '2px', color: '#D4AF37' }}>MANAGED BY SIWA.TODAY</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '2px', color: '#D4AF37' }}>MANAGED BY SIWIFY</span>
                   </div>
                   
                   <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem', fontWeight: 900 }}>Exclusive Offer</h3>
@@ -689,6 +690,9 @@ export default function VanityBusinessClient({
       </div>
 
       <footer style={{ background: '#0f172a', padding: '5rem 0', color: '#fff', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem' }}>
+          <MinisiteQRCode businessName={biz.name || 'Siwa Today Minisite'} businessId={biz.id} compact />
+        </div>
         <div style={{ fontWeight: 900, letterSpacing: '4px', fontSize: '1.5rem', marginBottom: '1rem' }}>SIWA TODAY</div>
         <p style={{ opacity: 0.5, fontSize: '0.8rem' }}>Automated Cinematic Minisite Engine v4.0</p>
       </footer>

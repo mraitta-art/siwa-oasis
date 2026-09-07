@@ -216,6 +216,19 @@ export default function BusinessRegistryPage() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
 
+  const selectableBusinessTypes = types
+    .filter((type: any) => !type.is_parent && type.parent_id && type.id !== 'SECTION_TEMPLATE' && type.active !== false && Number(type.active) !== 0)
+    .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+  const selectableTypesByParent = new Map<string, any[]>();
+  selectableBusinessTypes.forEach((type: any) => {
+    const children = selectableTypesByParent.get(type.parent_id) || [];
+    children.push(type);
+    selectableTypesByParent.set(type.parent_id, children);
+  });
+  const selectableParents = types
+    .filter((type: any) => (type.is_parent || Number(type.is_parent) === 1) && type.id !== 'SECTION_TEMPLATE' && type.active !== false && Number(type.active) !== 0 && selectableTypesByParent.has(type.id))
+    .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+
   return (
     <div className="animate-in">
       <div className="card-header">
@@ -246,7 +259,7 @@ export default function BusinessRegistryPage() {
             </div>
             {/* Business Type — only CHILD types (those with a parent) are selectable */}
             <div>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS TYPE * <span style={{ color: '#3b82f6', fontWeight: 600 }}>(child types only)</span></label>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS TYPOLOGY * <span style={{ color: '#3b82f6', fontWeight: 600 }}>(child typologies only)</span></label>
               <select className="form-control" value={newBiz.type_id}
                 onChange={e => {
                   const tid = e.target.value;
@@ -255,14 +268,14 @@ export default function BusinessRegistryPage() {
                   setFilteredTemplates(templates.filter((t: any) => t.type_id === tid || !t.type_id));
                 }}>
                 <option value="">-- Select Sub-Type --</option>
-                {types
-                  .filter((t: any) => !t.is_parent && t.parent_id) /* Rule 1: only child types */
-                  .map((t: any) => {
-                    const parent = types.find((p: any) => p.id === t.parent_id);
-                    return <option key={t.id} value={t.id}>{parent ? `${parent.name} › ` : ''}{t.name}</option>;
-                  })
-                }
-                {types.filter((t: any) => !t.is_parent && t.parent_id).length === 0 && (
+                {selectableParents.map((parent: any) => (
+                  <optgroup key={parent.id} label={parent.name}>
+                    {(selectableTypesByParent.get(parent.id) || []).map((type: any) => (
+                      <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+                {selectableBusinessTypes.length === 0 && (
                   <option disabled>No child types found — create child types first</option>
                 )}
               </select>

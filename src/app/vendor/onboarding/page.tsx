@@ -12,6 +12,7 @@ interface Section {
   fields: { id: string; name: string; label: string; field_type: string; required: boolean; value: any; options?: any }[];
 }
 interface BusinessData { id: string; name: string; slug: string; description: string; }
+interface MessagingContact { full_name: string; job_title: string; phone: string; }
 
 /* ─── Steps config ── */
 const STEPS = [
@@ -35,6 +36,12 @@ export default function VendorOnboardingPage() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [messagingContacts, setMessagingContacts] = useState<MessagingContact[]>([
+    { full_name: '', job_title: '', phone: '' },
+    { full_name: '', job_title: '', phone: '' },
+    { full_name: '', job_title: '', phone: '' },
+  ]);
+  const [contactError, setContactError] = useState('');
 
   /* ── Load vendor story ── */
   useEffect(() => {
@@ -59,7 +66,30 @@ export default function VendorOnboardingPage() {
       .then(r => r.json())
       .then(d => setGallery(Array.isArray(d) ? d : []))
       .catch(() => {});
+    fetch('/api/vendor/contacts')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setMessagingContacts(data.map((contact: any) => ({ full_name: contact.full_name || '', job_title: contact.job_title || '', phone: contact.phone || '' })));
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  async function saveMessagingContacts() {
+    setContactError('');
+    const response = await fetch('/api/vendor/contacts', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contacts: messagingContacts }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setContactError(data.error || 'Please complete all three contacts.');
+      return false;
+    }
+    return true;
+  }
 
   /* ── Save section data ── */
   async function saveSection(sectionId: string) {
@@ -112,11 +142,16 @@ export default function VendorOnboardingPage() {
   async function handlePublish() {
     setPublishing(true);
     try {
-      await fetch('/api/vendor/minisite/publish', {
+      const response = await fetch('/api/vendor/minisite/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ published: true }),
       });
+      if (!response.ok) {
+        const data = await response.json();
+        setContactError(data.error || 'Complete the required contacts before publishing.');
+        return;
+      }
       setPublished(true);
     } catch (e) {
       console.error(e);
@@ -260,6 +295,18 @@ export default function VendorOnboardingPage() {
               <div className="space-y-4">
                 <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl text-sm text-blue-700 font-semibold mb-2">
                   💡 Contact details appear on your minisite so visitors can reach you directly.
+                </div>
+                <div className="p-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl">
+                  <h3 className="text-sm font-extrabold text-emerald-800 mb-1">Required messaging contacts</h3>
+                  <p className="text-xs text-emerald-700 font-semibold mb-3">Add at least three mobile contacts. We will use their names and titles later when sending approved offers from the main website.</p>
+                  {messagingContacts.map((contact, index) => (
+                    <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                      <input value={contact.full_name} onChange={e => setMessagingContacts(current => current.map((item, i) => i === index ? { ...item, full_name: e.target.value } : item))} placeholder={`Contact ${index + 1} name`} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold" />
+                      <input value={contact.job_title} onChange={e => setMessagingContacts(current => current.map((item, i) => i === index ? { ...item, job_title: e.target.value } : item))} placeholder="Job title" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold" />
+                      <input value={contact.phone} onChange={e => setMessagingContacts(current => current.map((item, i) => i === index ? { ...item, phone: e.target.value } : item))} placeholder="Mobile number" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold" />
+                    </div>
+                  ))}
+                  {contactError && <p className="text-xs text-red-600 font-bold mt-2">{contactError}</p>}
                 </div>
                 {[
                   { key: 'phone', label: 'Phone Number', placeholder: '+20 123 456 7890', icon: '📞' },
@@ -428,6 +475,7 @@ export default function VendorOnboardingPage() {
                   onClick={async () => {
                     // auto-save step 1 & 2
                     if (step <= 2) {
+                      if (step === 2 && !(await saveMessagingContacts())) return;
                       const firstSec = sections[step - 1] || sections[0];
                       if (firstSec) await saveSection(firstSec.id);
                     }

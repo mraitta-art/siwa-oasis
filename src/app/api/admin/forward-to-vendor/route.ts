@@ -316,7 +316,7 @@ Looking forward to partnering!
 Ahmed Hassan
 Business Development
 Siwa Oasis
-sales@siwatoday.com
+sales@siwify.com
 +20 1234 567 890
 `;
     }

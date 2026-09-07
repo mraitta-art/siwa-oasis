@@ -71,6 +71,18 @@ export async function GET(request: NextRequest) {
       []
     );
 
+    // 5b. Top vendors by their business visits
+    const topVendors = await query<{ vendor_id: string; vendor_name: string; hits: number; visitors: number }>(
+      `SELECT b.vendor_id, p.display_name as vendor_name, COUNT(*) as hits, COUNT(DISTINCT pv.session_id) as visitors
+       FROM page_views pv
+       LEFT JOIN businesses b ON pv.business_id = b.id
+       LEFT JOIN profiles p ON b.vendor_id = p.id
+       WHERE ${where} AND b.vendor_id IS NOT NULL AND b.vendor_id <> '' AND b.vendor_id <> 'anonymous'
+       GROUP BY b.vendor_id, p.display_name
+       ORDER BY hits DESC LIMIT 10`,
+      []
+    );
+
     // Enrich with business names
     let enrichedBusinesses: any[] = [];
     if (topBusinesses.length > 0) {
@@ -137,6 +149,7 @@ export async function GET(request: NextRequest) {
       trafficChart,
       topPages,
       topBusinesses: enrichedBusinesses,
+      topVendors,
       devices,
       referrers,
       pageTypes,
@@ -150,6 +163,7 @@ export async function GET(request: NextRequest) {
       trafficChart: [],
       topPages: [],
       topBusinesses: [],
+      topVendors: [],
       devices: [],
       referrers: [],
       pageTypes: [],

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
         SELECT b.*, bt.name as type_name 
         FROM businesses b
         JOIN business_types bt ON b.type_id = bt.id
-        WHERE b.active = 1
+        WHERE b.status = 'active' AND b.published = 1
         ORDER BY b.is_featured DESC, b.is_recommended DESC, b.is_trusted DESC, b.views DESC
         LIMIT 20
       `);
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       SELECT b.*, bt.name as type_name 
       FROM businesses b
       JOIN business_types bt ON b.type_id = bt.id
-      WHERE b.active = 1 AND ${conditions.join(' AND ')}
+      WHERE b.status = 'active' AND b.published = 1 AND ${conditions.join(' AND ')}
       ORDER BY b.is_featured DESC, b.is_recommended DESC, b.is_trusted DESC, b.views DESC
     `, params);
     

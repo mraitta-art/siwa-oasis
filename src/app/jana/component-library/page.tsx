@@ -315,6 +315,12 @@ export default function ComponentLibrary() {
               <span style={{ fontSize: '1.2rem' }}>+</span>
               Create Component
             </button>
+            <Link
+              href="/jana/components"
+              style={{ padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
+            >
+              Runtime Registry
+            </Link>
           </div>
         </div>
 

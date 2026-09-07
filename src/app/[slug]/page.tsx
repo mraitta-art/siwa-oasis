@@ -38,8 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ?`,
-        [slug]
+         WHERE b.slug = ? OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
+        [slug, slug]
       );
       biz = row ?? null;
     }
@@ -71,7 +71,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         title: biz.name,
         description: description,
         type: 'website',
-        url: `https://siwa.today/${slug}`,
+        url: `https://siwify.com/${slug}`,
         images: [{ url: ogImage, width: 1200, height: 630 }]
       }
     };
@@ -110,10 +110,23 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ?`,
-        [slug]
+         WHERE b.slug = ? OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
+        [slug, slug]
       );
       biz = row ?? null;
+    }
+
+    // Service controls are optional until the local service migration is applied.
+    if (biz) {
+      try {
+        const [serviceControl] = await safeQuery<any>(
+          'SELECT minisite_status as service_minisite_status, services_expires_at as service_expires_at FROM vendor_service_controls WHERE business_id = ?',
+          [biz.id]
+        );
+        Object.assign(biz, serviceControl || {});
+      } catch {
+        // Keep existing minisites available while older databases are migrated.
+      }
     }
 
     // Parse & Normalize JSON fields
@@ -169,6 +182,19 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
           <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
           <p style={{ opacity: 0.5 }}>The business &quot;{slug}&quot; was not found in our registry.</p>
           <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to Siwa Today</Link>
+        </div>
+      );
+    }
+
+    const serviceExpired = biz.service_expires_at && new Date(biz.service_expires_at) < new Date();
+    if (biz.service_minisite_status === 'suspended' || biz.service_minisite_status === 'expired' || serviceExpired) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '2rem', background: '#0f172a', color: '#fff', textAlign: 'center' }}>
+          <div>
+            <i className="fas fa-pause-circle" style={{ color: '#f0c842', fontSize: '3rem', marginBottom: '1rem' }} />
+            <h1 style={{ margin: '0 0 0.75rem' }}>Minisite temporarily unavailable</h1>
+            <p style={{ color: '#cbd5e1' }}>This listing is currently being reviewed or its service is inactive.</p>
+          </div>
         </div>
       );
     }
@@ -286,6 +312,10 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       if (customHidden && Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
       // Admin override forced hide
       if (sectionControls[s.id]?.admin_hidden === 1) return false;
+      if (s.id === 'investment-opportunity') {
+        const investment = biz.custom_data?.['investment-opportunity'] || {};
+        if (investment.approval_status !== 'approved' || investment.show_on_minisite !== true) return false;
+      }
       return true;
     });
 

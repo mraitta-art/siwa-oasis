@@ -271,17 +271,17 @@ export async function GET(request: NextRequest) {
           ? {
               action: "upgrade_featured",
               text: "Upgrade to Featured - $500/month",
-              link: "https://siwatoday.com/vendor/upgrade-featured",
+              link: "https://siwify.com/vendor/upgrade-featured",
             }
           : {
               action: "claim_profile",
               text: "Claim Your Profile - Takes 2 Minutes",
-              link: "https://siwatoday.com/vendor/claim",
+              link: "https://siwify.com/vendor/claim",
             },
         secondary: {
           action: "view_all_requests",
           text: "View All Requests",
-          link: "https://siwatoday.com/vendor/requests",
+          link: "https://siwify.com/vendor/requests",
         },
       },
       metadata: {
@@ -371,9 +371,9 @@ export async function POST(request: NextRequest) {
           "No obligations - just explore what's best for you",
         ],
         support: {
-          email: "vendor-support@siwatoday.com",
+          email: "vendor-support@siwify.com",
           phone: "+20 1234 567 890",
-          chat: "https://siwatoday.com/vendor-chat",
+          chat: "https://siwify.com/vendor-chat",
         },
       },
       { status: 201 }

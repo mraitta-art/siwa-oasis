@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, transaction } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
+import { slugifyBusinessName, getPublicAppUrl } from '@/lib/public-url';
 
 export async function POST(request: NextRequest) {
   // Toggle public registration via environment variable: set DISABLE_PUBLIC_REGISTRATION=true to close
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Use a transaction so both inserts succeed or fail together
     const businessId = crypto.randomUUID();
-    const slug = businessName.toLowerCase().replace(/\s+/g, '-');
+    const slug = slugifyBusinessName(businessName);
 
     const userId = crypto.randomUUID();
     const passwordHash = await hashPassword(password);
@@ -41,7 +42,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Application submitted! A Siwa Today admin will review your heritage business soon.' 
+      message: 'Application submitted! A Siwa Today admin will review your heritage business soon.',
+      publicMinisiteUrl: `${getPublicAppUrl().replace(/\/$/, '')}/${slug}`,
+      freeServices: ['Business-name minisite link', 'QR code', 'Free template']
     });
   } catch (e: any) {
     console.error('Registration failed:', e);

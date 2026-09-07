@@ -16,17 +16,18 @@ export async function GET(request: NextRequest) {
     const types = await query('SELECT id, name, is_parent, parent_id FROM business_types ORDER BY name');
 
     // Check for duplicate names
-    const nameMap = new Map<string, string[]>();
+    const nameMap = new Map<string, { name: string; ids: string[] }>();
     types.forEach((t: any) => {
-      if (!nameMap.has(t.name)) {
-        nameMap.set(t.name, []);
+      const key = String(t.name).trim().toLowerCase();
+      if (!nameMap.has(key)) {
+        nameMap.set(key, { name: t.name, ids: [] });
       }
-      nameMap.get(t.name)!.push(t.id);
+      nameMap.get(key)!.ids.push(t.id);
     });
 
     const duplicates = Array.from(nameMap.entries())
-      .filter(([_, ids]) => ids.length > 1)
-      .map(([name, ids]) => ({ name, ids, count: ids.length }));
+      .filter(([_, group]) => group.ids.length > 1)
+      .map(([_, group]) => ({ name: group.name, ids: group.ids, count: group.ids.length }));
 
     // Check for orphaned children (children without parent)
     const orphaned = types.filter((t: any) => !t.is_parent && !types.some((p: any) => p.id === t.parent_id));

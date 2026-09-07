@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
       if (type === 'investment') {
         // Gated: Premium/Gold/VIP only
         if (biz.subscription_tier === 'free') return false;
-        const invest = data.sec_7_investment;
-        return !!(invest && (invest.investment_opps || invest.timeshare_details));
+        const invest = data['investment-opportunity'];
+        return !!(invest && invest.opportunity_title && invest.approval_status === 'approved' && ['published', 'funded'].includes(invest.status));
       }
 
       if (type === 'offers') {

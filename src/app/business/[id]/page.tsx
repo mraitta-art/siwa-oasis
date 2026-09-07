@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+import MinisiteQRCode from '@/components/MinisiteQRCode';
 
 export default function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
@@ -77,7 +78,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
             "addressRegion": "Matrouh",
             "addressCountry": "EG"
           },
-          "url": `https://siwa.today/business/${id}`
+          "url": `https://siwify.com/business/${id}`
         }) }}
       />
       
@@ -151,6 +152,10 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
               {activeSections.filter(s => s.id === activeTab).map(section => {
                 const secData = data[section.id];
                 if (!secData) return <div key={section.id} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No data available for {section.name}.</div>;
+                const contentMeta = data.section_content_meta?.[section.id] || {};
+                const managedContent = Object.keys(contentMeta).length > 0;
+                const showMinisiteBlog = !managedContent || (contentMeta.blogStatus === 'approved' && contentMeta.blogOnMinisite !== false);
+                const showMinisiteGallery = !managedContent || (contentMeta.galleryStatus === 'approved' && contentMeta.galleryOnMinisite !== false);
 
                 return (
                   <section key={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem' }}>
@@ -165,13 +170,13 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                     </div>
 
                     <div>
-                        {secData.section_blog ? (
+                        {showMinisiteBlog && secData.section_blog ? (
                           <div 
                             className="rich-content" 
                             dangerouslySetInnerHTML={{ __html: secData.section_blog }} 
                             style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }}
                           />
-                        ) : secData.mini_blog ? (
+                        ) : showMinisiteBlog && secData.mini_blog ? (
                           <div 
                             className="rich-content" 
                             dangerouslySetInnerHTML={{ __html: secData.mini_blog }} 
@@ -199,7 +204,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                         </div>
 
                         {/* Local Gallery (If not handled by hero) */}
-                        {secData.section_gallery && Array.isArray(secData.section_gallery) && (
+                        {showMinisiteGallery && secData.section_gallery && Array.isArray(secData.section_gallery) && (
                           <div style={{ marginTop: '2.5rem' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
                               {secData.section_gallery.map((item: any, i: number) => {
@@ -354,6 +359,14 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
       </div>
 
       <footer style={{ background: '#0f172a', padding: '5rem 0', color: '#fff', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem' }}>
+          <MinisiteQRCode
+            businessName={biz.name || 'Siwa Today Minisite'}
+            businessId={biz.id}
+            targetUrl={typeof window !== 'undefined' ? `${window.location.origin}/${biz.slug || `business/${id}`}` : undefined}
+            compact
+          />
+        </div>
         <div style={{ fontWeight: 900, letterSpacing: '4px', fontSize: '1.5rem', marginBottom: '1rem' }}>SIWA TODAY</div>
         <p style={{ opacity: 0.5, fontSize: '0.8rem' }}>Automated Cinematic Minisite Engine v4.0</p>
       </footer>

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
             cuisine: 'sec_4_gastronomy',
             programs: 'sec_5_experiences',
             ecology: 'sec_6_guardian',
-            invest: 'sec_7_investment',
+            invest: 'investment-opportunity',
             offers: 'sec_8_connector',
           };
 
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
               { name: 'section_gallery', label: 'CINEMATIC GALLERY', type: 'gallery', help: 'High-res photos for carousel slides.', sort_order: -2 },
               { name: 'section_blog', label: 'NARRATIVE BLOG (RICH)', type: 'rich_text', help: 'The deep story for this chapter.', sort_order: 100 },
               { name: 'section_news', label: 'Carousel Cinematic Teaser (Mini-Blog)', type: 'textarea', help: 'This short text will appear as captions on the automated hero.', sort_order: -1 },
-              { name: 'feature_on_main', label: 'FEATURE ON MAIN WEBSITE', type: 'checkbox', help: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.', sort_order: -3 }
+              { name: 'feature_on_main', label: 'FEATURE ON MAIN WEBSITE', type: 'checkbox', help: 'Toggle this to automatically promote this section as a slide on the main Siwify homepage.', sort_order: -3 }
             ];
 
             structuralDefaults.forEach(f => {
@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
             field_type: 'checkbox',
             required_feature: 'hero_automation',
             sort_order: -3,
-            help_text: 'Toggle this to automatically promote this section as a slide on the main Siwa.Today homepage.',
+            help_text: 'Toggle this to automatically promote this section as a slide on the main Siwify homepage.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
           });

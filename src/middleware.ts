@@ -7,8 +7,8 @@ const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 
 // Unified role-based route protection table
 const ROUTE_GUARDS: Record<string, string[]> = {
-  '/admin':      ['super_admin', 'content_admin', 'sales_manager'],
-  '/api/admin':  ['super_admin', 'content_admin', 'sales_manager'],
+  '/admin':      ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
+  '/api/admin':  ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
   '/jana':       ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
   '/vendor':     ['vendor', 'super_admin', 'content_admin', 'sales_manager'],
   '/salesman':   ['super_admin', 'sales_manager', 'salesman'],
@@ -46,6 +46,9 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('error', pathname.startsWith('/vendor') ? 'vendor_required' : 'admin_required');
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
+      }
+      if (pathname === '/admin') {
+        return NextResponse.redirect(new URL('/jana', request.url));
       }
       break;
     }

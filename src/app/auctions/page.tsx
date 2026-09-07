@@ -209,7 +209,7 @@ export default function AuctionsPublicPage() {
 
                   {auc.auction_status === 'live' && (
                     <a 
-                      href={auc.auction_contact ? `tel:${auc.auction_contact}` : `mailto:info@siwa.today?subject=Bid Interest: ${auc.auction_title}`}
+                      href={auc.auction_contact ? `tel:${auc.auction_contact}` : `mailto:info@siwify.com?subject=Bid Interest: ${auc.auction_title}`}
                       className="flex-1 text-center py-2 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all"
                     >
                       Place Bid / Contact

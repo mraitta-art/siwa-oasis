@@ -40,7 +40,11 @@ async function main() {
   const password = process.env.DB_PASSWORD || '';
   const database = process.env.DB_NAME || 'siwa';
 
-  const conn = await mysql.createConnection({ host, port, user, password, database, multipleStatements: true });
+  const connectionOptions = { host, port, user, password, database, multipleStatements: true };
+  if (process.env.DB_SSL === 'true') {
+    connectionOptions.ssl = { minVersion: 'TLSv1.2', rejectUnauthorized: true };
+  }
+  const conn = await mysql.createConnection(connectionOptions);
   console.log('Connected to DB', host, database);
   try {
     const [results] = await conn.query(sql);

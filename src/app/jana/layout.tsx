@@ -13,23 +13,22 @@ import { AdminProvider, useAdmin } from '@/context/AdminContext';
 const NAV_GROUPS = [
   {
     id: 'basics',
-    title: 'GOVERNANCE & BLUEPRINTS',
-    subtitle: 'Taxonomy, Blueprints & Forms',
+    title: 'FOUNDATION & INITIALIZATION',
+    subtitle: 'Define the structure before processing data',
     icon: 'fa-cubes',
     accent: '#60a5fa',
     collapsible: true,
     defaultCollapsed: false,
     items: [
       { name: 'Blueprint Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
-      { name: 'Business Types', path: '/jana/types', icon: 'fa-folder-tree' },
+      { name: 'Business Categories & Typologies', path: '/jana/types', icon: 'fa-folder-tree' },
       { name: 'Unified Section Architect', path: '/jana/sections', icon: 'fa-table-cells' },
       {
         name: 'Form Builders',
         path: '/jana/business-forms',
         icon: 'fa-file-alt',
         children: [
-          { name: 'Business Form Builder', path: '/jana/business-forms', icon: 'fa-file-signature' },
-          { name: 'Data Forms', path: '/jana/forms', icon: 'fa-clipboard-list' },
+          { name: 'Form Templates', path: '/jana/form-templates', icon: 'fa-clipboard-list' },
         ]
       },
       { name: 'Master Templates', path: '/jana/templates', icon: 'fa-gem' },
@@ -38,7 +37,6 @@ const NAV_GROUPS = [
         path: '/jana/blueprints',
         icon: 'fa-drafting-compass',
         children: [
-          { name: 'Blueprint Canvas', path: '/jana/blueprints', icon: 'fa-cubes', exact: true },
           { name: 'Atom Registry', path: '/jana/blueprints/atoms', icon: 'fa-atom' },
         ]
       },
@@ -46,25 +44,15 @@ const NAV_GROUPS = [
     ]
   },
   {
-    id: 'data_feed',
-    title: 'VENDORS & BUSINESS REGISTRY',
-    subtitle: 'Listings, Approvals & Operations',
-    icon: 'fa-building',
+    id: 'vendor_operations',
+    title: 'PROCESSING & VENDOR OPERATIONS',
+    subtitle: 'Process businesses, vendors, plans & access',
+    icon: 'fa-users-gear',
     accent: '#22c55e',
     collapsible: true,
     defaultCollapsed: false,
     items: [
       { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-building' },
-      {
-        name: 'Vendor Management',
-        path: '/jana/vendors',
-        icon: 'fa-user-tie',
-        children: [
-          { name: 'Vendor Directory', path: '/jana/vendors', icon: 'fa-users' },
-          { name: 'Vendor Approvals', path: '/jana/vendor-approvals', icon: 'fa-user-check', badge: 'PENDING' },
-          { name: 'Vendor Tiers & Access', path: '/jana/tiers', icon: 'fa-shield-alt' },
-        ]
-      },
       {
         name: 'Onboarding & Creation',
         path: '/jana/orchestrator',
@@ -76,6 +64,11 @@ const NAV_GROUPS = [
           { name: 'Unified Builder', path: '/jana/unified-builder', icon: 'fa-sitemap' },
         ]
       },
+      { name: 'Vendor Services Control', path: '/jana/vendor-services', icon: 'fa-toggle-on', badge: 'CONTROL' },
+      { name: 'Vendor Directory', path: '/jana/vendors', icon: 'fa-users' },
+      { name: 'Vendor Approvals', path: '/jana/vendor-approvals', icon: 'fa-user-check', badge: 'PENDING' },
+      { name: 'Plans & Tier Access', path: '/jana/tiers', icon: 'fa-shield-alt' },
+      { name: 'Upgrade Requests', path: '/jana/upgrades', icon: 'fa-arrow-up-right-dots' },
       { name: 'Packages', path: '/jana/packages', icon: 'fa-box-open' },
       { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
@@ -84,45 +77,44 @@ const NAV_GROUPS = [
   },
   {
     id: 'display',
-    title: 'CONTENT & SITE BUILDER',
-    subtitle: 'Media, Blog & Pages',
+    title: 'WEBSITE & PAGE BUILDER',
+    subtitle: 'Reusable pages, components, content & previews',
     icon: 'fa-photo-film',
     accent: '#a78bfa',
     collapsible: true,
     defaultCollapsed: false,
     items: [
-      {
-        name: 'Blog Suite',
-        path: '/jana/blog',
-        icon: 'fa-newspaper',
-        children: [
-          { name: 'Blog Hub', path: '/jana/blog', icon: 'fa-newspaper' },
-          { name: 'Layout Builder', path: '/jana/blog-layout-builder', icon: 'fa-table-columns' },
-          { name: 'Templates', path: '/jana/blog-templates', icon: 'fa-file-invoice' },
-          { name: 'Integration', path: '/jana/blog-integration', icon: 'fa-plug' },
-        ]
-      },
-      { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
+      { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },
+      { name: 'Visual Page Editor', path: '/jana/website', icon: 'fa-palette' },
       {
         name: 'Components & Cards',
         path: '/jana/component-library',
         icon: 'fa-layer-group',
         children: [
-          { name: 'Component Library', path: '/jana/component-library', icon: 'fa-layer-group' },
-          { name: 'UI Components', path: '/jana/components', icon: 'fa-puzzle-piece' },
+          { name: 'Reusable Components', path: '/jana/component-library', icon: 'fa-puzzle-piece' },
+          { name: 'Runtime Registry', path: '/jana/components', icon: 'fa-cubes' },
           { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
         ]
       },
-      { name: 'Visual Editor', path: '/jana/website', icon: 'fa-palette' },
-      { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },
-      { name: 'Section Status Map', path: '/jana/homepage-editor', icon: 'fa-home' },
+      { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
+      { name: 'Homepage Configuration', path: '/jana/homepage-editor', icon: 'fa-home' },
+      {
+        name: 'Blog Suite',
+        path: '/jana/blog',
+        icon: 'fa-newspaper',
+        children: [
+          { name: 'Layout Builder', path: '/jana/blog-layout-builder', icon: 'fa-table-columns' },
+          { name: 'Templates', path: '/jana/blog-templates', icon: 'fa-file-invoice' },
+          { name: 'Integration', path: '/jana/blog-integration', icon: 'fa-plug' },
+        ]
+      },
+      { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
       { name: 'Minisite Builder', path: '/jana/minisite', icon: 'fa-store' },
       {
         name: 'Search Engine Suite',
         path: '/jana/search-engines',
         icon: 'fa-search',
         children: [
-          { name: 'Search Engines', path: '/jana/search-engines', icon: 'fa-search' },
           { name: 'Search Pages', path: '/jana/search-pages', icon: 'fa-filter-list' },
           { name: 'Search & Compare', path: '/jana/search-compare', icon: 'fa-sliders' },
         ]
@@ -130,20 +122,20 @@ const NAV_GROUPS = [
       { name: 'Services Manager', path: '/jana/services-manager', icon: 'fa-concierge-bell' },
       { name: 'Categories Manager', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
       { name: 'Journeys Manager', path: '/jana/journey-templates-manager', icon: 'fa-route' },
-      { name: 'Mobile View', path: '/jana/mobile', icon: 'fa-mobile-alt' },
+      { name: 'Responsive Preview', path: '/jana/mobile', icon: 'fa-mobile-alt' },
     ]
   },
   {
     id: 'reports',
-    title: 'APPROVALS & ANALYTICS',
-    subtitle: 'Audits, Requests & Insights',
+    title: 'TESTING, APPROVALS & ANALYTICS',
+    subtitle: 'Validate, review, preview & measure',
     icon: 'fa-chart-line',
     accent: '#f59e0b',
     collapsible: true,
     defaultCollapsed: false,
     items: [
+    { name: 'Operations Dashboard', path: '/admin/analytics', icon: 'fa-gauge-high', badge: 'OPS' },
       { name: 'Visitor Analytics', path: '/jana/analytics', icon: 'fa-chart-area', badge: 'LIVE' },
-      { name: 'Vendor Approvals', path: '/jana/vendor-approvals', icon: 'fa-user-check', badge: 'PENDING' },
       { name: 'Packages Approval', path: '/admin/packages', icon: 'fa-box' },
       { name: 'Offers Approval', path: '/admin/offers', icon: 'fa-gift' },
       { name: 'Discount Campaigns', path: '/admin/discounts', icon: 'fa-tags' },
@@ -166,7 +158,6 @@ const NAV_GROUPS = [
     items: [
       { name: 'Data Manager', path: '/jana/data-manager', icon: 'fa-database' },
       { name: 'Moderation', path: '/jana/moderation', icon: 'fa-user-shield' },
-      { name: 'Upgrades', path: '/jana/upgrades', icon: 'fa-arrow-up-right-dots' },
       { name: 'Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
       { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
@@ -198,13 +189,29 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Load saved sidebar preferences after the server and client share the same initial markup.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem('siwa-jana-collapsed-groups') || '{}');
+      if (saved && typeof saved === 'object') {
+        setCollapsedGroups(prev => ({ ...prev, ...saved }));
+      }
+    } catch {
+      // Ignore malformed local preferences and keep the defaults.
+    }
+  }, []);
+
   // Close mobile drawer on navigation
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
   const toggleGroup = (id: string) => {
-    setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+    setCollapsedGroups(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      window.localStorage.setItem('siwa-jana-collapsed-groups', JSON.stringify(next));
+      return next;
+    });
   };
 
   const isActiveItem = (item: any): boolean => {
@@ -239,13 +246,14 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname === '/jana') return { title: 'Dashboard', tip: 'Overview of your marketplace ecosystem.' };
     // Foundation
     if (pathname.includes('/governance')) return { title: 'Blueprint Architect', tip: 'Guided blueprint flow: Identity, Modules, Fields, Governance.' };
-    if (pathname.includes('/types')) return { title: 'Business Types', tip: 'Define parent categories and their children. Assign sections to control what data each type collects.' };
+    if (pathname.includes('/types')) return { title: 'Business Categories & Typologies', tip: 'Define parent categories and specialized child typologies. Assign sections to control what data each type collects.' };
     if (pathname.includes('/sections')) return { title: 'Sections', tip: 'Define reusable data containers — these become available when configuring types.' };
-    if (pathname.includes('/templates')) return { title: 'Master Templates', tip: 'Design reusable templates for business types.' };
+    if (pathname.includes('/templates')) return { title: 'Master Templates', tip: 'Design reusable templates for business categories and typologies.' };
     if (pathname.startsWith('/jana/blueprints/atoms')) return { title: 'Atom Registry', tip: 'Manage the shared atom library used by all blueprints.' };
     if (pathname.startsWith('/jana/blueprints/') && pathname !== '/jana/blueprints') return { title: 'Blueprint Editor', tip: 'Edit type-specific blueprints, media, and mini-blog content.' };
     if (pathname.includes('/blueprints')) return { title: 'Blueprints', tip: 'Visual architecture blueprints — map out the full structure of your marketplace.' };
     if (pathname.includes('/business-forms')) return { title: 'Business Forms', tip: 'Configure forms used during business onboarding and data collection.' };
+    if (pathname.includes('/form-templates')) return { title: 'Form Templates', tip: 'Define reusable collection contracts by selecting required and optional sections.' };
     if (pathname.includes('/tiers')) return { title: 'Vendor Tiers', tip: 'Define subscription tiers with feature quotas.' };
     if (pathname.includes('/cards')) return { title: 'Card Layouts', tip: 'Design how business listings appear in search results. Choose visible fields per type.' };
     if (pathname.includes('/expressions')) return { title: 'Vibe Expressions', tip: 'Define searchable atmosphere tags like Rustic, Spiritual, Eco-friendly.' };
@@ -255,6 +263,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/blog-templates') || pathname.includes('/blog/templates')) return { title: 'Blog Templates', tip: 'Browse pre-built blog component templates.' };
     if (pathname.includes('/blog-integration') || pathname.includes('/blog/integration')) return { title: 'Blog Integration', tip: 'Configure and generate blog sections with easy presets.' };
     if (pathname.includes('/blog')) return { title: 'Blog Hub', tip: 'Create and manage blog posts, layouts, templates, and integrations.' };
+    if (pathname.includes('/content')) return { title: 'Business Content', tip: 'Manage section images, captions, stories, approval status, and carousel placement for each business.' };
     if (pathname.includes('/hero-carousel')) return { title: 'Hero Carousel', tip: 'Create cinematic carousel slides and save them to the component library.' };
     if (pathname.includes('/component-library')) return { title: 'Component Library', tip: 'Manage all reusable components: carousels, sidebars, galleries, and more.' };
     if (pathname.includes('/carousel-diagnostic')) return { title: 'Carousel Diagnostic', tip: 'Debug and test carousel components, check slide loading and transitions.' };
@@ -328,7 +337,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <nav style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
           {NAV_GROUPS.map(group => (
             <div key={group.id} style={{ marginBottom: '0.6rem' }}>
-              <div onClick={() => toggleGroup(group.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: group.collapsible ? 'pointer' : 'default', padding: '0.35rem 0.25rem' }}>
+              <div onClick={() => group.collapsible && toggleGroup(group.id)} role={group.collapsible ? 'button' : undefined} tabIndex={group.collapsible ? 0 : undefined} onKeyDown={e => { if (group.collapsible && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleGroup(group.id); } }} aria-expanded={group.collapsible ? !collapsedGroups[group.id] : undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: group.collapsible ? 'pointer' : 'default', padding: '0.35rem 0.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <i className={`fas ${group.icon}`} style={{ color: group.accent }} />
                   {showLabels && <strong style={{ fontSize: '0.78rem', color: '#e6eefb' }}>{group.title}</strong>}
@@ -339,13 +348,23 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               {(!group.collapsible || !collapsedGroups[group.id]) && (
                 <div style={{ marginTop: '0.45rem', display: 'grid', gap: '0.25rem' }}>
                   {group.items.map((item: any) => (
-                    <div key={item.path} data-sidebar-active={isActive(item) ? 'true' : 'false'} style={{ display: 'flex', alignItems: 'center' }}>
+                    <div key={item.path} data-sidebar-active={isActive(item) ? 'true' : 'false'} style={{ display: 'flex', flexDirection: 'column' }}>
                       <Link href={item.path} style={{ textDecoration: 'none', color: isActive(item) ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: showLabels ? '0.75rem' : '0' }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive(item) ? 'rgba(255,255,255,0.06)' : 'transparent' }}>
                           <i className={`fas ${item.icon || 'fa-circle'}`} />
                         </div>
                         {showLabels && <div style={{ fontSize: '0.86rem', fontWeight: 700 }}>{item.name}</div>}
+                        {showLabels && item.badge && <span style={{ marginLeft: 'auto', color: group.accent, fontSize: '0.58rem', fontWeight: 900 }}>{item.badge}</span>}
                       </Link>
+                      {showLabels && item.children && (isActive(item) || item.children.some(isActive)) && (
+                        <div style={{ marginLeft: '2.25rem', padding: '0.2rem 0 0.35rem 0.75rem', borderLeft: '1px solid rgba(255,255,255,0.12)', display: 'grid', gap: '0.2rem' }}>
+                          {item.children.map((child: any) => (
+                            <Link key={child.path} href={child.path} style={{ color: isActive(child) ? '#f0c842' : '#94a3b8', fontSize: '0.72rem', fontWeight: 600, textDecoration: 'none', padding: '0.2rem 0' }}>
+                              <i className={`fas ${child.icon || 'fa-circle'}`} style={{ width: '1rem', marginRight: '0.35rem' }} />{child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

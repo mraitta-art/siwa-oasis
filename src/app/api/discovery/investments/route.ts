@@ -72,6 +72,10 @@ export async function GET(request: Request) {
 
       if (!data || !data.opportunity_title) return null;
 
+      // Only explicitly approved and published opportunities are public.
+      if (data.approval_status !== 'approved') return null;
+      if (data.status && !['published', 'funded'].includes(data.status)) return null;
+
       // Check visibility
       if (!businessFilter && data.visibility_on_main_site === false) return null;
       if (featuredOnly && !data.is_featured) return null;

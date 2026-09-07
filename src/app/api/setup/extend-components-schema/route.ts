@@ -43,6 +43,12 @@ export async function POST(req: Request) {
 
 function generateDefaultSchema(key: string, category: string) {
   // Generate appropriate config schema based on component type
+  const responsiveFields = [
+    { name: 'padding_mobile', type: 'number', label: 'Mobile Vertical Padding (px)', default: 40, min: 0, max: 160 },
+    { name: 'padding_desktop', type: 'number', label: 'Desktop Vertical Padding (px)', default: 80, min: 0, max: 240 },
+    { name: 'content_max_width', type: 'number', label: 'Content Max Width (px)', default: 1200, min: 320, max: 1800 },
+  ];
+
   const schemas: Record<string, any> = {
     hero_carousel: {
       fields: [
@@ -50,7 +56,8 @@ function generateDefaultSchema(key: string, category: string) {
         { name: 'autoplay_delay', type: 'number', label: 'Autoplay Delay (ms)', default: 5000, min: 1000, max: 10000 },
         { name: 'show_navigation', type: 'boolean', label: 'Show Navigation Dots', default: true },
         { name: 'height_mobile', type: 'number', label: 'Mobile Height (px)', default: 300, min: 200, max: 600 },
-        { name: 'height_desktop', type: 'number', label: 'Desktop Height (px)', default: 500, min: 300, max: 800 }
+        { name: 'height_desktop', type: 'number', label: 'Desktop Height (px)', default: 700, min: 400, max: 1200 },
+        ...responsiveFields
       ]
     },
     search_bar: {
@@ -58,7 +65,8 @@ function generateDefaultSchema(key: string, category: string) {
         { name: 'placeholder', type: 'text', label: 'Placeholder Text', default: 'Search experiences...' },
         { name: 'show_filters', type: 'boolean', label: 'Show Quick Filters', default: true },
         { name: 'auto_suggestions', type: 'boolean', label: 'Auto Suggestions', default: true },
-        { name: 'max_results', type: 'number', label: 'Max Results', default: 10, min: 5, max: 50 }
+        { name: 'max_results', type: 'number', label: 'Max Results', default: 10, min: 5, max: 50 },
+        ...responsiveFields
       ]
     },
     blog: {
@@ -67,7 +75,8 @@ function generateDefaultSchema(key: string, category: string) {
         { name: 'featured_count', type: 'number', label: 'Featured Posts', default: 3, min: 1, max: 10 },
         { name: 'show_categories', type: 'boolean', label: 'Show Categories', default: true },
         { name: 'show_authors', type: 'boolean', label: 'Show Authors', default: true },
-        { name: 'excerpt_length', type: 'number', label: 'Excerpt Length (chars)', default: 160, min: 80, max: 300 }
+        { name: 'excerpt_length', type: 'number', label: 'Excerpt Length (chars)', default: 160, min: 80, max: 300 },
+        ...responsiveFields
       ]
     },
     testimonials: {
@@ -75,7 +84,8 @@ function generateDefaultSchema(key: string, category: string) {
         { name: 'items_per_row', type: 'number', label: 'Items Per Row', default: 3, min: 1, max: 4 },
         { name: 'autoplay', type: 'boolean', label: 'Autoplay', default: false },
         { name: 'show_ratings', type: 'boolean', label: 'Show Star Ratings', default: true },
-        { name: 'layout_style', type: 'select', label: 'Layout Style', options: ['grid', 'carousel', 'masonry'], default: 'grid' }
+        { name: 'layout_style', type: 'select', label: 'Layout Style', options: ['grid', 'carousel', 'masonry'], default: 'grid' },
+        ...responsiveFields
       ]
     },
     newsletter: {
@@ -83,13 +93,18 @@ function generateDefaultSchema(key: string, category: string) {
         { name: 'button_text', type: 'text', label: 'Button Text', default: 'Subscribe' },
         { name: 'placeholder_text', type: 'text', label: 'Email Placeholder', default: 'Enter your email...' },
         { name: 'double_opt_in', type: 'boolean', label: 'Double Opt-In', default: true },
-        { name: 'success_message', type: 'text', label: 'Success Message', default: 'Thank you for subscribing!' }
+        { name: 'success_message', type: 'text', label: 'Success Message', default: 'Thank you for subscribing!' },
+        ...responsiveFields
       ]
-    }
+    },
+    cta_section: { fields: [...responsiveFields, { name: 'title', type: 'text', label: 'Title', default: 'Call to Action' }, { name: 'description', type: 'text', label: 'Description', default: '' }] },
+    text_section: { fields: [...responsiveFields, { name: 'title', type: 'text', label: 'Title', default: '' }] },
+    faq: { fields: [...responsiveFields, { name: 'title', type: 'text', label: 'Title', default: 'Frequently Asked Questions' }] },
   };
 
   return schemas[key] || {
     fields: [
+      ...responsiveFields,
       { name: 'custom_title', type: 'text', label: 'Component Title', default: '' },
       { name: 'visibility', type: 'select', label: 'Visibility', options: ['all', 'authenticated', 'premium'], default: 'all' }
     ]

@@ -240,7 +240,7 @@ export default function CardBuilderPage() {
       </div>
 
       <div className="notification-banner">
-        <i className="fas fa-palette"></i> Customize how each business type appears in search results. Choose layouts and toggle visible data fields.
+        <i className="fas fa-palette"></i> Customize how each business category and typology appears in search results. Choose layouts and toggle visible data fields.
       </div>
 
       <div className="grid-2">

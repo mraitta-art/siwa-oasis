@@ -68,7 +68,7 @@ interface Props {
 }
 
 export default function ExperienceCategories({ categories, title, subtitle }: Props) {
-  const [items, setItems] = useState<CategoryItem[]>(categories || DEFAULT_CATEGORIES);
+  const [items, setItems] = useState<CategoryItem[]>(categories || []);
   const [loading, setLoading] = useState(!categories);
 
   useEffect(() => {
@@ -79,12 +79,11 @@ export default function ExperienceCategories({ categories, title, subtitle }: Pr
         const res = await fetch('/api/jana/experience-categories?visibleOnly=true');
         if (res.ok) {
           const data = await res.json();
-          if (data && data.length > 0) {
-            setItems(data);
-          }
+            setItems(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.warn('Failed to load categories from database, using fallback:', error);
+        setItems(DEFAULT_CATEGORIES);
       } finally {
         setLoading(false);
       }

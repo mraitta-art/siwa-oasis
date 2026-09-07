@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 const SETUP_STEPS = [
   {
@@ -14,7 +15,7 @@ const SETUP_STEPS = [
   {
     id: 'universal-sections',
     name: 'Universal Sections',
-    description: 'Creates and registers universal sections (Vibe, Experience, Investment) that work across all business types.',
+    description: 'Creates and registers universal sections (Vibe, Experience, Investment) that work across all business categories and typologies.',
     icon: 'fa-table-cells',
     color: '#8b5cf6',
     url: '/api/setup/create-universal-sections',
@@ -26,6 +27,14 @@ const SETUP_STEPS = [
     icon: 'fa-puzzle-piece',
     color: '#10b981',
     url: '/api/setup/init-site-components',
+  },
+  {
+    id: 'form-templates',
+    name: 'Form Templates',
+    description: 'Creates reusable form contracts for selecting required sections and linking collection workflows to minisite templates.',
+    icon: 'fa-clipboard-list',
+    color: '#f59e0b',
+    url: '/api/setup/form-templates-table',
   },
 ];
 
@@ -62,6 +71,19 @@ export default function SetupPage() {
 
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto' }}>
+      {/* Foundation workflow */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.85rem', marginBottom: '0.35rem' }}>Foundation workflow</div>
+        <div style={{ color: '#64748b', fontSize: '0.75rem', lineHeight: 1.5, marginBottom: '1rem' }}>Prepare the schema first, then assign access and fill business content. Universal sections are available to every business category and typology, but vendor permissions remain controlled separately.</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem' }}>
+          {[
+            { href: '/jana/types', icon: 'fa-folder-tree', label: '1. Business categories & typologies' },
+            { href: '/jana/sections', icon: 'fa-table-cells', label: '2. Sections & authority' },
+            { href: '/jana/forms', icon: 'fa-clipboard-list', label: '3. Fields & forms' },
+            { href: '/jana/content', icon: 'fa-photo-film', label: '4. Business content' },
+          ].map(item => <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.7rem 0.8rem', border: '1px solid #e2e8f0', borderRadius: '9px', color: '#334155', textDecoration: 'none', fontSize: '0.72rem', fontWeight: 800 }}><i className={`fas ${item.icon}`} style={{ color: '#D4AF37' }} />{item.label}</Link>)}
+        </div>
+      </div>
       {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
@@ -223,7 +245,7 @@ export default function SetupPage() {
             <div key={step.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <i className={`fas ${step.icon}`} style={{ width: 16, textAlign: 'center', color: step.color, fontSize: '0.8rem' }}></i>
               <a href={step.url} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.78rem', fontFamily: 'monospace', textDecoration: 'none' }}>
-                {`https://www.siwa.today${step.url}`}
+                {`https://siwify.com${step.url}`}
               </a>
             </div>
           ))}

@@ -86,7 +86,7 @@ const FALLBACK_PILLARS: ServicePillar[] = [
 ];
 
 export default function ServicesHub({ title, subtitle }: { title?: string; subtitle?: string }) {
-  const [pillars, setPillars] = useState<ServicePillar[]>(FALLBACK_PILLARS);
+  const [pillars, setPillars] = useState<ServicePillar[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   
   // Fetch from database on mount
@@ -96,13 +96,11 @@ export default function ServicesHub({ title, subtitle }: { title?: string; subti
         const res = await fetch('/api/jana/services?visibleOnly=true');
         if (res.ok) {
           const data = await res.json();
-          if (data && data.length > 0) {
-            setPillars(data);
-          }
+          setPillars(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.warn('Failed to load services from database, using fallback:', error);
-        // Use fallback data
+        setPillars(FALLBACK_PILLARS);
       }
     }
     fetchServices();

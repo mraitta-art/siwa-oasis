@@ -41,8 +41,13 @@ export default function MainSiteOffersPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const offersRes = await fetch('/api/discovery/offers');
-        const offersData = await offersRes.json();
+        const [offersRes, discountsRes] = await Promise.all([
+          fetch('/api/discovery/offers'),
+          fetch('/api/discovery/discounts'),
+        ]);
+        const [offersData, discountsData] = await Promise.all([
+          offersRes.json(), discountsRes.json(),
+        ]);
 
         const offerSource = offersData?.offers || offersData?.items || [];
         const mappedOffers: Item[] = offerSource.map((item: any) => {
@@ -79,7 +84,28 @@ export default function MainSiteOffersPage() {
           };
         });
 
-        setItems(mappedOffers);
+        const mappedDiscounts: Item[] = (discountsData?.items || discountsData?.discounts || []).map((item: any) => ({
+          id: `${item.business_id}-discount-${item.slot || 1}`,
+          business_slug: item.business_slug || item.business_id,
+          title: item.discount_name || 'Discount',
+          type: item.discount_type || 'discount',
+          category: 'discount',
+          business_name: item.business_name || '',
+          brief: item.description || item.discount_name || '',
+          description: item.description || '',
+          image: item.business_logo || null,
+          is_featured: !!item.is_featured,
+          source: 'discount-section',
+          discount_value: item.discount_value || null,
+          discount_type: item.discount_type || null,
+          promo_code: item.promo_code || null,
+          season: item.season || null,
+          valid_from: item.valid_from || null,
+          valid_until: item.valid_until || null,
+          discount_status: item.discount_status || '',
+        }));
+
+        setItems([...mappedOffers, ...mappedDiscounts]);
       } catch (e) {
         console.error('Failed to fetch offers', e);
       } finally {

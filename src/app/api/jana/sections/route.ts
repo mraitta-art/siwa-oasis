@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
         ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
       ];
       
-      if (sectionIds.length === 0) return NextResponse.json([]);
-
-      const placeholders = sectionIds.map(() => '?').join(',');
-      const sections = await query(`SELECT * FROM sections WHERE id IN (${placeholders}) OR is_universal = 1 ORDER BY sort_order ASC, name ASC`, sectionIds);
+      const sectionFilter = sectionIds.length > 0
+        ? `id IN (${sectionIds.map(() => '?').join(',')}) OR is_universal = 1`
+        : 'is_universal = 1';
+      const sections = await query(`SELECT * FROM sections WHERE ${sectionFilter} ORDER BY sort_order ASC, name ASC`, sectionIds);
       
       // Enforce global order: Sort sections by their explicit sort_order first, then fallback to JSON index
       const sortedSections = sections.sort((a: any, b: any) => {
@@ -197,7 +197,6 @@ const RESTRICTED_SECTION_IDS = [
   'vibe',
   'experience',
   'investment-opportunity',
-  'invest',
   'auction',
   'offers-promotions',
   'package',

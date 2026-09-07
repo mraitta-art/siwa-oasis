@@ -68,7 +68,7 @@ export default function DataManagerPage() {
         <div className="card" style={{ borderLeft: '4px solid #10b981' }}>
           <h4><i className="fas fa-download"></i> System Backup (JSON)</h4>
           <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '1rem 0' }}>
-            Download a full snapshot of the marketplace state including business types, sections, form fields, and website templates.
+            Download a full snapshot of the marketplace state including business categories, typologies, sections, form fields, and website templates.
           </p>
           <button className="btn btn-success" onClick={exportData} disabled={loading}>
             {loading ? 'Processing...' : 'Export All Data'}
@@ -106,7 +106,7 @@ export default function DataManagerPage() {
           <div style={{ display: 'flex', gap: '0.75rem' }}>
              <select id="csvTable" className="form-control" style={{ width: '200px', height: '38px' }}>
                 <option value="businesses">🏢 Businesses (Marketplace)</option>
-                <option value="business_types">📁 Business Types</option>
+                <option value="business_types">📁 Business Categories & Typologies</option>
                 <option value="sections">📋 Sections</option>
                 <option value="form_fields">📝 Form Fields</option>
                 <option value="locations">🗺️ Locations</option>

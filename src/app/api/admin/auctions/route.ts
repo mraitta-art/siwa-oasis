@@ -22,7 +22,7 @@ interface OpenAuctionRequest {
   // NEW: Contact visibility control
   show_visitor_contact?: boolean; // Default: false (hidden)
   contact_visibility_level?: 'none' | 'partial' | 'full' | 'email_only'; // Default: 'none'
-  admin_contact_email?: string; // Where vendor replies go (default: vendor-replies@siwatoday.com)
+  admin_contact_email?: string; // Where vendor replies go (default: vendor-replies@siwify.com)
 }
 
 interface AuctionResponse {
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       // NEW: Contact visibility settings (defaults to hidden)
       const showVisitorContact = body.show_visitor_contact ?? false;
       const contactVisibilityLevel = body.contact_visibility_level ?? 'none';
-      const adminContactEmail = body.admin_contact_email ?? 'vendor-replies@siwatoday.com';
+      const adminContactEmail = body.admin_contact_email ?? 'vendor-replies@siwify.com';
 
       auctionsDb[auctionId] = {
         id: auctionId,

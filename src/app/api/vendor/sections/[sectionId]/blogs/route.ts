@@ -62,12 +62,23 @@ export async function POST(
       .replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4); // Add unique suffix to prevent duplicate slug errors
 
     // Check section curation policy
-    const sectionQuery = `SELECT curation_policy, auto_publish_blogs FROM sections WHERE id = ?`;
+    const sectionQuery = `SELECT curation_policy, auto_publish_blogs, inheritance_rules FROM sections WHERE id = ?`;
     const [rows] = await db.query(sectionQuery, [sectionId]);
     const section = (rows as any[])?.[0];
     
     if (!section) {
       return Response.json({ error: 'Section not found' }, { status: 404 });
+    }
+
+    let contentPolicy: any = {};
+    try {
+      const parsedRules = typeof section.inheritance_rules === 'string'
+        ? JSON.parse(section.inheritance_rules)
+        : section.inheritance_rules || {};
+      contentPolicy = parsedRules.content_policy || {};
+    } catch { contentPolicy = {}; }
+    if (contentPolicy.vendor_can_write_blog === false) {
+      return Response.json({ error: 'Blog submissions are disabled for this section by an administrator.' }, { status: 403 });
     }
 
     const status = section.auto_publish_blogs ? 'published' : 'pending_approval';

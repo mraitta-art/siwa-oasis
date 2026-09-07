@@ -10,8 +10,31 @@ export async function GET(req: NextRequest) {
   try {
     // 1. We no longer define sections here. 
     // They are exclusively governed by /api/jana/init-8-chapters
+
+    // Keep accommodation subtypes in the same hierarchy used by the signup
+    // and journey flows. Their fields are inherited from the parent type.
+    await execute(
+      `INSERT IGNORE INTO business_types
+       (id, name, icon, icon_color, is_parent, parent_id, own_sections, sort_order, active)
+       VALUES
+       ('accommodation', 'Accommodation', 'fas fa-bed', '#8b5cf6', TRUE, NULL, JSON_ARRAY(), 1, TRUE),
+       ('apartment', 'Apartment', 'fas fa-building', '#3b82f6', FALSE, 'accommodation', JSON_ARRAY(), 1.5, TRUE),
+       ('villa', 'Villa', 'fas fa-house', '#10b981', FALSE, 'accommodation', JSON_ARRAY(), 1.6, TRUE)`
+    );
     
     const standards = [
+      // PROPERTY LISTING MODE (shared by apartments, villas, and other accommodation)
+      { type: 'accommodation', section: 'sec_7_investment', name: 'listing_purpose', label: 'Listing Purpose', field_type: 'select', options: ['sale', 'rent', 'long_term_rent', 'short_term_rent', 'holiday_rent'], required: true, searchable: true },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'rental_term', label: 'Rental Term', field_type: 'select', options: ['nightly', 'weekly', 'monthly', 'yearly'], searchable: true },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'price_amount', label: 'Price Amount', field_type: 'number', required: true, searchable: true },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'price_currency', label: 'Price Currency', field_type: 'select', options: ['EGP', 'USD', 'EUR'], searchable: false },
+
+      // PROPERTY CHARACTERISTICS
+      { type: 'accommodation', section: 'sec_3_facilities', name: 'property_area_sqm', label: 'Property Area (m²)', field_type: 'number', searchable: true },
+      { type: 'accommodation', section: 'sec_3_facilities', name: 'bedroom_count', label: 'Bedrooms', field_type: 'number', searchable: true },
+      { type: 'accommodation', section: 'sec_3_facilities', name: 'bathroom_count', label: 'Bathrooms', field_type: 'number', searchable: true },
+      { type: 'accommodation', section: 'sec_3_facilities', name: 'furnishing', label: 'Furnishing', field_type: 'select', options: ['unfurnished', 'semi_furnished', 'fully_furnished'], searchable: true },
+
       // 🏨 ACCOMMODATION STANDARDS
       // BLOCK 1: GENERAL IDENTITY
       { type: 'accommodation', section: 'sec_1_identity', name: 'display_name', label: 'Official Business Name', field_type: 'text' },
@@ -80,16 +103,16 @@ export async function GET(req: NextRequest) {
     for (const s of standards) {
       try {
         await execute(
-          'INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, options, section_origin) ' +
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [randomUUID(), s.type, s.section, s.name, s.label, s.field_type, JSON.stringify(s.options || []), 'own']
+          'INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, options, required, searchable, section_origin) ' +
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [randomUUID(), s.type, s.section, s.name, s.label, s.field_type, JSON.stringify(s.options || []), s.required ? 1 : 0, s.searchable ? 1 : 0, 'own']
         );
         results.push({ field: s.name, status: 'Materialized' });
       } catch (e) {
         // If already exists, update the field type and options to match gold standard
         await execute(
-          'UPDATE form_fields SET field_type = ?, options = ? WHERE business_type_id = ? AND name = ?',
-          [s.field_type, JSON.stringify(s.options || []), s.type, s.name]
+          'UPDATE form_fields SET field_type = ?, options = ?, required = ?, searchable = ? WHERE business_type_id = ? AND name = ?',
+          [s.field_type, JSON.stringify(s.options || []), s.required ? 1 : 0, s.searchable ? 1 : 0, s.type, s.name]
         );
         results.push({ field: s.name, status: 'Updated to Standard' });
       }

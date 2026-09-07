@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface InvestmentOpportunity {
   id: string;
+  business_id?: string;
   opportunity_title: string;
   opportunity_type: 'equity' | 'partnership' | 'franchise' | 'joint_venture' | 'sponsorship';
   business_name: string;
@@ -18,64 +19,100 @@ interface InvestmentOpportunity {
   investors_current: number;
   target_investors: number;
   inquiries_count: number;
+  verification_count?: number;
+  show_on_minisite?: boolean;
+  minisite_display_mode?: 'section' | 'page';
+}
+
+interface ContactVerification {
+  slot_number: number;
+  phone: string;
+  contact_name: string | null;
+  verified: boolean | number;
+  called_at: string | null;
+  notes: string | null;
 }
 
 export default function AdminInvestmentOpportunitiesPage() {
-  const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([
-    {
-      id: '1',
-      opportunity_title: 'Desert Tours Expansion',
-      opportunity_type: 'equity',
-      business_name: 'Desert Tours Co',
-      investment_amount_min: 50000,
-      investment_amount_max: 250000,
-      expected_roi_percent: 25,
-      status: 'published',
-      approval_status: 'approved',
-      visibility_on_main_site: true,
-      is_featured: true,
-      investors_current: 3,
-      target_investors: 5,
-      inquiries_count: 18,
-    },
-    {
-      id: '2',
-      opportunity_title: 'Siwa Palace Renovation',
-      opportunity_type: 'partnership',
-      business_name: 'Siwa Palace Hotel',
-      investment_amount_min: 100000,
-      investment_amount_max: 500000,
-      expected_roi_percent: 20,
-      status: 'published',
-      approval_status: 'approved',
-      visibility_on_main_site: true,
-      is_featured: false,
-      investors_current: 2,
-      target_investors: 4,
-      inquiries_count: 12,
-    },
-    {
-      id: '3',
-      opportunity_title: 'Restaurant Chain Franchise',
-      opportunity_type: 'franchise',
-      business_name: 'Restaurant Siwa',
-      investment_amount_min: 30000,
-      investment_amount_max: 80000,
-      expected_roi_percent: 30,
-      status: 'draft',
-      approval_status: 'pending',
-      visibility_on_main_site: false,
-      is_featured: false,
-      investors_current: 0,
-      target_investors: 10,
-      inquiries_count: 0,
-    },
-  ]);
+  const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState('');
+  const [verificationByBusiness, setVerificationByBusiness] = useState<Record<string, ContactVerification[]>>({});
 
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterApproval, setFilterApproval] = useState<string>('all');
   const [filterVisibility, setFilterVisibility] = useState<string>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  async function loadOpportunities() {
+    setLoading(true);
+    setError('');
+    fetch('/api/admin/investment-opportunities')
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load opportunities');
+        setOpportunities(data.items || []);
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadOpportunities();
+  }, []);
+
+  async function updateOpportunity(id: string, updates: Record<string, any>) {
+    setActionBusy(id);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/investment-opportunities', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      if (!response.ok) throw new Error('Failed to update opportunity');
+      setOpportunities(current => current.map(item => item.id === id ? { ...item, ...updates } : item));
+      setNotice('Opportunity updated');
+      setTimeout(() => setNotice(''), 2500);
+    } catch (err: any) { setError(err.message); }
+    finally { setActionBusy(null); }
+  }
+
+  async function deleteOpportunity(id: string) {
+    if (!window.confirm('Remove this investment opportunity from the business?')) return;
+    setActionBusy(id);
+    try {
+      const response = await fetch(`/api/admin/investment-opportunities?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete opportunity');
+      setOpportunities(current => current.filter(item => item.id !== id));
+      setNotice('Opportunity removed');
+      setTimeout(() => setNotice(''), 2500);
+    } catch (err: any) { setError(err.message); }
+    finally { setActionBusy(null); }
+  }
+
+  async function loadVerification(businessId: string) {
+    const response = await fetch(`/api/admin/investment-opportunities/verification?businessId=${encodeURIComponent(businessId)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to load verification records');
+    setVerificationByBusiness(current => ({ ...current, [businessId]: data.items || [] }));
+  }
+
+  async function verifyContact(businessId: string, contact: ContactVerification) {
+    const contactName = window.prompt(`Name confirmed for ${contact.phone}`, contact.contact_name || '');
+    if (!contactName?.trim()) return;
+    const notes = window.prompt('Optional call notes', contact.notes || '') || '';
+    const response = await fetch('/api/admin/investment-opportunities/verification', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ businessId, slotNumber: contact.slot_number, verified: true, contactName, notes }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to save verification');
+    await loadVerification(businessId);
+    setOpportunities(current => current.map(item => item.id === businessId ? { ...item, verification_count: (item.verification_count || 0) + (contact.verified ? 0 : 1) } : item));
+    setNotice(`Contact ${contact.slot_number} verified`);
+    setTimeout(() => setNotice(''), 2500);
+  }
 
   const filteredOpportunities = opportunities.filter((opp) => {
     if (filterStatus !== 'all' && opp.status !== filterStatus) return false;
@@ -86,17 +123,6 @@ export default function AdminInvestmentOpportunitiesPage() {
     }
     return true;
   });
-
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      equity: '📊',
-      partnership: '🤝',
-      franchise: '🏢',
-      joint_venture: '🔗',
-      sponsorship: '🎯',
-    };
-    return icons[type] || '💰';
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -149,11 +175,11 @@ export default function AdminInvestmentOpportunitiesPage() {
 
         {/* Controls */}
         <div className="mb-8 flex gap-4 flex-wrap items-center">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-sm"
-          >
-            + New Opportunity
+          <Link href="/jana/businesses" className="px-6 py-3 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-sm">
+            + Create from Business Form
+          </Link>
+          <button onClick={loadOpportunities} disabled={loading} className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold text-sm hover:bg-slate-50 disabled:opacity-50">
+            {loading ? 'Refreshing...' : 'Refresh'}
           </button>
 
           <select
@@ -194,6 +220,9 @@ export default function AdminInvestmentOpportunitiesPage() {
           </div>
         </div>
 
+        {error && <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+        {notice && <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
+
         {/* Table */}
         <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm mb-12">
           <div className="overflow-x-auto">
@@ -212,71 +241,40 @@ export default function AdminInvestmentOpportunitiesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                {loading && <tr><td colSpan={9} className="px-6 py-12 text-center text-sm font-semibold text-slate-400">Loading business opportunities...</td></tr>}
+                {!loading && filteredOpportunities.length === 0 && <tr><td colSpan={9} className="px-6 py-12 text-center text-sm font-semibold text-slate-400">No business has submitted an investment opportunity yet.</td></tr>}
                 {filteredOpportunities.map((opp) => (
                   <tr key={opp.id} className="hover:bg-slate-50/50 transition-colors text-sm text-slate-700">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-slate-800 font-extrabold flex items-center gap-2">
-                          <span className="text-lg bg-amber-50 p-1.5 rounded-lg">{getTypeIcon(opp.opportunity_type)}</span>
-                          {opp.opportunity_title}
-                        </div>
-                        {opp.visibility_on_main_site && (
-                          <span className="mt-1 inline-block px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                            Visible on main
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    <td className="px-6 py-4 font-extrabold text-slate-800">{opp.opportunity_title}</td>
                     <td className="px-6 py-4 font-semibold text-slate-600">{opp.business_name}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {opp.opportunity_type}
-                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">{opp.opportunity_type}</td>
+                    <td className="px-6 py-4 font-black text-slate-800">${opp.investment_amount_min.toLocaleString()} - ${opp.investment_amount_max.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-black text-[#D4AF37]">{opp.expected_roi_percent}%</td>
+                    <td className="px-6 py-4 font-semibold text-slate-500">{opp.investors_current}/{opp.target_investors}</td>
+                    <td className="px-6 py-4"><span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase ${getStatusColor(opp.status)}`}>{opp.status}</span></td>
+                    <td className="px-6 py-4"><span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase ${getApprovalColor(opp.approval_status)}`}>{opp.approval_status}</span></td>
                     <td className="px-6 py-4">
-                      <div className="text-slate-800 font-black">
-                        ${opp.investment_amount_min.toLocaleString()} - ${opp.investment_amount_max.toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-[#D4AF37] font-black">{opp.expected_roi_percent}%</div>
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-slate-500">
-                      <div>{opp.investors_current}/{opp.target_investors}</div>
-                      <div className="w-20 h-1 bg-slate-100 rounded mt-1 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#D4AF37] to-amber-500"
-                          style={{ width: `${(opp.investors_current / opp.target_investors) * 100}%` }}
-                        ></div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${getStatusColor(opp.status)}`}>
-                        {opp.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${getApprovalColor(opp.approval_status)}`}>
-                        {opp.approval_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 font-bold transition">
-                          ✏️ Edit
+                      <div className="flex gap-2 flex-wrap">
+                        <button disabled={actionBusy === opp.id} onClick={() => updateOpportunity(opp.id, { visibility_on_main_site: !opp.visibility_on_main_site })} className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 font-bold transition disabled:opacity-50">
+                          {opp.visibility_on_main_site ? 'Hide' : 'Show'}
                         </button>
-                        {opp.approval_status === 'pending' && (
-                          <>
-                            <button className="px-3.5 py-1.5 text-xs bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-emerald-700 font-bold transition">
-                              ✓ Approve
-                            </button>
-                            <button className="px-3.5 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
-                              ✕ Reject
-                            </button>
-                          </>
-                        )}
-                        <button className="px-3.5 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
-                          🗑️ Delete
+                        <button disabled={actionBusy === opp.id || opp.approval_status !== 'approved'} onClick={() => updateOpportunity(opp.id, { show_on_minisite: !opp.show_on_minisite })} className="px-3 py-1.5 text-xs bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl text-indigo-700 font-bold transition disabled:opacity-50">
+                          {opp.show_on_minisite ? 'Hide Minisite' : 'Show Minisite'}
                         </button>
+                        {opp.approval_status === 'pending' && <>
+                          <button disabled={actionBusy === opp.id} onClick={() => updateOpportunity(opp.id, { approval_status: 'approved', status: 'published', visibility_on_main_site: true, show_on_minisite: true })} className="px-3 py-1.5 text-xs bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-emerald-700 font-bold transition disabled:opacity-50">Approve</button>
+                          <button disabled={actionBusy === opp.id} onClick={() => updateOpportunity(opp.id, { approval_status: 'rejected', visibility_on_main_site: false })} className="px-3 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition disabled:opacity-50">Reject</button>
+                        </>}
+                        <button disabled={actionBusy === opp.id} onClick={() => deleteOpportunity(opp.id)} className="px-3 py-1.5 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition disabled:opacity-50">Delete</button>
+                        <button onClick={() => loadVerification(opp.id)} className="px-3 py-1.5 text-xs bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl text-blue-700 font-bold transition">Calls {opp.verification_count || 0}/3</button>
                       </div>
+                      {verificationByBusiness[opp.id] && <div className="mt-3 min-w-[260px] rounded-xl bg-slate-50 p-3 text-xs">
+                        <div className="mb-2 font-black uppercase tracking-wider text-slate-400">Manual responsibility calls</div>
+                        {verificationByBusiness[opp.id].map(contact => <div key={contact.slot_number} className="flex items-center justify-between gap-2 border-b border-slate-200 py-2 last:border-0">
+                          <span className="font-semibold text-slate-600">{contact.slot_number}. {contact.phone}<br /><span className="text-slate-400">{contact.contact_name || 'Name not recorded'}</span></span>
+                          {contact.verified ? <span className="font-black text-emerald-600">Verified</span> : <button onClick={() => verifyContact(opp.id, contact)} className="rounded-lg bg-white px-2 py-1 font-bold text-amber-700 shadow-sm">Log call</button>}
+                        </div>)}
+                      </div>}
                     </td>
                   </tr>
                 ))}
@@ -318,7 +316,7 @@ export default function AdminInvestmentOpportunitiesPage() {
         </div>
 
         {/* Create Modal */}
-        {showCreateModal && (
+        {false && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white border border-slate-100 rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-black text-slate-800 mb-6">Create Investment Opportunity</h2>
@@ -405,7 +403,7 @@ export default function AdminInvestmentOpportunitiesPage() {
 
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => undefined}
                   className="px-6 py-2.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition"
                 >
                   Cancel

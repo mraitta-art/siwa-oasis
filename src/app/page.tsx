@@ -8,6 +8,7 @@ import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 interface LayoutSection {
   id: string;
   type: string;
+  zone?: string;
   props?: Record<string, unknown>;
 }
 
@@ -117,7 +118,9 @@ export default function Home() {
           ...(config?.footer_components || [])
         ]);
 
-        if (allComponents.length > 0) {
+        const hasSavedLayout = Boolean(config) && ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(config[key]));
+        if (hasSavedLayout) {
+          // The admin builder is authoritative, including an intentionally empty layout.
           setLayout(allComponents);
           setHasBuilderConfig(true);
           if (config.site_settings) setSettings(config.site_settings);
@@ -166,7 +169,7 @@ export default function Home() {
       {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING */}
       {builderLoaded ? (
         hasBuilderConfig ? (
-          <DynamicHomepageRenderer layout={layout} settings={settings} />
+          <DynamicHomepageRenderer layout={layout} settings={settings} pageId="main" />
         ) : (
           <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
             <div style={{ maxWidth: '720px' }}>
@@ -189,7 +192,7 @@ export default function Home() {
       {/* GLOBAL WATERMARK */}
       {settings?.show_watermark !== false && (
         <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 2000, pointerEvents: 'none', opacity: 0.3, filter: 'grayscale(100%) brightness(200%)' }}>
-          <div style={{ fontWeight: 900, letterSpacing: '5px', fontSize: '0.6rem', color: '#fff' }}>SIWA.TODAY</div>
+          <div style={{ fontWeight: 900, letterSpacing: '5px', fontSize: '0.6rem', color: '#fff' }}>SIWIFY</div>
         </div>
       )}
 
@@ -200,7 +203,7 @@ export default function Home() {
                {settings?.logo_url ? (
                  <img src={settings.logo_url} alt={settings.site_name} style={{ height: `${(settings.logo_height || 40) * 1.2}px`, marginBottom: '1.5rem', objectFit: 'contain' }} />
                ) : (
-                 <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#f7e7d0', marginBottom: '1.5rem' }}>SIWA.TODAY</div>
+                 <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#f7e7d0', marginBottom: '1.5rem' }}>SIWIFY</div>
                )}
                <p style={{ color: 'rgba(247,231,208,0.72)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.</p>
             </div>
@@ -220,7 +223,7 @@ export default function Home() {
          </div>
 
          <div style={{ marginTop: '8rem', paddingTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center', opacity: 0.7, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px', color: 'rgba(247,231,208,0.7)' }}>
-            © {new Date().getFullYear()} SIWA.TODAY • ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} SIWIFY • ALL RIGHTS RESERVED.
          </div>
       </footer>
     </div>

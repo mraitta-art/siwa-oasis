@@ -56,7 +56,7 @@ export default function ExpressionsPage() {
       </div>
 
       <div className="notification-banner">
-        <i className="fas fa-magic"></i> Expressions are dynamic terminologies like "Vibe", "Construction", or "Sustainability" that can be used across multiple business types.
+        <i className="fas fa-magic"></i> Expressions are dynamic terminologies like "Vibe", "Construction", or "Sustainability" that can be used across multiple business categories and typologies.
       </div>
 
       <div className="grid-2">

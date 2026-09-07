@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
       's.inheritance_rules as section_inheritance_rules, s.curation_policy as section_curation_policy ' +
       'FROM form_fields f ' +
       'JOIN sections s ON f.section_id = s.id ' +
-      'WHERE f.business_type_id IN (?) ' +
+      'WHERE (f.business_type_id IN (?) OR s.is_universal = 1) ' +
       'ORDER BY s.sort_order ASC, f.sort_order ASC',
       [typesToFetch]
     )) as any[];
@@ -206,6 +206,17 @@ export async function POST(req: NextRequest) {
 
     // Merge new section field data
     const merged = { ...currentData, ...(data || {}) };
+
+    // Any vendor edit requires a fresh admin review before it is public again.
+    if (data?.['investment-opportunity']) {
+      merged['investment-opportunity'] = {
+        ...currentData['investment-opportunity'],
+        ...data['investment-opportunity'],
+        approval_status: 'pending',
+        status: 'draft',
+        visibility_on_main_site: false,
+      };
+    }
 
     // Persist vendor-customised tab labels
     if (section_labels && typeof section_labels === 'object') {

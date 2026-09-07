@@ -55,14 +55,6 @@ const UNIVERSAL_SECTIONS = [
     sort_order: 30,
   },
   {
-    id: 'invest',
-    name: 'Investments & Partnerships',
-    icon: '💸',
-    description: 'Investment and partnership opportunities — a dedicated channel for investor interest',
-    is_universal: true,
-    sort_order: 32,
-  },
-  {
     id: 'auction',
     name: 'Auction & Bidding',
     icon: '🔨',
@@ -307,7 +299,6 @@ const SECTION_FIELDS_MAP: Record<string, typeof INVESTMENT_FIELDS> = {
   'vibe':                  VIBE_FIELDS,
   'experience':            EXPERIENCE_FIELDS,
   'investment-opportunity': INVESTMENT_FIELDS,
-  'invest':                INVESTMENT_FIELDS,
   'auction':               AUCTION_FIELDS,
   'offers-promotions':     OFFERS_PROMOTIONS_FIELDS,
   'package':               PACKAGE_FIELDS,
@@ -317,12 +308,50 @@ const SECTION_FIELDS_MAP: Record<string, typeof INVESTMENT_FIELDS> = {
   'sponsorship':           SPONSORSHIP_FIELDS,
 };
 
+async function migrateLegacyInvestmentData() {
+  const rows = await query('SELECT id, custom_data FROM businesses WHERE custom_data IS NOT NULL') as any[];
+  let migrated = 0;
+
+  for (const row of rows) {
+    let customData: Record<string, any>;
+    try {
+      customData = typeof row.custom_data === 'string' ? JSON.parse(row.custom_data) : row.custom_data || {};
+    } catch {
+      continue;
+    }
+
+    const legacy = customData.sec_7_investment;
+    if (!legacy || customData['investment-opportunity']) continue;
+
+    customData['investment-opportunity'] = {
+      opportunity_title: legacy.opportunity_title || legacy.investment_opps || '',
+      opportunity_type: legacy.opportunity_type || 'partnership',
+      investment_description: legacy.investment_description || legacy.expansion_roadmap || '',
+      investment_amount_min: legacy.investment_amount_min || legacy.min_investment || '',
+      expected_roi_percent: legacy.expected_roi_percent || legacy.roi_estimate || '',
+      investment_status: legacy.investment_status || 'open',
+      approval_status: 'pending',
+      status: 'draft',
+      migrated_from: 'sec_7_investment',
+    };
+
+    await execute('UPDATE businesses SET custom_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(customData), row.id]);
+    migrated += 1;
+  }
+
+  return migrated;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  HANDLER
 // ═══════════════════════════════════════════════════════════════════
 export async function POST(request: NextRequest) {
   try {
     const results: any[] = [];
+    const migratedInvestments = await migrateLegacyInvestmentData();
+
+    // Retire the duplicate universal investment section after migration.
+    await execute("UPDATE sections SET active = 0 WHERE id = 'invest'");
 
     // 1. Create or update universal sections
     for (const section of UNIVERSAL_SECTIONS) {
@@ -359,9 +388,9 @@ export async function POST(request: NextRequest) {
 
         if (existing.length === 0) {
           await execute(
-            `INSERT INTO form_fields 
-             (section_id, name, label, field_type, required, vendor_editable, is_searchable, is_filterable, sort_order, help_text, options)
-             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+            `INSERT INTO form_fields
+             (business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, sort_order, help_text, options)
+             VALUES ('SECTION_TEMPLATE', ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
             [
               sectionId,
               field.name,
@@ -369,7 +398,6 @@ export async function POST(request: NextRequest) {
               field.field_type,
               field.required ? 1 : 0,
               field.is_searchable ? 1 : 0,
-              field.is_filterable ? 1 : 0,
               field.sort_order,
               field.help || null,
               (field as any).options ? JSON.stringify((field as any).options) : null,
@@ -393,6 +421,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'All universal marketplace sections created successfully',
+      migratedInvestments,
       details: results,
       sections: UNIVERSAL_SECTIONS.map(s => ({
         id: s.id,

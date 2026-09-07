@@ -600,7 +600,7 @@ export default function BlogPostPage() {
           textAlign: 'center',
         }}>
           <div style={{ marginBottom: '2rem', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '3px', color: 'rgba(255,255,255,0.3)' }}>
-            © {new Date().getFullYear()} SIWA.TODAY
+            © {new Date().getFullYear()} SIWIFY
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
             <Link href="/blog" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 700 }}>

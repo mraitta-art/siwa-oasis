@@ -78,19 +78,20 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 /** Login: verify credentials vs DB, return user or null */
 export async function login(email: string, password: string): Promise<SessionUser | null> {
   try {
-    console.log(`[AUTH DEBUG] Login attempt for: ${email}`);
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log(`[AUTH DEBUG] Login attempt for: ${normalizedEmail}`);
     const user = await queryOne<any>(
-      'SELECT id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status FROM profiles WHERE email = ?',
-      [email]
+      'SELECT id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status FROM profiles WHERE LOWER(email) = ?',
+      [normalizedEmail]
     );
     
     if (!user) {
-      console.log(`[AUTH DEBUG] User not found: ${email}`);
+      console.log(`[AUTH DEBUG] User not found: ${normalizedEmail}`);
       return null;
     }
     
     if (!user.active) {
-      console.log(`[AUTH DEBUG] User found but is inactive: ${email}`);
+      console.log(`[AUTH DEBUG] User found but is inactive: ${normalizedEmail}`);
       return null;
     }
 
@@ -101,7 +102,7 @@ export async function login(email: string, password: string): Promise<SessionUse
     }
     
     const valid = await comparePassword(password, user.password_hash);
-    console.log(`[AUTH DEBUG] Password check for ${email}: ${valid ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`[AUTH DEBUG] Password check for ${normalizedEmail}: ${valid ? 'SUCCESS' : 'FAILED'}`);
     
     if (!valid) return null;
     return {

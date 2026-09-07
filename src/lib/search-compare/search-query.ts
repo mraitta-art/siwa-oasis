@@ -97,54 +97,8 @@ export async function executeSearch(
     // Special: Offers Search (Deep Scan across offer-related custom_data sections)
     if (c.field === 'offers') {
       const term = `%${c.value}%`;
-      sql += ` AND (
-        b.custom_data LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_title_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_title_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_title_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_title_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_title_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_title_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.offers_packages.offers_packages_offer_title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$.offers_packages.offer_title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".offer_title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".title')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".price_standard')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".avg_meal_price')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".group_discounts')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".shipping_info')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."sec_8_rates_offers".special_conditions')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".discount_name')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".discount_description')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".discount_type')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discount".promo_code')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".discount_name')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".discount_description')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".discount_type')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."discounts-promotions".promo_code')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_description')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_description_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_description_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_description')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_description_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_description_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_description')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_description_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_description_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_inclusions')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_inclusions_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-packages".offer_inclusions_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_inclusions')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_inclusions_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."offers-promotions".offer_inclusions_3')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_inclusions')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_inclusions_2')) LIKE ?
-        OR JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."package".offer_inclusions_3')) LIKE ?
-      )`;
-      params.push(term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term, term);
+      sql += ' AND b.custom_data LIKE ?';
+      params.push(term);
       return;
     }
 

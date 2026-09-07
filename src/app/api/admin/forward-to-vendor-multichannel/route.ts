@@ -93,7 +93,7 @@ function buildChannelMessage(
   if (channel === "email") {
     return `<h1>🌟 ${visitorCount} Visitors Are Asking For You!</h1>
 <p>Your business was recommended ${visitorCount} times on Siwa Oasis.</p>
-<p><a href="https://siwatoday.com/vendor/requests">View Your Requests</a></p>`;
+<p><a href="https://siwify.com/vendor/requests">View Your Requests</a></p>`;
   }
 
   if (channel === "sms") {

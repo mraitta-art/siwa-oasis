@@ -43,7 +43,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const affectedTypes = [parentTypeId, ...childTypeIds];
+    const uniqueChildTypeIds = [...new Set(childTypeIds.filter((id): id is string => typeof id === 'string' && id.length > 0))]
+      .filter(id => id !== parentTypeId);
+    if (uniqueChildTypeIds.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one duplicate child type different from the parent is required' },
+        { status: 400 }
+      );
+    }
+
+    const childTypes = await query(
+      `SELECT id FROM business_types WHERE id IN (${uniqueChildTypeIds.map(() => '?').join(',')})`,
+      uniqueChildTypeIds
+    );
+    if (childTypes.length !== uniqueChildTypeIds.length) {
+      const foundIds = new Set(childTypes.map((type: any) => type.id));
+      const missingIds = uniqueChildTypeIds.filter(id => !foundIds.has(id));
+      return NextResponse.json(
+        { error: `Duplicate child type(s) not found: ${missingIds.join(', ')}` },
+        { status: 404 }
+      );
+    }
+
+    const affectedTypes = [parentTypeId, ...uniqueChildTypeIds];
     let actualParentId = parentTypeId;
 
     // If action is create_parent, create a new parent first
@@ -83,37 +105,29 @@ export async function POST(request: NextRequest) {
       actualParentId = newParentId;
     }
 
-    // Step 1: Verify all duplicate types exist before proceeding
-    for (const childId of childTypeIds) {
-      const childType = await query('SELECT * FROM business_types WHERE id = ?', [childId]);
-      if (childType.length === 0) {
-        console.warn(`Type ${childId} not found, skipping...`);
-      }
-    }
-
     // Step 2: Update all businesses using old types to use the parent
-    const typeIdList = childTypeIds.map(id => `'${id}'`).join(',');
+    const typeIdPlaceholders = uniqueChildTypeIds.map(() => '?').join(',');
     await execute(
       `UPDATE businesses 
-       SET type_id = ? 
-       WHERE type_id IN (${typeIdList})`,
-      [actualParentId]
+       SET type_id = ?
+       WHERE type_id IN (${typeIdPlaceholders})`,
+      [actualParentId, ...uniqueChildTypeIds]
     );
 
     // Step 3: Update form field references
     await execute(
       `UPDATE form_fields 
        SET business_type_id = ? 
-       WHERE business_type_id IN (${typeIdList})`,
-      [actualParentId]
+       WHERE business_type_id IN (${typeIdPlaceholders})`,
+      [actualParentId, ...uniqueChildTypeIds]
     );
 
     // Step 4: Update card template references
     await execute(
       `UPDATE card_templates 
        SET business_type_id = ? 
-       WHERE business_type_id IN (${typeIdList})`,
-      [actualParentId]
+       WHERE business_type_id IN (${typeIdPlaceholders})`,
+      [actualParentId, ...uniqueChildTypeIds]
     );
 
     // Step 5: Update orchestrator page references (if any components reference old type IDs)
@@ -136,11 +150,9 @@ export async function POST(request: NextRequest) {
         const stringified = JSON.stringify(components);
         let updated = false;
         
-        for (const oldTypeId of childTypeIds) {
+        for (const oldTypeId of uniqueChildTypeIds) {
           if (stringified.includes(oldTypeId)) {
-            components = JSON.parse(
-              stringified.replaceAll(`"${oldTypeId}"`, `"${actualParentId}"`)
-            );
+            components = JSON.parse(JSON.stringify(components).replaceAll(`"${oldTypeId}"`, `"${actualParentId}"`));
             updated = true;
           }
         }
@@ -159,7 +171,8 @@ export async function POST(request: NextRequest) {
 
     // Step 5.5: Actually DELETE the consolidated duplicate types
     await execute(
-      `DELETE FROM business_types WHERE id IN (${typeIdList})`
+      `DELETE FROM business_types WHERE id IN (${typeIdPlaceholders})`,
+      uniqueChildTypeIds
     );
 
     // Step 6: Invalidate caches
@@ -169,7 +182,7 @@ export async function POST(request: NextRequest) {
     const summary = {
       action: 'consolidate_types',
       parentTypeId: actualParentId,
-      mergedTypes: childTypeIds,
+      mergedTypes: uniqueChildTypeIds,
       totalTypes: affectedTypes.length,
       orchestratorPagesUpdated: orchestratorUpdated,
       timestamp: new Date().toISOString()
@@ -178,7 +191,7 @@ export async function POST(request: NextRequest) {
     await execute(
       'INSERT INTO activity_log (message, user_email) VALUES (?, ?)',
       [
-        `Type Consolidation: Merged ${childTypeIds.length} types under "${actualParentId}". ` +
+        `Type Consolidation: Merged ${uniqueChildTypeIds.length} types under "${actualParentId}". ` +
         `Orchestrator pages updated: ${orchestratorUpdated}. ` +
         `Total affected: ${affectedTypes.length}`,
         user.email
@@ -187,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully consolidated ${childTypeIds.length} types under "${actualParentId}". Orchestrator synchronized.`,
+      message: `Successfully consolidated ${uniqueChildTypeIds.length} types under "${actualParentId}". Orchestrator synchronized.`,
       summary,
       newParentId: actualParentId
     });

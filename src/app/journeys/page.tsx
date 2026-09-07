@@ -65,7 +65,7 @@ export default async function JourneysPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <style dangerouslySetInnerHTML={{ __html: buildThemeCSS(cfg.site_settings || {}) }} />
-      <DynamicHomepageRenderer layout={layout} settings={cfg.site_settings || null} />
+      <DynamicHomepageRenderer layout={layout} settings={cfg.site_settings || null} pageId="journeys" />
     </div>
   );
 }

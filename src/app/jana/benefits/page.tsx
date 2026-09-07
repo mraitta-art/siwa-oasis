@@ -113,7 +113,7 @@ export default function SubscriptionBenefits() {
                 <i className="fas fa-bullhorn"></i>
              </div>
              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1rem' }}>Front Row Discovery</h3>
-             <p style={{ fontSize: '0.9rem', opacity: 0.5, lineHeight: 1.6 }}>Your best photos are automatically featured on the Siwa.Today homepage carousel, seen by thousands of global explorers.</p>
+             <p style={{ fontSize: '0.9rem', opacity: 0.5, lineHeight: 1.6 }}>Your best photos are automatically featured on the Siwify homepage carousel, seen by thousands of global explorers.</p>
           </div>
 
           <div>

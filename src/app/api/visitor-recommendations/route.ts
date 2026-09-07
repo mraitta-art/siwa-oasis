@@ -134,9 +134,9 @@ export async function POST(request: NextRequest) {
           follow_up: 'We will contact you if we have questions about your suggestion',
         },
         contact: {
-          email: 'recommendations@siwatoday.com',
+          email: 'recommendations@siwify.com',
           phone: '+20 1234567890',
-          website: 'https://siwatoday.com',
+          website: 'https://siwify.com',
         },
       },
       { status: 201 }

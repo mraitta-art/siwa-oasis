@@ -47,6 +47,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
   const [filterType, setFilterType] = useState('all');
   const [filterStage, setFilterStage] = useState('all');
   const [filterROI, setFilterROI] = useState('all');
+  const [filterSponsorshipTier, setFilterSponsorshipTier] = useState('all');
   const [sortBy, setSortBy] = useState('roi');
 
   // Load both investments and sponsorships
@@ -128,7 +129,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
   const visibleSponsorships = sponsorships.filter((sp) => {
     const matchesSearch = sp.sponsorship_title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           sp.business_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTier = filterType === 'all' || sp.sponsorship_tier === filterType;
+    const matchesTier = filterSponsorshipTier === 'all' || sp.sponsorship_tier === filterSponsorshipTier;
     return matchesSearch && matchesTier;
   });
 
@@ -200,7 +201,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
           {/* Hub Tabs */}
           <div className="mt-8 inline-flex p-1.5 bg-gray-900 border border-gray-800 rounded-2xl gap-2">
             <button
-              onClick={() => { setActiveTab('investments'); setSearchTerm(''); setFilterType('all'); }}
+              onClick={() => { setActiveTab('investments'); setSearchTerm(''); setFilterType('all'); setFilterStage('all'); setFilterROI('all'); }}
               className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
                 activeTab === 'investments' ? 'bg-gradient-to-r from-[#556B2F] to-[#D4AF37] text-white' : 'text-gray-400 hover:text-white'
               }`}
@@ -208,7 +209,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
               💰 Investment Opportunities
             </button>
             <button
-              onClick={() => { setActiveTab('sponsorships'); setSearchTerm(''); setFilterType('all'); }}
+              onClick={() => { setActiveTab('sponsorships'); setSearchTerm(''); setFilterSponsorshipTier('all'); }}
               className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
                 activeTab === 'sponsorships' ? 'bg-gradient-to-r from-[#556B2F] to-[#D4AF37] text-white' : 'text-gray-400 hover:text-white'
               }`}
@@ -280,8 +281,8 @@ export default function MainSiteInvestmentOpportunitiesPage() {
                 className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
               />
               <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                value={filterSponsorshipTier}
+                onChange={(e) => setFilterSponsorshipTier(e.target.value)}
                 className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none"
               >
                 <option value="all">All Types</option>
@@ -409,6 +410,14 @@ export default function MainSiteInvestmentOpportunitiesPage() {
                 <option value="custom">Custom</option>
               </select>
             </div>
+
+            {visibleSponsorships.length === 0 && (
+              <div className="rounded-2xl border border-gray-800 bg-gray-900/60 py-20 text-center">
+                <div className="text-5xl mb-4">🤝</div>
+                <p className="text-gray-300 text-lg mb-2">No sponsorship packages found</p>
+                <p className="text-gray-500 text-sm">Try another tier or search term.</p>
+              </div>
+            )}
 
             {/* List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

@@ -74,7 +74,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
     const user = await requireAdmin();
 
     const body = await request.json();
@@ -144,8 +143,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });
     }
 
-    // Build dynamic update query
-    const fields = Object.keys(updates);
+    const allowedFields = new Set([
+      'name', 'description', 'icon', 'zone', 'category', 'manager_url',
+      'default_props', 'required_props', 'component_config', 'config_schema',
+      'min_version', 'enabled', 'deprecated', 'sort_order', 'version',
+      'deprecation_notice', 'tags'
+    ]);
+    const fields = Object.keys(updates).filter(field => allowedFields.has(field));
     if (fields.length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }

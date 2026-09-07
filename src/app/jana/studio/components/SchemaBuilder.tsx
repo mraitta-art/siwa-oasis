@@ -185,7 +185,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
         body: JSON.stringify({ id: selectedTypeId, own_sections: newOwn, sections: newAll }),
       });
 
-      notify('Section removed from this business type', 'success');
+      notify('Section removed from this category or typology', 'success');
       setDeletingSection(null);
       loadSections(selectedTypeId);
     } catch (e: any) { notify(e.message || 'Remove failed', 'error'); }
@@ -281,7 +281,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
             <h3 style={{ margin: '0 0 0.5rem', color: '#1e293b' }}>Remove Section?</h3>
             <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.6 }}>
               This will <strong>unassign</strong> this section from{' '}
-              <strong>{selectedTypeName || 'this business type'}</strong>.<br />
+              <strong>{selectedTypeName || 'this category or typology'}</strong>.<br />
               The section itself is not deleted — it can be re-assigned later.
             </p>
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'center' }}>
@@ -323,7 +323,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
         ) : types.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
             <i className="fas fa-sitemap fa-2x" style={{ display: 'block', marginBottom: '0.75rem', color: '#e2e8f0' }}></i>
-            No business types found. Create them first in the Typology Architect.
+            No categories or typologies found. Create them first in the Typology Architect.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -561,7 +561,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                       {/* 🗑️ Delete (remove from type) */}
                       <button
                         type="button"
-                        title="Remove section from this business type"
+                        title="Remove section from this category or typology"
                         onClick={e => { e.stopPropagation(); setDeletingSection(section.id); }}
                         style={{
                           background: isExpanded ? 'rgba(239,68,68,0.15)' : '#fef2f2',

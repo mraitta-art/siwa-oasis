@@ -1,3 +1,22 @@
+/* Every homepage module gets a stable responsive boundary. Component-specific
+   renderers can remain focused on content while the shell prevents overflow. */
+.component-responsive-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  container-type: inline-size;
+}
+
+.component-responsive-shell > * {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .component-responsive-shell {
+    overflow-x: hidden;
+  }
+}
 /* ================================================================
    SIWA OASIS — Desert Sunset Color Palette (Production)
    Premium desert oasis aesthetic with sunset colors
@@ -774,6 +793,34 @@ tr:hover td { background: #f9fafb; }
 }
 
 /* ---- Minisite Responsive Enhancements ---- */
+.section-architect-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--section-grid-columns);
+  height: calc(100vh - 80px);
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+@media (max-width: 1100px) {
+  .section-architect-grid {
+    grid-template-columns: 1fr !important;
+    height: auto;
+    overflow-x: hidden;
+  }
+
+  .section-architect-sidebar,
+  .section-architect-editor {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .section-architect-sidebar {
+    max-height: 48vh;
+  }
+}
+
 .minisite-layout {
   display: grid;
   grid-template-columns: 1fr 380px;

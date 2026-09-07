@@ -25,6 +25,14 @@ export async function PATCH(req: NextRequest) {
 
     const { hidden_sections, section_labels, section_order, minisite_color, minisite_font } = await req.json();
 
+    let canEditLabels = false;
+    try {
+      const controls = (await query('SELECT allow_section_label_edit FROM vendor_service_controls WHERE business_id = ?', [user.businessId])) as any[];
+      canEditLabels = controls.length > 0 && !!controls[0].allow_section_label_edit;
+    } catch {
+      canEditLabels = false;
+    }
+
     // Load existing custom_data
     const rows = (await query('SELECT custom_data FROM businesses WHERE id = ?', [user.businessId])) as any[];
     if (rows.length === 0) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
@@ -37,7 +45,7 @@ export async function PATCH(req: NextRequest) {
     const updated = {
       ...existing,
       hidden_sections: hidden_sections ?? existing.hidden_sections ?? [],
-      section_labels:  section_labels  ?? existing.section_labels  ?? {},
+      section_labels:  canEditLabels ? (section_labels ?? existing.section_labels ?? {}) : (existing.section_labels || {}),
       section_order:   section_order   ?? existing.section_order   ?? [],
     };
 
@@ -57,7 +65,7 @@ export async function PATCH(req: NextRequest) {
       ]
     );
 
-    return NextResponse.json({ success: true, message: 'Settings saved' });
+    return NextResponse.json({ success: true, message: 'Settings saved', section_label_edit_enabled: canEditLabels });
   } catch (error: any) {
     console.error('[vendor/minisite/settings]', error);
     return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
@@ -89,6 +97,12 @@ export async function GET(req: NextRequest) {
       ? (typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data)
       : {};
 
+    let sectionLabelEditEnabled = false;
+    try {
+      const controls = (await query('SELECT allow_section_label_edit FROM vendor_service_controls WHERE business_id = ?', [user.businessId])) as any[];
+      sectionLabelEditEnabled = controls.length > 0 && !!controls[0].allow_section_label_edit;
+    } catch {}
+
     return NextResponse.json({
       hidden_sections: customData.hidden_sections || [],
       section_labels:  customData.section_labels  || {},
@@ -97,6 +111,7 @@ export async function GET(req: NextRequest) {
       minisite_font:   biz.minisite_font  || 'Inter',
       is_published:    !!biz.is_published,
       slug:            biz.slug || '',
+      section_label_edit_enabled: sectionLabelEditEnabled,
     });
   } catch (error: any) {
     console.error('[vendor/minisite/settings GET]', error);

@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, type_id, level, description, layout, features } = body;
+    const { id, name, type_id, level, description, layout, features, recommended_form_template_id } = body;
 
     if (!id || !name) {
       return NextResponse.json({ error: 'ID and Name are required' }, { status: 400 });
@@ -49,15 +49,16 @@ export async function POST(request: NextRequest) {
     const settings = JSON.stringify({ ...(features || {}), description: description || '' });
 
     await execute(`
-      INSERT INTO minisite_templates (id, name, category_id, tier, components, settings)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO minisite_templates (id, name, category_id, tier, components, settings, recommended_form_template_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       name = VALUES(name),
       category_id = VALUES(category_id),
       tier = VALUES(tier),
       components = VALUES(components),
-      settings = VALUES(settings)
-    `, [id, name, category_id, tier, components, settings]);
+      settings = VALUES(settings),
+      recommended_form_template_id = VALUES(recommended_form_template_id)
+    `, [id, name, category_id, tier, components, settings, recommended_form_template_id || null]);
 
     return NextResponse.json({ success: true });
   } catch (e: any) {

@@ -91,7 +91,9 @@ export default function BusinessTypesPage() {
     }
   }
 
-  const parents = types.filter(t => t.is_parent || Number(t.is_parent) === 1);
+  const parents = types
+    .filter(t => (t.is_parent || Number(t.is_parent) === 1) && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
   const getChildren = (pid: string) => types.filter(t => t.parent_id === pid);
 
   const openEditor = (type: Partial<BizType> | null) => {
@@ -253,6 +255,14 @@ export default function BusinessTypesPage() {
       ? current.filter(id => id !== sectionId)
       : [...current, sectionId];
     setEditingType({ ...editingType, [field]: updated });
+  };
+
+  const removeOwnSection = (sectionId: string) => {
+    if (!editingType || editingType.is_parent) return;
+    setEditingType({
+      ...editingType,
+      own_sections: (editingType.own_sections || []).filter(id => id !== sectionId),
+    });
   };
 
   const moveSection = (index: number, direction: 'up' | 'down') => {
@@ -557,10 +567,10 @@ export default function BusinessTypesPage() {
                 />
               </div>
 
-              <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
                 <div className="form-group">
                   <label className="form-label">Classification</label>
-                  <select className="form-control" value={editingType.is_parent ? 'parent' : 'child'} onChange={e => setEditingType({...editingType, is_parent: e.target.value === 'parent', parent_id: e.target.value === 'parent' ? null : editingType.parent_id})}>
+                  <select className="form-control" value={editingType.is_parent ? 'parent' : 'child'} onChange={e => setEditingType({...editingType, is_parent: e.target.value === 'parent', parent_id: e.target.value === 'parent' ? null : editingType.parent_id})} aria-label="Category or typology classification">
                     <option value="parent">Parent Category</option>
                     <option value="child">Child Typology</option>
                   </select>
@@ -568,8 +578,8 @@ export default function BusinessTypesPage() {
                 {!editingType.is_parent && (
                   <div className="form-group">
                     <label className="form-label required">Link to Parent</label>
-                    <select className="form-control" value={editingType.parent_id || ''} onChange={e => setEditingType({...editingType, parent_id: e.target.value})}>
-                      <option value="">-- Choose Parent --</option>
+                    <select className="form-control" value={editingType.parent_id || ''} onChange={e => setEditingType({...editingType, parent_id: e.target.value})} aria-label="Parent business category">
+                      <option value="">-- Choose Parent Category --</option>
                       {parents.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
@@ -732,13 +742,15 @@ export default function BusinessTypesPage() {
                         ) : (
                           (editingType.own_sections||[]).map((secId, index) => {
                             const sec = sections.find(s => s.id === secId);
-                            if (!sec) return null;
                             return (
                               <div key={secId} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.4rem', background:'#f5f3ff', borderRadius:'6px', marginBottom:'0.3rem', border:'1px solid #ddd6fe' }}>
-                                <span style={{ fontSize:'0.75rem', fontWeight:700, color:'#5b21b6' }}>{sec.name}</span>
+                                <span style={{ fontSize:'0.75rem', fontWeight:700, color: sec ? '#5b21b6' : '#b45309' }}>
+                                  {sec?.name || `Missing section (${secId})`}
+                                </span>
                                 <div style={{ display:'flex', gap:'0.2rem' }}>
                                   <button type="button" onClick={() => moveSection(index, 'up')} disabled={index===0} style={{ border:'none', background:'none', cursor:index===0?'not-allowed':'pointer', color:index===0?'#cbd5e1':'#64748b' }}><i className="fas fa-chevron-up"></i></button>
                                   <button type="button" onClick={() => moveSection(index, 'down')} disabled={index===(editingType.own_sections||[]).length-1} style={{ border:'none', background:'none', cursor:'pointer', color:'#64748b' }}><i className="fas fa-chevron-down"></i></button>
+                                  <button type="button" onClick={() => removeOwnSection(secId)} aria-label={`Remove ${sec?.name || secId} from own extras`} title="Remove from this typology" style={{ border:'none', background:'none', cursor:'pointer', color:'#dc2626' }}><i className="fas fa-times"></i></button>
                                 </div>
                               </div>
                             );

@@ -54,7 +54,7 @@ export default async function AdminDashboardPage() {
       <div className="stats">
         <a href="/jana/types" className="stat" style={{ textDecoration: 'none' }}>
           <div className="stat-value">{(typeCount as any)?.count || 0}</div>
-          <div className="stat-label">Business Types</div>
+          <div className="stat-label">Business Categories & Typologies</div>
         </a>
         <a href="/jana/businesses" className="stat" style={{ textDecoration: 'none' }}>
           <div className="stat-value">{(bizCount as any)?.count || 0}</div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+import { slugifyBusinessName, getPublicAppUrl } from '@/lib/public-url';
 
 function slugify(text: string): string {
   return text
@@ -76,10 +77,25 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, displayName, phone, businessId, newBusinessName, businessType, termsAccepted } = await req.json();
+    const { email, password, displayName, phone, registrationContacts, businessId, newBusinessName, businessType, termsAccepted } = await req.json();
 
-    if (!email || !password || !phone || (!businessId && !newBusinessName) || !businessType) {
+    const contacts = Array.isArray(registrationContacts) ? registrationContacts : [];
+    const normalizedContacts = contacts.map((contact: any) => ({
+      name: String(contact?.name || '').trim(),
+      phone: String(contact?.phone || '').trim(),
+    }));
+
+    if (!email || !password || !phone || normalizedContacts.length !== 3 || normalizedContacts.some(c => !c.phone) || (!businessId && !newBusinessName) || !businessType) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
+    }
+    if (!normalizedContacts.some(c => c.name)) {
+      return NextResponse.json({ error: 'At least one registration contact name is required' }, { status: 400 });
+    }
+    if (normalizedContacts.some(c => !/^\+[1-9][0-9]{7,14}$/.test(c.phone))) {
+      return NextResponse.json({ error: 'Each registration contact must use a valid international phone number' }, { status: 400 });
+    }
+    if (new Set(normalizedContacts.map(c => c.phone)).size !== 3) {
+      return NextResponse.json({ error: 'The three registration contact numbers must be different' }, { status: 400 });
     }
 
     if (!termsAccepted) {
@@ -130,7 +146,7 @@ export async function POST(req: NextRequest) {
     ───────────────────────────────────────────────────────── */
     if (!businessId && newBusinessName) {
       const targetBizId = randomUUID();
-      const rawSlug     = slugify(newBusinessName) || `biz-${Date.now().toString(36)}`;
+      const rawSlug     = slugifyBusinessName(newBusinessName) || `biz-${Date.now().toString(36)}`;
       let   finalSlug   = rawSlug;
 
       // Ensure slug uniqueness
@@ -144,6 +160,15 @@ export async function POST(req: NextRequest) {
         'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [userId, email, phone.trim(), hashedPw, 'vendor', displayName, targetBizId, 'free', isActive, approvalStatus, acceptedAt, acceptedIp]
       );
+      await execute('UPDATE profiles SET metadata = ? WHERE id = ?', [JSON.stringify({ registration_contacts: normalizedContacts }), userId]);
+      for (const [index, contact] of normalizedContacts.entries()) {
+        await execute(
+          `INSERT INTO investment_contact_verifications (id, business_id, slot_number, phone, contact_name)
+           VALUES (?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE phone = VALUES(phone), contact_name = VALUES(contact_name), verified = 0, called_at = NULL, verified_by = NULL, notes = NULL`,
+          [randomUUID(), targetBizId, index + 1, contact.phone, contact.name || null]
+        );
+      }
 
       // 2. Create the business — is_shared = 0 (one vendor only policy)
       const isClaimedVal = needsApproval ? 0 : 1;
@@ -170,6 +195,8 @@ export async function POST(req: NextRequest) {
         businessId: targetBizId,
         templateId: 'essentials_free',
         tier:       'free',
+        publicMinisiteUrl: `${getPublicAppUrl().replace(/\/$/, '')}/${finalSlug}`,
+        freeServices: ['Business-name minisite link', 'QR code', 'Free template'],
         ownership:  'primary'
       });
     }
@@ -205,6 +232,15 @@ export async function POST(req: NextRequest) {
       'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [userId, email, phone.trim(), hashedPw, 'vendor', displayName, businessId, tier, isActive, approvalStatus]
     );
+    await execute('UPDATE profiles SET metadata = ? WHERE id = ?', [JSON.stringify({ registration_contacts: normalizedContacts }), userId]);
+    for (const [index, contact] of normalizedContacts.entries()) {
+      await execute(
+        `INSERT INTO investment_contact_verifications (id, business_id, slot_number, phone, contact_name)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE phone = VALUES(phone), contact_name = VALUES(contact_name), verified = 0, called_at = NULL, verified_by = NULL, notes = NULL`,
+        [randomUUID(), businessId, index + 1, contact.phone, contact.name || null]
+      );
+    }
 
     // 4. Claim primary ownership if not yet taken (only if approved)
     if (isPrimary && !needsApproval) {

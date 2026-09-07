@@ -29,7 +29,7 @@ export default function BusinessQRCodePage() {
         const data = await res.json();
         setBiz(data);
         setCustomTitle(data.name);
-        setCustomPromo(`Scan to discover our full story, view cinematic photos, and book experiences directly on Siwa.Today.`);
+        setCustomPromo(`Scan to discover our full story, view cinematic photos, and book experiences directly on Siwify.`);
       }
     } catch (e) {
       console.error(e);
@@ -58,7 +58,7 @@ export default function BusinessQRCodePage() {
     );
   }
 
-  const targetUrl = `https://www.siwa.today/${biz.slug || biz.id}`;
+  const targetUrl = `${window.location.origin}/${biz.slug || biz.id}`;
   // Use public dynamic QR code generator API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}&color=000000&bgcolor=ffffff`;
 
@@ -202,7 +202,7 @@ export default function BusinessQRCodePage() {
             marginBottom: '1.5rem',
             display: 'inline-block'
           }}>
-            <img src={qrCodeUrl} alt="Siwa.Today QR Link" style={{ width: '220px', height: '220px', display: 'block' }} />
+            <img src={qrCodeUrl} alt="Siwify QR Link" style={{ width: '220px', height: '220px', display: 'block' }} />
           </div>
 
           <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '2px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>

@@ -1,5 +1,6 @@
 import { query, execute } from '@/lib/db';
 import { NextRequest } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 // GET component config schema and current values
 export async function GET(
@@ -7,6 +8,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAdmin();
     const { id } = await context.params;
 
     const tableCheck = await query(`
@@ -48,6 +50,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAdmin();
     const { id } = await context.params;
     const body = await req.json();
     const { component_config, version, deprecation_notice, tags } = body;
@@ -88,6 +91,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAdmin();
     const { id } = await context.params;
     await execute(
       'UPDATE site_components SET component_config = NULL, version = "1.0.0", deprecation_notice = NULL WHERE id = ?',

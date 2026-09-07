@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 const workstreams = [
   {
-    title: 'Business Types',
+    title: 'Business Categories & Typologies',
     description: 'Create the business categories and structure that drive the whole experience.',
     href: '/jana/types',
     accent: '#8b5cf6',
@@ -40,7 +40,7 @@ const workstreams = [
 ];
 
 const steps = [
-  'Define the business type',
+  'Define the business category or typology',
   'Create or update the section schema',
   'Build the fields and form logic',
   'Add or manage components',

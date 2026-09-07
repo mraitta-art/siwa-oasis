@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     try {
       await execute(`
         INSERT IGNORE INTO profiles (id, email, role, display_name, created_at)
-        VALUES ('anonymous', 'anonymous@siwa.today', 'anonymous', 'Unclaimed Listing', NOW())
+        VALUES ('anonymous', 'anonymous@siwify.com', 'anonymous', 'Unclaimed Listing', NOW())
       `);
       results.push({ check: 'anonymous profile', status: 'EXISTS/CREATED' });
     } catch (e: any) {

@@ -29,7 +29,7 @@ export class EmailService {
   private from: string;
 
   constructor() {
-    this.from = process.env.EMAIL_FROM || 'noreply@siwatoday.com';
+    this.from = process.env.EMAIL_FROM || 'noreply@siwify.com';
     
     if (process.env.SENDGRID_API_KEY) {
       this.provider = 'sendgrid';

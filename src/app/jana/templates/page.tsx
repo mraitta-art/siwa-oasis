@@ -15,13 +15,21 @@ interface Template {
   description: string;
   layout: any[];
   features: any;
+  recommended_form_template_id?: string | null;
 }
+
+const FEATURE_GROUPS = [
+  { id: 'presentation', label: 'Presentation & Media', features: [{ id: 'captions', name: 'Enable Image Captions' }, { id: 'youtube_bg', name: 'YouTube Cinematic Background' }] },
+  { id: 'conversion', label: 'Conversion & Contact', features: [{ id: 'booking', name: 'Enable Booking Button' }, { id: 'direct_contact', name: 'Allow Direct Contact' }] },
+  { id: 'trust', label: 'Trust & Branding', features: [{ id: 'verification', name: 'Show Heritage Verified Badge' }, { id: 'custom_logo', name: 'Custom Business Logo' }] },
+];
 
 export default function TemplateArchitect() {
   const { notify } = useAdmin();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [businessTypes, setBusinessTypes] = useState<any[]>([]);
   const [allSections, setAllSections] = useState<any[]>([]);
+  const [formTemplates, setFormTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<Partial<Template> | null>(null);
   const [formStep, setFormStep] = useState(1); // 1=Parent, 2=Name+Level, 3=Components
@@ -37,11 +45,16 @@ export default function TemplateArchitect() {
     fetchTemplates();
     fetch('/api/jana/types').then(r => r.json()).then(data => setBusinessTypes(Array.isArray(data) ? data : []));
     fetch('/api/jana/sections').then(r => r.json()).then(data => setAllSections(Array.isArray(data) ? data : []));
+    fetch('/api/jana/form-templates').then(async r => {
+      const contentType = r.headers.get('content-type') || '';
+      if (!r.ok || !contentType.includes('application/json')) return [];
+      return r.json();
+    }).then(data => setFormTemplates(Array.isArray(data) ? data : [])).catch(() => setFormTemplates([]));
   }, []);
 
   // Reset step when opening form
   function openNewForm() {
-    setEditingTemplate({ id: '', name: '', level: 'standard', type_id: '', description: '', layout: [], features: {} });
+    setEditingTemplate({ id: '', name: '', level: 'standard', type_id: '', description: '', layout: [], features: {}, recommended_form_template_id: null });
     setFormStep(1);
   }
 
@@ -66,7 +79,7 @@ export default function TemplateArchitect() {
 
   async function handleSave() {
     if (!editingTemplate?.type_id) {
-      notify('Step 1: Select a Parent Business Type first.', 'error', true);
+      notify('Step 1: Select a parent business category first.', 'error', true);
       setFormStep(1); return;
     }
     if (!editingTemplate?.name) {
@@ -177,13 +190,13 @@ export default function TemplateArchitect() {
             {/* ── STEP 1: SELECT PARENT TYPE ── */}
             {formStep === 1 && (
               <div>
-                <h2 style={{ fontWeight:900, marginBottom:'0.5rem', color:'#0f172a' }}>Step 1 — Select Parent Business Type</h2>
+                <h2 style={{ fontWeight:900, marginBottom:'0.5rem', color:'#0f172a' }}>Step 1 — Select Parent Business Category</h2>
                 <p style={{ color:'#64748b', marginBottom:'2rem', fontSize:'0.85rem' }}>This template will be available to <strong>all children</strong> of the parent you select. Only top-level parent types are shown.</p>
                 
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'1rem', marginBottom:'2rem' }}>
                   {parentTypes.length === 0 && (
                     <div style={{ gridColumn:'1/-1', padding:'2rem', background:'#fef9c3', borderRadius:'12px', color:'#92400e', fontWeight:700 }}>
-                      ⚠️ No parent types found. Go to Business Types and mark at least one as a Parent.
+                      ⚠️ No parent categories found. Go to Business Categories & Typologies and mark at least one as a Parent.
                     </div>
                   )}
                   {/* 🌍 UNIVERSAL OPTION */}
@@ -219,7 +232,7 @@ export default function TemplateArchitect() {
                     </div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
                       {editingTemplate.type_id === 'universal' ? (
-                        <span style={{ color:'#1e40af', fontSize:'0.75rem', fontWeight:700 }}>This template will be available for selection by ALL business types.</span>
+                        <span style={{ color:'#1e40af', fontSize:'0.75rem', fontWeight:700 }}>This template will be available for selection by ALL business categories and typologies.</span>
                       ) : (
                         <>
                           {businessTypes.filter((c: any) => c.parent_id === editingTemplate.type_id).map((c: any) => (
@@ -323,21 +336,35 @@ export default function TemplateArchitect() {
                   <div>
                     <h3 style={{ fontWeight: 900, margin: '0 0 1rem 0' }}>Feature DNA</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {[
-                        { id: 'captions', name: 'Enable Image Captions' },
-                        { id: 'booking', name: 'Enable Booking Button' },
-                        { id: 'verification', name: 'Show Heritage Verified Badge' },
-                        { id: 'youtube_bg', name: 'YouTube Cinematic Background' },
-                        { id: 'direct_contact', name: 'Allow Direct Contact' },
-                        { id: 'custom_logo', name: 'Custom Business Logo' },
-                      ].map(f => (
-                        <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '10px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
-                          <input type="checkbox" checked={!!editingTemplate?.features?.[f.id]}
-                            onChange={e => setEditingTemplate({ ...editingTemplate, features: { ...editingTemplate?.features, [f.id]: e.target.checked } })} />
-                          {f.name}
-                        </label>
+                      {FEATURE_GROUPS.map(group => (
+                        <div key={group.id} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.6rem', background: '#fff' }}>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '0.35rem' }}>{group.label}</div>
+                          {group.features.map(f => (
+                            <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                              <input type="checkbox" checked={!!editingTemplate?.features?.[f.id]}
+                                onChange={e => setEditingTemplate({ ...editingTemplate, features: { ...editingTemplate?.features, [f.id]: e.target.checked, feature_groups: FEATURE_GROUPS.map(item => ({ id: item.id, label: item.label, feature_ids: item.features.map(feature => feature.id) })) } })} />
+                              {f.name}
+                            </label>
+                          ))}
+                        </div>
                       ))}
                     </div>
+
+                    <h3 style={{ fontWeight: 900, margin: '2rem 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <i className="fas fa-link" style={{ fontSize: '0.9rem', color: '#0f766e' }}></i>
+                      Recommended Collection Form
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.75rem', lineHeight: 1.5 }}>
+                      Link the reusable form that collects the data this minisite expects. This does not copy sections or fields.
+                    </p>
+                    <select
+                      value={editingTemplate?.recommended_form_template_id || ''}
+                      onChange={e => setEditingTemplate({ ...editingTemplate, recommended_form_template_id: e.target.value || null })}
+                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 700 }}
+                    >
+                      <option value="">No recommended form</option>
+                      {formTemplates.map(form => <option key={form.id} value={form.id}>{form.name}{form.type_name ? ` — ${form.type_name}` : ''}</option>)}
+                    </select>
 
                     <h3 style={{ fontWeight: 900, margin: '2rem 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <i className="fas fa-eye-slash" style={{ fontSize: '0.9rem', color: '#64748b' }}></i>
@@ -398,7 +425,7 @@ export default function TemplateArchitect() {
                     <i className="fas fa-globe" style={{ color: '#10b981', fontSize:'1.2rem' }}></i>
                     <h2 style={{ margin:0, fontSize:'1.1rem', fontWeight:900, color:'#0f172a' }}>Universal Templates</h2>
                     <span style={{ fontSize:'0.65rem', background:'#dcfce7', padding:'2px 8px', borderRadius:'50px', color:'#166534', fontWeight:700 }}>{universalTemplates.length} blueprint{universalTemplates.length !== 1 ? 's' : ''}</span>
-                    <span style={{ fontSize:'0.6rem', background:'#f0fdf4', color:'#15803d', padding:'2px 8px', borderRadius:'50px', fontWeight:600 }}>Available for ALL business types</span>
+                    <span style={{ fontSize:'0.6rem', background:'#f0fdf4', color:'#15803d', padding:'2px 8px', borderRadius:'50px', fontWeight:600 }}>Available for ALL categories and typologies</span>
                   </div>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:'1.25rem' }}>
                     {universalTemplates.map(t => (

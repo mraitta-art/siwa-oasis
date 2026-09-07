@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query as safeQuery } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { id, name, tagline, icon, color, image_url, search_link, display_order } = body;
 
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { id, is_visible, display_order } = body;
 
@@ -91,6 +94,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

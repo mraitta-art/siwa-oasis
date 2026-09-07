@@ -119,9 +119,9 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '4rem 4rem', background: '#0a0f1d', color: '#fff' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1rem', color: '#fff' }}>SIWA.TODAY</div>
+          <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1rem', color: '#fff' }}>SIWIFY</div>
           <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', fontWeight: 800, letterSpacing: '2px' }}>
-            © {new Date().getFullYear()} SIWA.TODAY • ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} SIWIFY • ALL RIGHTS RESERVED.
           </div>
         </div>
       </footer>
@@ -129,7 +129,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       {/* Watermark */}
       {settings?.show_watermark !== false && (
         <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 2000, pointerEvents: 'none', opacity: 0.3, filter: 'grayscale(100%) brightness(200%)' }}>
-          <div style={{ fontWeight: 900, letterSpacing: '5px', fontSize: '0.6rem', color: '#fff' }}>SIWA.TODAY</div>
+          <div style={{ fontWeight: 900, letterSpacing: '5px', fontSize: '0.6rem', color: '#fff' }}>SIWIFY</div>
         </div>
       )}
     </div>

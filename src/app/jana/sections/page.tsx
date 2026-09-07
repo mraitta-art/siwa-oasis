@@ -9,6 +9,7 @@ interface BusinessType {
   id: string; name: string; icon: string; icon_color?: string;
   is_parent: boolean; parent_id?: string | null;
   sections: string[]; own_sections: string[];
+  active?: boolean | number | string | null;
 }
 
 interface Section {
@@ -20,6 +21,15 @@ interface Section {
   required?: boolean;
   inheritance_rules?: any;
 }
+
+const DEFAULT_CONTENT_POLICY = {
+  vendor_can_upload_images: true,
+  vendor_can_add_captions: true,
+  vendor_can_write_blog: true,
+  vendor_can_submit_carousel: false,
+  vendor_can_request_main_carousel: false,
+  requires_approval: true,
+};
 
 interface Field {
   id: string; name: string; label: string; field_type: string;
@@ -80,7 +90,15 @@ const BLANK_SECTION = (): Partial<Section> => ({
   enable_gallery: true, enable_blog: true,
   vendor_editable: true, show_on_public: true,
   curation_policy: 'manual_review',
+  inheritance_rules: { content_policy: DEFAULT_CONTENT_POLICY },
 });
+
+function getContentPolicy(section: Partial<Section>) {
+  const rules = typeof section.inheritance_rules === 'string'
+    ? (() => { try { return JSON.parse(section.inheritance_rules as string); } catch { return {}; } })()
+    : section.inheritance_rules || {};
+  return { ...DEFAULT_CONTENT_POLICY, ...(rules.content_policy || {}) };
+}
 
 const BLANK_FIELD = (sectionId: string, typeId?: string): Partial<Field> => ({
   section_id: sectionId, business_type_id: typeId || 'SECTION_TEMPLATE',
@@ -237,7 +255,7 @@ export default function UnifiedSectionArchitect() {
   const saveField = async () => {
     if (!editField) return;
     if (!editField.label?.trim()) { notify('Label is required', 'error'); return; }
-    if (!editField.business_type_id) { notify('Business Type is required', 'error'); return; }
+    if (!editField.business_type_id) { notify('Business category or typology is required', 'error'); return; }
     setSaving(true);
     try {
       const method = editField.id ? 'PUT' : 'POST';
@@ -419,8 +437,15 @@ export default function UnifiedSectionArchitect() {
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
   const currentSection = sections.find(s => s.id === selectedSection);
-  const parents  = businessTypes.filter(t => (t.is_parent || Number(t.is_parent) === 1) && ['accommodation', 'food', 'adventure', 'wellness'].includes(t.id));
-  const children = (parentId: string) => businessTypes.filter(t => t.parent_id === parentId);
+  const parents = businessTypes
+    .filter(t => (t.is_parent || Number(t.is_parent) === 1) && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const children = (parentId: string) => businessTypes
+    .filter(t => !t.is_parent && Number(t.is_parent) !== 1 && t.parent_id === parentId && t.active !== false && Number(t.active) !== 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const selectableBusinessTypes = businessTypes
+    .filter(t => !t.is_parent && Number(t.is_parent) !== 1 && t.parent_id && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
   const mainGridColumns = `${collapsedPanels.left ? '0px' : '320px'} ${collapsedPanels.center ? '72px' : 'minmax(720px, 1fr)'} ${collapsedPanels.right ? '0px' : '360px'}`;
   const togglePanel = (panel: 'left' | 'center' | 'right') => {
     setCollapsedPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
@@ -498,10 +523,10 @@ export default function UnifiedSectionArchitect() {
       </header>
 
       {/* ── MAIN 3-PANEL LAYOUT ─────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: mainGridColumns, height: 'calc(100vh - 80px)', width: '100%', minWidth: '1500px', overflowX: 'auto' }}>
+      <div className="section-architect-grid" style={{ '--section-grid-columns': mainGridColumns } as React.CSSProperties}>
 
         {/* ── PANEL 1: Section List / Forms Builder ──────────────────── */}
-        <nav style={{
+        <nav className="section-architect-sidebar" style={{
           background: '#fff', borderRight: collapsedPanels.left ? 'none' : '1px solid #f1f5f9',
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
           minWidth: collapsedPanels.left ? '0px' : '320px',
@@ -564,26 +589,32 @@ export default function UnifiedSectionArchitect() {
                   </div>
 
                   <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
-                    {/* Render core sections first, then the rest */}
+                    {/* Keep available sections together and separate retired sections visually. */}
                     {[...sections].sort((a, b) => {
+                      const aEnabled = a.active !== false;
+                      const bEnabled = b.active !== false;
+                      if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
                       const aCore = isCoreSection(a.id) ? 0 : 1;
                       const bCore = isCoreSection(b.id) ? 0 : 1;
                       if (aCore !== bCore) return aCore - bCore;
                       return 0;
                     }).map((sec, idx, arr) => {
                       const isActive = sec.id === selectedSection;
+                      const isEnabled = sec.active !== false;
                       const core = CORE_SECTIONS[sec.id];
                       const isCore = !!core;
-                      const prevWasCore = idx > 0 && isCoreSection(arr[idx - 1].id);
-                      const showDivider = !isCore && (idx === 0 || prevWasCore);
+                      const previousEnabled = idx > 0 && arr[idx - 1].active !== false;
+                      const showGroupHeader = idx === 0 || previousEnabled !== isEnabled;
 
                       return (
                         <div key={sec.id}>
-                          {showDivider && (
-                            <div style={{ padding: '0.6rem 1rem', margin: '0.5rem 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
-                              <span style={{ fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>OTHER SECTIONS</span>
-                              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                          {showGroupHeader && (
+                            <div style={{ padding: '0.7rem 1rem 0.45rem', marginTop: idx === 0 ? 0 : '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ flex: 1, height: '1px', background: isEnabled ? '#bbf7d0' : '#fecaca' }} />
+                              <span style={{ fontSize: '0.55rem', fontWeight: 900, color: isEnabled ? '#15803d' : '#b91c1c', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
+                                {isEnabled ? 'ACTIVE SECTIONS' : 'INACTIVE SECTIONS'}
+                              </span>
+                              <div style={{ flex: 1, height: '1px', background: isEnabled ? '#bbf7d0' : '#fecaca' }} />
                             </div>
                           )}
                           <button
@@ -596,19 +627,20 @@ export default function UnifiedSectionArchitect() {
                               borderBottomWidth: '1.5px',
                               borderRightWidth: '1.5px',
                               borderLeftWidth: isCore ? '3px' : '1.5px',
-                              borderTopColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
-                              borderBottomColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
-                              borderRightColor: isActive ? (isCore ? core.color + '60' : '#D4AF3740') : 'transparent',
-                              borderLeftColor: isCore ? core.color : (isActive ? '#D4AF3740' : 'transparent'),
-                              background: isActive ? (isCore ? core.color + '08' : '#fffbeb') : 'transparent',
+                              borderTopColor: isActive ? (isCore ? core.color + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
+                              borderBottomColor: isActive ? (isCore ? core.color + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
+                              borderRightColor: isActive ? (isCore ? core.color + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
+                              borderLeftColor: isCore ? core.color : (isActive ? (isEnabled ? '#22c55e' : '#ef4444') : 'transparent'),
+                              background: isActive ? (isCore ? core.color + '08' : isEnabled ? '#f0fdf4' : '#fef2f2') : (isEnabled ? '#fff' : '#fff7f7'),
+                              opacity: isEnabled ? 1 : 0.78,
                               cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
                               display: 'flex', alignItems: 'center', gap: '0.85rem',
                             }}
                           >
                             <div style={{
                               width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
-                              background: isActive ? (isCore ? core.color : '#D4AF37') : (isCore ? core.color + '15' : '#f1f5f9'),
-                              color: isActive ? '#fff' : (isCore ? core.color : '#94a3b8'),
+                              background: isActive ? (isCore ? core.color : isEnabled ? '#22c55e' : '#ef4444') : (isCore ? core.color + '15' : isEnabled ? '#dcfce7' : '#fee2e2'),
+                              color: isActive ? '#fff' : (isCore ? core.color : isEnabled ? '#15803d' : '#b91c1c'),
                               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
                             }}>
                               <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
@@ -631,7 +663,7 @@ export default function UnifiedSectionArchitect() {
                                 {isCore && <span style={{ color: core.color }}>{core.emoji} {core.label}</span>}
                                 {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
                                 {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
-                                {!sec.active && <span style={{ color: '#ef4444' }}>● Inactive</span>}
+                                {!isEnabled && <span style={{ color: '#b91c1c' }}>● Inactive</span>}
                               </div>
                             </div>
                           </button>
@@ -714,7 +746,10 @@ export default function UnifiedSectionArchitect() {
 
                   // A form type is selected! Show its sections layout
                   const parentType = currentType.parent_id ? businessTypes.find(pt => pt.id === currentType.parent_id) : null;
-                  const inheritedIds = parentType ? (parentType.sections || []) : [];
+                  const inheritedIds = [...new Set([
+                    ...(parentType ? (parentType.sections || []) : []),
+                    ...sections.filter(section => section.is_universal).map(section => section.id),
+                  ])];
                   const specificIds = assignedSections;
                   
                   // Find all remaining sections that are not already assigned to this type
@@ -766,7 +801,7 @@ export default function UnifiedSectionArchitect() {
                                 >
                                   <i className={`fas ${sec.icon || 'fa-layer-group'}`} style={{ color: '#94a3b8', fontSize: '0.75rem' }} />
                                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>{sec.name}</span>
-                                  <i className="fas fa-lock" style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#94a3b8' }} title="Inherited from parent type. Modify at parent form level." />
+                                  <i className={`fas ${sec.is_universal ? 'fa-globe' : 'fa-lock'}`} style={{ marginLeft: 'auto', fontSize: '0.65rem', color: sec.is_universal ? '#3b82f6' : '#94a3b8' }} title={sec.is_universal ? 'Universal section. Available to every category and typology.' : 'Inherited from parent category. Modify at the parent category level.'} />
                                 </button>
                               );
                             })}
@@ -865,7 +900,7 @@ export default function UnifiedSectionArchitect() {
         </nav>
 
         {/* ── PANEL 2: Editor ────────────────────────────────────────── */}
-        <main style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'auto', background: '#f8fafc', minWidth: collapsedPanels.center ? '72px' : '720px', width: collapsedPanels.center ? '72px' : 'auto' }}>
+        <main className="section-architect-editor" style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'auto', background: '#f8fafc', minWidth: collapsedPanels.center ? '72px' : '720px', width: collapsedPanels.center ? '72px' : 'auto' }}>
           <div style={{ background: '#fff', borderBottom: '1px solid #f1f5f9', padding: '0 2rem', display: 'flex', gap: '0.5rem', alignItems: 'center', minHeight: '60px' }}>
             {collapsedPanels.left && (
               <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#D4AF37', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Show Sections Drawer">
@@ -905,7 +940,7 @@ export default function UnifiedSectionArchitect() {
                     }}>
                       {currentSection.active ? '● ACTIVE' : '○ INACTIVE'}
                     </span>
-                    {['vibe', 'experience', 'investment-opportunity', 'invest', 'auction', 'offers-promotions', 'package', 'discount', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
+                    {['vibe', 'experience', 'investment-opportunity', 'auction', 'offers-promotions', 'package', 'discount', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
                       <button
                         disabled
                         title="This section is used by the main website's features (e.g. investment, packages, auctions) and cannot be deleted."
@@ -1058,6 +1093,45 @@ export default function UnifiedSectionArchitect() {
                 </div>
               </div>
 
+              {/* Content authority */}
+              {(() => {
+                const policy = getContentPolicy(editSection);
+                const updatePolicy = (key: keyof typeof DEFAULT_CONTENT_POLICY, value: boolean) => {
+                  const rules = typeof editSection.inheritance_rules === 'string'
+                    ? (() => { try { return JSON.parse(editSection.inheritance_rules as string); } catch { return {}; } })()
+                    : editSection.inheritance_rules || {};
+                  setEditSection(section => ({
+                    ...section,
+                    inheritance_rules: { ...rules, content_policy: { ...policy, [key]: value } },
+                  }));
+                };
+                const controls = [
+                  ['vendor_can_upload_images', 'Vendor image uploads', 'Allow vendors to submit section images'],
+                  ['vendor_can_add_captions', 'Vendor captions', 'Allow vendors to add image captions'],
+                  ['vendor_can_write_blog', 'Vendor section stories', 'Allow vendors to submit a small blog/story'],
+                  ['vendor_can_submit_carousel', 'Minisite carousel requests', 'Allow vendors to request minisite placement'],
+                  ['vendor_can_request_main_carousel', 'Main carousel requests', 'Allow vendors to request main-site placement'],
+                  ['requires_approval', 'Admin approval required', 'Keep submitted content out of publication until approved'],
+                ] as const;
+                return (
+                  <div style={{ background: '#fff', borderRadius: '20px', border: '1.5px solid #e2e8f0', overflow: 'hidden', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <i className="fas fa-user-shield" style={{ color: '#0f766e' }} />
+                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#1e293b' }}>Content Authority</span>
+                      <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>Vendor permissions for this section</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                      {controls.map(([key, label, sub]) => (
+                        <label key={key} style={{ padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #f8fafc', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={!!policy[key]} onChange={event => updatePolicy(key, event.target.checked)} style={{ width: 16, height: 16, accentColor: '#0f766e' }} />
+                          <span><strong style={{ display: 'block', fontSize: '0.75rem', color: '#1e293b' }}>{label}</strong><small style={{ display: 'block', marginTop: '0.15rem', color: '#94a3b8', fontSize: '0.62rem' }}>{sub}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <button onClick={saveSection} disabled={saving} style={{ ...css.btn('#1e293b'), minWidth: '200px' }}>
                 {saving ? <><i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }} />Saving…</> : <><i className="fas fa-save" style={{ marginRight: '0.5rem' }} />{selectedSection ? 'Update Section' : 'Create Section'}</>}
               </button>
@@ -1077,10 +1151,10 @@ export default function UnifiedSectionArchitect() {
                   <select
                     value={selectedType}
                     onChange={e => selectType(e.target.value)}
-                    style={{ ...css.input(), width: 'auto', padding: '0.6rem 1rem' }}
+                    style={{ ...css.input(), width: 'min(100%, 280px)', minWidth: 0, padding: '0.6rem 1rem' }}
                   >
-                    <option value="">— All Business Types —</option>
-                    {businessTypes.map(t => (
+                    <option value="">— All Categories & Typologies —</option>
+                    {selectableBusinessTypes.map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
@@ -1169,14 +1243,14 @@ export default function UnifiedSectionArchitect() {
                         <input style={css.input()} value={editField.label || ''} onChange={e => setEditField(f => ({ ...f!, label: e.target.value }))} placeholder="e.g. Number of Rooms" />
                       </div>
                       <div>
-                        <label style={css.label()}>Business Type (Belongs To) *</label>
+                        <label style={css.label()}>Business Category / Typology (Belongs To) *</label>
                         <select
                           value={editField.business_type_id || ''}
                           onChange={e => setEditField(f => ({ ...f!, business_type_id: e.target.value }))}
                           style={css.input()}
                         >
                           <option value="SECTION_TEMPLATE">Universal Template</option>
-                          {businessTypes.map(t => (
+                          {selectableBusinessTypes.map(t => (
                             <option key={t.id} value={t.id}>{t.name}</option>
                           ))}
                         </select>
@@ -1286,13 +1360,13 @@ export default function UnifiedSectionArchitect() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#1e293b' }}>Type Assignment</h2>
-                  <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.25rem' }}>Assign <strong>{currentSection?.name}</strong> to business types, or toggle which types use it.</p>
+                  <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.25rem' }}>Assign <strong>{currentSection?.name}</strong> to categories and typologies, or toggle which ones use it.</p>
                 </div>
               </div>
 
               {/* Type picker */}
               <div style={{ marginBottom: '2rem' }}>
-                <label style={css.label()}>Select Business Type to Manage Its Sections</label>
+                <label style={css.label()}>Select Category or Typology to Manage Its Sections</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {parents.map(parent => (
                     <div key={parent.id}>
@@ -1336,7 +1410,8 @@ export default function UnifiedSectionArchitect() {
                       SECTIONS ASSIGNED TO {businessTypes.find(t => t.id === selectedType)?.name?.toUpperCase()}
                     </div>
                     {sections.map(sec => {
-                      const checked = assignedSections.includes(sec.id);
+                      const isUniversal = !!sec.is_universal;
+                      const checked = isUniversal || assignedSections.includes(sec.id);
                       
                       const rules = (() => {
                         try {
@@ -1375,7 +1450,7 @@ export default function UnifiedSectionArchitect() {
                               background: checked ? '#fffbeb' : '#fff', transition: 'background 0.2s',
                             }}
                           >
-                            <input type="checkbox" checked={checked} onChange={() => toggleAssign(sec.id)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#D4AF37', flexShrink: 0 }} />
+                            <input type="checkbox" checked={checked} disabled={isUniversal} onChange={() => toggleAssign(sec.id)} style={{ width: 18, height: 18, cursor: isUniversal ? 'not-allowed' : 'pointer', accentColor: '#D4AF37', flexShrink: 0 }} />
                             <div style={{ width: 36, height: 36, borderRadius: '10px', background: checked ? '#D4AF3715' : '#f8fafc', color: checked ? '#D4AF37' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>
                               <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
                             </div>
@@ -1384,7 +1459,7 @@ export default function UnifiedSectionArchitect() {
                               <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.5rem' }}>
                                 {sec.enable_gallery && <span style={{ color: '#6366f1' }}>Gallery</span>}
                                 {sec.enable_blog    && <span style={{ color: '#f59e0b' }}>Blog</span>}
-                                {sec.is_universal   && <span style={{ color: '#3b82f6' }}>Universal</span>}
+                                {isUniversal && <span style={{ color: '#3b82f6' }}>Universal for every type</span>}
                               </div>
                             </div>
                             {/* Edit section button — jumps to meta tab with this section loaded */}
@@ -1467,7 +1542,7 @@ export default function UnifiedSectionArchitect() {
               {!selectedType && (
                 <div style={{ textAlign: 'center', padding: '4rem', background: '#fff', borderRadius: '20px', border: '2px dashed #e2e8f0' }}>
                   <i className="fas fa-sitemap fa-2x" style={{ color: '#e2e8f0', marginBottom: '1rem', display: 'block' }} />
-                  <p style={{ color: '#94a3b8', fontWeight: 700 }}>Select a business type above to manage assignments.</p>
+                  <p style={{ color: '#94a3b8', fontWeight: 700 }}>Select a category or typology above to manage assignments.</p>
                 </div>
               )}
             </div>
@@ -1500,7 +1575,7 @@ export default function UnifiedSectionArchitect() {
             { label: 'Gallery Enabled',     value: sections.filter(s => s.enable_gallery).length,    color: '#6366f1', icon: 'fa-images' },
             { label: 'Blog Enabled',        value: sections.filter(s => s.enable_blog).length,       color: '#f59e0b', icon: 'fa-feather-alt' },
             { label: 'Active Sections',     value: sections.filter(s => s.active).length,            color: '#10b981', icon: 'fa-eye' },
-            { label: 'Business Types',      value: businessTypes.length,                             color: '#3b82f6', icon: 'fa-briefcase' },
+            { label: 'Categories & Typologies', value: businessTypes.length,                         color: '#3b82f6', icon: 'fa-briefcase' },
               ].map(({ label, value, color, icon }) => (
                 <div key={label} style={{
                   display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem',
@@ -1557,7 +1632,7 @@ export default function UnifiedSectionArchitect() {
                 { icon: 'fa-layer-group', tip: 'Select a section on the left to edit it, or click "New Section" to create one.' },
                 { icon: 'fa-images',      tip: '"Gallery Enabled" shows the Gallery tab to vendors for this section.' },
                 { icon: 'fa-feather-alt', tip: '"Blog Enabled" shows the Blog/Story tab to vendors for this section.' },
-                { icon: 'fa-list-alt',    tip: 'The Field Builder tab lets you add form fields specific to a business type.' },
+                { icon: 'fa-list-alt',    tip: 'The Field Builder tab lets you add form fields specific to a category or typology.' },
                 { icon: 'fa-sitemap',     tip: 'Use Type Assignment to decide which types get this section.' },
               ].map(({ icon, tip }, i) => (
                 <div key={i} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.85rem', alignItems: 'flex-start' }}>

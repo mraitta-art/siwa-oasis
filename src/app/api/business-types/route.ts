@@ -1,105 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/db';
 
-// GET /api/business-types - fetch parent or child types
+function toBoolean(value: unknown) {
+  return value === true || value === 1 || value === '1';
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const isParent = searchParams.get('is_parent');
     const parentIds = searchParams.get('parent_ids');
 
-    // This would connect to your database
-    // For now, return sample data from your schema
-    const businessTypes = [
-      {
-        id: 'accommodation',
-        name: 'Accommodation',
-        icon: '🏨',
-        is_parent: true,
-        children: [
-          { id: 'hotel', name: 'Full-Service Hotel', icon: '⭐' },
-          { id: 'siwa_lodge', name: 'Traditional Siwan Lodge', icon: '🏛️' },
-          { id: 'desert_camp', name: 'Desert Camp', icon: '⛺' },
-          { id: 'eco_lodge', name: 'Eco-Lodge', icon: '🌿' },
-        ],
-      },
-      {
-        id: 'food',
-        name: 'Food & Beverage',
-        icon: '🍽️',
-        is_parent: true,
-        children: [
-          { id: 'restaurant', name: 'Standard Restaurant', icon: '🍴' },
-          { id: 'siwan_kitchen', name: 'Traditional Siwan Kitchen', icon: '🍲' },
-          { id: 'cafe_juice', name: 'Cafe & Juice Bar', icon: '☕' },
-        ],
-      },
-      {
-        id: 'adventure',
-        name: 'Adventure & Safari',
-        icon: '🚙',
-        is_parent: true,
-        children: [
-          { id: 'safari_4x4', name: '4x4 Desert Safari', icon: '🏜️' },
-          { id: 'camel_trek', name: 'Camel Trekking', icon: '🐪' },
-          { id: 'nature_tour', name: 'Nature & Bird Watching', icon: '🦅' },
-          { id: 'heritage_tour', name: 'Historical Heritage Tour', icon: '📜' },
-        ],
-      },
-      {
-        id: 'wellness',
-        name: 'Health & Wellness',
-        icon: '🧘',
-        is_parent: true,
-        children: [
-          { id: 'sand_bath', name: 'Therapeutic Sand Bath', icon: '🏜️' },
-          { id: 'salt_therapy', name: 'Salt Cave Therapy', icon: '💎' },
-          { id: 'hot_spring', name: 'Hot Spring Experience', icon: '♨️' },
-        ],
-      },
-      {
-        id: 'crafts',
-        name: 'Crafts & Trade',
-        icon: '🎨',
-        is_parent: true,
-        children: [
-          { id: 'embroidery', name: 'Siwan Embroidery & Textile', icon: '🧵' },
-          { id: 'date_olive', name: 'Dates & Olives Trade', icon: '🫒' },
-          { id: 'artisan_shop', name: 'Handmade Artisan Shop', icon: '🛍️' },
-        ],
-      },
-      {
-        id: 'logistics',
-        name: 'Logistics & Transport',
-        icon: '🚗',
-        is_parent: true,
-        children: [
-          { id: 'tuk_tuk', name: 'Local Tuk-Tuk Service', icon: '🛺' },
-          { id: 'equipment_rental', name: 'Equipment Rental', icon: '⚙️' },
-        ],
-      },
-    ];
-
     if (isParent === 'true') {
-      return NextResponse.json(businessTypes);
+      const parentTypes = await query<any>(
+        `SELECT * FROM business_types
+         WHERE is_parent = TRUE AND active != FALSE
+         ORDER BY sort_order, name`
+      );
+
+      return NextResponse.json(
+        parentTypes.map((type) => ({
+          id: type.id,
+          name: type.name,
+          icon: type.icon || 'fas fa-building',
+          icon_color: type.icon_color || '#8b5cf6',
+          is_parent: toBoolean(type.is_parent),
+          parent_id: type.parent_id || null,
+          description: type.description || '',
+        }))
+      );
     }
 
     if (parentIds) {
-      const parentIdArray = parentIds.split(',');
-      const children = businessTypes
-        .filter((bt) => parentIdArray.includes(bt.id))
-        .flatMap((bt) => 
-          bt.children.map((child: any) => ({
-            ...child,
-            parent_id: bt.id,
-          }))
-        );
-      return NextResponse.json(children);
+      const parentIdArray = parentIds.split(',').map((id) => id.trim()).filter(Boolean);
+      if (parentIdArray.length === 0) {
+        return NextResponse.json([]);
+      }
+
+      const placeholders = parentIdArray.map(() => '?').join(',');
+      const childTypes = await query<any>(
+        `SELECT * FROM business_types
+         WHERE parent_id IN (${placeholders}) AND active != FALSE
+         ORDER BY sort_order, name`,
+        parentIdArray
+      );
+
+      return NextResponse.json(
+        childTypes.map((type) => ({
+          id: type.id,
+          name: type.name,
+          icon: type.icon || 'fas fa-building',
+          icon_color: type.icon_color || '#8b5cf6',
+          is_parent: toBoolean(type.is_parent),
+          parent_id: type.parent_id || null,
+          description: type.description || '',
+        }))
+      );
     }
 
     return NextResponse.json([]);
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to fetch business types:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch business types' },
+      { error: 'Failed to fetch business types', details: error?.message || 'Unknown error' },
       { status: 500 }
     );
   }

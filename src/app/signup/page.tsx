@@ -67,6 +67,9 @@ export default function VendorSignup() {
   const [email,          setEmail]          = useState('');
   const [countryCode,    setCountryCode]    = useState('+20');
   const [phone,          setPhone]          = useState('');
+  const [registrationContacts, setRegistrationContacts] = useState([
+    { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' },
+  ]);
   const [password,       setPassword]       = useState('');
   const [confirmPw,      setConfirmPw]      = useState('');
   const [showPw,         setShowPw]         = useState(false);
@@ -168,6 +171,8 @@ export default function VendorSignup() {
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
     if (!phone.trim())       errs.phone       = 'Phone number is required';
     else if (!/^\+[1-9][0-9]{7,14}$/.test(normalizedPhone)) errs.phone = 'Enter a valid phone number for the selected country';
+    if (registrationContacts.filter(contact => contact.phone.trim()).length !== 3) errs.registrationContacts = 'Three registration contact phone numbers are required';
+    else if (!registrationContacts.some(contact => contact.name.trim())) errs.registrationContacts = 'At least one contact name is required';
     if (!password)           errs.password    = 'Password is required';
     else if (password.length < 8) errs.password = 'At least 8 characters';
     if (!confirmPw)          errs.confirmPw   = 'Please confirm your password';
@@ -209,6 +214,10 @@ export default function VendorSignup() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           email, password, displayName, phone: `${countryCode}${phone.replace(/\D/g, '')}`,
+          registrationContacts: registrationContacts.map(contact => ({
+            name: contact.name.trim(),
+            phone: contact.phone.trim(),
+          })),
           businessId:      registerMode === 'select' ? businessId : undefined,
           newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
@@ -448,6 +457,30 @@ export default function VendorSignup() {
                 </div>
                 {fieldErr.phone && <span className="field-err">{fieldErr.phone}</span>}
                 <span className="field-hint">Saved internationally as {countryCode}{phone.replace(/\D/g, '') || '...'}</span>
+              </div>
+
+              <div className="field-group">
+                <label className="field-label">Three Responsibility Contacts</label>
+                <span className="field-hint">The admin will call all three numbers before approving investment information. At least one name is required.</span>
+                {registrationContacts.map((contact, index) => (
+                  <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.6rem', marginTop: '0.6rem' }}>
+                    <input
+                      type="text"
+                      className="field-input"
+                      placeholder={`Contact ${index + 1} name`}
+                      value={contact.name}
+                      onChange={e => setRegistrationContacts(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item))}
+                    />
+                    <input
+                      type="tel"
+                      className="field-input"
+                      placeholder={`Contact ${index + 1} phone`}
+                      value={contact.phone}
+                      onChange={e => setRegistrationContacts(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, phone: e.target.value } : item))}
+                    />
+                  </div>
+                ))}
+                {fieldErr.registrationContacts && <span className="field-err">{fieldErr.registrationContacts}</span>}
               </div>
 
               <div className="field-group">
@@ -765,6 +798,9 @@ export default function VendorSignup() {
                       <span className="summary-val" style={{ color: '#22c55e' }}>✓ New registration</span>
                     </div>
                   )}
+                  <div style={{ marginTop: '0.8rem', padding: '0.75rem', borderRadius: '10px', background: '#ecfdf5', color: '#166534', fontSize: '0.75rem', fontWeight: 700 }}>
+                    Free services included: a minisite link generated from your registered business name, a printable QR code, and a Free template.
+                  </div>
                 </div>
               )}
 

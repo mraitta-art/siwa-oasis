@@ -15,6 +15,7 @@ interface AnalyticsData {
   trafficChart: { label: string; hits: number; visitors: number }[];
   topPages: { page_path: string; page_type: string; hits: number; visitors: number }[];
   topBusinesses: { business_id: string; name: string; slug: string; hits: number; visitors: number }[];
+  topVendors: { vendor_id: string; vendor_name: string; hits: number; visitors: number }[];
   devices: { device_type: string; count: number }[];
   referrers: { source: string; count: number }[];
   pageTypes: { page_type: string; count: number }[];
@@ -549,6 +550,40 @@ export default function AnalyticsDashboard() {
                         </span>
                         <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff', minWidth: '40px', textAlign: 'right' }}>
                           {formatNumber(page.hits)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Top Vendors */}
+              <div style={cardStyle}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1.25rem', color: '#e2e8f0' }}>
+                  <i className="fas fa-user-tie" style={{ color: '#a855f7', marginRight: '0.5rem' }} />
+                  Top Vendors
+                </h2>
+                {(!data?.topVendors?.length) ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#475569', fontSize: '0.85rem' }}>
+                    No vendor visits yet
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {data.topVendors.map((vendor, i) => (
+                      <div key={vendor.vendor_id || i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '8px', background: 'rgba(168,85,247,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: '#c084fc', flexShrink: 0 }}>
+                          {i + 1}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {vendor.vendor_name || 'Unknown vendor'}
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: '#475569' }}>
+                            {vendor.visitors} unique visitor{vendor.visitors !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff', minWidth: '40px', textAlign: 'right' }}>
+                          {formatNumber(vendor.hits)}
                         </span>
                       </div>
                     ))}

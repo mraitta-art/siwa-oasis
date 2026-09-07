@@ -64,6 +64,8 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
   const [currentLang, setCurrentLang] = React.useState('en');
   const [uploadingFields, setUploadingFields] = React.useState<Record<string, boolean>>({});
   const [activeCategoryTabs, setActiveCategoryTabs] = React.useState<Record<string, string>>({});
+  const [uploadingSectionMedia, setUploadingSectionMedia] = React.useState<Record<string, boolean>>({});
+  const [expandedSectionMedia, setExpandedSectionMedia] = React.useState<Record<string, boolean>>({});
 
   const getActiveTab = (sid: string, availableTabs: { id: string }[]) => {
     if (activeCategoryTabs[sid]) return activeCategoryTabs[sid];
@@ -984,7 +986,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           <input
             type="email" className="form-control" value={value || ''}
             onChange={e => handleChange(e.target.value)} readOnly={isFieldLocked}
-            placeholder="example@siwa.today"
+            placeholder="example@siwify.com"
           />
         ) : field.field_type === 'number' ? (
           <input
@@ -1098,8 +1100,302 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
         const currentActiveTab = getActiveTab(sid, tabs);
         const activeTabInfo = tabs.find(t => t.id === currentActiveTab) || tabs[0];
 
-        return (
+        return (() => {
+          // === BUILT-IN SECTION MEDIA DATA ===
+          const mediaData = (data[sid]?._media || {}) as {
+            images?: Array<{
+              url: string; caption: string;
+              is_minisite_carousel: boolean; is_main_site_carousel: boolean;
+              show_in_cards: boolean; show_in_search: boolean;
+            }>;
+            mini_blog?: string;
+            show_on_minisite?: boolean;
+            show_on_main_site?: boolean;
+            show_in_search?: boolean;
+            show_in_cards?: boolean;
+          };
+          const sectionImages = mediaData.images || [];
+          const sectionMedExpanded = expandedSectionMedia[sid] ?? false;
+
+          const updateMedia = (patch: object) => {
+            onChange(sid, '_media', { ...mediaData, ...patch });
+          };
+
+          const handleSectionImageUpload = async (slotIndex: number, file: File) => {
+            const key = `${sid}_img${slotIndex}`;
+            setUploadingSectionMedia(prev => ({ ...prev, [key]: true }));
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('folder', `sections/${sid}`);
+            try {
+              const res = await fetch('/api/upload', { method: 'POST', body: fd });
+              const json = await res.json();
+              if (json.url) {
+                const newImages = [...sectionImages];
+                newImages[slotIndex] = {
+                  url: json.url, caption: newImages[slotIndex]?.caption || '',
+                  is_minisite_carousel: newImages[slotIndex]?.is_minisite_carousel ?? true,
+                  is_main_site_carousel: newImages[slotIndex]?.is_main_site_carousel ?? false,
+                  show_in_cards: newImages[slotIndex]?.show_in_cards ?? true,
+                  show_in_search: newImages[slotIndex]?.show_in_search ?? true,
+                };
+                updateMedia({ images: newImages });
+              }
+            } catch (e) {
+              notify?.('Image upload failed', 'error');
+            } finally {
+              setUploadingSectionMedia(prev => ({ ...prev, [key]: false }));
+            }
+          };
+
+          const toggleImgFlag = (slotIndex: number, flag: string, val: boolean) => {
+            const newImages = [...sectionImages];
+            newImages[slotIndex] = { ...newImages[slotIndex], [flag]: val };
+            updateMedia({ images: newImages });
+          };
+
+          const removeImage = (slotIndex: number) => {
+            const newImages = [...sectionImages];
+            newImages.splice(slotIndex, 1);
+            updateMedia({ images: newImages });
+          };
+
+          const MAX_SECTION_IMAGES = Math.min(4, tierFeatures?.maxImages || 4);
+          const sectionName = sections.find(s => s.id === sid)?.name || sid;
+
+          return (
           <section key={sid} style={{ marginBottom: '3rem' }}>
+
+            {/* ========== BUILT-IN: SECTION MEDIA & VISIBILITY CONTROL ========== */}
+            <div style={{
+              marginBottom: '2rem',
+              border: '1px solid #e2e8f0',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              background: '#fff',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
+            }}>
+              {/* Collapsible Header */}
+              <div
+                onClick={() => setExpandedSectionMedia(prev => ({ ...prev, [sid]: !prev[sid] }))}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '1rem 1.5rem', cursor: 'pointer',
+                  background: sectionMedExpanded ? 'linear-gradient(135deg, #1e293b, #334155)' : '#f8fafc',
+                  transition: 'all 0.3s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '10px',
+                    background: sectionMedExpanded ? 'rgba(212,175,55,0.2)' : '#D4AF3715',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#D4AF37', fontSize: '0.9rem'
+                  }}>
+                    <i className="fas fa-layer-group" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: sectionMedExpanded ? '#D4AF37' : '#0f172a', letterSpacing: '1.5px' }}>
+                      SECTION MEDIA & VISIBILITY
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: sectionMedExpanded ? '#94a3b8' : '#64748b', marginTop: '2px' }}>
+                      {sectionImages.filter(i => i?.url).length}/{MAX_SECTION_IMAGES} images •{' '}
+                      {mediaData.mini_blog ? '📝 Blog' : 'No blog'} •{' '}
+                      <span style={{ color: (mediaData.show_on_minisite !== false) ? '#10b981' : '#ef4444' }}>
+                        Minisite {(mediaData.show_on_minisite !== false) ? 'ON' : 'OFF'}
+                      </span>{' '}•{' '}
+                      <span style={{ color: (mediaData.show_on_main_site !== false) ? '#10b981' : '#ef4444' }}>
+                        Main Site {(mediaData.show_on_main_site !== false) ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <i className={`fas fa-chevron-${sectionMedExpanded ? 'up' : 'down'}`}
+                  style={{ color: sectionMedExpanded ? '#94a3b8' : '#64748b', transition: 'all 0.3s' }} />
+              </div>
+
+              {/* Expandable Body */}
+              {sectionMedExpanded && (
+                <div style={{ padding: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+
+                  {/* === SECTION VISIBILITY MASTER TOGGLES === */}
+                  <div style={{
+                    padding: '1rem 1.25rem', borderRadius: '14px',
+                    background: '#f1f5f9', marginBottom: '1.5rem',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1rem' }}>
+                      <i className="fas fa-eye" style={{ marginRight: '0.5rem' }} />
+                      SECTION VISIBILITY CONTROLS
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                      {[
+                        { key: 'show_on_minisite', label: 'Show on Minisite', icon: 'fa-store', color: '#D4AF37', default: true },
+                        { key: 'show_on_main_site', label: 'Show on Main Website', icon: 'fa-globe', color: '#3b82f6', default: true },
+                        { key: 'show_in_search', label: 'Show in Search & Listings', icon: 'fa-search', color: '#8b5cf6', default: true },
+                        { key: 'show_in_cards', label: 'Show in Preview Cards', icon: 'fa-id-card', color: '#10b981', default: true },
+                      ].map(({ key, label, icon, color, default: def }) => {
+                        const val = (mediaData as any)[key] !== false;
+                        return (
+                          <label key={key} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.75rem',
+                            padding: '0.75rem 1rem', borderRadius: '10px', cursor: 'pointer',
+                            background: val ? `${color}10` : '#fff',
+                            border: `1.5px solid ${val ? color + '40' : '#e2e8f0'}`,
+                            transition: 'all 0.2s'
+                          }}>
+                            <div style={{ position: 'relative', width: 36, height: 20, flexShrink: 0 }}>
+                              <input
+                                type="checkbox" checked={val}
+                                onChange={e => updateMedia({ [key]: e.target.checked })}
+                                style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                              />
+                              <span style={{
+                                position: 'absolute', inset: 0, borderRadius: 20,
+                                background: val ? color : '#cbd5e1', transition: '0.3s'
+                              }}>
+                                <span style={{
+                                  position: 'absolute', height: 14, width: 14,
+                                  left: val ? 19 : 3, top: 3,
+                                  background: '#fff', borderRadius: '50%', transition: '0.3s',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                }} />
+                              </span>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: val ? color : '#94a3b8' }}>
+                                <i className={`fas ${icon}`} style={{ marginRight: '0.3rem' }} />
+                                {label}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* === IMAGE GALLERY SLOTS (1-4) === */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1rem' }}>
+                      <i className="fas fa-images" style={{ marginRight: '0.5rem' }} />
+                      SECTION IMAGES ({sectionImages.filter(i => i?.url).length}/{MAX_SECTION_IMAGES})
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                      {Array.from({ length: MAX_SECTION_IMAGES }).map((_, idx) => {
+                        const imgData = sectionImages[idx];
+                        const uploadKey = `${sid}_img${idx}`;
+                        const isUploading = uploadingSectionMedia[uploadKey];
+                        return (
+                          <div key={idx} style={{
+                            border: `2px dashed ${imgData?.url ? '#D4AF37' : '#e2e8f0'}`,
+                            borderRadius: '14px', overflow: 'hidden', position: 'relative',
+                            background: imgData?.url ? '#000' : '#f8fafc',
+                            transition: 'all 0.3s', minHeight: 150
+                          }}>
+                            {imgData?.url ? (
+                              <>
+                                <img src={imgData.url} alt={`Section img ${idx + 1}`}
+                                  style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block', opacity: 0.85 }} />
+                                <button
+                                  onClick={() => removeImage(idx)}
+                                  style={{
+                                    position: 'absolute', top: 6, right: 6,
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    background: '#ef4444', border: 'none', color: '#fff',
+                                    cursor: 'pointer', fontSize: '0.6rem',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                  }}
+                                ><i className="fas fa-times" /></button>
+                                {/* Caption */}
+                                <input
+                                  type="text"
+                                  placeholder="Caption..."
+                                  value={imgData.caption || ''}
+                                  onChange={e => toggleImgFlag(idx, 'caption', e.target.value as any)}
+                                  style={{
+                                    width: '100%', border: 'none', borderTop: '1px solid #e2e8f0',
+                                    padding: '6px 10px', fontSize: '0.65rem', background: '#fff',
+                                    outline: 'none', boxSizing: 'border-box'
+                                  }}
+                                />
+                                {/* Per-image toggles */}
+                                <div style={{ padding: '8px 10px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                  {[
+                                    { flag: 'is_minisite_carousel', label: '🏠 Minisite Carousel' },
+                                    { flag: 'is_main_site_carousel', label: '🌐 Main Site Carousel' },
+                                    { flag: 'show_in_cards', label: '🃏 Preview Cards' },
+                                    { flag: 'show_in_search', label: '🔍 Search Results' },
+                                  ].map(({ flag, label }) => {
+                                    const isOn = (imgData as any)[flag] !== false;
+                                    return (
+                                      <label key={flag} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={isOn}
+                                          onChange={e => toggleImgFlag(idx, flag, e.target.checked)}
+                                          style={{ accentColor: '#D4AF37', width: 12, height: 12 }} />
+                                        <span style={{ fontSize: '0.58rem', color: isOn ? '#0f172a' : '#94a3b8', fontWeight: 700 }}>{label}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            ) : (
+                              <label style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                height: 150, cursor: isUploading ? 'wait' : 'pointer', padding: '1rem'
+                              }}>
+                                <input type="file" accept="image/*" style={{ display: 'none' }}
+                                  onChange={e => { if (e.target.files?.[0]) handleSectionImageUpload(idx, e.target.files[0]); }} />
+                                {isUploading ? (
+                                  <><i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem', color: '#D4AF37' }} />
+                                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.5rem' }}>Uploading...</span></>
+                                ) : (
+                                  <><i className="fas fa-plus" style={{ fontSize: '1.5rem', color: '#cbd5e1' }} />
+                                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.5rem', textAlign: 'center' }}>
+                                      Image {idx + 1}
+                                    </span></>
+                                )}
+                              </label>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* === MINI BLOG / NARRATIVE === */}
+                  <div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '0.75rem' }}>
+                      <i className="fas fa-pen-nib" style={{ marginRight: '0.5rem' }} />
+                      SECTION MINI BLOG / NARRATIVE
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <textarea
+                        value={mediaData.mini_blog || ''}
+                        onChange={e => updateMedia({ mini_blog: e.target.value })}
+                        placeholder={`Write a brief story or narrative for this section of ${sectionName}. This appears as the caption in carousels and the intro text on the minisite section.`}
+                        rows={4}
+                        style={{
+                          width: '100%', boxSizing: 'border-box',
+                          border: '1.5px solid #e2e8f0', borderRadius: '12px',
+                          padding: '1rem 1.25rem', fontSize: '0.85rem', lineHeight: 1.6,
+                          color: '#0f172a', background: '#f8fafc',
+                          outline: 'none', resize: 'vertical', fontFamily: 'inherit',
+                          transition: 'border-color 0.3s'
+                        }}
+                        onFocus={e => { e.target.style.borderColor = '#D4AF37'; e.target.style.background = '#fff'; }}
+                        onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; }}
+                      />
+                      <div style={{ fontSize: '0.6rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>
+                        {(mediaData.mini_blog || '').length} chars
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+            {/* ========== END BUILT-IN SECTION MEDIA ========== */}
+
             {/* Tab Bar Header */}
             {tabs.length > 1 && (
               <div className="tab-bar-container" style={{ 
@@ -1107,6 +1403,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                 background: '#f1f5f9', padding: '6px', borderRadius: '16px',
                 flexWrap: 'wrap', border: '1px solid #e2e8f0'
               }}>
+
                 {tabs.map(tab => {
                   const isActive = currentActiveTab === tab.id;
                   const { total, filled, hasEmptyRequired, isComplete } = getTabStats(tab.fields, sid);
@@ -1297,6 +1594,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             </div>
           </section>
         );
+        })();
       })}
 
       <style jsx>{`

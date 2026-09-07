@@ -226,8 +226,33 @@ CREATE TABLE minisite_templates (
   tier VARCHAR(50) DEFAULT 'free',
   components JSON DEFAULT NULL,
   settings JSON DEFAULT NULL,
+  recommended_form_template_id VARCHAR(100) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (category_id) REFERENCES business_types(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS form_templates (
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  purpose VARCHAR(80) NOT NULL DEFAULT 'onboarding',
+  type_id VARCHAR(100) DEFAULT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  version INT NOT NULL DEFAULT 1,
+  is_default BOOLEAN NOT NULL DEFAULT 0,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (type_id) REFERENCES business_types(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS form_template_sections (
+  form_template_id VARCHAR(100) NOT NULL,
+  section_id VARCHAR(100) NOT NULL,
+  required BOOLEAN NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (form_template_id, section_id),
+  FOREIGN KEY (form_template_id) REFERENCES form_templates(id) ON DELETE CASCADE,
+  FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
 );
 
 -- 15. EXPERIENCE PACKAGES (Bundled Multi-Business)
@@ -317,6 +342,11 @@ INSERT INTO business_types (id, name, icon, icon_color, is_parent, parent_id, ow
 ('siwa_lodge', 'Traditional Siwan Lodge', 'fas fa-landmark', '#D4AF37', FALSE, 'accommodation', '["construction_material","vibe"]', 1.2),
 ('desert_camp', 'Desert Camp', 'fas fa-campground', '#8b5cf6', FALSE, 'accommodation', '["tent_types","campfire"]', 1.3),
 ('eco_lodge', 'Eco-Lodge', 'fas fa-leaf', '#10b981', FALSE, 'accommodation', '["vibe"]', 1.4);
+
+-- Property listing subtypes. Transaction purpose remains a field, not a type.
+INSERT INTO business_types (id, name, icon, icon_color, is_parent, parent_id, own_sections, sort_order) VALUES
+('apartment', 'Apartment', 'fas fa-building', '#3b82f6', FALSE, 'accommodation', '[]', 1.5),
+('villa', 'Villa', 'fas fa-house', '#10b981', FALSE, 'accommodation', '[]', 1.6);
 
 -- 3. CHILDREN: FOOD
 INSERT INTO business_types (id, name, icon, icon_color, is_parent, parent_id, own_sections, sort_order) VALUES
