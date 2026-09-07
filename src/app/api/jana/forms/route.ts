@@ -4,12 +4,95 @@ import { requireAdmin } from '@/lib/auth';
 import { getFormFields, getBusinessTypeById, invalidateCache } from '@/lib/cache';
 import crypto from 'crypto';
 
+async function ensureBusinessOverrideTable() {
+  await execute(`CREATE TABLE IF NOT EXISTS business_form_overrides (
+    id VARCHAR(100) PRIMARY KEY,
+    business_id VARCHAR(100) NOT NULL,
+    field_key VARCHAR(255) NOT NULL,
+    source_field_id VARCHAR(100) NULL,
+    payload JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY business_form_override_key (business_id, field_key)
+  )`);
+}
+
+function parseJson(value: any, fallback: any = {}) {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function fieldKey(field: any) {
+  return `${field.section_id || 'basic'}:${field.name}:${field.version_type || 'latest'}`;
+}
+
+async function getBusinessForm(businessId: string) {
+  await ensureBusinessOverrideTable();
+  const business = await queryOne('SELECT id, type_id FROM businesses WHERE id = ?', [businessId]) as any;
+  if (!business) return null;
+
+  const typeIds: string[] = [];
+  let currentId: string | null = business.type_id;
+  while (currentId) {
+    const type = await queryOne('SELECT id, parent_id FROM business_types WHERE id = ?', [currentId]) as any;
+    if (!type) break;
+    typeIds.unshift(type.id);
+    currentId = type.parent_id || null;
+  }
+
+  const merged = new Map<string, any>();
+  // Fetch each inheritance level in order so the most specific definition
+  // always wins, regardless of database row ordering.
+  for (const sourceTypeId of ['SECTION_TEMPLATE', ...typeIds]) {
+    const fields = await query(
+      'SELECT * FROM form_fields WHERE business_type_id = ? ORDER BY sort_order ASC',
+      [sourceTypeId]
+    ) as any[];
+    for (const field of fields) {
+      const normalized = {
+        ...field,
+        options: parseJson(field.options, []),
+        validation: parseJson(field.validation, {}),
+        acl: parseJson(field.acl, {}),
+        source_level: sourceTypeId === 'SECTION_TEMPLATE' ? 'universal' : sourceTypeId === business.type_id ? 'child' : 'parent',
+        source_id: sourceTypeId,
+        override_level: sourceTypeId === business.type_id ? 'child' : 'parent'
+      };
+      merged.set(fieldKey(normalized), normalized);
+    }
+  }
+
+  const overrides = await query('SELECT * FROM business_form_overrides WHERE business_id = ?', [businessId]) as any[];
+  for (const override of overrides) {
+    const payload = parseJson(override.payload, {});
+    const inherited = merged.get(override.field_key) || {};
+    merged.set(override.field_key, {
+      ...inherited,
+      ...payload,
+      id: override.id,
+      source_field_id: override.source_field_id,
+      business_id: businessId,
+      override_level: 'business'
+    });
+  }
+
+  return Array.from(merged.values()).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+}
+
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(request.url);
     const typeId = searchParams.get('type');
     const section = searchParams.get('section');
+    const businessId = searchParams.get('business');
+
+    if (businessId) {
+      const fields = await getBusinessForm(businessId);
+      if (!fields) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return NextResponse.json(section ? fields.filter((field: any) => field.section_id === section) : fields);
+    }
 
     if (typeId) {
       const includeInherited = searchParams.get('include_inherited') !== 'false';
@@ -348,6 +431,20 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
+    if (body.business_id) {
+      await ensureBusinessOverrideTable();
+      const { business_id, source_field_id = null } = body;
+      const payload = { ...body };
+      delete payload.business_id;
+      delete payload.source_field_id;
+      const id = crypto.randomUUID();
+      const key = body.field_key || fieldKey(body);
+      await execute(
+        'INSERT INTO business_form_overrides (id, business_id, field_key, source_field_id, payload) VALUES (?, ?, ?, ?, ?)',
+        [id, business_id, key, source_field_id, JSON.stringify(payload)]
+      );
+      return NextResponse.json({ id }, { status: 201 });
+    }
     const { business_type_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, version_type } = body;
     const section_id = body.section_id || 'basic';
     const finalVersionType = version_type === 'initial' ? 'initial' : 'latest';
@@ -425,12 +522,65 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
+    if (body.business_id) {
+      await ensureBusinessOverrideTable();
+      const { business_id, id, source_field_id = id } = body;
+      const existingOverride = id ? await queryOne('SELECT * FROM business_form_overrides WHERE id = ? AND business_id = ?', [id, business_id]) as any : null;
+      const inherited = !existingOverride && id ? await queryOne('SELECT * FROM form_fields WHERE id = ?', [id]) as any : null;
+      const payload = { ...(existingOverride ? parseJson(existingOverride.payload, {}) : inherited || {}), ...body };
+      delete payload.business_id;
+      delete payload.source_field_id;
+      delete payload.id;
+      const key = existingOverride?.field_key || body.field_key || fieldKey(payload);
+
+      if (existingOverride) {
+        await execute('UPDATE business_form_overrides SET payload = ?, field_key = ?, source_field_id = ? WHERE id = ? AND business_id = ?', [JSON.stringify(payload), key, existingOverride.source_field_id || source_field_id, existingOverride.id, business_id]);
+        return NextResponse.json({ success: true, id: existingOverride.id, override: true });
+      }
+
+      const overrideId = crypto.randomUUID();
+      await execute(
+        'INSERT INTO business_form_overrides (id, business_id, field_key, source_field_id, payload) VALUES (?, ?, ?, ?, ?)',
+        [overrideId, business_id, key, source_field_id, JSON.stringify(payload)]
+      );
+      return NextResponse.json({ success: true, id: overrideId, override: true });
+    }
     const { id, label, required, vendor_editable, searchable, help_text, sort_order, options, section_id, is_hidden, acl, validation, field_type, required_feature, version_type } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const currentField = await queryOne('SELECT * FROM form_fields WHERE id = ?', [id]) as any;
     const targetVersionType = version_type === 'initial' ? 'initial' : 'latest';
     const currentFieldVersionType = currentField?.version_type || 'latest';
+
+    // Editing an inherited child field creates a child-owned copy.
+    if (currentField && body.business_type_id && currentField.business_type_id !== body.business_type_id) {
+      const childFieldId = crypto.randomUUID();
+      await execute(
+        `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, section_origin, required_feature, version_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?)`,
+        [
+          childFieldId,
+          body.business_type_id,
+          section_id || currentField.section_id,
+          currentField.name,
+          label ?? currentField.label,
+          field_type ?? currentField.field_type,
+          required !== undefined ? (required ? 1 : 0) : currentField.required,
+          vendor_editable !== undefined ? (vendor_editable ? 1 : 0) : currentField.vendor_editable,
+          searchable !== undefined ? (searchable ? 1 : 0) : currentField.searchable,
+          help_text ?? currentField.help_text,
+          options !== undefined ? (typeof options === 'string' ? options : JSON.stringify(options)) : currentField.options,
+          validation !== undefined ? (typeof validation === 'string' ? validation : JSON.stringify(validation)) : currentField.validation,
+          acl !== undefined ? (typeof acl === 'string' ? acl : JSON.stringify(acl)) : currentField.acl,
+          currentField.default_value || null,
+          sort_order !== undefined ? sort_order : currentField.sort_order || 0,
+          required_feature ?? currentField.required_feature ?? null,
+          targetVersionType
+        ]
+      );
+      invalidateCache.formFields();
+      return NextResponse.json({ success: true, id: childFieldId, override: true });
+    }
 
     // If we're saving to a different version than the current record, keep the current record intact
     // and create/update the sibling version record instead.
@@ -564,6 +714,13 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const typeId = searchParams.get('type');
+    const businessId = searchParams.get('business');
+
+    if (businessId && id) {
+      await ensureBusinessOverrideTable();
+      await execute('DELETE FROM business_form_overrides WHERE id = ? AND business_id = ?', [id, businessId]);
+      return NextResponse.json({ success: true, deleted: 'business override' });
+    }
 
     if (typeId) {
       // Bulk delete all fields belonging to a parent type (for template reset)

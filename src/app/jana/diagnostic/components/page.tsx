@@ -148,7 +148,7 @@ export default function ComponentLibraryDiagnosticPage() {
         <h3>📋 Next Steps:</h3>
         <ol style={{ marginLeft: '1.5rem' }}>
           <li>If you see components above, the API is working correctly</li>
-          <li>Visit <a href="/jana/website" style={{ color: '#3b82f6' }}>/jana/website</a></li>
+          <li>Visit <a href="/jana/main-site-builder" style={{ color: '#3b82f6' }}>/jana/main-site-builder</a></li>
           <li>In the builder, select the "Body" tab in the left sidebar</li>
           <li>Scroll down past the standard components</li>
           <li>You should see "📦 SAVED COMPONENTS" section</li>
@@ -157,7 +157,7 @@ export default function ComponentLibraryDiagnosticPage() {
       </div>
 
       <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-        <a href="/jana/website" style={{ 
+        <a href="/jana/main-site-builder" style={{ 
           padding: '0.75rem 1.5rem', 
           background: '#3b82f6', 
           color: 'white', 

@@ -27,7 +27,7 @@ export default function HomepageGuidePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {/* Go to Editor */}
           <Link
-            href="/jana/website"
+            href="/jana/main-site-builder"
             className="bg-gradient-to-br from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 rounded-lg p-8 text-white shadow-xl transition transform hover:scale-105"
           >
             <div className="text-5xl mb-4">🎨</div>
@@ -263,7 +263,7 @@ export default function HomepageGuidePage() {
             Open the homepage editor and start building your perfect page
           </p>
           <Link
-            href="/jana/website"
+            href="/jana/main-site-builder"
             className="inline-block bg-white hover:bg-gray-100 text-amber-700 font-bold py-4 px-8 rounded-lg transition transform hover:scale-105"
           >
             🚀 Launch Homepage Editor

@@ -28,7 +28,7 @@ const workstreams = [
   {
     title: 'Website Builder',
     description: 'Assemble pages and publish the public-facing experience.',
-    href: '/jana/website',
+    href: '/jana/main-site-builder',
     accent: '#db2777',
   },
   {

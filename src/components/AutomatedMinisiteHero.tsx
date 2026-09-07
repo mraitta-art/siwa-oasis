@@ -47,6 +47,10 @@ export default function AutomatedMinisiteHero({
     };
 
     activeSections.forEach(section => {
+      const sectionOptions = (() => {
+        try { return typeof section.options === 'string' ? JSON.parse(section.options) : section.options || {}; } catch { return {}; }
+      })();
+      if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('carousel')) return;
       capturedSectionIds.add(section.id);
       const sectionData = customData[section.id] || {};
       const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${section.name.toLowerCase()} DNA.`;

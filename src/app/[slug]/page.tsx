@@ -307,6 +307,10 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }));
 
     sections = sections.filter((s: any) => {
+      const sectionOptions = (() => {
+        try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
+      })();
+      if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
       if (tierAllowed && Array.isArray(tierAllowed) && !tierAllowed.includes(s.id)) return false;
       if (templateHidden && Array.isArray(templateHidden) && templateHidden.includes(s.id)) return false;
       if (customHidden && Array.isArray(customHidden) && customHidden.includes(s.id)) return false;

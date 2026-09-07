@@ -84,8 +84,10 @@ const NAV_GROUPS = [
     collapsible: true,
     defaultCollapsed: false,
     items: [
+      { name: 'Main Site Builder', path: '/jana/main-site-builder', icon: 'fa-globe' },
+      { name: 'Minisite Builder', path: '/jana/minisite-builder', icon: 'fa-store' },
       { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },
-      { name: 'Visual Page Editor', path: '/jana/website', icon: 'fa-palette' },
+      { name: 'Visual Page Editor', path: '/jana/website?page=main', icon: 'fa-palette' },
       {
         name: 'Components & Cards',
         path: '/jana/component-library',
@@ -109,7 +111,7 @@ const NAV_GROUPS = [
         ]
       },
       { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
-      { name: 'Minisite Builder', path: '/jana/minisite', icon: 'fa-store' },
+      { name: 'Minisite Templates', path: '/jana/minisite', icon: 'fa-store' },
       {
         name: 'Search Engine Suite',
         path: '/jana/search-engines',

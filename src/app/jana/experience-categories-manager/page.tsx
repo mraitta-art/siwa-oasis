@@ -146,7 +146,7 @@ export default function CategoriesManager() {
           >
             {showForm ? 'Cancel' : '+ Add Category'}
           </button>
-          <Link href="/jana/website" style={{ padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '8px', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <Link href="/jana/main-site-builder" style={{ padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '8px', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
             Back to Website Builder
           </Link>
         </div>

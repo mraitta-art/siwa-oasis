@@ -113,6 +113,20 @@ CREATE TABLE form_fields (
   UNIQUE KEY uk_field (business_type_id, section_id, name, version_type)
 );
 
+-- 5b. BUSINESS FORM OVERRIDES (Sparse business-level customizations)
+-- Parent and child form fields remain canonical; only business differences
+-- are stored here and merged at read time.
+CREATE TABLE business_form_overrides (
+  id VARCHAR(100) PRIMARY KEY,
+  business_id VARCHAR(100) NOT NULL,
+  field_key VARCHAR(255) NOT NULL,
+  source_field_id VARCHAR(100) DEFAULT NULL,
+  payload JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY business_form_override_key (business_id, field_key)
+);
+
 -- 6. CUSTOM EXPRESSIONS (Vibe/Terminology Engine)
 CREATE TABLE custom_expressions (
   id VARCHAR(100) PRIMARY KEY,
