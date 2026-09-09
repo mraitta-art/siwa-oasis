@@ -130,3 +130,13 @@ export async function enrichSourceWithAi(provider: SourceAiProvider, place: obje
     default: throw new Error(`Unsupported AI provider: ${provider}`);
   }
 }
+
+export function getConfiguredAiProviders() {
+  return {
+    ollama: Boolean(process.env.OLLAMA_URL || process.env.OLLAMA_MODEL),
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    claude: Boolean(process.env.ANTHROPIC_API_KEY),
+    gemini: Boolean(process.env.GEMINI_API_KEY),
+    manus: Boolean(process.env.MANUS_API_KEY && process.env.MANUS_API_URL),
+  } satisfies Record<SourceAiProvider, boolean>;
+}

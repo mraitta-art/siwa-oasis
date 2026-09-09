@@ -42,6 +42,7 @@ export default function GoogleImportWizard() {
   const [adminConfirmed, setAdminConfirmed] = useState(false);
   const [sourceCategory, setSourceCategory] = useState('');
   const [aiProvider, setAiProvider] = useState('ollama');
+  const [configuredProviders, setConfiguredProviders] = useState<Record<string, boolean>>({});
   const [placeData, setPlaceData] = useState<GooglePlaceData | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const availableTypes = types.length ? types : FALLBACK_CATEGORIES;
@@ -52,6 +53,14 @@ export default function GoogleImportWizard() {
       .then(res => res.json())
       .then(data => setTypes(data || []))
       .catch(err => console.error('Failed to load typologies', err));
+    fetch('/api/jana/google-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'providers' }),
+    })
+      .then(res => res.json())
+      .then(data => setConfiguredProviders(data.providers || {}))
+      .catch(() => setConfiguredProviders({}));
   }, []);
 
   const showMsg = (type: string, text: string) => {
@@ -70,6 +79,10 @@ export default function GoogleImportWizard() {
     }
     if (!adminConfirmed) {
       showMsg('error', 'Admin confirmation is required before fetching or importing source data.');
+      return;
+    }
+    if (configuredProviders[aiProvider] === false) {
+      showMsg('error', `${aiProvider} is not configured on the production server. Add its server environment variable and restart the app.`);
       return;
     }
     setLoading(true);
@@ -207,12 +220,15 @@ export default function GoogleImportWizard() {
                 onChange={e => setAiProvider(e.target.value)}
                 style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
               >
-                <option value="ollama">Ollama (local or self-hosted)</option>
-                <option value="openai">OpenAI</option>
-                <option value="claude">Claude</option>
-                <option value="gemini">Gemini</option>
-                <option value="manus">Manus (configured API)</option>
+                <option value="ollama">Ollama {configuredProviders.ollama ? '(configured)' : '(not configured)'}</option>
+                <option value="openai">OpenAI {configuredProviders.openai ? '(configured)' : '(not configured)'}</option>
+                <option value="claude">Claude {configuredProviders.claude ? '(configured)' : '(not configured)'}</option>
+                <option value="gemini">Gemini {configuredProviders.gemini ? '(configured)' : '(not configured)'}</option>
+                <option value="manus">Manus {configuredProviders.manus ? '(configured)' : '(not configured)'}</option>
               </select>
+              <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.4rem' }}>
+                Only providers marked configured can analyze the source. Keys remain on the server.
+              </div>
             </div>
 
             <div>

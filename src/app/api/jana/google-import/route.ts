@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { execute, queryOne } from '@/lib/db';
 import crypto from 'crypto';
-import { enrichSourceWithAi, type SourceAiProvider } from '@/lib/source-agent';
+import { enrichSourceWithAi, getConfiguredAiProviders, type SourceAiProvider } from '@/lib/source-agent';
 
 interface GooglePlaceData {
   name: string;
@@ -297,6 +297,10 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     const { action = 'fetch' } = body;
+
+    if (action === 'providers') {
+      return NextResponse.json({ providers: getConfiguredAiProviders() });
+    }
 
     // ─── ACTION 1: FETCH DATA ──────────────────────────────────────────────
     if (action === 'fetch') {
