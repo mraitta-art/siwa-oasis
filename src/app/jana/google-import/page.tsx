@@ -19,6 +19,19 @@ interface GooglePlaceData {
   detailsAvailable?: boolean;
 }
 
+const FALLBACK_CATEGORIES = [
+  { id: 'hotel', name: 'Hotel', parent_id: 'accommodation', is_parent: false },
+  { id: 'guest_house', name: 'Guest House', parent_id: 'accommodation', is_parent: false },
+  { id: 'villa', name: 'Villa', parent_id: 'accommodation', is_parent: false },
+  { id: 'restaurant', name: 'Restaurant', parent_id: 'food_beverage', is_parent: false },
+  { id: 'activity', name: 'Activity', parent_id: 'experiences', is_parent: false },
+  { id: 'attraction', name: 'Attraction', parent_id: 'experiences', is_parent: false },
+  { id: 'transportation', name: 'Transportation', parent_id: 'transportation', is_parent: false },
+  { id: 'craft', name: 'Craft', parent_id: 'crafts', is_parent: false },
+  { id: 'wellness', name: 'Wellness', parent_id: 'wellness', is_parent: false },
+  { id: 'other', name: 'Other', parent_id: 'other', is_parent: false },
+];
+
 export default function GoogleImportWizard() {
   const [urlOrQuery, setUrlOrQuery] = useState('');
   const [contributorName, setContributorName] = useState('');
@@ -31,6 +44,7 @@ export default function GoogleImportWizard() {
   const [aiProvider, setAiProvider] = useState('ollama');
   const [placeData, setPlaceData] = useState<GooglePlaceData | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const availableTypes = types.length ? types : FALLBACK_CATEGORIES;
 
   // Load Typologies for Mapping
   useEffect(() => {
@@ -171,7 +185,7 @@ export default function GoogleImportWizard() {
                 style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
               >
                 <option value="">-- Select business category --</option>
-                {types
+                {availableTypes
                   .filter(t => !t.is_parent && t.parent_id)
                   .map(t => {
                     const parent = types.find(p => p.id === t.parent_id);
