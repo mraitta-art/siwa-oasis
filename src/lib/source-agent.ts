@@ -25,13 +25,29 @@ function emptySections() {
   return Object.fromEntries(IMPORT_SECTIONS.map(section => [section, {}])) as Record<string, Record<string, unknown>>;
 }
 
+const SOURCE_AGENT_STRATEGY = `SOURCE IMPORT TASK
+You are the Siwa Oasis source-data analyst. The server supplies one public source link, one selected business category, and an explicit administrator confirmation.
+
+WORKFLOW:
+1. Analyze only the supplied source facts. Do not invent facts or browse unrelated sources.
+2. Compare the source evidence with the administrator-selected category.
+3. Treat AI category recognition as a warning signal. The administrator's explicit confirmation is the final authority.
+4. If the administrator confirmed the link and category match, continue and extract only data relevant to that confirmed category.
+5. If confirmation is missing, do not approve the draft. Report that admin confirmation is required.
+6. Keep unknown fields empty and list them in missing_fields.
+7. Preserve source provenance: provider, original URL, source ID, and import time.
+8. If facts suggest an existing business, report duplicate evidence and recommend merge, delete, keep separate, or manual review. Never silently merge or delete.
+9. Return cautious, database-ready JSON only. Generated wording must be listed in verification_notes.
+
+OFFLINE RULE:
+When running through Ollama, use this same strategy without assuming internet access. The source facts supplied by the server are the complete evidence available to you.
+`;
+
 function buildPrompt(place: object, category: string) {
-  return `You are a cautious business data analyst. Convert the supplied source facts into a JSON draft for a Siwa Oasis business database.
-Rules:
-- The administrator confirmed the intended category: ${category}.
-- Use only facts in SOURCE_FACTS. Never invent facilities, services, history, prices, reviews, opening hours, ownership, safety claims, or contact details.
-- Extract only facts relevant to the confirmed category. Unknown fields go in missing_fields and remain empty.
-- Any interpretation must be listed in verification_notes and treated as needing admin verification.
+  return `${SOURCE_AGENT_STRATEGY}
+CONFIRMED ADMIN CATEGORY: ${category}
+
+OUTPUT CONTRACT:
 - Return JSON only with this shape: {"suggested_type":"hotel|restaurant|activity|attraction|transportation|craft|wellness|other","confidence":0,"sections":{},"missing_fields":[],"verification_notes":[]}.
 - sections must contain exactly these keys: ${IMPORT_SECTIONS.join(', ')}.
 SOURCE_FACTS:
