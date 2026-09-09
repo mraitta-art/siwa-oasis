@@ -53,6 +53,7 @@ const NAV_GROUPS = [
     defaultCollapsed: false,
     items: [
       { name: 'Business Registry', path: '/jana/businesses', icon: 'fa-building' },
+      { name: 'Source Import', path: '/jana/google-import', icon: 'fa-link', badge: 'AI' },
       {
         name: 'Onboarding & Creation',
         path: '/jana/orchestrator',
