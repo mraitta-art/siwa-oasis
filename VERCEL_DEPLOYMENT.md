@@ -25,8 +25,16 @@ When setting up the project on Vercel, go to **Settings -> Environment Variables
 | `DB_NAME` | `sys` |
 | `DB_SSL` | `true` |
 | `JWT_SECRET` | `5b9c2a8d3e7f1b4a6d9c0e2f5a8b3d7e1f4a6c9d0b2e5f8a3d6e9f0a2b5c8d1e` |
-| `NEXT_PUBLIC_APP_URL` | `https://siwa.today` |
+| `NEXT_PUBLIC_APP_URL` | `https://siwify.com` |
 | `NODE_ENV` | `production` |
+| `OPENAI_API_KEY` | Your replacement OpenAI key |
+| `OPENAI_MODEL` | `gpt-4o-mini` |
+| `ANTHROPIC_API_KEY` | Your replacement Anthropic key |
+| `ANTHROPIC_MODEL` | `claude-3-5-haiku-latest` |
+| `GEMINI_API_KEY` | Your Gemini key (optional) |
+| `GEMINI_MODEL` | `gemini-2.0-flash` |
+| `MANUS_API_URL` | Your Manus API endpoint (optional) |
+| `MANUS_API_KEY` | Your Manus key (optional) |
 
 ## 3. Database Connection (CRITICAL)
 If you keep using your cPanel MySQL database, you MUST:
@@ -36,7 +44,7 @@ If you keep using your cPanel MySQL database, you MUST:
 
 ## 4. Custom Domain
 1. In Vercel, go to **Settings -> Domains**.
-2. Add `siwa.today`.
+2. Add `siwify.com`.
 3. Follow the instructions to update your DNS records at your domain registrar.
 
 ---
