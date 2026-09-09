@@ -32,11 +32,6 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
         let sections = await sRes.json();
 
         // TIER-BASED FILTERING: Only show sections allowed by the tier
-        const allowed = bizData.tier_features?.allowedSections || bizData.tier_features?.allowed_public_sections;
-        if (allowed && Array.isArray(allowed)) {
-           sections = sections.filter((s: any) => allowed.includes(s.id));
-        }
-
         setActiveSections(sections);
       } catch (e) { console.error(e); }
       setLoading(false);

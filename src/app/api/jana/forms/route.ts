@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
 
     if (typeId) {
       const includeInherited = searchParams.get('include_inherited') !== 'false';
+      const source = searchParams.get('source');
       
       // 1. Fetch the type and iteratively find all ancestors
       const typesToFetch = [];
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
         })));
       }
 
-      if (typeId !== 'SECTION_TEMPLATE') {
+      if (typeId !== 'SECTION_TEMPLATE' && source !== 'database') {
         // Find if we have a blueprint_schema configured in business_types
         let targetSchema: any = null;
         const parseSchema = (value: unknown) => {
@@ -285,6 +286,11 @@ export async function GET(request: NextRequest) {
 
       // 2. Fetch fields
       const idsToFetch = ['SECTION_TEMPLATE', ...typesToFetch.map(t => t.id)];
+      const sourcePriority = new Map<string, number>([
+        [typeId, 0],
+        ...typesToFetch.filter(t => t.id !== typeId).map((t, index) => [t.id, index + 1] as [string, number]),
+        ['SECTION_TEMPLATE', Number.MAX_SAFE_INTEGER],
+      ]);
       
       let sql = 'SELECT * FROM form_fields WHERE business_type_id IN (?)';
       const params: any[] = [idsToFetch];
@@ -320,9 +326,15 @@ export async function GET(request: NextRequest) {
         const versionType = f.version_type || 'latest';
         const key = `${f.section_id}:${f.name}:${versionType}`;
         explicitFieldNames.add(`${f.section_id}:${f.name}`);
+        const existing = fieldMap.get(key);
+        const fieldPriority = sourcePriority.get(f.business_type_id) ?? Number.MAX_SAFE_INTEGER - 1;
+        const existingPriority = existing ? (sourcePriority.get(existing.business_type_id) ?? Number.MAX_SAFE_INTEGER - 1) : Number.MAX_SAFE_INTEGER;
+        if (existing && existingPriority <= fieldPriority) continue;
         fieldMap.set(key, {
           ...f,
           version_type: versionType,
+          source_level: f.business_type_id === typeId ? 'selected' : f.business_type_id === 'SECTION_TEMPLATE' ? 'universal' : 'parent',
+          is_inherited: f.business_type_id !== typeId,
           options: (() => { try { return typeof f.options === 'string' ? JSON.parse(f.options) : f.options; } catch(e) { return f.options; } })(),
           validation: (() => { try { return typeof f.validation === 'string' ? JSON.parse(f.validation) : f.validation; } catch(e) { return f.validation; } })(),
           acl: (() => { try { return typeof f.acl === 'string' ? JSON.parse(f.acl) : f.acl; } catch(e) { return f.acl; } })(),
@@ -337,6 +349,7 @@ export async function GET(request: NextRequest) {
         if (!hasExplicitField(sid, 'section_blog')) {
           fieldMap.set(blogKey, {
             id: `auto-blog-${sid}`,
+            business_type_id: 'SECTION_TEMPLATE',
             section_id: sid,
             name: 'section_blog',
             label: 'Master Section Story (Rich Text)',
@@ -346,6 +359,7 @@ export async function GET(request: NextRequest) {
             help_text: 'Use this advanced editor to design the full story for this section on the page.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
+            ,is_inherited: true,
           });
         }
 
@@ -353,6 +367,7 @@ export async function GET(request: NextRequest) {
         if (!hasExplicitField(sid, 'section_news')) {
           fieldMap.set(newsKey, {
             id: `auto-news-${sid}`,
+            business_type_id: 'SECTION_TEMPLATE',
             section_id: sid,
             name: 'section_news',
             label: 'Carousel Cinematic Teaser (Mini-Blog)',
@@ -362,6 +377,7 @@ export async function GET(request: NextRequest) {
             help_text: 'This short text will appear as captions on the automated hero.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
+            ,is_inherited: true,
           });
         }
 
@@ -369,6 +385,7 @@ export async function GET(request: NextRequest) {
         if (!hasExplicitField(sid, 'section_gallery')) {
           fieldMap.set(galleryKey, {
             id: `auto-gallery-${sid}`,
+            business_type_id: 'SECTION_TEMPLATE',
             section_id: sid,
             name: 'section_gallery',
             label: 'Section Gallery (Serialized Captions)',
@@ -378,6 +395,7 @@ export async function GET(request: NextRequest) {
             help_text: 'Add photos. Each photo caption becomes a slide title in the automated carousel.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
+            ,is_inherited: true,
           });
         }
 
@@ -385,6 +403,7 @@ export async function GET(request: NextRequest) {
         if (!hasExplicitField(sid, 'feature_on_main')) {
           fieldMap.set(promoteKey, {
             id: `auto-promote-${sid}`,
+            business_type_id: 'SECTION_TEMPLATE',
             section_id: sid,
             name: 'feature_on_main',
             label: 'FEATURE ON MAIN WEBSITE',
@@ -394,6 +413,7 @@ export async function GET(request: NextRequest) {
             help_text: 'Toggle this to automatically promote this section as a slide on the main Siwify homepage.',
             acl: { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] },
             validation: {}
+            ,is_inherited: true,
           });
         }
       });

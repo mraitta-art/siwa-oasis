@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute, query } from '@/lib/db';
-import { randomUUID } from 'crypto';
+import { execute, query, queryOne } from '@/lib/db';
+import { CANONICAL_SECTION_IDS, resolveSectionId } from '@/lib/section-registry';
 
 /**
  * GOLD STANDARD SEEDER
@@ -19,8 +19,27 @@ export async function GET(req: NextRequest) {
        VALUES
        ('accommodation', 'Accommodation', 'fas fa-bed', '#8b5cf6', TRUE, NULL, JSON_ARRAY(), 1, TRUE),
        ('apartment', 'Apartment', 'fas fa-building', '#3b82f6', FALSE, 'accommodation', JSON_ARRAY(), 1.5, TRUE),
-       ('villa', 'Villa', 'fas fa-house', '#10b981', FALSE, 'accommodation', JSON_ARRAY(), 1.6, TRUE)`
+       ('villa', 'Villa', 'fas fa-house', '#10b981', FALSE, 'accommodation', JSON_ARRAY(), 1.6, TRUE),
+       ('hotel', 'Hotel', 'fas fa-hotel', '#0ea5e9', FALSE, 'accommodation', JSON_ARRAY(), 1.7, TRUE),
+       ('eco_lodge', 'Eco Lodge', 'fas fa-leaf', '#16a34a', FALSE, 'accommodation', JSON_ARRAY(), 1.8, TRUE),
+       ('guest_house', 'Guest House', 'fas fa-house-user', '#f59e0b', FALSE, 'accommodation', JSON_ARRAY(), 1.9, TRUE),
+       ('camp', 'Desert Camp', 'fas fa-campground', '#b45309', FALSE, 'accommodation', JSON_ARRAY(), 2, TRUE),
+       ('resort', 'Resort', 'fas fa-umbrella-beach', '#7c3aed', FALSE, 'accommodation', JSON_ARRAY(), 2.1, TRUE)`
     );
+
+    // Every parent and child receives the same 10 section containers. Existing
+    // custom section assignments are retained and merged with the registry.
+    const accommodationTypes = ['accommodation', 'apartment', 'villa', 'hotel', 'eco_lodge', 'guest_house', 'camp', 'resort'];
+    for (const typeId of accommodationTypes) {
+      const type = await queryOne('SELECT sections FROM business_types WHERE id = ?', [typeId]) as any;
+      if (!type) continue;
+      let existingSections: string[] = [];
+      try {
+        existingSections = typeof type.sections === 'string' ? JSON.parse(type.sections || '[]') : (type.sections || []);
+      } catch { existingSections = []; }
+      const sections = [...new Set([...CANONICAL_SECTION_IDS, ...existingSections.map(resolveSectionId)])];
+      await execute('UPDATE business_types SET sections = ? WHERE id = ?', [JSON.stringify(sections), typeId]);
+    }
     
     const standards = [
       // PROPERTY LISTING MODE (shared by apartments, villas, and other accommodation)
@@ -73,6 +92,39 @@ export async function GET(req: NextRequest) {
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'active_discounts', label: 'Active Discounts & Deals', field_type: 'checkbox_group', options: ['Early Bird (15%)', 'Long Stay (20%)', 'Last Minute', 'Siwan Resident Discount'] },
       { type: 'accommodation', section: 'sec_8_rates_offers', name: 'special_conditions', label: 'Booking Conditions', field_type: 'textarea' },
 
+      // GENERAL ACCOMMODATION FIELDS: inherited by every accommodation child
+      { type: 'accommodation', section: 'sec_1_identity', name: 'business_description', label: 'Business Description', field_type: 'textarea', required: true },
+      { type: 'accommodation', section: 'sec_1_identity', name: 'short_summary', label: 'Short Summary', field_type: 'textarea' },
+      { type: 'accommodation', section: 'sec_1_identity', name: 'business_logo', label: 'Business Logo', field_type: 'image' },
+      { type: 'accommodation', section: 'sec_1_identity', name: 'accommodation_type', label: 'Accommodation Type', field_type: 'select', options: ['Hotel', 'Eco Lodge', 'Guest House', 'Camp', 'Resort', 'Apartment', 'Villa'], required: true, searchable: true },
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'contact_phone', label: 'Contact Phone', field_type: 'text', required: true },
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'contact_email', label: 'Contact Email', field_type: 'email' },
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'check_in_time', label: 'Check-in Time', field_type: 'text' },
+      { type: 'accommodation', section: 'sec_5_connectivity', name: 'check_out_time', label: 'Check-out Time', field_type: 'text' },
+      { type: 'accommodation', section: 'sec_6_geographic', name: 'address', label: 'Physical Address', field_type: 'textarea', required: true, searchable: true },
+      { type: 'accommodation', section: 'sec_6_geographic', name: 'city_or_oasis', label: 'City or Oasis', field_type: 'text', searchable: true },
+      { type: 'accommodation', section: 'sec_4_facilities', name: 'guest_capacity', label: 'Maximum Guest Capacity', field_type: 'number', searchable: true },
+      { type: 'accommodation', section: 'sec_4_facilities', name: 'languages', label: 'Languages Spoken', field_type: 'multiselect', options: ['Arabic', 'English', 'French', 'German', 'Italian'], searchable: true },
+      { type: 'accommodation', section: 'sec_4_facilities', name: 'payment_methods', label: 'Payment Methods', field_type: 'checkbox_group', options: ['Cash', 'Bank Transfer', 'Visa', 'Mastercard', 'Online Payment'] },
+      { type: 'accommodation', section: 'sec_3_services', name: 'included_services', label: 'Included Services', field_type: 'checkbox_group', options: ['Breakfast', 'Airport Transfer', 'Housekeeping', 'Room Service', 'Laundry', 'Tour Booking'] },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'booking_url', label: 'Booking URL', field_type: 'url' },
+      { type: 'accommodation', section: 'sec_7_investment', name: 'cancellation_policy', label: 'Cancellation Policy', field_type: 'rich_text' },
+
+      // CHILD-SPECIFIC FIELDS: only the named child receives these fields
+      { type: 'eco_lodge', section: 'sec_2_ambience', name: 'sustainability_practices', label: 'Sustainability Practices', field_type: 'checkbox_group', options: ['Solar Energy', 'Water Recycling', 'Organic Garden', 'Plastic Reduction', 'Natural Materials'] },
+      { type: 'eco_lodge', section: 'sec_2_ambience', name: 'environmental_certification', label: 'Environmental Certification', field_type: 'text' },
+      { type: 'eco_lodge', section: 'sec_3_services', name: 'nature_activities', label: 'Nature Activities', field_type: 'checkbox_group', options: ['Bird Watching', 'Desert Walks', 'Salt Lake Floating', 'Stargazing', 'Palm Grove Tour'] },
+      { type: 'hotel', section: 'sec_1_identity', name: 'star_rating', label: 'Star Rating', field_type: 'select', options: ['1', '2', '3', '4', '5'], searchable: true },
+      { type: 'hotel', section: 'sec_4_facilities', name: 'reception_services', label: 'Reception Services', field_type: 'checkbox_group', options: ['24 Hour Reception', 'Concierge', 'Luggage Storage', 'Wake-up Service'] },
+      { type: 'hotel', section: 'sec_3_services', name: 'hotel_facilities', label: 'Hotel Facilities', field_type: 'checkbox_group', options: ['Conference Room', 'Restaurant', 'Spa', 'Gym', 'Business Center'] },
+      { type: 'guest_house', section: 'sec_3_services', name: 'host_services', label: 'Host Services', field_type: 'checkbox_group', options: ['Local Recommendations', 'Home Cooking', 'Airport Pickup', 'Guided Walks'] },
+      { type: 'camp', section: 'sec_4_facilities', name: 'tent_types', label: 'Tent Types', field_type: 'checkbox_group', options: ['Private Tent', 'Family Tent', 'Luxury Tent', 'Shared Tent'] },
+      { type: 'camp', section: 'sec_3_services', name: 'camp_activities', label: 'Camp Activities', field_type: 'checkbox_group', options: ['4x4 Safari', 'Sandboarding', 'Campfire', 'Camel Ride', 'Stargazing'] },
+      { type: 'resort', section: 'sec_4_facilities', name: 'resort_facilities', label: 'Resort Facilities', field_type: 'checkbox_group', options: ['Swimming Pool', 'Spa', 'Kids Club', 'Beach Access', 'Multiple Restaurants'] },
+      { type: 'resort', section: 'sec_3_services', name: 'resort_programs', label: 'Resort Programs', field_type: 'checkbox_group', options: ['Wellness Retreat', 'Family Program', 'Wedding Venue', 'Corporate Retreat'] },
+      { type: 'apartment', section: 'sec_4_facilities', name: 'apartment_features', label: 'Apartment Features', field_type: 'checkbox_group', options: ['Kitchen', 'Living Room', 'Private Entrance', 'Washing Machine', 'Workspace'] },
+      { type: 'villa', section: 'sec_4_facilities', name: 'villa_features', label: 'Villa Features', field_type: 'checkbox_group', options: ['Private Pool', 'Private Garden', 'Kitchen', 'Outdoor Dining', 'Staff Accommodation'] },
+
       // 🍽️ FOOD & BEVERAGE STANDARDS (Mapping to the same 8 Blocks)
       { type: 'food', section: 'sec_1_identity', name: 'restaurant_logo', label: 'Restaurant Branding/Logo', field_type: 'gallery' },
       { type: 'food', section: 'sec_3_services', name: 'cuisine_style', label: 'Cuisine Style', field_type: 'checkbox_group', options: ['Traditional Siwan','Egyptian','Mediterranean','International'] },
@@ -102,19 +154,23 @@ export async function GET(req: NextRequest) {
 
     for (const s of standards) {
       try {
-        await execute(
-          'INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, options, required, searchable, section_origin) ' +
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [randomUUID(), s.type, s.section, s.name, s.label, s.field_type, JSON.stringify(s.options || []), s.required ? 1 : 0, s.searchable ? 1 : 0, 'own']
-        );
-        results.push({ field: s.name, status: 'Materialized' });
+        const sectionId = resolveSectionId(s.section);
+        const existing = await queryOne('SELECT id FROM form_fields WHERE business_type_id = ? AND name = ? ORDER BY id LIMIT 1', [s.type, s.name]) as any;
+        if (existing) {
+          await execute(
+            'UPDATE form_fields SET section_id = ?, label = ?, field_type = ?, options = ?, required = ?, searchable = ? WHERE id = ?',
+            [sectionId, s.label, s.field_type, JSON.stringify(s.options || []), s.required ? 1 : 0, s.searchable ? 1 : 0, existing.id]
+          );
+          results.push({ field: s.name, status: 'Updated to Standard' });
+        } else {
+          await execute(
+            'INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, options, required, searchable, section_origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [`standard_${s.type}_${s.name}`, s.type, sectionId, s.name, s.label, s.field_type, JSON.stringify(s.options || []), s.required ? 1 : 0, s.searchable ? 1 : 0, 'own']
+          );
+          results.push({ field: s.name, status: 'Materialized' });
+        }
       } catch (e) {
-        // If already exists, update the field type and options to match gold standard
-        await execute(
-          'UPDATE form_fields SET field_type = ?, options = ?, required = ?, searchable = ? WHERE business_type_id = ? AND name = ?',
-          [s.field_type, JSON.stringify(s.options || []), s.required ? 1 : 0, s.searchable ? 1 : 0, s.type, s.name]
-        );
-        results.push({ field: s.name, status: 'Updated to Standard' });
+        results.push({ field: s.name, status: 'Skipped', error: e instanceof Error ? e.message : String(e) });
       }
     }
 

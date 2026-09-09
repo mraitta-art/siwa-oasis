@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { getBusinessTypes, getBusinessTypeById, invalidateCache } from '@/lib/cache';
+import { normalizeSectionIds } from '@/lib/section-registry';
 import fs from 'fs';
 import path from 'path';
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     log(`[TYPES POST] Attempt: ${JSON.stringify(body)}`);
-    const { id, name, icon, icon_color, description, is_parent, parent_id, sections = [], own_sections = [], default_template_id = null } = body;
+    const { id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections = [], default_template_id = null } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
     if (!is_parent && (!parent_id || parent_id === id)) {
       return NextResponse.json({ error: 'A child typology must be assigned to a valid parent category.' }, { status: 400 });
@@ -71,9 +72,11 @@ export async function POST(request: NextRequest) {
       await execute(`ALTER TABLE business_types ADD COLUMN IF NOT EXISTS default_template_id VARCHAR(100) DEFAULT NULL`);
     } catch (e) { /* column may already exist */ }
 
+    const assignedSections = is_parent ? normalizeSectionIds(sections, true) : normalizeSectionIds(sections);
+    const assignedOwnSections = normalizeSectionIds(own_sections);
     await execute(
       `INSERT INTO business_types (id, name, icon, icon_color, description, is_parent, parent_id, sections, own_sections, sort_order, default_template_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(sections), JSON.stringify(own_sections), 99, is_parent ? (default_template_id || null) : null]
+      [id, name, icon || 'fas fa-building', icon_color || '#8b5cf6', description || '', is_parent ? 1 : 0, is_parent ? null : (parent_id || null), JSON.stringify(assignedSections), JSON.stringify(assignedOwnSections), 99, is_parent ? (default_template_id || null) : null]
     );
     
     // Invalidate cache after mutation
@@ -131,9 +134,11 @@ export async function PUT(request: NextRequest) {
       await execute(`ALTER TABLE business_types ADD COLUMN IF NOT EXISTS default_template_id VARCHAR(100) DEFAULT NULL`);
     } catch (e) { /* column may already exist */ }
 
+    const assignedSections = is_parent ? normalizeSectionIds(sections, true) : normalizeSectionIds(sections);
+    const assignedOwnSections = normalizeSectionIds(own_sections);
     await execute(
       `UPDATE business_types SET name=?, icon=?, icon_color=?, description=?, is_parent=?, parent_id=?, active=?, sections=?, own_sections=?, default_template_id=? WHERE id=?`,
-      [name, icon, icon_color, description, is_parent ? 1 : 0, is_parent ? null : (parent_id || null), active ? 1 : 0, JSON.stringify(sections || []), JSON.stringify(own_sections || []), is_parent ? (default_template_id || null) : null, id]
+      [name, icon, icon_color, description, is_parent ? 1 : 0, is_parent ? null : (parent_id || null), active ? 1 : 0, JSON.stringify(assignedSections), JSON.stringify(assignedOwnSections), is_parent ? (default_template_id || null) : null, id]
     );
     
     // Invalidate cache after mutation

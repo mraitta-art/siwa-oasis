@@ -42,6 +42,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
 
   // UI State
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
   const [addingSection, setAddingSection]     = useState(false);
   const [savingSection, setSavingSection]     = useState(false);
@@ -57,6 +58,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
   const [newField, setNewField]               = useState({ label: '', field_type: 'text', required: false, vendor_editable: true, options: [] as string[] });
   const [inspectingField, setInspectingField] = useState<any | null>(null);
   const [saving, setSaving]                   = useState(false);
+  const [importingBlueprint, setImportingBlueprint] = useState(false);
 
   // ── Load all business types (hierarchy) ──
   useEffect(() => {
@@ -77,7 +79,17 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
   }, []);
 
   useEffect(() => {
-    if (!selectedTypeId) { setSections([]); setFields({}); return; }
+    if (!selectedTypeId) {
+      setSections([]);
+      setFields({});
+      setExpandedSection(null);
+      setSelectedSectionId(null);
+      return;
+    }
+    setExpandedSection(null);
+    setSelectedSectionId(null);
+    setEditingSection(null);
+    setEditSectionData(null);
     loadSections(selectedTypeId);
   }, [selectedTypeId]);
 
@@ -88,7 +100,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
         const data = await res.json();
         setSections(Array.isArray(data) ? data : []);
 
-        const fr = await fetch('/api/jana/forms?type=SECTION_TEMPLATE');
+        const fr = await fetch(`/api/jana/forms?type=${typeId}&source=database`);
         const map: Record<string, any[]> = {};
         (Array.isArray(data) ? data : []).forEach((s: any) => { map[s.id] = []; });
         if (fr.ok) {
@@ -108,6 +120,161 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
   function selectType(type: any) {
     setSelectedTypeName(type.name);
     onTypologySelected(type.id, type.name);
+  }
+
+  function selectSection(sectionId: string) {
+    setSelectedSectionId(sectionId);
+    setExpandedSection(sectionId);
+    setAddingField(null);
+    setInspectingField(null);
+  }
+
+  async function seedFoodBeverageBlueprint() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/jana/seed-food-beverage', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to prepare Food & Beverage blueprint');
+      notify('Food & Beverage common and child components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare Food & Beverage blueprint', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function seedAccommodationBlueprint() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/setup/seed-standards');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to prepare Accommodation blueprint');
+      notify('Accommodation common and child components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare Accommodation blueprint', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function seedTransportationBlueprint() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/jana/seed-transportation', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to prepare Transportation blueprint');
+      notify('Transportation common and child components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare Transportation blueprint', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function seedCraftsWellnessBlueprint() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/jana/seed-crafts-wellness', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to prepare Crafts and Wellness blueprints');
+      notify('Crafts and Wellness common and child components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare Crafts and Wellness blueprints', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function seedActivitiesToursBlueprint() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/jana/seed-activities-tours', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to prepare Activities & Tours blueprint');
+      notify('Activities & Tours common and child components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare Activities & Tours blueprint', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function seedProductionTradeBlueprint() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/jana/seed-production-trade', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to prepare Production & Trade blueprint');
+      notify('Production & Trade common and child components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare Production & Trade blueprint', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function seedAllBlueprints() {
+    setSaving(true);
+    try {
+      const setupRequests: Array<() => Promise<Response>> = [
+        () => fetch('/api/setup/seed-standards'),
+        () => fetch('/api/jana/seed-food-beverage', { method: 'POST' }),
+        () => fetch('/api/jana/seed-activities-tours', { method: 'POST' }),
+        () => fetch('/api/jana/seed-transportation', { method: 'POST' }),
+        () => fetch('/api/jana/seed-crafts-wellness', { method: 'POST' }),
+        () => fetch('/api/jana/seed-production-trade', { method: 'POST' }),
+      ];
+      for (const setupRequest of setupRequests) {
+        const response = await setupRequest();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'One or more blueprints failed');
+      }
+      notify('All category blueprints and section components are ready!', 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Failed to prepare all blueprints', 'error');
+    }
+    setSaving(false);
+  }
+
+  async function exportBlueprints() {
+    try {
+      const response = await fetch('/api/jana/blueprints');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Blueprint export failed');
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `siwa-blueprints-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      notify('All section blueprints exported.', 'success');
+    } catch (e: any) {
+      notify(e.message || 'Blueprint export failed', 'error');
+    }
+  }
+
+  async function importBlueprints(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setImportingBlueprint(true);
+    try {
+      const packageData = JSON.parse(await file.text());
+      const response = await fetch('/api/jana/blueprints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(packageData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Blueprint import failed');
+      notify(`Imported ${data.form_fields} fields across ${data.sections} sections.`, 'success');
+      if (selectedTypeId) loadSections(selectedTypeId);
+    } catch (e: any) {
+      notify(e.message || 'Blueprint import failed', 'error');
+    }
+    setImportingBlueprint(false);
   }
 
   // Helpers for hierarchy
@@ -222,7 +389,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          business_type_id: 'SECTION_TEMPLATE',
+          business_type_id: selectedTypeId,
           section_id: sectionId,
           name,
           label: newField.label,
@@ -273,6 +440,16 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <button type="button" onClick={exportBlueprints} style={{ background: '#fff', border: '1px solid #cbd5e1', color: '#334155', padding: '0.6rem 0.9rem', borderRadius: '9px', fontWeight: 800, fontSize: '0.68rem', cursor: 'pointer' }}>
+          <i className="fas fa-download" style={{ marginRight: '0.35rem' }}></i> EXPORT ALL SECTIONS
+        </button>
+        <label style={{ background: '#fff', border: '1px solid #cbd5e1', color: '#334155', padding: '0.6rem 0.9rem', borderRadius: '9px', fontWeight: 800, fontSize: '0.68rem', cursor: importingBlueprint ? 'wait' : 'pointer' }}>
+          <i className="fas fa-upload" style={{ marginRight: '0.35rem' }}></i> {importingBlueprint ? 'IMPORTING...' : 'IMPORT ALL SECTIONS'}
+          <input type="file" accept="application/json,.json" onChange={importBlueprints} disabled={importingBlueprint} style={{ display: 'none' }} />
+        </label>
+      </div>
+
       {/* ── DELETE SECTION CONFIRM MODAL ── */}
       {deletingSection && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -297,6 +474,66 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
           </div>
         </div>
       )}
+            {selectedTypeId === 'food' && (
+              <button
+                type="button"
+                onClick={seedFoodBeverageBlueprint}
+                disabled={saving}
+                style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-utensils" style={{ marginRight: '0.35rem' }}></i> PREPARE F&B COMPONENTS
+              </button>
+            )}
+            {selectedTypeId === 'accommodation' && (
+              <button
+                type="button"
+                onClick={seedAccommodationBlueprint}
+                disabled={saving}
+                style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#6d28d9', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-bed" style={{ marginRight: '0.35rem' }}></i> PREPARE ACCOMMODATION COMPONENTS
+              </button>
+            )}
+            {selectedTypeId === 'logistics' && (
+              <button
+                type="button"
+                onClick={seedTransportationBlueprint}
+                disabled={saving}
+                style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-truck-moving" style={{ marginRight: '0.35rem' }}></i> PREPARE TRANSPORT COMPONENTS
+              </button>
+            )}
+            {(selectedTypeId === 'crafts' || selectedTypeId === 'wellness') && (
+              <button
+                type="button"
+                onClick={seedCraftsWellnessBlueprint}
+                disabled={saving}
+                style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-spa" style={{ marginRight: '0.35rem' }}></i> PREPARE CRAFTS & WELLNESS COMPONENTS
+              </button>
+            )}
+            {selectedTypeId === 'adventure' && (
+              <button
+                type="button"
+                onClick={seedActivitiesToursBlueprint}
+                disabled={saving}
+                style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-compass" style={{ marginRight: '0.35rem' }}></i> PREPARE ACTIVITIES & TOURS
+              </button>
+            )}
+            {selectedTypeId === 'production_trade' && (
+              <button
+                type="button"
+                onClick={seedProductionTradeBlueprint}
+                disabled={saving}
+                style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#6d28d9', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.65rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-industry" style={{ marginRight: '0.35rem' }}></i> PREPARE PRODUCTION & TRADE
+              </button>
+            )}
 
       {/* ── STEP 1A — TYPOLOGY HIERARCHY ── */}
       <div style={{ background: '#fff', borderRadius: '24px', padding: '2rem', border: '1px solid #e2e8f0' }}>
@@ -316,7 +553,19 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
           )}
         </div>
 
-        {loadingTypes ? (
+        {selectedTypeId ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+            <i className="fas fa-check-circle" style={{ color: '#10b981' }}></i>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 900, letterSpacing: '1px' }}>CURRENT TYPE</div>
+              <div style={{ color: '#1e293b', fontWeight: 900, fontSize: '0.95rem' }}>{selectedTypeName}</div>
+            </div>
+            <button
+              onClick={() => { setSelectedTypeName(''); onTypologySelected('', ''); setSections([]); }}
+              style={{ background: '#fff', border: '1px solid #cbd5e1', color: '#475569', padding: '0.5rem 0.85rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer' }}
+            >CHANGE TYPE</button>
+          </div>
+        ) : loadingTypes ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
             <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>Loading typologies…
           </div>
@@ -354,6 +603,18 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                         <i className={`fas ${parent.icon || 'fa-folder'}`}></i>
                       </div>
                       <div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                      <button
+                        type="button"
+                        onClick={seedAllBlueprints}
+                        disabled={saving}
+                        style={{ background: '#0f172a', border: 'none', color: '#fff', padding: '0.65rem 1rem', borderRadius: '9px', fontWeight: 900, fontSize: '0.68rem', cursor: 'pointer' }}
+                      >
+                        <i className="fas fa-layer-group" style={{ marginRight: '0.4rem' }}></i>
+                        {saving ? 'PREPARING BLUEPRINTS...' : 'PREPARE ALL CATEGORY BLUEPRINTS'}
+                      </button>
+                    </div>
                         <div style={{ fontWeight: 900, fontSize: '0.88rem', color: parentSelected ? '#0f172a' : '#1e293b' }}>{parent.name}</div>
                         <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '1px' }}>
                           CATEGORY · {children.length} subcategor{children.length === 1 ? 'y' : 'ies'}
@@ -456,13 +717,28 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                 </div>
               </div>
             </div>
-            <button onClick={() => setAddingSection(true)} style={{
-              background: '#1e293b', color: '#fff', border: 'none', padding: '0.6rem 1.25rem',
-              borderRadius: '10px', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-            }}>
-              <i className="fas fa-plus"></i> ADD SECTION
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {selectedSectionId && (
+                <button
+                  type="button"
+                  onClick={() => { setSelectedSectionId(null); setExpandedSection(null); setAddingField(null); setInspectingField(null); }}
+                  style={{
+                    background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '0.6rem 1rem',
+                    borderRadius: '10px', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.45rem',
+                  }}
+                >
+                  <i className="fas fa-arrow-left"></i> BACK TO SECTIONS
+                </button>
+              )}
+              <button onClick={() => setAddingSection(true)} style={{
+                background: '#1e293b', color: '#fff', border: 'none', padding: '0.6rem 1.25rem',
+                borderRadius: '10px', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+              }}>
+                <i className="fas fa-plus"></i> ADD SECTION
+              </button>
+            </div>
           </div>
 
           {/* New Section Form */}
@@ -512,18 +788,20 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
             {sections.map(section => {
               const sectionFields = fields[section.id] || [];
               const isExpanded = expandedSection === section.id;
+              const isSelected = selectedSectionId === section.id;
+              if (expandedSection && !isExpanded) return null;
               return (
                 <div key={section.id} style={{ border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden' }}>
                   {/* Section Header */}
                   <div style={{ padding: '1.25rem 1.5rem', background: isExpanded ? '#1e293b' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s' }}>
                     {/* Left — clickable to expand */}
-                    <div onClick={() => setExpandedSection(isExpanded ? null : section.id)}
+                    <div onClick={() => selectSection(section.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, cursor: 'pointer', minWidth: 0 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '10px', background: isExpanded ? 'rgba(212,175,55,0.2)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', flexShrink: 0 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '10px', background: isSelected ? 'rgba(212,175,55,0.2)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', flexShrink: 0 }}>
                         <i className={`fas ${section.icon || 'fa-layer-group'}`}></i>
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: isExpanded ? '#fff' : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{section.name}</div>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: isSelected ? '#fff' : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{section.name}</div>
                         <div style={{ fontSize: '0.6rem', color: isExpanded ? '#94a3b8' : '#64748b', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {sectionFields.length} fields
                           {section.is_universal && <span style={{ background: '#D4AF3720', color: '#D4AF37', padding: '1px 6px', borderRadius: '4px', fontWeight: 900 }}>UNIVERSAL</span>}
@@ -533,6 +811,20 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                     </div>
                     {/* Right — action buttons */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        title="Edit this section's components"
+                        onClick={e => { e.stopPropagation(); selectSection(section.id); }}
+                        style={{
+                          background: isSelected ? '#D4AF37' : (isExpanded ? 'rgba(255,255,255,0.12)' : '#e9eef4'),
+                          border: 'none',
+                          color: isSelected ? '#fff' : (isExpanded ? '#D4AF37' : '#64748b'),
+                          padding: '0.45rem 0.7rem', borderRadius: '8px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', fontWeight: 900,
+                        }}
+                      >
+                        <i className="fas fa-sliders-h" /> EDIT COMPONENTS
+                      </button>
                       {/* ✏️ Edit */}
                       <button
                         type="button"
@@ -575,7 +867,7 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                         <i className="fas fa-trash-alt" />
                       </button>
                       <i
-                        onClick={() => setExpandedSection(isExpanded ? null : section.id)}
+                        onClick={() => selectSection(section.id)}
                         className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}
                         style={{ color: isExpanded ? '#D4AF37' : '#94a3b8', fontSize: '0.8rem', cursor: 'pointer', padding: '0.25rem' }}
                       ></i>
@@ -649,6 +941,9 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                         {sectionFields.map((f: any) => {
                           const ft = FIELD_TYPES.find(t => t.id === f.field_type);
                           const isInspecting = inspectingField?.id === f.id;
+                          const selectedType = types.find((type: any) => type.id === selectedTypeId);
+                          const isChildType = !!selectedType?.parent_id;
+                          const isInherited = !!f.is_inherited || f.business_type_id !== selectedTypeId;
                           return (
                             <div key={f.id}>
                               <div onClick={() => { setInspectingField(isInspecting ? null : f); setAddingField(null); }}
@@ -657,7 +952,12 @@ export default function SchemaBuilder({ onTypologySelected, selectedTypeId }: Sc
                                   <i className={`fas ${ft?.icon || 'fa-cube'}`} style={{ color: ft?.color || '#94a3b8', width: 16 }}></i>
                                   <div>
                                     <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{f.label}</div>
-                                    <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>{(f.field_type || '').toUpperCase()} {f.required ? '• REQUIRED' : ''} {f.vendor_editable ? '• VENDOR EDITABLE' : ''}</div>
+                                    <div style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
+                                      {(f.field_type || '').toUpperCase()} {f.required ? '• REQUIRED' : ''} {f.vendor_editable ? '• VENDOR EDITABLE' : ''}
+                                      <span style={{ marginLeft: '0.35rem', color: isInherited ? '#8b5cf6' : '#0f766e', fontWeight: 900 }}>
+                                        • {isInherited ? 'INHERITED' : isChildType ? 'CHILD-ONLY' : 'COMMON'}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                                 <i className={`fas fa-chevron-${isInspecting ? 'up' : 'right'}`} style={{ color: '#cbd5e1', fontSize: '0.7rem' }}></i>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { invalidateCache } from '@/lib/cache';
+import { CANONICAL_SECTIONS } from '@/lib/section-registry';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,43 +30,27 @@ export async function GET(request: NextRequest) {
       const tierRow = await queryOne<any>("SELECT features FROM subscription_tiers WHERE id = ?", [t.id]);
       if (tierRow) {
         let features = typeof tierRow.features === 'string' ? JSON.parse(tierRow.features) : tierRow.features || {};
-        features.allowedSections = t.allowed;
+        delete features.allowedSections;
+        delete features.allowed_public_sections;
         await execute("UPDATE subscription_tiers SET features = ? WHERE id = ?", [JSON.stringify(features), t.id]);
       }
     }
 
-    // 1. CLEAR OLD DATA
-    await execute("DELETE FROM form_fields WHERE section_id IN (SELECT id FROM sections)");
-    await execute("DELETE FROM sections");
-
-    // 1.5 ENSURE VITAL TYPOLOGIES EXIST
+    // Ensure the template type exists without deleting existing sections or fields.
     await execute(
       "INSERT IGNORE INTO business_types (id, name, is_parent, active) VALUES ('SECTION_TEMPLATE', 'System Template', 0, 1)"
     );
 
-    // 2. DEFINE THE 10 GOLDEN CHAPTERS
-    const chapters = [
-      { id: 'sec_1_identity',    name: 'Identity & Heritage',     icon: 'fa-landmark',        order: 1 },
-      { id: 'sec_2_ambience',    name: 'Design & Ambience',       icon: 'fa-sun',             order: 2 },
-      { id: 'sec_3_facilities',  name: 'Infrastructure & Pools',  icon: 'fa-swimming-pool',   order: 3 },
-      { id: 'sec_4_gastronomy',  name: 'Culinary Craft',          icon: 'fa-utensils',        order: 4 },
-      { id: 'sec_5_experiences', name: 'Experiences & Programs',  icon: 'fa-hiking',          order: 5 },
-      { id: 'sec_6_guardian',    name: 'Sustainability DNA',      icon: 'fa-leaf',            order: 6 },
-      { id: 'sec_7_investment',  name: 'Business & Investment',   icon: 'fa-chart-line',      order: 7 },
-      { id: 'sec_8_connector',   name: 'Rates, Offers & Access',  icon: 'fa-tags',            order: 8 },
-      { id: 'sec_9_marketplace_catalog', name: 'Marketplace & Products Catalog', icon: 'fa-store', order: 9 },
-      { id: 'sec_10_testimonials_faqs',  name: 'Testimonials & FAQs',    icon: 'fa-comments',        order: 10 },
-    ];
-
-    // 3. INJECT SECTIONS
-    for (const c of chapters) {
+    // Materialize the canonical registry additively. Existing rows and fields survive reruns.
+    for (const c of CANONICAL_SECTIONS) {
       await execute(
-        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_universal, display_order, active) 
-         VALUES (?, ?, ?, 1, 1, 1, 1, ?, 1)`,
+        `INSERT INTO sections (id, name, icon, required, vendor_editable, show_on_public, is_universal, display_order, active)
+         VALUES (?, ?, ?, 1, 1, 1, 1, ?, 1)
+         ON DUPLICATE KEY UPDATE name = VALUES(name), icon = VALUES(icon), display_order = VALUES(display_order), active = 1`,
         [c.id, c.name, c.icon, c.order]
       );
 
-      // 4. INJECT UNIVERSAL DNA (Every chapter gets a Gallery and Blog)
+      // Every canonical section gets the shared gallery/story fields once.
       const dna = [
         { name: 'section_gallery', label: 'CINEMATIC GALLERY',    type: 'gallery',   order: 1, help: 'High-res photos for carousel slides.' },
         { name: 'section_blog',    label: 'NARRATIVE BLOG (RICH)', type: 'rich_text', order: 2, help: 'The deep story for this chapter.' },
@@ -74,7 +59,7 @@ export async function GET(request: NextRequest) {
       for (const field of dna) {
         const fid = `auto_${c.id}_${field.name}`;
         await execute(
-          `INSERT INTO form_fields 
+          `INSERT IGNORE INTO form_fields 
           (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, sort_order, section_origin, acl)
           VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, 0, 1, 1, ?, ?, 'template', ?)`,
           [
@@ -85,7 +70,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. INJECT SPECIALIZED STRATEGIC FIELDS
+    // Add specialized fields once; existing customizations are left untouched.
     const strategicFields = [
       // Chapter 2: Ambience (Interior/Exterior)
       { sid: 'sec_2_ambience', id: 'ext_design', label: 'EXTERIOR ARCHITECTURE', type: 'text', help: 'Describe the Kershef/Stone facade.' },
@@ -118,7 +103,7 @@ export async function GET(request: NextRequest) {
 
     for (const f of strategicFields) {
       await execute(
-        `INSERT INTO form_fields 
+        `INSERT IGNORE INTO form_fields 
         (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, sort_order, section_origin, acl)
         VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, 0, 1, 1, ?, 10, 'custom', ?)`,
         [
@@ -127,13 +112,6 @@ export async function GET(request: NextRequest) {
         ]
       );
     }
-
-    // 5. UPDATE BUSINESS TYPES
-    const sectionIds = chapters.map(c => c.id);
-    await execute(
-      "UPDATE business_types SET sections = ?",
-      [JSON.stringify(sectionIds)]
-    );
 
     invalidateCache.sections();
     invalidateCache.formFields();

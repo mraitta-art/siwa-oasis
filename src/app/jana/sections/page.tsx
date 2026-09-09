@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
 import TagInput from '@/components/TagInput';
+import { CANONICAL_SECTIONS } from '@/lib/section-registry';
 
 /* ─── Types ────────────────────────────────────────────────────────── */
 interface BusinessType {
@@ -109,17 +110,7 @@ const BLANK_FIELD = (sectionId: string, typeId?: string): Partial<Field> => ({
 });
 
 /* ─── Core Sections (essential for every vendor) ─────────────────────── */
-const CORE_SECTIONS: Record<string, { color: string; label: string; emoji: string }> = {
-  basic:        { color: '#10b981', label: 'Identity & Contact',       emoji: '🏷️' },
-  vibe:         { color: '#8b5cf6', label: 'Vibe & Atmosphere',        emoji: '✨' },
-  experience:   { color: '#f59e0b', label: 'Experiences & Activities',  emoji: '🎯' },
-  location:     { color: '#3b82f6', label: 'Location & Map',           emoji: '📍' },
-  gallery:      { color: '#ec4899', label: 'Gallery & Media',          emoji: '🖼️' },
-  offers:       { color: '#ef4444', label: 'Offers & Packages',        emoji: '🎁' },
-  testimonials: { color: '#06b6d4', label: 'Reviews & Testimonials',   emoji: '⭐' },
-};
-
-const isCoreSection = (id: string) => id in CORE_SECTIONS;
+const isCoreSection = (id: string) => CANONICAL_SECTIONS.some(section => section.id === id);
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 export default function UnifiedSectionArchitect() {
@@ -601,8 +592,8 @@ export default function UnifiedSectionArchitect() {
                     }).map((sec, idx, arr) => {
                       const isActive = sec.id === selectedSection;
                       const isEnabled = sec.active !== false;
-                      const core = CORE_SECTIONS[sec.id];
-                      const isCore = !!core;
+                      const core = CANONICAL_SECTIONS.find(section => section.id === sec.id);
+                      const isCore = Boolean(core);
                       const previousEnabled = idx > 0 && arr[idx - 1].active !== false;
                       const showGroupHeader = idx === 0 || previousEnabled !== isEnabled;
 
@@ -1410,6 +1401,7 @@ export default function UnifiedSectionArchitect() {
                       SECTIONS ASSIGNED TO {businessTypes.find(t => t.id === selectedType)?.name?.toUpperCase()}
                     </div>
                     {sections.map(sec => {
+                      if (selectedSection && selectedSection !== sec.id) return null;
                       const isUniversal = !!sec.is_universal;
                       const checked = isUniversal || assignedSections.includes(sec.id);
                       

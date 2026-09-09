@@ -1,4 +1,5 @@
 import { queryOne } from '@/lib/db';
+import { CANONICAL_SECTION_IDS } from '@/lib/section-registry';
 
 export interface TierPolicy {
   maxBusinesses: number;
@@ -26,7 +27,7 @@ export async function getPolicyForTier(tierId: string): Promise<TierPolicy> {
       maxSlides: 3,
       maxStorageMB: 10,
       maxCustomBlocks: 2,
-      allowedSections: ['sec_1_identity', 'sec_2_ambience']
+      allowedSections: [...CANONICAL_SECTION_IDS]
     };
   }
   return typeof tier.features === 'string' ? JSON.parse(tier.features) : tier.features;
@@ -56,26 +57,6 @@ export async function checkSectionAccess(businessId: string, sectionId: string):
   const business = await queryOne<any>('SELECT subscription_tier, admin_overrides FROM businesses WHERE id = ?', [businessId]);
   if (!business) return { allowed: false, error: 'Business not found' };
 
-  // 1. Admin override check
-  if (business.admin_overrides) {
-    try {
-      const overrides = typeof business.admin_overrides === 'string' ? JSON.parse(business.admin_overrides) : business.admin_overrides;
-      if (Array.isArray(overrides?.allowed_sections) && overrides.allowed_sections.includes(sectionId)) {
-        return { allowed: true };
-      }
-    } catch (e) {
-      console.error("Failed to parse admin_overrides:", e);
-    }
-  }
-
-  // 2. Subscription tier check
-  const policy = await getPolicyForTier(business.subscription_tier);
-  if (policy.allowedSections && policy.allowedSections.includes(sectionId)) {
-    return { allowed: true };
-  }
-
-  return { 
-    allowed: false, 
-    error: `This section is locked for the current subscription tier (${business.subscription_tier}). Upgrade to unlock self-service editing.` 
-  };
+  if (CANONICAL_SECTION_IDS.includes(sectionId as any)) return { allowed: true };
+  return { allowed: false, error: 'Unknown section.' };
 }

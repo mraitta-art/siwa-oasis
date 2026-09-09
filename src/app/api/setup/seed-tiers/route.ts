@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
+import { CANONICAL_SECTION_IDS } from '@/lib/section-registry';
 
 /**
  * TIER RECONCILIATION API
@@ -19,7 +20,6 @@ export async function GET(req: NextRequest) {
           remove_watermark: false, 
           allow_youtube_story: true, 
           allow_custom_logo: false, 
-          allowed_public_sections: ['sec_1_identity', 'sec_3_services', 'sec_5_connectivity'] 
         } 
       },
       { 
@@ -32,11 +32,7 @@ export async function GET(req: NextRequest) {
           remove_watermark: true, 
           allow_youtube_story: true, 
           allow_custom_logo: true, 
-          allowed_public_sections: [
-            'sec_1_identity', 'sec_2_ambience', 'sec_3_services', 
-            'sec_4_facilities', 'sec_5_connectivity', 'sec_6_geographic', 
-            'sec_7_investment', 'sec_8_rates_offers'
-          ] 
+          allowedSections: [...CANONICAL_SECTION_IDS]
         } 
       }
     ];

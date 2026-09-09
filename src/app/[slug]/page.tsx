@@ -286,7 +286,6 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }
 
     // --- MULTI-LAYERED SECTION GOVERNANCE ---
-    const tierAllowed = biz.tier_features?.allowedSections || biz.tier_features?.allowed_public_sections;
     const templateHidden = biz.template_features?.hidden_sections;
     const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
 
@@ -311,7 +310,6 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
       })();
       if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
-      if (tierAllowed && Array.isArray(tierAllowed) && !tierAllowed.includes(s.id)) return false;
       if (templateHidden && Array.isArray(templateHidden) && templateHidden.includes(s.id)) return false;
       if (customHidden && Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
       // Admin override forced hide

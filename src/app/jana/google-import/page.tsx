@@ -14,6 +14,9 @@ interface GooglePlaceData {
   reviews: any[];
   photos: string[];
   placeId: string;
+  sourceProvider?: string;
+  sourceUrl?: string;
+  detailsAvailable?: boolean;
 }
 
 export default function GoogleImportWizard() {
@@ -23,10 +26,11 @@ export default function GoogleImportWizard() {
   const [saving, setSaving] = useState(false);
   const [types, setTypes] = useState<any[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState('');
+  const [adminConfirmed, setAdminConfirmed] = useState(false);
+  const [sourceCategory, setSourceCategory] = useState('');
+  const [aiProvider, setAiProvider] = useState('ollama');
   const [placeData, setPlaceData] = useState<GooglePlaceData | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   // Load Typologies for Mapping
   useEffect(() => {
@@ -43,26 +47,32 @@ export default function GoogleImportWizard() {
 
   const handleFetch = async () => {
     if (!urlOrQuery.trim()) {
-      showMsg('error', 'Please enter a search term or Google Maps link.');
+      showMsg('error', 'Please enter a source link or business URL.');
+      return;
+    }
+    if (!sourceCategory) {
+      showMsg('error', 'Please select the business category before continuing.');
+      return;
+    }
+    if (!adminConfirmed) {
+      showMsg('error', 'Admin confirmation is required before fetching or importing source data.');
       return;
     }
     setLoading(true);
     setPlaceData(null);
-    setIsDemoMode(false);
     try {
       const res = await fetch('/api/jana/google-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fetch', urlOrQuery })
+        body: JSON.stringify({ action: 'fetch', urlOrQuery, sourceCategory, adminConfirmed, aiProvider })
       });
       const data = await res.json();
       if (res.ok) {
         setPlaceData(data.place);
-        setIsDemoMode(data.isDemoSandbox || false);
-        if (data.isDemoSandbox) {
-          showMsg('info', 'Sandbox Mode: Displaying mock data for demonstration. Set up your Google API key to enable live searches.');
+        if (data.detailsAvailable === false) {
+          showMsg('error', data.message || 'The source page did not expose complete location details. Review the draft before saving.');
         } else {
-          showMsg('success', 'Successfully fetched Place details from Google Maps!');
+          showMsg('success', `Successfully analyzed the ${data.source || 'source'} page.`);
         }
       } else {
         showMsg('error', data.error || 'Failed to retrieve details.');
@@ -80,6 +90,14 @@ export default function GoogleImportWizard() {
       showMsg('error', 'Please map this place to a Business Typology.');
       return;
     }
+    if (!sourceCategory) {
+      showMsg('error', 'Please select the business category before saving.');
+      return;
+    }
+    if (!adminConfirmed) {
+      showMsg('error', 'Admin confirmation is required before saving the import.');
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch('/api/jana/google-import', {
@@ -89,6 +107,10 @@ export default function GoogleImportWizard() {
           action: 'save',
           name: placeData.name,
           type_id: selectedTypeId,
+          source_url: urlOrQuery,
+          source_category: sourceCategory,
+          admin_confirmed: adminConfirmed,
+          ai_provider: aiProvider,
           google_place_id: placeData.placeId,
           contributor_name: contributorName,
           google_data: placeData
@@ -120,10 +142,10 @@ export default function GoogleImportWizard() {
             ← BUSINESS REGISTRY
           </Link>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: '0.5rem 0 0', letterSpacing: '-1px' }}>
-            🗺️ Google Maps Import Wizard
+            🔗 Source Import Wizard
           </h1>
           <p style={{ color: '#94a3b8', margin: '0.25rem 0 0' }}>
-            Leverage Google contributions to fast-track vendor onboarding and enrich your minisite data feeds.
+            Paste an approved source link and confirm the matching business category before fetching and importing the record.
           </p>
         </div>
 
@@ -136,17 +158,57 @@ export default function GoogleImportWizard() {
 
         {/* Main Form Control */}
         <div style={{ background: '#1e293b', borderRadius: '16px', padding: '2rem', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1.25rem 0', color: '#fff', fontWeight: 800 }}>🔍 Step 1: Query Google Database</h3>
+          <h3 style={{ margin: '0 0 1.25rem 0', color: '#fff', fontWeight: 800 }}>🔍 Step 1: Confirm Category & Source Link</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>
-                GOOGLE MAPS URL OR PLACE NAME
+                BUSINESS CATEGORY
+              </label>
+              <select
+                value={sourceCategory}
+                onChange={e => setSourceCategory(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+              >
+                <option value="">-- Select business category --</option>
+                {types
+                  .filter(t => !t.is_parent && t.parent_id)
+                  .map(t => {
+                    const parent = types.find(p => p.id === t.parent_id);
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {parent ? `${parent.name} › ` : ''}{t.name}
+                      </option>
+                    );
+                  })}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>
+                AI PROVIDER
+              </label>
+              <select
+                value={aiProvider}
+                onChange={e => setAiProvider(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+              >
+                <option value="ollama">Ollama (local or self-hosted)</option>
+                <option value="openai">OpenAI</option>
+                <option value="claude">Claude</option>
+                <option value="gemini">Gemini</option>
+                <option value="manus">Manus (configured API)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>
+                ADMIN SOURCE LINK
               </label>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <input
                   type="text"
-                  placeholder="e.g. Al Babenshal Lodge Siwa or paste a share link..."
+                  placeholder="Paste any admin source link (Google Maps, Booking.com, TripAdvisor, Airbnb, etc.)"
                   value={urlOrQuery}
                   onChange={e => setUrlOrQuery(e.target.value)}
                   style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
@@ -156,9 +218,21 @@ export default function GoogleImportWizard() {
                   disabled={loading}
                   style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  {loading ? 'Fetching...' : <><i className="fab fa-google"></i> Fetch Place</>}
+                  {loading ? 'Analyzing...' : <><i className="fas fa-link"></i> Analyze Source</>}
                 </button>
               </div>
+            </div>
+
+            <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.9rem 1rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', color: '#e2e8f0', fontWeight: 700, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={adminConfirmed}
+                  onChange={e => setAdminConfirmed(e.target.checked)}
+                  style={{ width: 18, height: 18, accentColor: '#10b981' }}
+                />
+                Admin confirms this source link matches the selected business category and should be imported.
+              </label>
             </div>
 
             <div>
@@ -176,46 +250,11 @@ export default function GoogleImportWizard() {
           </div>
         </div>
 
-        {/* 🔑 API Setup Guide Accordion */}
-        <div style={{ background: '#1e293b', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.2)', marginBottom: '1.5rem', overflow: 'hidden' }}>
-          <button 
-            onClick={() => setShowSetupGuide(!showSetupGuide)}
-            style={{ width: '100%', background: 'rgba(212,175,55,0.05)', border: 'none', padding: '1rem 1.5rem', color: '#D4AF37', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}
-          >
-            <span>🔑 Google Maps API Keys Setup Guide</span>
-            <span>{showSetupGuide ? '▲ Close Guide' : '▼ Open Guide'}</span>
-          </button>
-          
-          {showSetupGuide && (
-            <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(212,175,55,0.15)', fontSize: '0.85rem', lineHeight: 1.6, color: '#94a3b8' }}>
-              <p style={{ margin: '0 0 1rem 0' }}>To query live business data directly from Google Maps, set up your project API credentials:</p>
-              <ol style={{ paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <li>Go to the <strong style={{ color: '#fff' }}>Google Cloud Console</strong> (<a href="https://console.cloud.google.com" target="_blank" style={{ color: '#D4AF37', textDecoration: 'underline' }}>console.cloud.google.com</a>).</li>
-                <li>Log in using your dedicated brand email account (e.g. <strong style={{ color: '#fff' }}>admin@siwify.com</strong>).</li>
-                <li>Create a new project named <strong style={{ color: '#fff' }}>Siwa Oasis Marketplace</strong>.</li>
-                <li>Enable billing on the project (This grants you Google's <strong style={{ color: '#fff' }}>$200 free monthly credit</strong>, covering thousands of fetches).</li>
-                <li>Navigate to the API Library, search for, and enable the <strong style={{ color: '#fff' }}>Places API</strong> and the <strong style={{ color: '#fff' }}>Maps JavaScript API</strong>.</li>
-                <li>Go to the credentials tab, click "Create Credentials", and select <strong style={{ color: '#fff' }}>API Key</strong>.</li>
-                <li>Add the key to your environment variables:
-                  <pre style={{ background: '#0f172a', padding: '0.75rem', borderRadius: '6px', color: '#38bdf8', overflowX: 'auto', fontSize: '0.75rem', margin: '0.5rem 0' }}>
-                    GOOGLE_MAPS_API_KEY=your_key_here
-                  </pre>
-                </li>
-              </ol>
-            </div>
-          )}
-        </div>
-
         {/* Place Details Preview Panel */}
         {placeData && (
           <div className="animate-in" style={{ background: '#1e293b', borderRadius: '16px', padding: '2rem', border: '1px solid rgba(16,185,129,0.3)', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h3 style={{ margin: 0, color: '#fff', fontWeight: 800 }}>📋 Step 2: Review Imported Place Data</h3>
-              {isDemoMode && (
-                <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '4px 10px', borderRadius: '20px', border: '1px solid rgba(245,158,11,0.3)' }}>
-                  ⚠️ DEMO SANDBOX MODE
-                </span>
-              )}
             </div>
 
             {/* Preview Grid */}
@@ -256,7 +295,7 @@ export default function GoogleImportWizard() {
                   </div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '0.6rem', display: 'block', marginBottom: '0.25rem' }}>GOOGLE RATING</span>
+                  <span style={{ color: '#64748b', fontSize: '0.6rem', display: 'block', marginBottom: '0.25rem' }}>SOURCE RATING</span>
                   <span style={{ fontSize: '1rem', fontWeight: 900, color: '#FFB700' }}>⭐ {placeData.rating} / 5</span>
                 </div>
                 {/* 🗺️ Two-Way Link to Google Maps */}
