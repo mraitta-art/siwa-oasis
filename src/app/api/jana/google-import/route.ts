@@ -305,8 +305,8 @@ export async function POST(request: NextRequest) {
     if (action === 'chat') {
       const { messages, sourceCategory, sourceUrl, adminConfirmed, aiProvider = 'ollama', draft } = body;
       const supportedProviders: SourceAiProvider[] = ['ollama', 'openai', 'claude', 'gemini', 'manus'];
-      if (!sourceCategory || !sourceUrl || adminConfirmed !== true) {
-        return NextResponse.json({ error: 'Select a category, provide a source link, and confirm the import before chatting.' }, { status: 400 });
+      if (!sourceCategory || !sourceUrl) {
+        return NextResponse.json({ error: 'Select a category and provide the website or source link before planning.' }, { status: 400 });
       }
       if (!supportedProviders.includes(aiProvider)) {
         return NextResponse.json({ error: 'Unsupported AI provider.' }, { status: 400 });
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'A valid chat message is required.' }, { status: 400 });
       }
       try {
-        const reply = await chatWithSourceAgent(aiProvider, messages.slice(-12), String(sourceCategory), String(sourceUrl), draft);
+        const reply = await chatWithSourceAgent(aiProvider, messages.slice(-12), String(sourceCategory), String(sourceUrl), draft, adminConfirmed === true);
         return NextResponse.json({ reply, aiProvider });
       } catch (error: any) {
         return NextResponse.json({ error: error.message || 'The selected AI agent could not reply.' }, { status: 502 });

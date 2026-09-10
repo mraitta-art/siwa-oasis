@@ -51,7 +51,7 @@ export default function GoogleImportWizard() {
   const [configuredProviders, setConfiguredProviders] = useState<Record<string, boolean>>({});
   const [placeData, setPlaceData] = useState<GooglePlaceData | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Confirm the category and source link, then ask me about the import, missing fields, or duplicate risks.' },
+    { role: 'assistant', content: 'Before fetching anything, tell me what you want to import. I can help plan the website/page review, category fit, database fields, source limits, provenance, and duplicate checks.' },
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -173,8 +173,8 @@ export default function GoogleImportWizard() {
   const handleChat = async () => {
     const content = chatInput.trim();
     if (!content) return;
-    if (!sourceCategory || !urlOrQuery.trim() || !adminConfirmed) {
-      showMsg('error', 'Select the category, enter the source link, and confirm the import before chatting.');
+    if (!sourceCategory || !urlOrQuery.trim()) {
+      showMsg('error', 'Select the category and enter the website or source link before planning.');
       return;
     }
     if (configuredProviders[aiProvider] === false) {
@@ -331,9 +331,9 @@ export default function GoogleImportWizard() {
         </div>
 
         <div style={{ background: '#172033', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(96,165,250,0.25)', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 0.4rem', color: '#fff', fontWeight: 800 }}>💬 Chat with the selected agent</h3>
+          <h3 style={{ margin: '0 0 0.4rem', color: '#fff', fontWeight: 800 }}>💬 Step 1: Plan with the selected agent</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 1rem' }}>
-            Ask about category fit, missing data, source evidence, or duplicate risks. The agent only sees the confirmed import context.
+            Negotiate the website/page, category, required database data, source limits, provenance, and duplicate plan before any fetch or save procedure.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: 260, overflowY: 'auto', marginBottom: '1rem' }}>
             {chatMessages.map((chatMessage, index) => (
