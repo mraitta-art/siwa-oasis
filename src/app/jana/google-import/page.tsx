@@ -17,6 +17,12 @@ interface GooglePlaceData {
   sourceProvider?: string;
   sourceUrl?: string;
   detailsAvailable?: boolean;
+  aiDraft?: unknown;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 const FALLBACK_CATEGORIES = [
@@ -44,6 +50,11 @@ export default function GoogleImportWizard() {
   const [aiProvider, setAiProvider] = useState('ollama');
   const [configuredProviders, setConfiguredProviders] = useState<Record<string, boolean>>({});
   const [placeData, setPlaceData] = useState<GooglePlaceData | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    { role: 'assistant', content: 'Confirm the category and source link, then ask me about the import, missing fields, or duplicate risks.' },
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const availableTypes = types.length ? types : FALLBACK_CATEGORIES;
 
@@ -156,6 +167,45 @@ export default function GoogleImportWizard() {
       showMsg('error', 'Save request failed.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChat = async () => {
+    const content = chatInput.trim();
+    if (!content) return;
+    if (!sourceCategory || !urlOrQuery.trim() || !adminConfirmed) {
+      showMsg('error', 'Select the category, enter the source link, and confirm the import before chatting.');
+      return;
+    }
+    if (configuredProviders[aiProvider] === false) {
+      showMsg('error', `${aiProvider} is not configured on the server.`);
+      return;
+    }
+    const nextMessages = [...chatMessages, { role: 'user' as const, content }];
+    setChatMessages(nextMessages);
+    setChatInput('');
+    setChatLoading(true);
+    try {
+      const res = await fetch('/api/jana/google-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'chat',
+          messages: nextMessages,
+          sourceCategory,
+          sourceUrl: urlOrQuery,
+          adminConfirmed,
+          aiProvider,
+          draft: placeData,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'The selected agent could not reply.');
+      setChatMessages(current => [...current, { role: 'assistant', content: data.reply || 'The agent returned an empty reply.' }]);
+    } catch (error: any) {
+      setChatMessages(current => [...current, { role: 'assistant', content: `Chat error: ${error.message}` }]);
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -277,6 +327,37 @@ export default function GoogleImportWizard() {
                 style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
+          </div>
+        </div>
+
+        <div style={{ background: '#172033', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(96,165,250,0.25)', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.4rem', color: '#fff', fontWeight: 800 }}>💬 Chat with the selected agent</h3>
+          <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 1rem' }}>
+            Ask about category fit, missing data, source evidence, or duplicate risks. The agent only sees the confirmed import context.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: 260, overflowY: 'auto', marginBottom: '1rem' }}>
+            {chatMessages.map((chatMessage, index) => (
+              <div key={`${chatMessage.role}-${index}`} style={{ alignSelf: chatMessage.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', background: chatMessage.role === 'user' ? 'rgba(212,175,55,0.16)' : '#0f172a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.7rem 0.85rem', color: '#e2e8f0', fontSize: '0.8rem', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                {chatMessage.content}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '0.65rem' }}>
+            <input
+              value={chatInput}
+              onChange={event => setChatInput(event.target.value)}
+              onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleChat(); } }}
+              placeholder="Ask the agent about this import..."
+              disabled={chatLoading}
+              style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+            />
+            <button
+              onClick={handleChat}
+              disabled={chatLoading || !chatInput.trim()}
+              style={{ background: '#60a5fa', color: '#0f172a', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', fontWeight: 800, cursor: chatLoading ? 'wait' : 'pointer' }}
+            >
+              {chatLoading ? 'Thinking...' : 'Ask'}
+            </button>
           </div>
         </div>
 
