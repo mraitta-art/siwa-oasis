@@ -331,7 +331,8 @@ export default function GoogleImportWizard() {
           <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 1rem' }}>
             Negotiate the website/page, category, required database data, source limits, provenance, and duplicate plan before any fetch or save procedure.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: 260, overflowY: 'auto', marginBottom: '1rem' }}>
+          <div style={{ color: '#60a5fa', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>AGENT ANSWERS</div>
+          <div role="log" aria-live="polite" aria-label="Selected agent conversation" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: 260, overflowY: 'auto', marginBottom: '1rem' }}>
             {chatMessages.map((chatMessage, index) => (
               <div key={`${chatMessage.role}-${index}`} style={{ alignSelf: chatMessage.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', background: chatMessage.role === 'user' ? 'rgba(212,175,55,0.16)' : '#0f172a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.7rem 0.85rem', color: '#e2e8f0', fontSize: '0.8rem', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
                 {chatMessage.content}
