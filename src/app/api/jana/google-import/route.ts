@@ -305,8 +305,11 @@ export async function POST(request: NextRequest) {
     if (action === 'chat') {
       const { messages, sourceCategory, sourceUrl, adminConfirmed, aiProvider = 'ollama', draft } = body;
       const supportedProviders: SourceAiProvider[] = ['ollama', 'openai', 'claude', 'gemini', 'manus'];
-      if (!sourceCategory || !sourceUrl) {
-        return NextResponse.json({ error: 'Select a category and provide the website or source link before planning.' }, { status: 400 });
+      if (sourceCategory !== undefined && typeof sourceCategory !== 'string') {
+        return NextResponse.json({ error: 'Business category must be text when provided.' }, { status: 400 });
+      }
+      if (sourceUrl !== undefined && typeof sourceUrl !== 'string') {
+        return NextResponse.json({ error: 'Source link must be text when provided.' }, { status: 400 });
       }
       if (!supportedProviders.includes(aiProvider)) {
         return NextResponse.json({ error: 'Unsupported AI provider.' }, { status: 400 });

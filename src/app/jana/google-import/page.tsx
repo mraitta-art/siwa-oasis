@@ -173,10 +173,6 @@ export default function GoogleImportWizard() {
   const handleChat = async () => {
     const content = chatInput.trim();
     if (!content) return;
-    if (!sourceCategory || !urlOrQuery.trim()) {
-      showMsg('error', 'Select the category and enter the website or source link before planning.');
-      return;
-    }
     if (configuredProviders[aiProvider] === false) {
       showMsg('error', `${aiProvider} is not configured on the server.`);
       return;
@@ -211,7 +207,7 @@ export default function GoogleImportWizard() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', padding: '2rem', fontFamily: 'system-ui, sans-serif', color: '#f8fafc' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
@@ -234,8 +230,8 @@ export default function GoogleImportWizard() {
         )}
 
         {/* Main Form Control */}
-        <div style={{ background: '#1e293b', borderRadius: '16px', padding: '2rem', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1.25rem 0', color: '#fff', fontWeight: 800 }}>🔍 Step 1: Confirm Category & Source Link</h3>
+        <div style={{ order: 2, background: '#1e293b', borderRadius: '16px', padding: '2rem', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 1.25rem 0', color: '#fff', fontWeight: 800 }}>🔗 Step 2: Submit Link & Execute Agreed Plan</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
@@ -330,8 +326,8 @@ export default function GoogleImportWizard() {
           </div>
         </div>
 
-        <div style={{ background: '#172033', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(96,165,250,0.25)', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 0.4rem', color: '#fff', fontWeight: 800 }}>💬 Step 1: Plan with the selected agent</h3>
+        <div style={{ order: 1, background: '#172033', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(96,165,250,0.25)', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.4rem', color: '#fff', fontWeight: 800 }}>💬 Step 1: Plan with the Selected Agent</h3>
           <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 1rem' }}>
             Negotiate the website/page, category, required database data, source limits, provenance, and duplicate plan before any fetch or save procedure.
           </p>
@@ -347,7 +343,7 @@ export default function GoogleImportWizard() {
               value={chatInput}
               onChange={event => setChatInput(event.target.value)}
               onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleChat(); } }}
-              placeholder="Ask the agent about this import..."
+              placeholder="Discuss the plan before submitting the link..."
               disabled={chatLoading}
               style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}
             />
@@ -363,9 +359,9 @@ export default function GoogleImportWizard() {
 
         {/* Place Details Preview Panel */}
         {placeData && (
-          <div className="animate-in" style={{ background: '#1e293b', borderRadius: '16px', padding: '2rem', border: '1px solid rgba(16,185,129,0.3)', marginBottom: '1.5rem' }}>
+          <div className="animate-in" style={{ order: 3, background: '#1e293b', borderRadius: '16px', padding: '2rem', border: '1px solid rgba(16,185,129,0.3)', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, color: '#fff', fontWeight: 800 }}>📋 Step 2: Review Imported Place Data</h3>
+              <h3 style={{ margin: 0, color: '#fff', fontWeight: 800 }}>📋 Step 3: Preview & Confirm Extracted Data</h3>
             </div>
 
             {/* Preview Grid */}
@@ -455,7 +451,7 @@ export default function GoogleImportWizard() {
 
             {/* Step 3: Mapping */}
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.25rem' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#fff', fontWeight: 800 }}>🏢 Step 3: Map to Typology & Import</h3>
+              <h3 style={{ margin: '0 0 1rem 0', color: '#fff', fontWeight: 800 }}>🏢 Step 4: Fill Database & Save for Approval</h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
