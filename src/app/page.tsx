@@ -156,11 +156,11 @@ export default function Home() {
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
-            <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
+            <img src={settings.logo_url} alt={settings.site_name || 'SiWiFy.com'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
               <i className="fas fa-sun" style={{ color: primary, fontSize: '1.5rem' }}></i>
-              <span>{(settings?.site_name || 'Siwa Today').toUpperCase().split(' ')[0]}.<span style={{ color: primary }}>{(settings?.site_name || 'Siwa Today').toUpperCase().split(' ')[1] || 'TODAY'}</span></span>
+              <span style={{ color: primary }}>{settings?.site_name || 'SiWiFy.com'}</span>
             </>
           )}
         </Link>

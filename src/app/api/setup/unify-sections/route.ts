@@ -43,8 +43,13 @@ function migrateCustomData(value: unknown) {
 export async function POST() {
   await requireAdmin();
 
-  const oldSectionRows = await query<any[]>('SELECT id FROM sections WHERE id NOT IN (?)', [CANONICAL_SECTION_IDS]);
-  const businesses = await query<any[]>('SELECT id, custom_data FROM businesses');
+  type DbBusinessRow = { id: string; custom_data?: unknown };
+  type DbTypeRow = { id: string; is_parent?: boolean | number | string; sections?: unknown; own_sections?: unknown };
+  type DbTierRow = { id: string; features?: unknown };
+  type DbSectionRow = { id: string };
+
+  const oldSectionRows = await query<DbSectionRow>('SELECT id FROM sections WHERE id NOT IN (?)', [CANONICAL_SECTION_IDS]);
+  const businesses = await query<DbBusinessRow>('SELECT id, custom_data FROM businesses');
   for (const business of businesses) {
     const migrated = migrateCustomData(business.custom_data);
     await execute('UPDATE businesses SET custom_data = ? WHERE id = ?', [JSON.stringify(migrated), business.id]);
@@ -53,7 +58,7 @@ export async function POST() {
   await execute('DELETE FROM form_fields WHERE section_id NOT IN (?)', [CANONICAL_SECTION_IDS]);
   await execute('DELETE FROM sections WHERE id NOT IN (?)', [CANONICAL_SECTION_IDS]);
 
-  const types = await query<any[]>('SELECT id, is_parent, sections, own_sections FROM business_types');
+  const types = await query<DbTypeRow>('SELECT id, is_parent, sections, own_sections FROM business_types');
   for (const type of types) {
     const sections = type.is_parent || Number(type.is_parent) === 1
       ? CANONICAL_SECTION_IDS
@@ -63,7 +68,7 @@ export async function POST() {
     ]);
   }
 
-  const tiers = await query<any[]>('SELECT id, features FROM subscription_tiers');
+  const tiers = await query<DbTierRow>('SELECT id, features FROM subscription_tiers');
   for (const tier of tiers) {
     const features = parseObject(tier.features);
     delete features.allowedSections;

@@ -645,7 +645,7 @@ export default function VendorDashboardPage() {
               iconClass = 'fa-hourglass-half';
               statusLabel = 'UNDER REVIEW';
               title = 'Verification Documents Under Review';
-              desc = 'Your uploaded ID and ownership documents are currently being audited by the Siwa Today admin team. Review typically takes 24-48 hours. Your profile visibility is temporarily protected.';
+              desc = 'Your uploaded ID and ownership documents are currently being audited by the SiWiFy.com admin team. Review typically takes 24-48 hours. Your profile visibility is temporarily protected.';
             } else if (verificationStatus === 'rejected') {
               cardBg = 'rgba(239,68,68,0.04)';
               cardBorder = 'rgba(239,68,68,0.15)';

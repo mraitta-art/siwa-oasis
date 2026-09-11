@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Application submitted! A Siwa Today admin will review your heritage business soon.',
+      message: 'Application submitted! A SiWiFy.com admin will review your heritage business soon.',
       publicMinisiteUrl: `${getPublicAppUrl().replace(/\/$/, '')}/${slug}`,
       freeServices: ['Business-name minisite link', 'QR code', 'Free template']
     });

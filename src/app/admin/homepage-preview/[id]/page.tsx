@@ -334,7 +334,7 @@ export default function HomepagePreviewPage({ params }: { params: Promise<{ id: 
                   <div key={section.id} className="py-16 max-w-7xl mx-auto px-6 border-b border-slate-200/20">
                     <div className="text-center mb-12">
                       <h2 className={`text-3xl font-extrabold mb-3 ${getHeadingColorClass(page.theme)}`}>{section.name}</h2>
-                      <p className="text-slate-500 text-sm max-w-xl mx-auto">{section.content || 'Select a plan that fits your business marketing needs in Siwa Today.'}</p>
+                      <p className="text-slate-500 text-sm max-w-xl mx-auto">{section.content || 'Select a plan that fits your business marketing needs in SiWiFy.com.'}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">

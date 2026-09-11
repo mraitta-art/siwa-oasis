@@ -219,7 +219,7 @@ export default function InteractiveTiersPage() {
                         checked={editData.features.remove_watermark || false}
                         onChange={e => setEditData({...editData, features: {...editData.features, remove_watermark: e.target.checked}})}
                       />
-                      Remove "Siwa Today" Watermark
+                      Remove "SiWiFy.com" Watermark
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
                       <input 

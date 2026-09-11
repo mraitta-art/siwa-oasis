@@ -121,7 +121,7 @@ const BUSINESS_INFO_FIELDS = [
   { name: 'email',            label: 'Contact Email',          field_type: 'text', required: false, sort_order: 2,  is_searchable: true,  is_filterable: false, help: 'Public contact email address' },
   { name: 'address',          label: 'Physical Address',       field_type: 'text', required: false, sort_order: 3,  is_searchable: true,  is_filterable: false, help: 'Location address in Siwa' },
   { name: 'business_logo',    label: 'Business Logo URL',      field_type: 'text', required: false, sort_order: 4,  is_searchable: false, is_filterable: false, help: 'Direct URL to the business logo image' },
-  { name: 'instagram_handle', label: 'Instagram Username',     field_type: 'text', required: false, sort_order: 5,  is_searchable: false, is_filterable: false, help: 'e.g. siwatoday' },
+  { name: 'instagram_handle', label: 'Instagram Username',     field_type: 'text', required: false, sort_order: 5,  is_searchable: false, is_filterable: false, help: 'e.g. siwify' },
   { name: 'facebook_link',    label: 'Facebook Page URL',      field_type: 'text', required: false, sort_order: 6,  is_searchable: false, is_filterable: false, help: 'Full link to your Facebook page' },
   { name: 'tiktok_handle',    label: 'TikTok Username',        field_type: 'text', required: false, sort_order: 7,  is_searchable: false, is_filterable: false, help: 'e.g. siwa_experience' },
   { name: 'wechat_id',        label: 'WeChat ID',              field_type: 'text', required: false, sort_order: 8,  is_searchable: false, is_filterable: false, help: 'WeChat ID for Chinese guests' },

@@ -26,7 +26,7 @@ export default function MobileVendorDashboard() {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div>
           <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>COMMAND CENTER</div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>SIWA TODAY</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>SiWiFy.com</h1>
         </div>
         <div style={{ width: '45px', height: '45px', borderRadius: '50%', border: '2px solid #D4AF37', overflow: 'hidden' }}>
           <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

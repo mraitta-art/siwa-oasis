@@ -86,10 +86,10 @@ function MultiPageSiteBuilderComponent() {
 
   // Site settings
   const [siteSettings, setSiteSettings] = useState({
-    site_name: 'Siwa Today', primary_color: '#D4AF37',
+    site_name: 'SiWiFy.com', primary_color: '#D4AF37',
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
-    logo_url: '', show_watermark: true, logo_height: 40,
+    logo_url: '', show_watermark: true, watermark_text: '', show_platform_anchor: true, logo_height: 40,
   });
   const searchParams = useSearchParams();
   const queryPage = searchParams?.get('page') || null;
@@ -475,14 +475,17 @@ function MultiPageSiteBuilderComponent() {
             <div style={{ fontSize: '0.5rem', fontWeight: 900, color: '#cbd5e1', letterSpacing: '2px', whiteSpace: 'nowrap' }}>PAGE CONFIG</div>
             <Sep />
             <Field label="TITLE">
-              <input value={siteSettings.site_name} onChange={e => setSiteSettings(s=>({...s,site_name:e.target.value}))} placeholder="Site Name" style={fieldStyle(140)} />
+              <input value={siteSettings.site_name} onChange={e => setSiteSettings(s=>({...s,site_name:e.target.value}))} placeholder="Site Name" style={fieldStyle(130)} />
             </Field>
             <Field label="TAGLINE">
-              <input value={siteSettings.tagline} onChange={e => setSiteSettings(s=>({...s,tagline:e.target.value}))} placeholder="Tagline" style={{...fieldStyle(220), flex:1}} />
+              <input value={siteSettings.tagline} onChange={e => setSiteSettings(s=>({...s,tagline:e.target.value}))} placeholder="Tagline" style={{...fieldStyle(180), flex:1}} />
+            </Field>
+            <Field label="COLOR">
+              <input type="color" value={siteSettings.primary_color||'#D4AF37'} onChange={e => setSiteSettings(s=>({...s,primary_color:e.target.value}))} style={{ width:24, height:24, padding:0, border:'none', cursor:'pointer', borderRadius:4, background:'transparent' }} title="Primary Theme Color" />
             </Field>
             <Sep />
             <Field label="LOGO URL">
-              <input value={siteSettings.logo_url||''} onChange={e => setSiteSettings(s=>({...s,logo_url:e.target.value}))} placeholder="https://…" style={fieldStyle(160)} />
+              <input value={siteSettings.logo_url||''} onChange={e => setSiteSettings(s=>({...s,logo_url:e.target.value}))} placeholder="https://…" style={fieldStyle(140)} />
               <label style={{ cursor:'pointer', background:'#f8fafc', padding:'3px 8px', borderRadius:'6px', fontSize:'0.58rem', fontWeight:800, border:'1px solid #e2e8f0', whiteSpace:'nowrap', color:'#64748b' }}>
                 ☁ Upload
                 <input type="file" hidden accept="image/*" onChange={async e=>{
@@ -497,11 +500,18 @@ function MultiPageSiteBuilderComponent() {
               </label>
             </Field>
             <Field label="H(px)">
-              <input type="number" value={siteSettings.logo_height||40} onChange={e => setSiteSettings(s=>({...s,logo_height:parseInt(e.target.value)||40}))} style={fieldStyle(58)} />
+              <input type="number" value={siteSettings.logo_height||40} onChange={e => setSiteSettings(s=>({...s,logo_height:parseInt(e.target.value)||40}))} style={fieldStyle(48)} />
+            </Field>
+            <Field label="SIGNATURE">
+              <input value={siteSettings.watermark_text||''} onChange={e => setSiteSettings(s=>({...s,watermark_text:e.target.value}))} placeholder={siteSettings.site_name || "SiWiFy.com"} style={fieldStyle(120)} />
             </Field>
             <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
               <input type="checkbox" checked={siteSettings.show_watermark!==false} onChange={e=>setSiteSettings(s=>({...s,show_watermark:e.target.checked}))} />
-              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>🏅 SIGNATURE</span>
+              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>🏅 WATERMARK</span>
+            </label>
+            <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+              <input type="checkbox" checked={siteSettings.show_platform_anchor!==false} onChange={e=>setSiteSettings(s=>({...s,show_platform_anchor:e.target.checked}))} />
+              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>📍 MINISITE BADGE</span>
             </label>
           </>
         ) : (

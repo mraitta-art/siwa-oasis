@@ -21,7 +21,8 @@ export default function VanityBusinessClient({
   sectionLabels = {}, 
   sectionComponents = {},
   isMasterTemplate = false,
-  isTrusted = false
+  isTrusted = false,
+  siteSettings
 }: { 
   slug: string, 
   initialData: any, 
@@ -29,13 +30,29 @@ export default function VanityBusinessClient({
   sectionLabels?: Record<string, string>,
   sectionComponents?: Record<string, any[]>,
   isMasterTemplate?: boolean,
-  isTrusted?: boolean
+  isTrusted?: boolean,
+  siteSettings?: any
 }) {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const [isRTL, setIsRTL] = useState(false);
   const [allowedMinisiteComponentKeys, setAllowedMinisiteComponentKeys] = useState<string[]>([]);
+  const [liveSettings, setLiveSettings] = useState<any>(siteSettings || null);
+
+  useEffect(() => {
+    if (!liveSettings) {
+      fetch('/api/jana/website?id=website_main')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const cfg = Array.isArray(data) ? data[0] : data;
+          if (cfg?.site_settings) {
+            setLiveSettings(cfg.site_settings);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [liveSettings]);
 
   // Detect RTL direction on mount
   useEffect(() => {
@@ -127,9 +144,12 @@ export default function VanityBusinessClient({
   const dynamicTiktok = identity.tiktok_handle || data.tiktok_handle || '';
   const dynamicWechat = identity.wechat_id || data.wechat_id || '';
 
+  const platformName = liveSettings?.site_name || siteSettings?.site_name || 'SiWiFy.com';
+  const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || '';
+
   const handleShare = async () => {
     const shareUrl = window.location.href;
-    const shareTitle = biz.name || 'Siwa Today Minisite';
+    const shareTitle = biz.name || `${platformName} Minisite`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -198,6 +218,7 @@ export default function VanityBusinessClient({
           remove_watermark: biz.tier_features?.remove_watermark,
           allow_youtube_story: biz.tier_features?.allow_youtube_story 
         }}
+        settings={liveSettings || siteSettings || {}}
       />
 
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
@@ -244,11 +265,15 @@ export default function VanityBusinessClient({
             })}
           </div>
 
-          <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">SIWA TODAY</Link>
+          <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">
+            {platformLogo ? (
+              <img src={platformLogo} alt={platformName} style={{ height: '18px', objectFit: 'contain' }} />
+            ) : platformName}
+          </Link>
 
           {/* Mobile navigation toggle */}
           <div className="minisite-mobile-header-btns" style={{ display: 'none', gap: '0.5rem', alignItems: 'center' }}>
-            <Link href="/" style={{ color: '#64748b', padding: '0.5rem', fontSize: '1.1rem' }} title="Siwa Today Home">
+            <Link href="/" style={{ color: '#64748b', padding: '0.5rem', fontSize: '1.1rem' }} title={`${platformName} Home`}>
               <i className="fas fa-home"></i>
             </Link>
             <button 
@@ -578,7 +603,7 @@ export default function VanityBusinessClient({
                   </div>
                   
                   <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem', fontWeight: 900 }}>Exclusive Offer</h3>
-                  <p style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '2rem', lineHeight: 1.6 }}>This establishment is part of the Siwa Today Heritage Collection. Book through our platform for verified rates and premium support.</p>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '2rem', lineHeight: 1.6 }}>This establishment is part of the SiWiFy.com Heritage Collection. Book through our platform for verified rates and premium support.</p>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2.5rem' }}>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px' }}>
@@ -595,7 +620,7 @@ export default function VanityBusinessClient({
                     className="btn btn-primary" 
                     style={{ width: '100%', padding: '1.2rem', borderRadius: '12px', fontWeight: 900, textAlign: 'center', textDecoration: 'none', background: 'linear-gradient(135deg, #D4AF37, #F59E0B)', color: '#1a1a2e', boxShadow: '0 10px 20px rgba(212,175,55,0.3)' }}
                   >
-                    VIEW SIWA TODAY OFFER
+                    VIEW {platformName.toUpperCase()} OFFER
                   </Link>
                   
                   <div style={{ marginTop: '1.5rem', textAlign: 'center', opacity: 0.4, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '1px' }}>
@@ -691,9 +716,9 @@ export default function VanityBusinessClient({
 
       <footer style={{ background: '#0f172a', padding: '5rem 0', color: '#fff', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem' }}>
-          <MinisiteQRCode businessName={biz.name || 'Siwa Today Minisite'} businessId={biz.id} compact />
+          <MinisiteQRCode businessName={biz.name || 'SiWiFy.com Minisite'} businessId={biz.id} compact />
         </div>
-        <div style={{ fontWeight: 900, letterSpacing: '4px', fontSize: '1.5rem', marginBottom: '1rem' }}>SIWA TODAY</div>
+        <div style={{ fontWeight: 900, letterSpacing: '4px', fontSize: '1.5rem', marginBottom: '1rem' }}>SiWiFy.com</div>
         <p style={{ opacity: 0.5, fontSize: '0.8rem' }}>Automated Cinematic Minisite Engine v4.0</p>
       </footer>
 
@@ -845,7 +870,7 @@ export default function VanityBusinessClient({
                 }}
               >
                 <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
-                SIWA TODAY PLATFORM
+                {platformName.toUpperCase()} PLATFORM
               </Link>
             </div>
           </div>

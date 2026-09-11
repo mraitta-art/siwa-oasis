@@ -15,7 +15,13 @@ interface AutomatedMinisiteHeroProps {
     [key: string]: any;
   };
   settings?: {
+    site_name?: string;
+    logo_url?: string;
+    watermark_text?: string;
+    show_watermark?: boolean;
+    show_platform_anchor?: boolean;
     primaryColor?: string;
+    primary_color?: string;
     overlayOpacity?: number;
     height?: string;
     showLogoInHero?: boolean;
@@ -182,35 +188,48 @@ export default function AutomatedMinisiteHero({
 
   const visual = customData.visual_dna || {};
 
+  const brandName = settings.site_name || 'SiWiFy.com';
+  const brandLogo = settings.logo_url;
+  const watermarkText = settings.watermark_text || brandName;
+  const showPlatformAnchor = settings.show_platform_anchor !== false;
+  const showWatermark = !tierFeatures.remove_watermark && settings.show_watermark !== false;
+  const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
+
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       
-      {/* 🏛️ PERMANENT PLATFORM ANCHOR (Top-Left) */}
-      <Link href="/" style={{
-        position: 'absolute',
-        top: '2rem',
-        left: '2rem',
-        zIndex: 2000,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        textDecoration: 'none',
-        background: 'rgba(15, 23, 42, 0.4)',
-        backdropFilter: 'blur(10px)',
-        padding: '0.5rem 1.25rem',
-        borderRadius: '50px',
-        border: '1px solid rgba(255,255,255,0.1)',
-        transition: 'all 0.3s'
-      }}>
-        <i className="fas fa-sun" style={{ color: settings.primaryColor || '#D4AF37', fontSize: '1.2rem' }}></i>
-        <span style={{ 
-          color: '#fff', 
-          fontWeight: 900, 
-          fontSize: '0.8rem', 
-          letterSpacing: '2px',
-          textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-        }}>SIWA TODAY</span>
-      </Link>
+      {/* 🏛️ PLATFORM ANCHOR (Top-Left) - Dynamic from Site Settings */}
+      {showPlatformAnchor && (
+        <Link href="/" style={{
+          position: 'absolute',
+          top: '2rem',
+          left: '2rem',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          textDecoration: 'none',
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(10px)',
+          padding: '0.5rem 1.25rem',
+          borderRadius: '50px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          transition: 'all 0.3s'
+        }}>
+          {brandLogo ? (
+            <img src={brandLogo} alt={brandName} style={{ height: '22px', objectFit: 'contain' }} />
+          ) : (
+            <i className="fas fa-sun" style={{ color: primaryColor, fontSize: '1.2rem' }}></i>
+          )}
+          <span style={{ 
+            color: '#fff', 
+            fontWeight: 900, 
+            fontSize: '0.8rem', 
+            letterSpacing: '2px',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>{brandName}</span>
+        </Link>
+      )}
 
       {/* MODERN BUSINESS LOGO OVERLAY */}
       <div style={{
@@ -229,7 +248,7 @@ export default function AutomatedMinisiteHero({
             fontSize: '1.25rem',
             letterSpacing: '4px',
             textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-            borderLeft: `3px solid ${settings.primaryColor || '#D4AF37'}`,
+            borderLeft: `3px solid ${primaryColor}`,
             paddingLeft: '1rem'
           }}>
             {(businessName || '').toUpperCase()}
@@ -245,10 +264,13 @@ export default function AutomatedMinisiteHero({
         autoPlayInterval={settings.carousel_interval || 8000}
         showProgress={true}
         showIndicators={true}
+        visualSettings={{
+          watermarkText: watermarkText
+        }}
       />
 
-      {/* FREEMIUM WATERMARK OVERLAY */}
-      {!tierFeatures.remove_watermark && (
+      {/* FREEMIUM WATERMARK OVERLAY - Dynamic from Site Settings */}
+      {showWatermark && (
         <div style={{
           position: 'absolute',
           bottom: '3rem',
@@ -265,7 +287,7 @@ export default function AutomatedMinisiteHero({
           backdropFilter: 'blur(4px)',
           border: '1px solid rgba(255,255,255,0.1)'
         }}>
-          POWERED BY SIWA TODAY
+          POWERED BY {watermarkText}
         </div>
       )}
 

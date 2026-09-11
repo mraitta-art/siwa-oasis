@@ -173,7 +173,7 @@ export default function BlogPostPage() {
         setRelated(data.related || []);
         // Update page title
         if (data.post?.meta_title || data.post?.title) {
-          document.title = `${data.post.meta_title || data.post.title} | Siwa Today`;
+          document.title = `${data.post.meta_title || data.post.title} | SiWiFy.com`;
         }
       })
       .catch(() => setNotFound(true))
@@ -502,7 +502,7 @@ export default function BlogPostPage() {
                     {post.author_name}
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                    Siwa Today Contributor
+                    SiWiFy.com Contributor
                   </div>
                 </div>
               </div>

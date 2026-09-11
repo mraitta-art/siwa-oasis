@@ -844,7 +844,7 @@ export default function VendorSignup() {
                     'All content, photos, prices, and offers I publish are accurate and lawful.',
                     'I accept full legal responsibility for any bookings, claims, or transactions made through my listing.',
                     'I understand that misrepresentation or policy violations may result in immediate suspension.',
-                    'This listing will display without a Trusted badge until my identity is verified by the Siwa Today team.',
+                    'This listing will display without a Trusted badge until my identity is verified by the SiWiFy.com team.',
                   ].map((clause, i) => (
                     <li key={i} style={{ color: 'rgba(248,250,252,0.75)', fontSize: '0.82rem', lineHeight: 1.6 }}>
                       {clause}

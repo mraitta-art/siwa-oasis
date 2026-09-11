@@ -97,13 +97,12 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
-            <img src={settings.logo_url} alt={settings.site_name || 'Siwa Today'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
+            <img src={settings.logo_url} alt={settings.site_name || 'SiWiFy.com'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
           ) : (
             <>
               <i className="fas fa-sun" style={{ color: settings?.primary_color || '#D4AF37', fontSize: '1.5rem' }}></i>
-              <span>
-                {settings?.site_name?.toUpperCase().split(' ')[0] || 'SIWA'}.
-                <span style={{ color: settings?.primary_color || '#D4AF37' }}>{settings?.site_name?.toUpperCase().split(' ')[1] || 'TODAY'}</span>
+              <span style={{ color: settings?.primary_color || '#D4AF37' }}>
+                {settings?.site_name || 'SiWiFy.com'}
               </span>
             </>
           )}

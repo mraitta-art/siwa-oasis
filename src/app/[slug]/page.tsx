@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       biz = row ?? null;
     }
 
-    if (!biz) return { title: 'Business Not Found - Siwa Today' };
+    if (!biz) return { title: 'Business Not Found - SiWiFy.com' };
 
     // Robust JSON Parsing & Normalization
     if (biz) {
@@ -76,7 +76,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       }
     };
   } catch (e) {
-    return { title: 'Siwa Today Minisite' };
+    return { title: 'SiWiFy.com Minisite' };
   }
 }
 
@@ -90,6 +90,16 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
   const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
   
   try {
+    let siteSettings: any = null;
+    try {
+      const [mainCfg] = await safeQuery<any>("SELECT config FROM website_configs WHERE type = 'website_main' LIMIT 1");
+      if (mainCfg) {
+        const parsed = typeof mainCfg.config === 'string' ? JSON.parse(mainCfg.config) : mainCfg.config;
+        siteSettings = parsed?.site_settings || null;
+      }
+    } catch {}
+
+    const platformName = siteSettings?.site_name || 'SiWiFy.com';
     let biz: any = null;
 
     if (isId) {
@@ -158,7 +168,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
                   Owner Login
                 </Link>
                 <Link href="/" style={{ fontSize: '0.85rem', color: '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-                  Back to Siwa Today Registry
+                  Back to {platformName} Registry
                 </Link>
               </div>
             </div>
@@ -181,7 +191,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
           <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
           <p style={{ opacity: 0.5 }}>The business &quot;{slug}&quot; was not found in our registry.</p>
-          <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to Siwa Today</Link>
+          <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to {platformName}</Link>
         </div>
       );
     }
@@ -392,14 +402,14 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       });
     }
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} />;
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (
       <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
         <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '2rem' }}>Something went wrong</h1>
         <p style={{ opacity: 0.5 }}>{e?.message || 'Unknown error loading minisite'}</p>
-        <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to Siwa Today</Link>
+        <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return Home</Link>
       </div>
     );
   }

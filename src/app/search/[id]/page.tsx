@@ -229,7 +229,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ id: str
     <div style={{ background: '#f3f4f6', minHeight: '100vh' }}>
       <nav style={{ background: '#fff', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link href="/" style={{ textDecoration: 'none', color: '#1a1a2e', fontWeight: 800 }}>
-          <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i> SIWA TODAY
+          <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i> SiWiFy.com
         </Link>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <Link href="/login" className="btn btn-outline btn-sm">Sign In</Link>

@@ -46,7 +46,7 @@ export default function SubscriptionBenefits() {
     <div style={{ background: '#0a0f1d', minHeight: '100vh', color: '#fff', fontFamily: 'Inter, sans-serif', padding: '4rem 2rem' }}>
       
       <header style={{ textAlign: 'center', marginBottom: '5rem' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '5px', marginBottom: '1.5rem' }}>THE SIWA TODAY ADVANTAGE</div>
+        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '5px', marginBottom: '1.5rem' }}>THE SiWiFy.com ADVANTAGE</div>
         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-2px' }}>Elevate Your Business DNA</h1>
         <p style={{ maxWidth: '700px', margin: '0 auto', fontSize: '1.1rem', opacity: 0.6, lineHeight: 1.8 }}>
           Join the elite collection of Siwa Oasis businesses. From lobby cinematic demos to global marketing automation, unlock the tools designed for the next generation of heritage hospitality.

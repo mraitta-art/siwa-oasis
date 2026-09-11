@@ -376,7 +376,7 @@ export default function BusinessOrchestrator() {
                        );
                     })}
                   </div>
-                  <div style={{ padding: '4px 12px', border: '1px solid #D4AF37', borderRadius: '4px', color: '#D4AF37', fontSize: '0.6rem', fontWeight: 900 }}>SIWA TODAY</div>
+                  <div style={{ padding: '4px 12px', border: '1px solid #D4AF37', borderRadius: '4px', color: '#D4AF37', fontSize: '0.6rem', fontWeight: 900 }}>SiWiFy.com</div>
                 </div>
               </div>
 

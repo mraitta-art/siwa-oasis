@@ -127,7 +127,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     // 🏛️ GLOBAL SOCIAL INJECTION: Ensure Identity Chapter always has social slots
     if (groupedFields['sec_1_identity']) {
       const socialFields = [
-        { name: 'instagram_handle', label: 'Instagram Handle', field_type: 'text', help_text: 'e.g. @siwatoday' },
+        { name: 'instagram_handle', label: 'Instagram Handle', field_type: 'text', help_text: 'e.g. @siwify' },
         { name: 'facebook_link', label: 'Facebook Page Link', field_type: 'text' },
         { name: 'tiktok_handle', label: 'TikTok Handle', field_type: 'text' },
         { name: 'wechat_id', label: 'WeChat ID', field_type: 'text', help_text: 'For direct discovery in the Chinese market' },

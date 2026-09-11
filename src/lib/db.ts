@@ -220,35 +220,49 @@ export function normalizeCustomData(rawCustomData: any): any {
   } catch (e) {
     c = {};
   }
+
+  // Admin-only operational metadata must never be exposed to public or vendor views.
+  const adminOnlyKeys = [
+    'source_provenance',
+    'policy_and_regulations',
+    'duplicate_review',
+    'import_analysis',
+    'google_contribution',
+    'admin_only'
+  ];
+
+  const publicData = Object.fromEntries(
+    Object.entries(c).filter(([key]) => !adminOnlyKeys.includes(key))
+  );
   
   const basic = {
-    ...(c.business_info || {}),
-    ...(c.sec_1_identity || {}),
-    ...(c.about || {}),
-    ...(c.basic || {})
+    ...(publicData.business_info || {}),
+    ...(publicData.sec_1_identity || {}),
+    ...(publicData.about || {}),
+    ...(publicData.basic || {})
   };
   
   const vibe = {
-    ...(c.sec_3_services || {}),
-    ...(c.vibe || {})
+    ...(publicData.sec_3_services || {}),
+    ...(publicData.vibe || {})
   };
   
   const experience = {
-    ...(c.services || {}),
-    ...(c.experience || {})
+    ...(publicData.services || {}),
+    ...(publicData.experience || {})
   };
   
   const offers = {
-    ...(c.discount || {}),
-    ...(c.package || {}),
-    ...(c['offers-promotions'] || {}),
-    ...(c['discounts-promotions'] || {}),
-    ...(c['offers-packages'] || {}),
-    ...(c.offers || {})
+    ...(publicData.discount || {}),
+    ...(publicData.package || {}),
+    ...(publicData['offers-promotions'] || {}),
+    ...(publicData['discounts-promotions'] || {}),
+    ...(publicData['offers-packages'] || {}),
+    ...(publicData.offers || {})
   };
 
   return {
-    ...c,
+    ...publicData,
     basic,
     vibe,
     experience,

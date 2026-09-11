@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         JSON.stringify([]), // No additional components
         true, // is_published
         true, // is_visible
-        'Discover Your Siwa Vibe | Siwa Today',
+        'Discover Your Siwa Vibe | SiWiFy.com',
         'Explore authentic experiences and businesses in Siwa Oasis. Find exactly what you\'re looking for through curated vibe-based search.',
         'system'
       ]

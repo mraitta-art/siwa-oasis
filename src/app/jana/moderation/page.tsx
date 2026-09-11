@@ -6,26 +6,44 @@ export default function ModerationPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // In real app, fetch pending edits from businesses table or a specific drafts table
-    fetch('/api/jana/businesses')
-      .then(res => res.json())
-      .then(all => {
-        setItems(all.filter((b: any) => b.approved_by_vendor === false && b.vendor_id !== null));
-        setLoading(false);
+  const loadQueue = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/jana/businesses');
+      const all = await res.json();
+      const queue = all.filter((b: any) => {
+        const status = String(b.status || '').toLowerCase();
+        const published = Number(b.published ?? 0);
+        return status === 'pending' || status === 'rejected' || (status === 'active' && published === 0);
       });
+      setItems(queue);
+    } catch (error) {
+      console.error('Failed to load moderation queue', error);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadQueue();
   }, []);
 
-  async function approve(id: string) {
-    const res = await fetch(`/api/businesses/${id}`, {
-      method: 'PUT',
+  async function updateDecision(id: string, decision: 'approved' | 'published' | 'rejected' | 'hidden' | 'pending', notes = '') {
+    const res = await fetch('/api/jana/google-import', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ approved_by_vendor: true, status: 'active' })
+      body: JSON.stringify({ action: 'approve', businessId: id, decision, notes })
     });
-    if (res.ok) {
-      setItems(items.filter(i => i.id !== id));
-      alert('Business approved and live!');
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error || 'Unable to update approval state.');
+      return;
     }
+
+    setItems(prev => prev.filter(i => i.id !== id));
+    alert(`${decision === 'published' ? 'Published' : decision === 'rejected' ? 'Rejected' : decision === 'hidden' ? 'Hidden from public' : 'Approved'} successfully.`);
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin"></i></div>;
@@ -33,18 +51,18 @@ export default function ModerationPage() {
   return (
     <>
       <div className="card-header">
-        <h3><i className="fas fa-check-circle"></i> Verification Queue</h3>
+        <h3><i className="fas fa-check-circle"></i> Admin Approval Queue</h3>
         <span className="badge badge-warning">{items.length} pending tasks</span>
       </div>
 
       <div className="notification-banner">
-        <i className="fas fa-search-shield"></i> Review and approve business listings created by vendors before they go public on the marketplace.
+        <i className="fas fa-search-shield"></i> Only the admin can approve, reject, or publish a source import. Public and vendor-facing pages never receive hidden or pending records.
       </div>
 
       {items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '5rem', color: '#9ca3af' }}>
           <i className="fas fa-coffee" style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}></i>
-          Queue is empty. All listings are verified and active.
+          Queue is empty. All imports are approved, rejected, or hidden from public publication.
         </div>
       ) : (
         <table>
@@ -52,8 +70,8 @@ export default function ModerationPage() {
             <tr>
               <th>Business Name</th>
               <th>Type</th>
-              <th>Vendor</th>
-              <th>Date Submitted</th>
+              <th>Status</th>
+              <th>Source</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -61,13 +79,19 @@ export default function ModerationPage() {
             {items.map(item => (
               <tr key={item.id}>
                 <td><strong>{item.name}</strong></td>
-                <td>{item.type_name}</td>
-                <td>{item.vendor_email}</td>
-                <td>{new Date(item.created_at).toLocaleDateString()}</td>
+                <td>{item.type_name || item.type_id}</td>
                 <td>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-xs btn-success" onClick={() => approve(item.id)}>Approve</button>
-                    <button className="btn btn-xs btn-outline">Review Details</button>
+                  <span className={`badge ${item.status === 'pending' ? 'badge-warning' : item.status === 'rejected' ? 'badge-danger' : 'badge-info'}`}>
+                    {(item.status || 'pending').toUpperCase()}
+                  </span>
+                </td>
+                <td>{item.custom_data?.source_provenance?.source_url || 'Imported by admin'}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button className="btn btn-xs btn-success" onClick={() => updateDecision(item.id, 'approved')}>Approve</button>
+                    <button className="btn btn-xs btn-primary" onClick={() => updateDecision(item.id, 'published')}>Publish</button>
+                    <button className="btn btn-xs btn-outline" onClick={() => updateDecision(item.id, 'hidden')}>Hide</button>
+                    <button className="btn btn-xs btn-danger" onClick={() => updateDecision(item.id, 'rejected')}>Reject</button>
                   </div>
                 </td>
               </tr>

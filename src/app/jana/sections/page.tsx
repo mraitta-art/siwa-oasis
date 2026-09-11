@@ -592,10 +592,11 @@ export default function UnifiedSectionArchitect() {
                     }).map((sec, idx, arr) => {
                       const isActive = sec.id === selectedSection;
                       const isEnabled = sec.active !== false;
-                      const core = CANONICAL_SECTIONS.find(section => section.id === sec.id);
+                      const core = CANONICAL_SECTIONS.find(section => section.id === sec.id) ?? null;
                       const isCore = Boolean(core);
                       const previousEnabled = idx > 0 && arr[idx - 1].active !== false;
                       const showGroupHeader = idx === 0 || previousEnabled !== isEnabled;
+                      const coreColor = core?.color ?? '#64748b';
 
                       return (
                         <div key={sec.id}>
@@ -618,11 +619,11 @@ export default function UnifiedSectionArchitect() {
                               borderBottomWidth: '1.5px',
                               borderRightWidth: '1.5px',
                               borderLeftWidth: isCore ? '3px' : '1.5px',
-                              borderTopColor: isActive ? (isCore ? core.color + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
-                              borderBottomColor: isActive ? (isCore ? core.color + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
-                              borderRightColor: isActive ? (isCore ? core.color + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
-                              borderLeftColor: isCore ? core.color : (isActive ? (isEnabled ? '#22c55e' : '#ef4444') : 'transparent'),
-                              background: isActive ? (isCore ? core.color + '08' : isEnabled ? '#f0fdf4' : '#fef2f2') : (isEnabled ? '#fff' : '#fff7f7'),
+                              borderTopColor: isActive ? (isCore ? coreColor + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
+                              borderBottomColor: isActive ? (isCore ? coreColor + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
+                              borderRightColor: isActive ? (isCore ? coreColor + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
+                              borderLeftColor: isCore ? coreColor : (isActive ? (isEnabled ? '#22c55e' : '#ef4444') : 'transparent'),
+                              background: isActive ? (isCore ? coreColor + '08' : isEnabled ? '#f0fdf4' : '#fef2f2') : (isEnabled ? '#fff' : '#fff7f7'),
                               opacity: isEnabled ? 1 : 0.78,
                               cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
                               display: 'flex', alignItems: 'center', gap: '0.85rem',
@@ -630,8 +631,8 @@ export default function UnifiedSectionArchitect() {
                           >
                             <div style={{
                               width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
-                              background: isActive ? (isCore ? core.color : isEnabled ? '#22c55e' : '#ef4444') : (isCore ? core.color + '15' : isEnabled ? '#dcfce7' : '#fee2e2'),
-                              color: isActive ? '#fff' : (isCore ? core.color : isEnabled ? '#15803d' : '#b91c1c'),
+                              background: isActive ? (isCore ? coreColor : isEnabled ? '#22c55e' : '#ef4444') : (isCore ? coreColor + '15' : isEnabled ? '#dcfce7' : '#fee2e2'),
+                              color: isActive ? '#fff' : (isCore ? coreColor : isEnabled ? '#15803d' : '#b91c1c'),
                               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
                             }}>
                               <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
@@ -641,17 +642,17 @@ export default function UnifiedSectionArchitect() {
                                 <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {sec.name}
                                 </span>
-                                {isCore && (
+                                {isCore && core && (
                                   <span style={{
                                     fontSize: '0.5rem', fontWeight: 900, letterSpacing: '0.5px',
-                                    background: core.color + '18', color: core.color,
-                                    padding: '1px 6px', borderRadius: '6px', border: `1px solid ${core.color}30`,
+                                    background: coreColor + '18', color: coreColor,
+                                    padding: '1px 6px', borderRadius: '6px', border: `1px solid ${coreColor}30`,
                                     whiteSpace: 'nowrap', flexShrink: 0,
                                   }}>CORE</span>
                                 )}
                               </div>
                               <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                {isCore && <span style={{ color: core.color }}>{core.emoji} {core.label}</span>}
+                                {isCore && core && <span style={{ color: coreColor }}>{core.emoji} {core.label}</span>}
                                 {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
                                 {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
                                 {!isEnabled && <span style={{ color: '#b91c1c' }}>● Inactive</span>}

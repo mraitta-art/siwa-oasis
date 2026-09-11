@@ -55,6 +55,7 @@ interface AdvancedCarouselProps {
     titleColor?: string;
     contentAlign?: 'center' | 'left' | 'right';
     primaryFont?: string;
+    watermarkText?: string;
   };
 }
 
@@ -304,6 +305,7 @@ export default function AdvancedHeroCarousel({
               isActive={index === currentSlide} 
               muted={Boolean(isMuted)}
               canInitYT={activeYtRange.has(index)}
+              watermarkText={visualSettings.watermarkText}
             />
             <div style={{
               position: 'absolute', inset: 0,
@@ -338,7 +340,7 @@ export default function AdvancedHeroCarousel({
             justifyContent: 'center',
             alignItems: slideAlign === 'center' ? 'center' : (slideAlign === 'left' ? 'flex-start' : 'flex-end'),
             textAlign: slideAlign, 
-            padding: '2rem 10%', 
+            padding: 'clamp(5.5rem, 12vh, 8rem) clamp(1.5rem, 6vw, 5rem) clamp(2.5rem, 5vh, 4rem)', 
             color: '#fff',
             textDecoration: 'none',
             cursor: 'pointer'
@@ -357,7 +359,7 @@ export default function AdvancedHeroCarousel({
                 color: '#000',
                 padding: '0.5rem 1.5rem', 
                 borderRadius: '50px', 
-                fontSize: '0.8rem',
+                fontSize: '0.8rem', 
                 fontWeight: 800, 
                 letterSpacing: '2px', 
                 textTransform: 'uppercase', 
@@ -416,7 +418,7 @@ export default function AdvancedHeroCarousel({
             justifyContent: 'center',
             alignItems: slideAlign === 'center' ? 'center' : (slideAlign === 'left' ? 'flex-start' : 'flex-end'),
             textAlign: slideAlign, 
-            padding: '2rem 10%', 
+            padding: 'clamp(5.5rem, 12vh, 8rem) clamp(1.5rem, 6vw, 5rem) clamp(2.5rem, 5vh, 4rem)', 
             color: '#fff',
             textDecoration: 'none',
             cursor: 'default'
@@ -554,7 +556,7 @@ export default function AdvancedHeroCarousel({
   );
 }
 
-function SlideMedia({ slide, animation, isActive, muted, canInitYT = true }: { slide: Slide; animation: string; isActive: boolean; muted: boolean; canInitYT?: boolean }) {
+function SlideMedia({ slide, animation, isActive, muted, canInitYT = true, watermarkText }: { slide: Slide; animation: string; isActive: boolean; muted: boolean; canInitYT?: boolean; watermarkText?: string }) {
   if (slide.type === 'youtube') {
     const ytId = extractYouTubeId(slide.mediaUrl || '');
     if (!ytId) return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
@@ -632,7 +634,7 @@ function SlideMedia({ slide, animation, isActive, muted, canInitYT = true }: { s
             pointerEvents: 'none',
             zIndex: 0
           }}>
-            SIWA TODAY
+            {watermarkText || 'SiWiFy.com'}
           </div>
         )}
       </div>

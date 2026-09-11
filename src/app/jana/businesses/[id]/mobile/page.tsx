@@ -120,7 +120,7 @@ export default function DynamicMobileVendorDashboard() {
       <div style={{ background: 'rgba(212,175,55,0.05)', padding: '1.5rem', borderRadius: '24px', border: '1px dashed rgba(212,175,55,0.2)', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <i className="fas fa-bullhorn" style={{ color: '#D4AF37', fontSize: '0.8rem' }}></i>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>MESSAGE FROM SIWA TODAY</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>MESSAGE FROM SiWiFy.com</span>
         </div>
         <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', lineHeight: 1.5 }}>
           Welcome to your new digital home! Your Heritage DNA is now live. Explore your dashboard to manage leads and optimize your cinematic gallery.
