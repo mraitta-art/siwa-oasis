@@ -19,6 +19,7 @@ export default function VanityBusinessClient({
   initialData, 
   sections, 
   sectionLabels = {}, 
+  sectionLabelsAr = {},
   sectionComponents = {},
   isMasterTemplate = false,
   isTrusted = false,
@@ -28,6 +29,7 @@ export default function VanityBusinessClient({
   initialData: any, 
   sections: any[], 
   sectionLabels?: Record<string, string>,
+  sectionLabelsAr?: Record<string, string>,
   sectionComponents?: Record<string, any[]>,
   isMasterTemplate?: boolean,
   isTrusted?: boolean,
@@ -36,9 +38,37 @@ export default function VanityBusinessClient({
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
-  const [isRTL, setIsRTL] = useState(false);
   const [allowedMinisiteComponentKeys, setAllowedMinisiteComponentKeys] = useState<string[]>([]);
   const [liveSettings, setLiveSettings] = useState<any>(siteSettings || null);
+  const [minisiteLang, setMinisiteLang] = useState<'en' | 'ar'>('en');
+  const [isRTL, setIsRTL] = useState(false);
+
+  // Initialize minisite language from localStorage or document default
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('minisite_lang') as 'en' | 'ar' | null;
+      if (saved === 'ar' || saved === 'en') {
+        setMinisiteLang(saved);
+        setIsRTL(saved === 'ar');
+      } else {
+        const docRTL = document.documentElement.dir === 'rtl' || window.getComputedStyle(document.body).direction === 'rtl';
+        setMinisiteLang(docRTL ? 'ar' : 'en');
+        setIsRTL(docRTL);
+      }
+    } catch {
+      setIsRTL(false);
+    }
+  }, []);
+
+  const switchLanguage = (lang: 'en' | 'ar') => {
+    setMinisiteLang(lang);
+    setIsRTL(lang === 'ar');
+    try {
+      localStorage.setItem('minisite_lang', lang);
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = lang;
+    } catch {}
+  };
 
   useEffect(() => {
     if (!liveSettings) {
@@ -53,11 +83,6 @@ export default function VanityBusinessClient({
         .catch(() => {});
     }
   }, [liveSettings]);
-
-  // Detect RTL direction on mount
-  useEffect(() => {
-    setIsRTL(document.documentElement.dir === 'rtl' || window.getComputedStyle(document.body).direction === 'rtl');
-  }, []);
 
   // Sync active tab when sections change or on mount
   useEffect(() => {
@@ -147,6 +172,14 @@ export default function VanityBusinessClient({
   const platformName = liveSettings?.site_name || siteSettings?.site_name || 'SiWiFy.com';
   const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || '';
 
+  // Multilingual label helper: resolves Arabic label if active and present, otherwise standard label/section name
+  const getSectionLabel = (sectionId: string, defaultName: string) => {
+    if (minisiteLang === 'ar' && sectionLabelsAr[sectionId]) {
+      return sectionLabelsAr[sectionId];
+    }
+    return sectionLabels[sectionId] || defaultName;
+  };
+
   const handleShare = async () => {
     const shareUrl = window.location.href;
     const shareTitle = biz.name || `${platformName} Minisite`;
@@ -167,7 +200,7 @@ export default function VanityBusinessClient({
   };
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem' }}>
+    <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem', direction: isRTL ? 'rtl' : 'ltr' }}>
       {isMasterTemplate && (
         <div style={{ 
           background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)', 
@@ -244,7 +277,7 @@ export default function VanityBusinessClient({
           {/* Desktop tabs */}
           <div className="minisite-desktop-tabs" style={{ display: 'flex', gap: '2rem' }}>
             {activeSections.map(s => {
-              const customLabel = sectionLabels[s.id] || s.name;
+              const customLabel = getSectionLabel(s.id, s.name);
               return (
                 <button 
                   key={s.id} 
@@ -265,14 +298,64 @@ export default function VanityBusinessClient({
             })}
           </div>
 
-          <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">
-            {platformLogo ? (
-              <img src={platformLogo} alt={platformName} style={{ height: '18px', objectFit: 'contain' }} />
-            ) : platformName}
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Language Toggle Switcher */}
+            <div style={{ 
+              display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
+              borderRadius: '20px', padding: '3px', border: '1px solid #e2e8f0' 
+            }}>
+              <button
+                type="button"
+                onClick={() => switchLanguage('en')}
+                style={{
+                  border: 'none', background: minisiteLang === 'en' ? '#1e293b' : 'transparent',
+                  color: minisiteLang === 'en' ? '#fff' : '#64748b',
+                  padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
+                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => switchLanguage('ar')}
+                style={{
+                  border: 'none', background: minisiteLang === 'ar' ? '#D4AF37' : 'transparent',
+                  color: minisiteLang === 'ar' ? '#1e293b' : '#64748b',
+                  padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
+                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                عربي
+              </button>
+            </div>
+
+            <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">
+              {platformLogo ? (
+                <img src={platformLogo} alt={platformName} style={{ height: '18px', objectFit: 'contain' }} />
+              ) : platformName}
+            </Link>
+          </div>
 
           {/* Mobile navigation toggle */}
           <div className="minisite-mobile-header-btns" style={{ display: 'none', gap: '0.5rem', alignItems: 'center' }}>
+            {/* Mobile Language Switcher */}
+            <div style={{ 
+              display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
+              borderRadius: '16px', padding: '2px', border: '1px solid #e2e8f0' 
+            }}>
+              <button
+                type="button"
+                onClick={() => switchLanguage(minisiteLang === 'en' ? 'ar' : 'en')}
+                style={{
+                  border: 'none', background: 'transparent',
+                  color: '#1e293b', padding: '2px 7px', fontSize: '0.65rem',
+                  fontWeight: 900, cursor: 'pointer'
+                }}
+              >
+                {minisiteLang === 'en' ? 'عربي' : 'EN'}
+              </button>
+            </div>
             <Link href="/" style={{ color: '#64748b', padding: '0.5rem', fontSize: '1.1rem' }} title={`${platformName} Home`}>
               <i className="fas fa-home"></i>
             </Link>
@@ -290,7 +373,7 @@ export default function VanityBusinessClient({
         <div className="minisite-mobile-tabs-sub" style={{ display: 'none', marginTop: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}>
           <div className="minisite-nav-tabs" style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
             {activeSections.map(s => {
-              const customLabel = sectionLabels[s.id] || s.name;
+              const customLabel = getSectionLabel(s.id, s.name);
               return (
                 <button 
                   key={s.id} 
@@ -319,7 +402,7 @@ export default function VanityBusinessClient({
             {activeSections.filter(s => s.id === activeTab).map(section => {
               const secData = data[section.id];
               const sectionComponentInstances = sectionComponents[section.id] || [];
-              const customLabel = sectionLabels[section.id] || section.name;
+              const customLabel = getSectionLabel(section.id, section.name);
 
               // Core DB-backed assets
               const dbBlog = Array.isArray(section.blogs) && section.blogs.length > 0 ? section.blogs[0] : null;
@@ -448,6 +531,14 @@ export default function VanityBusinessClient({
                         <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
                         <div className="rich-content" dangerouslySetInnerHTML={{ __html: dbBlog.content }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
                       </div>
+                    ) : (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) ? (
+                      secData?.section_blog_ar ? (
+                        <div className="rich-content" dangerouslySetInnerHTML={{ __html: secData.section_blog_ar }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
+                      ) : (
+                        <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
+                          {secData.section_news_ar || secData.description_ar}
+                        </div>
+                      )
                     ) : secData?.section_blog ? (
                       <div className="rich-content" dangerouslySetInnerHTML={{ __html: secData.section_blog }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
                     ) : secData?.description ? (
@@ -763,7 +854,7 @@ export default function VanityBusinessClient({
               <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', marginBottom: '1rem' }}>BUSINESS CHAPTERS</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
                 {activeSections.map(s => {
-                  const customLabel = sectionLabels[s.id] || s.name;
+                  const customLabel = getSectionLabel(s.id, s.name);
                   const isActive = activeTab === s.id;
                   return (
                     <button

@@ -333,10 +333,15 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
     // Build the final labels mapping: custom_label > basic.section_labels > default
     const legacyLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
+    const arabicLabels = biz.custom_data?.section_labels_ar || biz.custom_data?.basic?.section_labels_ar || {};
     const finalLabels: Record<string, string> = {};
+    const finalLabelsAr: Record<string, string> = {};
     sections.forEach((s: any) => {
       const label = sectionControls[s.id]?.custom_label || legacyLabels[s.id] || s.name;
       finalLabels[s.id] = label;
+      if (arabicLabels[s.id]) {
+        finalLabelsAr[s.id] = arabicLabels[s.id];
+      }
     });
 
     let sectionComponents: Record<string, any[]> = {};
@@ -402,7 +407,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       });
     }
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} />;
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (

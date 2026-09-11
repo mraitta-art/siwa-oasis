@@ -157,7 +157,8 @@ export async function GET(req: NextRequest) {
         is_published: !!(biz.published === 1 || biz.published === true || biz.status === 'active'),
         tier: biz.subscription_tier,
         is_trusted: biz.is_trusted === 1,
-        minisite_visible_until: biz.minisite_visible_until
+        minisite_visible_until: biz.minisite_visible_until,
+        custom_data: currentData
       },
       verificationStatus,
       trustRejectionNote,
@@ -208,7 +209,13 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // Persist vendor-customised tab labels
+    // Persist vendor-customised tab labels (English & Arabic)
+    const section_labels_ar = body.section_labels_ar;
+    if (section_labels_ar && typeof section_labels_ar === 'object') {
+      merged.section_labels_ar = section_labels_ar;
+      merged.basic = { ...(merged.basic || {}), section_labels_ar };
+    }
+
     if (section_labels && typeof section_labels === 'object') {
       merged.section_labels = section_labels;
       merged.basic = { ...(merged.basic || {}), section_labels };

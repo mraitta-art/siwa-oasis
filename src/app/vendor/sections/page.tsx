@@ -29,6 +29,7 @@ export default function VendorStudio() {
 
   /* ── Minisite customization ─────────────────────────────────── */
   const [sectionLabels, setSectionLabels] = useState<Record<string, string>>({});
+  const [sectionLabelsAr, setSectionLabelsAr] = useState<Record<string, string>>({});
   const [hiddenSections, setHiddenSections] = useState<string[]>([]);
   const [sectionControls, setSectionControls] = useState<Record<string, any>>({});
   const [labelsSaving, setLabelsSaving] = useState(false);
@@ -138,6 +139,7 @@ export default function VendorStudio() {
       // Load existing minisite customisations
       const biz = data.business || {};
       const existingLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
+      const existingLabelsAr = biz.custom_data?.section_labels_ar || biz.custom_data?.basic?.section_labels_ar || {};
       const existingHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections || [];
       
       // Override legacy labels with exact DB custom_labels if they exist
@@ -149,6 +151,7 @@ export default function VendorStudio() {
       }
 
       setSectionLabels(existingLabels);
+      setSectionLabelsAr(existingLabelsAr);
       setHiddenSections(existingHidden);
     } catch (e: any) {
       console.error(e.message);
@@ -306,6 +309,7 @@ export default function VendorStudio() {
         body: JSON.stringify({
           data: formData,
           section_labels: sectionLabels,
+          section_labels_ar: sectionLabelsAr,
           hidden_sections: hiddenSections,
         })
       });
@@ -558,24 +562,38 @@ export default function VendorStudio() {
                         </div>
                       </div>
 
-                      {/* Label Input */}
-                      <div style={{ flex: '2 1 260px' }}>
-                        <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem' }}>
-                          CUSTOM TAB LABEL {sectionControls[s.id]?.admin_locked_label && <i className="fas fa-lock" style={{color: '#ef4444', marginLeft: '4px'}} title="Locked by Admin"></i>}
-                        </label>
-                        <input
-                          type="text"
-                          placeholder={s.name + ' (default)'}
-                          value={currentLabel}
-                          onChange={e => setSectionLabels(prev => ({ ...prev, [s.id]: e.target.value }))}
-                          disabled={isHidden || sectionControls[s.id]?.admin_locked_label}
-                          style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: (isHidden || sectionControls[s.id]?.admin_locked_label) ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
-                        />
-                        {sectionControls[s.id]?.admin_locked_label ? (
-                          <div style={{ fontSize: '0.6rem', color: '#ef4444', marginTop: '0.25rem' }}>This label has been locked by the site administrator.</div>
-                        ) : currentLabel ? (
-                          <div style={{ fontSize: '0.6rem', color: '#8b5cf6', marginTop: '0.25rem' }}>✓ Visitors will see: <strong>{currentLabel}</strong></div>
-                        ) : null}
+                      {/* Label Inputs: English & Arabic */}
+                      <div style={{ flex: '3 1 360px', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        {/* English Label */}
+                        <div style={{ flex: '1 1 170px' }}>
+                          <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem' }}>
+                            🇬🇧 ENGLISH LABEL {sectionControls[s.id]?.admin_locked_label && <i className="fas fa-lock" style={{color: '#ef4444', marginLeft: '4px'}} title="Locked by Admin"></i>}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={s.name + ' (default)'}
+                            value={currentLabel}
+                            onChange={e => setSectionLabels(prev => ({ ...prev, [s.id]: e.target.value }))}
+                            disabled={isHidden || sectionControls[s.id]?.admin_locked_label}
+                            style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: (isHidden || sectionControls[s.id]?.admin_locked_label) ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        {/* Arabic Label */}
+                        <div style={{ flex: '1 1 170px' }}>
+                          <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem', direction: 'rtl', textAlign: 'right' }}>
+                            🇪🇬 الاسم بالعربية (RTL)
+                          </label>
+                          <input
+                            type="text"
+                            dir="rtl"
+                            placeholder="مثال: المطعم والوجبات"
+                            value={sectionLabelsAr[s.id] || ''}
+                            onChange={e => setSectionLabelsAr(prev => ({ ...prev, [s.id]: e.target.value }))}
+                            disabled={isHidden || sectionControls[s.id]?.admin_locked_label}
+                            style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: (isHidden || sectionControls[s.id]?.admin_locked_label) ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
+                          />
+                        </div>
                       </div>
 
                       {/* Visibility Toggle */}
