@@ -299,36 +299,38 @@ export default function VanityBusinessClient({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Language Toggle Switcher */}
-            <div style={{ 
-              display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
-              borderRadius: '20px', padding: '3px', border: '1px solid #e2e8f0' 
-            }}>
-              <button
-                type="button"
-                onClick={() => switchLanguage('en')}
-                style={{
-                  border: 'none', background: minisiteLang === 'en' ? '#1e293b' : 'transparent',
-                  color: minisiteLang === 'en' ? '#fff' : '#64748b',
-                  padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
-                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
-                }}
-              >
-                EN
-              </button>
-              <button
-                type="button"
-                onClick={() => switchLanguage('ar')}
-                style={{
-                  border: 'none', background: minisiteLang === 'ar' ? '#D4AF37' : 'transparent',
-                  color: minisiteLang === 'ar' ? '#1e293b' : '#64748b',
-                  padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
-                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
-                }}
-              >
-                عربي
-              </button>
-            </div>
+            {/* Language Toggle Switcher — only shown when admin enables multilingual */}
+            {(liveSettings?.enable_minisite_multilingual === true || biz?.tier_features?.allow_multilingual === true) && (
+              <div style={{ 
+                display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
+                borderRadius: '20px', padding: '3px', border: '1px solid #e2e8f0' 
+              }}>
+                <button
+                  type="button"
+                  onClick={() => switchLanguage('en')}
+                  style={{
+                    border: 'none', background: minisiteLang === 'en' ? '#1e293b' : 'transparent',
+                    color: minisiteLang === 'en' ? '#fff' : '#64748b',
+                    padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
+                    fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
+                  }}
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchLanguage('ar')}
+                  style={{
+                    border: 'none', background: minisiteLang === 'ar' ? '#D4AF37' : 'transparent',
+                    color: minisiteLang === 'ar' ? '#1e293b' : '#64748b',
+                    padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
+                    fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
+                  }}
+                >
+                  عربي
+                </button>
+              </div>
+            )}
 
             <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">
               {platformLogo ? (
@@ -339,23 +341,25 @@ export default function VanityBusinessClient({
 
           {/* Mobile navigation toggle */}
           <div className="minisite-mobile-header-btns" style={{ display: 'none', gap: '0.5rem', alignItems: 'center' }}>
-            {/* Mobile Language Switcher */}
-            <div style={{ 
-              display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
-              borderRadius: '16px', padding: '2px', border: '1px solid #e2e8f0' 
-            }}>
-              <button
-                type="button"
-                onClick={() => switchLanguage(minisiteLang === 'en' ? 'ar' : 'en')}
-                style={{
-                  border: 'none', background: 'transparent',
-                  color: '#1e293b', padding: '2px 7px', fontSize: '0.65rem',
-                  fontWeight: 900, cursor: 'pointer'
-                }}
-              >
-                {minisiteLang === 'en' ? 'عربي' : 'EN'}
-              </button>
-            </div>
+            {/* Mobile Language Switcher — only shown when admin enables multilingual */}
+            {(liveSettings?.enable_minisite_multilingual === true || biz?.tier_features?.allow_multilingual === true) && (
+              <div style={{ 
+                display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
+                borderRadius: '16px', padding: '2px', border: '1px solid #e2e8f0' 
+              }}>
+                <button
+                  type="button"
+                  onClick={() => switchLanguage(minisiteLang === 'en' ? 'ar' : 'en')}
+                  style={{
+                    border: 'none', background: 'transparent',
+                    color: '#1e293b', padding: '2px 7px', fontSize: '0.65rem',
+                    fontWeight: 900, cursor: 'pointer'
+                  }}
+                >
+                  {minisiteLang === 'en' ? 'عربي' : 'EN'}
+                </button>
+              </div>
+            )}
             <Link href="/" style={{ color: '#64748b', padding: '0.5rem', fontSize: '1.1rem' }} title={`${platformName} Home`}>
               <i className="fas fa-home"></i>
             </Link>

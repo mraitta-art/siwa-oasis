@@ -90,6 +90,7 @@ function MultiPageSiteBuilderComponent() {
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
     logo_url: '', show_watermark: true, watermark_text: '', show_platform_anchor: true, logo_height: 40,
+    enable_minisite_multilingual: false,
   });
   const searchParams = useSearchParams();
   const queryPage = searchParams?.get('page') || null;
@@ -512,6 +513,11 @@ function MultiPageSiteBuilderComponent() {
             <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
               <input type="checkbox" checked={siteSettings.show_platform_anchor!==false} onChange={e=>setSiteSettings(s=>({...s,show_platform_anchor:e.target.checked}))} />
               <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>📍 MINISITE BADGE</span>
+            </label>
+            <Sep />
+            <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+              <input type="checkbox" checked={siteSettings.enable_minisite_multilingual===true} onChange={e=>setSiteSettings(s=>({...s,enable_minisite_multilingual:e.target.checked}))} />
+              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#8b5cf6' }}>🌐 MULTILINGUAL (EN/AR)</span>
             </label>
           </>
         ) : (

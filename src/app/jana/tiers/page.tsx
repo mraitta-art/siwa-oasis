@@ -253,6 +253,14 @@ export default function InteractiveTiersPage() {
                       />
                       Allow Cinematic YouTube Integration
                     </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.features.allow_multilingual || false}
+                        onChange={e => setEditData({...editData, features: {...editData.features, allow_multilingual: e.target.checked}})}
+                      />
+                      🌐 Allow Multilingual Minisite (EN / AR Language Toggle)
+                    </label>
                   </div>
 
                   {/* ── JOURNEY MARKETPLACE PERMISSIONS ── */}

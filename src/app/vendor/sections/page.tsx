@@ -579,21 +579,28 @@ export default function VendorStudio() {
                           />
                         </div>
 
-                        {/* Arabic Label */}
-                        <div style={{ flex: '1 1 170px' }}>
-                          <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem', direction: 'rtl', textAlign: 'right' }}>
-                            🇪🇬 الاسم بالعربية (RTL)
-                          </label>
-                          <input
-                            type="text"
-                            dir="rtl"
-                            placeholder="مثال: المطعم والوجبات"
-                            value={sectionLabelsAr[s.id] || ''}
-                            onChange={e => setSectionLabelsAr(prev => ({ ...prev, [s.id]: e.target.value }))}
-                            disabled={isHidden || sectionControls[s.id]?.admin_locked_label}
-                            style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: (isHidden || sectionControls[s.id]?.admin_locked_label) ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
-                          />
-                        </div>
+                        {/* Arabic Label — gated by tier allow_multilingual */}
+                        {tierFeatures?.allow_multilingual ? (
+                          <div style={{ flex: '1 1 170px' }}>
+                            <label style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', display: 'block', marginBottom: '0.3rem', direction: 'rtl', textAlign: 'right' }}>
+                              🇪🇬 الاسم بالعربية (RTL)
+                            </label>
+                            <input
+                              type="text"
+                              dir="rtl"
+                              placeholder="مثال: المطعم والوجبات"
+                              value={sectionLabelsAr[s.id] || ''}
+                              onChange={e => setSectionLabelsAr(prev => ({ ...prev, [s.id]: e.target.value }))}
+                              disabled={isHidden || sectionControls[s.id]?.admin_locked_label}
+                              style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: (isHidden || sectionControls[s.id]?.admin_locked_label) ? '#f8fafc' : '#fff', fontSize: '0.82rem', color: '#1e293b', outline: 'none', opacity: isHidden ? 0.5 : 1, boxSizing: 'border-box' }}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ flex: '1 1 170px', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 0.9rem', borderRadius: '10px', background: '#f8fafc', border: '1.5px solid #f1f5f9', fontSize: '0.7rem', color: '#94a3b8' }}>
+                            <i className="fas fa-lock" style={{ color: '#D4AF37', flexShrink: 0 }} />
+                            <span>Arabic labels are managed by the platform administrator.</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Visibility Toggle */}
