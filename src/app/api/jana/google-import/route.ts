@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth';
 import { execute, queryOne } from '@/lib/db';
 import crypto from 'crypto';
 import { chatWithSourceAgent, enrichSourceWithAi, getConfiguredAiProviders, type SourceAgentChatMessage, type SourceAiProvider } from '@/lib/source-agent';
+import { parseHospitalityRawText } from '@/lib/hospitality-mapper';
 
 interface GooglePlaceData {
   name: string;
@@ -210,30 +211,60 @@ function normalizeExtractedText(value: string) {
 }
 
 function extractTextSourceData(rawText: string): GooglePlaceData {
+  const parsed = parseHospitalityRawText(rawText || '');
   const text = normalizeExtractedText(rawText || '');
-  const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
-  const candidateName = lines.find(line => !/address|phone|email|website|website:|tel|call|contact|amenities|description|location|map/i.test(line));
-  const name = candidateName || 'Imported Business';
-
-  const addressMatch = text.match(/address[:\-]?\s*([^\n]+(?:\n[^\n]+)?)/i) || text.match(/(?:street|city|state|country)[^\n]{0,80}/i);
-  const phoneMatch = text.match(/(?:phone|tel|call|mobile)[:\-]?\s*(?:\+?[0-9()\-\s]{7,})/i);
-  const websiteMatch = text.match(/https?:\/\/[^\s]+/i);
   const coordinates = extractCoordinates(text);
+
+  const name = parsed.basic.name || 'Imported Business';
+  const address = parsed.basic.address || (coordinates ? 'Siwa Oasis, Egypt' : 'Siwa Oasis, Egypt');
+  const phone = parsed.connector.phone || parsed.basic.phone || '';
+  const website = parsed.connector.website || parsed.basic.booking_url || '';
+  const rating = parsed.testimonials.rating ? +(parsed.testimonials.rating / 2).toFixed(1) : 0; // standard 5-star scale for GooglePlaceData
+  const reviews = (parsed.testimonials.review_highlights || []).map((r: any) => ({
+    author_name: r.author || 'Guest',
+    text: r.text,
+    rating: 5,
+    country: r.country,
+  }));
+
+  // Build structured AI draft sections from parsed hospitality data
+  const aiSections: Record<string, Record<string, unknown>> = {
+    sec_1_identity: parsed.basic,
+    sec_2_ambience: parsed.vibe,
+    sec_3_facilities: parsed.facilities,
+    sec_4_gastronomy: parsed.gastronomy,
+    sec_5_experiences: parsed.experience,
+    sec_6_guardian: {},
+    sec_7_investment: {},
+    sec_8_connector: parsed.connector,
+    sec_9_marketplace_catalog: parsed.accommodation,
+    sec_10_testimonials_faqs: {
+      ...parsed.testimonials,
+      reviews,
+    }
+  };
 
   return {
     name: String(name).trim() || 'Imported Business',
-    address: addressMatch ? decodeHtml(addressMatch[1] || addressMatch[0]).trim() : (coordinates ? 'Siwa Oasis, Egypt' : ''),
-    phone: phoneMatch ? phoneMatch[0].replace(/^[^0-9+]*|[^0-9+\-()\s]*$/g, '').trim() : '',
-    website: websiteMatch ? websiteMatch[0].trim() : '',
+    address,
+    phone,
+    website,
     lat: coordinates?.lat || 29.2032,
     lng: coordinates?.lng || 25.5195,
-    rating: 0,
-    reviews: [],
+    rating,
+    reviews,
     photos: [],
     placeId: `manual_text_${crypto.createHash('sha256').update(text).digest('hex').slice(0, 16)}`,
     sourceProvider: 'manual_text',
-    sourceUrl: '',
-    detailsAvailable: Boolean(coordinates),
+    sourceUrl: parsed.basic.booking_url || '',
+    detailsAvailable: true,
+    aiDraft: {
+      suggested_type: 'accommodation',
+      confidence: 0.95,
+      sections: aiSections,
+      missing_fields: [],
+      verification_notes: ['Extracted and structured via Smart Hospitality Parser'],
+    }
   };
 }
 
@@ -677,6 +708,7 @@ export async function POST(request: NextRequest) {
       const extractedGastro     = (importedSections.sec_4_gastronomy          || {}) as Record<string, unknown>;
       const extractedExp        = (importedSections.sec_5_experiences         || {}) as Record<string, unknown>;
       const extractedConnector  = (importedSections.sec_8_connector           || {}) as Record<string, unknown>;
+      const extractedAccomodation = (importedSections.sec_9_marketplace_catalog || {}) as Record<string, unknown>;
       const extractedTestimons  = (importedSections.sec_10_testimonials_faqs  || {}) as Record<string, unknown>;
 
       const resolvedPhone   = google_data?.phone   || (extractedIdentity.phone   as string) || (extractedConnector.contact_phone   as string) || '';
@@ -831,6 +863,14 @@ export async function POST(request: NextRequest) {
         mini_blog: buildSectionBlog('offers', {}),
       };
 
+      // accommodation & rooms section
+      const accommodationBlock = {
+        description: `Rooms and accommodation options at ${effectiveName}`,
+        section_blog: buildSectionBlog('accommodation', {}),
+        mini_blog: buildSectionBlog('accommodation', {}),
+        ...(Object.fromEntries(Object.entries(extractedAccomodation).filter(([k]) => !INTERNAL_KEYS.has(k)))),
+      };
+
       const genericFallbackBlock = {
         description: `Information about ${effectiveName}`,
         section_blog: buildSectionBlog('generic', {}),
@@ -845,6 +885,7 @@ export async function POST(request: NextRequest) {
         if (/facilit|ameniti|feature|service|equipment/.test(id)) return facilitiesBlock;
         if (/gastro|food|dining|menu|cuisine|kitchen|drink|beverage/.test(id)) return gastronomyBlock;
         if (/experi|activit|tour|safari|adventure|trip|outdoor|excurs/.test(id)) return experienceBlock;
+        if (/accommodat|room|stay|lodge|chalet|suite|bed/.test(id)) return accommodationBlock;
         if (/connect|contact|reach|enquir|social|phone|whatsapp/.test(id)) return connectorBlock;
         if (/testimon|review|rating|feedback|comment/.test(id)) return testimonialsBlock;
         if (/location|map|where|address|direction/.test(id)) return locationBlock;

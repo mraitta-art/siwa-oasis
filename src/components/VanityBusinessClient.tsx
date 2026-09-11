@@ -440,14 +440,64 @@ export default function VanityBusinessClient({
                 if (fieldType === 'boolean') {
                   return <span style={{ padding: '0.2rem 0.7rem', borderRadius: '20px', background: val ? '#dcfce7' : '#fee2e2', color: val ? '#15803d' : '#b91c1c', fontWeight: 800, fontSize: '0.75rem' }}>{val ? '✓ Yes' : '✗ No'}</span>;
                 }
-                // multiselect / array → colored tag badges
-                if (fieldType === 'multiselect' || Array.isArray(val)) {
-                  const tags = Array.isArray(val) ? val : String(val).split(',');
-                  return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>{tags.map((tag: string, i: number) => <span key={i} style={{ padding: '0.2rem 0.7rem', borderRadius: '20px', background: '#fef9c3', color: '#854d0e', fontWeight: 700, fontSize: '0.75rem' }}>{tag.trim()}</span>)}</div>;
+                // tags / multiselect / array → colored tag badges
+                if (fieldType === 'tags' || fieldType === 'multiselect' || Array.isArray(val)) {
+                  const tags = Array.isArray(val) ? val : (typeof val === 'string' ? val.split(',') : []);
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {tags.map((tag: any, i: number) => {
+                        const str = typeof tag === 'object' ? JSON.stringify(tag) : String(tag).trim();
+                        return (
+                          <span key={i} style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', background: '#f1f5f9', color: '#1e293b', fontWeight: 700, fontSize: '0.78rem', border: '1px solid #e2e8f0' }}>
+                            {str}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+                // json / structured cards (room_types, review_highlights)
+                if (fieldType === 'json' || (typeof val === 'object' && val !== null)) {
+                  if (key === 'room_types' && Array.isArray(val)) {
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem', width: '100%' }}>
+                        {val.map((rm: any, i: number) => (
+                          <div key={i} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                            <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.9rem', marginBottom: '0.3rem' }}>{rm.name}</div>
+                            <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '0.2rem' }}>🛏️ {rm.beds}</div>
+                            {rm.features && <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{rm.features}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (key === 'review_highlights' && Array.isArray(val)) {
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                        {val.map((rev: any, i: number) => (
+                          <div key={i} style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '12px', border: '1.5px solid #f1f5f9', fontStyle: 'italic', color: '#334155', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                            "{rev.text}"
+                            <div style={{ fontStyle: 'normal', fontWeight: 800, color: '#D4AF37', fontSize: '0.75rem', marginTop: '0.4rem', textAlign: 'right' }}>
+                              — {rev.author} ({rev.country})
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return <pre style={{ fontSize: '0.75rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', overflowX: 'auto' }}>{JSON.stringify(val, null, 2)}</pre>;
                 }
                 // select → pill badge
                 if (fieldType === 'select') {
                   return <span style={{ padding: '0.25rem 0.8rem', borderRadius: '20px', background: '#f0f9ff', color: '#0369a1', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #bae6fd' }}>{String(val)}</span>;
+                }
+                // url → link
+                if (fieldType === 'url' && String(val).startsWith('http')) {
+                  return (
+                    <a href={String(val)} target="_blank" rel="noopener noreferrer" style={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <i className="fas fa-external-link-alt" style={{ fontSize: '0.7rem' }} /> {String(val).replace(/^https?:\/\/(www\.)?/, '').slice(0, 35)}...
+                    </a>
+                  );
                 }
                 // youtube → thumbnail link
                 if (fieldType === 'youtube') {
@@ -601,10 +651,10 @@ export default function VanityBusinessClient({
                             </a>
                           ) : renderFieldValue(key, finalVal, matchedField);
 
-                          if (!rendered) return null;
+                          const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
 
                           return (
-                            <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                            <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto' }}>
                               <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
                               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{rendered}</div>
                             </div>
