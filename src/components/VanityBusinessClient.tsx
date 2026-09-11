@@ -431,10 +431,28 @@ export default function VanityBusinessClient({
                 const opts = fieldDef?.options ? (typeof fieldDef.options === 'string' ? JSON.parse(fieldDef.options) : fieldDef.options) : null;
                 if (val === null || val === undefined || val === '') return null;
 
-                // star_rating → gold stars
-                if (fieldType === 'star_rating') {
-                  const stars = Math.round(Number(val)) || 0;
-                  return <div style={{ display: 'flex', gap: '0.15rem' }}>{Array.from({ length: 5 }, (_, i) => <i key={i} className="fas fa-star" style={{ color: i < stars ? '#f59e0b' : '#e2e8f0', fontSize: '1rem' }} />)}</div>;
+                // star_rating or numerical rating with dual display
+                if (fieldType === 'star_rating' || key === 'rating' || key === 'platform_rating' || key === 'ota_rating') {
+                  const numVal = Number(val);
+                  const isTenScale = numVal > 5;
+                  const stars = Math.round(isTenScale ? numVal / 2 : numVal);
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                        {numVal}{isTenScale ? '/10' : '/5'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '0.15rem' }}>
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <i key={i} className="fas fa-star" style={{ color: i < stars ? '#f59e0b' : '#e2e8f0', fontSize: '0.9rem' }} />
+                        ))}
+                      </div>
+                      {secData?.source && (
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                          via {secData.source}
+                        </span>
+                      )}
+                    </div>
+                  );
                 }
                 // boolean → badge
                 if (fieldType === 'boolean') {
