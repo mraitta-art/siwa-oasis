@@ -882,8 +882,39 @@ export default function VendorStudio() {
                               </div>
                             )}
 
+                            {/* ── Feature as Hero Carousel Slide toggle ── */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextHero = !img.is_hero;
+                                setGallery(prev => prev.map(i => i.id === img.id ? { ...i, is_hero: nextHero } : i));
+                                updateImage(img.id, { is_hero: nextHero });
+                              }}
+                              style={{
+                                width: '100%',
+                                marginTop: '0.75rem',
+                                padding: '0.55rem 0.75rem',
+                                borderRadius: '10px',
+                                border: img.is_hero ? '1.5px solid #D4AF37' : '1.5px solid #e2e8f0',
+                                background: img.is_hero ? 'linear-gradient(135deg, #fef9ee 0%, #fffdfa 100%)' : '#f8fafc',
+                                color: img.is_hero ? '#92702a' : '#64748b',
+                                fontWeight: 800,
+                                fontSize: '0.74rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.45rem',
+                                transition: 'all 0.2s',
+                                boxShadow: img.is_hero ? '0 2px 8px rgba(212,175,55,0.15)' : 'none'
+                              }}
+                            >
+                              <i className={img.is_hero ? "fas fa-star" : "far fa-star"} style={{ color: img.is_hero ? '#D4AF37' : '#94a3b8' }}></i>
+                              {img.is_hero ? '★ Featured in Hero Carousel' : '+ Add to Minisite Hero Carousel'}
+                            </button>
+
                             {/* Visibility Toggles */}
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem', justifyContent: 'space-between' }}>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
                                 <button
                                   onClick={() => updateImage(img.id, { show_on_main: !img.show_on_main })}

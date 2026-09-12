@@ -65,13 +65,23 @@ export default function AutomatedMinisiteHero({
       const allowedMedia = tierFeatures.allowedMediaTypes || ['image'];
       const youtubeStory = (allowedMedia.includes('youtube') && sectionData.youtube_story) ? sectionData.youtube_story : null;
       
-      const gallery = sectionData.section_gallery || [];
-      const photos = Array.isArray(gallery) ? gallery : [gallery].filter(Boolean);
+      // Support photos from both vendor_gallery (section.gallery) AND custom_data (sectionData.section_gallery)
+      const galleryFromSection = Array.isArray(section.gallery) ? section.gallery : [];
+      const galleryFromData = Array.isArray(sectionData.section_gallery) 
+        ? sectionData.section_gallery 
+        : (sectionData.section_gallery ? [sectionData.section_gallery] : []);
+      const galleryFromDataDirect = Array.isArray(sectionData.gallery) ? sectionData.gallery : [];
+      
+      const photos = [...galleryFromSection, ...galleryFromData, ...galleryFromDataDirect].filter(Boolean);
 
-      // CURATION FILTER: Only show photos marked as "is_hero" AND approved by admin
-      const featuredPhotos = photos.filter((p: any) => 
-        p && p.is_hero && (p.approval_status === 'approved' || p.approval_status === undefined)
-      );
+      // CURATION FILTER: Photos marked as "is_hero", placement "hero"/"both", or approved
+      const featuredPhotos = photos.filter((p: any) => {
+        if (!p) return false;
+        const isHero = p.is_hero === true || p.is_hero === 1 || p.placement === 'hero' || p.placement === 'both';
+        const isApproved = p.approval_status === 'approved' || p.approval_status === undefined;
+        const isMinisiteVisible = p.show_on_minisite !== 0 && p.show_on_minisite !== false;
+        return isHero && isApproved && isMinisiteVisible;
+      });
 
       if (youtubeStory) {
         allSlides.push({
@@ -88,10 +98,14 @@ export default function AutomatedMinisiteHero({
         });
       }
 
-      // Add ONLY featured photos from gallery
+      // Add featured photos from section gallery as hero slides
       featuredPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
+        const slideData = typeof photo === 'object' && photo.slide_data 
+          ? (typeof photo.slide_data === 'string' ? JSON.parse(photo.slide_data) : photo.slide_data)
+          : {};
+        
         const isVid = url ? isHeroVideo(url) : false;
         const hasMedia = !!url;
         
@@ -99,19 +113,19 @@ export default function AutomatedMinisiteHero({
           id: `${section.id}_img_${idx}`,
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
-          title: caption || section.name,
-          subtitle: `DISCOVER THE ${(section.name || '').toUpperCase()} EXPERIENCE`,
+          title: slideData.title || caption || section.name,
+          subtitle: slideData.subtitle || `DISCOVER THE ${(section.name || '').toUpperCase()} EXPERIENCE`,
           caption: (businessName || '').toUpperCase(), 
-          ctaText: `READ FULL STORY`,
-          ctaLink: `#${section.id}`,
+          ctaText: slideData.cta_label || `EXPLORE ${(section.name || '').toUpperCase()}`,
+          ctaLink: slideData.cta_url || `#${section.id}`,
           animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
           displayMode: photo.display_mode || (hasMedia ? 'image' : 'text_only'),
-          showCaption: photo.show_caption !== false,
+          showCaption: slideData.show_overlay !== false && photo.show_caption !== false,
           bgColor: photo.bg_color || (hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)')
         });
       });
 
-      // Fallback slide (if NOTHING is featured, show the first photo as a courtesy)
+      // Fallback slide (if NOTHING is featured across sections, show the first photo as a courtesy)
       if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
         const firstPhoto = photos[0];
         const url = (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || '';
@@ -124,7 +138,7 @@ export default function AutomatedMinisiteHero({
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
           title: caption || section.name,
-          subtitle: `EXPLORE OUR UNIQUE NARRATIVE`,
+          subtitle: `EXPLORE OUR ${(section.name || '').toUpperCase()}`,
           caption: (businessName || '').toUpperCase(),
           ctaText: 'EXPLORE',
           ctaLink: `#${section.id}`,
