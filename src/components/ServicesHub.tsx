@@ -83,6 +83,17 @@ const FALLBACK_PILLARS: ServicePillar[] = [
     is_visible: true,
     display_order: 6,
   },
+  {
+    id: 'agriculture_industry',
+    name: 'Agriculture & Natural Production',
+    tagline: 'Mineral water bottling, extra virgin olive oil mills, organic date processing, and salt plants.',
+    icon: 'fa-industry',
+    color: '#059669',
+    image_url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=800',
+    search_link: '/search/vibe?category=agriculture_industry',
+    is_visible: true,
+    display_order: 7,
+  },
 ];
 
 export default function ServicesHub({ title, subtitle }: { title?: string; subtitle?: string }) {
