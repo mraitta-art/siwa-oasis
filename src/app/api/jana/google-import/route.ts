@@ -723,6 +723,15 @@ export async function POST(request: NextRequest) {
       const effectivePlaceId = String(google_place_id || google_data?.placeId || `import_${Date.now()}`).trim();
       const effectiveSourceUrl = String(source_url || google_data?.sourceUrl || effectivePlaceId || 'source_import').trim();
 
+      // Safety: if name is a single generic venue-category word (e.g. "Beach", "Hotel"), prefer google_data.name
+      const GENERIC_NAME_RE = /^(beach|hotel|resort|camp|hostel|restaurant|cafe|spa|lodge|villa|inn|guesthouse|guest house|adventure|safari|tour|apartment|flat|room|chalet|bungalow|motel|property|accommodation|riad|retreat|farm)$/i;
+      if (GENERIC_NAME_RE.test(effectiveName)) {
+        const fallback = String(google_data?.name || '').trim();
+        if (fallback && !GENERIC_NAME_RE.test(fallback)) {
+          effectiveName = fallback;
+        }
+      }
+
       if (!effectiveName) {
         effectiveName = 'Imported Hospitality Business';
       }

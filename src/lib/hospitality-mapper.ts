@@ -63,9 +63,30 @@ export function parseHospitalityRawText(rawText: string): ParsedHospitalityData 
   result.testimonials.ota_source = otaSource;
 
   // ── 1. TITLE / NAME EXTRACTION ──────────────────────────────────────────────
-  const firstLine = lines[0] || '';
-  if (firstLine && !firstLine.startsWith('http') && !/booking\.com|tripadvisor|agoda|airbnb/i.test(firstLine)) {
-    result.basic.name = firstLine.replace(/^#+\s*/, '').replace(/\s*[-–|].*(Booking|TripAdvisor|Agoda|Airbnb).*$/i, '').trim();
+  // Some OTA pages start with a category label (e.g. "Beach", "Hotel") before the actual name.
+  // We detect this and skip forward to find the real business name.
+  const GENERIC_VENUE_WORDS = /^(beach|beaches|hotel|hotels|resort|resorts|camp|camps|hostel|hostels|restaurant|restaurants|cafe|cafes|coffee|spa|spas|lodge|lodges|villa|villas|inn|inns|guest house|guesthouse|guesthouses|adventure|safari|safaris|tour|tours|apartment|apartments|flat|flats|room|rooms|eco lodge|eco-lodge|ecolodge|chalet|chalets|bungalow|bungalows|motel|motels|bed and breakfast|b&b|property|properties|accommodation|accommodations|riad|riads|retreat|retreats|farm|farms)$/i;
+
+  function pickBusinessName(lineList: string[]): string {
+    for (let i = 0; i < Math.min(lineList.length, 8); i++) {
+      const line = (lineList[i] || '').replace(/^#+\s*/, '').replace(/\s*[-–|].*(Booking|TripAdvisor|Agoda|Airbnb).*$/i, '').trim();
+      if (!line) continue;
+      if (line.startsWith('http')) continue;
+      if (/booking\.com|tripadvisor|agoda|airbnb|google\.com/i.test(line)) continue;
+      if (GENERIC_VENUE_WORDS.test(line)) continue;
+      if (/^[\u0600-\u06FF\s]{1,20}$/.test(line)) continue;
+      if (/^\d+\s+reviews?|rated\s+\d|\(score|real guests/i.test(line)) continue;
+      if (/[a-zA-Z]{2,}/.test(line) && (line.split(/\s+/).length >= 2 || /[a-zA-Z].*[a-zA-Z]/.test(line))) {
+        return line;
+      }
+      if (line.length >= 4) return line;
+    }
+    return lineList[0] || '';
+  }
+
+  const businessName = pickBusinessName(lines);
+  if (businessName && !businessName.startsWith('http') && !/booking\.com|tripadvisor|agoda|airbnb/i.test(businessName)) {
+    result.basic.name = businessName;
   }
 
   // ── 2. OTA LINK EXTRACTION ──────────────────────────────────────────────────
