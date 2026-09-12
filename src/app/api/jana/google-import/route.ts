@@ -237,7 +237,7 @@ function extractTextSourceData(rawText: string): GooglePlaceData {
     sec_6_guardian: {},
     sec_7_investment: {},
     sec_8_connector: parsed.connector,
-    sec_9_marketplace_catalog: parsed.accommodation,
+    sec_9_marketplace_catalog: parsed.rooms,
     sec_10_testimonials_faqs: {
       ...parsed.testimonials,
       reviews,
@@ -797,7 +797,7 @@ export async function POST(request: NextRequest) {
       const extractedGastro     = (importedSections.sec_4_gastronomy          || {}) as Record<string, unknown>;
       const extractedExp        = (importedSections.sec_5_experiences         || {}) as Record<string, unknown>;
       const extractedConnector  = (importedSections.sec_8_connector           || {}) as Record<string, unknown>;
-      const extractedAccomodation = (importedSections.sec_9_marketplace_catalog || {}) as Record<string, unknown>;
+      const extractedRooms        = (importedSections.sec_9_marketplace_catalog || {}) as Record<string, unknown>;
       const extractedTestimons  = (importedSections.sec_10_testimonials_faqs  || {}) as Record<string, unknown>;
 
       const resolvedPhone   = google_data?.phone   || (extractedIdentity.phone   as string) || (extractedConnector.contact_phone   as string) || '';
@@ -952,12 +952,13 @@ export async function POST(request: NextRequest) {
         mini_blog: buildSectionBlog('offers', {}),
       };
 
-      // accommodation & rooms section
-      const accommodationBlock = {
+      // rooms section (room types, total rooms, starting price)
+      // Named 'rooms' to avoid conflict with 'accommodation' business-type parent category
+      const roomsBlock = {
         description: `Rooms and accommodation options at ${effectiveName}`,
         section_blog: buildSectionBlog('accommodation', {}),
         mini_blog: buildSectionBlog('accommodation', {}),
-        ...(Object.fromEntries(Object.entries(extractedAccomodation).filter(([k]) => !INTERNAL_KEYS.has(k)))),
+        ...(Object.fromEntries(Object.entries(extractedRooms).filter(([k]) => !INTERNAL_KEYS.has(k)))),
       };
 
       const genericFallbackBlock = {
@@ -974,7 +975,8 @@ export async function POST(request: NextRequest) {
         if (/facilit|ameniti|feature|service|equipment/.test(id)) return facilitiesBlock;
         if (/gastro|food|dining|menu|cuisine|kitchen|drink|beverage/.test(id)) return gastronomyBlock;
         if (/experi|activit|tour|safari|adventure|trip|outdoor|excurs/.test(id)) return experienceBlock;
-        if (/accommodat|room|stay|lodge|chalet|suite|bed/.test(id)) return accommodationBlock;
+        if (/room|stay|chalet|suite|bed|catalog|lodging/.test(id)) return roomsBlock;
+        if (/accommodat/.test(id)) return roomsBlock;
         if (/connect|contact|reach|enquir|social|phone|whatsapp/.test(id)) return connectorBlock;
         if (/testimon|review|rating|feedback|comment/.test(id)) return testimonialsBlock;
         if (/location|map|where|address|direction/.test(id)) return locationBlock;

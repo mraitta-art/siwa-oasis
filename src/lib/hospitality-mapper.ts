@@ -16,7 +16,7 @@ export interface ParsedHospitalityData {
   facilities: Record<string, any>;
   gastronomy: Record<string, any>;
   experience: Record<string, any>;
-  accommodation: Record<string, any>;
+  rooms: Record<string, any>;        // room_types, total_rooms, starting_price (renamed from 'accommodation' to avoid conflict with business type parent)
   testimonials: Record<string, any>;
   location: Record<string, any>;
   connector: Record<string, any>;
@@ -30,7 +30,7 @@ export function parseHospitalityRawText(rawText: string): ParsedHospitalityData 
     facilities: {},
     gastronomy: {},
     experience: {},
-    accommodation: {},
+    rooms: {},
     testimonials: {},
     location: {},
     connector: {},
@@ -40,7 +40,7 @@ export function parseHospitalityRawText(rawText: string): ParsedHospitalityData 
       'facilities',
       'gastronomy',
       'experience',
-      'accommodation',
+      'rooms',
       'testimonials',
       'location',
       'connector',
@@ -321,9 +321,9 @@ export function parseHospitalityRawText(rawText: string): ParsedHospitalityData 
     }
   }
   if (roomTypes.length > 0) {
-    result.accommodation.room_types = roomTypes;
-    result.accommodation.total_rooms = roomTypes.length;
-    result.accommodation.description = `Offering ${roomTypes.length} tailored lodging configurations constructed with centuries-old Kershef stone and palm wood craftsmanship.`;
+    result.rooms.room_types = roomTypes;
+    result.rooms.total_rooms = roomTypes.length;
+    result.rooms.description = `Offering ${roomTypes.length} tailored lodging configurations constructed with centuries-old Kershef stone and palm wood craftsmanship.`;
   }
 
   // ── 14. POLICIES & HOUSE RULES ──────────────────────────────────────────────

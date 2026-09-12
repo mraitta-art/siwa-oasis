@@ -112,7 +112,7 @@ export default function PasteImportPage() {
       rating: data.testimonials.rating || 9.3,
       reviews_count: data.testimonials.reviews_count || 600,
       pools_count: data.facilities.pools_count || 2,
-      room_types_count: (data.accommodation.room_types || []).length,
+      room_types_count: (data.rooms?.room_types || data.accommodation?.room_types || []).length,
       reviews_highlights_count: (data.testimonials.review_highlights || []).length,
       has_hot_spring: Boolean(data.facilities.hot_spring),
       has_restaurant: Boolean(data.gastronomy.restaurant_name),
@@ -137,7 +137,7 @@ export default function PasteImportPage() {
         rating: data.testimonials.rating || null,
         reviews_count: data.testimonials.reviews_count || 0,
         pools_count: data.facilities.pools_count || 0,
-        room_types_count: (data.accommodation.room_types || []).length,
+        room_types_count: (data.rooms?.room_types || data.accommodation?.room_types || []).length,
         reviews_highlights_count: (data.testimonials.review_highlights || []).length,
         has_hot_spring: Boolean(data.facilities.hot_spring),
         has_restaurant: Boolean(data.gastronomy.restaurant_name),
@@ -446,14 +446,14 @@ export default function PasteImportPage() {
                   </div>
                 </div>
 
-                {/* 4. Rooms / Accommodation */}
-                {parsedData.accommodation?.room_types?.length > 0 && (
+                {/* 4. Rooms / Room Configurations */}
+                {((parsedData.rooms?.room_types || parsedData.accommodation?.room_types) || []).length > 0 && (
                   <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1rem', border: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <i className="fas fa-bed" style={{ color: '#8b5cf6' }}></i> Rooms & Accommodation (accommodation)
+                      <i className="fas fa-bed" style={{ color: '#8b5cf6' }}></i> Rooms &amp; Suites (rooms)
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem' }}>
-                      {parsedData.accommodation.room_types.map((r: any, i: number) => (
+                      {(parsedData.rooms?.room_types || parsedData.accommodation?.room_types || []).map((r: any, i: number) => (
                         <div key={i} style={{ background: '#fff', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.72rem' }}>
                           <div style={{ fontWeight: 800, color: '#1e293b', marginBottom: '0.2rem' }}>{r.name}</div>
                           <div style={{ color: '#64748b' }}>{r.beds}</div>
