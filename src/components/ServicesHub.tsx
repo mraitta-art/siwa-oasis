@@ -41,8 +41,8 @@ const FALLBACK_PILLARS: ServicePillar[] = [
   },
   {
     id: 'adventure',
-    name: 'Adventure & Safari',
-    tagline: '4×4 sand sea expeditions, camel treks, and heritage walking tours.',
+    name: 'Travel & Adventure',
+    tagline: 'Travel agencies, 4×4 sand sea expeditions, camel treks, and tailored oasis tours.',
     icon: 'fa-compass',
     color: '#10b981',
     image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
