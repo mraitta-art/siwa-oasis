@@ -4,6 +4,7 @@ import { execute, queryOne } from '@/lib/db';
 import crypto from 'crypto';
 import { chatWithSourceAgent, enrichSourceWithAi, getConfiguredAiProviders, type SourceAgentChatMessage, type SourceAiProvider } from '@/lib/source-agent';
 import { parseHospitalityRawText } from '@/lib/hospitality-mapper';
+import { detectBusinessCategory } from '@/lib/category-detector';
 
 interface GooglePlaceData {
   name: string;
@@ -519,6 +520,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ providers: getConfiguredAiProviders() });
     }
 
+    if (action === 'detect_category') {
+      const { text = '', url = '' } = body;
+      const detected = detectBusinessCategory(text, url);
+      return NextResponse.json({ success: true, detected });
+    }
+
     if (action === 'chat') {
       const { messages, sourceCategory, sourceParentCategory, sourceUrl, adminConfirmed, aiProvider = 'built_in', draft } = body;
       const supportedProviders: SourceAiProvider[] = ['built_in', 'gemini', 'openai', 'claude', 'ollama', 'manus'];
@@ -549,35 +556,21 @@ export async function POST(request: NextRequest) {
     if (action === 'fetch') {
       let { urlOrQuery, sourceText, sourceMode = 'url', sourceCategory, sourceParentCategory, adminConfirmed = true, plan_approved = true, aiProvider = 'built_in' } = body;
 
-      // Auto-detect or resolve category if not supplied
+      // Smart Auto-detect or resolve category
+      const detected = detectBusinessCategory(sourceText || '', urlOrQuery || '');
       let resolvedCategory = String(sourceCategory || '').trim();
       let resolvedParentCategory = String(sourceParentCategory || '').trim();
 
       if (!resolvedCategory) {
-        const textToAnalyze = `${urlOrQuery || ''} ${sourceText || ''}`.toLowerCase();
-        if (/hotel|resort|lodge|camp|hostel|inn|guest house|guesthouse|villa|chalet|room|accommodation/i.test(textToAnalyze)) {
-          resolvedCategory = 'hotel';
-          resolvedParentCategory = 'accommodation';
-        } else if (/restaurant|cafe|coffee|dining|food|kitchen|bakery|grill/i.test(textToAnalyze)) {
-          resolvedCategory = 'restaurant';
-          resolvedParentCategory = 'food';
-        } else if (/safari|tour|adventure|quad|sandboard|desert/i.test(textToAnalyze)) {
-          resolvedCategory = 'desert_safari';
-          resolvedParentCategory = 'adventure';
-        } else if (/spa|wellness|bath|massage|healing/i.test(textToAnalyze)) {
-          resolvedCategory = 'hot_spring';
-          resolvedParentCategory = 'wellness';
-        } else {
-          resolvedCategory = 'hotel';
-          resolvedParentCategory = 'accommodation';
-        }
+        resolvedCategory = detected.childId;
+        resolvedParentCategory = detected.parentId;
       }
 
-      // Verify category in DB or fallback to 'hotel'
+      // Verify category in DB or fallback
       const categoryRow = await queryOne('SELECT id, name, is_parent, parent_id FROM business_types WHERE id = ?', [resolvedCategory]) as any;
       if (!categoryRow || categoryRow.is_parent) {
-        resolvedCategory = 'hotel';
-        resolvedParentCategory = 'accommodation';
+        resolvedCategory = detected.childId || 'hotel';
+        resolvedParentCategory = detected.parentId || 'accommodation';
       } else if (categoryRow.parent_id) {
         resolvedParentCategory = categoryRow.parent_id;
       }
@@ -605,7 +598,8 @@ export async function POST(request: NextRequest) {
             place,
             sourceType: 'text',
             category: resolvedCategory,
-            parentCategory: resolvedParentCategory
+            parentCategory: resolvedParentCategory,
+            detectedCategory: detected
           });
         } catch (e: any) {
           console.error('Text-source import failed:', e);
@@ -661,7 +655,8 @@ export async function POST(request: NextRequest) {
           place,
           sourceType: 'url',
           category: resolvedCategory,
-          parentCategory: resolvedParentCategory
+          parentCategory: resolvedParentCategory,
+          detectedCategory: detected
         });
       } catch (e: any) {
         console.error('Source import failed:', e);
