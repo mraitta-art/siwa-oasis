@@ -87,13 +87,34 @@ export async function GET(request: NextRequest) {
 
 // Helper to create URL-friendly slugs
 function slugify(text: string) {
-  return text
+  let s = text
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')     // Replace spaces with -
-    .replace(/[^\w-]+/g, '')  // Remove all non-word chars
-    .replace(/--+/g, '-');    // Replace multiple - with single -
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\u0621-\u064A-]+/g, '') // allow alphanumeric, dash, and Arabic characters
+    .replace(/--+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return s || `biz-${Date.now()}`;
+}
+
+// Helper to guarantee uniqueness in database
+async function generateUniqueSlug(text: string): Promise<string> {
+  const baseSlug = slugify(text);
+  let candidateSlug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const existing = await queryOne('SELECT id FROM businesses WHERE slug = ? LIMIT 1', [candidateSlug]);
+    if (!existing) {
+      break;
+    }
+    candidateSlug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return candidateSlug;
 }
 
 // POST create a new business
@@ -182,8 +203,8 @@ export async function POST(request: NextRequest) {
       vendor_id = anonProfile?.id || 'anonymous';
     }
 
-    // Generate Slug
-    const slug = slugify(name);
+    // Generate Guaranteed Unique Slug
+    const slug = await generateUniqueSlug(name);
 
     // ══════════════════════════════════════════════════════════════
     // TEMPLATE RESOLUTION CHAIN (minisite template inheritance):

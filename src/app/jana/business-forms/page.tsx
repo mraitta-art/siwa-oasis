@@ -78,6 +78,7 @@ export default function BusinessFormsPage() {
   const [newSectionName, setNewSectionName] = useState('');
   const [creatingSection, setCreatingSection] = useState(false);
   const [managerPurpose, setManagerPurpose] = useState('minisite');
+  const [selectedManagerSection, setSelectedManagerSection] = useState<string>('');
 
   useEffect(() => {
     fetchMetadata();
@@ -142,16 +143,21 @@ export default function BusinessFormsPage() {
     if (!targetId) {
       setManagerFields([]);
       setManagerSections([]);
+      setSelectedManagerSection('');
       return;
     }
     setManagerLoading(true);
     try {
       const [fieldsRes, sectionsRes] = await Promise.all([
-        fetch(businessId ? `/api/jana/forms?business=${businessId}` : `/api/jana/forms?type=${targetId}`),
-        fetch(`/api/jana/sections?type=${targetId}`)
+        fetch(businessId ? `/api/jana/forms?business=${encodeURIComponent(businessId)}` : `/api/jana/forms?type=${encodeURIComponent(targetId)}&source=database`),
+        fetch(`/api/jana/sections?type=${encodeURIComponent(targetId)}`)
       ]);
       if (fieldsRes.ok) setManagerFields(await fieldsRes.json());
-      if (sectionsRes.ok) setManagerSections(await sectionsRes.json());
+      if (sectionsRes.ok) {
+        const secs = await sectionsRes.json();
+        setManagerSections(secs);
+        if (secs.length > 0) setSelectedManagerSection(secs[0].id);
+      }
     } catch (e) {
       console.error('Error loading managed form:', e);
       notify('Failed to load the selected form', 'error');
@@ -258,14 +264,30 @@ export default function BusinessFormsPage() {
   }
 
   async function deleteManagedSection(section: any) {
-    if (!confirm(`Delete section "${section.name}" and its fields?`)) return;
-    const response = await fetch(`/api/jana/sections?id=${encodeURIComponent(section.id)}`, { method: 'DELETE' });
-    if (response.ok) {
-      notify('Section deleted', 'success');
-      loadManagedForm(selectedManagerTypeId);
-    } else {
-      const error = await response.json().catch(() => ({}));
-      notify(error.error || 'Unable to delete section', 'error');
+    const action = prompt(
+      `Delete Section "${section.name}" (${section.id})\n\nSelect an option:\n1 = Remove from this business type (${selectedManagerTypeId || 'current'})\n2 = Permanently DELETE section & ALL its fields across the system\n\nEnter 1 or 2:`,
+      '1'
+    );
+    if (!action) return;
+
+    if (action === '1' && selectedManagerTypeId) {
+      const response = await fetch(`/api/jana/sections?id=${encodeURIComponent(section.id)}&type_id=${encodeURIComponent(selectedManagerTypeId)}`, { method: 'DELETE' });
+      if (response.ok) {
+        notify(`Section "${section.name}" removed from business type`, 'success');
+        loadManagedForm(selectedManagerTypeId);
+      } else {
+        notify('Unable to remove section from business type', 'error');
+      }
+    } else if (action === '2' || !selectedManagerTypeId) {
+      if (!confirm(`⚠️ PERMANENT DELETE WARNING:\n\nAre you sure you want to permanently delete section "${section.name}" and ALL its fields from the entire system?`)) return;
+      const response = await fetch(`/api/jana/sections?id=${encodeURIComponent(section.id)}`, { method: 'DELETE' });
+      if (response.ok) {
+        notify(`Section "${section.name}" permanently deleted`, 'success');
+        loadManagedForm(selectedManagerTypeId);
+      } else {
+        const error = await response.json().catch(() => ({}));
+        notify(error.error || 'Unable to delete section', 'error');
+      }
     }
   }
 
@@ -653,7 +675,7 @@ export default function BusinessFormsPage() {
                     {selectedManagerBusiness && <p style={{ margin: '0.3rem 0 0', color: '#64748b', fontSize: '0.8rem' }}>Uses the {selectedManagerType?.name || selectedManagerBusiness.type_id} typology form.</p>}
                     <p style={{ margin: '0.3rem 0 0', color: '#64748b', fontSize: '0.8rem' }}>{selectedPurpose.description}</p>
                   </div>
-                  <button disabled={!selectedManagerTypeId} onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: managerSections[0]?.id || '', required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '9px', padding: '0.7rem 1rem', background: '#1e293b', color: '#fff', fontWeight: 800, cursor: selectedManagerTypeId ? 'pointer' : 'not-allowed', opacity: selectedManagerTypeId ? 1 : 0.5 }}><i className="fas fa-plus" style={{ marginRight: '0.4rem' }}></i>New field</button>
+                  <button disabled={!selectedManagerTypeId} onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: selectedManagerSection || managerSections[0]?.id || '', required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '9px', padding: '0.7rem 1rem', background: '#1e293b', color: '#fff', fontWeight: 800, cursor: selectedManagerTypeId ? 'pointer' : 'not-allowed', opacity: selectedManagerTypeId ? 1 : 0.5 }}><i className="fas fa-plus" style={{ marginRight: '0.4rem' }}></i>New field</button>
                 </div>
 
                 {!selectedManagerTypeId ? (
@@ -661,20 +683,108 @@ export default function BusinessFormsPage() {
                 ) : managerLoading ? (
                   <div style={{ padding: '4rem 1rem', textAlign: 'center', color: '#94a3b8' }}>Loading current form...</div>
                 ) : (
-                  <>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '1.25rem 0' }}>
-                      {visibleManagerSections.map(section => { const options = parseSectionOptions(section); const placements = options.placements || ['body']; return <span key={section.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.45rem 0.35rem 0.7rem', borderRadius: '7px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}><i className={`fas ${section.icon || 'fa-folder'}`} style={{ color: '#D4AF37' }}></i>{section.name}<button onClick={() => updateSectionPolicy(section, { purposes: Array.from(new Set([...(options.purposes || []), managerPurpose])) })} title="Include in this purpose" style={{ border: 0, background: 'transparent', color: '#64748b', cursor: 'pointer', padding: '0.15rem' }}><i className="fas fa-link"></i></button><button onClick={() => togglePlacement(section, 'body')} title="Toggle minisite body" style={{ border: 0, background: placements.includes('body') ? '#dcfce7' : 'transparent', color: '#166534', cursor: 'pointer', padding: '0.15rem' }}><i className="fas fa-window-maximize"></i></button><button onClick={() => togglePlacement(section, 'carousel')} title="Toggle carousel" style={{ border: 0, background: placements.includes('carousel') ? '#fef3c7' : 'transparent', color: '#92400e', cursor: 'pointer', padding: '0.15rem' }}><i className="fas fa-images"></i></button><button onClick={() => togglePlacement(section, 'blog')} title="Toggle section blog" style={{ border: 0, background: placements.includes('blog') ? '#dbeafe' : 'transparent', color: '#1e40af', cursor: 'pointer', padding: '0.15rem' }}><i className="fas fa-blog"></i></button><button onClick={() => renameManagedSection(section)} title="Rename section" style={{ border: 0, background: 'transparent', color: '#64748b', cursor: 'pointer', padding: '0.15rem' }}><i className="fas fa-pen"></i></button><button onClick={() => deleteManagedSection(section)} title="Delete section" style={{ border: 0, background: 'transparent', color: '#e11d48', cursor: 'pointer', padding: '0.15rem' }}><i className="fas fa-trash"></i></button></span>; })}
-                      {visibleManagerSections.length === 0 && <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>No sections assigned to this purpose yet.</span>}
+                  <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem', marginTop: '1.25rem', alignItems: 'start' }}>
+
+                    {/* ── LEFT: Clickable section list ── */}
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.6rem' }}>Sections</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1rem' }}>
+                        {visibleManagerSections.length === 0 && (
+                          <div style={{ color: '#94a3b8', fontSize: '0.8rem', padding: '1rem', border: '1px dashed #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>No sections yet.</div>
+                        )}
+                        {visibleManagerSections.map(section => {
+                          const opts = parseSectionOptions(section);
+                          const placements = opts.placements || ['body'];
+                          const fieldCount = managerFields.filter(f => f.section_id === section.id).length;
+                          const isActive = selectedManagerSection === section.id;
+                          return (
+                            <div
+                              key={section.id}
+                              onClick={() => setSelectedManagerSection(section.id)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.65rem 0.85rem', borderRadius: '10px', cursor: 'pointer',
+                                background: isActive ? '#fffbeb' : '#fafafa',
+                                border: isActive ? '1.5px solid #D4AF37' : '1px solid #f1f5f9',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              <i className={`fas ${section.icon || 'fa-folder'}`} style={{ color: isActive ? '#D4AF37' : '#94a3b8', fontSize: '0.85rem', flexShrink: 0 }}></i>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isActive ? '#0f172a' : '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{section.name}</div>
+                                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{fieldCount} field{fieldCount !== 1 ? 's' : ''}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                                <button onClick={() => updateSectionPolicy(section, { purposes: Array.from(new Set([...(opts.purposes || []), managerPurpose])) })} title="Include in this purpose" style={{ border: 0, background: 'transparent', color: '#64748b', cursor: 'pointer', padding: '0.2rem', fontSize: '0.65rem' }}><i className="fas fa-link"></i></button>
+                                <button onClick={() => togglePlacement(section, 'body')} title="Toggle minisite body" style={{ border: 0, background: placements.includes('body') ? '#dcfce7' : 'transparent', color: '#166534', cursor: 'pointer', padding: '0.2rem', fontSize: '0.65rem', borderRadius: '4px' }}><i className="fas fa-window-maximize"></i></button>
+                                <button onClick={() => renameManagedSection(section)} title="Rename" style={{ border: 0, background: 'transparent', color: '#64748b', cursor: 'pointer', padding: '0.2rem', fontSize: '0.65rem' }}><i className="fas fa-pen"></i></button>
+                                <button onClick={() => deleteManagedSection(section)} title="Delete section" style={{ border: 0, background: 'transparent', color: '#e11d48', cursor: 'pointer', padding: '0.2rem', fontSize: '0.65rem' }}><i className="fas fa-trash"></i></button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <input value={newSectionName} onChange={e => setNewSectionName(e.target.value)} placeholder="New section name…" style={{ padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem' }} />
+                        <button disabled={creatingSection || !newSectionName.trim()} onClick={createManagedSection} style={{ border: 0, borderRadius: '8px', padding: '0.6rem', background: '#f1f5f9', color: '#334155', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>{creatingSection ? 'Creating…' : '+ Add section'}</button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                      <input value={newSectionName} onChange={e => setNewSectionName(e.target.value)} placeholder="New section name" style={{ flex: 1, padding: '0.7rem 0.8rem', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
-                      <button disabled={creatingSection || !newSectionName.trim()} onClick={createManagedSection} style={{ border: 0, borderRadius: '8px', padding: '0.7rem 1rem', background: '#f1f5f9', color: '#334155', fontWeight: 800, cursor: 'pointer' }}>{creatingSection ? 'Creating...' : 'Add section'}</button>
+
+                    {/* ── RIGHT: Fields for the selected section ── */}
+                    <div>
+                      {!selectedManagerSection ? (
+                        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: '12px' }}>
+                          <i className="fas fa-hand-pointer" style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'block' }}></i>
+                          Click a section on the left to see and manage its fields.
+                        </div>
+                      ) : (() => {
+                        const activeSection = visibleManagerSections.find(s => s.id === selectedManagerSection);
+                        const sectionFields = managerFields.filter(f => f.section_id === selectedManagerSection);
+                        return (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                              <div>
+                                <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>
+                                  <i className={`fas ${activeSection?.icon || 'fa-folder'}`} style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>
+                                  {activeSection?.name || selectedManagerSection}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{sectionFields.length} field{sectionFields.length !== 1 ? 's' : ''} in this section</div>
+                              </div>
+                              <button onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: selectedManagerSection, required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '8px', padding: '0.55rem 0.9rem', background: '#D4AF37', color: '#1a1000', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}>
+                                <i className="fas fa-plus" style={{ marginRight: '0.4rem' }}></i>Add field to this section
+                              </button>
+                            </div>
+                            {sectionFields.length === 0 ? (
+                              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94a3b8', border: '1px dashed #cbd5e1', borderRadius: '10px', fontSize: '0.85rem' }}>
+                                No fields yet in <strong>{activeSection?.name}</strong>. Click "Add field to this section" to create the first one.
+                              </div>
+                            ) : (
+                              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                {sectionFields.map(field => (
+                                  <div key={field.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.85rem 1rem', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#fafafa' }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <strong style={{ color: '#1e293b', fontSize: '0.88rem' }}>{field.label || field.name}</strong>
+                                      <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.15rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                        <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>{field.field_type}</span>
+                                        <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>{field.source_level || field.override_level || 'own'}</span>
+                                        {field.required && <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>required</span>}
+                                        {field.vendor_editable && <span style={{ background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>vendor editable</span>}
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                                      <button onClick={() => setEditingField(field)} style={{ border: 0, background: '#f1f5f9', color: '#334155', padding: '0.45rem 0.6rem', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem' }}><i className="fas fa-pen"></i></button>
+                                      <button onClick={() => deleteManagedField(field)} style={{ border: 0, background: '#fff1f2', color: '#e11d48', padding: '0.45rem 0.6rem', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem' }}><i className="fas fa-trash"></i></button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
-                    <div style={{ display: 'grid', gap: '0.6rem' }}>
-                      {managerFields.filter(field => visibleManagerSections.some(section => section.id === field.section_id)).map(field => <div key={field.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.9rem 1rem', border: '1px solid #e2e8f0', borderRadius: '10px' }}><div><strong style={{ color: '#1e293b' }}>{field.label || field.name}</strong><div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.2rem' }}>{visibleManagerSections.find(section => section.id === field.section_id)?.name || field.section_id} · {field.field_type} · {field.source_level || field.override_level || 'own'}</div></div><div style={{ display: 'flex', gap: '0.4rem' }}><button onClick={() => setEditingField(field)} title="Edit field" style={{ border: 0, background: '#f1f5f9', color: '#334155', padding: '0.5rem 0.65rem', borderRadius: '7px', cursor: 'pointer' }}><i className="fas fa-pen"></i></button><button onClick={() => deleteManagedField(field)} title="Delete field" style={{ border: 0, background: '#fff1f2', color: '#e11d48', padding: '0.5rem 0.65rem', borderRadius: '7px', cursor: 'pointer' }}><i className="fas fa-trash"></i></button></div></div>)}
-                      {managerFields.filter(field => visibleManagerSections.some(section => section.id === field.section_id)).length === 0 && <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', border: '1px dashed #cbd5e1', borderRadius: '10px' }}>No fields in this form purpose yet.</div>}
-                    </div>
-                  </>
+
+                  </div>
                 )}
               </div>
 
@@ -685,6 +795,8 @@ export default function BusinessFormsPage() {
                   <input value={editingField.name || ''} onChange={e => setEditingField({ ...editingField, name: e.target.value })} placeholder="Field name (optional)" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
                   <select value={editingField.field_type || 'text'} onChange={e => setEditingField({ ...editingField, field_type: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="text">Text</option><option value="textarea">Textarea</option><option value="number">Number</option><option value="select">Select</option><option value="checkbox">Checkbox</option><option value="rich_text">Rich text</option></select>
                   <select value={editingField.section_id || ''} onChange={e => setEditingField({ ...editingField, section_id: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="">Select section</option>{managerSections.map(section => <option key={section.id} value={section.id}>{section.name}</option>)}</select>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.required} onChange={e => setEditingField({ ...editingField, required: e.target.checked })} /> Required</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.vendor_editable} onChange={e => setEditingField({ ...editingField, vendor_editable: e.target.checked })} /> Vendor editable</label>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}><button onClick={() => setEditingField(null)} style={{ border: 0, background: 'transparent', padding: '0.6rem 0.9rem', cursor: 'pointer' }}>Cancel</button><button onClick={saveManagedField} style={{ border: 0, borderRadius: '8px', background: '#1e293b', color: '#fff', padding: '0.6rem 1rem', fontWeight: 800, cursor: 'pointer' }}>Save field</button></div>
               </div>}

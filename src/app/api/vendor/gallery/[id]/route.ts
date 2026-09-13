@@ -1,5 +1,6 @@
-import { db } from '@/lib/db';
+import { db, queryOne } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { destroyFromCloudinary } from '@/lib/media-storage';
 
 export async function PATCH(
   request: Request,
@@ -89,13 +90,24 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Delete image
-    const query = `
-      DELETE FROM vendor_gallery
-      WHERE id = ? AND vendor_id = ?
-    `;
+    // Fetch Cloudinary info before deleting so we can clean up cloud storage
+    try {
+      const item = await queryOne(
+        `SELECT cloudinary_public_id, resource_type FROM vendor_gallery WHERE id = ? AND vendor_id = ? LIMIT 1`,
+        [id, user.id]
+      );
+      if (item?.cloudinary_public_id) {
+        await destroyFromCloudinary(
+          item.cloudinary_public_id,
+          (item.resource_type as 'image' | 'video' | 'raw') || 'image'
+        );
+      }
+    } catch (_) { /* ignore if columns don't exist yet */ }
 
-    await db.query(query, [id, user.id]);
+    await db.query(
+      `DELETE FROM vendor_gallery WHERE id = ? AND vendor_id = ?`,
+      [id, user.id]
+    );
 
     return Response.json({ success: true });
   } catch (error) {
@@ -103,3 +115,4 @@ export async function DELETE(
     return Response.json({ error: 'Failed to delete' }, { status: 500 });
   }
 }
+

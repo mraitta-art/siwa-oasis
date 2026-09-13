@@ -70,8 +70,23 @@ export default function BusinessEditPage() {
 
       const sRes = await fetch('/api/jana/sections');
       const allSections = await sRes.json();
-      const uniqueSectionIds = Array.from(new Set(schema.map((f: any) => f.section_id)));
-      const filteredSections = allSections.filter((s: any) => uniqueSectionIds.includes(s.id));
+
+      const typeSections = [
+        ...(typeof typeInfo.sections === 'string' ? JSON.parse(typeInfo.sections || '[]') : typeInfo.sections || []),
+        ...(typeof typeInfo.own_sections === 'string' ? JSON.parse(typeInfo.own_sections || '[]') : typeInfo.own_sections || [])
+      ];
+
+      const schemaSections = schema.map((f: any) => f.section_id);
+      const combinedTargetIds = Array.from(new Set([...typeSections, ...schemaSections]));
+
+      let filteredSections = allSections.filter((s: any) =>
+        combinedTargetIds.length > 0 ? combinedTargetIds.includes(s.id) : true
+      );
+
+      if (filteredSections.length === 0) {
+        filteredSections = allSections;
+      }
+
       setSections(filteredSections);
       if (filteredSections.length > 0) setActiveTab(filteredSections[0].id);
 

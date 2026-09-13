@@ -250,6 +250,15 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
           [biz.id]
         );
 
+        // Fetch active tour products / packages for travel operators & marketplace catalog
+        let tourProducts: any[] = [];
+        try {
+          tourProducts = await safeQuery<any>(
+            `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
+            [biz.id]
+          );
+        } catch {}
+
         sections = rows.map((s: any) => {
           const sFields = fieldDefs.filter((f: any) => f.section_id === s.id).map((f: any) => ({
             ...f,
@@ -257,6 +266,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
           }));
           const sGallery = galleryItems.filter((g: any) => g.section_id === s.id);
           const sBlogs = blogPosts.filter((b: any) => b.section_id === s.id);
+          const sTours = (s.id === 'sec_9_marketplace_catalog' || s.id === 'offers-packages' || s.id === 'package' || s.id === 'catalog') ? tourProducts : [];
 
           // Resolve Typology-Level Overrides for this specific business typology (biz.type_id)
           const rules = (() => {
@@ -289,7 +299,8 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
             cta_phone_override: resolvedCtaPhone,
             fields: sFields,
             gallery: sGallery,
-            blogs: sBlogs
+            blogs: sBlogs,
+            tourProducts: sTours
           };
         });
       }

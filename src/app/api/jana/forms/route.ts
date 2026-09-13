@@ -246,8 +246,9 @@ export async function GET(request: NextRequest) {
           if (section) {
             fieldsList = fieldsList.filter(f => f.section_id === section);
           }
-          fieldsList.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-          return NextResponse.json(fieldsList);
+          if (fieldsList.length > 0) {
+            return NextResponse.json(fieldsList);
+          }
         }
       }
 

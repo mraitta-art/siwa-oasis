@@ -93,7 +93,8 @@ export default function GoogleImportWizard() {
   // Duplicate check
   const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
   
-  // Collapsible AI Assistant Drawer
+  // Collapsible AI Assistant Drawer & Preview Modal
+  const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [aiProvider, setAiProvider] = useState('built_in');
   const [configuredProviders, setConfiguredProviders] = useState<Record<string, boolean>>({ built_in: true });
@@ -533,9 +534,52 @@ export default function GoogleImportWizard() {
                   cursor: 'pointer',
                 }}
               >
-                📄 Raw Text / Brochure / WhatsApp
+                📄 Raw Text / Brochure / Booking.com
               </button>
             </div>
+          </div>
+
+          {/* ── MULTI-AI ENGINE SELECTOR BAR ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.2rem', flexWrap: 'wrap', background: '#0f172a', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginRight: '0.2rem' }}>
+              <i className="fas fa-brain" style={{ color: '#38bdf8' }}></i> Select AI Engine:
+            </span>
+            {[
+              { id: 'built_in', label: 'Built-in Extractor (Instant)', icon: '⚡' },
+              { id: 'gemini', label: 'Google Gemini 2.0', icon: '✨' },
+              { id: 'openai', label: 'OpenAI GPT-4o', icon: '🤖' },
+              { id: 'claude', label: 'Anthropic Claude 3.5', icon: '🧠' },
+              { id: 'ollama', label: 'Ollama Local (Offline)', icon: '🦙' },
+            ].map(provider => {
+              const isSelected = aiProvider === provider.id;
+              const isConfigured = configuredProviders[provider.id] !== false;
+              return (
+                <button
+                  key={provider.id}
+                  type="button"
+                  onClick={() => setAiProvider(provider.id)}
+                  style={{
+                    background: isSelected ? '#D4AF37' : 'rgba(255,255,255,0.05)',
+                    color: isSelected ? '#0f172a' : '#e2e8f0',
+                    border: isSelected ? '1px solid #D4AF37' : '1px solid rgba(255,255,255,0.1)',
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    opacity: isSelected ? 1 : isConfigured ? 0.9 : 0.6,
+                  }}
+                >
+                  <span>{provider.icon}</span>
+                  <span>{provider.label}</span>
+                  {isSelected && <i className="fas fa-check" style={{ fontSize: '0.7rem', marginLeft: '0.2rem' }}></i>}
+                </button>
+              );
+            })}
           </div>
 
           {/* Input Area */}
@@ -1092,6 +1136,35 @@ export default function GoogleImportWizard() {
                 </div>
               </div>
             )}
+            {/* ── EXTRACTED SECTIONS SUMMARY INSPECTOR ── */}
+            {placeData.aiDraft?.sections && (
+              <div style={{ marginBottom: '1.8rem', background: '#0f172a', borderRadius: '12px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ color: '#10b981', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', marginBottom: '0.75rem' }}>
+                  📊 ORGANIZED SECTION DATA PAYLOAD ({Object.keys(placeData.aiDraft.sections).length} Data Blocks Extracted)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                  {Object.entries(placeData.aiDraft.sections).map(([secKey, secVal]: [string, any]) => {
+                    const fieldKeys = Object.keys(secVal || {});
+                    if (fieldKeys.length === 0) return null;
+                    return (
+                      <div key={secKey} style={{ background: '#1e293b', borderRadius: '8px', padding: '0.85rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#D4AF37' }}>{secKey.replace(/^sec_\d+_/, '').toUpperCase()}</span>
+                          <span style={{ fontSize: '0.65rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>{fieldKeys.length} fields</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', maxHeight: '120px', overflowY: 'auto', background: '#0f172a', padding: '0.5rem', borderRadius: '6px', fontFamily: 'monospace' }}>
+                          {fieldKeys.map(k => (
+                            <div key={k} style={{ marginBottom: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <span style={{ color: '#38bdf8' }}>{k}:</span> {typeof secVal[k] === 'object' ? JSON.stringify(secVal[k]) : String(secVal[k])}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Optional Policy & Contributor Attribution */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.8rem' }}>
@@ -1139,7 +1212,26 @@ export default function GoogleImportWizard() {
                 🔍 Check Duplicates
               </button>
 
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowLivePreviewModal(true)}
+                  style={{
+                    background: 'rgba(56,189,248,0.15)',
+                    color: '#38bdf8',
+                    border: '1px solid rgba(56,189,248,0.4)',
+                    padding: '0.85rem 1.4rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  👁️ Live Minisite Preview
+                </button>
                 <button
                   onClick={() => handleImport(false)}
                   disabled={saving}
@@ -1294,6 +1386,134 @@ export default function GoogleImportWizard() {
               >
                 {chatLoading ? '...' : 'Send'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── LIVE MINISITE PREVIEW MODAL ── */}
+        {showLivePreviewModal && placeData && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)',
+            zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1.5rem'
+          }}>
+            <div style={{
+              background: '#0f172a', border: '1px solid rgba(212,175,55,0.3)',
+              borderRadius: '20px', width: '100%', maxWidth: '900px', maxHeight: '90vh',
+              overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+              position: 'relative', color: '#fff'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                position: 'sticky', top: 0, background: '#1e293b', padding: '1.2rem 1.8rem',
+                borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex',
+                justifyContent: 'space-between', alignItems: 'center', zIndex: 10
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px', textTransform: 'uppercase' }}>Minisite Live Preview</span>
+                  <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.3rem', fontWeight: 900 }}>{placeData.name}</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLivePreviewModal(false)}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '1.2rem', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Minisite Live Body Preview */}
+              <div style={{ padding: '1.8rem' }}>
+                {/* Hero Photo Banner */}
+                {selectedPhotos.length > 0 && (
+                  <div style={{ borderRadius: '16px', overflow: 'hidden', height: '260px', marginBottom: '1.5rem', position: 'relative' }}>
+                    <img
+                      src={selectedPhotos[heroPhotoIndex] || selectedPhotos[0]}
+                      alt={placeData.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.9), transparent)', padding: '1.5rem' }}>
+                      <span style={{ background: '#D4AF37', color: '#0f172a', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase' }}>
+                        {selectedTypeId || 'Hotel'}
+                      </span>
+                      <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', margin: '0.4rem 0 0' }}>{placeData.name}</h2>
+                      <p style={{ color: '#cbd5e1', margin: '0.2rem 0 0', fontSize: '0.85rem' }}>📍 {placeData.address}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rating & Contact Bar */}
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem', background: '#1e293b', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {placeData.rating > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ background: '#FFB700', color: '#0f172a', fontWeight: 900, padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.9rem' }}>★ {placeData.rating}</span>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Guest Rating</span>
+                    </div>
+                  )}
+                  {placeData.phone && (
+                    <div style={{ fontSize: '0.85rem', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      📞 <strong>{placeData.phone}</strong>
+                    </div>
+                  )}
+                  {placeData.website && (
+                    <div style={{ fontSize: '0.85rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      🌐 <a href={placeData.website} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Official Link</a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Facilities List Preview */}
+                {customFacilities.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ color: '#D4AF37', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.6rem' }}>Facilities &amp; Amenities</h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {customFacilities.map((fac, idx) => (
+                        <span key={idx} style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}>
+                          ✓ {fac}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rooms Catalog Preview */}
+                {customRoomTypes.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ color: '#D4AF37', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.6rem' }}>Rooms &amp; Lodging Inventory</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                      {customRoomTypes.map((rm, idx) => (
+                        <div key={idx} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0.85rem' }}>
+                          <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem' }}>{rm.name}</div>
+                          <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.2rem' }}>🛏️ {rm.beds}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* All Extracted Section Payload */}
+                {placeData.aiDraft?.sections && (
+                  <div>
+                    <h4 style={{ color: '#D4AF37', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.6rem' }}>Organized Minisite Sections</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '0.75rem' }}>
+                      {Object.entries(placeData.aiDraft.sections).map(([secK, secV]: [string, any]) => {
+                        if (!secV || Object.keys(secV).length === 0) return null;
+                        return (
+                          <div key={secK} style={{ background: '#1e293b', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.8rem', marginBottom: '0.3rem' }}>{secK.replace(/^sec_\d+_/, '').toUpperCase()}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', maxHeight: '100px', overflowY: 'auto' }}>
+                              {Object.entries(secV).map(([k, v]) => (
+                                <div key={k}><strong>{k}:</strong> {typeof v === 'object' ? JSON.stringify(v) : String(v)}</div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

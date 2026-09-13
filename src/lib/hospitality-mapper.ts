@@ -304,7 +304,7 @@ export function parseHospitalityRawText(rawText: string): ParsedHospitalityData 
   result.experience.description = 'Curated oasis journeys from therapeutic natural spring immersions to guided historical expeditions through the ancient landmarks of Siwa.';
 
   // ── 13. ACCOMMODATION / ROOM CONFIGURATIONS ─────────────────────────────────
-  const roomTypes = [];
+  const roomTypes: Array<{ name: string; beds: string; features: string }> = [];
   const roomMatches = rawText.matchAll(/(?:\[([A-Za-z0-9\s\-]+(?:Room|Suite|Chalet|Dormitory|Villa|Tent|Lodge)[A-Za-z0-9\s\-]*)\]|([A-Za-z0-9\s\-]+(?:Room|Suite|Chalet|Dormitory|Villa|Tent|Lodge)[A-Za-z0-9\s\-]*)\s*(?:1 queen|2 twin|king bed|sleeps [0-9]))/gi);
   for (const rm of roomMatches) {
     const rName = (rm[1] || rm[2] || '').trim();
@@ -347,3 +347,87 @@ export function parseHospitalityRawText(rawText: string): ParsedHospitalityData 
 
   return result;
 }
+
+export function hospitalityDataTo10Sections(parsed: ParsedHospitalityData): Record<string, Record<string, unknown>> {
+  return {
+    sec_1_identity: {
+      name: parsed.basic.name || '',
+      display_name: parsed.basic.name || '',
+      business_name: parsed.basic.name || '',
+      address: parsed.basic.address || parsed.location?.address || 'Siwa Oasis, Egypt',
+      city: parsed.basic.city || 'Siwa',
+      country: parsed.basic.country || 'Egypt',
+      manager_name: parsed.basic.manager_name || '',
+      languages_spoken: parsed.basic.languages_spoken || ['Arabic', 'English'],
+      checkin_time: parsed.basic.checkin_time || 'Available 24 hours',
+      checkout_time: parsed.basic.checkout_time || 'Available 24 hours',
+      quiet_hours: parsed.basic.quiet_hours || '',
+      description: parsed.basic.description || '',
+      booking_url: parsed.basic.booking_url || '',
+      phone: parsed.connector?.phone || parsed.basic.phone || '',
+      website: parsed.connector?.website || parsed.basic.booking_url || '',
+      rating: parsed.testimonials.rating || 0,
+    },
+    sec_2_ambience: {
+      vibe: parsed.vibe.vibe || 'Authentic Siwan Eco Sanctuary',
+      architecture: parsed.vibe.architecture || 'Traditional Kershef & Palm Wood',
+      atmosphere: parsed.vibe.atmosphere || 'Serene Desert Oasis Atmosphere',
+      atmosphere_tags: parsed.vibe.atmosphere_tags || [],
+      best_for: parsed.vibe.best_for || [],
+      unique_selling_point: parsed.vibe.unique_selling_point || '',
+      description: parsed.vibe.description || parsed.basic.description || '',
+    },
+    sec_3_facilities: {
+      ...parsed.facilities,
+      facilities_list: parsed.facilities.facilities_list || [],
+      pools_count: parsed.facilities.pools_count || 0,
+      hot_spring: Boolean(parsed.facilities.hot_spring),
+      wifi: Boolean(parsed.facilities.wifi),
+      parking: parsed.facilities.parking || '',
+      air_conditioning: Boolean(parsed.facilities.air_conditioning),
+      room_service: Boolean(parsed.facilities.room_service),
+      pet_friendly: Boolean(parsed.facilities.pet_friendly),
+    },
+    sec_4_gastronomy: {
+      ...parsed.gastronomy,
+      restaurant_name: parsed.gastronomy.restaurant_name || '',
+      cuisine_type: parsed.gastronomy.cuisine_type || [],
+      meal_types: parsed.gastronomy.meal_types || [],
+      dietary_options: parsed.gastronomy.dietary_options || [],
+    },
+    sec_5_experiences: {
+      ...parsed.experience,
+      activities: parsed.experience.activities || [],
+      tours: parsed.experience.tours || [],
+    },
+    sec_6_guardian: {
+      verification_status: 'ready_for_review',
+      imported_via: parsed.testimonials.source || 'Paste Importer',
+      imported_at: new Date().toISOString(),
+    },
+    sec_7_investment: {},
+    sec_8_connector: {
+      ...parsed.connector,
+      booking_url: parsed.connector?.booking_url || parsed.basic.booking_url || '',
+      phone: parsed.connector?.phone || parsed.basic.phone || '',
+      contact_phone: parsed.connector?.phone || parsed.basic.phone || '',
+      whatsapp: parsed.connector?.phone || parsed.basic.phone || '',
+    },
+    sec_9_marketplace_catalog: {
+      room_types: parsed.rooms.room_types || [],
+      total_rooms: parsed.rooms.total_rooms || (parsed.rooms.room_types || []).length,
+      description: parsed.rooms.description || '',
+    },
+    sec_10_testimonials_faqs: {
+      ...parsed.testimonials,
+      reviews: (parsed.testimonials.review_highlights || []).map((r: any) => ({
+        author_name: r.author || 'Guest',
+        text: r.text,
+        rating: 5,
+        country: r.country,
+      })),
+      review_highlights: parsed.testimonials.review_highlights || [],
+    },
+  };
+}
+

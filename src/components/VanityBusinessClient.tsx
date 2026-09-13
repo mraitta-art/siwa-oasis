@@ -87,8 +87,17 @@ export default function VanityBusinessClient({
   // Sync active tab when sections change or on mount
   useEffect(() => {
     if (sections && sections.length > 0) {
-      // Check for hash link first
-      const hash = window.location.hash.replace('#', '');
+      const sectionAliases: Record<string, string> = {
+        'packages': 'sec_9_marketplace_catalog',
+        'catalog': 'sec_9_marketplace_catalog',
+        'tours': 'sec_5_experiences',
+        'experiences': 'sec_5_experiences',
+        'overview': 'sec_1_identity',
+        'vibe': 'sec_2_ambience'
+      };
+      
+      const rawHash = window.location.hash.replace('#', '');
+      const hash = sectionAliases[rawHash] || rawHash;
       const hasMatchingSection = sections.some(s => s.id === hash);
       
       if (hasMatchingSection) {
@@ -100,7 +109,16 @@ export default function VanityBusinessClient({
 
     // Listen for hash changes (for carousel jumps)
     const handleHash = () => {
-      const h = window.location.hash.replace('#', '');
+      const sectionAliases: Record<string, string> = {
+        'packages': 'sec_9_marketplace_catalog',
+        'catalog': 'sec_9_marketplace_catalog',
+        'tours': 'sec_5_experiences',
+        'experiences': 'sec_5_experiences',
+        'overview': 'sec_1_identity',
+        'vibe': 'sec_2_ambience'
+      };
+      const rawH = window.location.hash.replace('#', '');
+      const h = sectionAliases[rawH] || rawH;
       if (sections.some(s => s.id === h)) setActiveTab(h);
     };
     window.addEventListener('hashchange', handleHash);
@@ -164,6 +182,8 @@ export default function VanityBusinessClient({
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
   const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;
+  const logoSize = identity.logo_size || data.logo_size || data.basic?.logo_size || 'lg';
+  const logoPosition = identity.logo_position || data.logo_position || data.basic?.logo_position || 'left';
   const dynamicInstagram = identity.instagram_handle || data.instagram_handle || '';
   const dynamicFacebook = identity.facebook_link || data.facebook_link || '';
   const dynamicTiktok = identity.tiktok_handle || data.tiktok_handle || '';
@@ -242,7 +262,9 @@ export default function VanityBusinessClient({
       )}
       <AutomatedMinisiteHero 
         businessName={biz.name}
-        businessLogo={biz.tier_features?.allow_custom_logo ? dynamicLogo : undefined}
+        businessLogo={biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined)}
+        logoSize={logoSize}
+        logoPosition={logoPosition}
         activeSections={activeSections}
         customData={data}
         curationData={curation}
@@ -252,6 +274,22 @@ export default function VanityBusinessClient({
           allow_youtube_story: biz.tier_features?.allow_youtube_story 
         }}
         settings={liveSettings || siteSettings || {}}
+        onSectionNavigate={(sectionId) => {
+          const sectionAliases: Record<string, string> = {
+            'packages': 'sec_9_marketplace_catalog',
+            'catalog': 'sec_9_marketplace_catalog',
+            'tours': 'sec_5_experiences',
+            'experiences': 'sec_5_experiences',
+            'overview': 'sec_1_identity',
+            'vibe': 'sec_2_ambience'
+          };
+          const target = sectionAliases[sectionId] || sectionId;
+          setActiveTab(target);
+          const navEl = document.querySelector('nav');
+          if (navEl) {
+            navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }}
       />
 
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
@@ -411,9 +449,10 @@ export default function VanityBusinessClient({
               // Core DB-backed assets
               const dbBlog = Array.isArray(section.blogs) && section.blogs.length > 0 ? section.blogs[0] : null;
               const dbGallery = Array.isArray(section.gallery) ? section.gallery : null;
+              const hasTours = Array.isArray(section.tourProducts) && section.tourProducts.length > 0;
 
               // Hide completely empty sections from public view
-              const hasContent = secData || sectionComponentInstances.length > 0 || dbBlog || (dbGallery && dbGallery.length > 0);
+              const hasContent = secData || sectionComponentInstances.length > 0 || dbBlog || (dbGallery && dbGallery.length > 0) || hasTours;
               if (!hasContent) return null;
 
               // Filter gallery items by placement
@@ -689,6 +728,79 @@ export default function VanityBusinessClient({
                             <DynamicComponentRenderer component={component} />
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* TOUR PRODUCTS & PACKAGES CATALOG GRID */}
+                    {Array.isArray(section.tourProducts) && section.tourProducts.length > 0 && (
+                      <div style={{ marginTop: '2.5rem', marginBottom: '3rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#1e293b' }}>
+                              <i className="fas fa-cubes" style={{ color: '#D4AF37', marginRight: '0.6rem' }} />
+                              Featured Packages & Expeditions
+                            </h3>
+                            <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
+                              Browse curated tour packages, group safaris, and custom itineraries.
+                            </div>
+                          </div>
+                          <Link href="/journey-builder-advanced" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.25rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', color: '#1e293b', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
+                            <i className="fas fa-sliders-h" style={{ color: '#D4AF37' }} /> Custom Journey Builder →
+                          </Link>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.5rem' }}>
+                          {section.tourProducts.map((tour: any) => {
+                            const highlights = (() => {
+                              try {
+                                return typeof tour.highlights === 'string' ? JSON.parse(tour.highlights) : tour.highlights || [];
+                              } catch {
+                                return [];
+                              }
+                            })();
+
+                            return (
+                              <div key={tour.id} style={{ background: '#fff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s' }}>
+                                <div style={{ height: '190px', position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
+                                  <img src={tour.image_url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62'} alt={tour.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', color: '#fbbf24', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 900, border: '1px solid rgba(251,191,36,0.3)' }}>
+                                    ⏱️ {tour.duration_days} Days / {tour.duration_hours || 8}h
+                                  </div>
+                                </div>
+
+                                <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                  <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{tour.name}</h4>
+                                  <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>
+                                    {tour.description ? (tour.description.length > 120 ? tour.description.substring(0, 120) + '...' : tour.description) : 'Experience authentic Siwa Oasis with expert guides.'}
+                                  </p>
+
+                                  {Array.isArray(highlights) && highlights.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1.25rem' }}>
+                                      {highlights.slice(0, 3).map((h: string, idx: number) => (
+                                        <span key={idx} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: '#f1f5f9', color: '#334155' }}>
+                                          ✦ {h}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.5px' }}>STARTING FROM</div>
+                                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e293b' }}>
+                                        ${tour.base_price_usd} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ pax</span>
+                                      </div>
+                                    </div>
+
+                                    <Link href={`/journey-builder-advanced?preset=${encodeURIComponent(tour.name)}`} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#1a1000', borderRadius: '12px', fontWeight: 900, fontSize: '0.78rem', textDecoration: 'none', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
+                                      Inquire Package →
+                                    </Link>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 

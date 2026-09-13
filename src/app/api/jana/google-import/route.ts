@@ -486,7 +486,7 @@ async function extractGenericSourceData(link: string): Promise<GooglePlaceData> 
         sec_6_guardian: {},
         sec_7_investment: {},
         sec_8_connector: parsedFromText.connector,
-        sec_9_marketplace_catalog: parsedFromText.accommodation,
+        sec_9_marketplace_catalog: parsedFromText.rooms,
         sec_10_testimonials_faqs: parsedFromText.testimonials,
       },
       missing_fields: [],
@@ -580,17 +580,32 @@ export async function POST(request: NextRequest) {
         aiProvider = 'built_in';
       }
 
-      const mode = sourceMode === 'text' ? 'text' : 'url';
+      let mode = sourceMode === 'text' ? 'text' : 'url';
+      let rawText = String(sourceText || '').trim();
+      const rawUrlOrText = String(urlOrQuery || '').trim();
+
+      // Smart Auto-Detect: If urlOrQuery is multiline text or long listing text, switch to text mode automatically
+      if (mode === 'url' && (rawUrlOrText.includes('\n') || rawUrlOrText.length > 250 || (!/^https?:\/\/[^\s]+$/i.test(rawUrlOrText) && rawUrlOrText.split(' ').length > 5))) {
+        mode = 'text';
+        if (!rawText) rawText = rawUrlOrText;
+      }
 
       if (mode === 'text') {
-        const rawText = String(sourceText || '').trim();
         if (!rawText) {
           return NextResponse.json({ error: 'Please paste the source text or extracted business details to analyze.' }, { status: 400 });
         }
 
         try {
           const place = extractTextSourceData(rawText);
-          place.aiDraft = await enrichSourceWithAi(aiProvider, place, resolvedCategory);
+          try {
+            const enriched = await enrichSourceWithAi(aiProvider, place, resolvedCategory);
+            if (enriched && enriched.sections) {
+              place.aiDraft = enriched;
+            }
+          } catch (aiErr) {
+            console.warn('enrichSourceWithAi failed for text import, retaining parsed text draft:', aiErr);
+          }
+
           return NextResponse.json({
             success: true,
             source: 'manual_text',
@@ -607,16 +622,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const normalizedInput = String(urlOrQuery || '').trim();
+      const normalizedInput = rawUrlOrText;
       let place: GooglePlaceData;
 
       try {
         if (/^https?:\/\//i.test(normalizedInput)) {
           if ((normalizedInput.match(/https?:\/\//gi) || []).length !== 1) {
-            return NextResponse.json({ error: 'Submit exactly one source link per import.' }, { status: 400 });
+            return NextResponse.json({ error: 'URL malformed or multiple links detected. Please submit exactly one valid HTTPS link per import, or switch to Source Text mode.' }, { status: 400 });
           }
           if (!isSafePublicSourceUrl(normalizedInput)) {
-            return NextResponse.json({ error: 'Use one public HTTPS source link. Local, private-network, and non-HTTPS URLs are not allowed.' }, { status: 400 });
+            return NextResponse.json({ error: 'URL is malformed or not a valid public HTTPS link. Please check your URL e.g. https://www.booking.com/hotel/...' }, { status: 400 });
           }
           place = parseGoogleMapsLink(normalizedInput)
             ? await extractGoogleMapsData(normalizedInput)
@@ -694,7 +709,7 @@ export async function POST(request: NextRequest) {
 
     // ─── ACTION 2: SAVE BUSINESS & NOTIFY ADMIN ────────────────────────────
     if (action === 'save') {
-      const {
+      let {
         name,
         type_id,
         source_url,
@@ -750,7 +765,7 @@ export async function POST(request: NextRequest) {
 
       const supportedProviders: SourceAiProvider[] = ['built_in', 'gemini', 'openai', 'claude', 'ollama', 'manus'];
       if (!supportedProviders.includes(ai_provider)) {
-        aiProvider = 'built_in';
+        ai_provider = 'built_in';
       }
 
       const effectiveLat = Number(google_data?.lat) || 29.2032;

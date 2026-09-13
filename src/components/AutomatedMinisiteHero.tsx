@@ -7,6 +7,8 @@ import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 interface AutomatedMinisiteHeroProps {
   businessName: string;
   businessLogo?: string;
+  logoSize?: string;
+  logoPosition?: string;
   customData: any;
   curationData?: any;
   activeSections: any[];
@@ -31,15 +33,20 @@ interface AutomatedMinisiteHeroProps {
     governanceLabel?: string;
     governanceUrl?: string;
   };
+  /** Callback so carousel CTAs can directly switch the active tab in the parent */
+  onSectionNavigate?: (sectionId: string) => void;
 }
 
 export default function AutomatedMinisiteHero({
   businessName,
   businessLogo,
+  logoSize,
+  logoPosition,
   customData = {},
   activeSections = [],
   tierFeatures = {},
-  settings = {}
+  settings = {},
+  onSectionNavigate,
 }: AutomatedMinisiteHeroProps) {
   const slides = useMemo(() => {
     const allSlides: any[] = [];
@@ -125,7 +132,7 @@ export default function AutomatedMinisiteHero({
         });
       });
 
-      // Fallback slide (if NOTHING is featured across sections, show the first photo as a courtesy)
+      // Fallback slide (if NOTHING is featured across sections, show the first photo or branded section slide)
       if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
         const firstPhoto = photos[0];
         const url = (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || '';
@@ -144,6 +151,21 @@ export default function AutomatedMinisiteHero({
           ctaLink: `#${section.id}`,
           animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
           bgColor: hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)'
+        });
+      } else if (!youtubeStory && featuredPhotos.length === 0 && photos.length === 0) {
+        allSlides.push({
+          id: `${section.id}_branded_fallback`,
+          type: 'branded',
+          mediaUrl: null,
+          title: (section.name || '').toUpperCase(),
+          subtitle: `DISCOVER ${(businessName || '').toUpperCase()} — ${(section.name || '').toUpperCase()}`,
+          caption: (businessName || '').toUpperCase(),
+          ctaText: `EXPLORE ${(section.name || '').toUpperCase()}`,
+          ctaLink: `#${section.id}`,
+          animation: 'fade',
+          displayMode: 'text_only',
+          showCaption: true,
+          bgColor: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)'
         });
       }
     });
@@ -209,25 +231,47 @@ export default function AutomatedMinisiteHero({
   const showWatermark = !tierFeatures.remove_watermark && settings.show_watermark !== false;
   const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
 
+  // Dynamic Logo Scale & Position Controls
+  const rawSize = logoSize || customData?.basic?.logo_size || customData?.logo_size;
+  const rawPos = logoPosition || customData?.basic?.logo_position || customData?.logo_position || 'left';
+
+  const logoHeight = (() => {
+    if (!rawSize) return '75px';
+    if (typeof rawSize === 'string' && (rawSize.endsWith('px') || rawSize.endsWith('rem') || rawSize.endsWith('%'))) return rawSize;
+    switch (String(rawSize).toLowerCase()) {
+      case 'sm': case 'small': return '48px';
+      case 'md': case 'medium': return '75px';
+      case 'lg': case 'large': return '115px';
+      case 'xl': case 'xlarge': return '155px';
+      case 'enlarge': case 'xxl': case 'max': return '195px';
+      default: return `${rawSize}px`;
+    }
+  })();
+
+  const isLeftLogo = String(rawPos).toLowerCase() === 'left';
+  const isCenterLogo = String(rawPos).toLowerCase() === 'center';
+
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       
-      {/* 🏛️ PLATFORM ANCHOR (Top-Left) - Dynamic from Site Settings */}
+      {/* 🏛️ PLATFORM ANCHOR - Dynamic placement away from business logo */}
       {showPlatformAnchor && (
         <Link href="/" style={{
           position: 'absolute',
           top: '2rem',
-          left: '2rem',
+          left: isLeftLogo ? 'auto' : '2rem',
+          right: isLeftLogo ? '2rem' : 'auto',
           zIndex: 2000,
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
           textDecoration: 'none',
-          background: 'rgba(15, 23, 42, 0.4)',
-          backdropFilter: 'blur(10px)',
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(12px)',
           padding: '0.5rem 1.25rem',
           borderRadius: '50px',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
           transition: 'all 0.3s'
         }}>
           {brandLogo ? (
@@ -245,16 +289,30 @@ export default function AutomatedMinisiteHero({
         </Link>
       )}
 
-      {/* MODERN BUSINESS LOGO OVERLAY */}
+      {/* MODERN BUSINESS LOGO OVERLAY (Left, Right, or Center Banner) */}
       <div style={{
         position: 'absolute',
         top: '2rem',
-        right: '2rem', // Moved to right to avoid collision with master logo
-        zIndex: 1000,
-        pointerEvents: 'none'
+        left: isLeftLogo ? '2rem' : (isCenterLogo ? '50%' : 'auto'),
+        right: !isLeftLogo && !isCenterLogo ? '2rem' : 'auto',
+        transform: isCenterLogo ? 'translateX(-50%)' : 'none',
+        zIndex: 1500,
+        pointerEvents: 'none',
+        transition: 'all 0.3s ease'
       }}>
         {businessLogo ? (
-          <img src={businessLogo} alt={businessName} style={{ height: '50px', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.3))', objectFit: 'contain' }} />
+          <img 
+            src={businessLogo} 
+            alt={businessName} 
+            style={{ 
+              height: logoHeight, 
+              maxHeight: '230px',
+              maxWidth: '360px',
+              filter: 'drop-shadow(0 6px 20px rgba(0,0,0,0.45))', 
+              objectFit: 'contain',
+              borderRadius: '12px'
+            }} 
+          />
         ) : (
           <div style={{
             color: '#fff',
@@ -281,6 +339,7 @@ export default function AutomatedMinisiteHero({
         visualSettings={{
           watermarkText: watermarkText
         }}
+        onSectionNavigate={onSectionNavigate}
       />
 
       {/* FREEMIUM WATERMARK OVERLAY - Dynamic from Site Settings */}

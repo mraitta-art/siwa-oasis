@@ -100,33 +100,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // Insert marketplace request
+    // Insert marketplace request with actual production column names
     await safeQuery(
       `INSERT INTO journey_requests 
-        (customer_name, customer_email, customer_phone, request_type, vibe, duration, pace, interests, budget, group_size, arrival_date, special_requests, itinerary_name, itinerary_summary, custom_details, status, distribution_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 'admin_review')`,
+        (visitor_name, visitor_email, visitor_phone, title, description, vibe, pace, duration_days, visitor_group_size, preferred_start_date, special_requirements, requested_items, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
       [
         customer_name,
         customer_email || null,
         customer_phone,
-        request_type || 'journey',
+        itinerary_name || `${vibe || 'Siwa'} Journey`,
+        itinerary_summary || special_requests || 'Customized journey request',
         Array.isArray(vibes) ? vibes.join(',') : (vibe || ''),
-        duration || '',
-        pace || '',
-        JSON.stringify(interests || []),
-        budget || '',
+        pace || 'moderate',
+        parseInt(duration) || 3,
         group_size || 1,
         arrival_date || null,
         special_requests || '',
-        itinerary_name || '',
-        itinerary_summary || '',
         custom_details ? JSON.stringify(custom_details) : null
       ]
     );
 
     // Fetch inserted row
     const rows = await safeQuery(
-      `SELECT * FROM journey_requests WHERE customer_phone = ? ORDER BY created_at DESC LIMIT 1`,
+      `SELECT * FROM journey_requests WHERE visitor_phone = ? ORDER BY created_at DESC LIMIT 1`,
       [customer_phone]
     ) as any[];
 

@@ -57,6 +57,10 @@ interface AdvancedCarouselProps {
     primaryFont?: string;
     watermarkText?: string;
   };
+  /** Called when a slide CTA targets a section hash (e.g. #sec_9_marketplace_catalog).
+   *  Receives the section id WITHOUT the leading #.
+   *  Use this to imperatively switch the active tab in the parent. */
+  onSectionNavigate?: (sectionId: string) => void;
 }
 
 export default function AdvancedHeroCarousel({
@@ -76,7 +80,8 @@ export default function AdvancedHeroCarousel({
     investment: true,
     registration: true
   },
-  visualSettings = {}
+  visualSettings = {},
+  onSectionNavigate,
 }: AdvancedCarouselProps & { autoPlay?: boolean }) {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -320,6 +325,23 @@ export default function AdvancedHeroCarousel({
         <a 
           href={slide.ctaLink}
           onClick={(e) => {
+            const link = slide.ctaLink || '';
+
+            // ── Section hash link (e.g. #sec_9_marketplace_catalog) ──
+            if (link.startsWith('#')) {
+              e.preventDefault();
+              const sectionId = link.slice(1); // strip leading '#'
+
+              // Tell parent to switch tab directly (avoids stale closure in hashchange)
+              if (onSectionNavigate) {
+                onSectionNavigate(sectionId);
+              }
+              // Also update URL hash for shareability
+              window.location.hash = sectionId;
+              return;
+            }
+
+            // ── targetSectionId scroll (legacy DOM scroll) ──
             if (slide.targetSectionId) {
               e.preventDefault();
               e.stopPropagation();

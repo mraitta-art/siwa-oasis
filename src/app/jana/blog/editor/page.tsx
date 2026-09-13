@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import RichBlogEditor from '@/components/RichBlogEditor';
 
 interface Category {
   id: number;
@@ -319,27 +320,14 @@ function BlogEditorContent() {
               border: '1px solid #e2e8f0'
             }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '0.75rem' }}>
-                Content *
+                Content * (Rich Text, Colors, Fonts & Images)
               </label>
-              <textarea
+              <RichBlogEditor
                 value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Write your blog post content here... (Supports Markdown)"
-                rows={20}
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '8px',
-                  fontSize: '0.95rem',
-                  lineHeight: '1.6',
-                  fontFamily: 'monospace',
-                  resize: 'vertical'
-                }}
+                onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+                minHeight="450px"
+                placeholder="Write your story with rich headings, colors, fonts, callouts, and inline images..."
               />
-              <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-                💡 Tip: Use Markdown formatting for rich text
-              </div>
             </div>
 
             {/* Excerpt */}

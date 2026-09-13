@@ -31,37 +31,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(section);
     }
 
-    // 1. If typeId is provided, fetch sections mapped to that typology (Public)
+    // 1. If typeId is provided, fetch sections mapped to that typology and its parent hierarchy (Public / Management)
     if (typeId) {
-      const [typeData] = await query('SELECT sections, own_sections FROM business_types WHERE id = ?', [typeId]);
-      if (!typeData) return NextResponse.json([]);
+      const sectionIds = new Set<string>();
+      let currentId: string | null = typeId;
 
-      // Combine both sections and own_sections arrays
-      const sectionIds = [
-        ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
-        ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
-      ];
-      
-      const sectionFilter = sectionIds.length > 0
-        ? `id IN (${sectionIds.map(() => '?').join(',')}) OR is_universal = 1`
-        : 'is_universal = 1';
-      const sections = await query(`SELECT * FROM sections WHERE ${sectionFilter} ORDER BY sort_order ASC, name ASC`, sectionIds);
-      
-      // Enforce global order: Sort sections by their explicit sort_order first, then fallback to JSON index
-      const sortedSections = sections.sort((a: any, b: any) => {
-        const orderA = typeof a.sort_order === 'number' ? a.sort_order : 9999;
-        const orderB = typeof b.sort_order === 'number' ? b.sort_order : 9999;
-        
-        if (orderA !== orderB) {
-           return orderA - orderB;
+      while (currentId) {
+        const typeRows = await query('SELECT id, parent_id, sections, own_sections FROM business_types WHERE id = ?', [currentId]) as any[];
+        if (typeRows.length > 0) {
+          const t = typeRows[0];
+          const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections || '[]') : t.sections || [];
+          if (Array.isArray(s1)) s1.forEach((s: string) => sectionIds.add(s));
+          const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections || '[]') : t.own_sections || [];
+          if (Array.isArray(s2)) s2.forEach((s: string) => sectionIds.add(s));
+          currentId = t.parent_id;
+        } else {
+          currentId = null;
         }
+      }
 
-        // Fallback to DNA Array order if sort_orders are identical or 0
-        const indexA = sectionIds.indexOf(a.id);
-        const indexB = sectionIds.indexOf(b.id);
-        const safeIndexA = indexA === -1 ? 9999 : indexA;
-        const safeIndexB = indexB === -1 ? 9999 : indexB;
-        return safeIndexA - safeIndexB;
+      // Essential baseline sections
+      ['identity', 'location', 'testimonials'].forEach(s => sectionIds.add(s));
+
+      const idsArray = Array.from(sectionIds);
+      if (idsArray.length === 0) return NextResponse.json([]);
+
+      const sections = await query(`SELECT * FROM sections WHERE id IN (${idsArray.map(() => '?').join(',')}) ORDER BY sort_order ASC, name ASC`, idsArray);
+      
+      // Sort sections according to the type's section order
+      const sortedSections = (sections as any[]).sort((a: any, b: any) => {
+        const idxA = idsArray.indexOf(a.id);
+        const idxB = idsArray.indexOf(b.id);
+        const safeIdxA = idxA === -1 ? 9999 : idxA;
+        const safeIdxB = idxB === -1 ? 9999 : idxB;
+        return safeIdxA - safeIdxB;
       });
       
       return NextResponse.json(sortedSections);
@@ -194,41 +197,32 @@ export async function PUT(request: NextRequest) {
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
 
-const RESTRICTED_SECTION_IDS = [
-  'vibe',
-  'experience',
-  'investment-opportunity',
-  'auction',
-  'offers-promotions',
-  'package',
-  'discount',
-  'offers-packages',
-  'discounts-promotions',
-  'sponsorship',
-  'business_info'
-];
-
 export async function DELETE(request: NextRequest) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const typeId = searchParams.get('type_id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    if (RESTRICTED_SECTION_IDS.includes(id)) {
-      return NextResponse.json(
-        { error: `Cannot delete system-critical section "${id}". This section is required by the main website's core features.` },
-        { status: 400 }
-      );
+    if (typeId) {
+      // Remove section from specific business type's own_sections / sections
+      const typeRows = await query('SELECT id, own_sections, sections FROM business_types WHERE id = ?', [typeId]) as any[];
+      if (typeRows.length > 0) {
+        const typeRow = typeRows[0];
+        const own = (typeof typeRow.own_sections === 'string' ? JSON.parse(typeRow.own_sections || '[]') : typeRow.own_sections || []).filter((s: string) => s !== id);
+        const secs = (typeof typeRow.sections === 'string' ? JSON.parse(typeRow.sections || '[]') : typeRow.sections || []).filter((s: string) => s !== id);
+        await execute('UPDATE business_types SET own_sections = ?, sections = ? WHERE id = ?', [JSON.stringify(own), JSON.stringify(secs), typeId]);
+      }
+      invalidateCache.sections();
+      return NextResponse.json({ success: true, mode: 'unlinked' });
     }
 
-    // CASCADING DELETE: Automatically clean up fields before deleting the section
+    // Admin Full Delete: CASCADING DELETE fields and section row (no restrictions)
     await execute('DELETE FROM form_fields WHERE section_id = ?', [id]);
-
-    // Delete the section itself
     await execute('DELETE FROM sections WHERE id = ?', [id]);
     
     invalidateCache.sections();
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, mode: 'deleted' });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
