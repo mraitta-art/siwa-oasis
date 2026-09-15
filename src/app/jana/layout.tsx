@@ -22,9 +22,10 @@ const NAV_GROUPS = [
     items: [
       { name: 'Blueprint Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Categories & Typologies', path: '/jana/types', icon: 'fa-folder-tree' },
+      { name: 'Unified Controls Center', path: '/jana/controls', icon: 'fa-screwdriver-wrench' },
       { name: 'Unified Section Architect', path: '/jana/sections', icon: 'fa-table-cells' },
       {
-        name: 'Form Builders',
+        name: 'Intake & Review',
         path: '/jana/business-forms',
         icon: 'fa-file-alt',
         children: [
@@ -65,12 +66,35 @@ const NAV_GROUPS = [
           { name: 'Unified Builder', path: '/jana/unified-builder', icon: 'fa-sitemap' },
         ]
       },
-      { name: 'Vendor Services Control', path: '/jana/vendor-services', icon: 'fa-toggle-on', badge: 'CONTROL' },
       { name: 'Vendor Directory', path: '/jana/vendors', icon: 'fa-users' },
       { name: 'Vendor Approvals', path: '/jana/vendor-approvals', icon: 'fa-user-check', badge: 'PENDING' },
       { name: 'Plans & Tier Access', path: '/jana/tiers', icon: 'fa-shield-alt' },
       { name: 'Upgrade Requests', path: '/jana/upgrades', icon: 'fa-arrow-up-right-dots' },
-      { name: 'Packages', path: '/jana/packages', icon: 'fa-box-open' },
+      {
+        name: 'Product & Offers',
+        path: '/admin/packages',
+        icon: 'fa-briefcase',
+        children: [
+          { name: 'Package Setup', path: '/admin/packages', icon: 'fa-cubes' },
+          { name: 'Package Management', path: '/admin/packages', icon: 'fa-boxes-stacked' },
+          { name: 'Offer Setup', path: '/admin/offers', icon: 'fa-gift' },
+          { name: 'Offer Categories', path: '/admin/offers', icon: 'fa-tags' },
+          { name: 'Discount Controls', path: '/admin/discounts', icon: 'fa-percent' },
+          { name: 'Custom Visitor Packages', path: '/jana/tour-builder', icon: 'fa-route' },
+          { name: 'Tour Setup & Management', path: '/jana/tour-builder', icon: 'fa-map-location-dot' },
+          { name: 'Visitor Journey Builder', path: '/admin/journey-requests', icon: 'fa-user-route' },
+        ]
+      },
+      {
+        name: 'Services & Categories',
+        path: '/jana/services-manager',
+        icon: 'fa-list-check',
+        children: [
+          { name: 'Vendor Services Control', path: '/jana/vendor-services', icon: 'fa-toggle-on' },
+          { name: 'Services Manager', path: '/jana/services-manager', icon: 'fa-concierge-bell' },
+          { name: 'Categories Manager', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
+        ]
+      },
       { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
       { name: 'Dispatch', path: '/jana/dispatch', icon: 'fa-paper-plane' },
@@ -122,8 +146,6 @@ const NAV_GROUPS = [
           { name: 'Search & Compare', path: '/jana/search-compare', icon: 'fa-sliders' },
         ]
       },
-      { name: 'Services Manager', path: '/jana/services-manager', icon: 'fa-concierge-bell' },
-      { name: 'Categories Manager', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
       { name: 'Journeys Manager', path: '/jana/journey-templates-manager', icon: 'fa-route' },
       { name: 'Responsive Preview', path: '/jana/mobile', icon: 'fa-mobile-alt' },
     ]
@@ -139,9 +161,16 @@ const NAV_GROUPS = [
     items: [
     { name: 'Operations Dashboard', path: '/admin/analytics', icon: 'fa-gauge-high', badge: 'OPS' },
       { name: 'Visitor Analytics', path: '/jana/analytics', icon: 'fa-chart-area', badge: 'LIVE' },
-      { name: 'Packages Approval', path: '/admin/packages', icon: 'fa-box' },
-      { name: 'Offers Approval', path: '/admin/offers', icon: 'fa-gift' },
-      { name: 'Discount Campaigns', path: '/admin/discounts', icon: 'fa-tags' },
+      {
+        name: 'Catalog Approval',
+        path: '/admin/packages',
+        icon: 'fa-clipboard-check',
+        children: [
+          { name: 'Packages', path: '/admin/packages', icon: 'fa-box' },
+          { name: 'Offers', path: '/admin/offers', icon: 'fa-gift' },
+          { name: 'Discounts', path: '/admin/discounts', icon: 'fa-tags' },
+        ]
+      },
       { name: 'Investment Opps', path: '/admin/investment-opportunities', icon: 'fa-hand-holding-dollar' },
       { name: 'Journey Requests', path: '/admin/journey-requests', icon: 'fa-route' },
       { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
@@ -271,8 +300,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/component-library')) return { title: 'Component Library', tip: 'Manage all reusable components: carousels, sidebars, galleries, and more.' };
     if (pathname.includes('/carousel-diagnostic')) return { title: 'Carousel Diagnostic', tip: 'Debug and test carousel components, check slide loading and transitions.' };
     if (pathname.includes('/components')) return { title: 'Components', tip: 'Browse and manage individual UI components for pages and minisites.' };
-    if (pathname.includes('/services-manager')) return { title: 'Services', tip: 'Manage page services displayed across the platform.' };
-    if (pathname.includes('/experience-categories')) return { title: 'Categories', tip: 'Manage experience categories for discovery and filtering.' };
+    if (pathname.includes('/services-manager') || pathname.includes('/vendor-services')) return { title: 'Services & Categories', tip: 'Manage service catalog entries and category classifiers used across the platform.' };
+    if (pathname.includes('/experience-categories')) return { title: 'Services & Categories', tip: 'Manage experience category classifiers for discovery, browsing, and filtering.' };
     if (pathname.includes('/journey-templates')) return { title: 'Journey Templates', tip: 'Design reusable journey templates for customer onboarding.' };
     // Site & Pages
     if (pathname.includes('/website')) return { title: 'Visual Editor', tip: 'Build the public homepage with drag-and-drop components.' };
@@ -291,7 +320,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/fast-track')) return { title: 'Fast-Track Builder', tip: 'Quickly add businesses with minimal friction.' };
     if (pathname.includes('/unified-builder')) return { title: 'Unified Builder', tip: 'Centralized workspace for schema, forms, components, pages, and launch actions.' };
     if (pathname.includes('/vendors')) return { title: 'Vendors', tip: 'Assign vendor accounts to manage their own business listings.' };
-    if (pathname.includes('/packages')) return { title: 'Packages', tip: 'Create and manage experience packages offered by businesses.' };
+    if (pathname.includes('/packages')) return { title: 'Product & Offers', tip: 'Create and manage sellable experience packages, offers, and visitor packages.' };
     if (pathname.includes('/auctions')) return { title: 'Auctions', tip: 'Manage auction listings for exclusive experiences and investment opportunities.' };
     if (pathname.includes('/dispatch')) return { title: 'Dispatch', tip: 'Send notifications, announcements, and messages to vendors and visitors.' };
     if (pathname.includes('/benefits')) return { title: 'Benefits', tip: 'Configure and manage vendor tier benefits and perks.' };

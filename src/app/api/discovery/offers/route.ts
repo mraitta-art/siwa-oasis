@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         b.id, 
         b.name AS business_name, 
         b.slug,
-        b.tier,
+        b.subscription_tier AS tier,
         bt.name AS type_name,
         JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".business_logo')) AS logo,
         JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".logo')) AS fallback_logo,
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       params.push(businessFilter);
     }
 
-    sql += ` ORDER BY b.tier DESC, b.created_at DESC `;
+    sql += ` ORDER BY b.subscription_tier DESC, b.created_at DESC `;
 
     const rows = await query(sql, params) as any[];
 
@@ -70,6 +70,90 @@ export async function GET(request: Request) {
     ) as any[];
 
     const offers: any[] = [];
+
+    const canonicalProductParams: any[] = [];
+    let canonicalProductSql = `
+            SELECT tp.*, b.name AS business_name, b.slug AS business_slug,
+              b.subscription_tier AS tier, bt.name AS type_name
+      FROM tour_products tp
+      LEFT JOIN businesses b ON b.id = tp.vendor_business_id
+      LEFT JOIN business_types bt ON bt.id = b.type_id
+      WHERE tp.is_active = 1
+        AND tp.is_public = 1
+        AND tp.approval_status IN ('approved', 'published')
+        AND (tp.valid_from IS NULL OR tp.valid_from <= CURRENT_DATE())
+        AND (tp.valid_until IS NULL OR tp.valid_until >= CURRENT_DATE())
+    `;
+    if (businessFilter) {
+      canonicalProductSql += ' AND tp.vendor_business_id = ?';
+      canonicalProductParams.push(businessFilter);
+    }
+    if (typeFilter) {
+      canonicalProductSql += ' AND (b.type_id = ? OR bt.parent_id = ?)';
+      canonicalProductParams.push(typeFilter, typeFilter);
+    }
+    canonicalProductSql += ' ORDER BY tp.is_featured DESC, tp.updated_at DESC';
+
+    const canonicalProducts = await query(canonicalProductSql, canonicalProductParams) as any[];
+    canonicalProducts.forEach(product => {
+      if (featuredOnly && !product.is_featured) return;
+      offers.push({
+        business_id: product.vendor_business_id || `product-${product.id}`,
+        business_name: product.business_name || product.vendor_name || 'Siwa Today',
+        business_slug: product.business_slug || null,
+        business_logo: product.image_url || null,
+        tier: product.tier || null,
+        type_name: product.type_name || null,
+        title: product.name,
+        type: product.product_kind || 'package',
+        price: product.base_price_usd || product.base_price_egp || null,
+        original_price: product.base_price_usd || product.base_price_egp || null,
+        discount: null,
+        description: product.description || null,
+        inclusions: product.included || null,
+        valid_until: product.valid_until || null,
+        link: product.business_slug ? `/p/${product.business_slug}` : '/packages',
+        image: product.image_url || null,
+        is_featured: !!product.is_featured,
+        source: 'tour_products_canonical',
+        product_id: product.id,
+      });
+    });
+
+    const canonicalPromotions = await query(`
+      SELECT promo.*, b.name AS business_name, b.slug AS business_slug,
+             bt.name AS type_name, tp.name AS product_name, tp.base_price_usd, tp.base_price_egp
+      FROM tour_promotions promo
+      LEFT JOIN businesses b ON b.id = promo.vendor_business_id
+      LEFT JOIN business_types bt ON bt.id = b.type_id
+      LEFT JOIN tour_products tp ON tp.id = promo.product_id
+      WHERE promo.is_active = 1
+        AND (promo.valid_from IS NULL OR promo.valid_from <= CURRENT_DATE())
+        AND (promo.valid_until IS NULL OR promo.valid_until >= CURRENT_DATE())
+    `) as any[];
+    canonicalPromotions.forEach(promotion => {
+      if (businessFilter && promotion.vendor_business_id !== businessFilter) return;
+      if (featuredOnly) return;
+      offers.push({
+        business_id: promotion.vendor_business_id || `promotion-${promotion.id}`,
+        business_name: promotion.business_name || 'Siwa Today',
+        business_slug: promotion.business_slug || null,
+        tier: promotion.tier || null,
+        type_name: promotion.type_name || null,
+        title: promotion.name,
+        type: 'offer',
+        price: promotion.base_price_usd || promotion.base_price_egp || null,
+        original_price: promotion.base_price_usd || promotion.base_price_egp || null,
+        discount: `${promotion.discount_value}${promotion.discount_type === 'percent' ? '%' : ''}`,
+        description: promotion.conditions || null,
+        valid_from: promotion.valid_from || null,
+        valid_until: promotion.valid_until || null,
+        link: promotion.business_slug ? `/p/${promotion.business_slug}` : '/offers',
+        is_featured: false,
+        source: 'tour_promotions_canonical',
+        promotion_id: promotion.id,
+      });
+    });
 
     function buildTypeSpecificOffer(typeOfferData: any, row: any, businessLogo: string | null) {
       if (!typeOfferData || typeof typeOfferData !== 'object' || Object.keys(typeOfferData).length === 0) return null;

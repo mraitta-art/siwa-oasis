@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action') || 'list';
 
   try {
+    await requireAdmin();
     if (action === 'categories') {
       const cats = await query(`
         SELECT id, parent_id, name, name_ar, icon, color, sort_order
@@ -114,6 +116,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAdmin();
     const body = await req.json();
     const { action } = body;
 
@@ -198,12 +201,14 @@ export async function POST(req: NextRequest) {
         const s = stops[i];
         await query(`
           INSERT INTO tour_stops
-            (product_id, business_id, business_name, stop_role, day_number,
+            (product_id, business_id, business_name, item_type, title, stop_role, day_number,
              time_slot, start_time, end_time, start_date,
-             sequence_order, duration_hours, notes, is_optional, price_usd)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+             sequence_order, duration_hours, notes, is_optional, price_usd,
+             location_name, location_address, latitude, longitude, meal_type,
+             accommodation_nights, transfer_minutes, end_date, metadata)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `, [
-          productId, s.business_id, s.business_name || null, s.stop_role,
+          productId, s.business_id || null, s.business_name || null, s.item_type || s.stop_role || 'activity', s.title || null, s.stop_role || 'do',
           s.day_number || 1,
           s.time_slot || 'morning',
           s.start_time || null,
@@ -213,7 +218,16 @@ export async function POST(req: NextRequest) {
           s.duration_hours || null,
           s.notes || null,
           s.is_optional ? 1 : 0,
-          s.price_usd || null
+          s.price_usd || null,
+          s.location_name || null,
+          s.location_address || null,
+          s.latitude ?? null,
+          s.longitude ?? null,
+          s.meal_type || null,
+          s.accommodation_nights || null,
+          s.transfer_minutes || null,
+          s.end_date || null,
+          JSON.stringify(s.metadata || {}),
         ]);
       }
 

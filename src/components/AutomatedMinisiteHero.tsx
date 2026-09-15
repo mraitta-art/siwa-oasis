@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from './AdvancedHeroCarousel';
+import { resolveSectionId } from '@/lib/section-registry';
 
 interface AutomatedMinisiteHeroProps {
   businessName: string;
@@ -50,8 +51,12 @@ export default function AutomatedMinisiteHero({
 }: AutomatedMinisiteHeroProps) {
   const slides = useMemo(() => {
     const allSlides: any[] = [];
-    const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
     const capturedSectionIds = new Set<string>();
+    const activeCanonicalIds = new Set(
+      (activeSections || [])
+        .map((section: any) => resolveSectionId(String(section?.id || '')))
+        .filter(Boolean)
+    );
 
     const isHeroVideo = (url: string) => {
       if (!url) return false;
@@ -59,29 +64,35 @@ export default function AutomatedMinisiteHero({
       return videoExtensions.some(ext => url.toLowerCase().endsWith(ext)) || url.includes('/video/upload/');
     };
 
-    activeSections.forEach(section => {
+    activeSections.forEach((section: any) => {
+      const sectionId = resolveSectionId(String(section?.id || ''));
+      if (!sectionId || sectionId === 'sec_7_investment') return;
+
       const sectionOptions = (() => {
-        try { return typeof section.options === 'string' ? JSON.parse(section.options) : section.options || {}; } catch { return {}; }
+        try {
+          return typeof section.options === 'string' ? JSON.parse(section.options) : section.options || {};
+        } catch {
+          return {};
+        }
       })();
+
       if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('carousel')) return;
-      capturedSectionIds.add(section.id);
-      const sectionData = customData[section.id] || {};
-      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${section.name.toLowerCase()} DNA.`;
-      
-      // TIER CHECK: Is YouTube allowed?
+      capturedSectionIds.add(sectionId);
+
+      const sectionData = customData[sectionId] || customData[section?.id] || {};
+      const sectionName = section?.name || sectionId.replace(/_/g, ' ');
+      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${sectionName.toLowerCase()} DNA.`;
+
       const allowedMedia = tierFeatures.allowedMediaTypes || ['image'];
       const youtubeStory = (allowedMedia.includes('youtube') && sectionData.youtube_story) ? sectionData.youtube_story : null;
-      
-      // Support photos from both vendor_gallery (section.gallery) AND custom_data (sectionData.section_gallery)
+
       const galleryFromSection = Array.isArray(section.gallery) ? section.gallery : [];
-      const galleryFromData = Array.isArray(sectionData.section_gallery) 
-        ? sectionData.section_gallery 
+      const galleryFromData = Array.isArray(sectionData.section_gallery)
+        ? sectionData.section_gallery
         : (sectionData.section_gallery ? [sectionData.section_gallery] : []);
       const galleryFromDataDirect = Array.isArray(sectionData.gallery) ? sectionData.gallery : [];
-      
       const photos = [...galleryFromSection, ...galleryFromData, ...galleryFromDataDirect].filter(Boolean);
 
-      // CURATION FILTER: Photos marked as "is_hero", placement "hero"/"both", or approved
       const featuredPhotos = photos.filter((p: any) => {
         if (!p) return false;
         const isHero = p.is_hero === true || p.is_hero === 1 || p.placement === 'hero' || p.placement === 'both';
@@ -92,39 +103,38 @@ export default function AutomatedMinisiteHero({
 
       if (youtubeStory) {
         allSlides.push({
-          id: `${section.id}_yt`,
+          id: `${sectionId}_yt`,
           type: 'youtube',
           mediaUrl: youtubeStory,
           maxDuration: tierFeatures.max_youtube_duration,
-          title: "", 
+          title: '',
           subtitle: miniBlog,
-          caption: (businessName || '').toUpperCase(), 
-          ctaText: `READ MORE`,
-          ctaLink: `#${section.id}`,
+          caption: (businessName || '').toUpperCase(),
+          ctaText: 'READ MORE',
+          ctaLink: `#${sectionId}`,
           animation: 'fade'
         });
       }
 
-      // Add featured photos from section gallery as hero slides
       featuredPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
-        const slideData = typeof photo === 'object' && photo.slide_data 
+        const slideData = typeof photo === 'object' && photo.slide_data
           ? (typeof photo.slide_data === 'string' ? JSON.parse(photo.slide_data) : photo.slide_data)
           : {};
-        
+
         const isVid = url ? isHeroVideo(url) : false;
         const hasMedia = !!url;
-        
+
         allSlides.push({
-          id: `${section.id}_img_${idx}`,
+          id: `${sectionId}_img_${idx}`,
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
-          title: slideData.title || caption || section.name,
-          subtitle: slideData.subtitle || `DISCOVER THE ${(section.name || '').toUpperCase()} EXPERIENCE`,
-          caption: (businessName || '').toUpperCase(), 
-          ctaText: slideData.cta_label || `EXPLORE ${(section.name || '').toUpperCase()}`,
-          ctaLink: slideData.cta_url || `#${section.id}`,
+          title: slideData.title || caption || sectionName,
+          subtitle: slideData.subtitle || `DISCOVER THE ${(sectionName || '').toUpperCase()} EXPERIENCE`,
+          caption: (businessName || '').toUpperCase(),
+          ctaText: slideData.cta_label || `EXPLORE ${(sectionName || '').toUpperCase()}`,
+          ctaLink: slideData.cta_url || `#${sectionId}`,
           animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
           displayMode: photo.display_mode || (hasMedia ? 'image' : 'text_only'),
           showCaption: slideData.show_overlay !== false && photo.show_caption !== false,
@@ -132,7 +142,6 @@ export default function AutomatedMinisiteHero({
         });
       });
 
-      // Fallback slide (if NOTHING is featured across sections, show the first photo or branded section slide)
       if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
         const firstPhoto = photos[0];
         const url = (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || '';
@@ -141,27 +150,27 @@ export default function AutomatedMinisiteHero({
         const hasMedia = !!url;
 
         allSlides.push({
-          id: `${section.id}_img_first`,
+          id: `${sectionId}_img_first`,
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
-          title: caption || section.name,
-          subtitle: `EXPLORE OUR ${(section.name || '').toUpperCase()}`,
+          title: caption || sectionName,
+          subtitle: `EXPLORE OUR ${(sectionName || '').toUpperCase()}`,
           caption: (businessName || '').toUpperCase(),
           ctaText: 'EXPLORE',
-          ctaLink: `#${section.id}`,
+          ctaLink: `#${sectionId}`,
           animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
           bgColor: hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)'
         });
       } else if (!youtubeStory && featuredPhotos.length === 0 && photos.length === 0) {
         allSlides.push({
-          id: `${section.id}_branded_fallback`,
+          id: `${sectionId}_branded_fallback`,
           type: 'branded',
           mediaUrl: null,
-          title: (section.name || '').toUpperCase(),
-          subtitle: `DISCOVER ${(businessName || '').toUpperCase()} — ${(section.name || '').toUpperCase()}`,
+          title: (sectionName || '').toUpperCase(),
+          subtitle: `DISCOVER ${(businessName || '').toUpperCase()} — ${(sectionName || '').toUpperCase()}`,
           caption: (businessName || '').toUpperCase(),
-          ctaText: `EXPLORE ${(section.name || '').toUpperCase()}`,
-          ctaLink: `#${section.id}`,
+          ctaText: `EXPLORE ${(sectionName || '').toUpperCase()}`,
+          ctaLink: `#${sectionId}`,
           animation: 'fade',
           displayMode: 'text_only',
           showCaption: true,
@@ -170,17 +179,17 @@ export default function AutomatedMinisiteHero({
       }
     });
 
-    // ═══════════════════════════════════════════════════════════════
-    // SECOND PASS: Scan customData directly...
-    // ═══════════════════════════════════════════════════════════════
     Object.entries(customData).forEach(([sectionKey, sectionData]: [string, any]) => {
-      if (capturedSectionIds.has(sectionKey)) return; 
+      const canonicalKey = resolveSectionId(sectionKey);
+      if (sectionKey === 'investment-opportunity' || sectionKey === 'investment_opportunity' || canonicalKey === 'sec_7_investment') return;
+      if (capturedSectionIds.has(canonicalKey)) return;
+      if (!activeCanonicalIds.has(canonicalKey)) return;
       if (!sectionData || typeof sectionData !== 'object') return;
-      
+
       const gallery = sectionData.section_gallery || [];
       const photos = Array.isArray(gallery) ? gallery : [];
       const heroPhotos = photos.filter((p: any) => p && p.is_hero);
-      
+
       heroPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
         const caption = typeof photo === 'object' ? photo.caption : '';
@@ -192,7 +201,7 @@ export default function AutomatedMinisiteHero({
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
           title: caption || sectionKey.replace(/_/g, ' ').toUpperCase(),
-          subtitle: `DISCOVER MORE`,
+          subtitle: 'DISCOVER MORE',
           caption: (businessName || '').toUpperCase(),
           ctaText: 'READ FULL STORY',
           ctaLink: `#${sectionKey}`,
@@ -204,7 +213,6 @@ export default function AutomatedMinisiteHero({
       });
     });
 
-    // FINAL QUOTA CAP: Enforce absolute maximum slides from tier
     const finalLimit = tierFeatures.maxSlides || 10;
     return allSlides.slice(0, finalLimit);
   }, [customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);

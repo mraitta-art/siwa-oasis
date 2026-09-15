@@ -37,7 +37,7 @@ const NAV_GROUPS = [
     title: 'Sales & Leads',
     items: [
       { name: 'Journey Requests',   href: '/vendor/journey-requests',      faIcon: 'fa-route',      badge: 'REQ' },
-      { name: 'My Packages',        href: '/vendor/packages',              faIcon: 'fa-box-open' },
+      { name: 'Catalog & Offers',   href: '/vendor/packages',              faIcon: 'fa-box-open' },
     ],
   },
   {

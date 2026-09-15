@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import DynamicForm from '@/components/DynamicForm';
 import { useAdmin } from '@/context/AdminContext';
 import Link from 'next/link';
+import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionHidden, resolveSectionId } from '@/lib/section-registry';
 
 /**
  * UNIFIED BUSINESS DNA ORCHESTRATOR
@@ -23,6 +24,7 @@ export default function BusinessOrchestrator() {
   const [uploading, setUploading] = useState(false);
   const [biz, setBiz] = useState<any>(null);
   const [sections, setSections] = useState<any[]>([]);
+  const [sectionControls, setSectionControls] = useState<Record<string, any>>({});
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,7 +39,13 @@ export default function BusinessOrchestrator() {
         const orderedSections = Array.isArray(orderedSectionsResponse)
           ? orderedSectionsResponse
           : [];
-        const secData = orderedSections;
+        const secData = Array.from(
+          new Map(
+            orderedSections.map((section: any) => [resolveSectionId(section.id), section])
+          ).values()
+        );
+        const filteredSecData = filterCoreSectionsForBusinessType(bizData.type_id, secData.map((s: any) => s.id));
+        const canonicalSecData = secData.filter((section: any) => filteredSecData.includes(resolveSectionId(section.id)));
 
         // Fetch Typology Blueprint (type data is returned directly from /api/jana/types)
         const typeRes = await fetch(`/api/jana/types?id=${bizData.type_id}`);
@@ -53,10 +61,17 @@ export default function BusinessOrchestrator() {
           ? JSON.parse(bizData.custom_data)
           : (bizData.custom_data || {});
         setBiz({ ...bizData, custom_data: customData, blueprint });
-        setSections(secData);
+        setSections(canonicalSecData);
         
         const fieldRes = await fetch(`/api/jana/forms?type=${bizData.type_id}`);
         let fieldData = await fieldRes.json();
+
+        const controlsRes = await fetch(`/api/admin/businesses/${id}/section-controls`);
+        const controlsData = controlsRes.ok ? await controlsRes.json() : { controls: [] };
+        const normalizedControls = Array.isArray(controlsData.controls)
+          ? Object.fromEntries(controlsData.controls.map((item: any) => [item.section_id, item]))
+          : Object.fromEntries((controlsData || []).map((item: any) => [item.section_id, item]));
+        setSectionControls(normalizedControls);
 
         // Apply Blueprint Filter: Remove fields hidden at the Typology level
         fieldData = fieldData.filter((f: any) => !blueprint.hidden_fields?.includes(f.name));
@@ -69,7 +84,7 @@ export default function BusinessOrchestrator() {
           setActiveSectionId(targetSection);
         } else {
           const hiddenSections = customData.basic?.hidden_sections || customData.hidden_sections || [];
-          const firstActive = secData.find((s: any) => !hiddenSections.includes(s.id));
+          const firstActive = canonicalSecData.find((s: any) => !hiddenSections.includes(s.id));
           if (firstActive) setActiveSectionId(firstActive.id);
         }
         
@@ -122,9 +137,9 @@ export default function BusinessOrchestrator() {
   if (loading) return <div className="loader-screen">ORCHESTRATING DNA...</div>;
   if (!biz) return <div className="loader-screen" style={{ color: '#ef4444' }}>BUSINESS ENTITY NOT FOUND</div>;
 
-  const hiddenSections = Array.isArray(biz.custom_data?.basic?.hidden_sections)
-    ? biz.custom_data.basic.hidden_sections
-    : (Array.isArray(biz.custom_data?.hidden_sections) ? biz.custom_data.hidden_sections : []);
+  const hiddenSections = sections
+    .filter(section => isSectionHidden(section.id, biz.custom_data, sectionControls[section.id], []))
+    .map(section => section.id);
   const visibleSections = sections.filter(section => !hiddenSections.includes(section.id));
   const activeSectionIds = visibleSections.map(section => section.id);
 
@@ -222,7 +237,8 @@ export default function BusinessOrchestrator() {
                   <h3 style={{ fontSize: '0.65rem', fontWeight: 900, color: '#6366f1', marginBottom: '1.5rem', letterSpacing: '2px' }}>CHAPTER VISIBILITY CONTROLS</h3>
                   <div className="section-grid-mini" style={{ display: 'grid', gap: '1rem' }}>
                     {sections.map(s => {
-                      const isHidden = biz.custom_data?.basic?.hidden_sections?.includes(s.id);
+                      const isHidden = isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], []);
+                      const effectiveLabel = getEffectiveSectionLabel(s.id, s.name, biz.custom_data, sectionControls[s.id]);
                       return (
                         <div key={s.id} className={`section-item-toggle ${!isHidden ? 'active' : ''}`} style={{ 
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -233,7 +249,7 @@ export default function BusinessOrchestrator() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <i className={`fas ${s.icon}`} style={{ color: isHidden ? '#94a3b8' : '#6366f1' }}></i>
                             <div>
-                               <div style={{ fontWeight: 800, color: isHidden ? '#94a3b8' : '#0f172a', fontSize: '0.85rem' }}>{s.name}</div>
+                               <div style={{ fontWeight: 800, color: isHidden ? '#94a3b8' : '#0f172a', fontSize: '0.85rem' }}>{effectiveLabel}</div>
                                <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isHidden ? '#94a3b8' : '#6366f1', letterSpacing: '1px' }}>
                                  {isHidden ? 'HIDDEN FROM PUBLIC NAV' : 'VISIBLE ON MINISITE'}
                                </div>
@@ -242,7 +258,7 @@ export default function BusinessOrchestrator() {
                           
                           <button 
                             onClick={() => {
-                              const hidden = [...(biz.custom_data?.basic?.hidden_sections || [])];
+                              const hidden = [...(biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections || [])];
                               const nextHidden = isHidden ? hidden.filter(id => id !== s.id) : [...hidden, s.id];
                               updateCustomData('basic', 'hidden_sections', nextHidden);
                               if (!isHidden && activeSectionId === s.id) {

@@ -51,77 +51,98 @@ const PKG_CSS = `
 `;
 
 export default function VendorPackagesPage() {
-  const [packages, setPackages] = useState<Package[]>([
-    {
-      id: '1',
-      package_name: 'Desert Experience & Sunset Dinner Package',
-      package_type: 'service_package',
-      base_price: 180,
-      package_price: 140,
-      savings_percentage: 22,
-      status: 'active',
-      is_featured: true,
-      quantity_sold: 14,
-      quantity_available: 50,
-      approval_status: 'approved',
-      valid_until: '2026-12-31',
-    },
-    {
-      id: '2',
-      package_name: 'Siwa Salt Lake Thermal Spa Day Pass',
-      package_type: 'bundle',
-      base_price: 90,
-      package_price: 70,
-      savings_percentage: 22,
-      status: 'active',
-      is_featured: false,
-      quantity_sold: 26,
-      quantity_available: 100,
-      approval_status: 'approved',
-      valid_until: '2026-10-15',
-    },
-  ]);
-
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
   const [slug, setSlug] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [newPkgName, setNewPkgName] = useState('');
   const [newPkgPrice, setNewPkgPrice] = useState('');
   const [newBasePrice, setNewBasePrice] = useState('');
+  const [newPackageType, setNewPackageType] = useState<'package' | 'program' | 'bundle'>('package');
+  const [newProgramType, setNewProgramType] = useState<'experience' | 'wellness' | 'retreat' | 'adventure'>('experience');
+  const [newDuration, setNewDuration] = useState('1');
+  const [newAudience, setNewAudience] = useState('All travelers');
+  const [newDescription, setNewDescription] = useState('');
 
   useEffect(() => {
     fetch('/api/vendor/story')
       .then(r => r.json())
       .then(d => { if (d?.business) setSlug(d.business.slug || d.business.id || ''); })
       .catch(() => {});
+
+    loadPackages();
   }, []);
+
+  async function loadPackages() {
+    try {
+      const res = await fetch('/api/vendor/packages');
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setPackages(Array.isArray(data.packages) ? data.packages : []);
+    } catch (error) {
+      console.error('Failed to load vendor packages', error);
+      setPackages([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filtered = packages.filter(p => filterStatus === 'all' || p.status === filterStatus);
 
-  function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!newPkgName || !newPkgPrice) return;
+
     const base = Number(newBasePrice) || Number(newPkgPrice);
     const price = Number(newPkgPrice);
     const savings = base > price ? Math.round(((base - price) / base) * 100) : 0;
 
-    const created: Package = {
-      id: Date.now().toString(),
-      package_name: newPkgName,
-      package_type: 'service_package',
+    const payload = {
+      name: newPkgName,
+      package_type: newPackageType,
+      program_type: newProgramType,
+      duration_days: Number(newDuration) || 1,
+      audience: newAudience || 'All travelers',
+      description: newDescription,
       base_price: base,
       package_price: price,
       savings_percentage: savings,
       status: 'active',
       is_featured: false,
-      quantity_sold: 0,
-      quantity_available: 20,
-      approval_status: 'approved',
-      valid_until: '2026-12-31',
+      pricing: {
+        base_price: base,
+        package_price: price,
+        savings_percentage: savings,
+        package_type: newPackageType,
+        program_type: newProgramType,
+        duration_days: Number(newDuration) || 1,
+        audience: newAudience || 'All travelers',
+        description: newDescription,
+      }
     };
-    setPackages([created, ...packages]);
-    setShowModal(false);
-    setNewPkgName(''); setNewPkgPrice(''); setNewBasePrice('');
+
+    try {
+      const res = await fetch('/api/vendor/packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setShowModal(false);
+      setNewPkgName('');
+      setNewPkgPrice('');
+      setNewBasePrice('');
+      setNewPackageType('package');
+      setNewProgramType('experience');
+      setNewDuration('1');
+      setNewAudience('All travelers');
+      setNewDescription('');
+      await loadPackages();
+    } catch (error) {
+      console.error('Failed to save vendor package', error);
+      alert('Could not save the package. Please try again.');
+    }
   }
 
   return (
@@ -168,37 +189,50 @@ export default function VendorPackagesPage() {
         </div>
 
         {/* Package Grid */}
-        <div className="vp-grid">
-          {filtered.map(pkg => (
-            <div key={pkg.id} className="vp-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <span className={`vp-badge ${pkg.status}`}>{pkg.status}</span>
-                {pkg.is_featured && <span className="vp-badge featured">⭐ Featured</span>}
-              </div>
+        {loading ? (
+          <div style={{ padding: '2rem', color: '#64748b', fontWeight: 700 }}>Loading your packages...</div>
+        ) : (
+          <div className="vp-grid">
+            {filtered.map(pkg => (
+              <div key={pkg.id} className="vp-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span className={`vp-badge ${pkg.status}`}>{pkg.status}</span>
+                  {pkg.is_featured && <span className="vp-badge featured">⭐ Featured</span>}
+                </div>
 
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.75rem', lineHeight: 1.35 }}>
-                {pkg.package_name}
-              </h3>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.75rem', lineHeight: 1.35 }}>
+                  {pkg.package_name}
+                </h3>
 
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#D4AF37' }}>${pkg.package_price}</span>
-                {pkg.base_price > pkg.package_price && (
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>${pkg.base_price}</span>
-                )}
-                {pkg.savings_percentage > 0 && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#f0fdf4', color: '#166534', padding: '2px 6px', borderRadius: '6px' }}>
-                    Save {pkg.savings_percentage}%
-                  </span>
-                )}
-              </div>
+                <div style={{ marginBottom: '0.75rem', fontSize: '0.7rem', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {pkg.package_type || 'package'} • {pkg.package_type === 'program' ? 'experience' : 'offer'}
+                </div>
 
-              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>
-                <span>Sold: <strong style={{ color: '#0f172a' }}>{pkg.quantity_sold}</strong></span>
-                <span>Valid: <strong style={{ color: '#0f172a' }}>{pkg.valid_until}</strong></span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#D4AF37' }}>${pkg.package_price}</span>
+                  {pkg.base_price > pkg.package_price && (
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>${pkg.base_price}</span>
+                  )}
+                  {pkg.savings_percentage > 0 && (
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#f0fdf4', color: '#166534', padding: '2px 6px', borderRadius: '6px' }}>
+                      Save {pkg.savings_percentage}%
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>
+                  <span>Sold: <strong style={{ color: '#0f172a' }}>{pkg.quantity_sold}</strong></span>
+                  <span>Valid: <strong style={{ color: '#0f172a' }}>{pkg.valid_until}</strong></span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+            {filtered.length === 0 && !loading && (
+              <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '18px', padding: '2rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
+                No packages created yet. Create your first offer.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Modal */}
         {showModal && (
@@ -217,7 +251,28 @@ export default function VendorPackagesPage() {
                     style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Offer Type</label>
+                    <select value={newPackageType} onChange={e => setNewPackageType(e.target.value as any)} style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}>
+                      <option value="package">Package</option>
+                      <option value="program">Program</option>
+                      <option value="bundle">Bundle</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Program Style</label>
+                    <select value={newProgramType} onChange={e => setNewProgramType(e.target.value as any)} style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}>
+                      <option value="experience">Experience</option>
+                      <option value="wellness">Wellness</option>
+                      <option value="retreat">Retreat</option>
+                      <option value="adventure">Adventure</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Special Price ($)</label>
                     <input
@@ -240,6 +295,39 @@ export default function VendorPackagesPage() {
                     />
                   </div>
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Duration (days)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={newDuration}
+                      onChange={e => setNewDuration(e.target.value)}
+                      style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Audience</label>
+                    <input
+                      type="text"
+                      value={newAudience}
+                      onChange={e => setNewAudience(e.target.value)}
+                      style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>Description</label>
+                  <textarea
+                    rows={3}
+                    value={newDescription}
+                    onChange={e => setNewDescription(e.target.value)}
+                    style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
+                  />
+                </div>
+
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                   <button type="button" onClick={() => setShowModal(false)} style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 800, cursor: 'pointer' }}>
                     Cancel

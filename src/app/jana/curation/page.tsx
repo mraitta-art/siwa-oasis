@@ -143,16 +143,24 @@ export default function CurationDashboard() {
                 </Link>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '16px' }}>
-                 <div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>CAROUSEL PHOTOS</div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{JSON.parse(biz.curation_data || '{}').approved_slides?.length || 0} Approved</div>
-                 </div>
-                 <div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>OMNICHANNEL</div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{Object.keys(JSON.parse(biz.curation_data || '{}').distribution_overrides || {}).length} Overrides</div>
-                 </div>
-              </div>
+              {(() => {
+                let cur: any = {};
+                try {
+                  cur = typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data || '{}') : (biz.curation_data || {});
+                } catch { cur = {}; }
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>CAROUSEL PHOTOS</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{cur.approved_slides?.length || 0} Approved</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>OMNICHANNEL</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{Object.keys(cur.distribution_overrides || {}).length} Overrides</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

@@ -44,6 +44,23 @@ export const CANONICAL_SECTIONS = [
   { id: 'sec_10_testimonials_faqs', name: 'Contact, Policies & Trust', label: 'Trust', emoji: '💬', color: '#059669', icon: 'fa-comments', order: 10 },
 ] as const;
 
+export const TRAVEL_AGENCY_CORE_SECTION_IDS = [
+  'sec_1_identity',
+  'sec_2_ambience',
+  'sec_5_experiences',
+  'sec_8_connector',
+  'sec_9_marketplace_catalog',
+  'sec_10_testimonials_faqs',
+] as const;
+
+export function filterCoreSectionsForBusinessType(typeId?: string | null, sectionIds: string[] = []): string[] {
+  const typeKey = String(typeId || '').toLowerCase();
+  const isTravelAgency = /travel_agency|travel agency|tour operator|tourism|agency/i.test(typeKey) || /travel/i.test(typeKey);
+  if (!isTravelAgency) return sectionIds;
+
+  return [...new Set(sectionIds.map(resolveSectionId))];
+}
+
 export function resolveSectionId(id: string): string {
   return LEGACY_SECTION_ALIASES[id] || id;
 }
@@ -58,4 +75,65 @@ export function normalizeSectionIds(value: unknown, fallbackToAll = false): stri
     .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
     .map(resolveSectionId);
   return valid.length || fallbackToAll ? [...new Set(valid.length ? valid : CANONICAL_SECTION_IDS)] : [];
+}
+
+export function getEffectiveSectionLabel(sectionId: string, fallbackName?: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null): string {
+  const labelCandidates = [
+    sectionControl?.custom_label,
+    customData?.section_labels?.[sectionId],
+    customData?.basic?.section_labels?.[sectionId],
+    customData?.section_labels_ar?.[sectionId],
+    customData?.basic?.section_labels_ar?.[sectionId],
+    fallbackName,
+    CANONICAL_SECTIONS.find((s) => s.id === sectionId)?.name,
+    sectionId,
+  ];
+
+  const resolved = labelCandidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+  return resolved ? String(resolved).trim() : fallbackName || sectionId;
+}
+
+export function isSectionHidden(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null, templateHidden: unknown[] = []): boolean {
+  const normalizedId = resolveSectionId(sectionId);
+  const hiddenFromCustom = Array.isArray(customData?.basic?.hidden_sections)
+    ? customData.basic.hidden_sections
+    : (Array.isArray(customData?.hidden_sections) ? customData.hidden_sections : []);
+
+  const hiddenSet = new Set<string>([
+    ...templateHidden.filter((id): id is string => typeof id === 'string').map(resolveSectionId),
+    ...hiddenFromCustom.filter((id): id is string => typeof id === 'string').map(resolveSectionId),
+  ]);
+
+  if (sectionControl?.admin_hidden === 1 || sectionControl?.admin_hidden === true) {
+    hiddenSet.add(normalizedId);
+  }
+
+  return hiddenSet.has(normalizedId) || hiddenSet.has(sectionId);
+}
+
+export function getSectionApprovalState(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null): { approved: boolean; valid: boolean; reason?: string; data: Record<string, any> } {
+  const normalizedId = resolveSectionId(sectionId);
+  const sectionData = (customData && typeof customData === 'object' && (customData[normalizedId] || customData[sectionId])) || {};
+  const approvalStatus = sectionData.approval_status || sectionData.section_approval_status || sectionControl?.approval_status;
+  const showOnMinisite = sectionData.show_on_minisite ?? sectionData.show_on_public ?? sectionControl?.show_on_minisite ?? true;
+
+  const adminHidden = sectionControl?.admin_hidden === 1 || sectionControl?.admin_hidden === true;
+  if (adminHidden) {
+    return { approved: false, valid: false, reason: 'admin_hidden', data: sectionData };
+  }
+
+  const isApproved = approvalStatus === undefined || approvalStatus === null || approvalStatus === 'approved' || approvalStatus === 'published';
+  const isVisible = showOnMinisite !== false && showOnMinisite !== 0;
+  const valid = isApproved && isVisible;
+
+  return {
+    approved: isApproved,
+    valid,
+    reason: !isApproved ? 'not_approved' : (!isVisible ? 'hidden' : undefined),
+    data: sectionData,
+  };
+}
+
+export function isSectionApprovedForMinisite(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null): boolean {
+  return getSectionApprovalState(sectionId, customData, sectionControl).valid;
 }

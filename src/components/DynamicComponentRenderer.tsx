@@ -30,7 +30,8 @@ interface DynamicComponentProps {
 export default function DynamicComponentRenderer({ component }: DynamicComponentProps) {
   if (!component) return null;
 
-  const { type, props = {} } = component;
+  const { type, props = {}, label } = component;
+  const resolvedTitle = props.title || props.custom_title || label || type?.replace(/_/g, ' ').replace(/\b\w/g, (char: string) => char.toUpperCase()) || 'Section Component';
 
   switch (type) {
     case 'hero_carousel':
@@ -46,7 +47,7 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
       return (
         <div style={{ padding: '4rem 2rem', background: '#D4AF37', textAlign: 'center', color: '#1a1a2e' }}>
           <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1rem' }}>
-            {props.title || 'Call to Action'}
+            {props.title || props.custom_title || label || 'Call to Action'}
           </h2>
           <p style={{ marginBottom: '2rem', opacity: 0.9 }}>
             {props.description || 'This is a call to action section'}
@@ -73,11 +74,9 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
     case 'text_section':
       return (
         <div style={{ padding: '4rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
-          {props.title && (
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1rem' }}>
-              {props.title}
-            </h2>
-          )}
+          <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1rem' }}>
+            {props.title || props.custom_title || label || 'Section Content'}
+          </h2>
           {props.content && (
             <div
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(props.content) }}
@@ -91,7 +90,7 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
       return (
         <div style={{ padding: '4rem 2rem', background: '#f8fafc' }}>
           <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '3rem', textAlign: 'center' }}>
-            {props.title || 'What Our Users Say'}
+            {props.title || props.custom_title || label || 'What Our Users Say'}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
             {props.testimonials?.map((t: any, idx: number) => (
@@ -114,7 +113,7 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
       return (
         <div style={{ padding: '4rem 2rem', maxWidth: '800px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '3rem', textAlign: 'center' }}>
-            {props.title || 'Frequently Asked Questions'}
+            {props.title || props.custom_title || label || 'Frequently Asked Questions'}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {props.faqs?.map((item: any, idx: number) => (

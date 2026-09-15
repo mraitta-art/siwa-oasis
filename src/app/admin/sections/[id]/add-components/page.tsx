@@ -30,6 +30,10 @@ export default function AddComponentsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    router.replace('/jana/sections');
+  }, [router]);
+
+  useEffect(() => {
     loadTemplates();
   }, []);
 

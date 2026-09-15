@@ -29,6 +29,7 @@ export async function GET(request: Request) {
         b.id, 
         b.name AS business_name, 
         b.slug,
+        b.subscription_tier AS tier,
         bt.name AS type_name,
         bt.icon AS type_icon,
         JSON_UNQUOTE(JSON_EXTRACT(b.custom_data, '$."business_info".business_logo')) AS logo,
@@ -70,6 +71,63 @@ export async function GET(request: Request) {
     const rows = await query(sql, params) as any[];
 
     const discounts: any[] = [];
+
+    const canonicalDiscountParams: any[] = [];
+    let canonicalDiscountSql = `
+      SELECT d.*, tp.name AS product_name, tp.vendor_business_id,
+             b.name AS business_name, b.slug AS business_slug,
+             b.subscription_tier AS tier, bt.name AS type_name, bt.icon AS type_icon
+      FROM tour_product_discount_rules d
+      JOIN tour_products tp ON tp.id = d.product_id
+      LEFT JOIN businesses b ON b.id = tp.vendor_business_id
+      LEFT JOIN business_types bt ON bt.id = b.type_id
+      WHERE d.status IN ('active', 'published')
+        AND d.approval_status IN ('approved', 'published')
+        AND tp.is_active = 1
+        AND tp.is_public = 1
+        AND (d.valid_from IS NULL OR d.valid_from <= CURRENT_DATE())
+        AND (d.valid_until IS NULL OR d.valid_until >= CURRENT_DATE())
+    `;
+    if (businessFilter) {
+      canonicalDiscountSql += ' AND tp.vendor_business_id = ?';
+      canonicalDiscountParams.push(businessFilter);
+    }
+    if (typeFilter) {
+      canonicalDiscountSql += ' AND (b.type_id = ? OR bt.parent_id = ?)';
+      canonicalDiscountParams.push(typeFilter, typeFilter);
+    }
+    if (seasonFilter) {
+      canonicalDiscountSql += ' AND JSON_UNQUOTE(JSON_EXTRACT(d.metadata, \"$.season\")) = ?';
+      canonicalDiscountParams.push(seasonFilter);
+    }
+    const canonicalDiscounts = await query(canonicalDiscountSql, canonicalDiscountParams) as any[];
+    canonicalDiscounts.forEach(discount => {
+      if (featuredOnly) return;
+      if (discountTypeFilter && discount.rule_type !== discountTypeFilter) return;
+      discounts.push({
+        business_id: discount.vendor_business_id || `discount-${discount.id}`,
+        business_name: discount.business_name || 'Siwa Today',
+        business_slug: discount.business_slug || null,
+        business_logo: null,
+        type_name: discount.type_name || null,
+        type_icon: discount.type_icon || null,
+        discount_name: discount.product_name ? `${discount.product_name} discount` : 'Special discount',
+        discount_type: discount.rule_type,
+        discount_value: discount.value,
+        applies_to: discount.product_name || 'Selected package',
+        min_group_size: discount.min_group_size || null,
+        season: seasonFilter || 'all_year',
+        valid_from: discount.valid_from || null,
+        valid_until: discount.valid_until || null,
+        description: discount.currency ? `Discount in ${discount.currency}` : null,
+        promo_code: discount.coupon_code || null,
+        discount_status: discount.status,
+        is_featured: false,
+        source: 'tour_product_discount_rules',
+        product_id: discount.product_id,
+        discount_id: discount.id,
+      });
+    });
 
     rows.forEach(row => {
       const businessLogo = row.logo || null;

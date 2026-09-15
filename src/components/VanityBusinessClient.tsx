@@ -9,6 +9,7 @@ import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
+import { filterCoreSectionsForBusinessType, isSectionApprovedForMinisite } from '@/lib/section-registry';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -171,10 +172,20 @@ export default function VanityBusinessClient({
   };
 
   const biz = initialData;
-  const activeSections = sections;
-
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
+
+  // Dynamically filter activeSections so sections without active components or data automatically disappear from header tabs, mobile menu, and hero
+  const activeSections = React.useMemo(() => {
+    const allowedIds = new Set(filterCoreSectionsForBusinessType(biz?.type_id, (sections || []).map(section => section.id)));
+
+    return (sections || []).filter(section => {
+      if (!allowedIds.has(section.id)) return false;
+      if (!isSectionApprovedForMinisite(section.id, data)) return false;
+
+      return true;
+    });
+  }, [sections, data, biz?.type_id]);
   
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
   const identity = data.basic || data.sec_1_identity || data.business_info || {};
@@ -451,9 +462,12 @@ export default function VanityBusinessClient({
               const dbGallery = Array.isArray(section.gallery) ? section.gallery : null;
               const hasTours = Array.isArray(section.tourProducts) && section.tourProducts.length > 0;
 
-              // Hide completely empty sections from public view
-              const hasContent = secData || sectionComponentInstances.length > 0 || dbBlog || (dbGallery && dbGallery.length > 0) || hasTours;
-              if (!hasContent) return null;
+              // Show every valid travel-core section in the nav and on-page flow, even when
+              // the business has not filled a particular section yet. Empty sections still need
+              // to appear so the tab structure is reliable and consistent.
+              const sectionHasDefinedFields = Array.isArray(section.fields) && section.fields.length > 0;
+              const hasContent = sectionHasDefinedFields || !!secData || sectionComponentInstances.length > 0 || !!dbBlog || (dbGallery && dbGallery.length > 0) || hasTours;
+              if (!hasContent && !activeSections.some(s => s.id === section.id)) return null;
 
               // Filter gallery items by placement
               const carouselImages = dbGallery 
@@ -659,75 +673,99 @@ export default function VanityBusinessClient({
                     ) : null}
 
                     {/* CUSTOM FIELDS GRID */}
-                    {secData && (
+                    {(secData || sectionHasDefinedFields) && (
                       <div className="grid-2" style={{ marginBottom: '2.5rem' }}>
-                        {Object.entries(secData).map(([key, val]) => {
-                          if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
+                        {(() => {
+                          const fieldEntries: Array<{ key: string; val: any; matchedField: any }> = [];
+                          const seen = new Set<string>();
 
-                          const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
-                          
-                          // Check public visibility policy
-                          const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
-                          if (!isPublic) return null;
-
-                          const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
-                          
-                          // 1. DYNAMIC GATE: If price field is blank or set to 'call', show a Call for Price CTA
-                          let finalVal = val;
-                          const isPriceField = key.includes('price');
-                          if (isPriceField && (!val || String(val).toLowerCase() === 'call' || String(val).toLowerCase() === 'call us')) {
-                            finalVal = `call_for_price_fallback`;
+                          if (Array.isArray(section.fields)) {
+                            section.fields.forEach((field: any) => {
+                              const key = field?.name;
+                              if (!key) return;
+                              seen.add(key);
+                              fieldEntries.push({ key, val: secData?.[key], matchedField: field });
+                            });
                           }
 
-                          if (finalVal === null || finalVal === undefined || finalVal === '') return null;
+                          if (secData) {
+                            Object.entries(secData).forEach(([key, val]) => {
+                              if (seen.has(key)) return;
+                              const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
+                              fieldEntries.push({ key, val, matchedField });
+                            });
+                          }
 
-                          // 2. FEATURE GATE: Blur prices on public minisite for unverified free tier listings to encourage promotion
-                          const isGated = isPriceField && !isTrusted && biz.subscription_tier === 'free';
+                          return fieldEntries.map(({ key, val, matchedField }) => {
+                            if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
 
-                          if (isGated) {
-                            return (
-                              <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
-                                <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
-                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
-                                  <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <i className="fas fa-lock" /> VERIFIED ONLY
-                                  </span>
-                                  <span style={{ fontSize: '0.5rem', color: '#94a3b8', fontWeight: 700 }}>Unlock upon official verification</span>
+                            const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
+                            if (!isPublic) return null;
+
+                            const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
+
+                            let finalVal = val;
+                            const isPriceField = key.includes('price');
+                            if (isPriceField && (!val || String(val).toLowerCase() === 'call' || String(val).toLowerCase() === 'call us')) {
+                              finalVal = 'call_for_price_fallback';
+                            }
+
+                            const isEmptyValue = finalVal === null || finalVal === undefined || finalVal === '';
+                            const isGated = isPriceField && !isTrusted && biz.subscription_tier === 'free';
+
+                            if (isGated) {
+                              return (
+                                <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
+                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                                  <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
+                                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <i className="fas fa-lock" /> VERIFIED ONLY
+                                    </span>
+                                    <span style={{ fontSize: '0.5rem', color: '#94a3b8', fontWeight: 700 }}>Unlock upon official verification</span>
+                                  </div>
                                 </div>
+                              );
+                            }
+
+                            const ctaPhoneNumber = section.cta_phone || section.cta_phone_override || dynamicPhone;
+                            const rendered = isEmptyValue
+                              ? <span style={{ color: '#94a3b8', fontWeight: 600, fontStyle: 'italic' }}>Not provided</span>
+                              : finalVal === 'call_for_price_fallback'
+                                ? (
+                                  <a href={`tel:${ctaPhoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
+                                    <i className="fas fa-phone-alt" /> CALL FOR PRICE
+                                  </a>
+                                )
+                                : renderFieldValue(key, finalVal, matchedField);
+
+                            const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
+
+                            return (
+                              <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{rendered}</div>
                               </div>
                             );
-                          }
-
-                          // 3. Render Field
-                          // Phone priority: admin CTA override → typology default override → vendor's own number
-                          const ctaPhoneNumber = section.cta_phone || section.cta_phone_override || dynamicPhone;
-                          const rendered = finalVal === 'call_for_price_fallback' ? (
-                            <a href={`tel:${ctaPhoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
-                              <i className="fas fa-phone-alt" /> CALL FOR PRICE
-                            </a>
-                          ) : renderFieldValue(key, finalVal, matchedField);
-
-                          const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
-
-                          return (
-                            <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto' }}>
-                              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{rendered}</div>
-                            </div>
-                          );
-                        })}
+                          });
+                        })()}
                       </div>
                     )}
 
                     {/* DYNAMIC COMPONENT INSTANCES */}
                     {sectionComponentInstances.length > 0 && (
                       <div style={{ marginTop: '2.5rem', marginBottom: '2.5rem' }}>
-                        {sectionComponentInstances.map(component => (
-                          <div key={component.id} style={{ marginBottom: '2rem' }}>
-                            <DynamicComponentRenderer component={component} />
-                          </div>
-                        ))}
+                        {sectionComponentInstances.map(component => {
+                          const componentTitle = component.title || component.label || component.props?.title || component.props?.custom_title || 'Section Component';
+                          return (
+                            <div key={component.id} style={{ marginBottom: '2rem' }}>
+                              <div style={{ marginBottom: '1rem', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', color: '#94a3b8' }}>
+                                {componentTitle}
+                              </div>
+                              <DynamicComponentRenderer component={component} />
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 

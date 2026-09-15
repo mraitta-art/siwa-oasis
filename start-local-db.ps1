@@ -19,7 +19,7 @@ if (-not (Test-Path $iniFile)) {
   @'
 [mysqld]
 basedir=E:/mysql
-odatadir=E:/mysql/data
+datadir=E:/mysql/data
 port=3306
 server_id=1
 character-set-server=utf8mb4

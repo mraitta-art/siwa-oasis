@@ -21,7 +21,13 @@ export default function PackagesManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  const [editingPkg, setEditingPkg] = useState<Partial<Package> | null>(null);
+  const [editingPkg, setEditingPkg] = useState<Partial<Package> & {
+    package_type?: 'package' | 'program' | 'bundle';
+    program_type?: 'experience' | 'retreat' | 'wellness' | 'adventure';
+    duration_days?: number;
+    audience?: string;
+    is_featured?: boolean;
+  } | null>(null);
   const [selectedBizes, setSelectedBizes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -56,7 +62,20 @@ export default function PackagesManager() {
       const method = isNew ? 'POST' : 'PUT';
       const payload = {
         ...editingPkg,
-        business_ids: selectedBizes
+        business_ids: selectedBizes,
+        package_type: editingPkg.package_type || 'package',
+        program_type: editingPkg.program_type || 'experience',
+        duration_days: Number(editingPkg.duration_days || 1),
+        audience: editingPkg.audience || 'all',
+        is_featured: !!editingPkg.is_featured,
+        pricing: {
+          ...(typeof editingPkg.pricing === 'object' && editingPkg.pricing ? editingPkg.pricing : {}),
+          package_type: editingPkg.package_type || 'package',
+          program_type: editingPkg.program_type || 'experience',
+          duration_days: Number(editingPkg.duration_days || 1),
+          audience: editingPkg.audience || 'all',
+          featured: !!editingPkg.is_featured,
+        }
       };
 
       const res = await fetch('/api/jana/packages', {
@@ -128,7 +147,7 @@ export default function PackagesManager() {
             <div className="grid-editor">
                <div className="form-main">
                   <div className="form-group">
-                    <label className="dna-label">PACKAGE NAME</label>
+                    <label className="dna-label">PACKAGE / PROGRAM NAME</label>
                     <input 
                       className="dna-input" 
                       value={editingPkg.name || ''} 
@@ -136,6 +155,57 @@ export default function PackagesManager() {
                       placeholder="e.g. The Ultimate Siwan Sunset Journey"
                     />
                   </div>
+
+                  <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label className="dna-label">TYPE</label>
+                      <select
+                        className="dna-input"
+                        value={editingPkg.package_type || 'package'}
+                        onChange={e => setEditingPkg({...editingPkg, package_type: e.target.value as any})}
+                      >
+                        <option value="package">Package</option>
+                        <option value="program">Program</option>
+                        <option value="bundle">Bundle</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="dna-label">PROGRAM STYLE</label>
+                      <select
+                        className="dna-input"
+                        value={editingPkg.program_type || 'experience'}
+                        onChange={e => setEditingPkg({...editingPkg, program_type: e.target.value as any})}
+                      >
+                        <option value="experience">Experience</option>
+                        <option value="wellness">Wellness</option>
+                        <option value="retreat">Retreat</option>
+                        <option value="adventure">Adventure</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label className="dna-label">DURATION (DAYS)</label>
+                      <input
+                        className="dna-input"
+                        type="number"
+                        min={1}
+                        value={editingPkg.duration_days || 1}
+                        onChange={e => setEditingPkg({...editingPkg, duration_days: Number(e.target.value) || 1})}
+                      />
+                    </div>
+                    <div>
+                      <label className="dna-label">TARGET AUDIENCE</label>
+                      <input
+                        className="dna-input"
+                        value={editingPkg.audience || ''}
+                        onChange={e => setEditingPkg({...editingPkg, audience: e.target.value})}
+                        placeholder="Couples, Families, Adventure"
+                      />
+                    </div>
+                  </div>
+
                   <div className="form-group">
                     <label className="dna-label">DESCRIPTION / NARRATIVE</label>
                     <textarea 
@@ -145,6 +215,18 @@ export default function PackagesManager() {
                       onChange={e => setEditingPkg({...editingPkg, description: e.target.value})}
                       placeholder="Describe the curated experience..."
                     />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="dna-label">FEATURED / HIGHLIGHT</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!editingPkg.is_featured}
+                        onChange={e => setEditingPkg({...editingPkg, is_featured: e.target.checked})}
+                      />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Make this offer stand out in searches and home sections</span>
+                    </div>
                   </div>
                   
                   <div style={{ marginTop: '2rem' }}>

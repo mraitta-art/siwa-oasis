@@ -144,6 +144,9 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
             </h1>
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
+            <Link href={`/jana/curation/${id}`} className="btn btn-outline" style={{ borderColor: '#D4AF37', color: '#D4AF37' }}>
+              <i className="fas fa-sliders-h" style={{ marginRight: '0.4rem' }}></i> CURATION STUDIO
+            </Link>
             <Link href={`/business/${id}`} target="_blank" className="btn btn-outline">VIEW MINISITE</Link>
             <button onClick={saveBusiness} disabled={saving} className="btn btn-primary">
               {saving ? 'SAVING...' : 'SAVE CHANGES'}

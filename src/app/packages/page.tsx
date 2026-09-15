@@ -27,7 +27,7 @@ export default function PackagesPage() {
   useEffect(() => {
     fetch('/api/discovery/offers')
       .then(r => r.json())
-      .then(j => { 
+      .then(j => {
         if (j?.success && Array.isArray(j.offers)) {
           const packages = j.offers
             .filter((item: any) => item.type === 'package' || item.type === 'experience_package' || item.source?.startsWith('package_') || item.source === 'experience_packages_db')
@@ -36,7 +36,7 @@ export default function PackagesPage() {
               business_slug: item.business_slug || item.business_id,
               title: item.title || item.offer_title || '',
               business_name: item.business_name || '',
-              brief: item.description ? (item.description.substring(0, 150) + '...') : '',
+              brief: item.description ? item.description.substring(0, 150) + '...' : '',
               description: item.description || '',
               image: item.image || item.offer_image || null,
               is_featured: !!item.is_featured,
@@ -52,157 +52,139 @@ export default function PackagesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const visibleItems = items.filter(item => 
-    !searchTerm || 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const visibleItems = items.filter(item =>
+    !searchTerm ||
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.business_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const featuredItems = visibleItems.filter(i => i.is_featured).slice(0, 3);
 
+  function formatDate(d: string | null | undefined) {
+    if (!d) return null;
+    try { return new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return d; }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fffdf8,_#f8fafc_45%,_#f1f5f9_100%)] text-slate-800">
       <MarketplaceHeader title="Packages" adminPath="/admin/packages" activePath="/packages" />
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden py-16 sm:py-24">
-        <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-[#556B2F] via-transparent to-[#D4AF37]" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold sm:text-5xl tracking-tight">
-            <span className="bg-gradient-to-r from-[#D4AF37] to-[#FFB700] bg-clip-text text-transparent">
-              Curated Travel Packages
-            </span>
-          </h1>
-          <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
-            Explore premium pre-designed packages and desert experiences crafted by local experts
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="/admin/packages" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/15 transition">
-              🔧 Moderate packages
-            </a>
-            <a href="/offers" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
-              🎁 Browse offers
-            </a>
-            <a href="/discounts" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
-              🏷️ Browse discounts
-            </a>
+      <div className="page-shell py-10 sm:py-14 lg:py-16">
+        <div className="premium-surface p-6 sm:p-8 lg:p-10">
+          <div className="page-header mb-8 border-none pb-0">
+            <p className="premium-kicker text-[10px] text-[#a87c00]">Curated experiences</p>
+            <h1 className="page-title mt-3">Curated Travel Packages</h1>
+            <p className="page-subtitle">
+              Explore premium pre-designed packages and desert experiences crafted by local experts across Siwa Oasis.
+            </p>
+            <div className="gold-divider" />
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <a href="/admin/packages" className="premium-button">🔧 Moderate packages</a>
+              <a href="/offers" className="secondary-button">🎁 Browse offers</a>
+              <a href="/discounts" className="secondary-button">🏷️ Browse discounts</a>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        {/* Featured Packages */}
-        {!loading && featuredItems.length > 0 && (
-          <div className="mb-16">
-            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
-              <span className="text-[#D4AF37]">⭐</span> Featured Packages
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredItems.map((pkg) => (
-                <Link
-                  key={pkg.id}
-                  href={`/p/${pkg.business_slug}`}
-                  className="bg-gradient-to-br from-[#556B2F] to-[#D4AF37] rounded-2xl p-[1px] hover:shadow-lg hover:shadow-[#D4AF37]/30 transition-all group block"
-                >
-                  {pkg.image && (
-                    <img src={pkg.image} alt={pkg.title} className="w-full h-36 object-cover rounded-t-2xl" />
-                  )}
-                  <div className="bg-gray-900 rounded-2xl p-6 h-full flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-start justify-between">
-                        <span className="text-3xl">📦</span>
+          {!loading && featuredItems.length > 0 && (
+            <div className="mb-12">
+              <h2 className="mb-6 text-2xl font-black text-slate-900">Featured Packages</h2>
+              <div className="grid gap-6 md:grid-cols-3">
+                {featuredItems.map((pkg) => (
+                  <Link key={pkg.id} href={`/p/${pkg.business_slug}`} className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(212,175,55,0.15)]">
+                    {pkg.image ? (
+                      <img src={pkg.image} alt={pkg.title} className="h-40 w-full object-cover" />
+                    ) : (
+                      <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#fef3c7] via-[#f5d56a]/20 to-[#e2e8f0] text-4xl">📦</div>
+                    )}
+                    <div className="p-5">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <span className="text-2xl">📦</span>
                         {pkg.price && (
                           <div className="text-right">
-                            {pkg.original_price && <span className="text-xs text-gray-500 line-through block">${pkg.original_price}</span>}
-                            <span className="text-[#D4AF37] font-black text-lg">${pkg.price}</span>
+                            {pkg.original_price && <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 line-through">${pkg.original_price}</span>}
+                            <span className="text-xl font-black text-[#a87c00]">${pkg.price}</span>
                           </div>
                         )}
                       </div>
-                      <h3 className="text-base font-bold text-white mt-3 line-clamp-2">{pkg.title}</h3>
-                      <p className="text-xs text-gray-400 mt-1 mb-3">{pkg.business_name}</p>
-                      <p className="text-xs text-gray-350 line-clamp-3 mb-4">{pkg.brief}</p>
-                    </div>
-
-                    <span className="w-full text-center py-2 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-xl text-white text-xs font-bold group-hover:opacity-90 transition-all mt-auto block">
-                      View Details →
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Search */}
-        <div className="mb-8 flex flex-wrap gap-4 items-center bg-gray-900/60 p-5 rounded-2xl border border-gray-800">
-          <input
-            type="text"
-            placeholder="Search packages by title or business..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37] transition-colors text-white"
-          />
-          <span className="text-xs text-gray-500 ml-auto">
-            {visibleItems.length} package{visibleItems.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {loading && (
-          <div className="text-center py-20">
-            <div className="inline-block w-10 h-10 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-gray-400">Loading packages...</p>
-          </div>
-        )}
-
-        {/* All Packages */}
-        {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleItems.map((pkg) => (
-              <div key={pkg.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-[#D4AF37]/60 transition-all group flex flex-col">
-                {pkg.image ? (
-                  <img src={pkg.image} alt={pkg.title} className="w-full h-40 object-cover" />
-                ) : (
-                  <div className="w-full h-40 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-3xl">
-                    📦
-                  </div>
-                )}
-                <div className="p-5 flex flex-col flex-grow">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black tracking-widest text-[#D4AF37] uppercase">{pkg.business_name}</span>
-                    {pkg.is_featured && <span className="text-[#D4AF37] text-xs">⭐</span>}
-                  </div>
-                  <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{pkg.title}</h3>
-                  <p className="text-xs text-gray-400 mb-3 line-clamp-3 flex-grow">{pkg.brief}</p>
-
-                  {pkg.price && (
-                    <div className="mb-4 px-3 py-2 bg-yellow-950/40 border border-yellow-800/30 rounded-xl flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Package Deal</span>
-                      <div className="flex items-baseline gap-1.5">
-                        {pkg.original_price && <span className="text-xs text-gray-500 line-through">${pkg.original_price}</span>}
-                        <span className="text-[#D4AF37] font-black">${pkg.price}</span>
+                      <h3 className="text-lg font-black text-slate-900">{pkg.title}</h3>
+                      <p className="mt-2 text-sm text-slate-500">{pkg.business_name}</p>
+                      <p className="mt-3 text-sm leading-6 text-slate-600">{pkg.brief}</p>
+                      <div className="mt-4 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+                        {pkg.valid_until && <span>Valid {formatDate(pkg.valid_until)}</span>}
+                        <span className="text-[#a87c00]">View details →</span>
                       </div>
                     </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mb-8 flex flex-wrap items-center gap-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+            <input
+              type="text"
+              placeholder="Search packages by title or business..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37]"
+            />
+            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              {visibleItems.length} package{visibleItems.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {loading && (
+            <div className="py-16 text-center">
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#D4AF37] border-t-transparent" />
+              <p className="text-slate-500">Loading packages...</p>
+            </div>
+          )}
+
+          {!loading && (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {visibleItems.map((pkg) => (
+                <div key={pkg.id} className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_12px_26px_rgba(15,23,42,0.04)] transition hover:border-[#f5d56a] hover:shadow-[0_20px_38px_rgba(212,175,55,0.12)]">
+                  {pkg.image ? (
+                    <img src={pkg.image} alt={pkg.title} className="h-40 w-full object-cover" />
+                  ) : (
+                    <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#fef3c7] via-[#f5d56a]/20 to-[#e2e8f0] text-4xl">📦</div>
                   )}
 
-                  <Link
-                    href={`/p/${pkg.business_slug}`}
-                    className="w-full py-2.5 bg-gray-800 group-hover:bg-gradient-to-r group-hover:from-[#556B2F] group-hover:to-[#D4AF37] rounded-xl text-white text-xs font-bold text-center block transition-all"
-                  >
-                    View Details →
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  <div className="p-5">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{pkg.business_name}</span>
+                      {pkg.is_featured && <span className="text-[#a87c00]">⭐</span>}
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900">{pkg.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">{pkg.brief}</p>
 
-        {!loading && visibleItems.length === 0 && (
-          <div className="text-center py-20">
-            <div className="text-4xl mb-4">📦</div>
-            <p className="text-gray-400 text-lg">No packages found matching your criteria</p>
-          </div>
-        )}
+                    {pkg.price && (
+                      <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2.5">
+                        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">Package Deal</span>
+                        <div className="flex items-baseline gap-2">
+                          {pkg.original_price && <span className="text-[10px] text-slate-400 line-through">${pkg.original_price}</span>}
+                          <span className="text-lg font-black text-[#a87c00]">${pkg.price}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <Link href={`/p/${pkg.business_slug}`} className="premium-button mt-5 w-full">
+                      View Details
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && visibleItems.length === 0 && (
+            <div className="premium-surface py-16 text-center">
+              <div className="text-4xl">📦</div>
+              <p className="mt-4 text-xl font-black text-slate-800">No packages found</p>
+              <p className="mt-2 text-slate-500">Try another search.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -207,8 +207,19 @@ export default function BusinessFormsPage() {
     loadManagedForm(selectedManagerTypeId);
   }
 
+  const safeConfirm = (message: string) => {
+    if (typeof window === 'undefined') return false;
+    try {
+      if (typeof window.confirm === 'function') return window.confirm(message);
+    } catch (error) {
+      console.warn('Confirmation dialog is unsupported in this browser runtime:', error);
+    }
+    notify('This browser does not support confirmation dialogs for destructive actions.', 'warning');
+    return false;
+  };
+
   async function deleteManagedField(field: any) {
-    if (!confirm(`Delete form field "${field.label || field.name}"?`)) return;
+    if (!safeConfirm(`Delete form field "${field.label || field.name}"?`)) return;
     const businessQuery = managerTarget === 'business' ? `&business=${encodeURIComponent(selectedBusinessId)}` : '';
     const response = await fetch(`/api/jana/forms?id=${encodeURIComponent(field.id)}${businessQuery}`, { method: 'DELETE' });
     if (response.ok) {
@@ -247,8 +258,24 @@ export default function BusinessFormsPage() {
     setCreatingSection(false);
   }
 
+  const safePrompt = (message: string, defaultValue?: string) => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    try {
+      if (typeof window.prompt !== 'function') {
+        return null;
+      }
+      return window.prompt(message, defaultValue ?? '');
+    } catch (error) {
+      console.warn('Prompt dialog is unsupported in this browser runtime:', error);
+      notify('This browser does not support inline prompt dialogs. Please use the supported actions instead.', 'warning');
+      return null;
+    }
+  };
+
   async function renameManagedSection(section: any) {
-    const name = prompt('Section name', section.name);
+    const name = safePrompt('Section name', section.name);
     if (!name?.trim() || name.trim() === section.name) return;
     const response = await fetch('/api/jana/sections', {
       method: 'PUT',
@@ -264,7 +291,7 @@ export default function BusinessFormsPage() {
   }
 
   async function deleteManagedSection(section: any) {
-    const action = prompt(
+    const action = safePrompt(
       `Delete Section "${section.name}" (${section.id})\n\nSelect an option:\n1 = Remove from this business type (${selectedManagerTypeId || 'current'})\n2 = Permanently DELETE section & ALL its fields across the system\n\nEnter 1 or 2:`,
       '1'
     );
@@ -279,7 +306,7 @@ export default function BusinessFormsPage() {
         notify('Unable to remove section from business type', 'error');
       }
     } else if (action === '2' || !selectedManagerTypeId) {
-      if (!confirm(`⚠️ PERMANENT DELETE WARNING:\n\nAre you sure you want to permanently delete section "${section.name}" and ALL its fields from the entire system?`)) return;
+      if (!safeConfirm(`⚠️ PERMANENT DELETE WARNING:\n\nAre you sure you want to permanently delete section "${section.name}" and ALL its fields from the entire system?`)) return;
       const response = await fetch(`/api/jana/sections?id=${encodeURIComponent(section.id)}`, { method: 'DELETE' });
       if (response.ok) {
         notify(`Section "${section.name}" permanently deleted`, 'success');
@@ -463,7 +490,7 @@ export default function BusinessFormsPage() {
 
   // Approve and activate business (makes it live!)
   async function handleApproveBusiness(bizId: string) {
-    if (!confirm('Approve and activate this business? It will immediately go live on the platform.')) return;
+    if (!safeConfirm('Approve and activate this business? It will immediately go live on the platform.')) return;
     
     // If reviewing the business currently, use the updated reviewBiz custom_data
     const targetCustomData = reviewBiz && reviewBiz.id === bizId ? reviewBiz.custom_data : undefined;
@@ -493,7 +520,7 @@ export default function BusinessFormsPage() {
 
   // Reject business submission (marks as inactive)
   async function handleRejectBusiness(bizId: string) {
-    if (!confirm('Reject this business registration? This will mark it as inactive.')) return;
+    if (!safeConfirm('Reject this business registration? This will mark it as inactive.')) return;
 
     try {
       const res = await fetch('/api/business-forms', {
@@ -519,7 +546,7 @@ export default function BusinessFormsPage() {
 
   // Delete submission
   async function handleDeleteSubmission(bizId: string, name: string) {
-    if (!confirm(`Delete submission "${name}" completely? This action is irreversible.`)) return;
+    if (!safeConfirm(`Delete submission "${name}" completely? This action is irreversible.`)) return;
 
     try {
       const res = await fetch('/api/business-forms', {
@@ -593,24 +620,22 @@ export default function BusinessFormsPage() {
             <i className="fas fa-plus" style={{ marginRight: '0.5rem' }}></i>
             New Registration
           </button>
-          <button
-            onClick={() => { setActiveTab('manage'); setReviewBiz(null); }}
+          <Link
+            href="/jana/sections"
             style={{
               padding: '0.6rem 1.25rem',
               borderRadius: '9px',
               border: 'none',
-              background: activeTab === 'manage' ? '#fff' : 'transparent',
-              color: activeTab === 'manage' ? '#1e293b' : '#64748b',
+              background: 'transparent',
+              color: '#64748b',
               fontWeight: 700,
               fontSize: '0.85rem',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'manage' ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
-              transition: 'all 0.2s'
+              textDecoration: 'none',
             }}
           >
-            <i className="fas fa-sliders" style={{ marginRight: '0.5rem' }}></i>
-            Manage Forms
-          </button>
+            <i className="fas fa-table-cells" style={{ marginRight: '0.5rem' }}></i>
+            Manage Sections &amp; Fields
+          </Link>
         </div>
       </div>
 

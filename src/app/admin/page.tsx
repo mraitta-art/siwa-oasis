@@ -18,7 +18,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Approvals',
+    title: 'Product & Offers',
     items: [
       { label: 'Packages', icon: '📦', href: '/admin/packages', badge: '12', badgeColor: '#f59e0b' },
       { label: 'Offers', icon: '🎁', href: '/admin/offers', badge: '8', badgeColor: '#f59e0b' },
@@ -49,10 +49,10 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Management',
+    title: 'Services & Categories',
     items: [
       { label: 'Businesses', icon: '🏪', href: '/admin/sections' },
-      { label: 'Vendor Services', icon: '⚙️', href: '/jana/vendor-services', badge: 'NEW', badgeColor: '#22c55e' },
+      { label: 'Services & Categories', icon: '⚙️', href: '/jana/vendor-services', badge: 'NEW', badgeColor: '#22c55e' },
       { label: 'Vendor Directory', icon: '👥', href: '/jana/vendors' },
       { label: 'POI Settings', icon: '📍', href: '/admin/poi-settings' },
       { label: 'Vendor Issues', icon: '🚨', href: '/admin/vendor-issues', badge: 'NEW', badgeColor: '#ef4444' },
@@ -94,25 +94,73 @@ export default function AdminDashboardPage() {
   ];
 
   const pendingItems = [
-    { id: 1, icon: '📦', title: 'Package: "Luxury Desert Tour"',  business: 'Desert Tours Co',   time: '30 min ago', href: '/admin/packages',                 urgency: 'high' },
-    { id: 2, icon: '🎁', title: 'Offer: "Buy 2 Get 1 Free"',      business: 'Restaurant Siwa',   time: '2 hrs ago',  href: '/admin/offers',                   urgency: 'high' },
-    { id: 3, icon: '💵', title: 'Investment: "Resort Expansion"', business: 'Siwa Palace Hotel', time: '4 hrs ago',  href: '/admin/investment-opportunities', urgency: 'med'  },
-    { id: 4, icon: '📋', title: 'Section: "Team Gallery"',        business: 'Desert Tours Co',   time: '6 hrs ago',  href: '/admin/section-visibility',       urgency: 'med'  },
-    { id: 5, icon: '💰', title: 'Discount: "Bulk Purchase"',      business: 'Souk Marketplace',  time: '1 day ago',  href: '/admin/discounts',                urgency: 'low'  },
-    { id: 6, icon: '💡', title: 'Field Request: "Opening Hours"', business: 'Shali Eco Lodge',   time: '2 days ago', href: '/admin/field-requests',           urgency: 'low'  },
+    { id: 1, icon: '📦', title: 'Package: "Luxury Desert Tour"',         business: 'Desert Tours Co',   time: '30 min ago', href: '/admin/packages',                 urgency: 'high' },
+    { id: 2, icon: '🎁', title: 'Offer: "Buy 2 Get 1 Free"',             business: 'Restaurant Siwa',   time: '2 hrs ago',  href: '/admin/offers',                   urgency: 'high' },
+    { id: 3, icon: '🧭', title: 'Visitor Package: "Siwa Escape Bundle"', business: 'Siwa Palace Hotel', time: '3 hrs ago', href: '/jana/tour-builder',             urgency: 'high' },
+    { id: 4, icon: '💵', title: 'Investment: "Resort Expansion"',      business: 'Siwa Palace Hotel', time: '4 hrs ago',  href: '/admin/investment-opportunities', urgency: 'med'  },
+    { id: 5, icon: '📋', title: 'Section: "Team Gallery"',               business: 'Desert Tours Co',   time: '6 hrs ago',  href: '/admin/section-visibility',       urgency: 'med'  },
+    { id: 6, icon: '💰', title: 'Discount: "Bulk Purchase"',             business: 'Souk Marketplace',  time: '1 day ago',  href: '/admin/discounts',                urgency: 'low'  },
+    { id: 7, icon: '💡', title: 'Field Request: "Opening Hours"',        business: 'Shali Eco Lodge',   time: '2 days ago', href: '/admin/field-requests',           urgency: 'low'  },
   ];
 
   const quickLaunch = [
     { icon: '📊', label: 'Analytics',        href: '/admin/analytics',            color: '#6366f1' },
+    { icon: '�', label: 'Packages',         href: '/admin/packages',             color: '#f59e0b' },
+    { icon: '🎁', label: 'Offers',           href: '/admin/offers',               color: '#f59e0b' },
+    { icon: '💰', label: 'Discounts',        href: '/admin/discounts',           color: '#f59e0b' },
     { icon: '🗺️', label: 'Journey Requests', href: '/admin/journey-requests',     color: '#ec4899' },
     { icon: '👁️', label: 'Visibility',       href: '/admin/section-visibility',   color: '#14b8a6' },
     { icon: '🏗️', label: 'HP Editor',        href: '/admin/homepage-editor',      color: '#f59e0b' },
     { icon: '🔀', label: 'Visitor Merge',    href: '/admin/visitor-merge',        color: '#8b5cf6' },
     { icon: '💬', label: 'Vendor Comms',     href: '/admin/vendor-communication', color: '#22c55e' },
-    { icon: '⚙️', label: 'Vendor Services',  href: '/jana/vendor-services',       color: '#f0c842' },
-    { icon: '�', label: 'Vendor Issues',    href: '/admin/vendor-issues',         color: '#ef4444' },
-    { icon: '�🖼️', label: 'Images',           href: '/admin/image-curation',       color: '#f97316' },
+    { icon: '⚙️', label: 'Services & Categories', href: '/jana/vendor-services', color: '#f0c842' },
+    { icon: '🚨', label: 'Vendor Issues',    href: '/admin/vendor-issues',         color: '#ef4444' },
+    { icon: '🖼️', label: 'Images',           href: '/admin/image-curation',       color: '#f97316' },
     { icon: '🚀', label: 'Deployment',       href: '/admin/deployment',           color: '#0ea5e9' },
+    { icon: '🧭', label: 'Tour Builder',     href: '/jana/tour-builder',          color: '#22c55e' },
+  ];
+
+  const classifierCards = [
+    {
+      title: 'Product & Offers',
+      subtitle: 'Packages, offers, discounts & journey sales',
+      icon: '📦',
+      color: '#f59e0b',
+      href: '/admin/packages',
+      count: '198 active'
+    },
+    {
+      title: 'Visitor Packages',
+      subtitle: 'Custom bundles, tour packages & guided experiences',
+      icon: '🧭',
+      color: '#22c55e',
+      href: '/jana/tour-builder',
+      count: '24 live bundles'
+    },
+    {
+      title: 'Services & Categories',
+      subtitle: 'Service catalog and discovery classifiers',
+      icon: '🧩',
+      color: '#22c55e',
+      href: '/jana/vendor-services',
+      count: '38 entries'
+    },
+    {
+      title: 'Website & Content',
+      subtitle: 'Homepage, pages, components & search',
+      icon: '🖥️',
+      color: '#818cf8',
+      href: '/jana/website?page=main',
+      count: '12 modules'
+    },
+    {
+      title: 'Governance',
+      subtitle: 'Sections, forms, policies & approval flow',
+      icon: '🛡️',
+      color: '#a78bfa',
+      href: '/jana/governance',
+      count: '7 systems'
+    },
   ];
 
   const deployOK    = !deployStatus?.running && deployStatus?.lastDeploy?.status !== 'failed';
@@ -292,21 +340,21 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* All management areas */}
+          {/* Classifier overview */}
           <div style={{ marginBottom: '2rem' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#475569', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '1rem' }}>All Management Areas</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#475569', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '1rem' }}>Classifier Overview</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '0.85rem' }}>
-              {NAV_GROUPS.slice(1).flatMap(g => g.items).map((item, i) => (
-                <Link key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.9rem 1.2rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, textDecoration: 'none', color: '#94a3b8', transition: 'all 0.18s', fontSize: '0.8rem', fontWeight: 600 }}
-                  onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(212,175,55,0.08)'; el.style.borderColor = 'rgba(212,175,55,0.25)'; el.style.color = GOLD; el.style.transform = 'translateX(4px)'; }}
-                  onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(255,255,255,0.025)'; el.style.borderColor = 'rgba(255,255,255,0.06)'; el.style.color = '#94a3b8'; el.style.transform = 'translateX(0)'; }}
+              {classifierCards.map((card, i) => (
+                <Link key={i} href={card.href} style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', padding: '1.1rem 1.15rem', background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))', border: `1px solid ${card.color}33`, borderRadius: 18, textDecoration: 'none', color: '#e2e8f0', boxShadow: `inset 0 0 0 1px ${card.color}11`, transition: 'all 0.18s' }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.transform = 'translateY(-3px)'; el.style.borderColor = `${card.color}66`; el.style.boxShadow = `0 18px 30px ${card.color}12`; }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.transform = 'translateY(0)'; el.style.borderColor = `${card.color}33`; el.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.03)'; }}
                 >
-                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.badge && (
-                    <span style={{ background: item.badgeColor ?? '#334155', color: '#fff', borderRadius: 20, padding: '1px 8px', fontSize: '0.5rem', fontWeight: 900 }}>{item.badge}</span>
-                  )}
-                  <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>›</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', background: `${card.color}1a`, border: `1px solid ${card.color}33` }}>{card.icon}</div>
+                    <span style={{ fontSize: '0.58rem', fontWeight: 900, color: card.color, letterSpacing: '1px', textTransform: 'uppercase' }}>{card.count}</span>
+                  </div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>{card.title}</div>
+                  <div style={{ fontSize: '0.63rem', color: '#94a3b8', fontWeight: 600, lineHeight: 1.5 }}>{card.subtitle}</div>
                 </Link>
               ))}
             </div>

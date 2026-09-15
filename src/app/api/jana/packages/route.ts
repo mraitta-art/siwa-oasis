@@ -25,18 +25,41 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { name, description, business_ids, pricing, active } = body;
+    const {
+      name,
+      description,
+      business_ids,
+      pricing,
+      active,
+      package_type = 'package',
+      program_type = 'experience',
+      duration_days,
+      audience,
+      target_segment,
+      is_featured,
+      status,
+    } = body;
 
     if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+
+    const normalizedPricing = {
+      ...(typeof pricing === 'string' ? JSON.parse(pricing) : (pricing || {})),
+      package_type,
+      program_type,
+      duration_days: duration_days ?? null,
+      audience: audience || target_segment || 'all',
+      featured: Boolean(is_featured),
+      status: status || (active === false ? 'draft' : 'active'),
+    };
 
     const result = await execute(
       `INSERT INTO experience_packages (name, description, business_ids, pricing, active) 
        VALUES (?, ?, ?, ?, ?)`,
       [
-        name, 
-        description || '', 
-        JSON.stringify(business_ids || []), 
-        JSON.stringify(pricing || {}), 
+        name,
+        description || '',
+        JSON.stringify(business_ids || []),
+        JSON.stringify(normalizedPricing),
         active !== undefined ? active : 1
       ]
     );
@@ -51,19 +74,43 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, description, business_ids, pricing, active } = body;
+    const {
+      id,
+      name,
+      description,
+      business_ids,
+      pricing,
+      active,
+      package_type = 'package',
+      program_type = 'experience',
+      duration_days,
+      audience,
+      target_segment,
+      is_featured,
+      status,
+    } = body;
 
     if (!id || !name) return NextResponse.json({ error: 'ID and Name are required' }, { status: 400 });
+
+    const normalizedPricing = {
+      ...(typeof pricing === 'string' ? JSON.parse(pricing) : (pricing || {})),
+      package_type,
+      program_type,
+      duration_days: duration_days ?? null,
+      audience: audience || target_segment || 'all',
+      featured: Boolean(is_featured),
+      status: status || (active === false ? 'draft' : 'active'),
+    };
 
     await execute(
       `UPDATE experience_packages 
        SET name = ?, description = ?, business_ids = ?, pricing = ?, active = ? 
        WHERE id = ?`,
       [
-        name, 
-        description || '', 
-        JSON.stringify(business_ids || []), 
-        JSON.stringify(pricing || {}), 
+        name,
+        description || '',
+        JSON.stringify(business_ids || []),
+        JSON.stringify(normalizedPricing),
         active !== undefined ? active : 1,
         id
       ]

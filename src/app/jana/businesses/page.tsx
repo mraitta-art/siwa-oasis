@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DynamicForm from '@/components/DynamicForm';
 import { useAdmin } from '@/context/AdminContext';
+import WhatsAppInviteModal from '@/components/WhatsAppInviteModal';
 
 interface Business {
   id: string; name: string; slug: string; type_id: string; type_name: string; type_icon: string;
@@ -16,6 +17,13 @@ export default function BusinessRegistryPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // WhatsApp Invite & Access Modal State
+  const [whatsAppModal, setWhatsAppModal] = useState<{ isOpen: boolean; businessId: string; businessName: string }>({
+    isOpen: false,
+    businessId: '',
+    businessName: ''
+  });
+
   // Wizard Registry State
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
@@ -204,8 +212,15 @@ export default function BusinessRegistryPage() {
       });
       if (res.ok) {
         const newBusiness = await res.json();
-        // Redirect immediately to the DNA Editor (Data Feed) page
-        window.location.href = `/jana/businesses/${newBusiness.id}/edit`;
+        notify(`Business "${newBiz.name}" registered successfully!`, 'success');
+        setShowWizard(false);
+        loadBusinesses();
+        // Open WhatsApp Barcode & Credentials Card immediately
+        setWhatsAppModal({
+          isOpen: true,
+          businessId: newBusiness.id,
+          businessName: newBusiness.name || newBiz.name
+        });
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to register business');
@@ -521,6 +536,14 @@ export default function BusinessRegistryPage() {
                         <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
                           <i className="fas fa-magic"></i> CURATE
                         </Link>
+                        <button 
+                          className="btn btn-xs btn-outline" 
+                          style={{ color: '#25D366', borderColor: '#25D366', fontWeight: 800 }} 
+                          onClick={() => setWhatsAppModal({ isOpen: true, businessId: b.id, businessName: b.name })} 
+                          title="Send Barcode & Temporary Access via WhatsApp"
+                        >
+                          <i className="fab fa-whatsapp"></i> WHATSAPP
+                        </button>
                         <Link href={`/jana/businesses/${b.id}/qr`} className="btn btn-xs btn-outline" style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }} title="Print QR Onboarding Kit">
                           <i className="fas fa-qrcode"></i> QR KIT
                         </Link>
@@ -567,6 +590,13 @@ export default function BusinessRegistryPage() {
            </button>
         </div>
       )}
+      {/* ── WHATSAPP ACCESS & BARCODE INVITE MODAL ── */}
+      <WhatsAppInviteModal
+        businessId={whatsAppModal.businessId}
+        businessName={whatsAppModal.businessName}
+        isOpen={whatsAppModal.isOpen}
+        onClose={() => setWhatsAppModal({ isOpen: false, businessId: '', businessName: '' })}
+      />
     </div>
   );
 }

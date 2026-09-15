@@ -6,6 +6,8 @@ import { useState } from 'react';
 interface Offer {
   id: string;
   offer_title: string;
+  business_type: 'accommodation' | 'tour' | 'transport' | 'restaurant' | 'activity' | 'all';
+  offer_target: 'standalone' | 'package_associated' | 'all';
   offer_type: 'discount_percent' | 'discount_fixed' | 'buy_x_get_y' | 'free_item' | 'loyalty_points';
   discount_value: number;
   discount_type: string;
@@ -19,53 +21,60 @@ interface Offer {
   coupon_code?: string;
 }
 
-export default function AdminOffersPage() {
-  const [offers, setOffers] = useState<Offer[]>([
-    {
-      id: '1',
-      offer_title: '20% Off Summer Special',
-      offer_type: 'discount_percent',
-      discount_value: 20,
-      discount_type: 'percent',
-      status: 'active',
-      is_featured: true,
-      usage_count: 45,
-      usage_limit: 200,
-      approval_status: 'approved',
-      business_name: 'Desert Tours Co',
-      valid_until: '2026-08-31',
-      coupon_code: 'SUMMER20',
-    },
-    {
-      id: '2',
-      offer_title: 'Save $50 on Hotel Stay',
-      offer_type: 'discount_fixed',
-      discount_value: 50,
-      discount_type: 'fixed',
-      status: 'active',
-      is_featured: false,
-      usage_count: 28,
-      usage_limit: 100,
-      approval_status: 'approved',
-      business_name: 'Siwa Palace Hotel',
-      valid_until: '2026-07-15',
-    },
-    {
-      id: '3',
-      offer_title: 'Buy 2 Get 1 Free Meals',
-      offer_type: 'buy_x_get_y',
-      discount_value: 33,
-      discount_type: 'buy_x_get_y',
-      status: 'draft',
-      is_featured: false,
-      usage_count: 0,
-      usage_limit: 500,
-      approval_status: 'pending',
-      business_name: 'Restaurant Siwa',
-      valid_until: '2026-09-30',
-    },
-  ]);
+const initialOffers: Offer[] = [
+  {
+    id: '1',
+    offer_title: '20% Off Summer Special',
+    business_type: 'tour',
+    offer_target: 'standalone',
+    offer_type: 'discount_percent',
+    discount_value: 20,
+    discount_type: 'percent',
+    status: 'active',
+    is_featured: true,
+    usage_count: 45,
+    usage_limit: 200,
+    approval_status: 'approved',
+    business_name: 'Desert Tours Co',
+    valid_until: '2026-08-31',
+    coupon_code: 'SUMMER20',
+  },
+  {
+    id: '2',
+    offer_title: 'Save $50 on Hotel Stay',
+    business_type: 'accommodation',
+    offer_target: 'standalone',
+    offer_type: 'discount_fixed',
+    discount_value: 50,
+    discount_type: 'fixed',
+    status: 'active',
+    is_featured: false,
+    usage_count: 28,
+    usage_limit: 100,
+    approval_status: 'approved',
+    business_name: 'Siwa Palace Hotel',
+    valid_until: '2026-07-15',
+  },
+  {
+    id: '3',
+    offer_title: 'Buy 2 Get 1 Free Meals',
+    business_type: 'restaurant',
+    offer_target: 'standalone',
+    offer_type: 'buy_x_get_y',
+    discount_value: 33,
+    discount_type: 'buy_x_get_y',
+    status: 'draft',
+    is_featured: false,
+    usage_count: 0,
+    usage_limit: 500,
+    approval_status: 'pending',
+    business_name: 'Restaurant Siwa',
+    valid_until: '2026-09-30',
+  },
+];
 
+export default function AdminOffersPage() {
+  const [offers, setOffers] = useState<Offer[]>(initialOffers);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterApproval, setFilterApproval] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -91,63 +100,114 @@ export default function AdminOffersPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-emerald-50 text-emerald-600 border border-emerald-200/50';
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       case 'inactive':
-        return 'bg-slate-50 text-slate-400 border border-slate-200/50';
+        return 'bg-slate-100 text-slate-600 border border-slate-200';
       case 'draft':
-        return 'bg-amber-50 text-amber-600 border border-amber-200/50';
+        return 'bg-amber-50 text-amber-700 border border-amber-200';
       default:
-        return 'bg-slate-50 text-slate-400';
+        return 'bg-slate-100 text-slate-600 border border-slate-200';
     }
   };
 
   const getApprovalColor = (approval: string) => {
     switch (approval) {
       case 'approved':
-        return 'bg-emerald-50 text-emerald-600 border border-emerald-200/50';
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       case 'pending':
-        return 'bg-amber-50 text-amber-600 border border-amber-200/50';
+        return 'bg-amber-50 text-amber-700 border border-amber-200';
       case 'rejected':
-        return 'bg-rose-50 text-rose-600 border border-rose-200/50';
+        return 'bg-rose-50 text-rose-700 border border-rose-200';
       default:
-        return 'bg-slate-50 text-slate-400';
+        return 'bg-slate-100 text-slate-600 border border-slate-200';
     }
   };
 
+  const activeCount = offers.filter((o) => o.status === 'active').length;
+  const pendingCount = offers.filter((o) => o.approval_status === 'pending').length;
+  const usageTotal = offers.reduce((sum, o) => sum + o.usage_count, 0);
+
   return (
-    <div className="min-h-screen bg-[#fcfbfa] text-slate-700 p-6 sm:p-10 font-sans">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 border-b border-slate-100 pb-6">
-          <Link href="/admin" className="text-slate-400 hover:text-[#D4AF37] font-bold text-xs uppercase tracking-wider transition-colors mb-4 block">
-            ← Control Center
-          </Link>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-extrabold text-slate-900 mb-1 flex items-center gap-2">
-                <span className="text-[#D4AF37]">🏷️</span> Offers Manager
-              </h1>
-              <p className="text-slate-500 text-sm">Review, approve, and promote special deals and offers</p>
-            </div>
-            <Link href="/offers" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-200 bg-amber-50 text-[#D4AF37] hover:bg-amber-100 transition font-bold text-xs uppercase tracking-wider">
-              View live offers page
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fffdf8,_#f8fafc_45%,_#f1f5f9_100%)] text-slate-700 p-6 sm:p-8 lg:p-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 overflow-hidden rounded-[32px] border border-amber-200 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_35%,#111827_100%)] p-6 shadow-[0_25px_80px_rgba(15,23,42,0.25)]">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <Link href="/admin" className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-300 transition hover:text-[#f5d56a]">
+              ← Control Center
             </Link>
+            <Link href="/offers" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f5d56a] transition hover:bg-white/10">
+              View live page
+            </Link>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1.5fr_0.8fr] lg:items-end">
+            <div>
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-[#f5d56a]">
+                Product & Offers / Offer Categories
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f5d56a]/15 text-2xl shadow-inner shadow-[#f5d56a]/20">🏷️</span>
+                <h1 className="text-3xl font-black text-white sm:text-4xl">Offers Manager</h1>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-start gap-3 lg:justify-end">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="rounded-2xl bg-[#f5d56a] px-5 py-3 text-sm font-black text-slate-900 shadow-[0_12px_24px_rgba(245,213,106,0.3)] transition hover:bg-[#f1c94b]"
+              >
+                + New Offer
+              </button>
+              <button className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+                Export CSV
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="mb-8 flex gap-4 flex-wrap items-center">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-[#D4AF37] hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-sm"
-          >
-            + New Offer
-          </button>
+        <div className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Offers</span>
+              <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-[#A87C00]">{offers.length}</span>
+            </div>
+            <div className="text-3xl font-black text-slate-900">{offers.length}</div>
+            <div className="mt-2 text-xs text-slate-400">Across all segments</div>
+          </div>
 
+          <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Active</span>
+              <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{activeCount}</span>
+            </div>
+            <div className="text-3xl font-black text-emerald-600">{activeCount}</div>
+            <div className="mt-2 text-xs text-slate-400">Visible to visitors</div>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Pending</span>
+              <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{pendingCount}</span>
+            </div>
+            <div className="text-3xl font-black text-amber-600">{pendingCount}</div>
+            <div className="mt-2 text-xs text-slate-400">Awaiting review</div>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Usage</span>
+              <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">Live</span>
+            </div>
+            <div className="text-3xl font-black text-blue-600">{usageTotal}</div>
+            <div className="mt-2 text-xs text-slate-400">Total actions recorded</div>
+          </div>
+        </div>
+
+        <div className="mb-8 flex flex-wrap items-center gap-3">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -158,7 +218,7 @@ export default function AdminOffersPage() {
           <select
             value={filterApproval}
             onChange={(e) => setFilterApproval(e.target.value)}
-            className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37]"
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white"
           >
             <option value="all">All Approvals</option>
             <option value="pending">Pending Review</option>
@@ -166,204 +226,171 @@ export default function AdminOffersPage() {
             <option value="rejected">Rejected</option>
           </select>
 
-          <div className="text-slate-400 text-xs font-bold uppercase tracking-wider ml-auto">
+          <div className="ml-auto text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
             Showing {filteredOffers.length} of {offers.length}
           </div>
         </div>
 
-        {/* Offers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid gap-6 lg:grid-cols-3 mb-12">
           {filteredOffers.map((offer) => (
-            <div key={offer.id} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:border-amber-200 transition">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl bg-amber-50 p-2 rounded-xl">{getTypeIcon(offer.offer_type)}</span>
-                    {offer.is_featured && (
-                      <span className="px-2.5 py-1 bg-amber-100 text-[#D4AF37] text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                        ⭐ Featured
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-base font-extrabold text-slate-800 mb-1">{offer.offer_title}</h3>
-                  <p className="text-xs text-slate-400 font-semibold">{offer.business_name}</p>
+            <article key={offer.id} className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition hover:border-amber-200 hover:shadow-[0_18px_36px_rgba(212,175,55,0.12)]">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-xl">{getTypeIcon(offer.offer_type)}</span>
+                  {offer.is_featured && (
+                    <span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#A87C00]">
+                      Featured
+                    </span>
+                  )}
                 </div>
-
                 <div className="text-right">
-                  <div className="text-xl font-black text-[#D4AF37]">
-                    {offer.discount_type === 'percent' ? offer.discount_value + '%' : '$' + offer.discount_value}
+                  <div className="text-xl font-black text-slate-900">
+                    {offer.discount_type === 'percent' ? `${offer.discount_value}%` : `$${offer.discount_value}`}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{offer.offer_type.replace(/_/g, ' ')}</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{offer.offer_type.replace(/_/g, ' ')}</div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-50 pt-4 mb-4">
-                <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
-                  <div>
-                    <div className="text-slate-400 font-bold">Usage</div>
-                    <div className="text-slate-700 mt-0.5">{offer.usage_count}/{offer.usage_limit}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400 font-bold">Expires</div>
-                    <div className="text-slate-700 mt-0.5">{offer.valid_until}</div>
-                  </div>
-                </div>
-
-                {offer.coupon_code && (
-                  <div className="mt-3 px-3 py-2 bg-slate-50 border border-slate-200/40 rounded-xl text-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Coupon Code: </span>
-                    <span className="text-sm font-mono font-bold text-[#D4AF37] ml-1">{offer.coupon_code}</span>
-                  </div>
-                )}
+              <div className="mb-3">
+                <h3 className="text-lg font-black text-slate-900">{offer.offer_title}</h3>
+                <p className="mt-1 text-sm text-slate-500">{offer.business_name}</p>
               </div>
 
-              <div className="flex gap-2 mb-4">
-                <span className={`flex-1 text-[10px] py-1.5 rounded-full font-bold text-center uppercase tracking-wider ${getStatusColor(offer.status)}`}>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${getStatusColor(offer.status)}`}>
                   {offer.status}
                 </span>
-                <span className={`flex-1 text-[10px] py-1.5 rounded-full font-bold text-center uppercase tracking-wider ${getApprovalColor(offer.approval_status)}`}>
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${getApprovalColor(offer.approval_status)}`}>
                   {offer.approval_status}
                 </span>
               </div>
 
-              <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 font-bold transition">
+              <div className="mb-4 grid gap-3 sm:grid-cols-2 text-xs text-slate-600">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Type</div>
+                  <div className="mt-1 capitalize text-slate-700">{offer.business_type}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Target</div>
+                  <div className="mt-1 capitalize text-slate-700">{offer.offer_target.replace('_', ' ')}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Usage</div>
+                  <div className="mt-1 text-slate-700">{offer.usage_count}/{offer.usage_limit}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Expires</div>
+                  <div className="mt-1 text-slate-700">{offer.valid_until}</div>
+                </div>
+              </div>
+
+              {offer.coupon_code && (
+                <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#A87C00]">
+                  Coupon: {offer.coupon_code}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <button className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100">
                   ✏️ Edit
                 </button>
                 {offer.approval_status === 'pending' && (
                   <>
-                    <button className="px-3.5 py-2 text-xs bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-emerald-700 font-bold transition">
+                    <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700 transition hover:bg-emerald-100">
                       ✓
                     </button>
-                    <button className="px-3.5 py-2 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
+                    <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-rose-700 transition hover:bg-rose-100">
                       ✕
                     </button>
                   </>
                 )}
-                <button className="px-3.5 py-2 text-xs bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl text-rose-700 font-bold transition">
+                <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-rose-700 transition hover:bg-rose-100">
                   🗑️
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-            <div className="text-2xl font-black text-[#D4AF37] mb-1">{offers.length}</div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Offers</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-            <div className="text-2xl font-black text-emerald-600 mb-1">
-              {offers.filter((o) => o.status === 'active').length}
-            </div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-            <div className="text-2xl font-black text-amber-600 mb-1">
-              {offers.filter((o) => o.approval_status === 'pending').length}
-            </div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Review</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-            <div className="text-2xl font-black text-[#D4AF37] mb-1">
-              {offers.reduce((sum, o) => sum + o.usage_count, 0)}
-            </div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Usage Count</div>
-          </div>
-        </div>
-
-        {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white border border-slate-100 rounded-3xl p-8 max-w-2xl w-full shadow-2xl">
-              <h2 className="text-2xl font-black text-slate-800 mb-6">Create New Offer</h2>
-
-              <div className="space-y-4 mb-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[30px] border border-slate-200 bg-white p-6 shadow-2xl">
+              <div className="mb-6 flex items-center justify-between gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Offer Title</label>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#D4AF37]">Create</p>
+                  <h2 className="text-2xl font-black text-slate-900">New Offer</h2>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Offer name</label>
                   <input
                     type="text"
-                    placeholder="e.g., 20% Off Summer Special"
-                    className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
+                    placeholder="Sunrise Tour Special"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Offer Type</label>
-                  <select
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white"
-                  >
-                    <option value="discount_percent">💯 Percentage Discount</option>
-                    <option value="discount_fixed">💰 Fixed Amount Discount</option>
-                    <option value="buy_x_get_y">🎁 Buy X Get Y</option>
-                    <option value="free_item">🆓 Free Item</option>
-                    <option value="loyalty_points">⭐ Loyalty Points</option>
-                  </select>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Business type</label>
+                    <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white">
+                      <option value="accommodation">Accommodation</option>
+                      <option value="tour">Tour</option>
+                      <option value="transport">Transportation</option>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="activity">Activity</option>
+                      <option value="all">All Business Types</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Target</label>
+                    <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white">
+                      <option value="standalone">Standalone Offer</option>
+                      <option value="package_associated">Package-Associated</option>
+                      <option value="all">Any</option>
+                    </select>
+                  </div>
                 </div>
 
-                {(selectedType === 'discount_percent' || selectedType === 'discount_fixed') && (
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                      {selectedType === 'discount_percent' ? 'Percentage (%)' : 'Amount ($)'}
-                    </label>
-                    <input
-                      type="number"
-                      placeholder={selectedType === 'discount_percent' ? '20' : '50'}
-                      className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
-                    />
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Valid From</label>
-                    <input
-                      type="date"
-                      className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
-                    />
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Offer type</label>
+                    <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white">
+                      <option value="discount_percent">Percentage Discount</option>
+                      <option value="discount_fixed">Fixed Discount</option>
+                      <option value="buy_x_get_y">Buy X Get Y</option>
+                      <option value="free_item">Free Item</option>
+                      <option value="loyalty_points">Loyalty Points</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Valid Until</label>
-                    <input
-                      type="date"
-                      className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
-                    />
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Value</label>
+                    <input type="number" placeholder="20" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Coupon Code (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="SUMMER20"
-                    className="w-full px-4 py-3 bg-slate-55/30 border border-slate-200 rounded-2xl text-slate-700 text-sm font-semibold focus:outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-amber-50"
-                  />
-                </div>
-
-                <div className="flex gap-6 pt-2">
-                  <label className="flex items-center gap-2.5 text-slate-600 font-semibold text-sm cursor-pointer">
-                    <input type="checkbox" className="w-4.5 h-4.5 rounded border-slate-300 accent-[#D4AF37]" />
-                    <span>Feature on Homepage</span>
-                  </label>
-                  <label className="flex items-center gap-2.5 text-slate-600 font-semibold text-sm cursor-pointer">
-                    <input type="checkbox" className="w-4.5 h-4.5 rounded border-slate-300 accent-[#D4AF37]" />
-                    <span>Requires Approval</span>
-                  </label>
+                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Business name</label>
+                  <input type="text" placeholder="Desert Tours Co" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37] focus:bg-white" />
                 </div>
               </div>
 
-              <div className="flex gap-3 justify-end">
+              <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-2.5 bg-slate-55/20 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
                 >
                   Cancel
                 </button>
-                <button className="px-6 py-2.5 bg-[#D4AF37] hover:bg-amber-600 rounded-2xl text-white font-bold transition">
+                <button className="rounded-2xl bg-[#D4AF37] px-5 py-2.5 text-sm font-black text-white transition hover:bg-[#c89a1b]">
                   Create Offer
                 </button>
               </div>

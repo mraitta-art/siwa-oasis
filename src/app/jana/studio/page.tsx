@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import SchemaBuilder from './components/SchemaBuilder';
 import DataFiller from './components/DataFiller';
+import Link from 'next/link';
 
 type Stage = '1' | '2';
 
@@ -128,10 +128,16 @@ export default function UnifiedStudioPage() {
 
         {/* Stage content */}
         {stage === '1' && (
-          <SchemaBuilder
-            onTypologySelected={handleTypologySelected}
-            selectedTypeId={selectedTypeId}
-          />
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '3rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+            <i className="fas fa-table-cells" style={{ color: '#D4AF37', fontSize: '2rem', marginBottom: '1rem' }}></i>
+            <h2 style={{ margin: '0 0 0.5rem', color: '#1e293b' }}>Manage Sections &amp; Fields</h2>
+            <p style={{ margin: '0 auto 1.5rem', maxWidth: '560px', color: '#64748b', lineHeight: 1.6 }}>
+              Section definitions, fields, curation policies, and typology assignments are managed in one canonical system.
+            </p>
+            <Link href="/jana/sections" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: '10px', background: '#D4AF37', color: '#1a1000', textDecoration: 'none', fontWeight: 900 }}>
+              <i className="fas fa-arrow-right"></i> Open Section Architect
+            </Link>
+          </div>
         )}
 
         {stage === '2' && (

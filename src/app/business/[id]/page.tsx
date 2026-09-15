@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
+import BusinessCatalogSection from '@/components/BusinessCatalogSection';
 
 const NOISE_KEYS = new Set([
   'lat','lng','latitude','longitude','source_place_id','source_provider','source_origin',
@@ -509,6 +510,8 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
                   <p>Detailed information about {biz.name} is coming soon.</p>
                 </div>
               )}
+
+              <BusinessCatalogSection businessId={biz.id} businessName={biz.name} />
             </main>
 
             <aside style={{ position:'sticky', top:'80px' }}>

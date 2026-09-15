@@ -326,9 +326,9 @@ export async function PUT(request: NextRequest) {
           params.push(slugify(value));
         }
       }
-      if (['custom_data', 'draft_data'].includes(key)) {
+      if (['custom_data', 'draft_data', 'curation_data'].includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(JSON.stringify(value));
+        params.push(typeof value === 'object' && value !== null ? JSON.stringify(value) : value);
       }
     }
 
@@ -401,6 +401,11 @@ export async function PATCH(request: NextRequest) {
       if (key === 'draft_data') {
         sets.push(`${key} = ?`);
         params.push(JSON.stringify(value));
+      }
+
+      if (key === 'curation_data') {
+        sets.push(`curation_data = ?`);
+        params.push(typeof value === 'object' && value !== null ? JSON.stringify(value) : value);
       }
     }
 

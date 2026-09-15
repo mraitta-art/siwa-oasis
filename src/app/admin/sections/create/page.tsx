@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface SectionConfig {
@@ -24,6 +24,10 @@ interface SectionConfig {
 
 export default function CreateSectionPage() {
   const router = useRouter();
+  useEffect(() => {
+    router.replace('/jana/sections');
+  }, [router]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [config, setConfig] = useState<SectionConfig>({

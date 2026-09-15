@@ -86,74 +86,60 @@ export default function DiscountsPage() {
 
   function DiscountCard({ item }: { item: DiscountItem }) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-[#D4AF37]/60 transition-all group flex flex-col h-full">
-        {/* Colored header bar */}
-        <div className="h-2 bg-gradient-to-r from-[#556B2F] to-[#D4AF37]" />
-        <div className="p-5 flex flex-col flex-grow">
-          {/* Season + Status */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm">{SEASON_ICONS[item.season || 'all_year'] || '📅'}</span>
-              <span className="text-[10px] text-gray-500 capitalize font-semibold">{(item.season || 'all_year').replace('_', ' ')}</span>
+      <div className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_12px_26px_rgba(15,23,42,0.04)] transition hover:-translate-y-1 hover:border-[#f5d56a] hover:shadow-[0_18px_34px_rgba(212,175,55,0.12)]">
+        <div className="h-2 bg-gradient-to-r from-[#556B2F] via-[#d4af37] to-[#f4c95d]" />
+        <div className="flex flex-1 flex-col p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+              <span>{SEASON_ICONS[item.season || 'all_year'] || '📅'}</span>
+              <span>{(item.season || 'all_year').replace('_', ' ')}</span>
             </div>
             <div className="flex items-center gap-2">
-              {item.is_featured && <span className="text-[#D4AF37] text-xs">⭐</span>}
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${item.discount_status === 'active' ? 'bg-green-900/60 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+              {item.is_featured && <span className="text-[#a87c00]">⭐</span>}
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] ${item.discount_status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                 {item.discount_status?.toUpperCase()}
               </span>
             </div>
           </div>
 
-          {/* Business name */}
-          <p className="text-[10px] text-[#D4AF37] font-black tracking-widest mb-1 uppercase">{item.business_name}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#a87c00]">{item.business_name}</p>
+          <h3 className="mt-2 text-xl font-black text-slate-900">{item.title}</h3>
 
-          {/* Title */}
-          <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
-
-          {/* Discount badge */}
           {item.discount_value && (
-            <div className="mb-3 px-3 py-2.5 bg-green-950/50 border border-green-800/40 rounded-xl flex items-center justify-between">
-              <span className="text-xs text-green-400">You save</span>
-              <span className="text-green-400 font-black text-lg">
-                {item.discount_value}{item.discount_type === 'percent' ? '%' : item.discount_type === 'fixed_amount' ? ' EGP' : ''} OFF
+            <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">You save</span>
+              <span className="text-lg font-black text-emerald-700">
+                {item.discount_value}{item.discount_type === 'percent' ? '%' : item.discount_type === 'fixed_amount' ? ' EGP' : ''}
               </span>
             </div>
           )}
 
-          {/* Applies to */}
           {item.applies_to && item.applies_to !== 'all_services' && (
-            <p className="text-[10px] text-gray-500 mb-2">Applies to: <span className="text-gray-400 capitalize">{item.applies_to.replace('_', ' ')}</span></p>
+            <p className="mt-3 text-[11px] text-slate-500">Applies to: <span className="font-semibold capitalize text-slate-600">{item.applies_to.replace('_', ' ')}</span></p>
           )}
 
-          {/* Min group */}
           {item.min_group_size && item.min_group_size > 1 && (
-            <p className="text-[10px] text-blue-400 mb-2">👥 Group of {item.min_group_size}+ required</p>
+            <p className="mt-2 text-[11px] font-semibold text-blue-600">👥 Group of {item.min_group_size}+ required</p>
           )}
 
-          {/* Brief */}
-          {item.brief && <p className="text-xs text-gray-400 mb-3 line-clamp-2 flex-grow">{item.brief}</p>}
+          {item.brief && <p className="mt-3 text-sm leading-6 text-slate-600">{item.brief}</p>}
 
-          {/* Promo code */}
           {item.promo_code && (
-            <div className="mb-3 px-3 py-2 bg-gray-800 border border-dashed border-[#D4AF37]/60 rounded-xl text-center">
-              <span className="text-[10px] text-gray-400 block mb-0.5">PROMO CODE</span>
-              <span className="text-[#D4AF37] font-black tracking-widest">{item.promo_code}</span>
+            <div className="mt-4 rounded-2xl border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-center">
+              <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">Promo code</span>
+              <span className="text-sm font-black tracking-[0.18em] text-[#a87c00]">{item.promo_code}</span>
             </div>
           )}
 
-          {/* Validity */}
           {(item.valid_from || item.valid_until) && (
-            <p className="text-[10px] text-gray-500 mb-3">
+            <p className="mt-3 text-[11px] text-slate-500">
               {item.valid_from ? `From ${fmtDate(item.valid_from)} ` : ''}
               {item.valid_until ? `until ${fmtDate(item.valid_until)}` : ''}
             </p>
           )}
 
-          <Link
-            href={`/p/${item.business_slug}`}
-            className="mt-auto w-full py-2.5 bg-gray-800 group-hover:bg-gradient-to-r group-hover:from-[#556B2F] group-hover:to-[#D4AF37] rounded-xl text-white text-xs font-bold text-center block transition-all"
-          >
-            View Minisite →
+          <Link href={`/p/${item.business_slug}`} className="premium-button mt-5 w-full">
+            View Minisite
           </Link>
         </div>
       </div>
@@ -161,92 +147,81 @@ export default function DiscountsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fffdf8,_#f8fafc_45%,_#f1f5f9_100%)] text-slate-800">
       <MarketplaceHeader title="Discounts" adminPath="/admin/discounts" activePath="/discounts" />
 
-      {/* Hero */}
-      <div className="relative overflow-hidden py-16 sm:py-24">
-        <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-[#556B2F] via-transparent to-[#D4AF37]" />
-        <div className="relative mx-auto max-w-7xl px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold">
-            <span className="bg-gradient-to-r from-[#D4AF37] to-[#FFB700] bg-clip-text text-transparent">🏷️ Special Discounts</span>
-          </h1>
-          <p className="mt-4 text-gray-400 max-w-xl mx-auto">
-            Save more with seasonal deals, group discounts, and exclusive promotions from businesses across Siwa Oasis
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="/admin/discounts" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/15 transition">
-              🔧 Moderate discounts
-            </a>
-            <a href="/offers" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
-              🎁 Browse offers
-            </a>
-            <a href="/packages" className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10 transition">
-              📦 Browse packages
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        {/* Filters */}
-        <div className="mb-10 flex flex-wrap gap-3 items-center bg-gray-900/60 p-5 rounded-2xl border border-gray-800">
-          <input
-            type="text" placeholder="Search discounts..."
-            value={search} onChange={e => setSearch(e.target.value)}
-            className="flex-1 min-w-44 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
-          />
-          {allSeasons.length > 0 && (
-            <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
-              className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white focus:outline-none">
-              <option value="">All Seasons</option>
-              {allSeasons.map(s => <option key={s} value={s!} className="capitalize">{(s || '').replace('_', ' ')}</option>)}
-            </select>
-          )}
-          {allTypes.length > 0 && (
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-              className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white focus:outline-none">
-              <option value="">All Types</option>
-              {allTypes.map(t => <option key={t} value={t!} className="capitalize">{(t || '').replace('_', ' ')}</option>)}
-            </select>
-          )}
-          <span className="text-xs text-gray-500 ml-auto">{visible.length} discount{visible.length !== 1 ? 's' : ''}</span>
-        </div>
-
-        {loading && (
-          <div className="text-center py-20">
-            <div className="inline-block w-10 h-10 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-gray-400">Loading discounts...</p>
-          </div>
-        )}
-
-        {/* Featured */}
-        {!loading && featured.length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><span className="text-[#D4AF37]">⭐</span> Featured Deals</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featured.map(item => <DiscountCard key={item.id} item={item} />)}
+      <div className="page-shell py-10 sm:py-14 lg:py-16">
+        <div className="premium-surface p-6 sm:p-8 lg:p-10">
+          <div className="page-header mb-8 border-none pb-0">
+            <p className="premium-kicker text-[10px] text-[#a87c00]">Seasonal savings</p>
+            <h1 className="page-title mt-3">Special Discounts</h1>
+            <p className="page-subtitle">
+              Save more with seasonal deals, group discounts, and exclusive promotions from businesses across Siwa Oasis.
+            </p>
+            <div className="gold-divider" />
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <a href="/admin/discounts" className="premium-button">🔧 Moderate discounts</a>
+              <a href="/offers" className="secondary-button">🎁 Browse offers</a>
+              <a href="/packages" className="secondary-button">📦 Browse packages</a>
             </div>
           </div>
-        )}
 
-        {/* Regular */}
-        {!loading && regular.length > 0 && (
-          <div>
-            {featured.length > 0 && <h2 className="text-xl font-bold mb-6 text-gray-300">All Discounts</h2>}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {regular.map(item => <DiscountCard key={item.id} item={item} />)}
+          <div className="mb-8 flex flex-wrap items-center gap-3 rounded-[22px] border border-slate-200 bg-slate-50 p-3">
+            <input
+              type="text"
+              placeholder="Search discounts..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37]"
+            />
+            {allSeasons.length > 0 && (
+              <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37]">
+                <option value="">All Seasons</option>
+                {allSeasons.map(s => <option key={s} value={s!}>{(s || '').replace('_', ' ')}</option>)}
+              </select>
+            )}
+            {allTypes.length > 0 && (
+              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#D4AF37]">
+                <option value="">All Types</option>
+                {allTypes.map(t => <option key={t} value={t!}>{(t || '').replace('_', ' ')}</option>)}
+              </select>
+            )}
+            <span className="ml-auto text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{visible.length} deals</span>
+          </div>
+
+          {loading && (
+            <div className="py-16 text-center">
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#D4AF37] border-t-transparent" />
+              <p className="text-slate-500">Loading discounts...</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {!loading && visible.length === 0 && (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">🔍</div>
-            <p className="text-gray-400">No discounts found</p>
-            <p className="text-gray-600 text-sm mt-1">Try adjusting your filters</p>
-          </div>
-        )}
+          {!loading && featured.length > 0 && (
+            <div className="mb-12">
+              <h2 className="mb-6 text-2xl font-black text-slate-900">Featured Deals</h2>
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {featured.map(item => <DiscountCard key={item.id} item={item} />)}
+              </div>
+            </div>
+          )}
+
+          {!loading && regular.length > 0 && (
+            <div>
+              {featured.length > 0 && <h2 className="mb-6 text-2xl font-black text-slate-900">All Discounts</h2>}
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {regular.map(item => <DiscountCard key={item.id} item={item} />)}
+              </div>
+            </div>
+          )}
+
+          {!loading && visible.length === 0 && (
+            <div className="premium-surface py-16 text-center">
+              <div className="text-4xl">🔍</div>
+              <p className="mt-4 text-xl font-black text-slate-800">No discounts found</p>
+              <p className="mt-2 text-slate-500">Try adjusting your search.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

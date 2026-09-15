@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import WhatsAppInviteModal from '@/components/WhatsAppInviteModal';
 
 export default function BusinessQRCodePage() {
   const { id } = useParams();
@@ -10,6 +11,7 @@ export default function BusinessQRCodePage() {
   const [biz, setBiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'sand' | 'midnight' | 'minimal'>('sand');
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
   
   // Custom flyer texts (customizable on the fly before printing!)
   const [customPromo, setCustomPromo] = useState('');
@@ -112,6 +114,13 @@ export default function BusinessQRCodePage() {
             <Link href="/jana/businesses" className="btn btn-xs" style={{ background: '#f1f5f9', color: '#64748b', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, textDecoration: 'none' }}>
               <i className="fas fa-arrow-left"></i> Registry
             </Link>
+            <button 
+              onClick={() => setShowWhatsApp(true)} 
+              className="btn btn-xs" 
+              style={{ background: '#25D366', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 800, cursor: 'pointer' }}
+            >
+              <i className="fab fa-whatsapp"></i> WhatsApp Invite
+            </button>
             <button onClick={() => window.print()} className="btn btn-xs" style={{ background: '#10b981', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
               <i className="fas fa-print"></i> Print Flyer
             </button>
@@ -262,6 +271,13 @@ export default function BusinessQRCodePage() {
         }
       `}</style>
 
+      {/* ── WHATSAPP INVITE MODAL ── */}
+      <WhatsAppInviteModal
+        businessId={biz.id}
+        businessName={biz.name}
+        isOpen={showWhatsApp}
+        onClose={() => setShowWhatsApp(false)}
+      />
     </div>
   );
 }

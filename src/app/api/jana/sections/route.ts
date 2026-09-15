@@ -50,8 +50,10 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Essential baseline sections
-      ['identity', 'location', 'testimonials'].forEach(s => sectionIds.add(s));
+      // Keep legacy baseline sections only for typologies with no assignment yet.
+      if (sectionIds.size === 0) {
+        ['identity', 'location', 'testimonials'].forEach(s => sectionIds.add(s));
+      }
 
       const idsArray = Array.from(sectionIds);
       if (idsArray.length === 0) return NextResponse.json([]);

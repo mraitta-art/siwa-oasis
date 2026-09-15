@@ -134,6 +134,7 @@ export default function UnifiedSectionArchitect() {
   const [versionSaveMode, setVersionSaveMode] = useState<'initial'|'latest'>('latest');
   const [deletingId,  setDeletingId]    = useState<string|null>(null);
   const [collapsedPanels, setCollapsedPanels] = useState({ left: false, center: false, right: false });
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
 
   /* Assigned sections for selected type */
   const [assignedSections, setAssignedSections] = useState<string[]>([]);
@@ -154,6 +155,11 @@ export default function UnifiedSectionArchitect() {
       const types = await tRes.json();
       const secs  = await sRes.json();
       setBusinessTypes(Array.isArray(types) ? types : []);
+      if (Array.isArray(types)) {
+        setExpandedParents(prev => Object.keys(prev).length > 0 ? prev : Object.fromEntries(
+          types.filter((type: BusinessType) => type.is_parent || Number(type.is_parent) === 1).map((type: BusinessType) => [type.id, true])
+        ));
+      }
       setSections(Array.isArray(secs)  ? secs  : []);
     } catch { notify('Failed to load data', 'error'); }
     setLoading(false);
@@ -441,6 +447,12 @@ export default function UnifiedSectionArchitect() {
   const togglePanel = (panel: 'left' | 'center' | 'right') => {
     setCollapsedPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
   };
+  const toggleParent = (parentId: string) => {
+    setExpandedParents(prev => ({ ...prev, [parentId]: !prev[parentId] }));
+  };
+  const setAllParentsExpanded = (expanded: boolean) => {
+    setExpandedParents(Object.fromEntries(parents.map(parent => [parent.id, expanded])));
+  };
 
   /* ── Render ─────────────────────────────────────────────────────────── */
   if (loading) return (
@@ -672,7 +684,17 @@ export default function UnifiedSectionArchitect() {
                     return (
                       <>
                         <div style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', background: '#f8fafc' }}>
-                          <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#64748b', letterSpacing: '1px' }}>SELECT FORM/TYPOLOGY</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#64748b', letterSpacing: '1px' }}>SELECT FORM/TYPOLOGY</span>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button onClick={() => setAllParentsExpanded(true)} title="Expand all parent typologies" style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '0.6rem', padding: '0.25rem' }}>
+                                <i className="fas fa-expand-arrows-alt" />
+                              </button>
+                              <button onClick={() => setAllParentsExpanded(false)} title="Collapse all parent typologies" style={{ border: 'none', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '0.6rem', padding: '0.25rem' }}>
+                                <i className="fas fa-compress-arrows-alt" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                         <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
                           {parents.map(pt => {
@@ -681,16 +703,14 @@ export default function UnifiedSectionArchitect() {
                             return (
                               <div key={pt.id} style={{ marginBottom: '0.75rem' }}>
                                 {/* Parent Row */}
-                                <button
-                                  onClick={() => selectType(pt.id)}
-                                  style={{
-                                    width: '100%', textAlign: 'left', padding: '0.75rem',
-                                    borderRadius: '10px', border: isSelected ? '1.5px solid #D4AF3750' : '1.5px solid transparent',
-                                    background: isSelected ? '#fffbeb' : '#f8fafc', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                    transition: 'all 0.2s',
-                                  }}
-                                >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem', borderRadius: '10px', border: isSelected ? '1.5px solid #D4AF3750' : '1.5px solid transparent', background: isSelected ? '#fffbeb' : '#f8fafc' }}>
+                                  <button
+                                    onClick={() => selectType(pt.id)}
+                                    style={{
+                                      flex: 1, minWidth: 0, textAlign: 'left', padding: '0.4rem', border: 'none', background: 'transparent', cursor: 'pointer',
+                                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                    }}
+                                  >
                                   <div style={{
                                     width: 28, height: 28, borderRadius: '8px',
                                     background: pt.icon_color || '#D4AF37', color: '#fff',
@@ -702,10 +722,16 @@ export default function UnifiedSectionArchitect() {
                                     <div style={{ fontWeight: 900, fontSize: '0.8rem', color: '#1e293b' }}>{pt.name}</div>
                                     <div style={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 700 }}>PARENT CLASS</div>
                                   </div>
-                                </button>
+                                  </button>
+                                  {childList.length > 0 && (
+                                    <button onClick={() => toggleParent(pt.id)} title={expandedParents[pt.id] ? 'Collapse children' : 'Expand children'} aria-label={expandedParents[pt.id] ? `Collapse ${pt.name}` : `Expand ${pt.name}`} style={{ width: 28, height: 28, border: '1px solid #e2e8f0', borderRadius: '7px', background: '#fff', color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>
+                                      <i className={`fas fa-chevron-${expandedParents[pt.id] ? 'down' : 'right'}`} />
+                                    </button>
+                                  )}
+                                </div>
 
                                 {/* Indented Children */}
-                                {childList.length > 0 && (
+                                {childList.length > 0 && expandedParents[pt.id] && (
                                   <div style={{ marginLeft: '1.25rem', borderLeft: '1.5px dashed #e2e8f0', paddingLeft: '0.5rem', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     {childList.map(ct => {
                                       const isChildSelected = selectedType === ct.id;

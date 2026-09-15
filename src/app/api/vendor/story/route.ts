@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, normalizeCustomData } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { filterCoreSectionsForBusinessType, resolveSectionId } from '@/lib/section-registry';
 
 /**
  * VENDOR STORYTELLER API
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
     // 5. Group fields by section for the UI
     const sections: Record<string, any> = {};
     fields.forEach(f => {
+      const canonicalSectionId = resolveSectionId(String(f.section_id || ''));
       if (!sections[f.section_id]) {
         // Parse section overrides for the direct child typology (biz.type_id)
         const rules = (() => {
@@ -114,6 +116,12 @@ export async function GET(req: NextRequest) {
         value,
         options: f.options ? (typeof f.options === 'string' ? JSON.parse(f.options) : f.options) : null
       });
+    });
+
+    const allowedSectionIds = new Set(filterCoreSectionsForBusinessType(biz.type_id, Object.keys(sections).map(value => value)));
+    const filteredStructure = Object.values(sections).filter((section: any) => {
+      const canonicalId = resolveSectionId(String(section.id || ''));
+      return allowedSectionIds.has(canonicalId);
     });
 
     // 6. Fetch Tier Features
@@ -168,8 +176,10 @@ export async function GET(req: NextRequest) {
         parent: parentType? { id: parentType.id, name: parentType.name, icon: parentType.icon, color: parentType.icon_color } : null,
       },
       tierFeatures,
-      structure: Object.values(sections),
-      sectionControls // NEW
+      structure: filteredStructure,
+      sectionControls: Object.fromEntries(
+        Object.entries(sectionControls).filter(([sectionId]) => allowedSectionIds.has(resolveSectionId(String(sectionId || ''))))
+      )
     });
 
   } catch (error) {

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
+import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -219,6 +220,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
         ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
       ];
+      sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
 
       if (sectionIds.length > 0) {
         const placeholders = sectionIds.map(() => '?').join(',');
@@ -326,39 +328,10 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       cta_phone: sectionControls[s.id]?.cta_phone || null,
     }));
 
-    sections = sections.filter((s: any) => {
-      const sectionOptions = (() => {
-        try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
-      })();
-      if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
-      if (templateHidden && Array.isArray(templateHidden) && templateHidden.includes(s.id)) return false;
-      if (customHidden && Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
-      // Admin override forced hide
-      if (sectionControls[s.id]?.admin_hidden === 1) return false;
-      if (s.id === 'investment-opportunity') {
-        const investment = biz.custom_data?.['investment-opportunity'] || {};
-        if (investment.approval_status !== 'approved' || investment.show_on_minisite !== true) return false;
-      }
-      return true;
-    });
-
-    // Build the final labels mapping: custom_label > basic.section_labels > default
-    const legacyLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
-    const arabicLabels = biz.custom_data?.section_labels_ar || biz.custom_data?.basic?.section_labels_ar || {};
-    const finalLabels: Record<string, string> = {};
-    const finalLabelsAr: Record<string, string> = {};
-    sections.forEach((s: any) => {
-      const label = sectionControls[s.id]?.custom_label || legacyLabels[s.id] || s.name;
-      finalLabels[s.id] = label;
-      if (arabicLabels[s.id]) {
-        finalLabelsAr[s.id] = arabicLabels[s.id];
-      }
-    });
-
     let sectionComponents: Record<string, any[]> = {};
     if (sectionIds.length > 0) {
-      // Component data is an optional enhancement. Older production databases
-      // may not have migration 020 yet, so the base minisite must still render.
+      // Component data is optional, but we need it before visibility filtering so dynamic
+      // section blocks are not skipped due to TDZ / initialization order issues.
       let componentRows: any[] = [];
       try {
         componentRows = await safeQuery<any>(
@@ -417,6 +390,32 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         })));
       });
     }
+
+    sections = sections.filter((s: any) => {
+      const sectionOptions = (() => {
+        try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
+      })();
+      if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
+      if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [])) return false;
+      if (Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
+      if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id])) return false;
+
+      return true;
+    });
+
+    // Build the final labels mapping using a single precedence rule across all sources.
+    const legacyLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
+    const arabicLabels = biz.custom_data?.section_labels_ar || biz.custom_data?.basic?.section_labels_ar || {};
+    const finalLabels: Record<string, string> = {};
+    const finalLabelsAr: Record<string, string> = {};
+    sections.forEach((s: any) => {
+      const label = getEffectiveSectionLabel(s.id, s.name, { ...biz.custom_data, section_labels: legacyLabels, section_labels_ar: arabicLabels }, sectionControls[s.id]);
+      finalLabels[s.id] = label;
+      const arLabel = getEffectiveSectionLabel(s.id, s.name, { ...biz.custom_data, section_labels: arabicLabels }, sectionControls[s.id]);
+      if (arLabel) {
+        finalLabelsAr[s.id] = arLabel;
+      }
+    });
 
     return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} />;
   } catch (e: any) {
