@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
     const businessId = params.get('business_id');
     let sql = `
       SELECT vs.*, b.name AS business_name, b.slug AS business_slug,
-             p.display_name AS vendor_name, p.email AS vendor_email
+              p.display_name AS vendor_name, p.email AS vendor_email,
+              (SELECT action FROM vendor_service_audit_log vsa WHERE vsa.service_id = vs.id ORDER BY vsa.created_at DESC LIMIT 1) AS last_audit_action,
+              (SELECT note FROM vendor_service_audit_log vsa WHERE vsa.service_id = vs.id ORDER BY vsa.created_at DESC LIMIT 1) AS last_audit_note,
+              (SELECT created_at FROM vendor_service_audit_log vsa WHERE vsa.service_id = vs.id ORDER BY vsa.created_at DESC LIMIT 1) AS last_audit_at
       FROM vendor_services vs
       JOIN businesses b ON b.id = vs.business_id
       LEFT JOIN profiles p ON p.id = b.vendor_id

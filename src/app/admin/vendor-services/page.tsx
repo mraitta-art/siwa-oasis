@@ -6,7 +6,7 @@ type Service = {
   id: string; title: string; category: string; business_name: string; vendor_name?: string;
   approval_status: string; audience_scopes: string[] | string; placements: string[] | string;
   booking_mode: string; package_eligible: boolean; valid_from?: string | null; valid_until?: string | null;
-  rejection_note?: string | null;
+  rejection_note?: string | null; last_audit_action?: string | null; last_audit_note?: string | null; last_audit_at?: string | null;
 };
 
 const statuses = ['pending_approval', 'published', 'draft', 'rejected', 'suspended'];
@@ -77,6 +77,7 @@ export default function AdminVendorServicesPage() {
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2"><fieldset><legend className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Audience</legend><div className="flex flex-wrap gap-2">{audiences.map(item => <label key={item} className="rounded-lg bg-slate-50 px-2 py-1 text-xs"><input type="checkbox" className="mr-1" checked={serviceAudiences.includes(item)} onChange={e => updateLocal(service.id, { audience_scopes: e.target.checked ? [...serviceAudiences, item] : serviceAudiences.filter(value => value !== item) })} />{item.replace('_', ' ')}</label>)}</div></fieldset><fieldset><legend className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Placement</legend><div className="flex flex-wrap gap-2">{placements.map(item => <label key={item} className="rounded-lg bg-slate-50 px-2 py-1 text-xs"><input type="checkbox" className="mr-1" checked={servicePlacements.includes(item)} onChange={e => updateLocal(service.id, { placements: e.target.checked ? [...servicePlacements, item] : servicePlacements.filter(value => value !== item) })} />{item}</label>)}</div></fieldset></div>
               <div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-xs font-bold text-slate-500">Valid from<input type="date" value={service.valid_from || ''} onChange={e => updateLocal(service.id, { valid_from: e.target.value })} className="mt-1 block rounded-lg border border-slate-200 p-2 text-sm" /></label><label className="text-xs font-bold text-slate-500">Valid until<input type="date" value={service.valid_until || ''} onChange={e => updateLocal(service.id, { valid_until: e.target.value })} className="mt-1 block rounded-lg border border-slate-200 p-2 text-sm" /></label><label className="min-w-[240px] flex-1 text-xs font-bold text-slate-500">Admin note<input value={service.rejection_note || ''} onChange={e => updateLocal(service.id, { rejection_note: e.target.value })} className="mt-1 block w-full rounded-lg border border-slate-200 p-2 text-sm" placeholder="Reason or review note" /></label><button onClick={() => save(service)} disabled={saving === service.id} className="rounded-lg bg-slate-900 px-5 py-2.5 text-xs font-black uppercase text-amber-300 disabled:opacity-50">{saving === service.id ? 'Saving...' : 'Save governance'}</button></div>
+              {service.last_audit_action && <div className="mt-3 text-xs text-slate-400">Last audit: <strong>{service.last_audit_action}</strong>{service.last_audit_at ? ` • ${new Date(service.last_audit_at).toLocaleString()}` : ''}{service.last_audit_note ? ` • ${service.last_audit_note}` : ''}</div>}
             </article>;
           })}
         </div>}
