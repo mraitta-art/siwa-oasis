@@ -14,7 +14,8 @@ export default function LegacyVibeSearchRedirect() {
 
   useEffect(() => {
     // Redirect to the new dynamic search page
-    router.replace('/search/vibe-search');
+    const query = window.location.search;
+    router.replace(`/search/vibe-search${query}`);
   }, [router]);
 
   return (

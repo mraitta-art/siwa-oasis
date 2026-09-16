@@ -696,13 +696,14 @@ export default function VanityBusinessClient({
                             });
                           }
 
-                          return fieldEntries.map(({ key, val, matchedField }) => {
+                          return fieldEntries.map(({ key, val, matchedField }, index) => {
                             if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
 
                             const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
                             if (!isPublic) return null;
 
                             const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
+                            const uniqueKey = `${section.id || 'section'}-${key || 'field'}-${index}`;
 
                             let finalVal = val;
                             const isPriceField = key.includes('price');
@@ -715,7 +716,7 @@ export default function VanityBusinessClient({
 
                             if (isGated) {
                               return (
-                                <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
+                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
                                   <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
                                   <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
                                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
@@ -742,7 +743,7 @@ export default function VanityBusinessClient({
                             const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
 
                             return (
-                              <div key={key} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto' }}>
+                              <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto' }}>
                                 <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
                                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{rendered}</div>
                               </div>

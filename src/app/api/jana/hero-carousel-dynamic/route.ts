@@ -18,7 +18,7 @@ interface Slide {
   imageFit?: 'cover' | 'contain';
   imagePosition?: 'center' | 'top' | 'bottom';
   bgColor?: string;
-  _source?: 'manual' | 'business' | 'journey' | 'investment' | 'workflow';
+  _source?: 'manual' | 'category' | 'business' | 'journey' | 'investment' | 'workflow';
   isOverride?: boolean;
 }
 
@@ -33,6 +33,69 @@ export async function GET(request: NextRequest) {
 
     // Dictionaries for active dynamic records from DB mapped to Slide representations
     const dbSlidesMap = new Map<string, Slide>();
+    const categoryRoutes: Record<string, string> = {
+      accommodation: '/accommodations',
+      transportation: '/transportation',
+      restaurant: '/food-beverage',
+      restaurants: '/food-beverage',
+      activity: '/activities',
+      activities: '/activities',
+    };
+
+    // Core discovery categories stay live: admins can replace their image, copy, order,
+    // and destination without changing homepage code.
+    const fallbackCategories = [
+      { id: 'accommodation', title: 'Accommodation', subtitle: 'Stay in Siwa', icon: '🏨', image_url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfe4c?q=80&w=1600', color: '#2563eb', link: '/accommodations', display_order: 1 },
+      { id: 'transportation', title: 'Transportation', subtitle: 'Move around the oasis', icon: '🚙', image_url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=1600', color: '#b45309', link: '/transportation', display_order: 2 },
+      { id: 'restaurants', title: 'Restaurants & Food', subtitle: 'Taste Siwa', icon: '🍽️', image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1600', color: '#dc2626', link: '/food-beverage', display_order: 3 },
+      { id: 'activities', title: 'Activities', subtitle: 'Experience the oasis', icon: '🐪', image_url: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=1600', color: '#16a34a', link: '/activities', display_order: 4 },
+    ];
+
+    try {
+      const categories = await safeQuery<any>(
+        `SELECT id, title, subtitle, icon, image_url, color, link, display_order
+         FROM page_experience_categories
+         WHERE is_visible = 1
+         ORDER BY display_order ASC`
+      );
+      const activeCategories = categories.length > 0 ? categories : fallbackCategories;
+      activeCategories.forEach((category: any) => {
+        dbSlidesMap.set(`category_${category.id}`, {
+          id: `category_${category.id}`,
+          _source: 'category',
+          type: category.image_url ? 'image' : 'branded',
+          mediaUrl: category.image_url || null,
+          title: `${category.icon || '✦'} ${category.title}`,
+          subtitle: category.subtitle || 'Discover Siwa',
+          caption: `Explore ${category.title.toLowerCase()} in Siwa Oasis.`,
+          ctaText: `Explore ${category.title}`,
+          ctaLink: categoryRoutes[category.id] || category.link || `/search/vibe?category=${encodeURIComponent(category.id)}`,
+          ctaType: 'search',
+          overlayOpacity: 0.35,
+          animation: 'kenburns',
+          bgColor: category.color || '#556B2F',
+        });
+      });
+    } catch (e) {
+      console.error('Failed to fetch homepage categories for carousel:', e);
+      fallbackCategories.forEach((category) => {
+        dbSlidesMap.set(`category_${category.id}`, {
+          id: `category_${category.id}`,
+          _source: 'category',
+          type: 'image',
+          mediaUrl: category.image_url,
+          title: `${category.icon} ${category.title}`,
+          subtitle: category.subtitle,
+          caption: `Explore ${category.title.toLowerCase()} in Siwa Oasis.`,
+          ctaText: `Explore ${category.title}`,
+          ctaLink: category.link,
+          ctaType: 'search',
+          overlayOpacity: 0.35,
+          animation: 'kenburns',
+          bgColor: category.color,
+        });
+      });
+    }
 
     // 1. Load active businesses/services
     try {
@@ -271,9 +334,10 @@ export async function GET(request: NextRequest) {
           const isBusiness = id.startsWith('business_') && includeBusinesses;
           const isJourney = id.startsWith('journey_') && includeJourneys;
           const isInvestment = id.startsWith('investment_') && includeInvestment;
+          const isCategory = id.startsWith('category_');
           const isWorkflow = id.startsWith('workflow_') && includeRegistration && finalSlides.length === 0 && newDynamicSlides.length === 0;
 
-          if (isBusiness || isJourney || isInvestment || isWorkflow) {
+          if (isCategory || isBusiness || isJourney || isInvestment || isWorkflow) {
             newDynamicSlides.push(dbSlide);
           }
         }
@@ -282,6 +346,9 @@ export async function GET(request: NextRequest) {
 
     } else {
       // Default dynamic merging when no saved layout is found
+      dbSlidesMap.forEach((slide, id) => {
+        if (id.startsWith('category_')) finalSlides.push(slide);
+      });
       if (includeBusinesses) {
         dbSlidesMap.forEach((slide, id) => {
           if (id.startsWith('business_')) finalSlides.push(slide);

@@ -3,9 +3,18 @@ import { query as safeQuery } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
-    const { tags, engineId } = await request.json();
+    const { tags, category, engineId, childType, minimumPassengers } = await request.json();
 
-    if (!tags || !Array.isArray(tags) || tags.length === 0) {
+    const categoryAliases: Record<string, string[]> = {
+      accommodation: ['accommodation', 'hotel', 'lodge', 'resort', 'camp'],
+      transportation: ['transportation', 'transport', 'logistics', 'transfer', 'taxi', 'rental'],
+      restaurant: ['restaurant', 'food', 'cafe', 'dining'],
+      activity: ['activity', 'adventure', 'tour', 'experience', 'attraction'],
+    };
+    const normalizedCategory = typeof category === 'string' ? category.trim().toLowerCase() : '';
+    const categoryTerms = categoryAliases[normalizedCategory] || (normalizedCategory ? [normalizedCategory] : []);
+
+    if ((!tags || !Array.isArray(tags) || tags.length === 0) && categoryTerms.length === 0) {
       const all: any = await safeQuery(`
         SELECT b.*, bt.name as type_name 
         FROM businesses b
@@ -19,6 +28,56 @@ export async function POST(request: Request) {
 
     // 1. Resolve which fields/paths we should search
     let searchablePaths = ['$.experience_vibe.vibe_tags', '$.vibe.vibe_tags']; // Default
+
+    if (normalizedCategory === 'transportation') {
+      searchablePaths = [
+        '$.sec_1_identity.service_model',
+        '$.sec_2_ambience.travel_style',
+        '$.sec_2_ambience.comfort_level',
+        '$.sec_2_ambience.vehicle_types',
+        '$.sec_3_facilities.vehicle_types',
+        '$.sec_3_facilities.vehicle_features',
+        '$.sec_3_facilities.accessibility_features',
+        '$.sec_3_facilities.equipment_available',
+        '$.sec_3_services.vehicle_types',
+        '$.sec_4_gastronomy.journey_services',
+        '$.sec_4_gastronomy.route_types',
+        '$.sec_4_gastronomy.pickup_options',
+        '$.sec_6_guardian.driver_requirements',
+        '$.sec_8_connector.pricing_model',
+        '$.sec_8_connector.payment_methods',
+      ];
+    }
+
+    if (normalizedCategory === 'restaurant') {
+      searchablePaths = [
+        '$.sec_1_identity.restaurant_concept',
+        '$.sec_2_ambience.seating_style',
+        '$.sec_3_facilities.facilities',
+        '$.sec_4_gastronomy.cuisine_types',
+        '$.sec_4_gastronomy.dietary_options',
+        '$.sec_4_gastronomy.menu_courses',
+        '$.sec_4_gastronomy.price_range',
+        '$.sec_5_experiences.signature_experiences',
+        '$.sec_6_guardian.service_options',
+        '$.sec_6_guardian.reservation_methods',
+        '$.sec_8_connector.payment_methods',
+      ];
+    }
+
+    if (normalizedCategory === 'food') {
+      searchablePaths = [
+        '$.sec_1_identity.restaurant_concept',
+        '$.sec_2_ambience.seating_style',
+        '$.sec_3_facilities.facilities',
+        '$.sec_4_gastronomy.cuisine_types',
+        '$.sec_4_gastronomy.dietary_options',
+        '$.sec_4_gastronomy.menu_courses',
+        '$.sec_4_gastronomy.price_range',
+        '$.sec_6_guardian.service_options',
+        '$.sec_6_guardian.reservation_methods',
+      ];
+    }
 
     if (engineId) {
       const engine: any = await safeQuery(`
@@ -52,7 +111,19 @@ export async function POST(request: Request) {
     const conditions: string[] = [];
     const params: any[] = [];
 
-    tags.forEach(tag => {
+    if (categoryTerms.length > 0) {
+      conditions.push(`(${categoryTerms.map(() => '(LOWER(bt.id) = ? OR LOWER(bt.name) LIKE ? OR LOWER(parent_bt.id) = ? OR LOWER(parent_bt.name) LIKE ?)').join(' OR ')})`);
+      categoryTerms.forEach(term => {
+        params.push(term, `%${term}%`, term, `%${term}%`);
+      });
+    }
+
+    if (typeof childType === 'string' && childType.trim()) {
+      conditions.push('LOWER(bt.id) = ?');
+      params.push(childType.trim().toLowerCase());
+    }
+
+    (Array.isArray(tags) ? tags : []).forEach(tag => {
       const pathConditions = searchablePaths.map(path => {
         params.push(tag);
         return `JSON_CONTAINS(custom_data, JSON_QUOTE(?), '${path}')`;
@@ -60,10 +131,20 @@ export async function POST(request: Request) {
       conditions.push(`(${pathConditions})`);
     });
 
+    if (normalizedCategory === 'transportation' && Number.isFinite(Number(minimumPassengers)) && Number(minimumPassengers) > 0) {
+      conditions.push(`(
+        CAST(JSON_UNQUOTE(JSON_EXTRACT(custom_data, '$.sec_3_facilities.passenger_capacity')) AS DECIMAL(10, 2)) >= ?
+        OR CAST(JSON_UNQUOTE(JSON_EXTRACT(custom_data, '$.sec_3_facilities.tuk_tuk_capacity')) AS DECIMAL(10, 2)) >= ?
+        OR CAST(JSON_UNQUOTE(JSON_EXTRACT(custom_data, '$.sec_3_facilities.airport_transfer_capacity')) AS DECIMAL(10, 2)) >= ?
+      )`);
+      params.push(Number(minimumPassengers), Number(minimumPassengers), Number(minimumPassengers));
+    }
+
     const results: any = await safeQuery(`
       SELECT b.*, bt.name as type_name 
       FROM businesses b
       JOIN business_types bt ON b.type_id = bt.id
+      LEFT JOIN business_types parent_bt ON bt.parent_id = parent_bt.id
       WHERE b.status = 'active' AND b.published = 1 AND ${conditions.join(' AND ')}
       ORDER BY b.is_featured DESC, b.is_recommended DESC, b.is_trusted DESC, b.views DESC
     `, params);

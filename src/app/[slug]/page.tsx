@@ -39,8 +39,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ? OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
-        [slug, slug]
+         WHERE b.slug = ? OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
+        [slug, slug, slug]
       );
       biz = row ?? null;
     }
@@ -121,8 +121,8 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ? OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
-        [slug, slug]
+         WHERE b.slug = ? OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
+        [slug, slug, slug]
       );
       biz = row ?? null;
     }

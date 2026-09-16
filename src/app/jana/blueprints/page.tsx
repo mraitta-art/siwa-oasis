@@ -37,7 +37,19 @@ export default function BlueprintDashboard() {
     try {
       const res = await fetch('/api/jana/types');
       const data = await res.json();
-      setTypologies(data);
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || `Failed to load typologies (${res.status})`);
+      }
+
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      const rows = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.typologies)
+          ? parsed.typologies
+          : Array.isArray(parsed?.business_types)
+            ? parsed.business_types
+            : [];
+      setTypologies(rows);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };

@@ -177,6 +177,8 @@ CREATE TABLE businesses (
   custom_data JSON DEFAULT NULL,
   draft_data JSON DEFAULT NULL,
   admin_overrides JSON DEFAULT NULL,
+  custom_domain VARCHAR(255) DEFAULT NULL,
+  custom_domain_verified TINYINT(1) NOT NULL DEFAULT 0,
   template_id VARCHAR(100) DEFAULT NULL,
   is_standalone BOOLEAN DEFAULT FALSE,
   active TINYINT(1) DEFAULT 1,
@@ -186,6 +188,7 @@ CREATE TABLE businesses (
   FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
   FOREIGN KEY (vendor_id) REFERENCES profiles(id) ON DELETE SET NULL
 );
+CREATE UNIQUE INDEX uq_businesses_custom_domain ON businesses (custom_domain);
 
 -- 10. SEARCH ENGINES (Multi-criteria search config)
 CREATE TABLE search_engines (

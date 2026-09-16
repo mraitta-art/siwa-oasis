@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'No business linked to this account' }, { status: 404 });
     }
 
-    const { hidden_sections, section_labels, section_order, minisite_color, minisite_font } = await req.json();
+    const { hidden_sections, section_labels, section_order, minisite_color, minisite_font, custom_domain } = await req.json();
 
     let canEditLabels = false;
     try {
@@ -49,18 +49,29 @@ export async function PATCH(req: NextRequest) {
       section_order:   section_order   ?? existing.section_order   ?? [],
     };
 
-    // Update both custom_data and dedicated color/font columns (if they exist)
+    const normalizedDomain = typeof custom_domain === 'string' && custom_domain.trim()
+      ? custom_domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/\.$/, '')
+      : null;
+
+    if (normalizedDomain && !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(normalizedDomain)) {
+      return NextResponse.json({ error: 'Enter a valid domain name, such as example.com' }, { status: 400 });
+    }
+
+    // A domain is not routed until an administrator verifies its DNS ownership.
     await execute(
       `UPDATE businesses SET
          custom_data = ?,
          minisite_color = ?,
          minisite_font  = ?,
+         custom_domain = ?,
+         custom_domain_verified = 0,
          updated_at = NOW()
        WHERE id = ?`,
       [
         JSON.stringify(updated),
         minisite_color || '#D4AF37',
         minisite_font  || 'Inter',
+        normalizedDomain,
         user.businessId,
       ]
     );
@@ -87,7 +98,7 @@ export async function GET(req: NextRequest) {
     }
 
     const rows = (await query(
-      'SELECT custom_data, minisite_color, minisite_font, is_published, slug FROM businesses WHERE id = ?',
+      'SELECT custom_data, minisite_color, minisite_font, is_published, slug, custom_domain, custom_domain_verified FROM businesses WHERE id = ?',
       [user.businessId]
     )) as any[];
 
@@ -111,6 +122,8 @@ export async function GET(req: NextRequest) {
       minisite_font:   biz.minisite_font  || 'Inter',
       is_published:    !!biz.is_published,
       slug:            biz.slug || '',
+      custom_domain:   biz.custom_domain || '',
+      custom_domain_verified: !!biz.custom_domain_verified,
       section_label_edit_enabled: sectionLabelEditEnabled,
     });
   } catch (error: any) {

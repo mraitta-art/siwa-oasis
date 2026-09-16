@@ -24,7 +24,7 @@ const FALLBACK_PILLARS: ServicePillar[] = [
     icon: 'fa-bed',
     color: '#8b5cf6',
     image_url: 'https://images.unsplash.com/photo-1482192505345-5852b41ade5c?q=80&w=800',
-    search_link: '/search/vibe?category=accommodation',
+    search_link: '/accommodations',
     is_visible: true,
     display_order: 1,
   },

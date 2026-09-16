@@ -205,11 +205,13 @@ function BasicOverviewSection({ data, bizName }: { data: Record<string, unknown>
 
 function VibeSection({ data }: { data: Record<string, unknown> }) {
   const chips = ['vibe','atmosphere','architecture','style','mood','feel'].map(k=>data[k]).filter(v=>typeof v==='string'&&(v as string).trim()) as string[];
+  const multiValues = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&Array.isArray(v)&&v.length>0) as [string, unknown[]][];
   return (
     <div>
       <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
         {chips.map((c,i)=><VibeChip key={i} label={c}/>)}
-        {chips.length===0 && <p style={{ color:'#94a3b8', fontStyle:'italic' }}>Ambience details coming soon.</p>}
+        {multiValues.flatMap(([key, values]) => values.map((value, index) => <VibeChip key={`${key}-${index}`} label={String(value)} />))}
+        {chips.length===0 && multiValues.length===0 && <p style={{ color:'#94a3b8', fontStyle:'italic' }}>Ambience details coming soon.</p>}
       </div>
     </div>
   );
@@ -219,6 +221,7 @@ function FacilitiesSection({ data }: { data: Record<string, unknown> }) {
   const ICONS: Record<string,string> = { wifi:'📶', pool:'🏊', parking:'🅿️', air_conditioning:'❄️', restaurant_on_site:'🍽️', spa:'💆', gym:'🏋️', breakfast:'🍳' };
   const bools = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&k!=='description'&&typeof v==='boolean');
   const texts = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&k!=='description'&&typeof v==='string'&&(v as string).trim());
+  const lists = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&Array.isArray(v)&&v.length>0);
   return (
     <div>
       {bools.length>0 && (
@@ -231,7 +234,8 @@ function FacilitiesSection({ data }: { data: Record<string, unknown> }) {
           {texts.map(([k,v])=><InfoPill key={k} icon="✔️" label={k} value={String(v)}/>)}
         </div>
       )}
-      {bools.length===0 && texts.length===0 && <p style={{ color:'#94a3b8', fontStyle:'italic' }}>Facilities checklist updated by vendor.</p>}
+      {lists.length>0 && <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem', marginTop:'1rem' }}>{lists.map(([key, values])=><InfoPill key={key} icon="✓" label={key} value={(values as unknown[]).map(String).join(', ')}/>)}</div>}
+      {bools.length===0 && texts.length===0 && lists.length===0 && <p style={{ color:'#94a3b8', fontStyle:'italic' }}>Facilities checklist updated by vendor.</p>}
     </div>
   );
 }
@@ -239,6 +243,7 @@ function FacilitiesSection({ data }: { data: Record<string, unknown> }) {
 function ExperienceSection({ data, sectionName }: { data: Record<string, unknown>; sectionName: string }) {
   const tags   = ['experience_type','duration','suitable_for','difficulty'].map(k=>data[k]).filter(v=>typeof v==='string'&&(v as string).trim()) as string[];
   const extras = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&!['experience_type','duration','suitable_for','difficulty','description'].includes(k)&&typeof v==='string'&&(v as string).trim());
+  const lists = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&Array.isArray(v)&&v.length>0);
   return (
     <div>
       {tags.length>0 && (
@@ -246,6 +251,7 @@ function ExperienceSection({ data, sectionName }: { data: Record<string, unknown
           {tags.map((t,i)=><span key={i} style={{ background:'#f0f9ff', border:'1px solid #bae6fd', color:'#0369a1', padding:'0.4rem 0.9rem', borderRadius:'999px', fontSize:'0.78rem', fontWeight:700 }}>{t}</span>)}
         </div>
       )}
+      {lists.length>0 && <div style={{ display:'flex', flexWrap:'wrap', gap:'0.6rem', marginBottom:'1.5rem' }}>{lists.flatMap(([key, values]) => values.map((value, index) => <span key={`${key}-${index}`} style={{ background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', padding:'0.4rem 0.8rem', borderRadius:'999px', fontSize:'0.76rem', fontWeight:700 }}>{String(value)}</span>))}</div>}
       {extras.length>0 && <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>{extras.map(([k,v])=><InfoPill key={k} icon="🎯" label={k} value={String(v)}/>)}</div>}
     </div>
   );
@@ -362,9 +368,11 @@ function OffersSection({ data, bizName, phone }: { data: Record<string, unknown>
 
 function GenericSection({ data, sectionName }: { data: Record<string, unknown>; sectionName: string }) {
   const extras = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&k!=='description'&&v!==null&&v!==undefined&&String(v).trim()!==''&&typeof v!=='object');
+  const lists = Object.entries(data).filter(([k,v])=>!NOISE_KEYS.has(k)&&Array.isArray(v)&&v.length>0);
   const ICONS: Record<string,string> = { cuisine:'🍽️', vibe:'✨', architecture:'🏛️', atmosphere:'🌿', duration:'⏱️', suitable_for:'👥', experience_type:'🎯', highlight:'🏆' };
   return (
     <div>
+      {lists.length>0 && <div style={{ display:'flex', flexWrap:'wrap', gap:'0.6rem', marginBottom:'1rem' }}>{lists.flatMap(([key, values]) => values.map((value, index) => <span key={`${key}-${index}`} style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#475569', padding:'0.45rem 0.8rem', borderRadius:'999px', fontSize:'0.76rem', fontWeight:700 }}>{String(value)}</span>))}</div>}
       {extras.length>0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem' }}>
           {extras.map(([k,v])=><InfoPill key={k} icon={ICONS[k]||'ℹ️'} label={k} value={Array.isArray(v)?(v as any[]).join(', '):String(v)}/>)}

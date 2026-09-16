@@ -4,6 +4,7 @@ import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_for_development');
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
+const PLATFORM_HOSTS = new Set(['siwify.com', 'www.siwify.com', 'localhost', '127.0.0.1']);
 
 // Unified role-based route protection table
 const ROUTE_GUARDS: Record<string, string[]> = {
@@ -27,10 +28,23 @@ async function verifySession(request: NextRequest): Promise<{ role: string } | n
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get('host')?.split(':')[0]?.toLowerCase() || '';
 
   // Safety: warn if running production with the fallback JWT secret
   if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
     console.error('[SECURITY] JWT_SECRET env var is not set — using insecure fallback in production!');
+  }
+
+  // Keep the browser on the client's domain while reusing the standard minisite renderer.
+  if (
+    hostname &&
+    !PLATFORM_HOSTS.has(hostname) &&
+    !hostname.endsWith('.vercel.app') &&
+    pathname === '/'
+  ) {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = `/${hostname}`;
+    return NextResponse.rewrite(rewriteUrl);
   }
 
   // Find matching guard

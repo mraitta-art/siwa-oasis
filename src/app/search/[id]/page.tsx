@@ -61,24 +61,48 @@ export default function PublicSearchPage({ params }: { params: Promise<{ id: str
     
     // Fall back to loading as search engine
     setIsSearchPageMode(false);
+
+    const isLegacyVibeRoute = ['vibe', 'vibe-search'].includes(id) || /(?:^|[?&])(category|service|q)=/.test(typeof window !== 'undefined' ? window.location.search : '');
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+
+    if (searchParams && searchParams.get('category') === 'accommodation' && isLegacyVibeRoute) {
+      window.location.href = '/accommodations';
+      return;
+    }
+
     try {
       const res = await fetch(`/api/jana/search-engines`);
       if (res.ok) {
         const all = await res.json();
         const foundEngine = all.find((e: any) => e.id === id);
+
         if (foundEngine) {
           setEngine(foundEngine);
           await loadCardTemplates();
           await runSearch();
+        } else if (isLegacyVibeRoute) {
+          setEngine({ id: 'fallback-vibe' });
+          await loadCardTemplates();
+          setResults([]);
         } else {
           setNotFound(true);
         }
+      } else if (isLegacyVibeRoute) {
+        setEngine({ id: 'fallback-vibe' });
+        await loadCardTemplates();
+        setResults([]);
       } else {
         setNotFound(true);
       }
     } catch (e) {
       console.error('Failed to load search engine:', e);
-      setNotFound(true);
+      if (isLegacyVibeRoute) {
+        setEngine({ id: 'fallback-vibe' });
+        await loadCardTemplates();
+        setResults([]);
+      } else {
+        setNotFound(true);
+      }
     } finally {
       setLoading(false);
     }

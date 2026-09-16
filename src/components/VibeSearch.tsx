@@ -1,11 +1,55 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import MasterCard from './MasterCard';
 
-export default function VibeSearch({ engineId }: { engineId?: string }) {
+export default function VibeSearch({ engineId, defaultCategory }: { engineId?: string; defaultCategory?: string }) {
+  const searchParams = useSearchParams();
+  const categoryFromUrl = searchParams.get('category') || '';
+  const category = defaultCategory || categoryFromUrl || '';
+  const isTransportation = category === 'transportation';
+  const isRestaurant = category === 'restaurant';
+  const isFood = category === 'food';
+  const foodChildTypes = [
+    { id: '', label: 'All food businesses' },
+    { id: 'restaurant', label: 'Restaurants' },
+    { id: 'siwan_kitchen', label: 'Traditional Siwan kitchens' },
+    { id: 'cafe_juice', label: 'Cafes & juice bars' },
+    { id: 'fine_dining', label: 'Fine dining' },
+    { id: 'street_food_stall', label: 'Street food' },
+    { id: 'bakery', label: 'Bakeries & pastry shops' },
+    { id: 'catering_service', label: 'Catering services' },
+    { id: 'food_truck', label: 'Food trucks' },
+    { id: 'dessert_shop', label: 'Dessert & ice cream shops' },
+  ];
+  const transportationOptions = [
+    'Car / Taxi',
+    'Bus / Mini-Bus',
+    '4x4 Desert Jeep',
+    'Local Tuk-Tuk',
+    'Private Transfer',
+    'Vehicle Rental',
+    'Bicycle/Scooter Rental',
+  ];
+  const transportFilterGroups = [
+    { label: 'Vehicle type', options: transportationOptions },
+    { label: 'Service type', options: ['Transfer', 'Tour', 'Delivery', 'Vehicle rental', 'Equipment rental', 'Guided journey', 'Airport pickup'] },
+    { label: 'Comfort', options: ['Basic', 'Standard', 'Premium', 'Luxury'] },
+    { label: 'Vehicle features', options: ['Air conditioning', 'Luggage space', 'Child seats', 'Wheelchair access', 'GPS', 'WiFi', 'Safety equipment'] },
+    { label: 'Route coverage', options: ['Within Siwa Oasis', 'Airport Transfers (Cairo/Alex)', 'Desert Rescue/Retrieval', 'Cross-Country Trips'] },
+  ];
+  const restaurantFilterGroups = [
+    { label: 'Cuisine', options: ['Traditional Siwan', 'Egyptian', 'Mediterranean', 'International', 'Vegetarian', 'Vegan', 'Bakery and desserts', 'Juices and drinks'] },
+    { label: 'Dining service', options: ['Dine-in', 'Takeaway', 'Delivery', 'Catering', 'Reservations', 'Private events'] },
+    { label: 'Dietary options', options: ['Halal', 'Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut-free options', 'Allergen-aware kitchen'] },
+    { label: 'Seating & setting', options: ['Indoor', 'Outdoor terrace', 'Garden', 'Floor seating', 'Table seating', 'Counter', 'Communal', 'Private room'] },
+    { label: 'Price range', options: ['Budget', 'Moderate', 'Premium', 'Fine dining'] },
+  ];
   const [availableVibes, setAvailableVibes] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [minimumPassengers, setMinimumPassengers] = useState('');
+  const [selectedChildType, setSelectedChildType] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,11 +59,14 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
       const url = engineId ? `/api/discovery/vibe-config?engineId=${engineId}` : '/api/discovery/vibe-config';
       const res = await fetch(url);
       const data = await res.json();
-      if (data.options) setAvailableVibes(data.options);
+      if (data.options) {
+          const categoryOptions = category === 'transportation' ? transportationOptions : category === 'restaurant' || category === 'food' ? [] : data.options;
+        setAvailableVibes(categoryOptions);
+      }
       setLoading(false);
     }
     loadConfig();
-  }, [engineId]);
+  }, [engineId, category]);
 
   // 2. Trigger Search when tags change
   useEffect(() => {
@@ -28,14 +75,14 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
       const res = await fetch('/api/discovery/vibe-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: selectedTags, engineId })
+        body: JSON.stringify({ tags: selectedTags, category, engineId, childType: selectedChildType || null, minimumPassengers: minimumPassengers ? Number(minimumPassengers) : null })
       });
       const data = await res.json();
       setResults(data);
       setLoading(false);
     }
     performSearch();
-  }, [selectedTags]);
+  }, [selectedTags, category, engineId, minimumPassengers, selectedChildType]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -49,37 +96,89 @@ export default function VibeSearch({ engineId }: { engineId?: string }) {
       {/* Dynamic Vibe Selection UI */}
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', marginBottom: '1rem' }}>
-          What is your Siwa Story today?
+          {defaultCategory ? `Find the best ${defaultCategory.replace(/-/g, ' ')} in Siwa` : 'What is your Siwa Story today?'}
         </h2>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '900px', margin: '0 auto' }}>
-          {availableVibes.filter(vibe => typeof vibe === 'string').map(vibe => {
-            const isActive = selectedTags.includes(vibe);
-            return (
+        {isFood && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.55rem', maxWidth: '1050px', margin: '0 auto 1.5rem' }}>
+            {foodChildTypes.map(type => (
               <button
-                key={vibe}
-                onClick={() => toggleTag(vibe)}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '100px',
-                  border: isActive ? '2px solid #D4AF37' : '1px solid #e2e8f0',
-                  background: isActive ? 'rgba(212, 175, 55, 0.1)' : '#fff',
-                  color: isActive ? '#D4AF37' : '#64748b',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isActive ? '0 10px 20px -5px rgba(212, 175, 55, 0.3)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
+                key={type.id || 'all-food'}
+                type="button"
+                onClick={() => setSelectedChildType(type.id)}
+                style={{ padding: '0.65rem 0.9rem', borderRadius: '12px', border: selectedChildType === type.id ? '2px solid #D4AF37' : '1px solid #e2e8f0', background: selectedChildType === type.id ? '#fffbeb' : '#fff', color: selectedChildType === type.id ? '#a16207' : '#64748b', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 800 }}
               >
-                <i className={`fas ${isActive ? 'fa-check-circle' : 'fa-circle-notch'}`} style={{ fontSize: '0.7rem' }}></i>
-                {(vibe || '').toUpperCase()}
+                {type.label}
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
+        {isTransportation && (
+          <div style={{ margin: '0 auto 1.5rem', maxWidth: '320px', textAlign: 'left' }}>
+            <label htmlFor="transport-passengers" style={{ display: 'block', marginBottom: '0.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>
+              Minimum passengers
+            </label>
+            <select
+              id="transport-passengers"
+              value={minimumPassengers}
+              onChange={(event) => setMinimumPassengers(event.target.value)}
+              style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#fff', color: '#475569', fontWeight: 700 }}
+            >
+              <option value="">Any capacity</option>
+              {[1, 2, 4, 6, 8, 12, 20].map((passengers) => (
+                <option key={passengers} value={passengers}>{passengers}+ passengers</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {isTransportation || isRestaurant || isFood ? (isTransportation ? transportFilterGroups : restaurantFilterGroups).map(group => (
+          <div key={group.label} style={{ margin: '0 auto 1.25rem', maxWidth: '1050px' }}>
+            <div style={{ marginBottom: '0.6rem', color: '#64748b', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1.5px', textTransform: 'uppercase' }}>{group.label}</div>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {group.options.map(option => {
+                const isActive = selectedTags.includes(option);
+                return (
+                  <button
+                    key={`${group.label}-${option}`}
+                    onClick={() => toggleTag(option)}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '100px',
+                      border: isActive ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                      background: isActive ? 'rgba(212, 175, 55, 0.1)' : '#fff',
+                      color: isActive ? '#D4AF37' : '#64748b',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: isActive ? '0 10px 20px -5px rgba(212, 175, 55, 0.3)' : 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                    }}
+                  >
+                    <i className={`fas ${isActive ? 'fa-check-circle' : 'fa-circle-notch'}`} style={{ fontSize: '0.65rem' }}></i>
+                    {option.toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )) : (
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '900px', margin: '0 auto' }}>
+            {availableVibes.filter(vibe => typeof vibe === 'string').map(vibe => {
+              const isActive = selectedTags.includes(vibe);
+              return (
+                <button
+                  key={vibe}
+                  onClick={() => toggleTag(vibe)}
+                  style={{ padding: '12px 24px', borderRadius: '100px', border: isActive ? '2px solid #D4AF37' : '1px solid #e2e8f0', background: isActive ? 'rgba(212, 175, 55, 0.1)' : '#fff', color: isActive ? '#D4AF37' : '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', boxShadow: isActive ? '0 10px 20px -5px rgba(212, 175, 55, 0.3)' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <i className={`fas ${isActive ? 'fa-check-circle' : 'fa-circle-notch'}`} style={{ fontSize: '0.7rem' }}></i>
+                  {(vibe || '').toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {selectedTags.length > 0 && (
           <button 
             onClick={() => setSelectedTags([])}
