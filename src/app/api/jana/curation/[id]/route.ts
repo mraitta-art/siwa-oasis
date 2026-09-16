@@ -346,14 +346,22 @@ export async function PATCH(
               inst.data_id
             ]
           );
+          await execute(
+            `UPDATE vendor_services
+             SET approval_status = ?, approved_at = CASE WHEN ? = 'published' THEN NOW() ELSE NULL END,
+                 rejection_note = CASE WHEN ? = 'rejected' THEN COALESCE(?, rejection_note) ELSE NULL END
+             WHERE source_component_data_id = ?`,
+            [componentStatus, componentStatus, componentStatus, inst.approval_notes || null, inst.data_id]
+          );
         } else if (inst.component_id) {
           // New instance insertion
+          const insertedComponentDataId = uuidv4();
           await execute(
             `INSERT INTO section_component_data 
                (id, section_component_id, business_id, title, data, status, display_order, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
             [
-              uuidv4(),
+              insertedComponentDataId,
               inst.component_id,
               id,
               inst.title || null,
@@ -361,6 +369,12 @@ export async function PATCH(
               componentStatus,
               inst.display_order || 0
             ]
+          );
+          await execute(
+            `UPDATE vendor_services
+             SET approval_status = ?, approved_at = CASE WHEN ? = 'published' THEN NOW() ELSE NULL END
+             WHERE source_component_data_id = ?`,
+            [componentStatus, componentStatus, insertedComponentDataId]
           );
         }
       }

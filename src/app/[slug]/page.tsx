@@ -336,10 +336,18 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       try {
         componentRows = await safeQuery<any>(
           `SELECT sc.id as component_id, sc.section_id, sc.component_type, sc.label as component_label, sc.config,
-                  scd.id as data_id, scd.data as data_json, scd.status as data_status, scd.title as data_title, scd.display_order as data_display_order
+                  scd.id as data_id, scd.data as data_json, scd.status as data_status, scd.title as data_title, scd.display_order as data_display_order,
+                  vs.id as service_id, vs.category as service_category, vs.service_type, vs.title as service_title,
+                  vs.description as service_description, vs.price as service_price, vs.currency as service_currency,
+                  vs.price_unit as service_price_unit, vs.capacity as service_capacity, vs.availability as service_availability
            FROM section_components sc
            LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id AND scd.business_id = ? AND scd.status = 'published'
+           LEFT JOIN vendor_services vs ON vs.source_component_data_id = scd.id
+             AND vs.approval_status = 'published'
+             AND JSON_CONTAINS(vs.audience_scopes, JSON_QUOTE('public'), '$')
+             AND JSON_CONTAINS(vs.placements, JSON_QUOTE('minisite'), '$')
            WHERE sc.section_id IN (${sectionIds.map(() => '?').join(',')})
+             AND (sc.component_type <> 'service_catalog' OR vs.id IS NOT NULL)
            ORDER BY sc.section_id, sc.display_order, scd.display_order`,
           [biz.id, ...sectionIds]
         );
@@ -372,7 +380,19 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
             id: row.data_id,
             title: row.data_title,
             status: row.data_status,
-            data: JSON.parse(row.data_json || '{}')
+            data: row.component_type === 'service_catalog' && row.service_id
+              ? {
+                  category: row.service_category,
+                  service_type: row.service_type,
+                  title: row.service_title,
+                  description: row.service_description,
+                  price: row.service_price,
+                  currency: row.service_currency,
+                  price_unit: row.service_price_unit,
+                  capacity: row.service_capacity,
+                  availability: row.service_availability,
+                }
+              : JSON.parse(row.data_json || '{}')
           });
         }
       });
