@@ -56,6 +56,7 @@ export default function VendorServicesControlPage() {
 
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <input value={filter} onChange={event => setFilter(event.target.value)} placeholder="Search vendor or business" style={{ minWidth: '280px', padding: '0.75rem 1rem', border: '1px solid #cbd5e1', borderRadius: '10px' }} />
+        <Link href="/admin/vendor-services" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.75rem 1rem', background: '#b45309', color: '#fff', borderRadius: '10px', fontWeight: 800, textDecoration: 'none' }}>Govern service visibility</Link>
         <Link href="/jana/tiers" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.75rem 1rem', background: '#0f172a', color: '#fff', borderRadius: '10px', fontWeight: 800, textDecoration: 'none' }}>Manage tier catalogue</Link>
       </div>
 
