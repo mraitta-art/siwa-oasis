@@ -52,36 +52,69 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
   const [selectedChildType, setSelectedChildType] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelSize, setPanelSize] = useState<'compact' | 'standard' | 'wide'>('standard');
+  const activeFilterCount = selectedTags.length + (selectedChildType ? 1 : 0) + (minimumPassengers ? 1 : 0);
+  const summary = activeFilterCount > 0
+    ? `${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} active`
+    : 'All businesses';
 
   // 1. Fetch Dynamic Config
   useEffect(() => {
+    const controller = new AbortController();
+
     async function loadConfig() {
       const url = engineId ? `/api/discovery/vibe-config?engineId=${engineId}` : '/api/discovery/vibe-config';
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.options) {
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Vibe config request failed: ${res.status}`);
+        const data = await res.json();
+        if (data.options) {
           const categoryOptions = category === 'transportation' ? transportationOptions : category === 'restaurant' || category === 'food' ? [] : data.options;
-        setAvailableVibes(categoryOptions);
+          setAvailableVibes(categoryOptions);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error('Unable to load vibe configuration', error);
+          setAvailableVibes([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-      setLoading(false);
     }
     loadConfig();
+
+    return () => controller.abort();
   }, [engineId, category]);
 
   // 2. Trigger Search when tags change
   useEffect(() => {
+    const controller = new AbortController();
+
     async function performSearch() {
       setLoading(true);
-      const res = await fetch('/api/discovery/vibe-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: selectedTags, category, engineId, childType: selectedChildType || null, minimumPassengers: minimumPassengers ? Number(minimumPassengers) : null })
-      });
-      const data = await res.json();
-      setResults(data);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/discovery/vibe-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags: selectedTags, category, engineId, childType: selectedChildType || null, minimumPassengers: minimumPassengers ? Number(minimumPassengers) : null }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Vibe search request failed: ${res.status}`);
+        const data = await res.json();
+        setResults(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error('Unable to load vibe search results', error);
+          setResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
     }
     performSearch();
+
+    return () => controller.abort();
   }, [selectedTags, category, engineId, minimumPassengers, selectedChildType]);
 
   const toggleTag = (tag: string) => {
@@ -91,21 +124,59 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
   };
 
   return (
-    <div className="vibe-search-container" style={{ margin: '4rem 0' }}>
+    <div className="vibe-search-container" style={{ margin: '1rem 0' }}>
+      <div className="vibe-search-toolbar">
+        <div>
+          <div className="vibe-search-kicker">Smart discovery</div>
+          <div className="vibe-search-summary">{summary}</div>
+        </div>
+        <div className="vibe-search-actions">
+          <div className="vibe-search-size" aria-label="Search panel size">
+            {(['compact', 'standard', 'wide'] as const).map(size => (
+              <button
+                key={size}
+                type="button"
+                className={panelSize === size ? 'is-active' : ''}
+                aria-label={`${size} search panel`}
+                aria-pressed={panelSize === size}
+                onClick={() => setPanelSize(size)}
+              >
+                <span aria-hidden="true">{size === 'compact' ? '−' : size === 'standard' ? '＝' : '＋'}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="vibe-search-toggle"
+            aria-expanded={panelOpen}
+            aria-controls="vibe-filter-panel"
+            onClick={() => setPanelOpen(open => !open)}
+          >
+            <i className={`fas ${panelOpen ? 'fa-chevron-up' : 'fa-sliders-h'}`} aria-hidden="true"></i>
+            {panelOpen ? 'Hide filters' : 'Refine'}
+          </button>
+        </div>
+      </div>
       
       {/* Dynamic Vibe Selection UI */}
-      <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+      {panelOpen && <div id="vibe-filter-panel" className="vibe-filter-panel" data-size={panelSize}>
+        <div className="vibe-filter-panel-header">
+          <span>Choose what matters</span>
+          <span className="vibe-filter-hint">Results update instantly</span>
+        </div>
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', marginBottom: '1rem' }}>
           {defaultCategory ? `Find the best ${defaultCategory.replace(/-/g, ' ')} in Siwa` : 'What is your Siwa Story today?'}
         </h2>
         {isFood && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.55rem', maxWidth: '1050px', margin: '0 auto 1.5rem' }}>
+          <div className="vibe-filter-options" style={{ maxWidth: '1050px', margin: '0 auto 1rem' }}>
             {foodChildTypes.map(type => (
               <button
                 key={type.id || 'all-food'}
                 type="button"
                 onClick={() => setSelectedChildType(type.id)}
-                style={{ padding: '0.65rem 0.9rem', borderRadius: '12px', border: selectedChildType === type.id ? '2px solid #D4AF37' : '1px solid #e2e8f0', background: selectedChildType === type.id ? '#fffbeb' : '#fff', color: selectedChildType === type.id ? '#a16207' : '#64748b', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 800 }}
+                className={`vibe-filter-chip ${selectedChildType === type.id ? 'is-active' : ''}`}
+                style={{ border: selectedChildType === type.id ? '2px solid #D4AF37' : '1px solid #e2e8f0', background: selectedChildType === type.id ? '#fffbeb' : '#fff', color: selectedChildType === type.id ? '#a16207' : '#64748b' }}
               >
                 {type.label}
               </button>
@@ -113,7 +184,7 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
           </div>
         )}
         {isTransportation && (
-          <div style={{ margin: '0 auto 1.5rem', maxWidth: '320px', textAlign: 'left' }}>
+          <div className="vibe-filter-control" style={{ margin: '0 auto 1rem', maxWidth: '320px', textAlign: 'left' }}>
             <label htmlFor="transport-passengers" style={{ display: 'block', marginBottom: '0.5rem', color: '#475569', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>
               Minimum passengers
             </label>
@@ -131,17 +202,17 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
           </div>
         )}
         {isTransportation || isRestaurant || isFood ? (isTransportation ? transportFilterGroups : restaurantFilterGroups).map(group => (
-          <div key={group.label} style={{ margin: '0 auto 1.25rem', maxWidth: '1050px' }}>
+          <div key={group.label} className="vibe-filter-group" style={{ margin: '0 auto 1.25rem', maxWidth: '1050px' }}>
             <div style={{ marginBottom: '0.6rem', color: '#64748b', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1.5px', textTransform: 'uppercase' }}>{group.label}</div>
-            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div className="vibe-filter-options">
               {group.options.map(option => {
                 const isActive = selectedTags.includes(option);
                 return (
                   <button
                     key={`${group.label}-${option}`}
                     onClick={() => toggleTag(option)}
-                    style={{
-                      padding: '10px 16px',
+                      className={`vibe-filter-chip ${isActive ? 'is-active' : ''}`}
+                      style={{
                       borderRadius: '100px',
                       border: isActive ? '2px solid #D4AF37' : '1px solid #e2e8f0',
                       background: isActive ? 'rgba(212, 175, 55, 0.1)' : '#fff',
@@ -163,14 +234,15 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
             </div>
           </div>
         )) : (
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '900px', margin: '0 auto' }}>
+          <div className="vibe-filter-options" style={{ maxWidth: '900px', margin: '0 auto' }}>
             {availableVibes.filter(vibe => typeof vibe === 'string').map(vibe => {
               const isActive = selectedTags.includes(vibe);
               return (
                 <button
                   key={vibe}
                   onClick={() => toggleTag(vibe)}
-                  style={{ padding: '12px 24px', borderRadius: '100px', border: isActive ? '2px solid #D4AF37' : '1px solid #e2e8f0', background: isActive ? 'rgba(212, 175, 55, 0.1)' : '#fff', color: isActive ? '#D4AF37' : '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', boxShadow: isActive ? '0 10px 20px -5px rgba(212, 175, 55, 0.3)' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  className={`vibe-filter-chip ${isActive ? 'is-active' : ''}`}
+                  style={{ border: isActive ? '2px solid #D4AF37' : '1px solid #e2e8f0', background: isActive ? 'rgba(212, 175, 55, 0.1)' : '#fff', color: isActive ? '#D4AF37' : '#64748b', boxShadow: isActive ? '0 10px 20px -5px rgba(212, 175, 55, 0.3)' : 'none' }}
                 >
                   <i className={`fas ${isActive ? 'fa-check-circle' : 'fa-circle-notch'}`} style={{ fontSize: '0.7rem' }}></i>
                   {(vibe || '').toUpperCase()}
@@ -187,7 +259,8 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
             <i className="fas fa-times-circle" style={{ marginRight: '0.5rem' }}></i> RESET SELECTION
           </button>
         )}
-      </div>
+        </div>
+      </div>}
 
       {/* Results Grid */}
       {loading ? (

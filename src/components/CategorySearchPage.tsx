@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import VibeSearch from '@/components/VibeSearch';
 import CategoryCommercialTabs from '@/components/CategoryCommercialTabs';
+import CategoryPageHero from '@/components/CategoryPageHero';
 
 interface CategorySearchPageProps {
   category: string;
@@ -42,7 +43,9 @@ export default function CategorySearchPage({
         </div>
       </header>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 1.5rem 5rem' }}>
+      <CategoryPageHero category={category} label={label} title={title} accent={accent} />
+
+      <main id="category-search" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem 5rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ display: 'inline-block', background: `${accent}18`, color: accent, padding: '0.45rem 0.9rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>
             {label} Finder
