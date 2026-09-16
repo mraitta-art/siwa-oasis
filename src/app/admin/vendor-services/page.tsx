@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 
 type Service = {
   id: string; title: string; category: string; business_name: string; vendor_name?: string;
@@ -26,7 +27,7 @@ export default function AdminVendorServicesPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/vendor-services?status=${status}`);
@@ -34,9 +35,9 @@ export default function AdminVendorServicesPage() {
       setServices(Array.isArray(data.services) ? data.services : []);
       setCategories(Array.isArray(data.categories) ? data.categories : []);
     } finally { setLoading(false); }
-  }
+  }, [status]);
 
-  useEffect(() => { load(); }, [status]);
+  useEffect(() => { load(); }, [load]);
 
   function updateLocal(id: string, patch: Partial<Service>) {
     setServices(current => current.map(service => service.id === id ? { ...service, ...patch } : service));
@@ -56,7 +57,7 @@ export default function AdminVendorServicesPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-4 py-8 text-slate-800 sm:px-8">
       <div className="mx-auto max-w-7xl">
-        <a href="/admin" className="text-xs font-bold uppercase tracking-wider text-slate-400">← Control Center</a>
+        <Link href="/admin" className="text-xs font-bold uppercase tracking-wider text-slate-400">← Control Center</Link>
         <div className="mb-8 mt-3 flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-xs font-black uppercase tracking-[0.2em] text-amber-700">Admin governance</p><h1 className="text-3xl font-black">Vendor services</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Control approval, audience, placement, booking mode, and package eligibility for every service.</p></div>
           {message && <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{message}</div>}
