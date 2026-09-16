@@ -409,6 +409,43 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
           title: instance.title || undefined
         })));
       });
+
+      // New canonical services are not tied to the legacy repeatable component
+      // editor. Add approved public minisite services to the same section feed.
+      if (sectionIds.includes('sec_9_marketplace_catalog')) {
+        const canonicalServices = await safeQuery<any>(
+          `SELECT id, category, title, description, price, currency, price_unit, capacity, availability, attributes
+           FROM vendor_services
+           WHERE business_id = ? AND approval_status = 'published'
+             AND JSON_CONTAINS(audience_scopes, JSON_QUOTE('public'), '$')
+             AND JSON_CONTAINS(placements, JSON_QUOTE('minisite'), '$')
+             AND (valid_from IS NULL OR valid_from <= CURRENT_DATE())
+             AND (valid_until IS NULL OR valid_until >= CURRENT_DATE())
+           ORDER BY updated_at DESC`,
+          [biz.id]
+        );
+        if (canonicalServices.length > 0) {
+          sectionComponents.sec_9_marketplace_catalog = [
+            ...(sectionComponents.sec_9_marketplace_catalog || []),
+            ...canonicalServices.map((service: any) => ({
+              id: `canonical-service-${service.id}`,
+              type: 'service_catalog',
+              label: 'Services & Facilities',
+              props: {
+                category: service.category,
+                title: service.title,
+                description: service.description,
+                price: service.price,
+                currency: service.currency,
+                price_unit: service.price_unit,
+                capacity: service.capacity,
+                availability: service.availability,
+                ...(typeof service.attributes === 'string' ? JSON.parse(service.attributes || '{}') : service.attributes || {}),
+              },
+            })),
+          ];
+        }
+      }
     }
 
     sections = sections.filter((s: any) => {

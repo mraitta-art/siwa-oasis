@@ -31,7 +31,10 @@ export default function VendorServicesPage() {
           <h1 style={{ margin: '0.35rem 0', fontSize: '2rem', fontWeight: 900 }}>Your plan and services</h1>
           <p style={{ margin: 0, color: '#64748b' }}>Everything connected to {business.name}, organized in one place.</p>
         </div>
-        <Link href={business.slug ? `/${business.slug}` : '/vendor/minisite'} target="_blank" style={{ color: '#0f766e', fontWeight: 800, textDecoration: 'none' }}>View minisite <i className="fas fa-external-link-alt" /></Link>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <Link href="/vendor/service-catalog" style={{ color: '#b45309', fontWeight: 900, textDecoration: 'none' }}>Manage service catalog <i className="fas fa-layer-group" /></Link>
+          <Link href={business.slug ? `/${business.slug}` : '/vendor/minisite'} target="_blank" style={{ color: '#0f766e', fontWeight: 800, textDecoration: 'none' }}>View minisite <i className="fas fa-external-link-alt" /></Link>
+        </div>
       </div>
 
       <section style={{ background: '#0f172a', color: '#fff', borderRadius: '18px', padding: '1.5rem 1.75rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>

@@ -60,6 +60,7 @@ export default function AdminVendorServicesPage() {
         <Link href="/admin" className="text-xs font-bold uppercase tracking-wider text-slate-400">← Control Center</Link>
         <div className="mb-8 mt-3 flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-xs font-black uppercase tracking-[0.2em] text-amber-700">Admin governance</p><h1 className="text-3xl font-black">Vendor services</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Control approval, audience, placement, booking mode, and package eligibility for every service.</p></div>
+          <Link href="/admin/service-templates" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-700">Manage service fields</Link>
           {message && <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{message}</div>}
         </div>
         <div className="mb-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2">
