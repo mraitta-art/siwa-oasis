@@ -8,6 +8,7 @@ import {
 
 interface TimelineItem {
   id: string;
+  service_id?: string;
   day_number: number;
   time: string; // HH:MM
   end_time?: string;
@@ -38,6 +39,7 @@ interface AdvancedJourneyPackage {
 
 interface Business {
   id: string;
+  service_id?: string;
   name: string;
   type_id: string;
   type_name?: string;
@@ -210,7 +212,8 @@ export default function AdvancedJourneyBuilder() {
     bName: string, 
     pType: string, 
     cType: string, 
-    isManual = false
+    isManual = false,
+    serviceId?: string
   ) => {
     if (!selectedTime) {
       alert('Please select a start time');
@@ -219,6 +222,7 @@ export default function AdvancedJourneyBuilder() {
 
     const newItem: TimelineItem = {
       id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      service_id: serviceId,
       day_number: selectedDay,
       time: selectedTime,
       end_time: selectedEndTime,
@@ -702,7 +706,7 @@ export default function AdvancedJourneyBuilder() {
                       <div className="max-h-48 overflow-y-auto space-y-1.5 border border-white/5 p-1 rounded-xl">
                         {filteredBusinesses.map((b) => (
                           <div
-                            key={b.id}
+                            key={b.service_id || b.id}
                             onClick={() => setSelectedBusiness(b)}
                             className={`p-2 rounded-lg text-xs cursor-pointer flex justify-between items-center transition-all ${
                               selectedBusiness?.id === b.id
@@ -710,7 +714,7 @@ export default function AdvancedJourneyBuilder() {
                                 : 'bg-white/5 hover:bg-white/10 text-gray-300'
                             }`}
                           >
-                            <span>{b.name}</span>
+                            <span>{b.service_id ? `${b.name} · ${b.business_name || 'Vendor service'}` : b.name}</span>
                             <span className="text-[10px] opacity-70 uppercase">{b.type_name || b.type_id}</span>
                           </div>
                         ))}
@@ -798,11 +802,13 @@ export default function AdvancedJourneyBuilder() {
                             alert('Please select a business from the list.');
                             return;
                           }
-                          handleAddItem(
+                            handleAddItem(
                             selectedBusiness.id,
                             selectedBusiness.name,
                             selectedBusiness.parent_type_id || 'service',
-                            selectedBusiness.type_name || selectedBusiness.type_id
+                              selectedBusiness.type_name || selectedBusiness.type_id,
+                              false,
+                              selectedBusiness.service_id
                           );
                         } else if (inputMode === 'custom_manual') {
                           if (!customActivityName.trim()) {

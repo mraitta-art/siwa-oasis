@@ -182,6 +182,9 @@ export default function AdminDiscountsPage() {
             </div>
 
             <div className="flex flex-wrap justify-start gap-3 lg:justify-end">
+              <Link href="/admin/vendor-services" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-800 transition hover:bg-amber-100">
+                Govern services
+              </Link>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="rounded-2xl bg-[#f5d56a] px-5 py-3 text-sm font-black text-slate-900 shadow-[0_12px_24px_rgba(245,213,106,0.3)] transition hover:bg-[#f1c94b]"

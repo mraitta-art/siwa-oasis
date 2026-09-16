@@ -103,7 +103,36 @@ export async function GET(req: NextRequest) {
       sql += ` ORDER BY b.name ASC LIMIT 60`;
 
       const businesses = await query(sql, params);
-      return NextResponse.json(businesses);
+      const services = await query(`
+        SELECT vs.id AS service_id, vs.business_id AS id, vs.title AS name,
+               vs.category AS type_id, vs.category AS type_name,
+               b.name AS business_name, b.slug,
+               CASE vs.category
+                 WHEN 'accommodation' THEN 'accommodation'
+                 WHEN 'restaurant' THEN 'food'
+                 WHEN 'transportation' THEN 'logistics'
+                 WHEN 'tour' THEN 'adventure'
+                 WHEN 'activity' THEN 'adventure'
+                 ELSE 'service'
+               END AS parent_type_id,
+               vs.description, vs.price, vs.currency, vs.price_unit
+        FROM vendor_services vs
+        JOIN businesses b ON b.id = vs.business_id
+        WHERE vs.approval_status = 'published'
+          AND vs.package_eligible = 1
+          AND JSON_CONTAINS(vs.placements, JSON_QUOTE('packages'), '$')
+          AND b.status = 'active'
+          AND (vs.valid_from IS NULL OR vs.valid_from <= CURRENT_DATE())
+          AND (vs.valid_until IS NULL OR vs.valid_until >= CURRENT_DATE())
+          ${search ? 'AND (vs.title LIKE ? OR b.name LIKE ?)' : ''}
+        ORDER BY vs.updated_at DESC
+        LIMIT 100
+      `, search ? [likeQ, likeQ] : []);
+
+      const filteredServices = parentFilter.length > 0
+        ? services.filter((service: any) => parentFilter.includes(service.parent_type_id))
+        : services;
+      return NextResponse.json([...businesses, ...filteredServices]);
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

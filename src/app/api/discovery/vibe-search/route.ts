@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query as safeQuery } from '@/lib/db';
+import { getApprovedPublicServices } from '@/lib/vendor-service-policy';
 
 export async function POST(request: Request) {
   try {
@@ -148,6 +149,34 @@ export async function POST(request: Request) {
       WHERE b.status = 'active' AND b.published = 1 AND ${conditions.join(' AND ')}
       ORDER BY b.is_featured DESC, b.is_recommended DESC, b.is_trusted DESC, b.views DESC
     `, params);
+
+    // Canonical services are discoverable by the service they provide, even
+    // when their owning business belongs to another primary category.
+    const serviceCategory = normalizedCategory === 'food' ? 'restaurant' : normalizedCategory === 'activities' ? 'activity' : normalizedCategory;
+    let serviceResults: any[] = [];
+    if (serviceCategory) {
+      const services = await getApprovedPublicServices(serviceCategory, 'search');
+      serviceResults = services
+        .filter((service: any) => {
+          const haystack = JSON.stringify(service.attributes || '').toLowerCase();
+          return (Array.isArray(tags) ? tags : []).every((tag: string) => haystack.includes(String(tag).toLowerCase()));
+        })
+        .map((service: any) => ({
+          id: `${service.business_id}-${service.id}`,
+          service_id: service.id,
+          name: service.title,
+          slug: service.business_slug,
+          type_name: service.category,
+          business_name: service.business_name,
+          service_category: service.category,
+          service_description: service.description,
+          service_price: service.price,
+          service_currency: service.currency,
+          service_price_unit: service.price_unit,
+          custom_data: { basic: { description: service.description || '' } },
+          is_service_result: true,
+        }));
+    }
     
     // --- GOVERNANCE: FILTER CUSTOM DATA BY SECTION VISIBILITY ---
     const hiddenSections = await safeQuery('SELECT id FROM sections WHERE show_on_card = 0');
@@ -165,7 +194,7 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json(filteredResults);
+    return NextResponse.json([...filteredResults, ...serviceResults]);
 
   } catch (error: any) {
     console.error('Vibe Search Error:', error);
