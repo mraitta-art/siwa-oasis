@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { requireAdmin } from '@/lib/auth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
-import { saveUploadedBuffer } from '@/lib/media-storage';
+import { safeMediaSegment, saveUploadedBuffer } from '@/lib/media-storage';
 import { db, queryOne, execute } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (max 50MB for video support)
-    if (file.size > 50 * 1024 * 1024) {
+    const maxBytes = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
       return NextResponse.json(
         { error: 'File too large. Maximum size is 50MB.' },
         { status: 400 }
@@ -41,8 +42,8 @@ export async function POST(request: NextRequest) {
     const sectionName = formData.get('sectionName') as string || 'misc';
     
     // Construct Hierarchical Folder Path: siwa-oasis/businesses/business-name/section-name
-    const safeBizName = bizName.toLowerCase().replace(/\s+/g, '-');
-    const safeSectionName = sectionName.toLowerCase().replace(/\s+/g, '-');
+    const safeBizName = safeMediaSegment(bizName, 'general');
+    const safeSectionName = safeMediaSegment(sectionName, 'misc');
     const cloudFolder = `siwa-oasis/businesses/${safeBizName}/${safeSectionName}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const originalName = file.name.replace(/\s+/g, '-').toLowerCase();
     const filename = `${timestamp}-${originalName}`;
-    const localResult = saveUploadedBuffer(buffer, filename, 'jana-media');
+    const localResult = saveUploadedBuffer(buffer, filename, `jana-media/${safeBizName}/${safeSectionName}`);
 
     if (!finalUrl) {
       finalUrl = localResult.url;

@@ -325,6 +325,8 @@ function BlogEditorContent() {
               <RichBlogEditor
                 value={formData.content}
                 onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+                businessName="SiWiFy"
+                sectionName="blog"
                 minHeight="450px"
                 placeholder="Write your story with rich headings, colors, fonts, callouts, and inline images..."
               />

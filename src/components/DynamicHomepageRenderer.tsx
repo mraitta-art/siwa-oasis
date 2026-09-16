@@ -127,7 +127,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
               padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
               border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
             }}>
-              <VibeSearch engineId={engineId} />
+              <VibeSearch engineId={engineId} defaultCategory={props?.defaultCategory} />
             </div>
           </section>
         </AnimatedSection>

@@ -16,6 +16,17 @@ export interface CloudinaryUploadResult {
   cloudinary_data: Record<string, unknown>;
 }
 
+export function safeMediaSegment(value: string | null | undefined, fallback: string): string {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '')
+    .slice(0, 80);
+  return normalized || fallback;
+}
+
 /**
  * Upload a buffer to Cloudinary.
  * Falls back to local disk storage when CLOUDINARY_CLOUD_NAME is not set.
@@ -40,7 +51,9 @@ export async function uploadToCloudinary(
     return {
       secure_url: url,
       public_id: url,
-      resource_type: 'image',
+      resource_type: resourceType === 'auto'
+        ? (originalName.toLowerCase().match(/\.(mp4|webm|ogg|mov|quicktime)$/) ? 'video' : 'image')
+        : resourceType,
       format: path.extname(originalName).replace('.', ''),
       bytes: buffer.length,
       cloudinary_data: {},

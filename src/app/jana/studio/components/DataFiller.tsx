@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAdmin } from '@/context/AdminContext';
+import RichBlogEditor from '@/components/RichBlogEditor';
 
 interface DataFillerProps {
   selectedTypeId: string | null;
@@ -251,9 +252,14 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8' }}>STORYTELLER EDITOR</span>
               <i className="fas fa-book-open" style={{ color: '#8b5cf6', fontSize: '0.75rem' }}></i>
             </div>
-            <textarea value={value} onChange={e => setFieldValue(section.id, field.name, e.target.value)}
-              placeholder={`${field.help_text || 'Write your story here...'} \n\nTip: Use paragraphs for the best reading experience.`} rows={6}
-              style={{ ...inputStyle, border: 'none', borderRadius: 0, background: '#fff', padding: '1.25rem' }} />
+            <RichBlogEditor
+              value={value}
+              onChange={html => setFieldValue(section.id, field.name, html)}
+              businessName={selectedBusiness?.name || 'General'}
+              sectionName={section.name || section.id}
+              minHeight="300px"
+              placeholder={field.help_text || 'Write your story with photos, fonts, colors, headings, links, and callouts...'}
+            />
           </div>
         );
       case 'select':

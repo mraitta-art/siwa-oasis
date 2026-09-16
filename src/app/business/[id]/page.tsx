@@ -251,7 +251,7 @@ function ExperienceSection({ data, sectionName }: { data: Record<string, unknown
           {tags.map((t,i)=><span key={i} style={{ background:'#f0f9ff', border:'1px solid #bae6fd', color:'#0369a1', padding:'0.4rem 0.9rem', borderRadius:'999px', fontSize:'0.78rem', fontWeight:700 }}>{t}</span>)}
         </div>
       )}
-      {lists.length>0 && <div style={{ display:'flex', flexWrap:'wrap', gap:'0.6rem', marginBottom:'1.5rem' }}>{lists.flatMap(([key, values]) => values.map((value, index) => <span key={`${key}-${index}`} style={{ background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', padding:'0.4rem 0.8rem', borderRadius:'999px', fontSize:'0.76rem', fontWeight:700 }}>{String(value)}</span>))}</div>}
+      {lists.length>0 && <div style={{ display:'flex', flexWrap:'wrap', gap:'0.6rem', marginBottom:'1.5rem' }}>{lists.flatMap(([key, values]) => Array.isArray(values) ? values.map((value: unknown, index: number) => <span key={`${key}-${index}`} style={{ background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', padding:'0.4rem 0.8rem', borderRadius:'999px', fontSize:'0.76rem', fontWeight:700 }}>{String(value)}</span>) : [])}</div>}
       {extras.length>0 && <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>{extras.map(([k,v])=><InfoPill key={k} icon="🎯" label={k} value={String(v)}/>)}</div>}
     </div>
   );
@@ -372,7 +372,7 @@ function GenericSection({ data, sectionName }: { data: Record<string, unknown>; 
   const ICONS: Record<string,string> = { cuisine:'🍽️', vibe:'✨', architecture:'🏛️', atmosphere:'🌿', duration:'⏱️', suitable_for:'👥', experience_type:'🎯', highlight:'🏆' };
   return (
     <div>
-      {lists.length>0 && <div style={{ display:'flex', flexWrap:'wrap', gap:'0.6rem', marginBottom:'1rem' }}>{lists.flatMap(([key, values]) => values.map((value, index) => <span key={`${key}-${index}`} style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#475569', padding:'0.45rem 0.8rem', borderRadius:'999px', fontSize:'0.76rem', fontWeight:700 }}>{String(value)}</span>))}</div>}
+      {lists.length>0 && <div style={{ display:'flex', flexWrap:'wrap', gap:'0.6rem', marginBottom:'1rem' }}>{lists.flatMap(([key, values]) => Array.isArray(values) ? values.map((value: unknown, index: number) => <span key={`${key}-${index}`} style={{ background:'#f8fafc', border:'1px solid #e2e8f0', color:'#475569', padding:'0.45rem 0.8rem', borderRadius:'999px', fontSize:'0.76rem', fontWeight:700 }}>{String(value)}</span>) : [])}</div>}
       {extras.length>0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem' }}>
           {extras.map(([k,v])=><InfoPill key={k} icon={ICONS[k]||'ℹ️'} label={k} value={Array.isArray(v)?(v as any[]).join(', '):String(v)}/>)}
@@ -417,11 +417,18 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
   useEffect(() => {
     async function loadData() {
       try {
-        const [bizData, mainSiteData] = await Promise.all([
+        const [bizData, mainSiteData, builderData] = await Promise.all([
           fetch(`/api/businesses/${id}`).then(r=>r.json()),
-          fetch('/api/jana/website?id=website_main').then(r=>r.ok?r.json():null).catch(()=>null)
+          fetch('/api/jana/website?id=website_main').then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`/api/jana/website?id=website_business_${id}_website_main`).then(r=>r.ok?r.json():null).catch(()=>null)
         ]);
-        setBiz(bizData);
+        const builderConfig = Array.isArray(builderData) ? builderData[0] : builderData;
+        const builderComponents = builderConfig ? [
+          ...(builderConfig.header_components || []),
+          ...(builderConfig.body_components || []),
+          ...(builderConfig.footer_components || []),
+        ] : [];
+        setBiz(builderComponents.length > 0 ? { ...bizData, components: builderComponents } : bizData);
         const mainCfg = Array.isArray(mainSiteData) ? mainSiteData[0] : mainSiteData;
         if (mainCfg?.site_settings) setSiteSettings(mainCfg.site_settings);
 
@@ -496,7 +503,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
         {biz.components&&Array.isArray(biz.components)?(
           <div style={{ display:'flex', flexDirection:'column', gap:'4rem' }}>
             {biz.components.map((c:any)=>{
-              if (['hero_carousel','hero','cinematic_carousel'].includes(c.type)) return <div key={c.id}><AdvancedHeroCarousel carouselName={c.props?.carouselName||`biz_${id}_${c.id}`} height={c.props?.height||'60vh'} autoPlay/></div>;
+              if (['hero_carousel','hero','cinematic_carousel'].includes(c.type)) return <div key={c.id}><AdvancedHeroCarousel carouselName={`biz_${id}_hero`} height={c.props?.height||'60vh'} autoPlay/></div>;
               return <div key={c.id}>Component: {c.type}</div>;
             })}
           </div>

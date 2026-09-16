@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import VibeSearch from '@/components/VibeSearch';
 import CategoryCommercialTabs from '@/components/CategoryCommercialTabs';
 import CategoryPageHero from '@/components/CategoryPageHero';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 
 interface CategorySearchPageProps {
   category: string;
@@ -21,6 +23,7 @@ export default function CategorySearchPage({
   accent,
 }: CategorySearchPageProps) {
   const [activeView, setActiveView] = useState<'search' | 'deals'>('search');
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
   const pagePath = category === 'accommodation'
     ? 'accommodations'
     : category === 'transportation'
@@ -31,14 +34,38 @@ export default function CategorySearchPage({
       ? 'activities'
       : `${category}s`;
 
+  useEffect(() => {
+    fetch(`/api/jana/website?id=website_${pagePath}`)
+      .then(response => response.ok ? response.json() : [])
+      .then(result => {
+        const config = Array.isArray(result) ? result[0] : result;
+        const layout = [
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || []),
+        ];
+        setBuilderConfig(layout.length > 0 ? { ...config, layout } : null);
+      })
+      .catch(() => setBuilderConfig(null));
+  }, [pagePath]);
+
+  if (builderConfig) {
+    const layout = builderConfig.layout.map((section: any) => (
+      section?.type === 'search_bar'
+        ? { ...section, props: { ...(section.props || {}), defaultCategory: section.props?.defaultCategory || category } }
+        : section
+    ));
+    return <DynamicHomepageRenderer layout={layout} settings={builderConfig.site_settings || null} pageId={pagePath} />;
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       <header style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #e2e8f0', background: 'rgba(255,255,255,0.9)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto', gap: '1rem' }}>
-          <a href="/" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: 900, letterSpacing: '2px' }}>SIWA OASIS</a>
+          <Link href="/" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: 900, letterSpacing: '2px' }}>SIWA OASIS</Link>
           <nav style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
-            <a href="/" style={{ color: '#475569', textDecoration: 'none' }}>Home</a>
-            <a href={`/${pagePath}`} style={{ color: '#475569', textDecoration: 'none' }}>{label} Search</a>
+            <Link href="/" style={{ color: '#475569', textDecoration: 'none' }}>Home</Link>
+            <Link href={`/${pagePath}`} style={{ color: '#475569', textDecoration: 'none' }}>{label} Search</Link>
           </nav>
         </div>
       </header>

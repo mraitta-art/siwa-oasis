@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface CarouselSlide {
   id: string;
@@ -51,7 +52,13 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
   workflow:   { label: '📋 Workflow',   color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
 };
 
-export default function HeroCarouselManager() {
+function HeroCarouselManagerContent() {
+  const searchParams = useSearchParams();
+  const [businesses, setBusinesses] = useState<{ id: string; name: string }[]>([]);
+  const initialSiteId = searchParams.get('siteId') || 'discovery';
+  const initialBusinessId = searchParams.get('businessId') || (initialSiteId.startsWith('biz_') ? initialSiteId.replace(/^biz_/, '').replace(/_hero$/, '') : '');
+  const [businessId, setBusinessId] = useState(initialBusinessId);
+  const [carouselId, setCarouselId] = useState(initialSiteId);
   const [allSlides, setAllSlides] = useState<CarouselSlide[]>([]);
   const [deletedDynamicIds, setDeletedDynamicIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +69,7 @@ export default function HeroCarouselManager() {
   const [preview, setPreview] = useState<string | null>(null);
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
+  const siteId = businessId ? `biz_${businessId}_hero` : carouselId.trim() || 'discovery';
 
   const defaultFormData: Partial<CarouselSlide> = {
     title: '',
@@ -91,11 +99,17 @@ export default function HeroCarouselManager() {
     setTimeout(() => setMessage({ type: '', text: '' }), 6000);
   };
 
-  // Load ALL slides from the static home carousel config
+  useEffect(() => {
+    fetch('/api/jana/businesses')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name })) : []))
+      .catch(() => setBusinesses([]));
+  }, []);
+
   const loadAllSlides = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/jana/hero-carousel?siteId=discovery');
+      const res = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
       if (res.ok) {
         const data = await res.json();
         const fetched: CarouselSlide[] = (data.slides || []).map((s: any, i: number) => ({
@@ -118,7 +132,7 @@ export default function HeroCarouselManager() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [siteId]);
 
   useEffect(() => { loadAllSlides(); }, [loadAllSlides]);
 
@@ -135,7 +149,7 @@ export default function HeroCarouselManager() {
       body: JSON.stringify({ 
         slides: slidesToSave, 
         deletedDynamicIds: deletedIds, 
-        siteId: 'discovery' 
+        siteId
       }),
     });
     return res.ok;
@@ -319,10 +333,38 @@ export default function HeroCarouselManager() {
               🎬 Hero Carousel
             </h1>
             <p style={{ color: '#64748b', margin: '0.25rem 0 0' }}>
-              Full control — manage every slide that appears on the homepage hero.
+              {businessId ? 'Manage the private hero carousel for this minisite.' : `Manage the shared carousel: ${siteId}`}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800 }}>
+              Minisite
+              <select
+                value={businessId}
+                onChange={event => {
+                  const nextBusinessId = event.target.value;
+                  setBusinessId(nextBusinessId);
+                  if (!nextBusinessId) setCarouselId('discovery');
+                  setShowForm(false);
+                  setEditingId(null);
+                }}
+                style={{ minWidth: '220px', padding: '0.7rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontWeight: 700 }}
+              >
+                <option value="">Homepage discovery</option>
+                {businesses.map(business => <option key={business.id} value={business.id}>{business.name}</option>)}
+              </select>
+            </label>
+            {!businessId && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800 }}>
+                Carousel ID
+                <input
+                  value={carouselId}
+                  onChange={event => { setCarouselId(event.target.value.toLowerCase().replace(/\s+/g, '_')); setShowForm(false); setEditingId(null); }}
+                  placeholder="e.g. journeys_hero"
+                  style={{ width: '170px', padding: '0.7rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontWeight: 700 }}
+                />
+              </label>
+            )}
             <a href="/" target="_blank" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#94a3b8', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 700 }}>
               <i className="fas fa-eye" /> Preview Site
             </a>
@@ -760,5 +802,13 @@ export default function HeroCarouselManager() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function HeroCarouselManager() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0f172a', color: '#D4AF37', display: 'grid', placeItems: 'center', fontWeight: 800 }}>Loading carousel manager...</div>}>
+      <HeroCarouselManagerContent />
+    </Suspense>
   );
 }

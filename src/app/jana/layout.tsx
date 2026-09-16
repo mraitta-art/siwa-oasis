@@ -109,6 +109,7 @@ const NAV_GROUPS = [
     collapsible: true,
     defaultCollapsed: false,
     items: [
+      { name: 'Visual Studio', path: '/jana/studio', icon: 'fa-wand-magic-sparkles', badge: 'HUB' },
       { name: 'Main Site Builder', path: '/jana/main-site-builder', icon: 'fa-globe' },
       { name: 'Minisite Builder', path: '/jana/minisite-builder', icon: 'fa-store' },
       { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },

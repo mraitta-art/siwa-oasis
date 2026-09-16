@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { uploadToCloudinary } from '@/lib/cloudinary';
-import { saveUploadedBuffer } from '@/lib/media-storage';
+import { safeMediaSegment, saveUploadedBuffer } from '@/lib/media-storage';
 import { queryOne, execute } from '@/lib/db';
 
 /**
@@ -37,14 +37,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'Invalid file type. Only images and videos are allowed.' }, { status: 400 });
+    }
+    const maxBytes = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return NextResponse.json({ error: `File too large. Maximum size is ${Math.round(maxBytes / 1024 / 1024)}MB.` }, { status: 413 });
+    }
+
     // Extract folder context
     const bizName = formData.get('businessName') as string;
     const sectionName = formData.get('sectionName') as string;
     let cloudFolder = 'siwa-uploads';
 
     if (bizName) {
-      const safeBiz = bizName.toLowerCase().replace(/\s+/g, '-');
-      const safeSec = (sectionName || 'general').toLowerCase().replace(/\s+/g, '-');
+      const safeBiz = safeMediaSegment(bizName, 'general');
+      const safeSec = safeMediaSegment(sectionName, 'general');
       cloudFolder = `siwa-oasis/businesses/${safeBiz}/${safeSec}`;
     }
 
@@ -68,7 +80,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             url: existing.url || existing.localUrl,
             localUrl: existing.localUrl,
-            folder: 'siwa-uploads',
+            folder: cloudFolder,
             isDuplicate: true,
             message: 'This file already exists. Returning existing URL.'
           });
@@ -98,7 +110,7 @@ export async function POST(request: NextRequest) {
     // 2. Always also save a local E: copy for the local app
     const ext = file.name.split('.').pop() || 'bin';
     const filename = `${crypto.randomUUID()}.${ext}`;
-    const localSubfolder = bizName ? `businesses/${bizName.toLowerCase().replace(/\s+/g, '-')}` : 'general';
+    const localSubfolder = `businesses/${safeMediaSegment(bizName, 'general')}/${safeMediaSegment(sectionName, 'general')}`;
     const localResult = saveUploadedBuffer(buffer, filename, localSubfolder);
     console.log(`✅ File uploaded locally: ${localResult.url}`);
 

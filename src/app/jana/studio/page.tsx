@@ -3,10 +3,47 @@
 import React, { useState } from 'react';
 import DataFiller from './components/DataFiller';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 type Stage = '1' | '2';
 
+const STUDIO_TOOLS = [
+  {
+    title: 'SITE STRUCTURE',
+    items: [
+      { label: 'Visual Page Builder', href: '/jana/website?page=main', icon: 'fa-palette' },
+      { label: 'Pages Manager', href: '/jana/pages', icon: 'fa-copy' },
+      { label: 'Main Site Settings', href: '/jana/main-site-builder', icon: 'fa-globe' },
+    ],
+  },
+  {
+    title: 'MINISITE DESIGN',
+    items: [
+      { label: 'Minisite Builder', href: '/jana/minisite-builder', icon: 'fa-store' },
+      { label: 'Minisite Templates', href: '/jana/minisite', icon: 'fa-layer-group' },
+      { label: 'Business Registry', href: '/jana/businesses', icon: 'fa-building' },
+    ],
+  },
+  {
+    title: 'CONTENT SYSTEM',
+    items: [
+      { label: 'Hero Carousels', href: '/jana/hero-carousel', icon: 'fa-images' },
+      { label: 'Component Library', href: '/jana/component-library', icon: 'fa-puzzle-piece' },
+      { label: 'Business Content', href: '/jana/content', icon: 'fa-photo-film' },
+      { label: 'Search Pages', href: '/jana/search-pages', icon: 'fa-filter' },
+    ],
+  },
+  {
+    title: 'VALIDATE & PREVIEW',
+    items: [
+      { label: 'Responsive Preview', href: '/jana/mobile', icon: 'fa-mobile-screen' },
+      { label: 'Carousel Diagnostic', href: '/jana/carousel-diagnostic', icon: 'fa-stethoscope' },
+    ],
+  },
+];
+
 export default function UnifiedStudioPage() {
+  const pathname = usePathname();
   const [stage, setStage] = useState<Stage>('1');
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [selectedTypeName, setSelectedTypeName] = useState<string | null>(null);
@@ -18,6 +55,15 @@ export default function UnifiedStudioPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Inter', sans-serif" }}>
+      <style jsx global>{`
+        .visual-studio-workspace { box-sizing: border-box; }
+        @media (max-width: 820px) {
+          .visual-studio-workspace { grid-template-columns: minmax(0, 1fr) !important; padding: 1rem !important; }
+          .visual-studio-workspace aside { position: static !important; overflow-x: auto; display: flex; gap: 1rem; align-items: flex-start; }
+          .visual-studio-workspace aside > div { min-width: max-content; margin-bottom: 0 !important; }
+          .visual-studio-workspace aside > div:first-child { min-width: 190px; }
+        }
+      `}</style>
 
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', padding: '2rem 2.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -111,7 +157,26 @@ export default function UnifiedStudioPage() {
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '2rem 2.5rem' }}>
+      <div className="visual-studio-workspace" style={{ maxWidth: 1440, margin: '0 auto', padding: '2rem 2.5rem', display: 'grid', gridTemplateColumns: '240px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+        <aside style={{ position: 'sticky', top: '1rem', background: '#0f172a', borderRadius: '16px', padding: '1rem', color: '#fff', boxShadow: '0 14px 35px rgba(15,23,42,0.12)' }}>
+          <div style={{ padding: '0.65rem 0.7rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0.7rem' }}>
+            <div style={{ color: '#D4AF37', fontSize: '0.62rem', fontWeight: 900, letterSpacing: '1.8px' }}>VISUAL STUDIO</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.7rem', lineHeight: 1.45, marginTop: '0.35rem' }}>Build pages, minisites and reusable content from one workspace.</div>
+          </div>
+          {STUDIO_TOOLS.map(group => (
+            <div key={group.title} style={{ marginBottom: '1rem' }}>
+              <div style={{ color: '#64748b', fontSize: '0.55rem', fontWeight: 900, letterSpacing: '1.2px', padding: '0.45rem 0.7rem' }}>{group.title}</div>
+              <div style={{ display: 'grid', gap: '0.2rem' }}>
+                {group.items.map(item => {
+                  const active = pathname === item.href.split('?')[0];
+                  return <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.58rem 0.7rem', borderRadius: '8px', color: active ? '#1e293b' : '#cbd5e1', background: active ? '#D4AF37' : 'transparent', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 800 }}><i className={`fas ${item.icon}`} style={{ width: 15, textAlign: 'center' }} />{item.label}</Link>;
+                })}
+              </div>
+            </div>
+          ))}
+        </aside>
+
+        <div style={{ minWidth: 0 }}>
 
         {/* Cross-stage category reminder */}
         {stage === '2' && selectedTypeId && (
@@ -146,6 +211,7 @@ export default function UnifiedStudioPage() {
             selectedTypeName={selectedTypeName}
           />
         )}
+        </div>
       </div>
     </div>
   );

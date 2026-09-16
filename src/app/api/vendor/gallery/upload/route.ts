@@ -1,6 +1,6 @@
 import { db, queryOne } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { uploadToCloudinary } from '@/lib/media-storage';
+import { safeMediaSegment, uploadToCloudinary } from '@/lib/media-storage';
 import crypto from 'crypto';
 
 export const config = { api: { bodyParser: false } };
@@ -43,6 +43,13 @@ export async function POST(request: Request) {
 
     // Detect resource type from MIME
     const mime = file.type || '';
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+    ];
+    if (!allowedTypes.includes(mime)) {
+      return Response.json({ error: 'Invalid file type. Only images and videos are allowed.' }, { status: 400 });
+    }
     const resourceType: 'image' | 'video' | 'raw' = mime.startsWith('video/')
       ? 'video'
       : mime.startsWith('image/')
@@ -85,7 +92,7 @@ export async function POST(request: Request) {
     } catch (_) {}
 
     // Upload to Cloudinary (or local fallback)
-    const cloudFolder = `siwa-oasis/vendor/${user.id}/${sectionId}`;
+    const cloudFolder = `siwa-oasis/vendor/${safeMediaSegment(user.id, 'unknown')}/${safeMediaSegment(sectionId, 'general')}`;
     const result = await uploadToCloudinary(bytes, file.name, cloudFolder, resourceType);
 
     // Persist to vendor_gallery

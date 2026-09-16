@@ -13,21 +13,36 @@ interface RichBlogEditorProps {
   onChange: (html: string) => void;
   minHeight?: string;
   placeholder?: string;
+  businessName?: string;
+  sectionName?: string;
 }
 
 export default function RichBlogEditor({
   value,
   onChange,
   minHeight = '420px',
-  placeholder = 'Write your rich blog content here...'
+  placeholder = 'Write your rich blog content here...',
+  businessName = 'General',
+  sectionName = 'blog'
 }: RichBlogEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [viewSource, setViewSource] = useState(false);
   const [fontColor, setFontColor] = useState('#0f172a');
   const [bgColor, setBgColor] = useState('#ffffff');
+  const [blockColor, setBlockColor] = useState('#ffffff');
   const [fontFamily, setFontFamily] = useState('Inter, sans-serif');
   const [fontSize, setFontSize] = useState('3'); // HTML execCommand font size 1-7
   const [uploading, setUploading] = useState(false);
+
+  const editorFontSize = ({
+    '1': '0.75rem',
+    '2': '0.875rem',
+    '3': '1rem',
+    '4': '1.125rem',
+    '5': '1.35rem',
+    '6': '1.75rem',
+    '7': '2.25rem',
+  } as Record<string, string>)[fontSize] || '1rem';
 
   // Sync editor content to parent
   const handleInput = () => {
@@ -46,7 +61,7 @@ export default function RichBlogEditor({
     if (url) execute('createLink', url);
   };
 
-  // Image upload handler (uploads via /api/jana/media/upload or accepts URL)
+  // Media upload handler (uploads via the shared admin media endpoint).
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,7 +69,8 @@ export default function RichBlogEditor({
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('sectionName', 'blog');
+    formData.append('businessName', businessName);
+    formData.append('sectionName', sectionName);
 
     try {
       const res = await fetch('/api/jana/media/upload', {
@@ -66,7 +82,10 @@ export default function RichBlogEditor({
         const data = await res.json();
         const imageUrl = data.url || data.localUrl;
         if (imageUrl) {
-          execute('insertHTML', `<div style="margin: 1.5rem 0; text-align: center;"><img src="${imageUrl}" alt="Blog Image" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 0 auto; display: inline-block;" /><p style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem; font-style: italic;">Caption</p></div><p><br></p>`);
+          const mediaMarkup = file.type.startsWith('video/')
+            ? `<div style="margin: 1.5rem 0; text-align: center;"><video src="${imageUrl}" controls style="max-width: 100%; border-radius: 12px; display: inline-block;"></video></div><p><br></p>`
+            : `<div style="margin: 1.5rem 0; text-align: center;"><img src="${imageUrl}" alt="Blog media" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 0 auto; display: inline-block;" /><p style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem; font-style: italic;">Caption</p></div><p><br></p>`;
+          execute('insertHTML', mediaMarkup);
         }
       } else {
         const err = await res.json();
@@ -192,6 +211,19 @@ export default function RichBlogEditor({
 
         {/* Background Highlight Picker */}
         <label title="Text Background Color" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                  {/* Block/background color */}
+                  <label title="Block Background Color" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                    <i className="fas fa-fill-drip" style={{ color: blockColor }} />
+                    <input
+                      type="color"
+                      value={blockColor}
+                      onChange={(e) => {
+                        setBlockColor(e.target.value);
+                        execute('backColor', e.target.value);
+                      }}
+                      style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                    />
+                  </label>
           <Highlighter size={15} style={{ color: bgColor === '#ffffff' ? '#ca8a04' : bgColor }} />
           <input
             type="color"
@@ -222,11 +254,22 @@ export default function RichBlogEditor({
         <div style={separatorStyle} />
 
         {/* Media & Upload */}
-        <label title="Upload Image From Device" style={{ ...btnStyle, cursor: 'pointer', background: uploading ? '#dbeafe' : 'transparent' }}>
+        <label title="Upload image or video from device" style={{ ...btnStyle, cursor: 'pointer', background: uploading ? '#dbeafe' : 'transparent' }}>
           <Upload size={15} className={uploading ? 'animate-bounce text-blue-600' : ''} />
           <input
             type="file"
+            accept="image/*,video/*"
+            onChange={handleImageUpload}
+            disabled={uploading}
+            style={{ display: 'none' }}
+          />
+        </label>
+        <label title="Take a photo with the device camera" style={{ ...btnStyle, cursor: 'pointer', background: uploading ? '#dbeafe' : 'transparent' }}>
+          <i className="fas fa-camera" style={{ fontSize: '0.85rem' }} />
+          <input
+            type="file"
             accept="image/*"
+            capture="environment"
             onChange={handleImageUpload}
             disabled={uploading}
             style={{ display: 'none' }}
@@ -285,10 +328,11 @@ export default function RichBlogEditor({
             minHeight,
             padding: '1.5rem',
             outline: 'none',
-            fontSize: '1rem',
+            fontSize: editorFontSize,
             lineHeight: '1.8',
-            color: '#1e293b',
+            color: fontColor,
             fontFamily: fontFamily,
+            backgroundColor: blockColor,
             overflowY: 'auto'
           }}
           data-placeholder={placeholder}

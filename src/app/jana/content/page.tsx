@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import RichBlogEditor from '@/components/RichBlogEditor';
 
 type GalleryItem = { url: string; caption: string };
 type ContentMeta = {
@@ -211,7 +212,7 @@ export default function ContentManagementPage() {
               <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', marginTop: '1rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>Section story / small blog</h3>
                 <input value={blogTitle} onChange={event => setBlogTitle(event.target.value)} placeholder="Story title" style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', marginBottom: '0.7rem' }} />
-                <textarea value={blogBody} onChange={event => setBlogBody(event.target.value)} placeholder="Write the section story..." rows={7} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', fontFamily: 'inherit' }} />
+                <RichBlogEditor value={blogBody} onChange={setBlogBody} minHeight="280px" businessName={business.name} sectionName={section?.name || sectionId} placeholder="Write the section story with photos, fonts, colors, headings, links, and callouts..." />
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.8rem' }}><select value={meta.blogStatus} onChange={event => updateMeta('blogStatus', event.target.value)} style={{ padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '7px' }}><option value="draft">Blog draft</option><option value="approved">Blog approved</option><option value="suspended">Blog suspended</option></select>{[['blogOnMain', 'Show story on main carousel'], ['blogOnMinisite', 'Show story on minisite']].map(([key, label]) => <label key={key} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.73rem', color: '#475569' }}><input type="checkbox" checked={!!meta[key as keyof ContentMeta]} onChange={event => updateMeta(key as keyof ContentMeta, event.target.checked)} />{label}</label>)}</div>
               </section>
 

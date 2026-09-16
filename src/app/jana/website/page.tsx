@@ -50,6 +50,18 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
 interface PageMeta { slug: string; saved: boolean; type?: 'page' | 'search'; }
+interface BusinessMeta { id: string; name: string; }
+interface BusinessTemplateContext {
+  id: string;
+  name: string;
+  type_id?: string | null;
+  parent_type_id?: string | null;
+  type_name?: string | null;
+  parent_type_name?: string | null;
+  template_id?: string | null;
+  child_default_template_id?: string | null;
+  parent_default_template_id?: string | null;
+}
 type Mode = 'PAGES' | 'TEMPLATES';
 
 function MultiPageSiteBuilderComponent() {
@@ -58,6 +70,10 @@ function MultiPageSiteBuilderComponent() {
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
   const [currentPage, setCurrentPage]   = useState('main');
+  const [businessId, setBusinessId]     = useState('');
+  const [businesses, setBusinesses]     = useState<BusinessMeta[]>([]);
+  const [businessContext, setBusinessContext] = useState<BusinessTemplateContext | null>(null);
+  const [templateSaving, setTemplateSaving] = useState(false);
   const [pageSearch, setPageSearch]     = useState('');
   const [slots, setSlots]               = useState<Slot[]>([]);
   const [activeZone, setActiveZone]     = useState<Zone>('body');
@@ -94,6 +110,36 @@ function MultiPageSiteBuilderComponent() {
   });
   const searchParams = useSearchParams();
   const queryPage = searchParams?.get('page') || null;
+  const queryBusiness = searchParams?.get('businessId') || '';
+
+  const scopedPageId = (slug: string, type: 'page' | 'search' = 'page') => {
+    const base = type === 'search' ? `website_search_${slug}` : `website_${slug}`;
+    return businessId ? `website_business_${businessId}_${base}` : base;
+  };
+
+  const templateById = (id?: string | null) => templates.find((template: any) => template.id === id);
+  const effectiveTemplateId = businessContext?.template_id || businessContext?.child_default_template_id || businessContext?.parent_default_template_id || '';
+  const availableBusinessTemplates = templates.filter((template: any) => !template.type_id || template.type_id === businessContext?.parent_type_id);
+
+  const saveBusinessTemplateOverride = async (templateId: string) => {
+    if (!businessContext) return;
+    setTemplateSaving(true);
+    try {
+      const response = await fetch('/api/jana/businesses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: businessContext.id, template_id: templateId || null }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Template update failed');
+      setBusinessContext(previous => previous ? { ...previous, template_id: templateId || null } : previous);
+      notify(templateId ? 'Business template override saved.' : 'Business now inherits its child template.');
+    } catch (error: any) {
+      notify(error.message || 'Template update failed.', 'error');
+    } finally {
+      setTemplateSaving(false);
+    }
+  };
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ msg, type });
@@ -112,24 +158,40 @@ function MultiPageSiteBuilderComponent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const scope = businessId ? `?businessId=${encodeURIComponent(businessId)}` : '';
+    fetch(`/api/jana/website/list${scope}`).then(r => r.json()).then(data => {
+      if (!Array.isArray(data)) return;
+      const loadedPages = data.map((p: any) => {
+        const type = String(p.type || '');
+        const prefix = businessId ? `website_business_${businessId}_` : '';
+        const pageType = type.startsWith(`${prefix}website_search_`) ? 'search' : 'page';
+        const base = `${prefix}website_${pageType === 'search' ? 'search_' : ''}`;
+        return { slug: type.replace(base, ''), saved: true, type: pageType as 'page' | 'search' };
+      });
+      setPages(loadedPages.length ? loadedPages : [{ slug: 'main', saved: true, type: 'page' }]);
+      setCurrentPage(queryPage || 'main');
+    }).catch(() => {});
+  }, [businessId, queryPage]);
+
+  useEffect(() => {
+    if (!businessId) {
+      setBusinessContext(null);
+      return;
+    }
+    fetch(`/api/jana/businesses?id=${encodeURIComponent(businessId)}`)
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setBusinessContext(data || null))
+      .catch(() => setBusinessContext(null));
+  }, [businessId]);
+
   // Initial data fetch
   useEffect(() => {
-    fetch('/api/jana/website/list').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) {
-        const loadedPages = data.map(p => {
-          const type_str = p.type || '';
-          if (type_str.startsWith('website_search_')) {
-            return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
-          } else {
-            return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
-          }
-        });
-        setPages(loadedPages);
-        if (queryPage && !loadedPages.some(page => page.slug === queryPage)) {
-          setPages(prev => [...prev, { slug: queryPage, saved: false, type: 'page' as const }]);
-        }
-      }
-    }).catch(() => {});
+    setBusinessId(queryBusiness);
+    fetch('/api/jana/businesses')
+      .then(r => r.json())
+      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name })) : []))
+      .catch(() => setBusinesses([]));
 
     fetch('/api/jana/templates').then(r => r.json()).then(data => setTemplates(Array.isArray(data) ? data : [])).catch(() => {});
 
@@ -200,7 +262,7 @@ function MultiPageSiteBuilderComponent() {
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
-        const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
+        const pageId = scopedPageId(currentPage, pageType);
 
         try {
           const res = await fetch(`/api/jana/website?id=${pageId}`);
@@ -236,7 +298,7 @@ function MultiPageSiteBuilderComponent() {
     };
 
     loadPageLayout();
-  }, [currentPage, mode, templates, pages]);
+  }, [currentPage, mode, templates, pages, businessId]);
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -295,7 +357,7 @@ function MultiPageSiteBuilderComponent() {
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
-        const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
+        const pageId = scopedPageId(currentPage, pageType);
         
         const res = await fetch('/api/jana/website', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -352,7 +414,7 @@ function MultiPageSiteBuilderComponent() {
       const pg = pages.find(p => p.slug === deleteTarget);
       if (pg?.saved) {
         const pageType = pg.type || 'page';
-        const pageId = pageType === 'search' ? `website_search_${deleteTarget}` : `website_${deleteTarget}`;
+        const pageId = scopedPageId(deleteTarget, pageType);
         const res = await fetch(`/api/jana/website?id=${pageId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error((await res.json()).error || 'Delete failed');
       }
@@ -373,8 +435,8 @@ function MultiPageSiteBuilderComponent() {
     if (pg?.saved) {
       try {
         const pageType = pg.type || 'page';
-        const oldPageId = pageType === 'search' ? `website_search_${renameTarget}` : `website_${renameTarget}`;
-        const newPageId = pageType === 'search' ? `website_search_${newSlug}` : `website_${newSlug}`;
+        const oldPageId = scopedPageId(renameTarget, pageType);
+        const newPageId = scopedPageId(newSlug, pageType);
         
         const res = await fetch(`/api/jana/website?id=${oldPageId}`);
         const data = await res.json();
@@ -444,6 +506,38 @@ function MultiPageSiteBuilderComponent() {
 
         {/* Right: status + actions */}
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.62rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            BUILDER SCOPE
+            <select
+              value={businessId}
+              onChange={event => { setBusinessId(event.target.value); setCurrentPage('main'); setSlots([]); }}
+              style={{ maxWidth: 190, padding: '0.42rem 0.55rem', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontSize: '0.68rem', fontWeight: 700 }}
+            >
+              <option value="">Main site</option>
+              {businesses.map(business => <option key={business.id} value={business.id}>{business.name}</option>)}
+            </select>
+          </label>
+          {businessContext && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.62rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+              TEMPLATE OVERRIDE
+              <select
+                value={businessContext.template_id || ''}
+                disabled={templateSaving}
+                onChange={event => saveBusinessTemplateOverride(event.target.value)}
+                style={{ maxWidth: 190, padding: '0.42rem 0.55rem', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontSize: '0.68rem', fontWeight: 700 }}
+              >
+                <option value="">Inherit child template</option>
+                {availableBusinessTemplates.map((template: any) => <option key={template.id} value={template.id}>{template.name}</option>)}
+              </select>
+            </label>
+          )}
+          {businessContext && (
+            <div title="Template inheritance chain" style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.58rem', lineHeight: 1.2, maxWidth: 180 }}>
+              Parent: {templateById(businessContext.parent_default_template_id)?.name || 'platform default'}<br />
+              Child: {templateById(businessContext.child_default_template_id)?.name || 'inherits parent'}<br />
+              Active: {templateById(effectiveTemplateId)?.name || 'platform default'}
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.35rem 0.85rem', borderRadius: '8px' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: currentDraft ? '#f59e0b' : '#10b981', display: 'inline-block', boxShadow: `0 0 6px ${currentDraft ? '#f59e0b' : '#10b981'}` }} />
             <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>

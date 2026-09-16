@@ -13,9 +13,12 @@ export async function GET(request: NextRequest) {
     if (id) {
       const business = await queryOne(`
         SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
+           bt.parent_id as parent_type_id, bt.default_template_id as child_default_template_id,
+           parent_bt.name as parent_type_name, parent_bt.default_template_id as parent_default_template_id,
                p.email as vendor_email, p.display_name as vendor_name
         FROM businesses b
         LEFT JOIN business_types bt ON b.type_id = bt.id
+         LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
         LEFT JOIN profiles p ON b.vendor_id = p.id
         WHERE b.id = ?
       `, [id]);
@@ -295,6 +298,25 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    if (updates.template_id) {
+      const business = await queryOne(
+        `SELECT bt.parent_id
+         FROM businesses b LEFT JOIN business_types bt ON bt.id = b.type_id
+         WHERE b.id = ?`,
+        [id]
+      ) as any;
+      if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+
+      const template = await queryOne(
+        'SELECT id, category_id FROM minisite_templates WHERE id = ?',
+        [updates.template_id]
+      ) as any;
+      if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      if (template.category_id && template.category_id !== business.parent_id) {
+        return NextResponse.json({ error: 'Template is not available for this business parent category.' }, { status: 400 });
+      }
+    }
 
     // RULE 1: If type_id is being changed, ensure the new type is a child type
     if (updates.type_id) {

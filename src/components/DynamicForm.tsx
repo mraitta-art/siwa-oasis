@@ -5,6 +5,7 @@ import { FIELD_TYPES } from '@/lib/governance/constants';
 import { useAdmin, AdminContext } from '@/context/AdminContext';
 import { LangContext } from '@/context/LangContext';
 import { compressImage } from '@/lib/compressImage';
+import RichBlogEditor from '@/components/RichBlogEditor';
 
 interface Field {
   id: string;
@@ -1369,21 +1370,13 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                       SECTION MINI BLOG / NARRATIVE
                     </div>
                     <div style={{ position: 'relative' }}>
-                      <textarea
+                      <RichBlogEditor
                         value={mediaData.mini_blog || ''}
-                        onChange={e => updateMedia({ mini_blog: e.target.value })}
-                        placeholder={`Write a brief story or narrative for this section of ${sectionName}. This appears as the caption in carousels and the intro text on the minisite section.`}
-                        rows={4}
-                        style={{
-                          width: '100%', boxSizing: 'border-box',
-                          border: '1.5px solid #e2e8f0', borderRadius: '12px',
-                          padding: '1rem 1.25rem', fontSize: '0.85rem', lineHeight: 1.6,
-                          color: '#0f172a', background: '#f8fafc',
-                          outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                          transition: 'border-color 0.3s'
-                        }}
-                        onFocus={e => { e.target.style.borderColor = '#D4AF37'; e.target.style.background = '#fff'; }}
-                        onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; }}
+                        onChange={html => updateMedia({ mini_blog: html })}
+                        businessName={businessName || 'General'}
+                        sectionName={sectionName}
+                        minHeight="260px"
+                        placeholder={`Write a story for ${sectionName} with photos, headings, fonts, colors, links, and callouts.`}
                       />
                       <div style={{ fontSize: '0.6rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>
                         {(mediaData.mini_blog || '').length} chars

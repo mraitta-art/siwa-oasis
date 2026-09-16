@@ -4,7 +4,11 @@ import { requireAdmin } from '@/lib/auth';
 import { invalidateCache } from '@/lib/cache';
 
 async function loadCarouselConfig(siteId: string) {
-  const fallbackTypes = [`hero_carousel_${siteId}`, 'hero_carousel_main', 'hero_carousel_discovery'];
+  const isBusinessCarousel = siteId.startsWith('biz_');
+  const isLegacyDiscoveryCarousel = siteId === 'discovery' || siteId === 'main';
+  const fallbackTypes = isBusinessCarousel || !isLegacyDiscoveryCarousel
+    ? [`hero_carousel_${siteId}`]
+    : [`hero_carousel_${siteId}`, 'hero_carousel_main', 'hero_carousel_discovery'];
   for (const type of fallbackTypes) {
     try {
       const results = await query(
