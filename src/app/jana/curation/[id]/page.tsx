@@ -1264,11 +1264,12 @@ export default function UnifiedCurationStudio() {
                                 />
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                   <select
-                                    value={inst.status || 'published'}
+                                    value={inst.status || 'pending_approval'}
                                     onChange={(e) => updateComponentInstance(comp.id, idx, 'status', e.target.value)}
                                     style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700 }}
                                   >
                                     <option value="published">Published</option>
+                                    <option value="pending_approval">Pending approval</option>
                                     <option value="draft">Draft</option>
                                   </select>
                                   <button
