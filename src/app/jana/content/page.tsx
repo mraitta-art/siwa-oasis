@@ -43,6 +43,7 @@ export default function ContentManagementPage() {
   const [meta, setMeta] = useState<ContentMeta>(EMPTY_META);
   const [filter, setFilter] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -99,6 +100,30 @@ export default function ContentManagementPage() {
     if (!newImage.url.trim()) return;
     setGallery(current => [...current, { url: newImage.url.trim(), caption: newImage.caption.trim() }]);
     setNewImage({ url: '', caption: '' });
+  }
+
+  async function uploadGalleryMedia(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !business || !sectionId) return;
+    setUploadingGallery(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('businessName', business.name || 'General');
+    formData.append('sectionName', section?.name || sectionId);
+    try {
+      const response = await fetch('/api/jana/media/upload', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (!response.ok || !(result.url || result.localUrl)) {
+        throw new Error(result.error || 'Media upload failed');
+      }
+      setGallery(current => [...current, { url: result.url || result.localUrl, caption: file.name }]);
+      setMessage('Media uploaded. Save content to publish it to this section.');
+    } catch (error: any) {
+      setMessage(error.message || 'Media upload failed');
+    } finally {
+      setUploadingGallery(false);
+      event.target.value = '';
+    }
   }
 
   async function saveContent() {
@@ -187,10 +212,21 @@ export default function ContentManagementPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.8fr)', gap: '1rem' }}>
                 <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
                   <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>Images & captions</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: '0.5rem', marginBottom: '0.65rem' }}>
                     <input value={newImage.url} onChange={event => setNewImage(current => ({ ...current, url: event.target.value }))} placeholder="Image URL" style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '7px' }} />
                     <input value={newImage.caption} onChange={event => setNewImage(current => ({ ...current, caption: event.target.value }))} placeholder="Caption" style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '7px' }} />
                     <button onClick={addImage} style={{ padding: '0 0.8rem', border: 0, borderRadius: '7px', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Add</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 0.8rem', borderRadius: '7px', background: uploadingGallery ? '#cbd5e1' : '#0f172a', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: uploadingGallery ? 'wait' : 'pointer' }}>
+                      <i className="fas fa-upload" /> {uploadingGallery ? 'Uploading...' : 'Upload from device'}
+                      <input type="file" accept="image/*,video/*" onChange={uploadGalleryMedia} disabled={uploadingGallery} style={{ display: 'none' }} />
+                    </label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 0.8rem', borderRadius: '7px', background: uploadingGallery ? '#cbd5e1' : '#0f766e', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: uploadingGallery ? 'wait' : 'pointer' }}>
+                      <i className="fas fa-camera" /> Take photo
+                      <input type="file" accept="image/*" capture="environment" onChange={uploadGalleryMedia} disabled={uploadingGallery} style={{ display: 'none' }} />
+                    </label>
+                    <span style={{ alignSelf: 'center', color: '#64748b', fontSize: '0.68rem' }}>Uploads are saved to this business and section.</span>
                   </div>
                   {gallery.map((item, index) => <div key={`${item.url}-${index}`} style={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto', gap: '0.7rem', alignItems: 'center', padding: '0.65rem 0', borderTop: '1px solid #f1f5f9' }}>
                     <img src={item.url} alt={item.caption || 'Section preview'} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: '6px', background: '#f1f5f9' }} />
