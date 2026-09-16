@@ -27,6 +27,46 @@ interface DynamicComponentProps {
   component: any;
 }
 
+function ServiceCatalog({ props, label }: { props: any; label?: string }) {
+  const items = Array.isArray(props.items) ? props.items : props.title ? [props] : [];
+  if (items.length === 0) return null;
+
+  return (
+    <section style={{ padding: '3rem 1.5rem', background: '#f8fafc' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ color: '#a16207', fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Vendor services</div>
+          <h2 style={{ margin: '0.35rem 0 0', color: '#0f172a', fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', fontWeight: 900 }}>{props.title || label || 'Services & Facilities'}</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          {items.map((item: any, index: number) => {
+            const price = item.price !== undefined && item.price !== '' ? `${item.currency || 'EGP'} ${item.price}` : '';
+            return (
+              <article key={`${item.title || 'service'}-${index}`} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '220px', border: '1px solid #e2e8f0', borderRadius: '14px', background: '#fff' }}>
+                {item.image && <img src={item.image} alt="" style={{ width: '100%', height: '130px', objectFit: 'cover' }} />}
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', color: '#a16207', fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    <span>{item.category || 'Service'}</span>
+                    {price && <span>{price}</span>}
+                  </div>
+                  <h3 style={{ margin: '0.45rem 0', color: '#0f172a', fontSize: '1.05rem', fontWeight: 900 }}>{item.title}</h3>
+                  <p style={{ flex: 1, margin: 0, color: '#475569', fontSize: '0.8rem', lineHeight: 1.55 }}>{item.description}</p>
+                  {(item.duration || item.capacity || item.availability || item.price_unit) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.8rem', color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>
+                      {[item.duration, item.capacity, item.availability, item.price_unit].filter(Boolean).map((detail: string) => <span key={detail} style={{ padding: '0.25rem 0.45rem', borderRadius: '6px', background: '#f1f5f9' }}>{detail}</span>)}
+                    </div>
+                  )}
+                  {item.request_url && <a href={item.request_url} style={{ marginTop: '0.9rem', color: '#166534', fontSize: '0.7rem', fontWeight: 900, textDecoration: 'none', textTransform: 'uppercase' }}>Request service →</a>}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function DynamicComponentRenderer({ component }: DynamicComponentProps) {
   if (!component) return null;
 
@@ -34,6 +74,9 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
   const resolvedTitle = props.title || props.custom_title || label || type?.replace(/_/g, ' ').replace(/\b\w/g, (char: string) => char.toUpperCase()) || 'Section Component';
 
   switch (type) {
+    case 'service_catalog':
+      return <ServiceCatalog props={props} label={resolvedTitle} />;
+
     case 'hero_carousel':
       return (
         <AdvancedHeroCarousel
