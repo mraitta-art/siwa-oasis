@@ -76,7 +76,7 @@ export async function POST(
             componentId,
             user.businessId,
             JSON.stringify(inst.data),
-            'published',
+            'pending_approval',
             idx
           ]
         );

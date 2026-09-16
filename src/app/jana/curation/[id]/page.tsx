@@ -167,7 +167,7 @@ export default function UnifiedCurationStudio() {
             component_id: comp.id,
             title: inst.title,
             data: inst.data,
-            status: inst.status || 'published',
+            status: inst.status || 'pending_approval',
             display_order: inst.display_order || 0
           });
         });

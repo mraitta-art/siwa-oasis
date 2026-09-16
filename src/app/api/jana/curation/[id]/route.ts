@@ -329,6 +329,10 @@ export async function PATCH(
     // 7. Component Data Updates
     if (Array.isArray(componentDataUpdates)) {
       for (const inst of componentDataUpdates) {
+        const componentStatus = ['draft', 'pending_approval', 'published'].includes(inst.status)
+          ? inst.status
+          : 'pending_approval';
+
         if (inst.data_id) {
           await execute(
             `UPDATE section_component_data 
@@ -337,7 +341,7 @@ export async function PATCH(
             [
               inst.title || null,
               typeof inst.data === 'object' ? JSON.stringify(inst.data) : (inst.data || '{}'),
-              inst.status || 'published',
+              componentStatus,
               inst.display_order || 0,
               inst.data_id
             ]
@@ -354,7 +358,7 @@ export async function PATCH(
               id,
               inst.title || null,
               typeof inst.data === 'object' ? JSON.stringify(inst.data) : (inst.data || '{}'),
-              inst.status || 'published',
+              componentStatus,
               inst.display_order || 0
             ]
           );
