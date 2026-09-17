@@ -50,7 +50,7 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
 interface PageMeta { slug: string; saved: boolean; type?: 'page' | 'search'; }
-interface BusinessMeta { id: string; name: string; }
+interface BusinessMeta { id: string; name: string; slug?: string; }
 interface BusinessTemplateContext {
   id: string;
   name: string;
@@ -190,7 +190,7 @@ function MultiPageSiteBuilderComponent() {
     setBusinessId(queryBusiness);
     fetch('/api/jana/businesses')
       .then(r => r.json())
-      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name })) : []))
+      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name, slug: business.slug })) : []))
       .catch(() => setBusinesses([]));
 
     fetch('/api/jana/templates').then(r => r.json()).then(data => setTemplates(Array.isArray(data) ? data : [])).catch(() => {});
@@ -249,13 +249,33 @@ function MultiPageSiteBuilderComponent() {
     }
   }, [queryPage, pages, currentPage]);
 
-  const getPreviewUrl = () => {
-    const currentPageData = pages.find(p => p.slug === currentPage);
-    if (currentPage === 'main') return '/';
-    if (currentPage === 'journeys') return '/journeys';
-    if (currentPageData?.type === 'search') return `/search/${currentPage}`;
-    return `/p/${currentPage}`;
+  const updateUrlState = (pageSlug: string, bId: string) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (pageSlug && pageSlug !== 'main') params.set('page', pageSlug);
+    else params.set('page', 'main');
+    if (bId) params.set('businessId', bId);
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, '', newUrl);
   };
+
+  const getPreviewUrlForPage = (pageSlug = currentPage, pageType?: 'page' | 'search') => {
+    if (businessId) {
+      const selectedBiz = businesses.find(b => b.id === businessId);
+      const baseSlug = selectedBiz ? (selectedBiz.slug || `business/${selectedBiz.id}`) : `business/${businessId}`;
+      const cleanBase = baseSlug.startsWith('/') ? baseSlug : `/${baseSlug}`;
+      if (pageSlug === 'main') return cleanBase;
+      return `${cleanBase}?tab=${pageSlug}`;
+    }
+    const currentPageData = pages.find(p => p.slug === pageSlug);
+    const resolvedType = pageType || currentPageData?.type;
+    if (pageSlug === 'main') return '/';
+    if (pageSlug === 'journeys') return '/journeys';
+    if (resolvedType === 'search') return `/search/${pageSlug}`;
+    return `/p/${pageSlug}`;
+  };
+
+  const getPreviewUrl = () => getPreviewUrlForPage(currentPage);
 
   useEffect(() => {
     const loadPageLayout = async () => {
@@ -510,7 +530,13 @@ function MultiPageSiteBuilderComponent() {
             BUILDER SCOPE
             <select
               value={businessId}
-              onChange={event => { setBusinessId(event.target.value); setCurrentPage('main'); setSlots([]); }}
+              onChange={event => {
+                const nextBId = event.target.value;
+                setBusinessId(nextBId);
+                setCurrentPage('main');
+                setSlots([]);
+                updateUrlState('main', nextBId);
+              }}
               style={{ maxWidth: 190, padding: '0.42rem 0.55rem', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontSize: '0.68rem', fontWeight: 700 }}
             >
               <option value="">Main site</option>
@@ -550,8 +576,9 @@ function MultiPageSiteBuilderComponent() {
 
           {mode === 'PAGES' && (
             <a href={getPreviewUrl()} target="_blank" rel="noopener noreferrer"
-              style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
-              👁 Preview
+              title={`Preview: https://siwify.com${getPreviewUrl()}`}
+              style={{ padding: '0.38rem 0.85rem', background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 7, color: '#D4AF37', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+              👁 Preview ({getPreviewUrl()})
             </a>
           )}
 
@@ -676,7 +703,7 @@ function MultiPageSiteBuilderComponent() {
                 : filteredPages.map(page => {
                   const active = currentPage === page.slug;
                   return (
-                    <div key={page.slug} onClick={()=>setCurrentPage(page.slug)}
+                    <div key={page.slug} onClick={()=>{ setCurrentPage(page.slug); updateUrlState(page.slug, businessId); }}
                       style={{ padding:'0.55rem 0.65rem', borderRadius:10, marginBottom:'0.25rem', background:active?'rgba(212,175,55,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${active?'rgba(212,175,55,0.25)':'rgba(255,255,255,0.04)'}`, cursor:'pointer', transition:'all 0.18s', display:'flex', alignItems:'center', gap:'0.55rem' }}>
                       <span style={{ width:7, height:7, borderRadius:'50%', background:page.saved?'#10b981':'#f59e0b', flexShrink:0, boxShadow:`0 0 5px ${page.saved?'#10b98166':'#f59e0b66'}`, display:'inline-block' }} />
                       <div style={{ flex:1, minWidth:0 }}>
@@ -689,7 +716,7 @@ function MultiPageSiteBuilderComponent() {
                       </div>
                       {/* Quick actions */}
                       <div style={{ display:'flex', gap:'3px', flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-                        <a href={page.slug==='main'?'/':page.type==='search'?`/search/${page.slug}`:`/p/${page.slug}`} target="_blank" rel="noopener noreferrer" title="Preview"
+                        <a href={getPreviewUrlForPage(page.slug, page.type)} target="_blank" rel="noopener noreferrer" title={`Preview ${getPreviewUrlForPage(page.slug, page.type)}`}
                           style={iconBtn('#fff')}>👁</a>
                         {page.slug !== 'main' && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
