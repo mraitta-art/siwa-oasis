@@ -54,6 +54,26 @@ interface DynamicFormProps {
   business?: any;
 }
 
+function normalizeOptions(rawOptions: unknown): Array<{ value: string; label: string }> {
+  let options = rawOptions;
+  try {
+    options = typeof rawOptions === 'string' ? JSON.parse(rawOptions) : rawOptions;
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(options)) return [];
+  return options.map(option => {
+    if (option && typeof option === 'object') {
+      const entry = option as { value?: unknown; label?: unknown };
+      const value = String(entry.value ?? entry.label ?? '');
+      return { value, label: String(entry.label ?? entry.value ?? '') };
+    }
+    const value = String(option ?? '');
+    return { value, label: value };
+  }).filter(option => option.value.length > 0);
+}
+
 export default function DynamicForm({ fields, data, onChange, readOnly, userRole, sections, tierFeatures = {}, businessName, typology, business }: DynamicFormProps) {
   const adminCtx = React.useContext(AdminContext);
   const notify = adminCtx?.notify || (() => {});
@@ -595,12 +615,9 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
               }}
             >
               <option value="">{t?.selectOption ?? '— Select an option —'}</option>
-              {(() => {
-                try {
-                  const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
-                  return Array.isArray(opts) ? opts.map(opt => <option key={opt} value={opt}>{opt}</option>) : null;
-                } catch (e) { return null; }
-              })()}
+              {normalizeOptions(field.options).map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
             {/* Custom chevron */}
             <i className="fas fa-chevron-down" style={{
@@ -617,23 +634,23 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', padding: '1rem', background: '#f8fafc', borderRadius: '16px', border: '1.5px solid #e2e8f0', minHeight: '60px' }}>
               {(() => {
                 try {
-                  const opts = typeof field.options === 'string' ? JSON.parse(field.options) : field.options;
-                  if (!Array.isArray(opts) || opts.length === 0) return (
+                  const opts = normalizeOptions(field.options);
+                  if (opts.length === 0) return (
                     <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 700, alignSelf: 'center' }}>No options defined by admin yet.</div>
                   );
                   const selected: string[] = Array.isArray(value) ? value : [];
-                  return opts.map((opt: string) => {
-                    const isChecked = selected.includes(opt);
+                  return opts.map(option => {
+                    const isChecked = selected.includes(option.value);
                     return (
                       <button
-                        key={opt}
+                        key={option.value}
                         type="button"
                         disabled={isFieldLocked}
                         onClick={() => {
                           if (isFieldLocked) return;
                           const next = isChecked
-                            ? selected.filter(i => i !== opt)
-                            : [...selected, opt];
+                            ? selected.filter(i => i !== option.value)
+                            : [...selected, option.value];
                           handleChange(next);
                         }}
                         style={{
@@ -653,7 +670,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                         }}
                       >
                         {isChecked && <i className="fas fa-check" style={{ fontSize: '0.6rem', color: '#D4AF37' }}></i>}
-                        {opt}
+                        {option.label}
                       </button>
                     );
                   });
