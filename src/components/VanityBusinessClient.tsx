@@ -666,7 +666,7 @@ export default function VanityBusinessClient({
                     )}
 
                     {/* BLOG / NARRATIVE */}
-                    {dbBlog ? (
+                    {dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar) ? (
                       <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                         <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
                         <div className="rich-content" dangerouslySetInnerHTML={{ __html: dbBlog.content }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />

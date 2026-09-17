@@ -44,10 +44,13 @@ export default function ContentManagementPage() {
   const [business, setBusiness] = useState<any>(null);
   const [sectionControls, setSectionControls] = useState<Record<string, any>>({});
   const [sectionLabel, setSectionLabel] = useState('');
+  const [sectionLabelAr, setSectionLabelAr] = useState('');
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [newImage, setNewImage] = useState({ url: '', caption: '' });
   const [blogTitle, setBlogTitle] = useState('');
   const [blogBody, setBlogBody] = useState('');
+  const [blogTitleAr, setBlogTitleAr] = useState('');
+  const [blogBodyAr, setBlogBodyAr] = useState('');
   const [meta, setMeta] = useState<ContentMeta>(EMPTY_META);
   const [filter, setFilter] = useState('');
   const [saving, setSaving] = useState(false);
@@ -91,9 +94,12 @@ export default function ContentManagementPage() {
     const data = business?.custom_data?.[sectionId] || {};
     const storedMeta = business?.custom_data?.section_content_meta?.[sectionId] || {};
     setSectionLabel(business?.custom_data?.section_labels?.[sectionId] || '');
+    setSectionLabelAr(business?.custom_data?.section_labels_ar?.[sectionId] || business?.custom_data?.basic?.section_labels_ar?.[sectionId] || '');
     setGallery(parseGallery(data.section_gallery));
     setBlogTitle(data.section_blog_title || '');
     setBlogBody(data.section_blog || data.mini_blog || '');
+    setBlogTitleAr(data.section_blog_title_ar || '');
+    setBlogBodyAr(data.section_blog_ar || '');
     setMeta({ ...EMPTY_META, ...storedMeta });
     setNewImage({ url: '', caption: '' });
     setActiveTab('content');
@@ -177,11 +183,17 @@ export default function ContentManagementPage() {
       ...(customData.section_labels || {}),
       [sectionId]: sectionLabel.trim(),
     };
+    customData.section_labels_ar = {
+      ...(customData.section_labels_ar || {}),
+      [sectionId]: sectionLabelAr.trim(),
+    };
     customData[sectionId] = {
       ...(customData[sectionId] || {}),
       section_gallery: gallery,
       section_blog_title: blogTitle,
       section_blog: blogBody,
+      section_blog_title_ar: blogTitleAr,
+      section_blog_ar: blogBodyAr,
     };
     customData.section_content_meta = {
       ...(customData.section_content_meta || {}),
@@ -279,6 +291,7 @@ export default function ContentManagementPage() {
                   <input value={sectionLabel} onChange={event => setSectionLabel(event.target.value)} placeholder={section?.name || 'Default section name'} disabled={!!sectionControls[sectionId]?.admin_locked_label} style={{ flex: 1, padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', background: sectionControls[sectionId]?.admin_locked_label ? '#f8fafc' : '#fff' }} />
                   {sectionControls[sectionId]?.admin_locked_label && <span style={{ color: '#b91c1c', fontSize: '0.7rem', fontWeight: 800 }}><i className="fas fa-lock" /> Locked</span>}
                 </div>
+                <input value={sectionLabelAr} onChange={event => setSectionLabelAr(event.target.value)} placeholder="اسم القسم بالعربية" dir="rtl" disabled={!!sectionControls[sectionId]?.admin_locked_label} style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.6rem', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', background: sectionControls[sectionId]?.admin_locked_label ? '#f8fafc' : '#fff', textAlign: 'right' }} />
                 <div style={{ marginTop: '0.4rem', color: '#94a3b8', fontSize: '0.68rem' }}>This name appears as the tab title on the business minisite and is saved with the section content.</div>
               </section>}
 
@@ -322,6 +335,8 @@ export default function ContentManagementPage() {
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>{copy.story}</h3>
                 <input value={blogTitle} onChange={event => setBlogTitle(event.target.value)} placeholder="Story title" style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', marginBottom: '0.7rem' }} />
                 <RichBlogEditor value={blogBody} onChange={setBlogBody} minHeight="280px" businessName={business.name} sectionName={section?.name || sectionId} placeholder="Write the section story with photos, fonts, colors, headings, links, and callouts..." />
+                <input value={blogTitleAr} onChange={event => setBlogTitleAr(event.target.value)} placeholder="عنوان القصة بالعربية" dir="rtl" style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', margin: '1rem 0 0.7rem', textAlign: 'right' }} />
+                <RichBlogEditor value={blogBodyAr} onChange={setBlogBodyAr} minHeight="280px" businessName={business.name} sectionName={section?.name || sectionId} dir="rtl" placeholder="اكتب قصة القسم باللغة العربية..." />
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.8rem' }}><select value={meta.blogStatus} onChange={event => updateMeta('blogStatus', event.target.value)} style={{ padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '7px' }}><option value="draft">Blog draft</option><option value="approved">Blog approved</option><option value="suspended">Blog suspended</option></select>{[['blogOnMain', 'Show story on main carousel'], ['blogOnMinisite', 'Show story on minisite']].map(([key, label]) => <label key={key} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.73rem', color: '#475569' }}><input type="checkbox" checked={!!meta[key as keyof ContentMeta]} onChange={event => updateMeta(key as keyof ContentMeta, event.target.checked)} />{label}</label>)}</div>
               </section>}
 

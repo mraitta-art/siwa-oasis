@@ -15,6 +15,7 @@ interface RichBlogEditorProps {
   placeholder?: string;
   businessName?: string;
   sectionName?: string;
+  dir?: 'ltr' | 'rtl';
 }
 
 export default function RichBlogEditor({
@@ -23,7 +24,8 @@ export default function RichBlogEditor({
   minHeight = '420px',
   placeholder = 'Write your rich blog content here...',
   businessName = 'General',
-  sectionName = 'blog'
+  sectionName = 'blog',
+  dir = 'ltr'
 }: RichBlogEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
@@ -341,7 +343,8 @@ export default function RichBlogEditor({
             background: '#090e17',
             color: '#38bdf8',
             resize: 'vertical',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            direction: dir
           }}
         />
       ) : (
@@ -360,6 +363,7 @@ export default function RichBlogEditor({
             fontFamily: fontFamily,
             backgroundColor: blockColor,
             overflowY: 'auto'
+            ,direction: dir
           }}
           data-placeholder={placeholder}
         />
