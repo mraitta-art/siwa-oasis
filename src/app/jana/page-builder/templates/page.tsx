@@ -14,7 +14,6 @@ import { PageTemplate } from '@/lib/jana/page-builder-types';
 export default function PageTemplatesPage() {
   const [templates, setTemplates] = useState<PageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [sections, setSections] = useState<any[]>([]);
   const [selectedSection, setSelectedSection] = useState('');
 
@@ -72,6 +71,42 @@ export default function PageTemplatesPage() {
     }
   }
 
+  async function handleCreateTemplate() {
+    const name = prompt('Template name:');
+    if (!name?.trim()) return;
+    const description = prompt('Template description (optional):') || '';
+    try {
+      const response = await fetch('/api/jana/page-builder/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), description, components: selectedSection ? [{ id: `section-${selectedSection}`, type: 'section_block', order: 0, props: { sectionId: selectedSection } }] : [] }),
+      });
+      if (!response.ok) throw new Error('Create failed');
+      await loadTemplates();
+    } catch (error) {
+      console.error('Error creating template:', error);
+      alert('Could not create template. Please try again.');
+    }
+  }
+
+  async function handleEditTemplate(template: PageTemplate) {
+    const name = prompt('Template name:', template.name);
+    if (!name?.trim()) return;
+    const description = prompt('Template description:', template.description || '') || '';
+    try {
+      const response = await fetch(`/api/jana/page-builder/templates/${template.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), description, components: template.components }),
+      });
+      if (!response.ok) throw new Error('Update failed');
+      await loadTemplates();
+    } catch (error) {
+      console.error('Error updating template:', error);
+      alert('Could not update template. Please try again.');
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -94,12 +129,19 @@ export default function PageTemplatesPage() {
         </div>
         <Button
           variant="primary"
-          onClick={() => setShowCreateModal(true)}
+          onClick={handleCreateTemplate}
           className="flex gap-2 items-center"
         >
           <i className="fas fa-plus"></i>
           Create Template
         </Button>
+      </div>
+      <div className="flex items-center gap-3 mb-4">
+        <label htmlFor="template-section" className="text-slate-400 text-sm">Starting section</label>
+        <select id="template-section" value={selectedSection} onChange={event => setSelectedSection(event.target.value)} className="bg-slate-800 text-white border border-slate-600 rounded px-3 py-2 text-sm">
+          <option value="">No section preset</option>
+          {sections.map(section => <option key={section.id} value={section.id}>{section.name}</option>)}
+        </select>
       </div>
 
       {/* Info Banner */}
@@ -180,9 +222,7 @@ export default function PageTemplatesPage() {
 
                   <div className="flex gap-2 pt-2">
                     <button
-                      onClick={() => {
-                        /* Edit template */
-                      }}
+                      onClick={() => handleEditTemplate(template)}
                       className="flex-1 btn-secondary py-1.5 text-sm flex gap-1.5 items-center justify-center"
                     >
                       <i className="fas fa-edit"></i>
