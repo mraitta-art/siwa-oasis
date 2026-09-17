@@ -26,6 +26,7 @@ export default function RichBlogEditor({
   sectionName = 'blog'
 }: RichBlogEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const [viewSource, setViewSource] = useState(false);
   const [fontColor, setFontColor] = useState('#0f172a');
   const [bgColor, setBgColor] = useState('#ffffff');
@@ -56,6 +57,28 @@ export default function RichBlogEditor({
     handleInput();
   };
 
+  const saveSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !editorRef.current?.contains(selection.anchorNode)) return;
+    savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+  };
+
+  const restoreSelection = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection) return;
+    editor.focus();
+    selection.removeAllRanges();
+    if (savedSelectionRef.current) {
+      selection.addRange(savedSelectionRef.current);
+    } else {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      selection.addRange(range);
+    }
+  };
+
   const handleLink = () => {
     const url = prompt('Enter link URL:');
     if (url) execute('createLink', url);
@@ -82,6 +105,7 @@ export default function RichBlogEditor({
         const data = await res.json();
         const imageUrl = data.url || data.localUrl;
         if (imageUrl) {
+          restoreSelection();
           const mediaMarkup = file.type.startsWith('video/')
             ? `<div style="margin: 1.5rem 0; text-align: center;"><video src="${imageUrl}" controls style="max-width: 100%; border-radius: 12px; display: inline-block;"></video></div><p><br></p>`
             : `<div style="margin: 1.5rem 0; text-align: center;"><img src="${imageUrl}" alt="Blog media" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 0 auto; display: inline-block;" /><p style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem; font-style: italic;">Caption</p></div><p><br></p>`;
@@ -259,6 +283,7 @@ export default function RichBlogEditor({
           <input
             type="file"
             accept="image/*,video/*"
+            onClick={saveSelection}
             onChange={handleImageUpload}
             disabled={uploading}
             style={{ display: 'none' }}
@@ -270,6 +295,7 @@ export default function RichBlogEditor({
             type="file"
             accept="image/*"
             capture="environment"
+            onClick={saveSelection}
             onChange={handleImageUpload}
             disabled={uploading}
             style={{ display: 'none' }}

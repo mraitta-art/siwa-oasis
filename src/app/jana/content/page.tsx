@@ -133,6 +133,8 @@ export default function ContentManagementPage() {
   async function uploadGalleryMedia(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file || !business || !sectionId) return;
+    const previewUrl = URL.createObjectURL(file);
+    setGallery(current => [...current, { url: previewUrl, caption: `${file.name} (uploading...)` }]);
     setUploadingGallery(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -144,11 +146,17 @@ export default function ContentManagementPage() {
       if (!response.ok || !(result.url || result.localUrl)) {
         throw new Error(result.error || 'Media upload failed');
       }
-      setGallery(current => [...current, { url: result.url || result.localUrl, caption: file.name }]);
+      const uploadedUrl = result.url || result.localUrl;
+      setGallery(current => current.map(item => item.url === previewUrl
+        ? { url: uploadedUrl, caption: file.name }
+        : item
+      ));
       setMessage('Media uploaded. Save content to publish it to this section.');
     } catch (error: any) {
+      setGallery(current => current.filter(item => item.url !== previewUrl));
       setMessage(error.message || 'Media upload failed');
     } finally {
+      URL.revokeObjectURL(previewUrl);
       setUploadingGallery(false);
       event.target.value = '';
     }
