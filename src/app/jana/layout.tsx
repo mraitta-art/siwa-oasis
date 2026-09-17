@@ -32,7 +32,6 @@ const NAV_GROUPS = [
           { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
           { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film' },
           { name: 'Governance & Search Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
-          { name: 'Content Policies & Filters', path: '/jana/policies', icon: 'fa-filter' },
         ]
       },
       {
