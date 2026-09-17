@@ -1,58 +1,5 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-
-export default function ContentManagementDashboard() {
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    fetch('/api/jana/businesses')
-      .then(response => response.json())
-      .then(data => setBusinesses(Array.isArray(data) ? data : []))
-      .catch(error => console.error('Failed to load businesses:', error))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filteredBusinesses = businesses.filter(business =>
-    `${business.name || ''} ${business.type_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) return <main style={{ padding: '4rem', textAlign: 'center' }}>Loading businesses...</main>;
-
-  return (
-    <main style={{ minHeight: '100vh', background: '#f8fafc', padding: '3rem' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ margin: 0, color: '#0f172a' }}>Business Content</h1>
-            <p style={{ color: '#64748b' }}>Manage sections, media, blogs, fields, and components from one place.</p>
-          </div>
-          <input
-            value={searchTerm}
-            onChange={event => setSearchTerm(event.target.value)}
-            placeholder="Search businesses..."
-            style={{ padding: '0.8rem 1rem', minWidth: '280px', border: '1px solid #cbd5e1', borderRadius: '8px' }}
-          />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-          {filteredBusinesses.map(business => (
-            <article key={business.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1.25rem' }}>
-              <h2 style={{ margin: '0 0 0.4rem', color: '#0f172a', fontSize: '1.1rem' }}>{business.name}</h2>
-              <p style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.85rem' }}>{business.type_name || 'Business'}</p>
-              <Link href={`/jana/businesses/${business.id}/edit`} style={{ display: 'inline-block', padding: '0.65rem 1rem', borderRadius: '7px', background: '#0f172a', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem' }}>
-                Manage Content
-              </Link>
-            </article>
-          ))}
-        </div>
-      </div>
-    </main>
-  );
-}
-
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RichBlogEditor from '@/components/RichBlogEditor';
