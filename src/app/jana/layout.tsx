@@ -14,7 +14,7 @@ const NAV_GROUPS = [
   {
     id: 'basics',
     title: 'FOUNDATION & INITIALIZATION',
-    subtitle: 'Define the structure before processing data',
+    subtitle: 'Define data schema, sections, components & rules',
     icon: 'fa-cubes',
     accent: '#60a5fa',
     collapsible: true,
@@ -22,8 +22,29 @@ const NAV_GROUPS = [
     items: [
       { name: 'Blueprint Architect', path: '/jana/governance', icon: 'fa-microchip', exact: true },
       { name: 'Business Categories & Typologies', path: '/jana/types', icon: 'fa-folder-tree' },
-      { name: 'Unified Controls Center', path: '/jana/controls', icon: 'fa-screwdriver-wrench' },
-      { name: 'Unified Section Architect', path: '/jana/sections', icon: 'fa-table-cells' },
+      {
+        name: 'Section Architect & Governance',
+        path: '/jana/sections',
+        icon: 'fa-table-cells',
+        children: [
+          { name: 'Section Architect & Schema', path: '/jana/sections', icon: 'fa-layer-group' },
+          { name: 'Unified Controls Center', path: '/jana/controls', icon: 'fa-screwdriver-wrench' },
+          { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
+          { name: 'Section Visibility Rules', path: '/admin/section-visibility', icon: 'fa-eye' },
+          { name: 'Governance & Search Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
+          { name: 'Content Curation & Filters', path: '/jana/curation', icon: 'fa-filter' },
+        ]
+      },
+      {
+        name: 'Component Library & Cards',
+        path: '/jana/component-library',
+        icon: 'fa-cubes',
+        children: [
+          { name: 'Reusable Component Library', path: '/jana/component-library', icon: 'fa-puzzle-piece' },
+          { name: 'Runtime Registry', path: '/jana/components', icon: 'fa-box' },
+          { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
+        ]
+      },
       {
         name: 'Intake & Review',
         path: '/jana/business-forms',
@@ -47,7 +68,7 @@ const NAV_GROUPS = [
   {
     id: 'vendor_operations',
     title: 'PROCESSING & VENDOR OPERATIONS',
-    subtitle: 'Process businesses, vendors, plans & access',
+    subtitle: 'Process businesses, vendors, plans, services & offers',
     icon: 'fa-users-gear',
     accent: '#22c55e',
     collapsible: true,
@@ -62,7 +83,6 @@ const NAV_GROUPS = [
         children: [
           { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
           { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
-          { name: 'Unified Studio', path: '/jana/studio', icon: 'fa-drafting-compass' },
           { name: 'Unified Builder', path: '/jana/unified-builder', icon: 'fa-sitemap' },
         ]
       },
@@ -75,13 +95,10 @@ const NAV_GROUPS = [
         path: '/admin/packages',
         icon: 'fa-briefcase',
         children: [
-          { name: 'Package Setup', path: '/admin/packages', icon: 'fa-cubes' },
-          { name: 'Package Management', path: '/admin/packages', icon: 'fa-boxes-stacked' },
-          { name: 'Offer Setup', path: '/admin/offers', icon: 'fa-gift' },
-          { name: 'Offer Categories', path: '/admin/offers', icon: 'fa-tags' },
+          { name: 'Package Setup & Management', path: '/admin/packages', icon: 'fa-boxes-stacked' },
+          { name: 'Offer Setup & Categories', path: '/admin/offers', icon: 'fa-tags' },
           { name: 'Discount Controls', path: '/admin/discounts', icon: 'fa-percent' },
           { name: 'Custom Visitor Packages', path: '/jana/tour-builder', icon: 'fa-route' },
-          { name: 'Tour Setup & Management', path: '/jana/tour-builder', icon: 'fa-map-location-dot' },
           { name: 'Visitor Journey Builder', path: '/admin/journey-requests', icon: 'fa-user-route' },
         ]
       },
@@ -103,41 +120,46 @@ const NAV_GROUPS = [
   {
     id: 'display',
     title: 'WEBSITE & PAGE BUILDER',
-    subtitle: 'Reusable pages, components, content & previews',
+    subtitle: 'Visual studio, pages, content & previews',
     icon: 'fa-photo-film',
     accent: '#a78bfa',
     collapsible: true,
     defaultCollapsed: false,
     items: [
-      { name: 'Visual Studio', path: '/jana/studio', icon: 'fa-wand-magic-sparkles', badge: 'HUB' },
+      { name: 'Visual Studio Hub', path: '/jana/studio', icon: 'fa-wand-magic-sparkles', badge: 'HUB' },
       { name: 'Main Site Builder', path: '/jana/main-site-builder', icon: 'fa-globe' },
-      { name: 'Minisite Builder', path: '/jana/minisite-builder', icon: 'fa-store' },
-      { name: 'Pages Manager', path: '/jana/pages', icon: 'fa-copy' },
-      { name: 'Visual Page Editor', path: '/jana/website?page=main', icon: 'fa-palette' },
       {
-        name: 'Components & Cards',
-        path: '/jana/component-library',
-        icon: 'fa-layer-group',
+        name: 'Minisite Studio',
+        path: '/jana/minisite-builder',
+        icon: 'fa-store',
         children: [
-          { name: 'Reusable Components', path: '/jana/component-library', icon: 'fa-puzzle-piece' },
-          { name: 'Runtime Registry', path: '/jana/components', icon: 'fa-cubes' },
-          { name: 'Card Layouts', path: '/jana/cards', icon: 'fa-id-card' },
+          { name: 'Minisite Builder', path: '/jana/minisite-builder', icon: 'fa-pen-to-square' },
+          { name: 'Minisite Templates', path: '/jana/minisite', icon: 'fa-store' },
+        ]
+      },
+      {
+        name: 'Pages Manager',
+        path: '/jana/pages',
+        icon: 'fa-copy',
+        children: [
+          { name: 'Pages Directory', path: '/jana/pages', icon: 'fa-file' },
+          { name: 'Visual Page Editor', path: '/jana/website?page=main', icon: 'fa-palette' },
+          { name: 'Homepage Editor', path: '/jana/homepage-editor', icon: 'fa-home' },
         ]
       },
       { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
-      { name: 'Homepage Configuration', path: '/jana/homepage-editor', icon: 'fa-home' },
       {
         name: 'Blog Suite',
         path: '/jana/blog',
         icon: 'fa-newspaper',
         children: [
+          { name: 'Blog Hub', path: '/jana/blog', icon: 'fa-newspaper' },
           { name: 'Layout Builder', path: '/jana/blog-layout-builder', icon: 'fa-table-columns' },
           { name: 'Templates', path: '/jana/blog-templates', icon: 'fa-file-invoice' },
           { name: 'Integration', path: '/jana/blog-integration', icon: 'fa-plug' },
         ]
       },
-      { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
-      { name: 'Minisite Templates', path: '/jana/minisite', icon: 'fa-store' },
+      { name: 'Business Content CMS', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
       {
         name: 'Search Engine Suite',
         path: '/jana/search-engines',
@@ -153,37 +175,24 @@ const NAV_GROUPS = [
   },
   {
     id: 'reports',
-    title: 'TESTING, APPROVALS & ANALYTICS',
-    subtitle: 'Validate, review, preview & measure',
+    title: 'ANALYTICS & PERFORMANCE',
+    subtitle: 'Operations dashboard, visitor analytics & insights',
     icon: 'fa-chart-line',
     accent: '#f59e0b',
     collapsible: true,
     defaultCollapsed: false,
     items: [
-    { name: 'Operations Dashboard', path: '/admin/analytics', icon: 'fa-gauge-high', badge: 'OPS' },
+      { name: 'Operations Dashboard', path: '/admin/analytics', icon: 'fa-gauge-high', badge: 'OPS' },
       { name: 'Visitor Analytics', path: '/jana/analytics', icon: 'fa-chart-area', badge: 'LIVE' },
-      {
-        name: 'Catalog Approval',
-        path: '/admin/packages',
-        icon: 'fa-clipboard-check',
-        children: [
-          { name: 'Packages', path: '/admin/packages', icon: 'fa-box' },
-          { name: 'Offers', path: '/admin/offers', icon: 'fa-gift' },
-          { name: 'Discounts', path: '/admin/discounts', icon: 'fa-tags' },
-        ]
-      },
-      { name: 'Investment Opps', path: '/admin/investment-opportunities', icon: 'fa-hand-holding-dollar' },
-      { name: 'Journey Requests', path: '/admin/journey-requests', icon: 'fa-route' },
-      { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
-      { name: 'Section Visibility', path: '/admin/section-visibility', icon: 'fa-eye' },
-      { name: 'POI Settings', path: '/admin/poi-settings', icon: 'fa-location-dot' },
       { name: 'Vendor Analytics', path: '/admin/analytics/vendor-performance', icon: 'fa-chart-simple' },
+      { name: 'Investment Opportunities', path: '/admin/investment-opportunities', icon: 'fa-hand-holding-dollar' },
+      { name: 'POI Settings', path: '/admin/poi-settings', icon: 'fa-location-dot' },
     ]
   },
   {
     id: 'system',
     title: 'SYSTEM & DIAGNOSTICS',
-    subtitle: 'Maintenance & Audits',
+    subtitle: 'Maintenance, moderation & system tools',
     icon: 'fa-gear',
     accent: '#94a3b8',
     collapsible: true,
@@ -191,10 +200,8 @@ const NAV_GROUPS = [
     items: [
       { name: 'Data Manager', path: '/jana/data-manager', icon: 'fa-database' },
       { name: 'Moderation', path: '/jana/moderation', icon: 'fa-user-shield' },
-      { name: 'Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
       { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
-      { name: 'Curation', path: '/jana/curation', icon: 'fa-filter' },
       { name: 'System Setup', path: '/jana/setup', icon: 'fa-screwdriver-wrench' },
       { name: 'Demo Automation', path: '/jana/demo-automation', icon: 'fa-robot' },
     ]
