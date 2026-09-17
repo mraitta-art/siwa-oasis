@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminProvider, useAdmin } from '@/context/AdminContext';
+import { LangProvider, useLang } from '@/context/LangContext';
 
 /* ─────────────────────────────────────────────────────────
    GOVERNANCE PIPELINE — Sidebar navigation groups.
@@ -211,6 +212,12 @@ const NAV_GROUPS = [
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { advancedMode, setAdvancedMode } = useAdmin();
+  const { lang, isRTL, toggleLang } = useLang();
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+  }, [lang, isRTL]);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
     const defaults: Record<string, boolean> = {};
     NAV_GROUPS.forEach(g => { if (g.defaultCollapsed) defaults[g.id] = true; });
@@ -356,7 +363,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Render the sidebar content. `showLabels` controls whether text labels are visible
   const renderSidebarContent = (showLabels: boolean) => {
     return (
-      <div style={{ color: '#cbd5e1', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '100%' }}>
+      <div dir={isRTL ? 'rtl' : 'ltr'} style={{ color: '#cbd5e1', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '100%', textAlign: isRTL ? 'right' : 'left' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: showLabels ? 'space-between' : 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
           {!showLabels ? (
             <div style={{ fontWeight: 900, color: '#fff' }}>SIWA</div>
@@ -388,18 +395,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 <div style={{ marginTop: '0.45rem', display: 'grid', gap: '0.25rem' }}>
                   {group.items.map((item: any) => (
                     <div key={item.path} data-sidebar-active={isActive(item) ? 'true' : 'false'} style={{ display: 'flex', flexDirection: 'column' }}>
-                      <Link href={item.path} style={{ textDecoration: 'none', color: isActive(item) ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: showLabels ? '0.75rem' : '0' }}>
+                      <Link href={item.path} style={{ textDecoration: 'none', color: isActive(item) ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: showLabels ? '0.75rem' : '0', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive(item) ? 'rgba(255,255,255,0.06)' : 'transparent' }}>
                           <i className={`fas ${item.icon || 'fa-circle'}`} />
                         </div>
                         {showLabels && <div style={{ fontSize: '0.86rem', fontWeight: 700 }}>{item.name}</div>}
-                        {showLabels && item.badge && <span style={{ marginLeft: 'auto', color: group.accent, fontSize: '0.58rem', fontWeight: 900 }}>{item.badge}</span>}
+                        {showLabels && item.badge && <span style={{ marginInlineStart: 'auto', color: group.accent, fontSize: '0.58rem', fontWeight: 900 }}>{item.badge}</span>}
                       </Link>
                       {showLabels && item.children && (isActive(item) || item.children.some(isActive)) && (
-                        <div style={{ marginLeft: '2.25rem', padding: '0.2rem 0 0.35rem 0.75rem', borderLeft: '1px solid rgba(255,255,255,0.12)', display: 'grid', gap: '0.2rem' }}>
+                        <div style={{ marginInlineStart: '2.25rem', padding: '0.2rem 0 0.35rem', paddingInlineStart: '0.75rem', borderInlineStart: '1px solid rgba(255,255,255,0.12)', display: 'grid', gap: '0.2rem' }}>
                           {item.children.map((child: any) => (
                             <Link key={child.path} href={child.path} style={{ color: isActive(child) ? '#f0c842' : '#94a3b8', fontSize: '0.72rem', fontWeight: 600, textDecoration: 'none', padding: '0.2rem 0' }}>
-                              <i className={`fas ${child.icon || 'fa-circle'}`} style={{ width: '1rem', marginRight: '0.35rem' }} />{child.name}
+                              <i className={`fas ${child.icon || 'fa-circle'}`} style={{ width: '1rem', marginInlineEnd: '0.35rem' }} />{child.name}
                             </Link>
                           ))}
                         </div>
@@ -423,7 +430,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f5' }}>
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: isRTL ? 'row-reverse' : 'row', minHeight: '100vh', background: '#f0f2f5', fontFamily: isRTL ? "'Cairo', 'Segoe UI', sans-serif" : undefined }}>
 
       {/* ─── MOBILE OVERLAY ─── */}
       {isMobile && mobileOpen && (
@@ -446,10 +453,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           flexDirection: 'column',
           position: 'fixed',
           top: 0,
-          left: 0,
+          left: isRTL ? 'auto' : 0,
+          right: isRTL ? 0 : 'auto',
           bottom: 0,
           zIndex: 200,
-          transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transform: mobileOpen ? 'translateX(0)' : `translateX(${isRTL ? '100%' : '-100%'})`,
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           overflowY: 'auto',
         }}>
@@ -468,7 +476,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           overflow: 'hidden',
           position: 'fixed',
           top: 0,
-          left: 0,
+          left: isRTL ? 'auto' : 0,
+          right: isRTL ? 0 : 'auto',
           bottom: 0,
           zIndex: 100,
         }}>
@@ -478,7 +487,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* ─── MAIN CONTENT ─── */}
       <div style={{
-        marginLeft: isMobile ? 0 : (sidebarCollapsed ? '60px' : '270px'),
+        marginLeft: isRTL || isMobile ? 0 : (sidebarCollapsed ? '60px' : '270px'),
+        marginRight: isRTL && !isMobile ? (sidebarCollapsed ? '60px' : '270px') : 0,
         flex: 1,
         transition: 'margin-left 0.3s ease',
         display: 'flex',
@@ -515,7 +525,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1.5rem', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1.5rem', flexShrink: 0, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+            <button type="button" onClick={toggleLang} title={isRTL ? 'Switch to English' : 'التبديل إلى العربية'} style={{ border: '1px solid #e2e8f0', background: '#fff', color: '#334155', borderRadius: '8px', padding: '0.45rem 0.7rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem' }}>
+              {lang === 'ar' ? 'EN' : 'عربي'}
+            </button>
             {/* Advanced Mode Toggle */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -560,10 +573,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AdminProvider>
-      <AdminLayoutInner>
-        {children}
-      </AdminLayoutInner>
-    </AdminProvider>
+    <LangProvider>
+      <AdminProvider>
+        <AdminLayoutInner>
+          {children}
+        </AdminLayoutInner>
+      </AdminProvider>
+    </LangProvider>
   );
 }

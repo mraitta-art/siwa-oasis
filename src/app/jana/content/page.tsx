@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RichBlogEditor from '@/components/RichBlogEditor';
 import DynamicForm from '@/components/DynamicForm';
+import { useLang } from '@/context/LangContext';
 
 type GalleryItem = { url: string; caption: string };
 type ContentMeta = {
@@ -30,6 +31,12 @@ function parseGallery(value: unknown): GalleryItem[] {
 }
 
 export default function ContentManagementPage() {
+  const { isRTL } = useLang();
+  const copy = isRTL ? {
+    eyebrow: 'إدارة المحتوى', title: 'إدارة محتوى الأنشطة التجارية', description: 'إدارة الأقسام والصور والقصص وإعدادات النشر من مكان واحد.', setup: 'إعداد الصلاحيات', schema: 'مخطط الأقسام', findBusiness: 'البحث عن نشاط تجاري...', selectBusiness: 'اختر نشاطاً تجارياً لإدارة محتواه.', contentMedia: 'المحتوى والوسائط', fields: 'الحقول', components: 'المكونات', sectionName: 'اسم قسم الموقع المصغر', images: 'الصور والتعليقات', upload: 'رفع من الجهاز', takePhoto: 'التقاط صورة', uploading: 'جاري الرفع...', save: 'حفظ المحتوى والنشر', story: 'قصة القسم / مدونة قصيرة'
+  } : {
+    eyebrow: 'CONTENT OPERATIONS', title: 'Business Content Management', description: 'Manage sections, media, blogs, fields, and components from one place.', setup: 'Setup authority', schema: 'Section schema', findBusiness: 'Find business...', selectBusiness: 'Select a business to manage its section content.', contentMedia: 'Content & media', fields: 'Fields', components: 'Components', sectionName: 'MINISITE SECTION NAME', images: 'Images & captions', upload: 'Upload from device', takePhoto: 'Take photo', uploading: 'Uploading...', save: 'Save content & placement', story: 'Section story / small blog'
+  };
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState('');
@@ -196,23 +203,23 @@ export default function ContentManagementPage() {
   if (loading) return <div style={{ padding: '3rem', color: '#64748b' }}>Loading content workspace...</div>;
 
   return (
-    <main style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <main dir={isRTL ? 'rtl' : 'ltr'} style={{ maxWidth: '1400px', margin: '0 auto', textAlign: isRTL ? 'right' : 'left' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
         <div>
-          <div style={{ color: '#a16207', fontSize: '0.68rem', fontWeight: 900, letterSpacing: '1.5px' }}>CONTENT OPERATIONS</div>
-          <h1 style={{ margin: '0.35rem 0', fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>Business Content Management</h1>
-          <p style={{ margin: 0, color: '#64748b' }}>Curate section images, captions, stories, and publication placement.</p>
+          <div style={{ color: '#a16207', fontSize: '0.68rem', fontWeight: 900, letterSpacing: isRTL ? 0 : '1.5px' }}>{copy.eyebrow}</div>
+          <h1 style={{ margin: '0.35rem 0', fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>{copy.title}</h1>
+          <p style={{ margin: 0, color: '#64748b' }}>{copy.description}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <Link href="/jana/setup" style={{ padding: '0.65rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '9px', color: '#475569', textDecoration: 'none', fontWeight: 800, fontSize: '0.75rem' }}>Setup authority</Link>
-          <Link href="/jana/sections" style={{ padding: '0.65rem 0.9rem', background: '#0f172a', borderRadius: '9px', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: '0.75rem' }}>Section schema</Link>
+          <Link href="/jana/setup" style={{ padding: '0.65rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '9px', color: '#475569', textDecoration: 'none', fontWeight: 800, fontSize: '0.75rem' }}>{copy.setup}</Link>
+          <Link href="/jana/sections" style={{ padding: '0.65rem 0.9rem', background: '#0f172a', borderRadius: '9px', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: '0.75rem' }}>{copy.schema}</Link>
         </div>
       </header>
 
       <section style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: '1rem', alignItems: 'start' }}>
         <aside style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden' }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-            <input value={filter} onChange={event => setFilter(event.target.value)} placeholder="Find business..." style={{ width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.7rem', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
+            <input value={filter} onChange={event => setFilter(event.target.value)} placeholder={copy.findBusiness} style={{ width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.7rem', border: '1px solid #cbd5e1', borderRadius: '8px', direction: isRTL ? 'rtl' : 'ltr' }} />
           </div>
           <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
             {visibleBusinesses.map(item => (
@@ -226,7 +233,7 @@ export default function ContentManagementPage() {
 
         <div style={{ minWidth: 0 }}>
           {!business ? (
-            <div style={{ background: '#fff', border: '1px dashed #cbd5e1', borderRadius: '14px', padding: '5rem 2rem', textAlign: 'center', color: '#64748b' }}>Select a business to manage its section content.</div>
+            <div style={{ background: '#fff', border: '1px dashed #cbd5e1', borderRadius: '14px', padding: '5rem 2rem', textAlign: 'center', color: '#64748b' }}>{copy.selectBusiness}</div>
           ) : (
             <>
               <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
@@ -238,9 +245,9 @@ export default function ContentManagementPage() {
 
               <div role="tablist" aria-label="Business section workspace" style={{ display: 'flex', gap: '0.35rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1rem', overflowX: 'auto' }}>
                 {[
-                  ['content', 'Content & media', 'fa-pen-ruler'],
-                  ['fields', `Fields (${fields.length})`, 'fa-list-check'],
-                  ['components', `Components (${components.length})`, 'fa-puzzle-piece'],
+                  ['content', copy.contentMedia, 'fa-pen-ruler'],
+                  ['fields', `${copy.fields} (${fields.length})`, 'fa-list-check'],
+                  ['components', `${copy.components} (${components.length})`, 'fa-puzzle-piece'],
                 ].map(([tab, label, icon]) => (
                   <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab as typeof activeTab)} style={{ padding: '0.75rem 0.9rem', border: 0, borderBottom: activeTab === tab ? '2px solid #D4AF37' : '2px solid transparent', background: 'transparent', color: activeTab === tab ? '#a16207' : '#64748b', fontSize: '0.72rem', fontWeight: 900, whiteSpace: 'nowrap', cursor: 'pointer' }}>
                     <i className={`fas ${icon}`} style={{ marginRight: '0.35rem' }} />{label}
@@ -267,7 +274,7 @@ export default function ContentManagementPage() {
               )}
 
               {activeTab === 'content' && <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.8px', marginBottom: '0.4rem' }}>MINISITE SECTION NAME</label>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: isRTL ? 0 : '0.8px', marginBottom: '0.4rem' }}>{copy.sectionName}</label>
                 <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
                   <input value={sectionLabel} onChange={event => setSectionLabel(event.target.value)} placeholder={section?.name || 'Default section name'} disabled={!!sectionControls[sectionId]?.admin_locked_label} style={{ flex: 1, padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', background: sectionControls[sectionId]?.admin_locked_label ? '#f8fafc' : '#fff' }} />
                   {sectionControls[sectionId]?.admin_locked_label && <span style={{ color: '#b91c1c', fontSize: '0.7rem', fontWeight: 800 }}><i className="fas fa-lock" /> Locked</span>}
@@ -277,7 +284,7 @@ export default function ContentManagementPage() {
 
               {activeTab === 'content' && <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.8fr)', gap: '1rem' }}>
                 <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
-                  <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>Images & captions</h3>
+                  <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>{copy.images}</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: '0.5rem', marginBottom: '0.65rem' }}>
                     <input value={newImage.url} onChange={event => setNewImage(current => ({ ...current, url: event.target.value }))} placeholder="Image URL" style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '7px' }} />
                     <input value={newImage.caption} onChange={event => setNewImage(current => ({ ...current, caption: event.target.value }))} placeholder="Caption" style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '7px' }} />
@@ -285,11 +292,11 @@ export default function ContentManagementPage() {
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 0.8rem', borderRadius: '7px', background: uploadingGallery ? '#cbd5e1' : '#0f172a', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: uploadingGallery ? 'wait' : 'pointer' }}>
-                      <i className="fas fa-upload" /> {uploadingGallery ? 'Uploading...' : 'Upload from device'}
+                      <i className="fas fa-upload" /> {uploadingGallery ? copy.uploading : copy.upload}
                       <input type="file" accept="image/*,video/*" onChange={uploadGalleryMedia} disabled={uploadingGallery} style={{ display: 'none' }} />
                     </label>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 0.8rem', borderRadius: '7px', background: uploadingGallery ? '#cbd5e1' : '#0f766e', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: uploadingGallery ? 'wait' : 'pointer' }}>
-                      <i className="fas fa-camera" /> Take photo
+                      <i className="fas fa-camera" /> {copy.takePhoto}
                       <input type="file" accept="image/*" capture="environment" onChange={uploadGalleryMedia} disabled={uploadingGallery} style={{ display: 'none' }} />
                     </label>
                     <span style={{ alignSelf: 'center', color: '#64748b', fontSize: '0.68rem' }}>Uploads are saved to this business and section.</span>
@@ -312,13 +319,13 @@ export default function ContentManagementPage() {
               </div>}
 
               {activeTab === 'content' && <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', marginTop: '1rem' }}>
-                <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>Section story / small blog</h3>
+                <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>{copy.story}</h3>
                 <input value={blogTitle} onChange={event => setBlogTitle(event.target.value)} placeholder="Story title" style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', marginBottom: '0.7rem' }} />
                 <RichBlogEditor value={blogBody} onChange={setBlogBody} minHeight="280px" businessName={business.name} sectionName={section?.name || sectionId} placeholder="Write the section story with photos, fonts, colors, headings, links, and callouts..." />
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.8rem' }}><select value={meta.blogStatus} onChange={event => updateMeta('blogStatus', event.target.value)} style={{ padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '7px' }}><option value="draft">Blog draft</option><option value="approved">Blog approved</option><option value="suspended">Blog suspended</option></select>{[['blogOnMain', 'Show story on main carousel'], ['blogOnMinisite', 'Show story on minisite']].map(([key, label]) => <label key={key} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.73rem', color: '#475569' }}><input type="checkbox" checked={!!meta[key as keyof ContentMeta]} onChange={event => updateMeta(key as keyof ContentMeta, event.target.checked)} />{label}</label>)}</div>
               </section>}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>{message && <span style={{ color: message.includes('failed') ? '#b91c1c' : '#15803d', fontSize: '0.75rem' }}>{message}</span>}<button onClick={saveContent} disabled={saving || !section} style={{ padding: '0.75rem 1.2rem', border: 0, borderRadius: '8px', background: saving ? '#94a3b8' : '#0f172a', color: '#fff', fontWeight: 900, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving...' : 'Save content & placement'}</button></div>
+              <div style={{ display: 'flex', justifyContent: isRTL ? 'flex-start' : 'flex-end', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>{message && <span style={{ color: message.includes('failed') ? '#b91c1c' : '#15803d', fontSize: '0.75rem' }}>{message}</span>}<button onClick={saveContent} disabled={saving || !section} style={{ padding: '0.75rem 1.2rem', border: 0, borderRadius: '8px', background: saving ? '#94a3b8' : '#0f172a', color: '#fff', fontWeight: 900, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : copy.save}</button></div>
             </>
           )}
         </div>
