@@ -44,6 +44,34 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
+type TargetScope = 'main' | 'minisite' | 'readymade';
+
+const MINISITE_TABS = [
+  { id: 'main', label: '🏠 Main Home', tabParam: '' },
+  { id: 'stories', label: '📖 Stories & Heritage', tabParam: 'stories' },
+  { id: 'services', label: '💼 Services & Offerings', tabParam: 'services' },
+  { id: 'gallery', label: '🖼️ Media Gallery', tabParam: 'gallery' },
+  { id: 'offers', label: '🏷️ Special Deals', tabParam: 'offers' },
+  { id: 'contact', label: '📞 Contact & Location', tabParam: 'contact' },
+  { id: 'custom', label: '✍️ Custom Tab', tabParam: '' },
+];
+
+const MAIN_PAGE_PRESETS = [
+  { id: 'discovery', label: '🏠 Homepage', url: '/' },
+  { id: 'journeys_hero', label: '✈️ Journeys & Tours', url: '/journeys' },
+  { id: 'search_hero', label: '🔍 Search & Compare', url: '/discovery/compare' },
+  { id: 'auctions_hero', label: '🔨 Auctions', url: '/auctions' },
+  { id: 'stories_hero', label: '📖 Stories & Heritage', url: '/stories' },
+  { id: 'deals_hero', label: '🏷️ Deals & Offers', url: '/deals' },
+  { id: 'pricing_hero', label: '💎 Pricing & Memberships', url: '/pricing' },
+];
+
+const READYMADE_PAGE_PRESETS = [
+  { id: 'orchestrator_home', label: '⚡ Orchestrator Dynamic Home', url: '/p/main' },
+  { id: 'search_hub', label: '🧭 Discovery Hub Page', url: '/p/search' },
+  { id: 'landing_exclusive', label: '🌟 Exclusive Member Landing', url: '/p/exclusive' },
+];
+
 const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   manual:     { label: '⭐ Manual',     color: '#D4AF37', bg: 'rgba(212,175,55,0.15)' },
   business:   { label: '🏢 Business',   color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
@@ -55,10 +83,32 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
 function HeroCarouselManagerContent() {
   const searchParams = useSearchParams();
   const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string }[]>([]);
-  const initialSiteId = searchParams.get('siteId') || 'discovery';
-  const initialBusinessId = searchParams.get('businessId') || (initialSiteId.startsWith('biz_') ? initialSiteId.replace(/^biz_/, '').replace(/_hero$/, '') : '');
+  const [dynamicMainPages, setDynamicMainPages] = useState<{ slug: string; title: string }[]>([]);
+
+  const initialSiteId = searchParams?.get('siteId') || 'discovery';
+  const initialBusinessId = searchParams?.get('businessId') || (
+    initialSiteId.startsWith('biz_') 
+      ? initialSiteId.replace(/^biz_/, '').replace(/_tab_.*$/, '').replace(/_hero$/, '')
+      : ''
+  );
+
+  const initialScope: TargetScope = (searchParams?.get('targetScope') as TargetScope) || (
+    initialBusinessId ? 'minisite' : (initialSiteId.startsWith('readymade_') ? 'readymade' : 'main')
+  );
+
+  const initialTab = searchParams?.get('minisiteTab') || (
+    initialSiteId.includes('_tab_') ? initialSiteId.split('_tab_')[1]?.replace(/_hero$/, '') : 'main'
+  );
+
+  const [targetScope, setTargetScope] = useState<TargetScope>(initialScope);
+  const [mainPagePreset, setMainPagePreset] = useState(searchParams?.get('mainPreset') || (initialScope === 'main' ? initialSiteId : 'discovery'));
+  const [customMainPath, setCustomMainPath] = useState(searchParams?.get('customMainPath') || '');
   const [businessId, setBusinessId] = useState(initialBusinessId);
-  const [carouselId, setCarouselId] = useState(initialSiteId);
+  const [minisiteTab, setMinisiteTab] = useState(initialTab);
+  const [customMinisiteTab, setCustomMinisiteTab] = useState(searchParams?.get('customMinisiteTab') || '');
+  const [readyMadeId, setReadyMadeId] = useState(searchParams?.get('readyMadeId') || (initialSiteId.startsWith('readymade_') ? initialSiteId.replace(/^readymade_/, '') : 'orchestrator_home'));
+  const [customReadyMadePath, setCustomReadyMadePath] = useState(searchParams?.get('customReadyMadePath') || '');
+
   const [allSlides, setAllSlides] = useState<CarouselSlide[]>([]);
   const [deletedDynamicIds, setDeletedDynamicIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,43 +119,96 @@ function HeroCarouselManagerContent() {
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
-  const siteId = businessId ? `biz_${businessId}_hero` : carouselId.trim() || 'discovery';
 
-  const selectedBusiness = businesses.find(b => b.id === businessId);
+  const getCarouselTarget = () => {
+    if (targetScope === 'minisite') {
+      const biz = businesses.find(b => b.id === businessId);
+      const bizName = biz ? biz.name : (businessId ? `Minisite ${businessId}` : 'Select Vendor Minisite');
+      const slugPath = biz ? (biz.slug ? `/${biz.slug}` : `/business/${biz.id}`) : `/business/${businessId || 'id'}`;
 
-  const getTargetPageInfo = (bId: string, cId: string, bizList: typeof businesses) => {
-    if (bId) {
-      const biz = bizList.find(b => b.id === bId);
-      const url = biz ? (biz.slug ? `/${biz.slug}` : `/business/${biz.id}`) : `/business/${bId}`;
+      let tabQuery = '';
+      let tabLabel = 'Main Home';
+      let tabSuffix = 'hero';
+
+      if (minisiteTab === 'custom') {
+        const cleanCustom = customMinisiteTab.trim().toLowerCase();
+        tabQuery = cleanCustom ? `?tab=${cleanCustom}` : '';
+        tabLabel = cleanCustom ? `Custom Tab (${cleanCustom})` : 'Custom Tab';
+        tabSuffix = cleanCustom ? `tab_${cleanCustom}_hero` : 'hero';
+      } else if (minisiteTab && minisiteTab !== 'main') {
+        const found = MINISITE_TABS.find(t => t.id === minisiteTab);
+        tabQuery = `?tab=${minisiteTab}`;
+        tabLabel = found ? found.label : `Tab: ${minisiteTab}`;
+        tabSuffix = `tab_${minisiteTab}_hero`;
+      }
+
+      const siteId = businessId ? `biz_${businessId}_${tabSuffix}` : 'discovery';
+      const url = `${slugPath}${tabQuery}`;
+      const title = biz ? `${biz.name} — ${tabLabel}` : 'Vendor Minisite Carousel';
+
+      return { siteId, url, title, scopeLabel: '🏢 Vendor Business Minisite', bizName, tabLabel };
+    }
+
+    if (targetScope === 'readymade') {
+      const isCustom = customReadyMadePath.trim().length > 0;
+      const key = isCustom ? customReadyMadePath.trim() : readyMadeId;
+      const url = key.startsWith('/') ? key : `/p/${key.replace(/^p\//, '')}`;
+      const cleanKey = key.replace(/^\//, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const siteId = `readymade_${cleanKey}`;
+      const presetFound = READYMADE_PAGE_PRESETS.find(p => p.id === readyMadeId);
+      const title = isCustom ? `Exclusive Dynamic Page (${key})` : (presetFound ? presetFound.label : `Ready-Made Page (${key})`);
+
+      return { siteId, url, title, scopeLabel: '🚀 Exclusive Standalone Page' };
+    }
+
+    // Main website scope
+    if (customMainPath.trim()) {
+      const cleanPath = customMainPath.trim().startsWith('/') ? customMainPath.trim() : `/${customMainPath.trim()}`;
+      const slugKey = cleanPath.replace(/^\//, '').replace(/[^a-zA-Z0-9_-]/g, '_');
       return {
-        title: biz ? `Minisite: ${biz.name}` : `Minisite: ${bId}`,
-        url,
-        type: 'minisite'
+        siteId: `page_${slugKey}`,
+        url: cleanPath,
+        title: `Main Website Custom Page (${cleanPath})`,
+        scopeLabel: '🏠 Main Website Page',
       };
     }
-    const cleanId = (cId || 'discovery').toLowerCase();
-    if (cleanId === 'discovery' || cleanId === 'main') return { title: 'Main Homepage', url: '/', type: 'page' };
-    if (cleanId === 'journeys_hero' || cleanId === 'journeys') return { title: 'Journeys & Tours', url: '/journeys', type: 'page' };
-    if (cleanId === 'search_hero' || cleanId === 'search') return { title: 'Search & Compare', url: '/discovery/compare', type: 'page' };
-    if (cleanId === 'auctions_hero' || cleanId === 'auctions') return { title: 'Auctions', url: '/auctions', type: 'page' };
-    return { title: `Page (${cleanId})`, url: '/', type: 'custom' };
+
+    const preset = MAIN_PAGE_PRESETS.find(p => p.id === mainPagePreset) || MAIN_PAGE_PRESETS[0];
+    return {
+      siteId: preset.id,
+      url: preset.url,
+      title: `Main Website: ${preset.label}`,
+      scopeLabel: '🏠 Main Website Page',
+    };
   };
 
-  const targetPage = getTargetPageInfo(businessId, carouselId, businesses);
-  const previewHref = targetPage.url;
+  const currentTarget = getCarouselTarget();
+  const siteId = currentTarget.siteId;
+  const previewHref = currentTarget.url;
 
-  const updateUrlState = (bId: string, cId: string) => {
+  const updateUrlState = () => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
-    if (bId) {
-      params.set('businessId', bId);
-      params.set('siteId', `biz_${bId}_hero`);
-    } else {
-      params.set('siteId', cId || 'discovery');
+    params.set('targetScope', targetScope);
+    params.set('siteId', currentTarget.siteId);
+    if (targetScope === 'main') {
+      params.set('mainPreset', mainPagePreset);
+      if (customMainPath) params.set('customMainPath', customMainPath);
+    } else if (targetScope === 'minisite') {
+      if (businessId) params.set('businessId', businessId);
+      params.set('minisiteTab', minisiteTab);
+      if (customMinisiteTab) params.set('customMinisiteTab', customMinisiteTab);
+    } else if (targetScope === 'readymade') {
+      params.set('readyMadeId', readyMadeId);
+      if (customReadyMadePath) params.set('customReadyMadePath', customReadyMadePath);
     }
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, '', newUrl);
   };
+
+  useEffect(() => {
+    updateUrlState();
+  }, [targetScope, mainPagePreset, customMainPath, businessId, minisiteTab, customMinisiteTab, readyMadeId, customReadyMadePath]);
 
   const defaultFormData: Partial<CarouselSlide> = {
     title: '',
@@ -369,7 +472,7 @@ function HeroCarouselManagerContent() {
               🎬 Hero Carousel Manager
             </h1>
             <p style={{ color: '#64748b', margin: '0.25rem 0 0' }}>
-              Currently Editing: <strong style={{ color: '#D4AF37' }}>{targetPage.title}</strong> (`{siteId}`)
+              Targeting: <strong style={{ color: '#D4AF37' }}>{currentTarget.title}</strong> (`{siteId}`)
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -389,82 +492,269 @@ function HeroCarouselManagerContent() {
           </div>
         </div>
 
-        {/* Page & Minisite Selector Toolbar */}
-        <div style={{ background: '#1e293b', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Dynamic Carousel Target Scope Toolbar */}
+        <div style={{ background: '#1e293b', borderRadius: '16px', border: '1px solid rgba(212,175,55,0.25)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          {/* Header Row & Target Destination Link */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#D4AF37', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
-              <i className="fas fa-sliders" /> SELECT CAROUSEL TARGET PAGE & MINISITE
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#D4AF37', fontWeight: 900, fontSize: '0.88rem', letterSpacing: '0.5px' }}>
+              <i className="fas fa-crosshairs" /> DYNAMIC CAROUSEL TARGET SELECTOR
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#94a3b8' }}>
-              <span>Destination:</span>
+              <span>Live Destination:</span>
               <a href={previewHref} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}>
                 https://siwify.com{previewHref}
               </a>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-            {/* Main Page Presets */}
-            <div style={{ display: 'flex', gap: '0.35rem', background: '#0f172a', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              {[
-                { label: '🏠 Homepage', siteId: 'discovery', url: '/' },
-                { label: '✈️ Journeys', siteId: 'journeys_hero', url: '/journeys' },
-                { label: '🔍 Search & Compare', siteId: 'search_hero', url: '/discovery/compare' },
-                { label: '🔨 Auctions', siteId: 'auctions_hero', url: '/auctions' },
-              ].map(preset => {
-                const isActive = !businessId && (carouselId === preset.siteId || (preset.siteId === 'discovery' && (carouselId === 'main' || carouselId === 'discovery')));
-                return (
-                  <button
-                    key={preset.siteId}
-                    onClick={() => {
-                      setBusinessId('');
-                      setCarouselId(preset.siteId);
-                      updateUrlState('', preset.siteId);
-                      setShowForm(false);
-                      setEditingId(null);
-                    }}
-                    style={{
-                      padding: '0.5rem 0.85rem',
-                      borderRadius: '7px',
-                      border: 'none',
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      background: isActive ? '#D4AF37' : 'transparent',
-                      color: isActive ? '#0f172a' : '#94a3b8',
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Vendor Minisite Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
-              <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🏢 Minisite:</span>
-              <select
-                value={businessId}
-                onChange={event => {
-                  const nextBusinessId = event.target.value;
-                  setBusinessId(nextBusinessId);
-                  if (!nextBusinessId) setCarouselId('discovery');
-                  updateUrlState(nextBusinessId, nextBusinessId ? `biz_${nextBusinessId}_hero` : 'discovery');
-                  setShowForm(false);
-                  setEditingId(null);
-                }}
-                style={{ flex: 1, padding: '0.65rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.3)', background: businessId ? 'rgba(212,175,55,0.15)' : '#0f172a', color: businessId ? '#D4AF37' : '#fff', fontWeight: 800, outline: 'none' }}
-              >
-                <option value="">-- Choose Vendor Business Minisite --</option>
-                {businesses.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.slug ? `/${b.slug}` : `/business/${b.id}`})
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Scope Mode Selector Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', background: '#0f172a', padding: '6px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            {[
+              { id: 'main', label: '🏠 Main Website Pages', icon: 'fa-globe' },
+              { id: 'minisite', label: '🏢 Vendor Business Minisites & Tabs', icon: 'fa-store' },
+              { id: 'readymade', label: '🚀 Dynamic Ready-Made & Exclusive Pages', icon: 'fa-bolt' },
+            ].map(tab => {
+              const isActive = targetScope === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setTargetScope(tab.id as TargetScope);
+                    setShowForm(false);
+                    setEditingId(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.65rem 1rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: isActive ? '#D4AF37' : 'transparent',
+                    color: isActive ? '#0f172a' : '#94a3b8',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <i className={`fas ${tab.icon}`} /> {tab.label}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Sub-controls based on Target Scope */}
+          {targetScope === 'main' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'rgba(15,23,42,0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>
+                Select Main Website Target Page:
+              </div>
+
+              {/* Main Presets */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {MAIN_PAGE_PRESETS.map(preset => {
+                  const isActive = !customMainPath && mainPagePreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        setCustomMainPath('');
+                        setMainPagePreset(preset.id);
+                        setShowForm(false);
+                        setEditingId(null);
+                      }}
+                      style={{
+                        padding: '0.5rem 0.85rem',
+                        borderRadius: '8px',
+                        border: '1px solid',
+                        borderColor: isActive ? '#D4AF37' : 'rgba(255,255,255,0.08)',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: isActive ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.03)',
+                        color: isActive ? '#D4AF37' : '#94a3b8',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Dynamic Pages / Custom Main Path */}
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                {dynamicMainPages.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ Dynamic Page:</span>
+                    <select
+                      value={mainPagePreset}
+                      onChange={e => {
+                        setCustomMainPath('');
+                        setMainPagePreset(e.target.value);
+                      }}
+                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                    >
+                      <option value="discovery">-- Select Orchestrator Page --</option>
+                      {dynamicMainPages.map(dp => (
+                        <option key={dp.slug} value={`page_${dp.slug}`}>
+                          {dp.title} (`/${dp.slug}`)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
+                  <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Main Route:</span>
+                  <input
+                    type="text"
+                    placeholder="e.g. /events or /exclusive-deals"
+                    value={customMainPath}
+                    onChange={e => setCustomMainPath(e.target.value)}
+                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                  />
+                  {customMainPath && (
+                    <button onClick={() => setCustomMainPath('')} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {targetScope === 'minisite' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'rgba(15,23,42,0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.2)' }}>
+              {/* Business Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <span style={{ color: '#D4AF37', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}>1. Select Minisite Business:</span>
+                <select
+                  value={businessId}
+                  onChange={e => {
+                    setBusinessId(e.target.value);
+                    setShowForm(false);
+                    setEditingId(null);
+                  }}
+                  style={{ flex: 1, minWidth: '260px', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.4)', background: businessId ? 'rgba(212,175,55,0.15)' : '#0f172a', color: businessId ? '#D4AF37' : '#fff', fontWeight: 800, outline: 'none' }}
+                >
+                  <option value="">-- Choose Vendor Minisite Business --</option>
+                  {businesses.map(b => (
+                    <option key={b.id} value={b.id}>
+                      🏢 {b.name} ({b.slug ? `/${b.slug}` : `/business/${b.id}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Minisite Tab / Sub-Page Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>2. Select Minisite Page / Tab Target:</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  {MINISITE_TABS.map(tab => {
+                    const isActive = minisiteTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setMinisiteTab(tab.id);
+                          setShowForm(false);
+                          setEditingId(null);
+                        }}
+                        style={{
+                          padding: '0.45rem 0.8rem',
+                          borderRadius: '8px',
+                          border: '1px solid',
+                          borderColor: isActive ? '#D4AF37' : 'rgba(255,255,255,0.08)',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          background: isActive ? '#D4AF37' : 'rgba(255,255,255,0.03)',
+                          color: isActive ? '#0f172a' : '#94a3b8',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {minisiteTab === 'custom' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', maxWidth: '380px' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>Custom Tab Key:</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. booking or menu"
+                      value={customMinisiteTab}
+                      onChange={e => setCustomMinisiteTab(e.target.value)}
+                      style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {targetScope === 'readymade' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'rgba(15,23,42,0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>
+                Select Exclusive Dynamic Page / Standalone Landing:
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '240px' }}>
+                  <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🚀 Preset Page:</span>
+                  <select
+                    value={readyMadeId}
+                    onChange={e => {
+                      setCustomReadyMadePath('');
+                      setReadyMadeId(e.target.value);
+                    }}
+                    style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                  >
+                    {READYMADE_PAGE_PRESETS.map(p => (
+                      <option key={p.id} value={p.id}>{p.label} (`{p.url}`)</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
+                  <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Page Route:</span>
+                  <input
+                    type="text"
+                    placeholder="e.g. /p/vip-landing or /custom-hero"
+                    value={customReadyMadePath}
+                    onChange={e => setCustomReadyMadePath(e.target.value)}
+                    style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                  />
+                  {customReadyMadePath && (
+                    <button onClick={() => setCustomReadyMadePath('')} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Target Active Status Summary Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(212,175,55,0.08)', borderRadius: '10px', border: '1px dashed rgba(212,175,55,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.82rem', flexWrap: 'wrap' }}>
+              <span style={{ color: '#D4AF37', fontWeight: 900 }}>{currentTarget.scopeLabel}:</span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{currentTarget.title}</span>
+              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>DB Storage Key: <code style={{ color: '#60a5fa', background: '#0f172a', padding: '2px 6px', borderRadius: 4 }}>hero_carousel_{siteId}</code></span>
+            </div>
+            <a
+              href={previewHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#10b981', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16,185,129,0.1)', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.3)' }}
+            >
+              <i className="fas fa-play" /> Live Preview: {previewHref}
+            </a>
+          </div>
+
         </div>
 
         {/* Message */}
