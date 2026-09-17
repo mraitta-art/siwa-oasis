@@ -533,8 +533,8 @@ export default function BusinessRegistryPage() {
                         <Link href={`/${b.slug || b.id}`} target="_blank" className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="View Public Minisite">
                           <i className="fas fa-external-link-alt"></i> VIEW SITE
                         </Link>
-                        <Link href={`/jana/curation/${b.id}`} className="btn btn-xs btn-outline gold-border" title="Curate Content">
-                          <i className="fas fa-magic"></i> CURATE
+                        <Link href={`/jana/businesses/${b.id}/edit`} className="btn btn-xs btn-outline gold-border" title="Manage Content">
+                          <i className="fas fa-photo-film"></i> CONTENT
                         </Link>
                         <button 
                           className="btn btn-xs btn-outline" 

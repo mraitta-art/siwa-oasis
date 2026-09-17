@@ -459,20 +459,20 @@ function HeroCarouselManagerContent() {
   const ytPreviewId = formData.type === 'youtube' ? extractYouTubeId(formData.mediaUrl || '') : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', padding: '1rem 0', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
         {/* Header */}
         <div className="carousel-header-row" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px' }}>
+            <Link href="/jana" style={{ color: '#d97706', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px' }}>
               ← ADMIN DASHBOARD
             </Link>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: '0.5rem 0 0', letterSpacing: '-1px' }}>
+            <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0f172a', margin: '0.35rem 0 0', letterSpacing: '-0.5px' }}>
               🎬 Hero Carousel Manager
             </h1>
-            <p style={{ color: '#64748b', margin: '0.25rem 0 0' }}>
-              Targeting: <strong style={{ color: '#D4AF37' }}>{currentTarget.title}</strong> (`{siteId}`)
+            <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+              Targeting: <strong style={{ color: '#d97706' }}>{currentTarget.title}</strong> (`{siteId}`)
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -480,12 +480,12 @@ function HeroCarouselManagerContent() {
               href={previewHref} 
               target="_blank" 
               rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(212,175,55,0.15)' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', color: '#0f172a', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
             >
-              <i className="fas fa-external-link-alt" /> Open Target Page: {previewHref}
+              <i className="fas fa-external-link-alt" style={{ color: '#d97706' }} /> Open Target Page: {previewHref}
             </a>
             {!showForm && (
-              <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem' }}>
+              <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(15,23,42,0.15)' }}>
                 + Add Slide
               </button>
             )}
@@ -493,23 +493,23 @@ function HeroCarouselManagerContent() {
         </div>
 
         {/* Dynamic Carousel Target Scope Toolbar */}
-        <div style={{ background: '#1e293b', borderRadius: '16px', border: '1px solid rgba(212,175,55,0.25)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           
           {/* Header Row & Target Destination Link */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#D4AF37', fontWeight: 900, fontSize: '0.88rem', letterSpacing: '0.5px' }}>
-              <i className="fas fa-crosshairs" /> DYNAMIC CAROUSEL TARGET SELECTOR
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a', fontWeight: 900, fontSize: '0.9rem', letterSpacing: '0.5px' }}>
+              <i className="fas fa-crosshairs" style={{ color: '#d97706' }} /> DYNAMIC CAROUSEL TARGET SELECTOR
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#94a3b8' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#64748b' }}>
               <span>Live Destination:</span>
-              <a href={previewHref} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}>
+              <a href={previewHref} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 800, textDecoration: 'underline' }}>
                 https://siwify.com{previewHref}
               </a>
             </div>
           </div>
 
           {/* Scope Mode Selector Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', background: '#0f172a', padding: '6px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '6px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             {[
               { id: 'main', label: '🏠 Main Website Pages', icon: 'fa-globe' },
               { id: 'minisite', label: '🏢 Vendor Business Minisites & Tabs', icon: 'fa-store' },
@@ -528,12 +528,13 @@ function HeroCarouselManagerContent() {
                     flex: 1,
                     padding: '0.65rem 1rem',
                     borderRadius: '8px',
-                    border: 'none',
+                    border: isActive ? '1px solid #cbd5e1' : '1px solid transparent',
                     fontSize: '0.8rem',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    background: isActive ? '#D4AF37' : 'transparent',
-                    color: isActive ? '#0f172a' : '#94a3b8',
+                    background: isActive ? '#ffffff' : 'transparent',
+                    color: isActive ? '#0f172a' : '#64748b',
+                    boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                     transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
@@ -541,7 +542,7 @@ function HeroCarouselManagerContent() {
                     gap: '0.5rem',
                   }}
                 >
-                  <i className={`fas ${tab.icon}`} /> {tab.label}
+                  <i className={`fas ${tab.icon}`} style={{ color: isActive ? '#d97706' : '#94a3b8' }} /> {tab.label}
                 </button>
               );
             })}
@@ -549,8 +550,8 @@ function HeroCarouselManagerContent() {
 
           {/* Sub-controls based on Target Scope */}
           {targetScope === 'main' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'rgba(15,23,42,0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>
                 Select Main Website Target Page:
               </div>
 
@@ -571,12 +572,13 @@ function HeroCarouselManagerContent() {
                         padding: '0.5rem 0.85rem',
                         borderRadius: '8px',
                         border: '1px solid',
-                        borderColor: isActive ? '#D4AF37' : 'rgba(255,255,255,0.08)',
+                        borderColor: isActive ? '#d97706' : '#cbd5e1',
                         fontSize: '0.78rem',
                         fontWeight: 800,
                         cursor: 'pointer',
-                        background: isActive ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.03)',
-                        color: isActive ? '#D4AF37' : '#94a3b8',
+                        background: isActive ? '#fffdf5' : '#ffffff',
+                        color: isActive ? '#d97706' : '#334155',
+                        boxShadow: isActive ? '0 2px 6px rgba(217,119,6,0.12)' : 'none',
                         transition: 'all 0.2s',
                       }}
                     >
@@ -590,14 +592,14 @@ function HeroCarouselManagerContent() {
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                 {dynamicMainPages.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ Dynamic Page:</span>
+                    <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ Dynamic Page:</span>
                     <select
                       value={mainPagePreset}
                       onChange={e => {
                         setCustomMainPath('');
                         setMainPagePreset(e.target.value);
                       }}
-                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                     >
                       <option value="discovery">-- Select Orchestrator Page --</option>
                       {dynamicMainPages.map(dp => (
@@ -610,16 +612,16 @@ function HeroCarouselManagerContent() {
                 )}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
-                  <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Main Route:</span>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Main Route:</span>
                   <input
                     type="text"
                     placeholder="e.g. /events or /exclusive-deals"
                     value={customMainPath}
                     onChange={e => setCustomMainPath(e.target.value)}
-                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                   />
                   {customMainPath && (
-                    <button onClick={() => setCustomMainPath('')} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                    <button onClick={() => setCustomMainPath('')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
                   )}
                 </div>
               </div>
@@ -627,10 +629,10 @@ function HeroCarouselManagerContent() {
           )}
 
           {targetScope === 'minisite' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'rgba(15,23,42,0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.2)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               {/* Business Selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <span style={{ color: '#D4AF37', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}>1. Select Minisite Business:</span>
+                <span style={{ color: '#0f172a', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}>1. Select Minisite Business:</span>
                 <select
                   value={businessId}
                   onChange={e => {
@@ -638,7 +640,7 @@ function HeroCarouselManagerContent() {
                     setShowForm(false);
                     setEditingId(null);
                   }}
-                  style={{ flex: 1, minWidth: '260px', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.4)', background: businessId ? 'rgba(212,175,55,0.15)' : '#0f172a', color: businessId ? '#D4AF37' : '#fff', fontWeight: 800, outline: 'none' }}
+                  style={{ flex: 1, minWidth: '260px', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: businessId ? '#fffdf5' : '#ffffff', color: businessId ? '#d97706' : '#0f172a', fontWeight: 800, outline: 'none' }}
                 >
                   <option value="">-- Choose Vendor Minisite Business --</option>
                   {businesses.map(b => (
@@ -650,8 +652,8 @@ function HeroCarouselManagerContent() {
               </div>
 
               {/* Minisite Tab / Sub-Page Selector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>2. Select Minisite Page / Tab Target:</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+                <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>2. Select Minisite Page / Tab Target:</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   {MINISITE_TABS.map(tab => {
                     const isActive = minisiteTab === tab.id;
@@ -667,12 +669,12 @@ function HeroCarouselManagerContent() {
                           padding: '0.45rem 0.8rem',
                           borderRadius: '8px',
                           border: '1px solid',
-                          borderColor: isActive ? '#D4AF37' : 'rgba(255,255,255,0.08)',
+                          borderColor: isActive ? '#d97706' : '#cbd5e1',
                           fontSize: '0.75rem',
                           fontWeight: 800,
                           cursor: 'pointer',
-                          background: isActive ? '#D4AF37' : 'rgba(255,255,255,0.03)',
-                          color: isActive ? '#0f172a' : '#94a3b8',
+                          background: isActive ? '#d97706' : '#ffffff',
+                          color: isActive ? '#ffffff' : '#334155',
                           transition: 'all 0.2s',
                         }}
                       >
@@ -684,13 +686,13 @@ function HeroCarouselManagerContent() {
 
                 {minisiteTab === 'custom' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', maxWidth: '380px' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>Custom Tab Key:</span>
+                    <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>Custom Tab Key:</span>
                     <input
                       type="text"
                       placeholder="e.g. booking or menu"
                       value={customMinisiteTab}
                       onChange={e => setCustomMinisiteTab(e.target.value)}
-                      style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                      style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                     />
                   </div>
                 )}
@@ -699,21 +701,21 @@ function HeroCarouselManagerContent() {
           )}
 
           {targetScope === 'readymade' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'rgba(15,23,42,0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>
                 Select Exclusive Dynamic Page / Standalone Landing:
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '240px' }}>
-                  <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🚀 Preset Page:</span>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🚀 Preset Page:</span>
                   <select
                     value={readyMadeId}
                     onChange={e => {
                       setCustomReadyMadePath('');
                       setReadyMadeId(e.target.value);
                     }}
-                    style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                    style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                   >
                     {READYMADE_PAGE_PRESETS.map(p => (
                       <option key={p.id} value={p.id}>{p.label} (`{p.url}`)</option>
@@ -722,16 +724,16 @@ function HeroCarouselManagerContent() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
-                  <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Page Route:</span>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Page Route:</span>
                   <input
                     type="text"
                     placeholder="e.g. /p/vip-landing or /custom-hero"
                     value={customReadyMadePath}
                     onChange={e => setCustomReadyMadePath(e.target.value)}
-                    style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                    style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                   />
                   {customReadyMadePath && (
-                    <button onClick={() => setCustomReadyMadePath('')} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                    <button onClick={() => setCustomReadyMadePath('')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
                   )}
                 </div>
               </div>
@@ -739,17 +741,17 @@ function HeroCarouselManagerContent() {
           )}
 
           {/* Target Active Status Summary Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(212,175,55,0.08)', borderRadius: '10px', border: '1px dashed rgba(212,175,55,0.3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1rem', background: '#fffdf5', borderRadius: '10px', border: '1px dashed #f59e0b' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.82rem', flexWrap: 'wrap' }}>
-              <span style={{ color: '#D4AF37', fontWeight: 900 }}>{currentTarget.scopeLabel}:</span>
-              <span style={{ color: '#fff', fontWeight: 700 }}>{currentTarget.title}</span>
-              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>DB Storage Key: <code style={{ color: '#60a5fa', background: '#0f172a', padding: '2px 6px', borderRadius: 4 }}>hero_carousel_{siteId}</code></span>
+              <span style={{ color: '#d97706', fontWeight: 900 }}>{currentTarget.scopeLabel}:</span>
+              <span style={{ color: '#0f172a', fontWeight: 800 }}>{currentTarget.title}</span>
+              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>DB Storage Key: <code style={{ color: '#0f172a', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>hero_carousel_{siteId}</code></span>
             </div>
             <a
               href={previewHref}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#10b981', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16,185,129,0.1)', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.3)' }}
+              style={{ color: '#059669', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#ecfdf5', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #a7f3d0' }}
             >
               <i className="fas fa-play" /> Live Preview: {previewHref}
             </a>
@@ -766,9 +768,9 @@ function HeroCarouselManagerContent() {
 
         {/* Add/Edit Form */}
         {showForm && (
-          <div style={{ background: '#1e293b', borderRadius: '16px', padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(212,175,55,0.3)' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '2rem', marginBottom: '2rem', border: '1px solid #cbd5e1', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ color: '#fff', fontWeight: 900, margin: 0 }}>{editingId ? '✏️ Edit Slide' : '+ New Slide'}</h2>
+              <h2 style={{ color: '#0f172a', fontWeight: 900, margin: 0 }}>{editingId ? '✏️ Edit Slide' : '+ New Slide'}</h2>
               <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.5rem' }}>✕</button>
             </div>
 
@@ -776,14 +778,14 @@ function HeroCarouselManagerContent() {
 
               {/* TYPE */}
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SLIDE TYPE</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SLIDE TYPE</label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {(['image', 'youtube', 'video', 'branded'] as const).map(t => (
                     <button key={t} onClick={() => setFormData(p => ({ ...p, type: t }))}
                       style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '2px solid', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', transition: 'all 0.2s',
-                        borderColor: formData.type === t ? '#D4AF37' : 'rgba(255,255,255,0.1)',
-                        background: formData.type === t ? 'rgba(212,175,55,0.15)' : 'transparent',
-                        color: formData.type === t ? '#D4AF37' : '#64748b' }}>
+                        borderColor: formData.type === t ? '#d97706' : '#cbd5e1',
+                        background: formData.type === t ? '#fffdf5' : '#ffffff',
+                        color: formData.type === t ? '#d97706' : '#64748b' }}>
                       {t === 'image' ? '🖼 Image' : t === 'youtube' ? '▶ YouTube' : t === 'video' ? '🎥 Video' : '✨ Text/Branded'}
                     </button>
                   ))}
@@ -792,35 +794,35 @@ function HeroCarouselManagerContent() {
 
               {/* TITLE */}
               <div>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE *</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE *</label>
                 <input value={formData.title || ''} onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
                   placeholder="e.g. Discover Siwa Oasis"
-                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* SUBTITLE */}
               <div>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SUBTITLE</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SUBTITLE</label>
                 <input value={formData.subtitle || ''} onChange={e => setFormData(p => ({ ...p, subtitle: e.target.value }))}
                   placeholder="Short description"
-                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* CAPTION */}
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>CAPTION (Badge label shown above title)</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>CAPTION (Badge label shown above title)</label>
                 <input value={formData.caption || ''} onChange={e => setFormData(p => ({ ...p, caption: e.target.value }))}
                   placeholder="e.g. FEATURED · SIWA OASIS"
-                  style={{ width: '100%', padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* TARGET SECTION (manual or picker) */}
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TARGET SECTION (optional)</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TARGET SECTION (optional)</label>
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                   <input value={formData.targetSectionId || ''} onChange={e => setFormData(p => ({ ...p, targetSectionId: e.target.value }))}
                     placeholder="Enter element id (e.g. offers, gallery) or pick below"
-                    style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                    style={{ flex: 1, padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none' }} />
                   <button type="button" onClick={async () => {
                     // Load sections and open picker
                     try {
@@ -833,12 +835,12 @@ function HeroCarouselManagerContent() {
                       }
                     } catch (e) { setAvailableSections([]); }
                     setShowSectionPicker(true);
-                  }} style={{ background: '#334155', color: '#fff', border: 'none', padding: '0.6rem 0.9rem', borderRadius: '8px', cursor: 'pointer' }}>Select</button>
+                  }} style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: '0.6rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>Select</button>
                   {formData.targetSectionId && (
-                    <button onClick={() => setFormData(p => ({ ...p, targetSectionId: '' }))} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', padding: '0.4rem 0.6rem', borderRadius: '8px', cursor: 'pointer' }}>Clear</button>
+                    <button onClick={() => setFormData(p => ({ ...p, targetSectionId: '' }))} style={{ background: 'transparent', border: '1px solid #cbd5e1', color: '#64748b', padding: '0.4rem 0.6rem', borderRadius: '8px', cursor: 'pointer' }}>Clear</button>
                   )}
                 </div>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
                   If set, clicking the slide CTA or navigating to this slide (via arrows) will scroll the visitor to the selected section on the homepage.
                 </div>
               </div>
@@ -846,13 +848,13 @@ function HeroCarouselManagerContent() {
               {/* MEDIA URL / YOUTUBE URL */}
               {formData.type !== 'branded' && (
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>
                     {formData.type === 'youtube' ? 'YOUTUBE URL (paste the full video link)' : 'MEDIA URL / UPLOAD'}
                   </label>
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <input value={formData.mediaUrl || ''} onChange={e => setFormData(p => ({ ...p, mediaUrl: e.target.value }))}
                       placeholder={formData.type === 'youtube' ? 'https://www.youtube.com/watch?v=...' : 'https://...'}
-                      style={{ flex: 1, padding: '0.75rem', background: '#0f172a', border: `1px solid ${formData.type === 'youtube' && formData.mediaUrl && !extractYouTubeId(formData.mediaUrl) ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                      style={{ flex: 1, padding: '0.75rem', background: '#ffffff', border: `1px solid ${formData.type === 'youtube' && formData.mediaUrl && !extractYouTubeId(formData.mediaUrl) ? '#ef4444' : '#cbd5e1'}`, borderRadius: '8px', color: '#0f172a', outline: 'none' }} />
                     {formData.type !== 'youtube' && (
                       <>
                         <div style={{ position: 'relative' }}>

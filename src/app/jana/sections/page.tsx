@@ -1044,7 +1044,7 @@ export default function UnifiedSectionArchitect() {
                     {['vibe', 'experience', 'investment-opportunity', 'auction', 'offers-promotions', 'package', 'discount', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
-                          onClick={() => notify('Use Section Visibility or Curation to hide this section per minisite, or Type Assignment to unlink it.', 'error')}
+                          onClick={() => notify('Use Business Content to hide this section per minisite, or Type Assignment to unlink it.', 'error')}
                           title="Hide this section per minisite or unlink it from a typology."
                           style={{ ...css.btn('#94a3b8', true), padding: '0.6rem 1rem', fontSize: '0.7rem' }}
                         >

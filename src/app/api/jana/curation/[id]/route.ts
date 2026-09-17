@@ -33,7 +33,11 @@ export async function GET(
     ) as any;
 
     if (!bizRow) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return NextResponse.json({
+        error: 'This business record no longer exists. Open the Business Registry to restore or recreate it.',
+        businessId: id,
+        recoveryPath: '/jana/businesses'
+      }, { status: 404 });
     }
 
     // Normalize JSON structures

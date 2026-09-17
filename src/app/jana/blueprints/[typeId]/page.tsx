@@ -244,27 +244,26 @@ export default function BlueprintEditor() {
   );
 
   return (
-    <div className="animate-in" style={{ background: '#08090a', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 2rem 4rem' }}>
-        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
+    <div className="animate-in" style={{ background: 'transparent', minHeight: '100vh', color: '#0f172a', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 1rem 4rem' }}>
+        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '1.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                <Link href="/jana/blueprints" style={{ color: '#6366f1', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', letterSpacing: '2px' }}>← BLUEPRINTS</Link>
-                <span style={{ color: '#334155' }}>/</span>
-                <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '2px' }}>BLUEPRINT EDITOR</span>
+                <Link href="/jana/blueprints" style={{ color: '#d97706', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none', letterSpacing: '2px' }}>← BLUEPRINTS</Link>
+                <span style={{ color: '#cbd5e1' }}>/</span>
+                <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '2px' }}>BLUEPRINT EDITOR</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: color + '15', border: `1px solid ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className={typology?.icon || 'fas fa-building'} style={{ color, fontSize: '1rem' }} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.05rem' }}>{typology?.name || 'Blueprint Type'}</h1>
-                  <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500, maxWidth: '760px' }}>
+                  <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.05rem' }}>{typology?.name || 'Blueprint Type'}</h1>
+                  <p style={{ margin: '0.5rem 0 0', color: '#64748b', fontSize: '0.9rem', fontWeight: 500, maxWidth: '760px' }}>
                     Edit type-specific blueprint rules, media assets, carousel pin order, and mini blog content for this business category.
                   </p>
-                  <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '0.45rem 0.95rem', fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>
+                  <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '999px', padding: '0.45rem 0.95rem', fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
                     Type ID: {typeId}
                   </div>
                 </div>
@@ -274,7 +273,7 @@ export default function BlueprintEditor() {
               <Link href={`/jana/blueprints/atoms`}>
                 <button style={ghostBtn}>⚛️ Atom Registry</button>
               </Link>
-              <button onClick={() => setActiveTab('schema')} style={{ ...ghostBtn, borderColor: color + '55', color: '#fff' }}>
+              <button onClick={() => setActiveTab('schema')} style={{ ...ghostBtn, borderColor: color, color: '#0f172a' }}>
                 🧬 Schema
               </button>
             </div>
@@ -282,11 +281,11 @@ export default function BlueprintEditor() {
         </div>
 
         {/* Tab Bar */}
-        <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', borderRadius: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ padding: '0 0.5rem', display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.01)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div className="card" style={{ padding: '0.5rem 0.75rem', marginBottom: '1.5rem', borderRadius: '1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+          <div style={{ padding: '0 0.5rem', display: 'flex', gap: '0.5rem', background: '#f8fafc', borderRadius: '1rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ padding: '0.9rem 1.65rem', background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent', border: 'none', borderRadius: '999px', color: activeTab === tab.id ? '#fff' : '#94a3b8', fontWeight: activeTab === tab.id ? 900 : 700, fontSize: '0.85rem', cursor: 'pointer', borderBottom: activeTab === tab.id ? `2px solid ${color}` : '2px solid transparent', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                style={{ padding: '0.8rem 1.5rem', background: activeTab === tab.id ? '#0f172a' : 'transparent', border: 'none', borderRadius: '999px', color: activeTab === tab.id ? '#ffffff' : '#64748b', fontWeight: activeTab === tab.id ? 900 : 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span>{tab.icon}</span> {tab.label}
               </button>
             ))}
@@ -297,11 +296,11 @@ export default function BlueprintEditor() {
         {/* TAB 1 — FIELD SCHEMA                                       */}
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         {activeTab === 'schema' && (
-        <div className="card" style={{ padding: '2.5rem 2.5rem', maxWidth: '1100px', marginBottom: '1.5rem', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem' }}>
+        <div className="card" style={{ padding: '2.5rem 2.5rem', maxWidth: '1100px', marginBottom: '1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '1.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
             <div>
-              <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>🧬 Field Schema</h2>
-              <p style={{ color: '#475569', fontSize: '0.8rem', margin: '0.35rem 0 0', fontWeight: 500 }}>Configure which fields are active per chapter for this category or typology</p>
+              <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem', color: '#0f172a' }}>🧬 Field Schema</h2>
+              <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0.35rem 0 0', fontWeight: 500 }}>Configure which fields are active per chapter for this category or typology</p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               {saveMsg && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: saveMsg.startsWith('✅') ? '#10b981' : '#ef4444' }}>{saveMsg}</span>}

@@ -30,9 +30,9 @@ const NAV_GROUPS = [
           { name: 'Section Architect & Schema', path: '/jana/sections', icon: 'fa-layer-group' },
           { name: 'Unified Controls Center', path: '/jana/controls', icon: 'fa-screwdriver-wrench' },
           { name: 'Section Overrides', path: '/admin/section-overrides', icon: 'fa-user-gear' },
-          { name: 'Section Visibility Rules', path: '/admin/section-visibility', icon: 'fa-eye' },
+          { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film' },
           { name: 'Governance & Search Policies', path: '/jana/policies', icon: 'fa-scale-balanced' },
-          { name: 'Content Curation & Filters', path: '/jana/curation', icon: 'fa-filter' },
+          { name: 'Content Policies & Filters', path: '/jana/policies', icon: 'fa-filter' },
         ]
       },
       {
@@ -159,7 +159,7 @@ const NAV_GROUPS = [
           { name: 'Integration', path: '/jana/blog-integration', icon: 'fa-plug' },
         ]
       },
-      { name: 'Business Content CMS', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
+      { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
       {
         name: 'Search Engine Suite',
         path: '/jana/search-engines',

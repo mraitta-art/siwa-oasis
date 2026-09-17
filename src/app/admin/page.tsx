@@ -32,10 +32,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Content',
     items: [
-      { label: 'Section Visibility', icon: '👁️', href: '/admin/section-visibility' },
+      { label: 'Business Content', icon: '📄', href: '/jana/content' },
       { label: 'Section Overrides', icon: '🛡️', href: '/admin/section-overrides' },
       { label: 'Blog Approval', icon: '📝', href: '/admin/blog-approval' },
-      { label: 'Image Curation', icon: '🖼️', href: '/admin/image-curation' },
+      { label: 'Global Moderation', icon: '🖼️', href: '/admin/image-curation' },
       { label: 'Homepage Editor', icon: '🏗️', href: '/admin/homepage-editor' },
       { label: 'Homepage Sections', icon: '📄', href: '/admin/homepage-sections' },
     ],
@@ -98,7 +98,7 @@ export default function AdminDashboardPage() {
     { id: 2, icon: '🎁', title: 'Offer: "Buy 2 Get 1 Free"',             business: 'Restaurant Siwa',   time: '2 hrs ago',  href: '/admin/offers',                   urgency: 'high' },
     { id: 3, icon: '🧭', title: 'Visitor Package: "Siwa Escape Bundle"', business: 'Siwa Palace Hotel', time: '3 hrs ago', href: '/jana/tour-builder',             urgency: 'high' },
     { id: 4, icon: '💵', title: 'Investment: "Resort Expansion"',      business: 'Siwa Palace Hotel', time: '4 hrs ago',  href: '/admin/investment-opportunities', urgency: 'med'  },
-    { id: 5, icon: '📋', title: 'Section: "Team Gallery"',               business: 'Desert Tours Co',   time: '6 hrs ago',  href: '/admin/section-visibility',       urgency: 'med'  },
+    { id: 5, icon: '📄', title: 'Content: "Team Gallery"',               business: 'Desert Tours Co',   time: '6 hrs ago',  href: '/jana/content',       urgency: 'med'  },
     { id: 6, icon: '💰', title: 'Discount: "Bulk Purchase"',             business: 'Souk Marketplace',  time: '1 day ago',  href: '/admin/discounts',                urgency: 'low'  },
     { id: 7, icon: '💡', title: 'Field Request: "Opening Hours"',        business: 'Shali Eco Lodge',   time: '2 days ago', href: '/admin/field-requests',           urgency: 'low'  },
   ];
@@ -109,13 +109,13 @@ export default function AdminDashboardPage() {
     { icon: '🎁', label: 'Offers',           href: '/admin/offers',               color: '#f59e0b' },
     { icon: '💰', label: 'Discounts',        href: '/admin/discounts',           color: '#f59e0b' },
     { icon: '🗺️', label: 'Journey Requests', href: '/admin/journey-requests',     color: '#ec4899' },
-    { icon: '👁️', label: 'Visibility',       href: '/admin/section-visibility',   color: '#14b8a6' },
+    { icon: '📄', label: 'Business Content',  href: '/jana/content',             color: '#14b8a6' },
     { icon: '🏗️', label: 'HP Editor',        href: '/admin/homepage-editor',      color: '#f59e0b' },
     { icon: '🔀', label: 'Visitor Merge',    href: '/admin/visitor-merge',        color: '#8b5cf6' },
     { icon: '💬', label: 'Vendor Comms',     href: '/admin/vendor-communication', color: '#22c55e' },
     { icon: '⚙️', label: 'Services & Categories', href: '/jana/vendor-services', color: '#f0c842' },
     { icon: '🚨', label: 'Vendor Issues',    href: '/admin/vendor-issues',         color: '#ef4444' },
-    { icon: '🖼️', label: 'Images',           href: '/admin/image-curation',       color: '#f97316' },
+    { icon: '🛡️', label: 'Moderation',       href: '/admin/image-curation',       color: '#f97316' },
     { icon: '🚀', label: 'Deployment',       href: '/admin/deployment',           color: '#0ea5e9' },
     { icon: '🧭', label: 'Tour Builder',     href: '/jana/tour-builder',          color: '#22c55e' },
   ];

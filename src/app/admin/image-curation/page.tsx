@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface GalleryImage {
   id: string;
@@ -153,8 +154,11 @@ export default function AdminImageCurationPage() {
     <div style={S.wrap}>
       <div style={S.container}>
         <div style={S.header}>
-          <h1 style={S.title}>🖼️ Hero Carousel Image Approval</h1>
-          <p style={S.subtitle}>Review and approve vendor images for minisite hero carousels</p>
+          <h1 style={S.title}>🛡️ Global Moderation</h1>
+          <p style={S.subtitle}>Review pending vendor images before they are published to business minisites.</p>
+          <Link href="/jana/content" style={{ color: '#a16207', fontWeight: 800, fontSize: '0.85rem' }}>
+            Open Business Content
+          </Link>
         </div>
 
         {message && (
