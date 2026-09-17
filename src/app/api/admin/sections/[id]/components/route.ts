@@ -1,5 +1,28 @@
 import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { requireAdmin } from '@/lib/auth';
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+    const { id: sectionId } = await params;
+    const rows = await db.query(
+      `SELECT id, section_id, component_type, label, is_required, is_repeatable, max_items, config, display_order
+       FROM section_components WHERE section_id = ? ORDER BY display_order ASC`,
+      [sectionId]
+    );
+    return Response.json(rows.map((row: any) => ({
+      ...row,
+      config: typeof row.config === 'string' ? JSON.parse(row.config || '{}') : row.config || {},
+    })));
+  } catch (error) {
+    console.error('Get section components error:', error);
+    return Response.json({ error: 'Failed to load section components' }, { status: 500 });
+  }
+}
 
 export async function POST(
   request: Request,

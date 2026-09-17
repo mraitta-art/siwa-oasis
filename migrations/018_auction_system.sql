@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS auctions (
     INDEX idx_contact_visibility (show_visitor_contact),
     
     FOREIGN KEY (recommendation_id) REFERENCES visitor_recommendations(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 2: Create Auction Bids Table
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS auction_bids (
     UNIQUE KEY unique_bid_id (id),
     FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 3B: Create Vendor Replies Table (NEW)
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS auction_vendor_replies (
     
     FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 4: Create Auction Winners Table
@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS auction_winners (
     FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
     FOREIGN KEY (bid_id) REFERENCES auction_bids(id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 5: Create Auction Watchers Table
@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS auction_watchers (
     
     FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 6: Create Auction Audit Trail
@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS auction_audit_log (
     INDEX idx_created_at (created_at),
     
     FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 7: Create Views for Reporting
@@ -379,6 +379,8 @@ ORDER BY year DESC, month DESC;
 -- ============================================
 
 
+/* Stored procedures are intentionally omitted: TiDB migration execution uses
+    single SQL statements and does not accept client DELIMITER directives.
 DELIMITER //
 
 -- Open a new auction
@@ -594,7 +596,7 @@ BEGIN
     );
 END //
 
-DELIMITER ;
+DELIMITER ; */
 
 -- ============================================
 -- STEP 9: Insert Sample Auctions

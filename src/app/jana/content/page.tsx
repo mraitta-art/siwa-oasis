@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RichBlogEditor from '@/components/RichBlogEditor';
+import DynamicForm from '@/components/DynamicForm';
 
 type GalleryItem = { url: string; caption: string };
 type ContentMeta = {
@@ -46,6 +47,9 @@ export default function ContentManagementPage() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'content' | 'fields' | 'components'>('content');
+  const [fields, setFields] = useState<any[]>([]);
+  const [components, setComponents] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/jana/businesses')
@@ -85,6 +89,20 @@ export default function ContentManagementPage() {
     setBlogBody(data.section_blog || data.mini_blog || '');
     setMeta({ ...EMPTY_META, ...storedMeta });
     setNewImage({ url: '', caption: '' });
+    setActiveTab('content');
+  }, [business, sectionId]);
+
+  useEffect(() => {
+    if (!business || !sectionId) {
+      setFields([]); setComponents([]); return;
+    }
+    Promise.all([
+      fetch(`/api/jana/forms?business=${encodeURIComponent(business.id)}&section=${encodeURIComponent(sectionId)}`).then(response => response.ok ? response.json() : []),
+      fetch(`/api/admin/sections/${encodeURIComponent(sectionId)}/components`).then(response => response.ok ? response.json() : []),
+    ]).then(([fieldData, componentData]) => {
+      setFields(Array.isArray(fieldData) ? fieldData : []);
+      setComponents(Array.isArray(componentData) ? componentData : []);
+    }).catch(() => { setFields([]); setComponents([]); });
   }, [business, sectionId]);
 
   const visibleBusinesses = useMemo(() => businesses.filter(item =>
@@ -94,6 +112,16 @@ export default function ContentManagementPage() {
 
   function updateMeta(key: keyof ContentMeta, value: boolean | string) {
     setMeta(current => ({ ...current, [key]: value }));
+  }
+
+  function handleFieldChange(sectionKey: string, fieldName: string, value: any) {
+    setBusiness((current: any) => ({
+      ...current,
+      custom_data: {
+        ...(current?.custom_data || {}),
+        [sectionKey]: { ...(current?.custom_data?.[sectionKey] || {}), [fieldName]: value },
+      },
+    }));
   }
 
   function addImage() {
@@ -200,16 +228,46 @@ export default function ContentManagementPage() {
                 </select>
               </div>
 
-              <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', marginBottom: '1rem' }}>
+              <div role="tablist" aria-label="Business section workspace" style={{ display: 'flex', gap: '0.35rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1rem', overflowX: 'auto' }}>
+                {[
+                  ['content', 'Content & media', 'fa-pen-ruler'],
+                  ['fields', `Fields (${fields.length})`, 'fa-list-check'],
+                  ['components', `Components (${components.length})`, 'fa-puzzle-piece'],
+                ].map(([tab, label, icon]) => (
+                  <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab as typeof activeTab)} style={{ padding: '0.75rem 0.9rem', border: 0, borderBottom: activeTab === tab ? '2px solid #D4AF37' : '2px solid transparent', background: 'transparent', color: activeTab === tab ? '#a16207' : '#64748b', fontSize: '0.72rem', fontWeight: 900, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                    <i className={`fas ${icon}`} style={{ marginRight: '0.35rem' }} />{label}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === 'fields' && (
+                <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+                  <h3 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem' }}>Section fields</h3>
+                  <p style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.72rem' }}>Edit this business section’s inherited fields. Changes are saved with the button below.</p>
+                  {fields.length > 0 ? <DynamicForm fields={fields} data={business.custom_data || {}} onChange={handleFieldChange} sections={section ? [section] : []} userRole="admin" businessName={business.name} /> : <p style={{ color: '#94a3b8', fontSize: '0.78rem' }}>No fields are assigned to this section.</p>}
+                </section>
+              )}
+
+              {activeTab === 'components' && (
+                <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div><h3 style={{ margin: 0, fontSize: '0.95rem' }}>Section components</h3><p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.72rem' }}>Reusable components assigned to this section.</p></div>
+                    <Link href={`/admin/sections/${sectionId}/add-components`} style={{ padding: '0.6rem 0.8rem', borderRadius: '7px', background: '#0f172a', color: '#fff', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 800 }}>Manage component library</Link>
+                  </div>
+                  {components.length > 0 ? <div style={{ display: 'grid', gap: '0.6rem', marginTop: '1rem' }}>{components.map(component => <div key={component.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}><div><strong style={{ display: 'block', color: '#1e293b', fontSize: '0.78rem' }}>{component.label || component.component_type}</strong><span style={{ color: '#64748b', fontSize: '0.68rem' }}>{component.component_type} · {component.is_repeatable ? 'Repeatable' : 'Single'}{component.is_required ? ' · Required' : ''}</span></div><span style={{ color: '#94a3b8', fontSize: '0.68rem' }}>Order {component.display_order ?? 0}</span></div>)}</div> : <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.78rem' }}>No components assigned to this section yet.</p>}
+                </section>
+              )}
+
+              {activeTab === 'content' && <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem 1.25rem', marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.8px', marginBottom: '0.4rem' }}>MINISITE SECTION NAME</label>
                 <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
                   <input value={sectionLabel} onChange={event => setSectionLabel(event.target.value)} placeholder={section?.name || 'Default section name'} disabled={!!sectionControls[sectionId]?.admin_locked_label} style={{ flex: 1, padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', background: sectionControls[sectionId]?.admin_locked_label ? '#f8fafc' : '#fff' }} />
                   {sectionControls[sectionId]?.admin_locked_label && <span style={{ color: '#b91c1c', fontSize: '0.7rem', fontWeight: 800 }}><i className="fas fa-lock" /> Locked</span>}
                 </div>
                 <div style={{ marginTop: '0.4rem', color: '#94a3b8', fontSize: '0.68rem' }}>This name appears as the tab title on the business minisite and is saved with the section content.</div>
-              </section>
+              </section>}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.8fr)', gap: '1rem' }}>
+              {activeTab === 'content' && <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.8fr)', gap: '1rem' }}>
                 <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
                   <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>Images & captions</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: '0.5rem', marginBottom: '0.65rem' }}>
@@ -243,14 +301,14 @@ export default function ContentManagementPage() {
                   {[['galleryOnMain', 'Main website carousel'], ['galleryOnMinisite', 'Business minisite carousel']].map(([key, label]) => <label key={key} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', margin: '0.7rem 0', fontSize: '0.75rem', color: '#475569' }}><input type="checkbox" checked={!!meta[key as keyof ContentMeta]} onChange={event => updateMeta(key as keyof ContentMeta, event.target.checked)} />{label}</label>)}
                   <div style={{ marginTop: '1rem', padding: '0.8rem', background: '#f8fafc', borderRadius: '8px', color: '#64748b', fontSize: '0.7rem', lineHeight: 1.5 }}>Placement is separate from approval. Suspended content remains saved but is excluded from publication.</div>
                 </section>
-              </div>
+              </div>}
 
-              <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', marginTop: '1rem' }}>
+              {activeTab === 'content' && <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', marginTop: '1rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem' }}>Section story / small blog</h3>
                 <input value={blogTitle} onChange={event => setBlogTitle(event.target.value)} placeholder="Story title" style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '7px', marginBottom: '0.7rem' }} />
                 <RichBlogEditor value={blogBody} onChange={setBlogBody} minHeight="280px" businessName={business.name} sectionName={section?.name || sectionId} placeholder="Write the section story with photos, fonts, colors, headings, links, and callouts..." />
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.8rem' }}><select value={meta.blogStatus} onChange={event => updateMeta('blogStatus', event.target.value)} style={{ padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '7px' }}><option value="draft">Blog draft</option><option value="approved">Blog approved</option><option value="suspended">Blog suspended</option></select>{[['blogOnMain', 'Show story on main carousel'], ['blogOnMinisite', 'Show story on minisite']].map(([key, label]) => <label key={key} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.73rem', color: '#475569' }}><input type="checkbox" checked={!!meta[key as keyof ContentMeta]} onChange={event => updateMeta(key as keyof ContentMeta, event.target.checked)} />{label}</label>)}</div>
-              </section>
+              </section>}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>{message && <span style={{ color: message.includes('failed') ? '#b91c1c' : '#15803d', fontSize: '0.75rem' }}>{message}</span>}<button onClick={saveContent} disabled={saving || !section} style={{ padding: '0.75rem 1.2rem', border: 0, borderRadius: '8px', background: saving ? '#94a3b8' : '#0f172a', color: '#fff', fontWeight: 900, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving...' : 'Save content & placement'}</button></div>
             </>

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS section_component_data (
     
     FOREIGN KEY (section_component_id) REFERENCES section_components(id) ON DELETE CASCADE,
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Available component templates library
 CREATE TABLE IF NOT EXISTS component_templates (
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS component_templates (
     fields JSON COMMENT 'Default field definitions for this component type',
     example_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Pre-populate component templates
 INSERT INTO component_templates VALUES

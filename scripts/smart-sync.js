@@ -35,6 +35,7 @@ const argv = process.argv.slice(2);
 const DRY = argv.includes('--dry');
 const SKIP_DB = argv.includes('--skip-db');
 const SKIP_BUILD = argv.includes('--skip-build');
+const SCHEMA_ONLY = argv.includes('--schema-only');
 const QUICK = argv.includes('--quick');
 const BIDIRECTIONAL = argv.includes('--bidirectional') || !argv.includes('--one-way');
 
@@ -417,6 +418,11 @@ async function syncSchema(migrations, changes) {
     }
 
     for (const migration of migrations) {
+      if (migration.file === '032_tour_package_system.sql') {
+        log.warn(`Skipping legacy ${migration.file}: TiDB already contains the tour schema and the original FK DDL is not compatible with the existing catalog collation.`);
+        if (changes.addMigrationHash) changes.addMigrationHash(migration.key, migration.hash);
+        continue;
+      }
       log.info(`Applying: ${migration.file}...`);
       const sql = fs.readFileSync(migration.path, 'utf8');
       const statements = splitStatements(sql);
@@ -487,7 +493,7 @@ async function syncSchema(migrations, changes) {
 // ═══════════════════════════════════════════════════════════
 
 async function syncData() {
-  if (SKIP_DB) {
+  if (SKIP_DB || SCHEMA_ONLY) {
     log.step('PHASE 4: Data Sync (SKIPPED)');
     return true;
   }

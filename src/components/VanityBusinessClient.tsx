@@ -10,6 +10,7 @@ import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
 import { filterCoreSectionsForBusinessType, isSectionApprovedForMinisite } from '@/lib/section-registry';
+import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -22,6 +23,7 @@ export default function VanityBusinessClient({
   sectionLabels = {}, 
   sectionLabelsAr = {},
   sectionComponents = {},
+  templatePlan = null,
   isMasterTemplate = false,
   isTrusted = false,
   siteSettings
@@ -32,6 +34,7 @@ export default function VanityBusinessClient({
   sectionLabels?: Record<string, string>,
   sectionLabelsAr?: Record<string, string>,
   sectionComponents?: Record<string, any[]>,
+  templatePlan?: MinisiteTemplatePlan | null,
   isMasterTemplate?: boolean,
   isTrusted?: boolean,
   siteSettings?: any
@@ -203,6 +206,8 @@ export default function VanityBusinessClient({
   const platformName = liveSettings?.site_name || siteSettings?.site_name || 'SiWiFy.com';
   const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || '';
 
+  const serializedTemplateComponents = templatePlan?.components || [];
+
   // Multilingual label helper: resolves Arabic label if active and present, otherwise standard label/section name
   const getSectionLabel = (sectionId: string, defaultName: string) => {
     if (minisiteLang === 'ar' && sectionLabelsAr[sectionId]) {
@@ -232,6 +237,16 @@ export default function VanityBusinessClient({
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem', direction: isRTL ? 'rtl' : 'ltr' }}>
+      {serializedTemplateComponents.length > 0 && (
+        <div data-minisite-template={templatePlan?.templateId}>
+          {serializedTemplateComponents.map(component => (
+            <DynamicComponentRenderer
+              key={component.id}
+              component={{ type: component.type, props: component.props, label: component.label }}
+            />
+          ))}
+        </div>
+      )}
       {isMasterTemplate && (
         <div style={{ 
           background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)', 

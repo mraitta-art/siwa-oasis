@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `custom_journey_packages` (
   INDEX idx_is_featured (is_featured),
   INDEX idx_created (created_at),
   FOREIGN KEY (consultant_id) REFERENCES profiles(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE 2: Custom Journey Package Items
 -- Links specific businesses to a custom package
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS `custom_journey_items` (
   INDEX idx_business (business_id),
   INDEX idx_parent_type (parent_type_id),
   INDEX idx_sequence (sequence_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE 3: Journey Package Bookings
 -- Track who booked which custom packages
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS `custom_journey_bookings` (
   INDEX idx_package (package_id),
   INDEX idx_status (status),
   INDEX idx_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ════════════════════════════════════════════════════════════════════
 -- DONE

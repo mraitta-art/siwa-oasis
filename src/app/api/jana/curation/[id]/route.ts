@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const { id } = await params;
 
     // 1. Fetch Business Details
@@ -378,6 +379,12 @@ export async function PATCH(
           );
         }
       }
+    }
+
+    try {
+      await syncManifestFromLegacyData(id, 'curation_patch', user.id);
+    } catch (manifestError: any) {
+      console.warn('[MANIFEST CURATION SYNC SKIPPED]', manifestError?.message || manifestError);
     }
 
     return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute, query } from '@/lib/db';
+import crypto from 'crypto';
+import { execute, query, transaction } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { getSections, invalidateCache } from '@/lib/cache';
 
@@ -28,6 +29,22 @@ export async function GET(request: NextRequest) {
     if (id) {
       const [section] = await query('SELECT * FROM sections WHERE id = ?', [id]);
       if (!section) return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+      if (searchParams.get('mode') === 'dependencies') {
+        const count = async (sql: string, params: string[] = [id]) => {
+          try {
+            const [row] = await query<any>(sql, params);
+            return Number(row?.count || 0);
+          } catch { return 0; }
+        };
+        const [fields, components, blogs, gallery, typeAssignments] = await Promise.all([
+          count('SELECT COUNT(*) AS count FROM form_fields WHERE section_id = ?'),
+          count('SELECT COUNT(*) AS count FROM section_components WHERE section_id = ?'),
+          count('SELECT COUNT(*) AS count FROM section_blogs WHERE section_id = ?'),
+          count('SELECT COUNT(*) AS count FROM vendor_gallery WHERE section_id = ?'),
+          count(`SELECT COUNT(*) AS count FROM business_types WHERE JSON_CONTAINS(COALESCE(sections, JSON_ARRAY()), JSON_QUOTE(?)) OR JSON_CONTAINS(COALESCE(own_sections, JSON_ARRAY()), JSON_QUOTE(?))`, [id, id]),
+        ]);
+        return NextResponse.json({ section, dependencies: { fields, components, blogs, gallery, typeAssignments } });
+      }
       return NextResponse.json(section);
     }
 
@@ -76,8 +93,10 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
     const sections = await getSections(false);
     return NextResponse.json(sections);
-  } catch (e: any) { 
-    return NextResponse.json({ error: e.message }, { status: 500 }); 
+  } catch (e: any) {
+    const message = e?.message || 'Failed to load sections';
+    const status = /authenticated|admin access required/i.test(message) ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -114,7 +133,6 @@ export async function POST(request: NextRequest) {
       { name: 'section_blog', label: 'Master Section Story (Rich Text)', type: 'rich_text', order: 1, help: 'Full rich-text story for this section.' }
     ];
 
-    const crypto = require('crypto');
     for (const field of structuralFields) {
       const fullFid = `auto_${id}_${field.name}`;
       const fid = fullFid.length <= 36 
@@ -201,13 +219,15 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const typeId = searchParams.get('type_id');
+    const mode = searchParams.get('mode') || (typeId ? 'unlink' : 'delete');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    if (typeId) {
+    if (mode === 'unlink') {
+      if (!typeId) return NextResponse.json({ error: 'type_id is required when unlinking a section.' }, { status: 400 });
       // Remove section from specific business type's own_sections / sections
       const typeRows = await query('SELECT id, own_sections, sections FROM business_types WHERE id = ?', [typeId]) as any[];
       if (typeRows.length > 0) {
@@ -220,11 +240,63 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true, mode: 'unlinked' });
     }
 
-    // Admin Full Delete: CASCADING DELETE fields and section row (no restrictions)
-    await execute('DELETE FROM form_fields WHERE section_id = ?', [id]);
-    await execute('DELETE FROM sections WHERE id = ?', [id]);
+    if (mode !== 'delete') {
+      if (mode === 'archive') {
+        await execute('UPDATE sections SET active = 0, show_on_public = 0, show_on_minisite = 0 WHERE id = ?', [id]);
+        invalidateCache.sections();
+        return NextResponse.json({ success: true, mode: 'archived' });
+      }
+      return NextResponse.json({ error: 'Unsupported section deletion mode.' }, { status: 400 });
+    }
+
+    const section = await query('SELECT id, name, is_universal FROM sections WHERE id = ?', [id]) as any[];
+    if (!section.length) return NextResponse.json({ error: 'Section not found.' }, { status: 404 });
+    let confirmation = '';
+    try {
+      const body = await request.json();
+      confirmation = typeof body?.confirmation === 'string' ? body.confirmation : '';
+    } catch {}
+    const protectedSection = section[0].is_universal === 1 || section[0].is_universal === true;
+    const forceDelete = searchParams.get('force') === 'true';
+    if (forceDelete && user.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Force deletion requires super_admin access.' }, { status: 403 });
+    }
+    if (protectedSection && (!forceDelete || user.role !== 'super_admin')) {
+      return NextResponse.json({
+        error: 'Protected section. Use archive/unlink, or force deletion as super_admin.',
+        code: 'PROTECTED_SECTION',
+        required_mode: 'force',
+      }, { status: 403 });
+    }
+    if (forceDelete && confirmation !== id) {
+      return NextResponse.json({ error: `Type the section ID "${id}" to confirm force deletion.` }, { status: 400 });
+    }
+
+    // Full definition delete: remove every reference in one transaction.
+    await transaction(async connection => {
+      const [types] = await connection.query('SELECT id, sections, own_sections FROM business_types') as any;
+      for (const type of types as any[]) {
+        const parseIds = (value: unknown) => {
+          if (Array.isArray(value)) return value;
+          if (typeof value === 'string') { try { return JSON.parse(value || '[]'); } catch { return []; } }
+          return [];
+        };
+        const sections = parseIds(type.sections).filter((sectionId: string) => sectionId !== id);
+        const ownSections = parseIds(type.own_sections).filter((sectionId: string) => sectionId !== id);
+        if (sections.length !== parseIds(type.sections).length || ownSections.length !== parseIds(type.own_sections).length) {
+          await connection.query('UPDATE business_types SET sections = ?, own_sections = ? WHERE id = ?', [JSON.stringify(sections), JSON.stringify(ownSections), type.id]);
+        }
+      }
+
+      await connection.query('DELETE FROM section_blogs WHERE section_id = ?', [id]);
+      await connection.query('DELETE FROM vendor_gallery WHERE section_id = ?', [id]);
+      await connection.query('DELETE FROM form_fields WHERE section_id = ?', [id]);
+      await connection.query('DELETE FROM section_components WHERE section_id = ?', [id]);
+      await connection.query('DELETE FROM sections WHERE id = ?', [id]);
+    });
     
     invalidateCache.sections();
+    invalidateCache.formFields();
     return NextResponse.json({ success: true, mode: 'deleted' });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }

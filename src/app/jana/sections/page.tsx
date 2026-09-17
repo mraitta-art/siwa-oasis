@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import TagInput from '@/components/TagInput';
 import { CANONICAL_SECTIONS } from '@/lib/section-registry';
 
@@ -17,7 +18,7 @@ interface Section {
   id: string; name: string; icon: string; description?: string;
   active: boolean; is_universal: boolean; sort_order: number;
   enable_gallery: boolean; enable_blog: boolean;
-  vendor_editable: boolean; show_on_public: boolean;
+  vendor_editable: boolean; show_on_public: boolean; show_on_minisite: boolean;
   curation_policy?: 'auto_approve' | 'manual_review' | 'admin_only';
   required?: boolean;
   inheritance_rules?: any;
@@ -89,7 +90,7 @@ const BLANK_SECTION = (): Partial<Section> => ({
   name: '', icon: 'fa-layer-group', description: '',
   active: true, is_universal: false, sort_order: 0,
   enable_gallery: true, enable_blog: true,
-  vendor_editable: true, show_on_public: true,
+  vendor_editable: true, show_on_public: true, show_on_minisite: true,
   curation_policy: 'manual_review',
   inheritance_rules: { content_policy: DEFAULT_CONTENT_POLICY },
 });
@@ -115,9 +116,11 @@ const isCoreSection = (id: string) => CANONICAL_SECTIONS.some(section => section
 /* ─── Component ─────────────────────────────────────────────────────── */
 export default function UnifiedSectionArchitect() {
   /* State */
-  const [sidebarMode,    setSidebarMode]   = useState<'sections' | 'forms'>('sections');
+  const [sidebarMode,    setSidebarMode]   = useState<'sections' | 'new' | 'forms'>('sections');
   const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
   const [sections,       setSections]      = useState<Section[]>([]);
+  const [sectionSearch,  setSectionSearch] = useState('');
+  const [sectionFilter,  setSectionFilter] = useState<'all'|'active'|'inactive'|'protected'>('all');
   const [fields,         setFields]        = useState<Field[]>([]);
   const [loading,        setLoading]       = useState(true);
   const [toast,          setToast]         = useState<{ msg: string; type: 'success'|'error' } | null>(null);
@@ -134,6 +137,8 @@ export default function UnifiedSectionArchitect() {
   const [versionSaveMode, setVersionSaveMode] = useState<'initial'|'latest'>('latest');
   const [deletingId,  setDeletingId]    = useState<string|null>(null);
   const [collapsedPanels, setCollapsedPanels] = useState({ left: false, center: false, right: false });
+  const [leftPanelWidth, setLeftPanelWidth] = useState(480);
+  const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
 
   /* Assigned sections for selected type */
@@ -152,6 +157,11 @@ export default function UnifiedSectionArchitect() {
         fetch('/api/jana/types?t=' + Date.now()),
         fetch('/api/jana/sections?t=' + Date.now()),
       ]);
+      if (!tRes.ok || !sRes.ok) {
+        const failedResponse = !tRes.ok ? tRes : sRes;
+        const errorData = await failedResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to load ${!tRes.ok ? 'business types' : 'sections'}`);
+      }
       const types = await tRes.json();
       const secs  = await sRes.json();
       setBusinessTypes(Array.isArray(types) ? types : []);
@@ -224,7 +234,10 @@ export default function UnifiedSectionArchitect() {
       if (res.ok) {
         notify(editSection.id ? 'Section updated!' : 'Section created!');
         await loadAll();
-        if (!editSection.id) setEditSection(BLANK_SECTION());
+        if (!editSection.id) {
+          setEditSection(BLANK_SECTION());
+          setSidebarMode('sections');
+        }
       } else {
         const e = await res.json().catch(() => ({}));
         notify(e.error || 'Save failed', 'error');
@@ -236,7 +249,7 @@ export default function UnifiedSectionArchitect() {
   const deleteSection = async (sectionId: string) => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/jana/sections?id=${sectionId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/jana/sections?id=${encodeURIComponent(sectionId)}&mode=delete`, { method: 'DELETE' });
       if (res.ok) {
         notify('Section deleted!');
         setSelectedSection('');
@@ -246,6 +259,32 @@ export default function UnifiedSectionArchitect() {
     } catch { notify('Delete failed', 'error'); }
     setSaving(false);
     setDeletingId(null);
+  };
+
+  const forceDeleteSection = async (sectionId: string) => {
+    const confirmation = window.prompt(`Force deletion is irreversible. Type ${sectionId} to confirm:`);
+    if (confirmation !== sectionId) {
+      notify('Force deletion cancelled: confirmation did not match.', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/jana/sections?id=${encodeURIComponent(sectionId)}&mode=delete&force=true`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result.error || 'Force deletion failed');
+      notify('Protected section force-deleted.');
+      setSelectedSection('');
+      setEditSection(BLANK_SECTION());
+      await loadAll();
+    } catch (error: any) {
+      notify(error.message || 'Force deletion failed', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* ── CRUD: Field ────────────────────────────────────────────────────── */
@@ -434,6 +473,15 @@ export default function UnifiedSectionArchitect() {
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
   const currentSection = sections.find(s => s.id === selectedSection);
+  const visibleSections = sections.filter(section => {
+    const query = sectionSearch.trim().toLowerCase();
+    const matchesSearch = !query || `${section.name} ${section.id} ${section.description || ''}`.toLowerCase().includes(query);
+    const matchesFilter = sectionFilter === 'all'
+      || (sectionFilter === 'active' && section.active !== false)
+      || (sectionFilter === 'inactive' && section.active === false)
+      || (sectionFilter === 'protected' && (section.is_universal || isCoreSection(section.id)));
+    return matchesSearch && matchesFilter;
+  });
   const parents = businessTypes
     .filter(t => (t.is_parent || Number(t.is_parent) === 1) && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -443,7 +491,7 @@ export default function UnifiedSectionArchitect() {
   const selectableBusinessTypes = businessTypes
     .filter(t => !t.is_parent && Number(t.is_parent) !== 1 && t.parent_id && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
     .sort((a, b) => a.name.localeCompare(b.name));
-  const mainGridColumns = `${collapsedPanels.left ? '0px' : '320px'} ${collapsedPanels.center ? '72px' : 'minmax(720px, 1fr)'} ${collapsedPanels.right ? '0px' : '360px'}`;
+  const mainGridColumns = `${collapsedPanels.left ? '0px' : `${leftPanelWidth}px`} ${collapsedPanels.center ? '72px' : 'minmax(560px, 1fr)'} ${collapsedPanels.right ? '0px' : `${rightPanelWidth}px`}`;
   const togglePanel = (panel: 'left' | 'center' | 'right') => {
     setCollapsedPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
   };
@@ -519,9 +567,9 @@ export default function UnifiedSectionArchitect() {
           <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
             {sections.length} sections · {businessTypes.length} types
           </div>
-          <a href="/jana" style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', background: 'rgba(255,255,255,0.08)', color: '#fff', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 800 }}>
+          <Link href="/jana" style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', background: 'rgba(255,255,255,0.08)', color: '#fff', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 800 }}>
             ← Back to Jana
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -532,8 +580,8 @@ export default function UnifiedSectionArchitect() {
         <nav className="section-architect-sidebar" style={{
           background: '#fff', borderRight: collapsedPanels.left ? 'none' : '1px solid #f1f5f9',
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
-          minWidth: collapsedPanels.left ? '0px' : '320px',
-          width: collapsedPanels.left ? '0px' : '320px',
+          minWidth: collapsedPanels.left ? '0px' : `${leftPanelWidth}px`,
+          width: collapsedPanels.left ? '0px' : `${leftPanelWidth}px`,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           overflowX: 'hidden',
         }}>
@@ -541,7 +589,7 @@ export default function UnifiedSectionArchitect() {
             <>
               {/* Sidebar Mode Toggle */}
               <div style={{ padding: '0.9rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: '300px' }}>
-                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '2px' }}>
                   <button 
                     onClick={() => { setSidebarMode('sections'); setSelectedSection(''); }}
                     style={{
@@ -552,7 +600,19 @@ export default function UnifiedSectionArchitect() {
                       transition: 'all 0.2s',
                     }}
                   >
-                    SECTIONS
+                    EXISTING SECTIONS ({sections.length})
+                  </button>
+                  <button
+                    onClick={() => { setSidebarMode('new'); setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
+                    style={{
+                      padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, border: 'none', cursor: 'pointer',
+                      background: sidebarMode === 'new' ? '#D4AF37' : 'transparent',
+                      color: sidebarMode === 'new' ? '#fff' : '#64748b',
+                      boxShadow: sidebarMode === 'new' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <i className="fas fa-plus" style={{ marginRight: '0.25rem' }} /> NEW
                   </button>
                   <button 
                     onClick={() => { setSidebarMode('forms'); setSelectedSection(''); }}
@@ -567,6 +627,7 @@ export default function UnifiedSectionArchitect() {
                     FORMS (TYPES)
                   </button>
                 </div>
+                <input type="range" min="360" max="640" step="10" value={leftPanelWidth} onChange={event => setLeftPanelWidth(Number(event.target.value))} title={`Left panel width: ${leftPanelWidth}px`} aria-label="Resize section list panel" style={{ width: 58, accentColor: '#D4AF37' }} />
                 <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className="fas fa-chevron-left" />
                 </button>
@@ -574,13 +635,19 @@ export default function UnifiedSectionArchitect() {
 
               {sidebarMode === 'sections' ? (
                 <>
-                  <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px' }}>
-                    <button
-                      onClick={() => { setSelectedSection(''); setEditSection(BLANK_SECTION()); setEditField(null); setActiveTab('meta'); }}
-                      style={{ ...css.btn('#D4AF37'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                    >
-                      <i className="fas fa-plus" /> New Section
-                    </button>
+                  <div style={{ padding: '0.85rem 0.75rem', borderBottom: '1px solid #f1f5f9', background: '#fbfcfe', minWidth: '300px' }}>
+                    <div style={{ position: 'relative' }}>
+                      <i className="fas fa-search" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.7rem' }} />
+                      <input value={sectionSearch} onChange={event => setSectionSearch(event.target.value)} placeholder="Search sections by name or ID..." aria-label="Search existing sections" style={{ ...css.input(), padding: '0.65rem 0.75rem 0.65rem 2.25rem', fontSize: '0.72rem', background: '#fff' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.55rem' }}>
+                      {(['all', 'active', 'inactive', 'protected'] as const).map(filter => (
+                        <button key={filter} onClick={() => setSectionFilter(filter)} style={{ flex: 1, padding: '0.4rem 0.2rem', border: 0, borderRadius: '7px', background: sectionFilter === filter ? '#0f172a' : '#f1f5f9', color: sectionFilter === filter ? '#fff' : '#64748b', fontSize: '0.58rem', fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase' }}>
+                          {filter}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.6rem', fontWeight: 700 }}>Showing {visibleSections.length} of {sections.length} sections</div>
                   </div>
 
                   {/* Core Sections Legend */}
@@ -592,8 +659,14 @@ export default function UnifiedSectionArchitect() {
                   </div>
 
                   <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
+                    {sections.length === 0 && (
+                      <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', fontSize: '0.75rem', lineHeight: 1.5 }}>
+                        <i className="fas fa-triangle-exclamation" style={{ color: '#f59e0b', fontSize: '1.4rem', display: 'block', marginBottom: '0.6rem' }} />
+                        No existing sections loaded. Check admin authentication or database connectivity, then reload.
+                      </div>
+                    )}
                     {/* Keep available sections together and separate retired sections visually. */}
-                    {[...sections].sort((a, b) => {
+                    {[...visibleSections].sort((a, b) => {
                       const aEnabled = a.active !== false;
                       const bEnabled = b.active !== false;
                       if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
@@ -676,6 +749,16 @@ export default function UnifiedSectionArchitect() {
                     })}
                   </div>
                 </>
+              ) : sidebarMode === 'new' ? (
+                <div style={{ padding: '1.25rem 0.9rem', minWidth: '300px' }}>
+                  <div style={{ padding: '1rem', borderRadius: '14px', background: '#fffbeb', border: '1px solid #fde68a', marginBottom: '0.8rem' }}>
+                    <div style={{ color: '#92400e', fontSize: '0.62rem', fontWeight: 900, letterSpacing: '1px' }}>NEW SECTION</div>
+                    <div style={{ color: '#78350f', fontSize: '0.72rem', lineHeight: 1.5, marginTop: '0.35rem' }}>Create a reusable section, then configure its visibility in the editor.</div>
+                  </div>
+                  <button onClick={() => { setSidebarMode('sections'); setSelectedSection(''); }} style={{ ...css.btn('#0f172a'), width: '100%', fontSize: '0.7rem' }}>
+                    <i className="fas fa-arrow-left" style={{ marginRight: '0.4rem' }} /> Back to Existing Sections
+                  </button>
+                </div>
               ) : (
                 /* Forms (Types) Mode Rendering */
                 (() => {
@@ -959,21 +1042,22 @@ export default function UnifiedSectionArchitect() {
                       {currentSection.active ? '● ACTIVE' : '○ INACTIVE'}
                     </span>
                     {['vibe', 'experience', 'investment-opportunity', 'auction', 'offers-promotions', 'package', 'discount', 'offers-packages', 'discounts-promotions', 'sponsorship', 'business_info'].includes(selectedSection) ? (
-                      <button
-                        disabled
-                        title="This section is used by the main website's features (e.g. investment, packages, auctions) and cannot be deleted."
-                        style={{
-                          ...css.btn('#94a3b8', true),
-                          padding: '0.6rem 1rem',
-                          fontSize: '0.7rem',
-                          cursor: 'not-allowed',
-                          background: '#f1f5f9',
-                          borderColor: '#cbd5e1',
-                          color: '#94a3b8',
-                        }}
-                      >
-                        <i className="fas fa-lock" style={{ marginRight: '0.4rem' }} /> System Locked
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => notify('Use Section Visibility or Curation to hide this section per minisite, or Type Assignment to unlink it.', 'error')}
+                          title="Hide this section per minisite or unlink it from a typology."
+                          style={{ ...css.btn('#94a3b8', true), padding: '0.6rem 1rem', fontSize: '0.7rem' }}
+                        >
+                          <i className="fas fa-lock" style={{ marginRight: '0.4rem' }} /> Protected: Hide or Unlink
+                        </button>
+                        <button
+                          onClick={() => forceDeleteSection(selectedSection)}
+                          title="Super-admin only. Permanently deletes this protected section and all dependencies."
+                          style={{ ...css.btn('#7f1d1d', true), padding: '0.6rem 1rem', fontSize: '0.7rem' }}
+                        >
+                          <i className="fas fa-skull-crossbones" style={{ marginRight: '0.4rem' }} /> Force Delete
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => setDeletingId(selectedSection)}
@@ -1074,6 +1158,7 @@ export default function UnifiedSectionArchitect() {
                     { key: 'enable_blog',    label: 'Blog / Story Enabled', sub: 'Show Blog tab to vendors',     icon: 'fa-feather-alt',  color: '#f59e0b' },
                     { key: 'vendor_editable',label: 'Vendor Editable',     sub: 'Vendors can edit fields',       icon: 'fa-user-edit',    color: '#8b5cf6' },
                     { key: 'show_on_public', label: 'Public Visibility',   sub: 'Shown on public listing page',  icon: 'fa-globe-europe', color: '#ec4899' },
+                    { key: 'show_on_minisite', label: 'Minisite Visibility', sub: 'Shown on business minisites', icon: 'fa-store', color: '#0f766e' },
                   ].map(({ key, label, sub, icon, color }) => {
                     const val = !!(editSection as any)[key];
                     return (
@@ -1575,13 +1660,14 @@ export default function UnifiedSectionArchitect() {
           background: '#fff', borderLeft: collapsedPanels.right ? 'none' : '1px solid #f1f5f9',
           overflowY: 'auto', overflowX: 'hidden',
           padding: collapsedPanels.right ? '0' : '2rem 1.75rem',
-          minWidth: collapsedPanels.right ? '0px' : '360px',
-          width: collapsedPanels.right ? '0px' : '360px',
+          minWidth: collapsedPanels.right ? '0px' : `${rightPanelWidth}px`,
+          width: collapsedPanels.right ? '0px' : `${rightPanelWidth}px`,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
           {!collapsedPanels.right && (
             <>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', minWidth: '320px' }}>
+                <input type="range" min="300" max="480" step="10" value={rightPanelWidth} onChange={event => setRightPanelWidth(Number(event.target.value))} title={`Right panel width: ${rightPanelWidth}px`} aria-label="Resize summary panel" style={{ width: 72, marginRight: '0.5rem', accentColor: '#D4AF37' }} />
                 <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className="fas fa-chevron-right" />
                 </button>
@@ -1632,6 +1718,7 @@ export default function UnifiedSectionArchitect() {
                       { label: 'Universal',    val: currentSection.is_universal,   color: '#3b82f6' },
                       { label: 'Vend. Edit',   val: currentSection.vendor_editable,color: '#8b5cf6' },
                       { label: 'Public',       val: currentSection.show_on_public, color: '#ec4899' },
+                      { label: 'Minisite',     val: currentSection.show_on_minisite, color: '#0f766e' },
                     ].map(({ label, val, color }) => (
                       <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px solid #f8fafc' }}>
                         <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>{label}</span>

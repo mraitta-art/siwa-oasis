@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, transaction } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
+import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,6 +70,12 @@ export async function POST(request: NextRequest) {
         [`Orchestration Successful: ${businessName} onboarded with 4 pages and hybrid fields.`, user.email]
       );
     });
+
+    try {
+      await syncManifestFromLegacyData(businessId, 'orchestrator_created', user.id);
+    } catch (manifestError: any) {
+      console.warn('[MANIFEST ORCHESTRATOR BOOTSTRAP SKIPPED]', manifestError?.message || manifestError);
+    }
 
     return NextResponse.json({ success: true, businessId });
   } catch (e: any) { 

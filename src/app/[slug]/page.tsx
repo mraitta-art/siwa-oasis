@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
+import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
+import { getPublishedManifest } from '@/lib/minisite-manifest';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,7 +108,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     if (isId) {
       // It's a UUID — fetch by ID and redirect to slug
       const [bizById] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+        `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
@@ -117,7 +119,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     } else {
       // Fetch by slug directly from DB (avoids SSR self-fetch issues)
       const [row] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features, mt.settings as template_features
+        `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
@@ -460,6 +462,35 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       return true;
     });
 
+    const publishedManifest = await getPublishedManifest(biz.id);
+    if (publishedManifest) {
+      const manifestSections = new Map(publishedManifest.sections.map(section => [section.id, section]));
+      sections = sections
+        .filter((section: any) => manifestSections.get(section.id)?.enabled !== false)
+        .map((section: any) => {
+          const manifestSection = manifestSections.get(section.id);
+          return manifestSection
+            ? { ...section, manifestContent: manifestSection.content, manifestComponents: manifestSection.components }
+            : section;
+        })
+        .sort((left: any, right: any) => (manifestSections.get(left.id)?.order ?? 9999) - (manifestSections.get(right.id)?.order ?? 9999));
+
+      publishedManifest.sections.forEach(section => {
+        if (section.content && typeof section.content === 'object') {
+          biz.custom_data[section.id] = section.content;
+        }
+        if (section.components?.length) {
+          sectionComponents[section.id] = section.components;
+        }
+      });
+    }
+
+    const templatePlan = normalizeMinisiteTemplate(
+      biz.template_id,
+      biz.template_components,
+      sections.map((section: any) => section.id)
+    );
+
     // Build the final labels mapping using a single precedence rule across all sources.
     const legacyLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
     const arabicLabels = biz.custom_data?.section_labels_ar || biz.custom_data?.basic?.section_labels_ar || {};
@@ -474,7 +505,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       }
     });
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} />;
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} templatePlan={templatePlan} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (

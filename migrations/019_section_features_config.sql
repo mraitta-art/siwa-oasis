@@ -1,20 +1,18 @@
 -- Add section feature configuration
-ALTER TABLE sections ADD COLUMN (
-    has_miniblog BOOLEAN DEFAULT TRUE COMMENT 'Section has mini blog feature',
-    miniblog_enabled BOOLEAN DEFAULT TRUE COMMENT 'Mini blog feature is enabled',
-    has_gallery BOOLEAN DEFAULT TRUE COMMENT 'Section has image gallery',
-    gallery_enabled BOOLEAN DEFAULT TRUE COMMENT 'Gallery feature is enabled',
-    curation_policy ENUM('auto_approve', 'manual_review', 'admin_only') DEFAULT 'manual_review' COMMENT 'How vendor images are approved',
-    vendor_permissions JSON DEFAULT '{"can_upload_images": true, "can_write_blogs": true, "can_edit_own": true}' COMMENT 'Vendor permissions for this section',
-    content_instructions MEDIUMTEXT COMMENT 'Admin instructions for vendors on what content should go here',
-    max_gallery_items INT DEFAULT 50 COMMENT 'Maximum images vendors can upload to this section',
-    auto_publish_blogs BOOLEAN DEFAULT FALSE COMMENT 'Publish blogs immediately or require admin approval',
-    auto_publish_images BOOLEAN DEFAULT FALSE COMMENT 'Approve vendor images immediately or require admin review',
-    created_by_admin VARCHAR(100) COMMENT 'Admin who created this section',
-    INDEX idx_curation_policy (curation_policy),
-    INDEX idx_gallery_enabled (gallery_enabled),
-    INDEX idx_miniblog_enabled (miniblog_enabled)
-) COMMENT='Section feature configuration and permissions';
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS has_miniblog BOOLEAN DEFAULT TRUE;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS miniblog_enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS has_gallery BOOLEAN DEFAULT TRUE;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS gallery_enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS curation_policy ENUM('auto_approve', 'manual_review', 'admin_only') DEFAULT 'manual_review';
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS vendor_permissions JSON DEFAULT '{"can_upload_images": true, "can_write_blogs": true, "can_edit_own": true}';
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS content_instructions MEDIUMTEXT;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS max_gallery_items INT DEFAULT 50;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS auto_publish_blogs BOOLEAN DEFAULT FALSE;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS auto_publish_images BOOLEAN DEFAULT FALSE;
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS created_by_admin VARCHAR(100);
+ALTER TABLE sections ADD INDEX IF NOT EXISTS idx_curation_policy (curation_policy);
+ALTER TABLE sections ADD INDEX IF NOT EXISTS idx_gallery_enabled (gallery_enabled);
+ALTER TABLE sections ADD INDEX IF NOT EXISTS idx_miniblog_enabled (miniblog_enabled);
 
 -- Create table for section blogs/content
 CREATE TABLE IF NOT EXISTS section_blogs (

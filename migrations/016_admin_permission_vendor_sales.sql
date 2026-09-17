@@ -315,7 +315,7 @@ WHERE vsp.stage != 'lost';
 -- View: Monthly Revenue Report
 CREATE OR REPLACE VIEW vw_monthly_revenue_report AS
 SELECT 
-    DATE_TRUNC(r.created_at, MONTH) as month,
+    DATE_FORMAT(r.created_at, '%Y-%m-01') as month,
     COUNT(DISTINCT r.id) as total_recommendations,
     SUM(CASE WHEN r.permit_decision = 'approved' THEN 1 ELSE 0 END) as approved_count,
     SUM(CASE WHEN vsp.stage = 'won' THEN 1 ELSE 0 END) as vendor_deals_won,
@@ -323,7 +323,7 @@ SELECT
     ROUND(SUM(CASE WHEN vsp.stage = 'won' THEN 1 ELSE 0 END) / COUNT(DISTINCT r.id) * 100, 2) as conversion_rate
 FROM visitor_recommendations r
 LEFT JOIN vendor_sales_pipeline vsp ON r.id = vsp.recommendation_id
-GROUP BY DATE_TRUNC(r.created_at, MONTH)
+GROUP BY DATE_FORMAT(r.created_at, '%Y-%m-01')
 ORDER BY month DESC;
 
 -- ============================================================================

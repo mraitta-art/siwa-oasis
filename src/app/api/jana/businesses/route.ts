@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
+import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
 
 // GET all businesses
 export async function GET(request: NextRequest) {
@@ -260,6 +261,12 @@ export async function POST(request: NextRequest) {
       [id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone ? 1 : 0, JSON.stringify(custom_data), status, 1, isMasterVal, isSharedVal, isClaimedVal]
     );
 
+    try {
+      await syncManifestFromLegacyData(id, 'business_created', user.id);
+    } catch (manifestError: any) {
+      console.warn('[MANIFEST BOOTSTRAP SKIPPED]', manifestError?.message || manifestError);
+    }
+
     return NextResponse.json({ id, name, slug, type_id, vendor_id, is_master: isMasterVal, is_claimed: isClaimedVal }, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -434,6 +441,14 @@ export async function PATCH(request: NextRequest) {
     if (sets.length) {
       params.push(id);
       await execute(`UPDATE businesses SET ${sets.join(', ')} WHERE id = ?`, params);
+    }
+
+    if (sets.some(set => set.startsWith('custom_data') || set.startsWith('curation_data') || set.startsWith('template_id'))) {
+      try {
+        await syncManifestFromLegacyData(id, 'business_patch', user.id);
+      } catch (manifestError: any) {
+        console.warn('[MANIFEST SYNC SKIPPED]', manifestError?.message || manifestError);
+      }
     }
 
     return NextResponse.json({ success: true, message: 'Business DNA merged successfully' });

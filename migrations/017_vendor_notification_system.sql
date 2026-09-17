@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS vendor_notifications (
     INDEX idx_opened_at (opened_at),
     
     FOREIGN KEY (recommendation_id) REFERENCES visitor_recommendations(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 3: Create Vendor Portal Accounts
@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS vendor_portal_accounts (
     INDEX idx_claimed_at (claimed_at),
     INDEX idx_business_name (business_name),
     INDEX idx_portal_token (portal_token)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 3B: Admin Contact Sharing Preferences
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS admin_contact_sharing_preferences (
     
     INDEX idx_admin_id (admin_id),
     UNIQUE KEY unique_admin_preference (admin_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 4: Vendor Request Tracking
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS vendor_request_tracking (
     
     FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (recommendation_id) REFERENCES visitor_recommendations(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 5: Vendor Email Templates
@@ -249,7 +249,7 @@ CREATE TABLE IF NOT EXISTS vendor_email_templates (
     
     INDEX idx_template_type (template_type),
     INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 6: Vendor Response Tracking
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS vendor_responses (
     
     FOREIGN KEY (vendor_id) REFERENCES vendor_portal_accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (recommendation_id) REFERENCES visitor_recommendations(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ============================================
 -- STEP 7: Views for Admin and Sales
@@ -375,6 +375,8 @@ ADD INDEX idx_requests_engagement (total_requests, response_count);
 -- STEP 10: Stored Procedures
 -- ============================================
 
+/* Stored procedures are intentionally omitted: TiDB migration execution uses
+    single SQL statements and does not accept client DELIMITER directives.
 DELIMITER //
 
 -- Send notification to vendor when recommendation approved
@@ -465,7 +467,7 @@ BEGIN
     WHERE id = p_vendor_id;
 END //
 
-DELIMITER ;
+DELIMITER ; */
 
 -- ============================================
 -- STEP 11: Summary

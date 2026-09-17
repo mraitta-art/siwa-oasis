@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS `admin_journey_policies` (
   INDEX idx_request_type (request_type),
   INDEX idx_is_active (is_active),
   INDEX idx_priority (priority)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE 2: Journey Requests (Custom visitor requests)
 -- Stores visitor-submitted journey requests that don't match ready-made packages
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS `journey_requests` (
   INDEX idx_matched_policy (matched_policy_id),
   INDEX idx_primary_vendor (primary_vendor_id),
   INDEX idx_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE 3: Vendor Request Queue
 -- Provides vendors visibility into requests for their businesses
@@ -219,9 +219,9 @@ CREATE TABLE IF NOT EXISTS `vendor_request_queue` (
   INDEX idx_vendor_status (vendor_status),
   INDEX idx_match_score (match_score),
   INDEX idx_priority (priority_position),
-  FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+  FOREIGN KEY (vendor_id) REFERENCES profiles(id) ON DELETE CASCADE,
   FOREIGN KEY (journey_request_id) REFERENCES journey_requests(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE 4: Journey Request Approvals
 -- Tracks approval workflow and decision history
@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS `journey_request_approvals` (
   INDEX idx_approver (approver_id),
   INDEX idx_approval_stage (approval_stage),
   FOREIGN KEY (journey_request_id) REFERENCES journey_requests(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE 5: Journey Request Analytics
 -- Tracks metrics for optimization
@@ -309,7 +309,7 @@ CREATE TABLE IF NOT EXISTS `journey_request_analytics` (
   
   INDEX idx_date (date),
   INDEX idx_policy (policy_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ════════════════════════════════════════════════════════════════════
 -- SEED DATA: Default Policies

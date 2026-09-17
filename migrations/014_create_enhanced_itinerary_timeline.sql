@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `journey_timeline_items` (
   ) STORED,                                          -- Auto-calculated end time
   
   -- Business Info
-  `business_id` VARCHAR(36) NOT NULL,
+  `business_id` VARCHAR(36) DEFAULT NULL,
   `business_name` VARCHAR(255) NOT NULL,
   `business_type_id` VARCHAR(100),
   `business_type_name` VARCHAR(255),
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `journey_timeline_items` (
   INDEX idx_time (start_time),
   INDEX idx_business (business_id),
   INDEX idx_sequence (sequence_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE: Itinerary Day Summaries
 -- Quick overview of each day in a journey
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `journey_day_summaries` (
   FOREIGN KEY (accommodation_id) REFERENCES businesses(id) ON DELETE SET NULL,
   INDEX idx_package (package_id),
   UNIQUE KEY unique_day (package_id, day_number)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- TABLE: Activity Conflicts & Warnings
 -- Flags potential issues in itinerary (overlapping times, etc)
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `itinerary_validations` (
   FOREIGN KEY (package_id) REFERENCES custom_journey_packages(id) ON DELETE CASCADE,
   INDEX idx_package (package_id),
   INDEX idx_resolved (resolved)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ════════════════════════════════════════════════════════════════════
 -- USAGE EXAMPLES
