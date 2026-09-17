@@ -72,9 +72,40 @@ function HeroCarouselManagerContent() {
   const siteId = businessId ? `biz_${businessId}_hero` : carouselId.trim() || 'discovery';
 
   const selectedBusiness = businesses.find(b => b.id === businessId);
-  const previewHref = businessId 
-    ? (selectedBusiness?.slug ? `/${selectedBusiness.slug}` : `/business/${businessId}`)
-    : '/';
+
+  const getTargetPageInfo = (bId: string, cId: string, bizList: typeof businesses) => {
+    if (bId) {
+      const biz = bizList.find(b => b.id === bId);
+      const url = biz ? (biz.slug ? `/${biz.slug}` : `/business/${biz.id}`) : `/business/${bId}`;
+      return {
+        title: biz ? `Minisite: ${biz.name}` : `Minisite: ${bId}`,
+        url,
+        type: 'minisite'
+      };
+    }
+    const cleanId = (cId || 'discovery').toLowerCase();
+    if (cleanId === 'discovery' || cleanId === 'main') return { title: 'Main Homepage', url: '/', type: 'page' };
+    if (cleanId === 'journeys_hero' || cleanId === 'journeys') return { title: 'Journeys & Tours', url: '/journeys', type: 'page' };
+    if (cleanId === 'search_hero' || cleanId === 'search') return { title: 'Search & Compare', url: '/discovery/compare', type: 'page' };
+    if (cleanId === 'auctions_hero' || cleanId === 'auctions') return { title: 'Auctions', url: '/auctions', type: 'page' };
+    return { title: `Page (${cleanId})`, url: '/', type: 'custom' };
+  };
+
+  const targetPage = getTargetPageInfo(businessId, carouselId, businesses);
+  const previewHref = targetPage.url;
+
+  const updateUrlState = (bId: string, cId: string) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (bId) {
+      params.set('businessId', bId);
+      params.set('siteId', `biz_${bId}_hero`);
+    } else {
+      params.set('siteId', cId || 'discovery');
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, '', newUrl);
+  };
 
   const defaultFormData: Partial<CarouselSlide> = {
     title: '',
@@ -329,60 +360,110 @@ function HeroCarouselManagerContent() {
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
         {/* Header */}
-        <div className="carousel-header-row" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="carousel-header-row" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <Link href="/jana" style={{ color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px' }}>
               ← ADMIN DASHBOARD
             </Link>
             <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: '0.5rem 0 0', letterSpacing: '-1px' }}>
-              🎬 Hero Carousel
+              🎬 Hero Carousel Manager
             </h1>
             <p style={{ color: '#64748b', margin: '0.25rem 0 0' }}>
-              {businessId ? 'Manage the private hero carousel for this minisite.' : `Manage the shared carousel: ${siteId}`}
+              Currently Editing: <strong style={{ color: '#D4AF37' }}>{targetPage.title}</strong> (`{siteId}`)
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800 }}>
-              Minisite
-              <select
-                value={businessId}
-                onChange={event => {
-                  const nextBusinessId = event.target.value;
-                  setBusinessId(nextBusinessId);
-                  if (!nextBusinessId) setCarouselId('discovery');
-                  setShowForm(false);
-                  setEditingId(null);
-                }}
-                style={{ minWidth: '220px', padding: '0.7rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontWeight: 700 }}
-              >
-                <option value="">Homepage discovery</option>
-                {businesses.map(business => <option key={business.id} value={business.id}>{business.name}</option>)}
-              </select>
-            </label>
-            {!businessId && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800 }}>
-                Carousel ID
-                <input
-                  value={carouselId}
-                  onChange={event => { setCarouselId(event.target.value.toLowerCase().replace(/\s+/g, '_')); setShowForm(false); setEditingId(null); }}
-                  placeholder="e.g. journeys_hero"
-                  style={{ width: '170px', padding: '0.7rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontWeight: 700 }}
-                />
-              </label>
-            )}
             <a 
               href={previewHref} 
               target="_blank" 
               rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, transition: 'all 0.2s' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(212,175,55,0.15)' }}
             >
-              <i className="fas fa-external-link-alt" /> {selectedBusiness ? `Preview ${selectedBusiness.name}` : 'Preview Homepage'}
+              <i className="fas fa-external-link-alt" /> Open Target Page: {previewHref}
             </a>
             {!showForm && (
               <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem' }}>
                 + Add Slide
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Page & Minisite Selector Toolbar */}
+        <div style={{ background: '#1e293b', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#D4AF37', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
+              <i className="fas fa-sliders" /> SELECT CAROUSEL TARGET PAGE & MINISITE
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#94a3b8' }}>
+              <span>Destination:</span>
+              <a href={previewHref} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}>
+                https://siwify.com{previewHref}
+              </a>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+            {/* Main Page Presets */}
+            <div style={{ display: 'flex', gap: '0.35rem', background: '#0f172a', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { label: '🏠 Homepage', siteId: 'discovery', url: '/' },
+                { label: '✈️ Journeys', siteId: 'journeys_hero', url: '/journeys' },
+                { label: '🔍 Search & Compare', siteId: 'search_hero', url: '/discovery/compare' },
+                { label: '🔨 Auctions', siteId: 'auctions_hero', url: '/auctions' },
+              ].map(preset => {
+                const isActive = !businessId && (carouselId === preset.siteId || (preset.siteId === 'discovery' && (carouselId === 'main' || carouselId === 'discovery')));
+                return (
+                  <button
+                    key={preset.siteId}
+                    onClick={() => {
+                      setBusinessId('');
+                      setCarouselId(preset.siteId);
+                      updateUrlState('', preset.siteId);
+                      setShowForm(false);
+                      setEditingId(null);
+                    }}
+                    style={{
+                      padding: '0.5rem 0.85rem',
+                      borderRadius: '7px',
+                      border: 'none',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: isActive ? '#D4AF37' : 'transparent',
+                      color: isActive ? '#0f172a' : '#94a3b8',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Vendor Minisite Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🏢 Minisite:</span>
+              <select
+                value={businessId}
+                onChange={event => {
+                  const nextBusinessId = event.target.value;
+                  setBusinessId(nextBusinessId);
+                  if (!nextBusinessId) setCarouselId('discovery');
+                  updateUrlState(nextBusinessId, nextBusinessId ? `biz_${nextBusinessId}_hero` : 'discovery');
+                  setShowForm(false);
+                  setEditingId(null);
+                }}
+                style={{ flex: 1, padding: '0.65rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.3)', background: businessId ? 'rgba(212,175,55,0.15)' : '#0f172a', color: businessId ? '#D4AF37' : '#fff', fontWeight: 800, outline: 'none' }}
+              >
+                <option value="">-- Choose Vendor Business Minisite --</option>
+                {businesses.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.slug ? `/${b.slug}` : `/business/${b.id}`})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
