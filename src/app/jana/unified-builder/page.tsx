@@ -32,9 +32,9 @@ const workstreams = [
     accent: '#db2777',
   },
   {
-    title: 'Fast-Track Studio',
-    description: 'Create businesses quickly and move from setup to live minisite.',
-    href: '/jana/fast-track',
+    title: 'Business Content',
+    description: 'Edit existing business sections, media, bilingual stories, and publication settings.',
+    href: '/jana/content',
     accent: '#059669',
   },
 ];

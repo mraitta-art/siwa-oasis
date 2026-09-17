@@ -119,6 +119,7 @@ function OrchestratorContent() {
           name: state.businessName,
           type_id: state.selectedType,
           vendor_id: state.selectedVendor,
+          template_id: state.minisiteTemplate,
           custom_data: state.businessData,
           status: 'pending'
         })

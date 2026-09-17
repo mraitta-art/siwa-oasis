@@ -128,7 +128,7 @@ export default function SubscriptionBenefits() {
       </section>
 
       <footer style={{ marginTop: '10rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '4rem' }}>
-         <Link href="/jana/fast-track" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem' }}>BACK TO DASHBOARD</Link>
+         <Link href="/jana/content" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem' }}>BACK TO BUSINESS CONTENT</Link>
       </footer>
     </div>
   );

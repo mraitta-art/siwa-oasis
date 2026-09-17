@@ -82,7 +82,7 @@ const NAV_GROUPS = [
         icon: 'fa-wand-magic-sparkles',
         children: [
           { name: 'Onboarding Wizard', path: '/jana/orchestrator', icon: 'fa-magic' },
-          { name: 'Fast-Track Builder', path: '/jana/fast-track', icon: 'fa-bolt' },
+          { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film' },
           { name: 'Unified Builder', path: '/jana/unified-builder', icon: 'fa-sitemap' },
         ]
       },
@@ -331,7 +331,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/studio')) return { title: 'Unified Studio', tip: 'Stage 1: Define category schema. Stage 2: Select a business and fill its data.' };
     if (pathname.includes('/businesses')) return { title: 'Business Registry', tip: 'Onboard and manage businesses using forms defined in Foundation.' };
     if (pathname.includes('/orchestrator')) return { title: 'Onboarding Wizard', tip: 'Guided flow: select type, fill data, assign vendor, publish.' };
-    if (pathname.includes('/fast-track')) return { title: 'Fast-Track Builder', tip: 'Quickly add businesses with minimal friction.' };
+    if (pathname.includes('/fast-track')) return { title: 'Business Content', tip: 'Manage existing business sections, media, stories, and publication settings.' };
     if (pathname.includes('/unified-builder')) return { title: 'Unified Builder', tip: 'Centralized workspace for schema, forms, components, pages, and launch actions.' };
     if (pathname.includes('/vendors')) return { title: 'Vendors', tip: 'Assign vendor accounts to manage their own business listings.' };
     if (pathname.includes('/packages')) return { title: 'Product & Offers', tip: 'Create and manage sellable experience packages, offers, and visitor packages.' };

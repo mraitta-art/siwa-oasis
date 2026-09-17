@@ -250,6 +250,7 @@ export default function ContentManagementPage() {
             <>
               <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
                 <div style={{ flex: 1 }}><h2 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>{business.name}</h2><span style={{ color: '#64748b', fontSize: '0.72rem' }}>{business.type_name} · Plan: {business.subscription_tier || 'free'}</span></div>
+                <Link href={`/${business.slug || business.id}`} target="_blank" style={{ padding: '0.6rem 0.8rem', border: '1px solid #D4AF37', borderRadius: '7px', color: '#a16207', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 800 }}>View public minisite</Link>
                 <select value={sectionId} onChange={event => setSectionId(event.target.value)} style={{ minWidth: '220px', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
                   {sections.map(item => <option key={item.id} value={item.id}>{item.name}{item.is_universal ? ' · Universal' : ''}</option>)}
                 </select>

@@ -65,7 +65,7 @@ export default function MobileVendorDashboard() {
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {chapters.map(chapter => (
-            <Link key={chapter.id} href="/jana/fast-track" style={{ textDecoration: 'none' }}>
+            <Link key={chapter.id} href="/jana/content" style={{ textDecoration: 'none' }}>
               <div style={{ 
                 background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '20px', 
                 border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '1rem' 
