@@ -6,7 +6,7 @@ import Link from 'next/link';
 interface Package {
   id: string;
   package_name: string;
-  package_type: 'bundle' | 'tier' | 'service_package' | 'combo';
+  package_type: 'bundle' | 'tier' | 'service_package' | 'combo' | 'package' | 'program';
   base_price: number;
   package_price: number;
   savings_percentage: number;

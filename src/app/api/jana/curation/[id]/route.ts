@@ -189,7 +189,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const { id } = await params;
     const body = await req.json();
 

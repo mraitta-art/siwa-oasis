@@ -26,6 +26,25 @@ export default function BusinessOrchestrator() {
   const [sections, setSections] = useState<any[]>([]);
   const [sectionControls, setSectionControls] = useState<Record<string, any>>({});
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [sectionLabel, setSectionLabel] = useState('');
+  const [sectionLabelAr, setSectionLabelAr] = useState('');
+  const [gallery, setGallery] = useState<Array<{ url: string; caption: string }>>([]);
+  const [newImage, setNewImage] = useState({ url: '', caption: '' });
+  const [blogTitle, setBlogTitle] = useState('');
+  const [blogBody, setBlogBody] = useState('');
+  const [blogTitleAr, setBlogTitleAr] = useState('');
+  const [blogBodyAr, setBlogBodyAr] = useState('');
+  const [meta, setMeta] = useState<any>({
+    galleryStatus: 'draft',
+    blogStatus: 'draft',
+    galleryOnMain: false,
+    galleryOnMinisite: true,
+    blogOnMain: false,
+    blogOnMinisite: true,
+  });
+  const [contentMessage, setContentMessage] = useState('');
+  const [savingContent, setSavingContent] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -97,6 +116,56 @@ export default function BusinessOrchestrator() {
     loadData();
   }, [id, notify, searchParams]);
 
+  useEffect(() => {
+    if (!biz || !activeSectionId) {
+      setSectionLabel('');
+      setSectionLabelAr('');
+      setGallery([]);
+      setBlogTitle('');
+      setBlogBody('');
+      setBlogTitleAr('');
+      setBlogBodyAr('');
+      setMeta({
+        galleryStatus: 'draft',
+        blogStatus: 'draft',
+        galleryOnMain: false,
+        galleryOnMinisite: true,
+        blogOnMain: false,
+        blogOnMinisite: true,
+      });
+      return;
+    }
+
+    const sectionData = biz.custom_data?.[activeSectionId] || {};
+    const storedMeta = biz.custom_data?.section_content_meta?.[activeSectionId] || {};
+
+    setSectionLabel(biz.custom_data?.basic?.section_labels?.[activeSectionId] || '');
+    setSectionLabelAr(
+      biz.custom_data?.basic?.section_labels_ar?.[activeSectionId] ||
+      biz.custom_data?.section_labels_ar?.[activeSectionId] ||
+      ''
+    );
+    setGallery(Array.isArray(sectionData.section_gallery)
+      ? sectionData.section_gallery.map((item: any) => typeof item === 'string' ? { url: item, caption: '' } : { url: item?.url || '', caption: item?.caption || '' }).filter((item: any) => item.url)
+      : []
+    );
+    setBlogTitle(sectionData.section_blog_title || '');
+    setBlogBody(sectionData.section_blog || sectionData.mini_blog || '');
+    setBlogTitleAr(sectionData.section_blog_title_ar || '');
+    setBlogBodyAr(sectionData.section_blog_ar || '');
+    setMeta({
+      galleryStatus: 'draft',
+      blogStatus: 'draft',
+      galleryOnMain: false,
+      galleryOnMinisite: true,
+      blogOnMain: false,
+      blogOnMinisite: true,
+      ...storedMeta,
+    });
+    setNewImage({ url: '', caption: '' });
+    setContentMessage('');
+  }, [biz, activeSectionId]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -114,6 +183,112 @@ export default function BusinessOrchestrator() {
       notify(err.message || 'Synchronization Failed', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const updateSectionContent = (sectionKey: string, fieldName: string, value: any) => {
+    setBiz((prev: any) => ({
+      ...prev,
+      custom_data: {
+        ...(prev.custom_data || {}),
+        [sectionKey]: {
+          ...(prev.custom_data?.[sectionKey] || {}),
+          [fieldName]: value,
+        },
+      },
+    }));
+  };
+
+  const saveContentSection = async () => {
+    if (!biz || !activeSectionId) return;
+    setSavingContent(true);
+    setContentMessage('');
+
+    try {
+      const nextCustomData = { ...(biz.custom_data || {}) };
+      nextCustomData.basic = {
+        ...(nextCustomData.basic || {}),
+        section_labels: {
+          ...(nextCustomData.basic?.section_labels || {}),
+          [activeSectionId]: sectionLabel.trim(),
+        },
+        section_labels_ar: {
+          ...(nextCustomData.basic?.section_labels_ar || {}),
+          [activeSectionId]: sectionLabelAr.trim(),
+        },
+      };
+
+      nextCustomData[activeSectionId] = {
+        ...(nextCustomData[activeSectionId] || {}),
+        section_gallery: gallery,
+        section_blog_title: blogTitle,
+        section_blog: blogBody,
+        section_blog_title_ar: blogTitleAr,
+        section_blog_ar: blogBodyAr,
+      };
+
+      nextCustomData.section_content_meta = {
+        ...(nextCustomData.section_content_meta || {}),
+        [activeSectionId]: meta,
+      };
+
+      const res = await fetch('/api/jana/businesses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: biz.id, custom_data: nextCustomData }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Content save failed' }));
+        throw new Error(err.error || 'Content save failed');
+      }
+
+      setBiz((prev: any) => ({ ...prev, custom_data: nextCustomData }));
+      setContentMessage('Content & media saved to the DNA layer.');
+      notify('Content & Media synced', 'success');
+    } catch (err: any) {
+      setContentMessage(err.message || 'Content save failed');
+      notify(err.message || 'Content save failed', 'error');
+    } finally {
+      setSavingContent(false);
+    }
+  };
+
+  const addImage = () => {
+    if (!newImage.url.trim()) return;
+    setGallery((current) => [...current, { url: newImage.url.trim(), caption: newImage.caption.trim() }]);
+    setNewImage({ url: '', caption: '' });
+  };
+
+  const uploadGalleryMedia = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !biz || !activeSectionId) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setGallery((current) => [...current, { url: previewUrl, caption: file.name }]);
+    setUploadingGallery(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('businessName', biz.name || 'General');
+    formData.append('sectionName', sections.find((s) => s.id === activeSectionId)?.name || activeSectionId);
+
+    try {
+      const response = await fetch('/api/jana/media/upload', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (!response.ok || !(result.url || result.localUrl)) {
+        throw new Error(result.error || 'Media upload failed');
+      }
+      const uploadedUrl = result.url || result.localUrl;
+      setGallery((current) => current.map((item) => item.url === previewUrl ? { url: uploadedUrl, caption: file.name } : item));
+      setContentMessage('Media uploaded. Save to finalize this section.');
+    } catch (error: any) {
+      setGallery((current) => current.filter((item) => item.url !== previewUrl));
+      setContentMessage(error.message || 'Media upload failed');
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setUploadingGallery(false);
+      event.target.value = '';
     }
   };
 
@@ -353,15 +528,108 @@ export default function BusinessOrchestrator() {
                       </div>
                     )}
 
-                    <DynamicForm 
-                      fields={biz.fields?.filter((f: any) => (f.section_id || 'basic') === activeSectionId) || []}
-                      data={biz.custom_data || {}}
-                      sections={sections}
-                      userRole="admin"
-                      onChange={updateCustomData}
-                      businessName={biz.name}
-                      business={biz}
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(290px, 0.65fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+                      <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 10px 25px rgba(15,23,42,0.04)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                          <div>
+                            <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '0.35rem' }}>CONTENT & MEDIA</div>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>Section narrative and media</h3>
+                          </div>
+                          <button onClick={saveContentSection} disabled={savingContent} style={{ padding: '0.7rem 1rem', borderRadius: '10px', border: 'none', background: savingContent ? '#cbd5e1' : '#0f172a', color: '#fff', fontWeight: 900, cursor: savingContent ? 'not-allowed' : 'pointer' }}>
+                            {savingContent ? 'Saving...' : 'Save section'}
+                          </button>
+                        </div>
+
+                        <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.2px', marginBottom: '0.55rem' }}>SECTION NAME</label>
+                        <input value={sectionLabel} onChange={(e) => setSectionLabel(e.target.value)} placeholder={sections.find((s) => s.id === activeSectionId)?.name || 'Section name'} style={{ width: '100%', boxSizing: 'border-box', padding: '0.8rem 0.9rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', marginBottom: '0.8rem' }} />
+                        <input value={sectionLabelAr} onChange={(e) => setSectionLabelAr(e.target.value)} placeholder="اسم القسم بالعربية" dir="rtl" style={{ width: '100%', boxSizing: 'border-box', padding: '0.8rem 0.9rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', textAlign: 'right', marginBottom: '1rem' }} />
+
+                        <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.2px', marginBottom: '0.55rem' }}>IMAGE GALLERY</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                          <input value={newImage.url} onChange={(e) => setNewImage((current) => ({ ...current, url: e.target.value }))} placeholder="Image URL" style={{ padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }} />
+                          <input value={newImage.caption} onChange={(e) => setNewImage((current) => ({ ...current, caption: e.target.value }))} placeholder="Caption" style={{ padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }} />
+                          <button onClick={addImage} style={{ padding: '0 1rem', borderRadius: '8px', border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Add</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '8px', background: uploadingGallery ? '#cbd5e1' : '#0f172a', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: uploadingGallery ? 'wait' : 'pointer' }}>
+                            <i className="fas fa-upload" /> {uploadingGallery ? 'Uploading...' : 'Upload'}
+                            <input type="file" accept="image/*,video/*" onChange={uploadGalleryMedia} disabled={uploadingGallery} style={{ display: 'none' }} />
+                          </label>
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '8px', background: '#0f766e', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                            <i className="fas fa-camera" /> Photo
+                            <input type="file" accept="image/*" capture="environment" onChange={uploadGalleryMedia} style={{ display: 'none' }} />
+                          </label>
+                        </div>
+                        <div style={{ display: 'grid', gap: '0.7rem', marginBottom: '1.2rem' }}>
+                          {gallery.length > 0 ? gallery.map((item, index) => (
+                            <div key={`${item.url}-${index}`} style={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto', gap: '0.7rem', alignItems: 'center', padding: '0.5rem 0', borderTop: '1px solid #f1f5f9' }}>
+                              <img src={item.url} alt={item.caption || 'Gallery item'} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: '8px', background: '#f1f5f9' }} />
+                              <div>
+                                <div style={{ fontSize: '0.72rem', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</div>
+                                <input value={item.caption} onChange={(e) => setGallery((current) => current.map((entry, i) => i === index ? { ...entry, caption: e.target.value } : entry))} placeholder="Caption" style={{ width: '100%', marginTop: '0.35rem', padding: '0.45rem', borderRadius: '6px', border: '1px solid #e2e8f0' }} />
+                              </div>
+                              <button onClick={() => setGallery((current) => current.filter((_, i) => i !== index))} style={{ width: 32, height: 32, border: 'none', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', cursor: 'pointer' }}><i className="fas fa-trash" /></button>
+                            </div>
+                          )) : <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No media added yet.</div>}
+                        </div>
+
+                        <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 900, color: '#64748b', letterSpacing: '1.2px', marginBottom: '0.55rem' }}>STORY / BLOG</label>
+                        <input value={blogTitle} onChange={(e) => setBlogTitle(e.target.value)} placeholder="Story title" style={{ width: '100%', boxSizing: 'border-box', padding: '0.75rem 0.9rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', marginBottom: '0.8rem' }} />
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', marginBottom: '1rem' }}>
+                          <div style={{ background: '#f8fafc', padding: '0.7rem 1rem', fontSize: '0.65rem', fontWeight: 900, color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>ENGLISH EDITOR</div>
+                          <div style={{ padding: '0.7rem' }}>
+                            <textarea value={blogBody} onChange={(e) => setBlogBody(e.target.value)} placeholder="Write section story..." style={{ width: '100%', minHeight: '220px', resize: 'vertical', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', fontSize: '0.85rem', background: '#fff' }} />
+                          </div>
+                        </div>
+                        <input value={blogTitleAr} onChange={(e) => setBlogTitleAr(e.target.value)} placeholder="عنوان القصة بالعربية" dir="rtl" style={{ width: '100%', boxSizing: 'border-box', padding: '0.75rem 0.9rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#f8fafc', textAlign: 'right', marginBottom: '0.8rem' }} />
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                          <div style={{ background: '#f8fafc', padding: '0.7rem 1rem', fontSize: '0.65rem', fontWeight: 900, color: '#64748b', borderBottom: '1px solid #e2e8f0', textAlign: 'right', direction: 'rtl' }}>محرر عربي</div>
+                          <div style={{ padding: '0.7rem' }}>
+                            <textarea value={blogBodyAr} onChange={(e) => setBlogBodyAr(e.target.value)} placeholder="اكتب قصة القسم بالعربية..." dir="rtl" style={{ width: '100%', minHeight: '220px', resize: 'vertical', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', fontSize: '0.85rem', background: '#fff', textAlign: 'right' }} />
+                          </div>
+                        </div>
+                      </section>
+
+                      <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 10px 25px rgba(15,23,42,0.04)', alignSelf: 'start' }}>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '0.9rem' }}>PUBLISHING</div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>Gallery status</label>
+                        <select value={meta.galleryStatus || 'draft'} onChange={(e) => setMeta((current: any) => ({ ...current, galleryStatus: e.target.value }))} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', marginBottom: '1rem' }}>
+                          <option value="draft">Draft</option>
+                          <option value="approved">Approved</option>
+                          <option value="suspended">Suspended</option>
+                        </select>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>Story status</label>
+                        <select value={meta.blogStatus || 'draft'} onChange={(e) => setMeta((current: any) => ({ ...current, blogStatus: e.target.value }))} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', marginBottom: '1rem' }}>
+                          <option value="draft">Draft</option>
+                          <option value="approved">Approved</option>
+                          <option value="suspended">Suspended</option>
+                        </select>
+                        {[
+                          ['galleryOnMain', 'Show gallery on main website'],
+                          ['galleryOnMinisite', 'Show gallery on minisite'],
+                          ['blogOnMain', 'Show story on main website'],
+                          ['blogOnMinisite', 'Show story on minisite'],
+                        ].map(([key, label]) => (
+                          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0.8rem 0', color: '#475569', fontSize: '0.76rem', fontWeight: 700 }}>
+                            <input type="checkbox" checked={!!meta[key]} onChange={(e) => setMeta((current: any) => ({ ...current, [key]: e.target.checked }))} />
+                            {label}
+                          </label>
+                        ))}
+                        {contentMessage && <div style={{ marginTop: '1rem', padding: '0.75rem 0.9rem', borderRadius: '10px', background: contentMessage.includes('failed') || contentMessage.includes('Error') ? '#fef2f2' : '#ecfdf5', color: contentMessage.includes('failed') || contentMessage.includes('Error') ? '#b91c1c' : '#166534', fontSize: '0.72rem', fontWeight: 700 }}>{contentMessage}</div>}
+                      </section>
+                    </div>
+
+                    <div style={{ marginTop: '1rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e8f0' }}>
+                      <DynamicForm 
+                        fields={biz.fields?.filter((f: any) => (f.section_id || 'basic') === activeSectionId) || []}
+                        data={biz.custom_data || {}}
+                        sections={sections}
+                        userRole="admin"
+                        onChange={updateCustomData}
+                        businessName={biz.name}
+                        business={biz}
+                      />
+                    </div>
                   </div>
                 )}
               </main>

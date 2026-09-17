@@ -100,8 +100,8 @@ export function isSectionHidden(sectionId: string, customData?: Record<string, a
     : (Array.isArray(customData?.hidden_sections) ? customData.hidden_sections : []);
 
   const hiddenSet = new Set<string>([
-    ...templateHidden.filter((id): id is string => typeof id === 'string').map(resolveSectionId),
-    ...hiddenFromCustom.filter((id): id is string => typeof id === 'string').map(resolveSectionId),
+    ...templateHidden.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId),
+    ...hiddenFromCustom.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId),
   ]);
 
   if (sectionControl?.admin_hidden === 1 || sectionControl?.admin_hidden === true) {

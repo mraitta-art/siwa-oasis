@@ -152,7 +152,7 @@ async function extractGoogleMapsData(link: string): Promise<GooglePlaceData> {
   const html = await response.text();
   const finalUrl = response.url || link;
   const parsedUrl = parseGoogleMapsLink(finalUrl) || parseGoogleMapsLink(link) || {};
-  const coordinates = parsedUrl.lat !== undefined && parsedUrl.lng !== undefined
+  const coordinates: { lat?: number; lng?: number } = parsedUrl.lat !== undefined && parsedUrl.lng !== undefined
     ? { lat: parsedUrl.lat, lng: parsedUrl.lng }
     : extractCoordinates(html) || {};
 
@@ -171,10 +171,10 @@ async function extractGoogleMapsData(link: string): Promise<GooglePlaceData> {
     ? schema.address
     : schema.address ? [schema.address.streetAddress, schema.address.addressLocality, schema.address.addressRegion, schema.address.postalCode, schema.address.addressCountry].filter(Boolean).join(', ') : '';
   const geo = schema.geo || {};
-  const schemaCoordinates = Number.isFinite(Number(geo.latitude)) && Number.isFinite(Number(geo.longitude))
+  const schemaCoordinates: { lat?: number; lng?: number } = Number.isFinite(Number(geo.latitude)) && Number.isFinite(Number(geo.longitude))
     ? { lat: Number(geo.latitude), lng: Number(geo.longitude) }
     : {};
-  const finalCoordinates = coordinates.lat !== undefined && coordinates.lng !== undefined ? coordinates : schemaCoordinates;
+  const finalCoordinates: { lat?: number; lng?: number } = coordinates.lat !== undefined && coordinates.lng !== undefined ? coordinates : schemaCoordinates;
   const photos = (Array.isArray(schema.image) ? schema.image : schema.image ? [schema.image] : [])
     .filter((photo: unknown): photo is string => typeof photo === 'string')
     .slice(0, 5);

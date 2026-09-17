@@ -41,6 +41,7 @@ interface Business {
   id: string;
   service_id?: string;
   name: string;
+  business_name?: string;
   type_id: string;
   type_name?: string;
   parent_type_id?: string;

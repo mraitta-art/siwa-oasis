@@ -83,6 +83,7 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
 function HeroCarouselManagerContent() {
   const searchParams = useSearchParams();
   const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string }[]>([]);
+  const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string; slug?: string } | null>(null);
   const [dynamicMainPages, setDynamicMainPages] = useState<{ slug: string; title: string }[]>([]);
 
   const initialSiteId = searchParams?.get('siteId') || 'discovery';
