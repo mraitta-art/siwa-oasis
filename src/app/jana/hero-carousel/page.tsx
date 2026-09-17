@@ -54,7 +54,7 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
 
 function HeroCarouselManagerContent() {
   const searchParams = useSearchParams();
-  const [businesses, setBusinesses] = useState<{ id: string; name: string }[]>([]);
+  const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string }[]>([]);
   const initialSiteId = searchParams.get('siteId') || 'discovery';
   const initialBusinessId = searchParams.get('businessId') || (initialSiteId.startsWith('biz_') ? initialSiteId.replace(/^biz_/, '').replace(/_hero$/, '') : '');
   const [businessId, setBusinessId] = useState(initialBusinessId);
@@ -66,10 +66,15 @@ function HeroCarouselManagerContent() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
   const siteId = businessId ? `biz_${businessId}_hero` : carouselId.trim() || 'discovery';
+
+  const selectedBusiness = businesses.find(b => b.id === businessId);
+  const previewHref = businessId 
+    ? (selectedBusiness?.slug ? `/${selectedBusiness.slug}` : `/business/${businessId}`)
+    : '/';
 
   const defaultFormData: Partial<CarouselSlide> = {
     title: '',
@@ -102,7 +107,7 @@ function HeroCarouselManagerContent() {
   useEffect(() => {
     fetch('/api/jana/businesses')
       .then(res => res.ok ? res.json() : [])
-      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name })) : []))
+      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name, slug: business.slug })) : []))
       .catch(() => setBusinesses([]));
   }, []);
 
@@ -365,8 +370,13 @@ function HeroCarouselManagerContent() {
                 />
               </label>
             )}
-            <a href="/" target="_blank" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#94a3b8', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 700 }}>
-              <i className="fas fa-eye" /> Preview Site
+            <a 
+              href={previewHref} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', color: '#D4AF37', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, transition: 'all 0.2s' }}
+            >
+              <i className="fas fa-external-link-alt" /> {selectedBusiness ? `Preview ${selectedBusiness.name}` : 'Preview Homepage'}
             </a>
             {!showForm && (
               <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem' }}>
@@ -671,6 +681,96 @@ function HeroCarouselManagerContent() {
                 Cancel
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Live Interactive Preview Player */}
+        {!loading && allSlides.length > 0 && (
+          <div style={{ background: '#1e293b', borderRadius: '16px', border: '1px solid rgba(212,175,55,0.25)', overflow: 'hidden', marginBottom: '2rem', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+            <div style={{ background: 'linear-gradient(90deg, #0f172a 0%, #1e293b 100%)', padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+                <span style={{ color: '#fff', fontWeight: 800, fontSize: '0.85rem' }}>
+                  🎬 Live Carousel Preview: {selectedBusiness ? selectedBusiness.name : 'Homepage Discovery'}
+                </span>
+                <span style={{ color: '#94a3b8', fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '12px' }}>
+                  Slide {((previewIndex % allSlides.length) + 1)} of {allSlides.length}
+                </span>
+              </div>
+              <a href={previewHref} target="_blank" rel="noopener noreferrer" style={{ color: '#D4AF37', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                Open Full Page →
+              </a>
+            </div>
+
+            {(() => {
+              const currentSlide = allSlides[previewIndex % allSlides.length] || allSlides[0];
+              const ytId = currentSlide.type === 'youtube' ? extractYouTubeId(currentSlide.mediaUrl || '') : null;
+
+              return (
+                <div style={{ position: 'relative', height: '320px', background: currentSlide.bgColor || '#050b14', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {/* Media background */}
+                  {currentSlide.type === 'youtube' && ytId ? (
+                    <img src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                  ) : currentSlide.type === 'image' && currentSlide.mediaUrl ? (
+                    <img src={currentSlide.mediaUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: currentSlide.imageFit || 'cover', objectPosition: currentSlide.imagePosition || 'center', opacity: 0.85 }} />
+                  ) : currentSlide.type === 'video' && currentSlide.mediaUrl ? (
+                    <video src={currentSlide.mediaUrl} autoPlay loop muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: currentSlide.imageFit || 'cover', objectPosition: currentSlide.imagePosition || 'center' }} />
+                  ) : null}
+
+                  {/* Darkness overlay */}
+                  <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${currentSlide.overlayOpacity ?? 0.4})` }} />
+
+                  {/* Slide Content */}
+                  <div style={{ position: 'relative', zIndex: 2, padding: '2rem', textAlign: currentSlide.textAlign || 'center', maxWidth: '700px', width: '100%', fontFamily: currentSlide.fontFamily || 'inherit' }}>
+                    {currentSlide.caption && (
+                      <div style={{ display: 'inline-block', background: 'rgba(212,175,55,0.2)', border: '1px solid rgba(212,175,55,0.4)', color: '#D4AF37', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1.5px', textTransform: 'uppercase', padding: '3px 10px', borderRadius: '20px', marginBottom: '0.6rem' }}>
+                        {currentSlide.caption}
+                      </div>
+                    )}
+                    <h2 style={{ color: currentSlide.titleColor || '#FFFFFF', fontSize: currentSlide.titleSize ? `${currentSlide.titleSize}rem` : '1.8rem', fontWeight: 900, margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.7)' }}>
+                      {currentSlide.title}
+                    </h2>
+                    {currentSlide.subtitle && (
+                      <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: currentSlide.subtitleSize ? `${currentSlide.subtitleSize}rem` : '0.95rem', margin: '0.5rem 0 0', textShadow: '0 1px 5px rgba(0,0,0,0.7)' }}>
+                        {currentSlide.subtitle}
+                      </p>
+                    )}
+                    {currentSlide.ctaText && (
+                      <div style={{ marginTop: '1.25rem' }}>
+                        <span style={{ display: 'inline-block', background: 'linear-gradient(135deg, #D4AF37, #f0c842)', color: '#0f172a', fontWeight: 900, padding: '0.6rem 1.25rem', borderRadius: '8px', fontSize: '0.8rem', boxShadow: '0 4px 15px rgba(212,175,55,0.3)' }}>
+                          {currentSlide.ctaText} →
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Left / Right Nav Arrows */}
+                  <button
+                    onClick={() => setPreviewIndex(prev => (prev - 1 + allSlides.length) % allSlides.length)}
+                    style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 3, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => setPreviewIndex(prev => (prev + 1) % allSlides.length)}
+                    style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 3, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    ›
+                  </button>
+
+                  {/* Dot Indicators */}
+                  <div style={{ position: 'absolute', bottom: '0.75rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.4rem', zIndex: 3 }}>
+                    {allSlides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setPreviewIndex(idx)}
+                        style={{ width: (previewIndex % allSlides.length) === idx ? 24 : 8, height: 8, borderRadius: 4, background: (previewIndex % allSlides.length) === idx ? '#D4AF37' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all 0.3s' }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
