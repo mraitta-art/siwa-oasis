@@ -78,23 +78,32 @@ export async function POST(request: NextRequest) {
     if (process.env.CLOUDINARY_CLOUD_NAME) {
       try {
         const result: any = await uploadToCloudinary(buffer, cloudFolder);
-        finalUrl = result.secure_url;
+        finalUrl = result?.secure_url || '';
       } catch (cloudErr: any) {
-        console.error('[CLOUDINARY ERROR]', cloudErr);
-        if (process.env.NODE_ENV === 'production') {
-          return NextResponse.json({ error: 'Cloudinary upload failed' }, { status: 500 });
-        }
+        console.error('[CLOUDINARY ERROR - FALLBACK TO DATA/LOCAL]', cloudErr);
       }
     }
 
-    // 2. Always also save a local E: copy for the local app
+    // 2. Save local copy when running on Node with filesystem support
     const timestamp = Date.now();
     const originalName = file.name.replace(/\s+/g, '-').toLowerCase();
     const filename = `${timestamp}-${originalName}`;
-    const localResult = saveUploadedBuffer(buffer, filename, `jana-media/${safeBizName}/${safeSectionName}`);
+    let localResultUrl = '';
+    try {
+      const localResult = saveUploadedBuffer(buffer, filename, `jana-media/${safeBizName}/${safeSectionName}`);
+      localResultUrl = localResult.url;
+    } catch (fsErr) {
+      console.warn('[FS SAVE SKIPPED IN SERVERLESS]', fsErr);
+    }
 
+    // 3. If no Cloudinary URL and running in Serverless / Vercel, use Base64 data URL to guarantee instant display
     if (!finalUrl) {
-      finalUrl = localResult.url;
+      const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || !process.env.SIWA_MEDIA_ROOT);
+      if (isServerless && buffer.length <= 15 * 1024 * 1024) {
+        finalUrl = `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+      } else {
+        finalUrl = localResultUrl || `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+      }
     }
 
     // Store file hash for future duplicate detection
@@ -103,7 +112,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO admin_media_uploads (file_hash, url, localUrl, file_name, file_size, mime_type, folder, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
          ON DUPLICATE KEY UPDATE created_at = NOW()`,
-        [fileHash, finalUrl, localResult.url, file.name, file.size, file.type, cloudFolder]
+        [fileHash, finalUrl, localResultUrl || finalUrl, file.name, file.size, file.type, cloudFolder]
       );
     } catch (dbErr: any) {
       console.log('[INFO] File hash storage skipped:', dbErr.message);
@@ -112,7 +121,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       url: finalUrl,
-      localUrl: localResult.url,
+      localUrl: localResultUrl || finalUrl,
       filename: filename,
       size: file.size,
       type: file.type,

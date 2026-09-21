@@ -738,10 +738,26 @@ function HeroCarouselManagerContent() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        const isVideo = file.type.startsWith('video/');
+        
+        // 1. Instant client preview so user sees it right away
+        const clientPreviewUrl = URL.createObjectURL(file);
+        const derivedTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        
+        setShowForm(true);
+        setFormData(prev => ({
+          ...prev,
+          mediaUrl: clientPreviewUrl,
+          type: isVideo ? 'video' : 'image',
+          title: prev.title?.trim() ? prev.title : derivedTitle,
+        }));
+
+        // 2. Perform background upload to server/Cloudinary
         const fd = new FormData();
         fd.append('file', file);
         fd.append('businessName', currentTarget.bizName || currentTarget.title || 'General');
         fd.append('sectionName', currentTarget.tabLabel ? `Hero ${currentTarget.tabLabel}` : 'Hero');
+        
         const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
         const data = await res.json();
 
@@ -751,22 +767,90 @@ function HeroCarouselManagerContent() {
           continue;
         }
 
-        const fileUrl = data.url || data.localUrl || '';
+        const fileUrl = data.url || data.localUrl || clientPreviewUrl;
         if (!fileUrl) {
           showMsg('error', 'Upload succeeded but no URL was returned.');
           continue;
         }
 
-        const isVideo = file.type.startsWith('video/');
         setFormData(prev => ({
           ...prev,
           mediaUrl: fileUrl,
           type: isVideo ? 'video' : 'image',
         }));
-        showMsg('success', `${isVideo ? 'Video' : 'Image'} uploaded!`);
+        showMsg('success', `✅ ${isVideo ? 'Video' : 'Image'} ready! Click "+ Add to Carousel" (or "Update Slide") below to save.`);
       }
     } catch (err: any) {
       showMsg('error', err?.message || 'Upload failed');
+    } finally {
+      setSaving(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuickUploadNewSlide = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setSaving(true);
+    try {
+      const newCreatedSlides: CarouselSlide[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isVideo = file.type.startsWith('video/');
+        const derivedTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('businessName', currentTarget.bizName || currentTarget.title || 'General');
+        fd.append('sectionName', currentTarget.tabLabel ? `Hero ${currentTarget.tabLabel}` : 'Hero');
+
+        const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg('error', data?.error || 'Upload failed');
+          continue;
+        }
+
+        const fileUrl = data.url || data.localUrl || '';
+        if (fileUrl) {
+          newCreatedSlides.push({
+            id: `slide_${Date.now()}_${i}`,
+            title: derivedTitle,
+            subtitle: `Welcome to ${currentTarget.title}`,
+            caption: currentTarget.title,
+            mediaUrl: fileUrl,
+            type: isVideo ? 'video' : 'image',
+            ctaText: 'Explore',
+            ctaLink: previewHref,
+            displayOrder: allSlides.length + newCreatedSlides.length,
+            _source: 'manual',
+            imageFit: 'cover',
+            imagePosition: 'center',
+            bgColor: '#000000',
+            overlayOpacity: 0.4,
+            animation: 'kenburns',
+            titleColor: '#FFFFFF',
+            titleSize: 0,
+            subtitleSize: 0,
+            textAlign: 'center',
+          });
+        }
+      }
+
+      if (newCreatedSlides.length > 0) {
+        const updated = [...allSlides, ...newCreatedSlides].map((s, idx) => ({ ...s, displayOrder: idx }));
+        setAllSlides(updated);
+        const ok = await saveSlideConfig(updated);
+        if (ok) {
+          showMsg('success', `✨ Added ${newCreatedSlides.length} new slide(s) to ${currentTarget.title}!`);
+          loadAllSlides();
+        } else {
+          showMsg('error', 'Failed to save slide config');
+        }
+      }
+    } catch (err: any) {
+      showMsg('error', err?.message || 'Quick upload failed');
     } finally {
       setSaving(false);
       e.target.value = '';
@@ -879,9 +963,15 @@ function HeroCarouselManagerContent() {
             >
               <i className="fas fa-external-link-alt" style={{ color: '#d97706' }} /> Open Target Page: {previewHref}
             </a>
+            <div style={{ position: 'relative' }}>
+              <button style={{ background: '#d97706', color: '#ffffff', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(217,119,6,0.2)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <i className="fas fa-upload" /> {saving ? 'Uploading...' : 'Quick Upload from Device'}
+              </button>
+              <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+            </div>
             {!showForm && (
               <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(15,23,42,0.15)' }}>
-                + Add Slide
+                + Add Custom Slide
               </button>
             )}
           </div>
@@ -1574,6 +1664,14 @@ function HeroCarouselManagerContent() {
               Add slides or generate curated starter slides to activate the full-screen cinematic slideshow on that page!
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative' }}>
+                <button
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <i className="fas fa-upload" /> {saving ? 'Uploading...' : 'Quick Upload from Device'}
+                </button>
+                <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+              </div>
               <button
                 onClick={handleGenerateStarterSlides}
                 disabled={saving}
