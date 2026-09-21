@@ -1102,13 +1102,103 @@ export default function VanityBusinessClient({
         </div>
       </div>
 
-      <footer style={{ background: '#0f172a', padding: '5rem 0', color: '#fff', textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem' }}>
+      {/* FOOTER */}
+      <footer style={{ background: '#0f172a', padding: '4.5rem 1.5rem', color: '#fff', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
           <MinisiteQRCode businessName={biz.name || 'SiWiFy.com Minisite'} businessId={biz.id} compact />
         </div>
-        <div style={{ fontWeight: 900, letterSpacing: '4px', fontSize: '1.5rem', marginBottom: '1rem' }}>SiWiFy.com</div>
-        <p style={{ opacity: 0.5, fontSize: '0.8rem' }}>Automated Cinematic Minisite Engine v4.0</p>
+
+        {(!biz.subscription_tier || biz.subscription_tier === 'free') && !isTrusted && !isMasterTemplate ? (
+          /* Free Tier Footer (Promoting Siwify Platform & Upgrade) */
+          <div>
+            <div style={{ fontWeight: 900, letterSpacing: '3px', fontSize: '1.35rem', marginBottom: '0.5rem', color: '#D4AF37' }}>
+              {platformName}
+            </div>
+            <p style={{ opacity: 0.6, fontSize: '0.8rem', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+              This is a free verified minisite powered by {platformName}. Want your own whitelabel booking site without watermarks?
+            </p>
+            <Link
+              href="/be-a-partner"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: 'rgba(212,175,55,0.15)',
+                border: '1px solid rgba(212,175,55,0.4)',
+                color: '#D4AF37',
+                padding: '0.55rem 1.25rem',
+                borderRadius: '50px',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                textDecoration: 'none'
+              }}
+            >
+              ✦ Create Your Free Business Minisite →
+            </Link>
+          </div>
+        ) : (
+          /* Paid / Promoted Tier Footer (100% Vendor-First Authority) */
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '4px 12px', borderRadius: '50px', fontSize: '0.72rem', fontWeight: 900, marginBottom: '1rem' }}>
+              ★ VERIFIED OASIS PARTNER
+            </div>
+            <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#f8fafc', marginBottom: '0.5rem' }}>
+              {biz.name}
+            </div>
+            <p style={{ opacity: 0.5, fontSize: '0.78rem', margin: 0 }}>
+              © {new Date().getFullYear()} {biz.name}. All rights reserved.
+            </p>
+          </div>
+        )}
       </footer>
+
+      {/* FREE TIER SIWIFY WATERMARK PILL */}
+      {(!biz.subscription_tier || biz.subscription_tier === 'free') && !isTrusted && !isMasterTemplate && (
+        <div
+          className="minisite-watermark-pill"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: isRTL ? 'auto' : '24px',
+            right: isRTL ? '24px' : 'auto',
+            zIndex: 9998,
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}
+        >
+          <Link
+            href="/vendor/upgrade"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(15, 23, 42, 0.92)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(212, 175, 55, 0.4)',
+              borderRadius: '50px',
+              padding: '0.45rem 0.95rem',
+              color: '#f8fafc',
+              textDecoration: 'none',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ color: '#D4AF37' }}>⚡</span>
+            <span>Powered by <strong>{platformName}</strong></span>
+            <span style={{
+              background: 'rgba(212, 175, 55, 0.2)',
+              color: '#D4AF37',
+              padding: '2px 7px',
+              borderRadius: '10px',
+              fontSize: '0.65rem',
+              fontWeight: 900
+            }}>
+              UPGRADE
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* MOBILE DRAWER OVERLAY */}
       {isMobileMenuOpen && (

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LangProvider, useLang } from '@/context/LangContext';
+import VendorTierFeatureModal from '@/components/VendorTierFeatureModal';
 
 /* ─── Types ──────────────────────────────────────────────── */
 interface VendorInfo {
@@ -739,6 +740,9 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
       </div>
+
+      {/* Recurring Vendor Tier & Feature Declaration Modal */}
+      <VendorTierFeatureModal businessName={vendor.name} />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import VendorTierFeatureModal from '@/components/VendorTierFeatureModal';
 
 const DEFAULT_CONTENT = {
   hero_title:         'Grow Your Business in Siwa Oasis',
@@ -138,9 +139,12 @@ export default function BeAPartnerPage() {
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✨</div>
               <h2 style={{ fontWeight: 800, marginBottom: '1rem' }}>{content.success_title}</h2>
               <p style={{ color: '#64748b', marginBottom: '2rem' }}>{content.success_message}</p>
-              <button onClick={() => router.push('/login')} style={{ width: '100%', background: '#1a1a2e', color: '#fff', padding: '1.25rem', borderRadius: '12px', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                GO TO LOGIN
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <button onClick={() => router.push('/login')} style={{ width: '100%', background: '#D4AF37', color: '#1a1a2e', padding: '1.1rem', borderRadius: '12px', fontWeight: 900, border: 'none', cursor: 'pointer' }}>
+                  GO TO VENDOR DASHBOARD →
+                </button>
+              </div>
+              <VendorTierFeatureModal forceOpen={true} businessName={businessName} onClose={() => router.push('/login')} />
             </div>
           ) : (
             <>
