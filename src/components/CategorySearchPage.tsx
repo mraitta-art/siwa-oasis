@@ -49,6 +49,13 @@ export default function CategorySearchPage({
 
   // Default dynamic layout if no customized database config has been saved yet
   const defaultDynamicLayout = [
+    // ── Hero Carousel — managed at /jana/hero-carousel?mainPreset=<pagePath>_hero ──
+    {
+      id: `${pagePath}_carousel`,
+      type: 'hero_carousel',
+      props: { carousel_id: `${pagePath}_hero` }
+    },
+    // ── Thematic static hero banner (shown when carousel has no slides yet) ──
     {
       id: `${pagePath}_hero`,
       type: 'category_hero',

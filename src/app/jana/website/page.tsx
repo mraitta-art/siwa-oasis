@@ -279,7 +279,11 @@ function MultiPageSiteBuilderComponent() {
     if (isSector) {
       const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
       const cat = slug === 'accommodations' ? 'accommodation' : slug === 'transportation' ? 'transportation' : slug === 'activities' ? 'activity' : slug === 'food-beverage' ? 'food' : slug;
+      const carouselId = `${slug}_hero`;
       return [
+        // Hero Carousel — editable from /jana/hero-carousel?mainPreset=<carouselId>
+        { id: `${slug}_carousel`, key: 'hero_carousel', zone: 'header', label: `${label} Hero Carousel`, props: { carousel_id: carouselId } },
+        // Thematic static hero (shown below carousel, or as fallback when carousel has no slides)
         { id: `${slug}_hero`, key: 'category_hero', zone: 'header', label: `${label} Thematic Hero`, props: { category: cat, label, title: `Find the perfect ${label} in Siwa` } },
         { id: `${slug}_search`, key: 'search_bar', zone: 'body', label: `${label} Search & Filters`, props: { defaultCategory: cat } },
         { id: `${slug}_deals`, key: 'category_commercial_tabs', zone: 'body', label: `${label} Packages & Deals`, props: { category: cat } },

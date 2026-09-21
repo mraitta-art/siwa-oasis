@@ -253,20 +253,17 @@ export default function AdvancedHeroCarousel({
   }, [isTransitioning, currentSlide, transitionDuration]);
 
   if (loading) {
-    return (
-      <section style={{ height, background: 'linear-gradient(135deg, #556B2F, #6B8E23)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#FFB700' }}></i>
-      </section>
-    );
+    // While fetching slides, show nothing — the next layout component acts as fallback
+    return null;
   }
 
+
   if (!validSlides || validSlides.length === 0) {
-    return (
-      <section style={{ height, background: 'linear-gradient(135deg, #556B2F, #20B2AA)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: '#fff' }}><h2>{carouselName || 'Cinematic Carousel'}</h2></div>
-      </section>
-    );
+    // No slides configured yet — return null so the next component in the layout
+    // (e.g. category_hero) renders as the visible fallback hero instead of a placeholder box.
+    return null;
   }
+
 
   const slide = validSlides[currentSlide];
   const overlayOpacity = slide.overlayOpacity ?? 0.5;

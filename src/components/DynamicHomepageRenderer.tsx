@@ -94,9 +94,9 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
       const desktopHeight = Number(props?.height_desktop || 720);
       const responsiveHeight = `clamp(${mobileHeight}px, 75vh, ${desktopHeight}px)`;
       return (
-        // key={carouselId} keeps the carousel instance stable across page reorders
-        // so it won't re-fetch slides or reset its autoplay timer
-        <section key={carouselId} style={{ height: responsiveHeight, minHeight: `${mobileHeight}px`, position: 'relative' }}>
+        // No fixed height on the wrapper — when AdvancedHeroCarousel returns null (no slides yet),
+        // this section collapses to zero so the next slot (e.g. category_hero) shows as the fallback.
+        <section key={carouselId} style={{ position: 'relative' }}>
           <AdvancedHeroCarousel 
             height={responsiveHeight}
             carouselName={carouselId}
