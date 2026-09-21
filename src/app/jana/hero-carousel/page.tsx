@@ -57,12 +57,23 @@ interface DynamicBusinessSection {
 
 const MAIN_PAGE_PRESETS = [
   { id: 'discovery', label: '🏠 Homepage', url: '/' },
+  { id: 'accommodations_hero', label: '🏨 Accommodations & Lodges', url: '/accommodations' },
+  { id: 'transportation_hero', label: '🚗 Transportation & 4x4', url: '/transportation' },
+  { id: 'activities_hero', label: '🐪 Activities & Safari', url: '/activities' },
+  { id: 'food-beverage_hero', label: '🍽️ Food & Dining', url: '/food-beverage' },
+  { id: 'crafts-wellness_hero', label: '🧂 Crafts & Wellness', url: '/crafts-wellness' },
+  { id: 'production-trade_hero', label: '🌴 Production & Trade', url: '/production-trade' },
+  { id: 'services_hero', label: '🏛️ Services Hub', url: '/services' },
   { id: 'journeys_hero', label: '✈️ Journeys & Tours', url: '/journeys' },
+  { id: 'offers_hero', label: '🎁 Special Offers', url: '/offers' },
+  { id: 'packages_hero', label: '📦 Travel Packages', url: '/packages' },
+  { id: 'discounts_hero', label: '💰 Seasonal Discounts', url: '/discounts' },
+  { id: 'auctions_hero', label: '🔨 Live Auctions', url: '/auctions' },
+  { id: 'investment-opportunities_hero', label: '💎 Investment Deals', url: '/investment-opportunities' },
+  { id: 'blog_hero', label: '📰 Stories & Blog', url: '/blog' },
+  { id: 'be-a-partner_hero', label: '🤝 Be a Partner', url: '/be-a-partner' },
+  { id: 'categories_hero', label: '🗺️ Category Taxonomy', url: '/categories' },
   { id: 'search_hero', label: '🔍 Search & Compare', url: '/discovery/compare' },
-  { id: 'auctions_hero', label: '🔨 Auctions', url: '/auctions' },
-  { id: 'stories_hero', label: '📖 Stories & Heritage', url: '/stories' },
-  { id: 'deals_hero', label: '🏷️ Deals & Offers', url: '/deals' },
-  { id: 'pricing_hero', label: '💎 Pricing & Memberships', url: '/pricing' },
 ];
 
 const READYMADE_PAGE_PRESETS = [
