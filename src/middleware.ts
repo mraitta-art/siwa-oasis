@@ -6,61 +6,163 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 const PLATFORM_ROOT_DOMAINS = new Set(['siwify.com', 'www.siwify.com', 'localhost', '127.0.0.1']);
 
-/* ─── System Subdomain Routing Table ────────────────────────────────── */
+/* ─── SEO-Optimized Subdomain Routing Table ────────────────────────── */
 const SUBDOMAIN_ROUTES: Record<string, string> = {
-  // Main Oasis Portal
+  // ── Main Oasis Portals
   'siwaoasis': '/',
+  'siwa-oasis': '/',
   'siwa': '/',
+  'siwatoday': '/',
+  'siwa-today': '/',
   'oasis': '/',
   'home': '/',
   'main': '/',
 
-  // Category & Sector Portals
+  // ── Accommodations & Stays (SEO: siwastay, siwastayat, siwahotels, siwacamps)
+  'siwastay': '/accommodations',
+  'siwa-stay': '/accommodations',
+  'siwastayat': '/accommodations',
+  'siwa-stay-at': '/accommodations',
+  'siwastaywith': '/accommodations',
+  'siwa-stay-with': '/accommodations',
   'staywith': '/accommodations',
   'stay': '/accommodations',
+  'siwahotels': '/accommodations',
+  'siwa-hotels': '/accommodations',
+  'siwacamps': '/accommodations',
+  'siwa-camps': '/accommodations',
+  'siwalodges': '/accommodations',
+  'siwa-lodges': '/accommodations',
+  'siwaresorts': '/accommodations',
+  'siwa-resorts': '/accommodations',
+  'siwaaccommodations': '/accommodations',
+  'siwa-accommodations': '/accommodations',
   'accommodations': '/accommodations',
   'hotels': '/accommodations',
   'camps': '/accommodations',
   'lodges': '/accommodations',
 
+  // ── Transportation & Mobility (SEO: siwamove, siwatransport, siwatransfers, siwa4x4)
+  'siwamove': '/transportation',
+  'siwa-move': '/transportation',
+  'siwamovewith': '/transportation',
+  'siwa-move-with': '/transportation',
   'movewith': '/transportation',
   'move': '/transportation',
+  'siwatransport': '/transportation',
+  'siwa-transport': '/transportation',
+  'siwatransportation': '/transportation',
+  'siwa-transportation': '/transportation',
+  'siwatransfers': '/transportation',
+  'siwa-transfers': '/transportation',
+  'siwa4x4': '/transportation',
+  'siwa-4x4': '/transportation',
   'transportation': '/transportation',
   'transport': '/transportation',
   'transfers': '/transportation',
 
+  // ── Activities & Desert Tours (SEO: siwatours, siwasafari, siwaactivities)
+  'siwatours': '/activities',
+  'siwa-tours': '/activities',
+  'siwasafari': '/activities',
+  'siwa-safari': '/activities',
+  'siwaactivities': '/activities',
+  'siwa-activities': '/activities',
+  'siwaexperiences': '/activities',
+  'siwa-experiences': '/activities',
+  'siwaadventure': '/activities',
+  'siwa-adventure': '/activities',
   'tours': '/activities',
   'activities': '/activities',
   'experiences': '/activities',
   'safari': '/activities',
 
+  // ── Food, Restaurants & Dining (SEO: siwaeat, siwafood, siwadining, siwarestaurants)
+  'siwaeat': '/food-beverage',
+  'siwa-eat': '/food-beverage',
+  'siwaeatwith': '/food-beverage',
+  'siwa-eat-with': '/food-beverage',
   'eatwith': '/food-beverage',
   'eat': '/food-beverage',
+  'siwafood': '/food-beverage',
+  'siwa-food': '/food-beverage',
+  'siwadining': '/food-beverage',
+  'siwa-dining': '/food-beverage',
+  'siwarestaurants': '/food-beverage',
+  'siwa-restaurants': '/food-beverage',
+  'siwacafes': '/food-beverage',
   'food': '/food-beverage',
   'restaurants': '/food-beverage',
   'dining': '/food-beverage',
 
+  // ── Crafts, Healing & Wellness (SEO: siwacrafts, siwawellness, siwasalt, siwaspa)
+  'siwacrafts': '/crafts-wellness',
+  'siwa-crafts': '/crafts-wellness',
+  'siwawellness': '/crafts-wellness',
+  'siwa-wellness': '/crafts-wellness',
+  'siwasalt': '/crafts-wellness',
+  'siwa-salt': '/crafts-wellness',
+  'siwahealing': '/crafts-wellness',
+  'siwa-healing': '/crafts-wellness',
+  'siwaspa': '/crafts-wellness',
+  'siwa-spa': '/crafts-wellness',
   'crafts': '/crafts-wellness',
   'wellness': '/crafts-wellness',
   'healing': '/crafts-wellness',
   'spa': '/crafts-wellness',
 
+  // ── Production & Trade (SEO: siwatrade, siwadates, siwaolives, siwaproduction)
+  'siwatrade': '/production-trade',
+  'siwa-trade': '/production-trade',
+  'siwaproduction': '/production-trade',
+  'siwa-production': '/production-trade',
+  'siwadates': '/production-trade',
+  'siwa-dates': '/production-trade',
+  'siwaolives': '/production-trade',
+  'siwa-olives': '/production-trade',
+  'siwaexport': '/production-trade',
   'trade': '/production-trade',
   'production': '/production-trade',
   'dates': '/production-trade',
   'olives': '/production-trade',
 
+  // ── Services & Exploration
+  'siwaservices': '/services',
+  'siwa-services': '/services',
+  'siwaexplore': '/services',
+  'siwa-explore': '/services',
   'services': '/services',
   'explore': '/services',
 
-  // Stories, Media & Community
+  // ── Stories & Magazine (SEO: siwastories, siwablog, siwamagazine)
+  'siwastories': '/blog',
+  'siwa-stories': '/blog',
+  'siwablog': '/blog',
+  'siwa-blog': '/blog',
+  'siwamagazine': '/blog',
+  'siwa-magazine': '/blog',
+  'siwanews': '/blog',
   'stories': '/blog',
   'story': '/blog',
   'blog': '/blog',
   'magazine': '/blog',
   'news': '/blog',
 
-  // Commercial, Deals & Growth
+  // ── Commercial, Deals & Growth
+  'siwadeals': '/offers',
+  'siwa-deals': '/offers',
+  'siwaoffers': '/offers',
+  'siwa-offers': '/offers',
+  'siwapackages': '/packages',
+  'siwa-packages': '/packages',
+  'siwadiscounts': '/discounts',
+  'siwa-discounts': '/discounts',
+  'siwaauctions': '/auctions',
+  'siwa-auctions': '/auctions',
+  'siwainvest': '/investment-opportunities',
+  'siwa-invest': '/investment-opportunities',
+  'siwainvestment': '/investment-opportunities',
+  'siwa-investment': '/investment-opportunities',
   'offers': '/offers',
   'deals': '/offers',
   'packages': '/packages',
@@ -68,11 +170,25 @@ const SUBDOMAIN_ROUTES: Record<string, string> = {
   'auctions': '/auctions',
   'invest': '/investment-opportunities',
   'investment': '/investment-opportunities',
+
+  // ── Journeys & Itineraries (SEO: siwajourneys, siwaplanner)
+  'siwajourneys': '/journeys',
+  'siwa-journeys': '/journeys',
+  'siwajourney': '/journeys',
+  'siwa-journey': '/journeys',
+  'siwaplanner': '/journeys',
+  'siwa-planner': '/journeys',
   'journeys': '/journeys',
   'journey': '/journeys',
   'planner': '/journeys',
 
-  // Partners & Onboarding
+  // ── Partners & Onboarding (SEO: siwapartner, siwapartners, siwajoin)
+  'siwapartner': '/be-a-partner',
+  'siwa-partner': '/be-a-partner',
+  'siwapartners': '/be-a-partner',
+  'siwa-partners': '/be-a-partner',
+  'siwajoin': '/be-a-partner',
+  'siwa-join': '/be-a-partner',
   'partner': '/be-a-partner',
   'partners': '/be-a-partner',
   'join': '/be-a-partner',
@@ -105,7 +221,7 @@ function extractSubdomain(request: NextRequest): { subdomain: string | null; isC
   const hostHeader = request.headers.get('host') || '';
   const hostname = hostHeader.split(':')[0].toLowerCase();
 
-  // Support query param override for local testing (e.g. localhost:3000/?subdomain=staywith)
+  // Support query param override for local testing (e.g. localhost:3000/?subdomain=siwastay)
   const queryOverride = request.nextUrl.searchParams.get('subdomain') || request.nextUrl.searchParams.get('preview_subdomain');
   if (queryOverride) {
     return { subdomain: queryOverride.toLowerCase(), isCustomDomain: false, hostname };
@@ -116,13 +232,13 @@ function extractSubdomain(request: NextRequest): { subdomain: string | null; isC
     return { subdomain: null, isCustomDomain: false, hostname };
   }
 
-  // Check for *.localhost subdomains (e.g. staywith.localhost:3000)
+  // Check for *.localhost subdomains (e.g. siwastay.localhost:3000)
   if (hostname.endsWith('.localhost')) {
     const sub = hostname.replace('.localhost', '');
     return { subdomain: sub !== 'www' ? sub : null, isCustomDomain: false, hostname };
   }
 
-  // Check for *.siwify.com subdomains
+  // Check for *.siwify.com subdomains (e.g. siwastay.siwify.com)
   if (hostname.endsWith('.siwify.com')) {
     const sub = hostname.replace('.siwify.com', '');
     return { subdomain: (sub !== 'www' && sub.length > 0) ? sub : null, isCustomDomain: false, hostname };
@@ -182,7 +298,7 @@ export async function middleware(request: NextRequest) {
     const targetRoute = SUBDOMAIN_ROUTES[subdomain];
 
     if (targetRoute) {
-      // Loop protection: if already at the target route, pass through directly
+      // Loop protection: if already at target route, pass through directly
       if (pathname === targetRoute || (targetRoute !== '/' && pathname.startsWith(targetRoute))) {
         return NextResponse.next();
       }
