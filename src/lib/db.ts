@@ -7,6 +7,24 @@ let poolInitPromise: Promise<mysql.Pool> | null = null;
 let activeMode: DbMode | null = null;
 
 function buildPoolConfig(mode: DbMode) {
+  const connectionUri = process.env.DATABASE_URL || process.env.MYSQL_URL;
+  const isCloudHost = Boolean(
+    (process.env.DB_HOST && (process.env.DB_HOST.includes('tidbcloud') || process.env.DB_HOST.includes('psdb.net') || process.env.DB_HOST.includes('aws') || process.env.DB_HOST.includes('aivencloud'))) ||
+    (connectionUri && (connectionUri.includes('tidbcloud') || connectionUri.includes('psdb.net') || connectionUri.includes('ssl=')))
+  );
+  const useSsl = process.env.DB_SSL === 'true' || isCloudHost;
+
+  if (connectionUri) {
+    return {
+      uri: connectionUri,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      charset: 'utf8mb4',
+      ssl: useSsl ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
+    };
+  }
+
   if (mode === 'production') {
     if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
       throw new Error('Missing required DB environment variables: DB_HOST, DB_USER, DB_NAME');
@@ -22,7 +40,7 @@ function buildPoolConfig(mode: DbMode) {
       connectionLimit: 10,
       queueLimit: 0,
       charset: 'utf8mb4',
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
+      ssl: useSsl ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     };
   }
 
@@ -38,7 +56,7 @@ function buildPoolConfig(mode: DbMode) {
     charset: 'utf8mb4',
   };
 
-  if (process.env.DB_SSL === 'true') {
+  if (useSsl) {
     dbConfig.ssl = {
       minVersion: 'TLSv1.2',
       rejectUnauthorized: true,
