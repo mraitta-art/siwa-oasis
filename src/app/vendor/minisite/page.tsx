@@ -53,10 +53,19 @@ const MS_CSS = `
   .ms-sec-item {
     display: flex; align-items: center; gap: 0.85rem;
     padding: 0.85rem 1rem; border-radius: 14px;
-    background: #fafafa; border: 1px solid #f1f5f9;
+    background: #fafafa; border: 1.5px solid #f1f5f9;
     margin-bottom: 0.6rem; transition: all 0.18s;
   }
   .ms-sec-item:hover { background: #fff; border-color: #e2e8f0; }
+  .ms-sec-item.is-dragging { opacity: 0.35; border-style: dashed; border-color: #D4AF37; }
+  .ms-sec-item.drag-over { border-top: 3px solid #D4AF37; transform: translateY(-2px); }
+
+  .ms-drag-handle {
+    cursor: grab; color: #cbd5e1; font-size: 0.85rem; padding: 4px;
+    transition: color 0.15s; flex-shrink: 0;
+  }
+  .ms-drag-handle:hover { color: #64748b; }
+  .ms-drag-handle:active { cursor: grabbing; }
 
   .ms-toggle {
     width: 36px; height: 20px; border-radius: 10px;
@@ -89,6 +98,8 @@ export default function VendorMinisitePage() {
   const [savedMsg, setSavedMsg] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -148,6 +159,16 @@ export default function VendorMinisitePage() {
       const next = [...prev];
       const swap = dir === 'up' ? idx - 1 : idx + 1;
       [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next.map((s, i) => ({ ...s, order: i }));
+    });
+  }
+
+  function handleDropReorder(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    setSections(prev => {
+      const next = [...prev];
+      const [movedItem] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, movedItem);
       return next.map((s, i) => ({ ...s, order: i }));
     });
   }
@@ -297,10 +318,43 @@ export default function VendorMinisitePage() {
         {/* Section Visibility & Ordering */}
         <div className="ms-card">
           <h2 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.25rem' }}>📋 Minisite Sections & Ordering</h2>
-          <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '1.25rem' }}>Toggle visibility and reorder navigation tabs on your public minisite. Section titles are locked by admin by default.</p>
+          <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '1.25rem' }}>Toggle visibility and drag to reorder navigation tabs on your public minisite. Section titles are locked by admin by default.</p>
 
           {sections.map((sec, i) => (
-            <div key={sec.id} className="ms-sec-item">
+            <div 
+              key={sec.id} 
+              className={`ms-sec-item ${draggedIdx === i ? 'is-dragging' : ''} ${dragOverIdx === i ? 'drag-over' : ''}`}
+              draggable
+              onDragStart={(e) => {
+                setDraggedIdx(i);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(i));
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverIdx !== i) setDragOverIdx(i);
+              }}
+              onDragLeave={() => {
+                if (dragOverIdx === i) setDragOverIdx(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const fromIdx = draggedIdx ?? parseInt(e.dataTransfer.getData('text/plain'), 10);
+                if (!isNaN(fromIdx)) {
+                  handleDropReorder(fromIdx, i);
+                }
+                setDraggedIdx(null);
+                setDragOverIdx(null);
+              }}
+              onDragEnd={() => {
+                setDraggedIdx(null);
+                setDragOverIdx(null);
+              }}
+            >
+              <div className="ms-drag-handle" title="Drag to reorder section tab">
+                <i className="fas fa-grip-vertical" />
+              </div>
               <button
                 className={`ms-toggle ${sec.visible ? 'on' : 'off'}`}
                 onClick={() => toggleSection(sec.id)}
@@ -319,10 +373,10 @@ export default function VendorMinisitePage() {
                 {sec.filledCount}/{sec.fieldCount} filled
               </span>
               <div style={{ display: 'flex', gap: '4px' }}>
-                <button className="ms-btn-icon" onClick={() => moveSection(sec.id, 'up')} disabled={i === 0}>
+                <button className="ms-btn-icon" onClick={() => moveSection(sec.id, 'up')} disabled={i === 0} title="Move Up">
                   <i className="fas fa-chevron-up" />
                 </button>
-                <button className="ms-btn-icon" onClick={() => moveSection(sec.id, 'down')} disabled={i === sections.length - 1}>
+                <button className="ms-btn-icon" onClick={() => moveSection(sec.id, 'down')} disabled={i === sections.length - 1} title="Move Down">
                   <i className="fas fa-chevron-down" />
                 </button>
               </div>

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AutomatedMinisiteHero from '@/components/AutomatedMinisiteHero';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
@@ -405,6 +406,7 @@ function SectionContent({ sectionId, sectionName, data, bizName, removeWatermark
 }
 
 export default function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const router                              = useRouter();
   const { id }                              = React.use(params);
   const [biz, setBiz]                       = useState<any>(null);
   const [loading, setLoading]               = useState(true);
@@ -422,6 +424,12 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
           fetch('/api/jana/website?id=website_main').then(r=>r.ok?r.json():null).catch(()=>null),
           fetch(`/api/jana/website?id=website_business_${id}_website_main`).then(r=>r.ok?r.json():null).catch(()=>null)
         ]);
+
+        // CANONICAL RULE: Deny /business/[id] and redirect to the single canonical vanity URL /[slug]
+        if (bizData?.slug) {
+          router.replace(`/${bizData.slug}`);
+          return;
+        }
         const builderConfig = Array.isArray(builderData) ? builderData[0] : builderData;
         const builderComponents = builderConfig ? [
           ...(builderConfig.header_components || []),

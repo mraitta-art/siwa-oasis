@@ -351,7 +351,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ id: str
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
                             <span style={{ fontWeight: 700, color: '#D4AF37', fontSize: '0.8rem' }}>EXPLORER CHOICE</span>
-                            <Link href={`/business/${biz.id}`} className="btn btn-primary btn-sm">Explore House</Link>
+                            <Link href={`/${biz.slug || biz.id}`} className="btn btn-primary btn-sm">Explore House</Link>
                           </div>
                         </div>
                       )}
@@ -363,7 +363,7 @@ export default function PublicSearchPage({ params }: { params: Promise<{ id: str
                                <span key={f} style={{ fontSize: '0.75rem', color: '#6b7280' }}><i className="fas fa-check" style={{ color: '#D4AF37', marginRight: '0.4rem' }}></i>{f}</span>
                              ))}
                           </div>
-                          <Link href={`/business/${biz.id}`} className="btn btn-primary">Discover Full Oasis</Link>
+                          <Link href={`/${biz.slug || biz.id}`} className="btn btn-primary">Discover Full Oasis</Link>
                         </div>
                       )}
                     </div>

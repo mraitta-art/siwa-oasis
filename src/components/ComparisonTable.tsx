@@ -20,6 +20,7 @@ interface ComparisonSection {
 interface ComparisonBusiness {
   id: string;
   name: string;
+  slug?: string;
   typeName: string;
   typeIcon: string;
   sections: Record<string, ComparisonSection>;
@@ -160,11 +161,11 @@ export default function ComparisonTable({
                 </div>
               </div>
               <Link
-                href={`/business/${biz.id}`}
+                href={`/${biz.slug || biz.id}`}
                 target="_blank"
                 className="text-xs text-amber-600 hover:text-amber-800 font-semibold"
               >
-                View Full Profile →
+                View Minisite →
               </Link>
             </div>
           ))}

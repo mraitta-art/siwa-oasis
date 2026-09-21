@@ -147,7 +147,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
             <Link href={`/jana/businesses/${id}/edit`} className="btn btn-outline" style={{ borderColor: '#D4AF37', color: '#D4AF37' }}>
               <i className="fas fa-photo-film" style={{ marginRight: '0.4rem' }}></i> BUSINESS CONTENT
             </Link>
-            <Link href={`/business/${id}`} target="_blank" className="btn btn-outline">VIEW MINISITE</Link>
+            <Link href={`/${biz?.slug || id}`} target="_blank" className="btn btn-outline">VIEW MINISITE</Link>
             <button onClick={saveBusiness} disabled={saving} className="btn btn-primary">
               {saving ? 'SAVING...' : 'SAVE CHANGES'}
             </button>

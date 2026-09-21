@@ -1,203 +1,281 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+
+interface BusinessType {
+  id: string;
+  name: string;
+  icon?: string;
+  icon_color?: string;
+  is_parent?: boolean | number;
+  parent_id?: string | null;
+  description?: string;
+}
+
+const CATEGORY_SLUG_MAP: Record<string, string> = {
+  'accommodation': 'accommodations',
+  'transportation': 'transportation',
+  'food-beverage': 'food-beverage',
+  'food': 'food-beverage',
+  'restaurant': 'restaurants',
+  'activities-tours': 'activities',
+  'activity': 'activities',
+  'crafts-wellness': 'crafts-wellness',
+  'production-trade': 'production-trade',
+};
 
 export default function CategoriesPage() {
-  const categories = [
-    {
-      id: 1,
-      name: 'Hotels & Resorts',
-      icon: '🏨',
-      description: 'Desert accommodations and lodging',
-      count: 24,
-      color: 'from-blue-500 to-cyan-600',
-    },
-    {
-      id: 2,
-      name: 'Tours & Guides',
-      icon: '🐪',
-      description: 'Safari and adventure experiences',
-      count: 18,
-      color: 'from-yellow-500 to-orange-600',
-    },
-    {
-      id: 3,
-      name: 'Restaurants',
-      icon: '🍽️',
-      description: 'Dining and food services',
-      count: 15,
-      color: 'from-red-500 to-pink-600',
-    },
-    {
-      id: 4,
-      name: 'Car Rentals',
-      icon: '🚙',
-      description: 'Transportation and rentals',
-      count: 12,
-      color: 'from-green-500 to-emerald-600',
-    },
-    {
-      id: 5,
-      name: 'Local Crafts',
-      icon: '🎨',
-      description: 'Souvenirs and handicrafts',
-      count: 20,
-      color: 'from-purple-500 to-indigo-600',
-    },
-    {
-      id: 6,
-      name: 'Wellness',
-      icon: '🧘',
-      description: 'Spa and relaxation',
-      count: 8,
-      color: 'from-teal-500 to-cyan-600',
-    },
-    {
-      id: 7,
-      name: 'Adventure Sports',
-      icon: '🪂',
-      description: 'Extreme activities and sports',
-      count: 10,
-      color: 'from-orange-500 to-red-600',
-    },
-    {
-      id: 8,
-      name: 'Shopping Markets',
-      icon: '🛍️',
-      description: 'Markets and retail',
-      count: 14,
-      color: 'from-pink-500 to-rose-600',
-    },
-    {
-      id: 9,
-      name: 'Cultural Sites',
-      icon: '🏛️',
-      description: 'Historical landmarks',
-      count: 9,
-      color: 'from-amber-500 to-yellow-600',
-    },
-    {
-      id: 10,
-      name: 'Entertainment',
-      icon: '🎭',
-      description: 'Shows and events',
-      count: 7,
-      color: 'from-violet-500 to-purple-600',
-    },
-    {
-      id: 11,
-      name: 'Photography',
-      icon: '📸',
-      description: 'Photography services',
-      count: 11,
-      color: 'from-slate-500 to-gray-600',
-    },
-    {
-      id: 12,
-      name: 'Education',
-      icon: '📚',
-      description: 'Courses and training',
-      count: 5,
-      color: 'from-blue-600 to-indigo-700',
-    },
-  ];
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
+  const [types, setTypes] = useState<BusinessType[]>([]);
+  const [businessCounts, setBusinessCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    // 1. Check if an admin visual builder layout is configured for categories
+    fetch('/api/jana/website?id=website_categories')
+      .then(r => r.ok ? r.json() : [])
+      .then(res => {
+        const config = Array.isArray(res) ? res[0] : res;
+        const layout = [
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || []),
+        ];
+        if (layout.length > 0) {
+          setBuilderConfig({ ...config, layout });
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch live typologies and live businesses to calculate category counts
+    Promise.all([
+      fetch('/api/jana/types').then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/jana/businesses').then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([typesData, businessesData]) => {
+      const validTypes = Array.isArray(typesData) ? typesData : [];
+      const validBiz = Array.isArray(businessesData) ? businessesData : [];
+      
+      const counts: Record<string, number> = {};
+      validBiz.forEach((b: any) => {
+        const tid = b.type_id;
+        if (tid) {
+          counts[tid] = (counts[tid] || 0) + 1;
+        }
+      });
+
+      setTypes(validTypes);
+      setBusinessCounts(counts);
+      setLoading(false);
+    });
+  }, []);
+
+  // If a builder layout is saved in Site Builder, render dynamic layout
+  if (builderConfig) {
+    return <DynamicHomepageRenderer layout={builderConfig.layout} settings={builderConfig.site_settings || null} pageId="categories" />;
+  }
+
+  // Filter parents and children
+  const parents = types.filter(t => t.is_parent || Number(t.is_parent) === 1 || !t.parent_id);
+  const filteredParents = parents.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    types.filter(c => c.parent_id === p.id).some(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const totalBusinesses = Object.values(businessCounts).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden py-16 sm:py-24">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#556B2F] via-transparent to-[#D4AF37]" />
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
+      {/* Header */}
+      <header style={{ padding: '1.25rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto' }}>
+          <Link href="/" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 900, letterSpacing: '2px', fontSize: '1.1rem' }}>
+            SIWIFY PLATFORM
+          </Link>
+          <nav style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', fontWeight: 700 }}>
+            <Link href="/" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Home</Link>
+            <Link href="/search" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Discovery</Link>
+            <Link href="/journeys" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Journeys</Link>
+          </nav>
         </div>
+      </header>
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold sm:text-5xl tracking-tight">
-            <span className="bg-gradient-to-r from-[#D4AF37] to-[#FFB700] bg-clip-text text-transparent">
-              Browse Categories
-            </span>
-          </h1>
-          <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
-            Explore businesses and services organized by category
-          </p>
+      {/* Hero */}
+      <div style={{ padding: '4rem 1.5rem 2rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '20px', background: 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', marginBottom: '1rem' }}>
+          OFFICIAL SIWA DIRECTORY
+        </div>
+        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 900, margin: '0 0 1rem', letterSpacing: '-0.5px', color: '#fff' }}>
+          Explore by Business Category
+        </h1>
+        <p style={{ color: '#94a3b8', fontSize: '1.05rem', lineHeight: 1.7, margin: '0 0 2rem' }}>
+          Discover verified eco-lodges, desert safari operators, traditional gastronomy, artisan workshops, and local trade across the Siwa Oasis ecosystem.
+        </p>
+
+        {/* Search Filter Bar */}
+        <div style={{ maxWidth: '500px', margin: '0 auto 2.5rem', position: 'relative' }}>
+          <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+          <input
+            type="text"
+            placeholder="Search categories or services..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.9rem 1rem 0.9rem 2.8rem',
+              borderRadius: '14px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.06)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              outline: 'none',
+              backdropFilter: 'blur(8px)',
+              boxSizing: 'border-box'
+            }}
+          />
         </div>
       </div>
 
       {/* Categories Grid */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              href={`/search?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`}
-              className="group relative overflow-hidden rounded-lg border border-gray-800 hover:border-[#D4AF37] transition-all"
-            >
-              <div className={`bg-gradient-to-br ${category.color} p-8 h-full`}>
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-10 bg-white transition-opacity" />
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem 5rem' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8', fontWeight: 700 }}>
+            <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#D4AF37' }} /> Loading official categories...
+          </div>
+        ) : filteredParents.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <p style={{ color: '#94a3b8', fontSize: '1rem' }}>No matching categories found for &quot;{searchQuery}&quot;.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+            {filteredParents.map(parent => {
+              const children = types.filter(t => t.parent_id === parent.id);
+              const parentCount = children.reduce((acc, c) => acc + (businessCounts[c.id] || 0), businessCounts[parent.id] || 0);
+              const routeSlug = CATEGORY_SLUG_MAP[parent.id] || parent.id.replace(/_/g, '-');
+              const targetUrl = `/${routeSlug}`;
 
-                <div className="relative z-10">
-                  <div className="text-5xl mb-3">{category.icon}</div>
-                  <h3 className="text-xl font-bold text-white mb-1">{category.name}</h3>
-                  <p className="text-gray-100 text-sm mb-4">{category.description}</p>
+              return (
+                <div
+                  key={parent.id}
+                  style={{
+                    background: 'rgba(30, 41, 59, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '20px',
+                    padding: '1.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.25s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: parent.icon_color || '#D4AF37' }} />
                   
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-100">{category.count} listings</span>
-                    <span className="text-white group-hover:translate-x-1 transition-transform">→</span>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                      <div style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: '14px',
+                        background: `${parent.icon_color || '#D4AF37'}20`,
+                        border: `1px solid ${parent.icon_color || '#D4AF37'}40`,
+                        color: parent.icon_color || '#D4AF37',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.4rem'
+                      }}>
+                        <i className={`fas ${parent.icon || 'fa-store'}`} />
+                      </div>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.06)',
+                        color: '#94a3b8',
+                        border: '1px solid rgba(255,255,255,0.08)'
+                      }}>
+                        {parentCount} {parentCount === 1 ? 'Business' : 'Businesses'}
+                      </span>
+                    </div>
+
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 0.5rem' }}>
+                      {parent.name}
+                    </h2>
+                    <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
+                      {parent.description || `Explore verified listings, services, and packages under ${parent.name}.`}
+                    </p>
+
+                    {/* Sub-typologies pills */}
+                    {children.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1.5rem' }}>
+                        {children.map(child => (
+                          <span
+                            key={child.id}
+                            style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(255,255,255,0.04)',
+                              color: '#cbd5e1',
+                              border: '1px solid rgba(255,255,255,0.06)'
+                            }}
+                          >
+                            {child.name} {businessCounts[child.id] ? `(${businessCounts[child.id]})` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
+                  <Link
+                    href={targetUrl}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '12px',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      color: '#f8fafc',
+                      textDecoration: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span>Browse {parent.name}</span>
+                    <i className="fas fa-arrow-right" style={{ fontSize: '0.75rem', color: parent.icon_color || '#D4AF37' }} />
+                  </Link>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        )}
 
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-gradient-to-r from-white to-transparent transition-opacity rounded-lg" />
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 border-t border-gray-800">
-        <div className="grid grid-cols-3 gap-8 text-center">
+        {/* Global Directory Stats */}
+        <div style={{ marginTop: '4rem', padding: '2rem', borderRadius: '24px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(212,175,55,0.2)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', textAlign: 'center' }}>
           <div>
-            <div className="text-4xl font-bold text-[#D4AF37] mb-2">12</div>
-            <div className="text-gray-400">Categories</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#D4AF37', marginBottom: '0.25rem' }}>{parents.length}</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase' }}>Core Sectors</div>
           </div>
           <div>
-            <div className="text-4xl font-bold text-[#D4AF37] mb-2">153</div>
-            <div className="text-gray-400">Total Listings</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#D4AF37', marginBottom: '0.25rem' }}>{types.length}</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase' }}>Sub-Typologies</div>
           </div>
           <div>
-            <div className="text-4xl font-bold text-[#D4AF37] mb-2">100%</div>
-            <div className="text-gray-400">Verified</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#D4AF37', marginBottom: '0.25rem' }}>{totalBusinesses}</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase' }}>Registered Businesses</div>
           </div>
         </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 border-t border-gray-800">
-        <h2 className="text-2xl font-bold text-white mb-8">Filter by Preferences</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {['Price Range', 'Rating', 'Open Now', 'Featured'].map((filter, idx) => (
-            <button
-              key={idx}
-              className="p-4 bg-gray-900 border border-gray-800 rounded-lg hover:border-[#D4AF37] transition-colors text-left"
-            >
-              <div className="text-sm font-semibold text-gray-400 mb-2">{filter}</div>
-              <div className="text-gray-500 text-xs">Select options →</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 border-t border-gray-800 text-center">
-        <h3 className="text-2xl font-bold text-white mb-4">List Your Business</h3>
-        <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-          Join hundreds of businesses already listed in the Siwa Oasis marketplace
-        </p>
-        <Link
-          href="/vendor-signup"
-          className="inline-block px-8 py-3 bg-gradient-to-r from-[#556B2F] to-[#D4AF37] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
-        >
-          Become a Vendor
-        </Link>
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ interface Section {
   vendor_editable: boolean; show_on_public: boolean; show_on_minisite: boolean;
   curation_policy?: 'auto_approve' | 'manual_review' | 'admin_only';
   required?: boolean;
+  required_tier?: string | null;
   inheritance_rules?: any;
 }
 
@@ -92,6 +93,7 @@ const BLANK_SECTION = (): Partial<Section> => ({
   enable_gallery: true, enable_blog: true,
   vendor_editable: true, show_on_public: true, show_on_minisite: true,
   curation_policy: 'manual_review',
+  required_tier: null,
   inheritance_rules: { content_policy: DEFAULT_CONTENT_POLICY },
 });
 
@@ -1236,7 +1238,7 @@ export default function UnifiedSectionArchitect() {
                 </div>
 
                 {/* Curation Policy */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <label style={css.label()}>Curation Policy (Media & Content uploads)</label>
                   <select
                     style={css.input()}
@@ -1246,6 +1248,22 @@ export default function UnifiedSectionArchitect() {
                     <option value="auto_approve">Auto-Approve (Gallery/Blogs go live instantly)</option>
                     <option value="manual_review">Manual Review (Requires admin moderation before publish)</option>
                     <option value="admin_only">Admin Only (Vendors cannot upload media or write blogs)</option>
+                  </select>
+                </div>
+
+                {/* Required Tier (Access Control) */}
+                <div>
+                  <label style={css.label()}>Required Subscription Tier (Access Control)</label>
+                  <select
+                    style={css.input()}
+                    value={editSection.required_tier || ''}
+                    onChange={e => setEditSection(s => ({ ...s, required_tier: e.target.value || null }))}
+                  >
+                    <option value="">Public / Free (Available to all tiers)</option>
+                    <option value="basic">Basic Tier or Higher</option>
+                    <option value="pro">Pro Tier or Higher</option>
+                    <option value="premium">Premium Tier or Higher</option>
+                    <option value="enterprise">Enterprise Tier Only</option>
                   </select>
                 </div>
               </div>

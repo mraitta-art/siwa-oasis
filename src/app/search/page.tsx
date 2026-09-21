@@ -5,10 +5,29 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [query,      setQuery]      = useState('');
+  const [results,    setResults]    = useState<any[]>([]);
+  const [loading,    setLoading]    = useState(false);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [siteName,   setSiteName]   = useState('SIWA.TODAY');
+  const [headline,   setHeadline]   = useState('DISCOVER SIWA');
+  const [subline,    setSubline]    = useState('Explore the heritage, cuisine, and adventures of the Oasis.');
+
+  // Load site settings from the admin-managed website config
+  useEffect(() => {
+    fetch('/api/jana/website?id=website_main')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          const config = Array.isArray(data) ? data[0] : data;
+          const s = config?.site_settings;
+          if (s?.site_name)        setSiteName(s.site_name);
+          if (s?.search_headline)  setHeadline(s.search_headline);
+          if (s?.search_subline)   setSubline(s.search_subline);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load all businesses on mount as browse-all
   useEffect(() => {
@@ -41,13 +60,20 @@ export default function SearchPage() {
 
   const displayItems = results.length > 0 ? results : businesses;
 
+  // Format site name: split on '.' and highlight the part after the dot
+  const siteNameParts = siteName.includes('.') ? siteName.split('.') : null;
+
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
       {/* Nav */}
       <nav style={{ padding: '1.5rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
-          SIWA.<span style={{ color: '#D4AF37' }}>TODAY</span>
+          {siteNameParts ? (
+            <>{siteNameParts[0]}.<span style={{ color: '#D4AF37' }}>{siteNameParts.slice(1).join('.')}</span></>
+          ) : (
+            <span style={{ color: '#D4AF37' }}>{siteName}</span>
+          )}
         </Link>
         <Link href="/login" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem' }}>LOGIN</Link>
       </nav>
@@ -55,9 +81,13 @@ export default function SearchPage() {
       {/* Search Header */}
       <div style={{ padding: '4rem 3rem 2rem', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-1px', marginBottom: '1rem' }}>
-          DISCOVER <span style={{ color: '#D4AF37' }}>SIWA</span>
+          {headline.includes('SIWA') ? (
+            <>{headline.split('SIWA')[0]}<span style={{ color: '#D4AF37' }}>SIWA</span>{headline.split('SIWA').slice(1).join('SIWA')}</>
+          ) : (
+            <>{headline}</>
+          )}
         </h1>
-        <p style={{ color: '#64748b', marginBottom: '2rem' }}>Explore the heritage, cuisine, and adventures of the Oasis.</p>
+        <p style={{ color: '#64748b', marginBottom: '2rem' }}>{subline}</p>
 
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem', maxWidth: '600px', margin: '0 auto' }}>
           <input
@@ -81,11 +111,8 @@ export default function SearchPage() {
       <div style={{ padding: '2rem 3rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {displayItems.map((item: any) => (
-            <Link key={item.id} href={`/business/${item.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{
-                background: '#1e293b', borderRadius: '16px', overflow: 'hidden', border: '1px solid #334155',
-                transition: 'all 0.3s', cursor: 'pointer'
-              }}>
+            <Link key={item.id} href={`/${item.slug || item.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: '#1e293b', borderRadius: '16px', overflow: 'hidden', border: '1px solid #334155', transition: 'all 0.3s', cursor: 'pointer' }}>
                 <div style={{ height: '160px', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className="fas fa-sun" style={{ fontSize: '2rem', color: '#D4AF37', opacity: 0.3 }}></i>
                 </div>

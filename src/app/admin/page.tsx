@@ -27,17 +27,22 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Field Requests', icon: '💡', href: '/admin/field-requests' },
       { label: 'Submissions', icon: '📥', href: '/admin/submissions' },
       { label: 'Verification', icon: '🛡️', href: '/admin/verification', badge: 'NEW', badgeColor: '#fbbf24' },
+      { label: 'Auctions', icon: '🔨', href: '/admin/auctions' },
     ],
   },
   {
     title: 'Governance',
     items: [
+      { label: 'Sections Architect', icon: '🏗️', href: '/jana/sections', badge: 'CORE', badgeColor: '#D4AF37' },
       { label: 'Section Overrides', icon: '🛡️', href: '/admin/section-overrides' },
       { label: 'Business Content', icon: '📄', href: '/jana/content' },
       { label: 'Blog Approval', icon: '📝', href: '/admin/blog-approval' },
       { label: 'Global Moderation', icon: '🖼️', href: '/admin/image-curation' },
       { label: 'Homepage Editor', icon: '🏗️', href: '/admin/homepage-editor' },
       { label: 'Homepage Sections', icon: '📄', href: '/admin/homepage-sections' },
+      { label: 'Services Page', icon: '⚙️', href: '/admin/homepage-editor/website_services' },
+      { label: 'Category Pages', icon: '📱', href: '/admin/category-pages' },
+      { label: 'Be-a-Partner Page', icon: '🤝', href: '/admin/homepage-editor/website_be-a-partner' },
     ],
   },
   {
@@ -51,7 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Services & Categories',
     items: [
-      { label: 'Businesses', icon: '🏪', href: '/admin/sections' },
+      { label: 'Businesses', icon: '🏪', href: '/jana/businesses' },
       { label: 'Services & Categories', icon: '⚙️', href: '/jana/vendor-services', badge: 'NEW', badgeColor: '#22c55e' },
       { label: 'Vendor Directory', icon: '👥', href: '/jana/vendors' },
       { label: 'POI Settings', icon: '📍', href: '/admin/poi-settings' },

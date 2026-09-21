@@ -26,7 +26,9 @@ export default function VanityBusinessClient({
   templatePlan = null,
   isMasterTemplate = false,
   isTrusted = false,
-  siteSettings
+  siteSettings,
+  initialActiveTab,
+  lockedSections = []
 }: { 
   slug: string, 
   initialData: any, 
@@ -37,9 +39,11 @@ export default function VanityBusinessClient({
   templatePlan?: MinisiteTemplatePlan | null,
   isMasterTemplate?: boolean,
   isTrusted?: boolean,
-  siteSettings?: any
+  siteSettings?: any,
+  initialActiveTab?: string,
+  lockedSections?: string[]
 }) {
-  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>(initialActiveTab || null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const [allowedMinisiteComponentKeys, setAllowedMinisiteComponentKeys] = useState<string[]>([]);
@@ -101,13 +105,21 @@ export default function VanityBusinessClient({
         'vibe': 'sec_2_ambience'
       };
       
+      if (initialActiveTab) {
+        const resolvedInitial = sectionAliases[initialActiveTab] || initialActiveTab;
+        if (sections.some(s => s.id === resolvedInitial)) {
+          setActiveTab(resolvedInitial);
+          return;
+        }
+      }
+
       const rawHash = window.location.hash.replace('#', '');
       const hash = sectionAliases[rawHash] || rawHash;
       const hasMatchingSection = sections.some(s => s.id === hash);
       
       if (hasMatchingSection) {
         setActiveTab(hash);
-      } else {
+      } else if (!activeTab || !sections.some(s => s.id === activeTab)) {
         setActiveTab(sections[0].id);
       }
     }
@@ -128,7 +140,7 @@ export default function VanityBusinessClient({
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
-  }, [slug, sections]);
+  }, [slug, sections, initialActiveTab]);
 
   // Toast auto-hide
   useEffect(() => {
@@ -316,6 +328,9 @@ export default function VanityBusinessClient({
             'vibe': 'sec_2_ambience'
           };
           const target = sectionAliases[sectionId] || sectionId;
+          try {
+            window.history.pushState(null, '', `/${slug}/${target}`);
+          } catch {}
           setActiveTab(target);
           const navEl = document.querySelector('nav');
           if (navEl) {
@@ -348,11 +363,14 @@ export default function VanityBusinessClient({
           <div className="minisite-desktop-tabs" style={{ display: 'flex', gap: '2rem' }}>
             {activeSections.map(s => {
               const customLabel = getSectionLabel(s.id, s.name);
+              const isLocked = lockedSections.includes(s.id);
               return (
                 <button 
                   key={s.id} 
                   onClick={() => {
-                    window.location.hash = s.id;
+                    try {
+                      window.history.pushState(null, '', `/${slug}/${s.id}`);
+                    } catch {}
                     setActiveTab(s.id);
                   }}
                   style={{ 
@@ -360,9 +378,11 @@ export default function VanityBusinessClient({
                     color: activeTab === s.id ? '#D4AF37' : '#64748b', 
                     fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1px',
                     borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
-                    paddingBottom: '0.5rem', transition: 'all 0.3s'
+                    paddingBottom: '0.5rem', transition: 'all 0.3s',
+                    display: 'flex', alignItems: 'center', gap: '4px'
                   }}>
                   {(customLabel || '').toUpperCase()}
+                  {isLocked && <i className="fas fa-lock" style={{ fontSize: '0.6rem', color: '#f59e0b' }} />}
                 </button>
               );
             })}
@@ -448,11 +468,14 @@ export default function VanityBusinessClient({
           <div className="minisite-nav-tabs" style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
             {activeSections.map(s => {
               const customLabel = getSectionLabel(s.id, s.name);
+              const isLocked = lockedSections.includes(s.id);
               return (
                 <button 
                   key={s.id} 
                   onClick={() => {
-                    window.location.hash = s.id;
+                    try {
+                      window.history.pushState(null, '', `/${slug}/${s.id}`);
+                    } catch {}
                     setActiveTab(s.id);
                   }}
                   style={{ 
@@ -460,9 +483,11 @@ export default function VanityBusinessClient({
                     color: activeTab === s.id ? '#D4AF37' : '#64748b', 
                     fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.5px',
                     borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
-                    paddingBottom: '0.4rem', transition: 'all 0.3s'
+                    paddingBottom: '0.4rem', transition: 'all 0.3s',
+                    display: 'flex', alignItems: 'center', gap: '4px'
                   }}>
                   {(customLabel || '').toUpperCase()}
+                  {isLocked && <i className="fas fa-lock" style={{ fontSize: '0.55rem', color: '#f59e0b' }} />}
                 </button>
               );
             })}
@@ -608,6 +633,8 @@ export default function VanityBusinessClient({
                 return <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>{String(val)}</span>;
               };
 
+              const isLocked = lockedSections.includes(section.id);
+
               return (
                 <section key={section.id} id={section.id} className="animate-in fade-in duration-500" style={{ marginBottom: '6rem', scrollMarginTop: '100px' }}>
                   {/* Section Title */}
@@ -621,6 +648,31 @@ export default function VanityBusinessClient({
                     </div>
                   </div>
 
+                  {isLocked ? (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      borderRadius: '24px', padding: '3.5rem 2rem', textAlign: 'center', color: '#fff',
+                      border: '1px solid rgba(212,175,55,0.3)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+                    }}>
+                      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(212,175,55,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '1px solid rgba(212,175,55,0.4)' }}>
+                        <i className="fas fa-crown" style={{ color: '#D4AF37', fontSize: '1.75rem' }} />
+                      </div>
+                      <h3 style={{ fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.75rem', color: '#f8fafc' }}>
+                        Premium Feature: {customLabel}
+                      </h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.88rem', maxWidth: '460px', margin: '0 auto 2rem', lineHeight: 1.6 }}>
+                        This section requires an active subscription tier upgrade for <strong style={{ color: '#D4AF37' }}>{biz.name}</strong> to unlock public showcase features.
+                      </p>
+                      <Link href="/vendor/upgrade" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                        padding: '0.8rem 1.75rem', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+                        color: '#1a1000', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem',
+                        textDecoration: 'none', boxShadow: '0 4px 14px rgba(212,175,55,0.3)'
+                      }}>
+                        <i className="fas fa-arrow-up" /> Upgrade Tier to Unlock
+                      </Link>
+                    </div>
+                  ) : (
                   <div>
                     {/* CAROUSEL IMAGES (Top placement) */}
                     {carouselImages.length > 0 && (
@@ -898,6 +950,7 @@ export default function VanityBusinessClient({
                       </div>
                     )}
                   </div>
+                  )}
                 </section>
               );
             })}

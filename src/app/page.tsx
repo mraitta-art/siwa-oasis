@@ -21,6 +21,12 @@ interface SiteSettings {
   primary_color?: string;
   show_watermark?: boolean;
   carousel_interval?: number;
+  footer_tagline?: string;
+  footer_copyright?: string;
+  search_headline?: string;
+  search_subline?: string;
+  services_title?: string;
+  services_subtitle?: string;
 }
 
 // ── Luminance helper — determines if a hex color is "light" ──────────────────
@@ -205,7 +211,7 @@ export default function Home() {
                ) : (
                  <div style={{ fontWeight: 900, letterSpacing: '8px', fontSize: '1.25rem', color: '#f7e7d0', marginBottom: '1.5rem' }}>SIWIFY</div>
                )}
-               <p style={{ color: 'rgba(247,231,208,0.72)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.</p>
+               <p style={{ color: 'rgba(247,231,208,0.72)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>{settings?.footer_tagline || 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.'}</p>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -223,7 +229,7 @@ export default function Home() {
          </div>
 
          <div style={{ marginTop: '8rem', paddingTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center', opacity: 0.7, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px', color: 'rgba(247,231,208,0.7)' }}>
-            © {new Date().getFullYear()} SIWIFY • ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} {settings?.footer_copyright || 'SIWIFY • ALL RIGHTS RESERVED.'}
          </div>
       </footer>
     </div>

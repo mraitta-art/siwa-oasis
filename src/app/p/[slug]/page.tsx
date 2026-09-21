@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 
 // ── Luminance helper ─────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ function buildThemeCSS(settings: any): string {
 }
 
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
+  const router = useRouter();
   const [slug, setSlug] = useState<string>('');
   const [layout, setLayout] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -48,7 +50,9 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
       const cfg = await tryFetch(`website_${s}`);
       if (!cfg) {
-        setNotFound(true);
+        // CANONICAL RULE: If no custom builder landing page, redirect to the single canonical business minisite /[slug]
+        router.replace(`/${s}`);
+        return;
       } else {
         const all = [
           ...(cfg.header_components || []),
@@ -62,7 +66,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
     }
 
     loadPage();
-  }, [params]);
+  }, [params, router]);
 
   if (loading) {
     return (

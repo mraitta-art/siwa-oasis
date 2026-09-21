@@ -67,8 +67,8 @@ export default function InvestmentMarketplaceFeed({ title, subtitle }: { title?:
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem' }}>
-                  <Link href={`/business/${biz.business_id}`} style={{ flex: 1, textAlign: 'center', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 900 }}>VIEW CASE</Link>
-                  <Link href={`/business/${biz.business_id}#investment-opportunity`} style={{ flex: 1, textAlign: 'center', padding: '1rem', borderRadius: '12px', background: 'var(--gold)', color: 'var(--dark)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 900 }}>REQUEST DATA</Link>
+                  <Link href={`/${biz.business_slug || biz.slug || biz.business_id}`} style={{ flex: 1, textAlign: 'center', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 900 }}>VIEW CASE</Link>
+                  <Link href={`/${biz.business_slug || biz.slug || biz.business_id}#investment-opportunity`} style={{ flex: 1, textAlign: 'center', padding: '1rem', borderRadius: '12px', background: 'var(--gold)', color: 'var(--dark)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 900 }}>REQUEST DATA</Link>
                 </div>
               </div>
             </div>

@@ -66,7 +66,7 @@ export default function StoryPage() {
         
         <div style={{ position: 'absolute', bottom: '4rem', left: '0', right: '0', padding: '0 2rem' }}>
           <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <Link href={`/business/${id}`} style={{ textDecoration: 'none', color: '#D4AF37', fontWeight: 900, fontSize: '0.75rem', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <Link href={`/${biz.slug || id}`} style={{ textDecoration: 'none', color: '#D4AF37', fontWeight: 900, fontSize: '0.75rem', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
               <i className="fas fa-arrow-left"></i> BACK TO {biz.name.toUpperCase()}
             </Link>
             <h1 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#1e293b', margin: '0 0 1rem', letterSpacing: '-1px', lineHeight: 1.1 }}>
@@ -109,7 +109,7 @@ export default function StoryPage() {
 
       <footer style={{ background: '#f8fafc', padding: '5rem 0', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
         <div style={{ opacity: 0.5, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '2px', marginBottom: '2rem' }}>A STORY BY {biz.name.toUpperCase()}</div>
-        <Link href={`/business/${id}`} className="btn btn-primary" style={{ padding: '1rem 3rem', borderRadius: '50px' }}>RETURN TO PROFILE</Link>
+        <Link href={`/${biz.slug || id}`} className="btn btn-primary" style={{ padding: '1rem 3rem', borderRadius: '50px' }}>RETURN TO PROFILE</Link>
       </footer>
     </div>
   );

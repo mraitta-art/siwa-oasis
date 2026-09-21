@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // 1. Fetch all businesses with their basic info
     const placeholders = businessIds.map(() => '?').join(',');
     const businesses: any[] = await query(
-      `SELECT b.id, b.name, b.type_id, b.custom_data, bt.name as type_name, bt.icon
+      `SELECT b.id, b.name, b.slug, b.type_id, b.custom_data, bt.name as type_name, bt.icon
        FROM businesses b
        LEFT JOIN business_types bt ON b.type_id = bt.id
        WHERE b.id IN (${placeholders}) AND b.active = 1`,
@@ -184,6 +184,7 @@ export async function POST(request: NextRequest) {
         return {
           id: biz.id,
           name: biz.name,
+          slug: biz.slug,
           typeName: biz.type_name,
           typeIcon: biz.icon,
           sections: sectionsData,
@@ -193,6 +194,7 @@ export async function POST(request: NextRequest) {
         return {
           id: biz.id,
           name: biz.name,
+          slug: biz.slug,
           typeName: biz.type_name,
           typeIcon: biz.icon,
           sections: {},

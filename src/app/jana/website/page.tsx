@@ -49,7 +49,7 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
-interface PageMeta { slug: string; saved: boolean; type?: 'page' | 'search'; }
+interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
 interface BusinessMeta { id: string; name: string; slug?: string; }
 interface BusinessTemplateContext {
   id: string;
@@ -64,9 +64,21 @@ interface BusinessTemplateContext {
 }
 type Mode = 'PAGES' | 'TEMPLATES';
 
+const STANDARD_CORE_PAGES: PageMeta[] = [
+  { slug: 'main', saved: true, type: 'page' },
+  { slug: 'accommodations', saved: false, type: 'page' },
+  { slug: 'transportation', saved: false, type: 'page' },
+  { slug: 'food-beverage', saved: false, type: 'page' },
+  { slug: 'activities', saved: false, type: 'page' },
+  { slug: 'crafts-wellness', saved: false, type: 'page' },
+  { slug: 'production-trade', saved: false, type: 'page' },
+  { slug: 'categories', saved: false, type: 'page' },
+  { slug: 'journeys', saved: false, type: 'page' },
+];
+
 function MultiPageSiteBuilderComponent() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
-  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
+  const [pages, setPages]               = useState<PageMeta[]>(STANDARD_CORE_PAGES);
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
   const [currentPage, setCurrentPage]   = useState('main');
@@ -169,7 +181,19 @@ function MultiPageSiteBuilderComponent() {
         const base = `${prefix}website_${pageType === 'search' ? 'search_' : ''}`;
         return { slug: type.replace(base, ''), saved: true, type: pageType as 'page' | 'search' };
       });
-      setPages(loadedPages.length ? loadedPages : [{ slug: 'main', saved: true, type: 'page' }]);
+
+      if (!businessId) {
+        const existingSlugs = new Set(loadedPages.map(p => p.slug));
+        const merged = [...loadedPages];
+        STANDARD_CORE_PAGES.forEach(core => {
+          if (!existingSlugs.has(core.slug)) {
+            merged.push(core);
+          }
+        });
+        setPages(merged);
+      } else {
+        setPages(loadedPages.length ? loadedPages : [{ slug: 'main', saved: true, type: 'page' }]);
+      }
       setCurrentPage(queryPage || 'main');
     }).catch(() => {});
   }, [businessId, queryPage]);
@@ -271,6 +295,15 @@ function MultiPageSiteBuilderComponent() {
     const resolvedType = pageType || currentPageData?.type;
     if (pageSlug === 'main') return '/';
     if (pageSlug === 'journeys') return '/journeys';
+    if (pageSlug === 'categories') return '/categories';
+    if (pageSlug === 'accommodations') return '/accommodations';
+    if (pageSlug === 'transportation') return '/transportation';
+    if (pageSlug === 'food-beverage') return '/food-beverage';
+    if (pageSlug === 'activities') return '/activities';
+    if (pageSlug === 'crafts-wellness') return '/crafts-wellness';
+    if (pageSlug === 'production-trade') return '/production-trade';
+    if (pageSlug === 'deals') return '/offers';
+    if (pageSlug === 'investments') return '/investment-opportunities';
     if (resolvedType === 'search') return `/search/${pageSlug}`;
     return `/p/${pageSlug}`;
   };
@@ -467,7 +500,7 @@ function MultiPageSiteBuilderComponent() {
         }
       } catch (e: any) { notify(`❌ Rename failed: ${e.message}`, 'error'); setShowRenameModal(false); return; }
     }
-    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg?.type } : p));
+    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg?.type || 'page' } : p));
     if (currentPage === renameTarget) setCurrentPage(newSlug);
     notify(`✅ Renamed to "${newSlug}"`);
     setShowRenameModal(false); setRenameTarget(''); setRenameValue('');
