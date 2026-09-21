@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 import { resolveSectionId } from '@/lib/section-registry';
 
 interface AutomatedMinisiteHeroProps {
+  businessId?: string;
   businessName: string;
   businessLogo?: string;
   logoSize?: string;
@@ -39,6 +40,7 @@ interface AutomatedMinisiteHeroProps {
 }
 
 export default function AutomatedMinisiteHero({
+  businessId,
   businessName,
   businessLogo,
   logoSize,
@@ -49,6 +51,25 @@ export default function AutomatedMinisiteHero({
   settings = {},
   onSectionNavigate,
 }: AutomatedMinisiteHeroProps) {
+  // Admin-saved carousel override: if admin saved slides for this business via
+  // /jana/hero-carousel, those take priority over the auto-generated slides.
+  const [adminSlides, setAdminSlides] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (!businessId) return;
+    const siteId = `biz_${businessId}_hero`;
+    fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const fetched: any[] = data?.slides || [];
+        // Only use admin slides if the admin actually saved something
+        if (fetched.length > 0) {
+          setAdminSlides(fetched);
+        }
+      })
+      .catch(() => {/* fall back to auto-generated slides silently */});
+  }, [businessId]);
+
   const slides = useMemo(() => {
     const allSlides: any[] = [];
     const capturedSectionIds = new Set<string>();
@@ -338,7 +359,7 @@ export default function AutomatedMinisiteHero({
 
       {/* THE CINEMATIC CAROUSEL */}
       <AdvancedHeroCarousel
-        slides={slides}
+        slides={adminSlides !== null ? adminSlides : slides}
         height={settings.height || '100vh'}
         autoPlay={settings.carousel_autoplay !== false}
         autoPlayInterval={settings.carousel_interval || 8000}

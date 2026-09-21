@@ -18,6 +18,9 @@ export default function BusinessOrchestrator() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const { notify } = useAdmin();
+  const businessId = Array.isArray(id) ? id[0] : id;
+  const fieldParam = searchParams.get('field');
+  const sectionParam = searchParams.get('section');
   const [activeTab, setActiveTab] = useState<Tab>((searchParams.get('field') ? 'CONTENT' : 'IDENTITY') as Tab);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,8 +51,14 @@ export default function BusinessOrchestrator() {
 
   useEffect(() => {
     async function loadData() {
+      if (!businessId || businessId === 'business-id' || businessId === '{business-id}') {
+        setBiz(null);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const bizRes = await fetch(`/api/jana/businesses?id=${id}`);
+        const bizRes = await fetch(`/api/jana/businesses?id=${businessId}`);
         const bizData = await bizRes.json();
         if (bizData.error) throw new Error(bizData.error);
 
@@ -85,7 +94,7 @@ export default function BusinessOrchestrator() {
         const fieldRes = await fetch(`/api/jana/forms?type=${bizData.type_id}`);
         let fieldData = await fieldRes.json();
 
-        const controlsRes = await fetch(`/api/admin/businesses/${id}/section-controls`);
+        const controlsRes = await fetch(`/api/admin/businesses/${businessId}/section-controls`);
         const controlsData = controlsRes.ok ? await controlsRes.json() : { controls: [] };
         const normalizedControls = Array.isArray(controlsData.controls)
           ? Object.fromEntries(controlsData.controls.map((item: any) => [item.section_id, item]))
@@ -98,9 +107,8 @@ export default function BusinessOrchestrator() {
         setBiz((prev: any) => ({ ...prev, fields: fieldData }));
 
         // Deep Link Handling: If a section is specified in URL, activate it
-        const targetSection = searchParams.get('section');
-        if (targetSection) {
-          setActiveSectionId(targetSection);
+        if (sectionParam) {
+          setActiveSectionId(sectionParam);
         } else {
           const hiddenSections = customData.basic?.hidden_sections || customData.hidden_sections || [];
           const firstActive = canonicalSecData.find((s: any) => !hiddenSections.includes(s.id));
@@ -114,7 +122,7 @@ export default function BusinessOrchestrator() {
       }
     }
     loadData();
-  }, [id, notify, searchParams]);
+  }, [businessId, fieldParam, notify, sectionParam]);
 
   useEffect(() => {
     if (!biz || !activeSectionId) {
@@ -172,7 +180,7 @@ export default function BusinessOrchestrator() {
       const res = await fetch(`/api/jana/businesses`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, ...biz })
+        body: JSON.stringify({ id: businessId, ...biz })
       });
       if (res.ok) {
         notify('Business DNA Synchronized', 'success');
@@ -342,13 +350,10 @@ export default function BusinessOrchestrator() {
               <div className="badge-premium">GOVERNANCE COMMAND CENTER</div>
               <h1 className="title" style={{ color: '#0f172a' }}>{biz.name?.toUpperCase()}</h1>
               <p style={{ margin: '1rem 0 0', color: '#64748b', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '1px' }}>
-                <i className="fas fa-fingerprint"></i> UUID: {id}
+                <i className="fas fa-fingerprint"></i> UUID: {businessId}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <Link href={`/jana/businesses/${id}/promote`} className="btn btn-outline" style={{ borderColor: '#10b981', color: '#10b981' }}>
-                <i className="fas fa-rocket"></i> PROMOTE BLUEPRINT
-              </Link>
               <Link href={`/${biz.slug}`} target="_blank" className="btn btn-outline">
                 <i className="fas fa-external-link-alt"></i> VIEW MINISITE
               </Link>

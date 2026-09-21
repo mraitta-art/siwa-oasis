@@ -30,10 +30,10 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Content',
+    title: 'Governance',
     items: [
-      { label: 'Business Content', icon: '📄', href: '/jana/content' },
       { label: 'Section Overrides', icon: '🛡️', href: '/admin/section-overrides' },
+      { label: 'Business Content', icon: '📄', href: '/jana/content' },
       { label: 'Blog Approval', icon: '📝', href: '/admin/blog-approval' },
       { label: 'Global Moderation', icon: '🖼️', href: '/admin/image-curation' },
       { label: 'Homepage Editor', icon: '🏗️', href: '/admin/homepage-editor' },

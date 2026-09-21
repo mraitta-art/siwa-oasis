@@ -136,7 +136,6 @@ export default function UnifiedSectionArchitect() {
   const [saving,      setSaving]        = useState(false);
   const [versionSaveMode, setVersionSaveMode] = useState<'initial'|'latest'>('latest');
   const [deletingId,  setDeletingId]    = useState<string|null>(null);
-  const [collapsedPanels, setCollapsedPanels] = useState({ left: false, center: false, right: false });
   const [leftPanelWidth, setLeftPanelWidth] = useState(480);
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
@@ -491,10 +490,7 @@ export default function UnifiedSectionArchitect() {
   const selectableBusinessTypes = businessTypes
     .filter(t => !t.is_parent && Number(t.is_parent) !== 1 && t.parent_id && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
     .sort((a, b) => a.name.localeCompare(b.name));
-  const mainGridColumns = `${collapsedPanels.left ? '0px' : `${leftPanelWidth}px`} ${collapsedPanels.center ? '72px' : 'minmax(560px, 1fr)'} ${collapsedPanels.right ? '0px' : `${rightPanelWidth}px`}`;
-  const togglePanel = (panel: 'left' | 'center' | 'right') => {
-    setCollapsedPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
-  };
+  const mainGridColumns = 'minmax(0, 1fr) minmax(0, 1fr)';
   const toggleParent = (parentId: string) => {
     setExpandedParents(prev => ({ ...prev, [parentId]: !prev[parentId] }));
   };
@@ -510,7 +506,51 @@ export default function UnifiedSectionArchitect() {
   );
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="section-architect-shell" style={{ background: '#f4f7fb', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        .section-architect-shell { color: #172033; }
+        .section-architect-shell button, .section-architect-shell input, .section-architect-shell select, .section-architect-shell textarea { font-family: inherit; }
+        .section-architect-grid {
+          flex: 1;
+          height: calc(100vh - 82px);
+          min-height: 0;
+          display: grid;
+          grid-template-columns: var(--section-grid-columns);
+          grid-template-rows: minmax(280px, 44vh) minmax(0, 1fr);
+          overflow: hidden;
+          background: #e7edf5;
+          gap: 1px;
+        }
+        .section-architect-sidebar {
+          grid-column: 1 / -1;
+          width: auto !important;
+          min-width: 0 !important;
+          height: 100% !important;
+          max-height: none;
+        }
+        .section-architect-editor { min-width: 0 !important; width: auto !important; }
+        .section-architect-grid > aside { min-width: 0 !important; width: auto !important; }
+        .section-architect-sidebar, .section-architect-editor, .section-architect-grid > aside {
+          box-shadow: 0 12px 35px rgba(15, 23, 42, 0.04);
+        }
+        .section-architect-sidebar { height: 100%; min-height: 0; overflow: hidden !important; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .section-architect-sidebar > div { min-height: 0; }
+        .section-architect-sidebar > div > div[style*="overflowY"] { min-height: 0; }
+        .section-architect-editor { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .section-architect-shell h1, .section-architect-shell h2, .section-architect-shell h3 { letter-spacing: -0.02em; }
+        .section-architect-shell header { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); }
+        @media (max-width: 1100px) {
+          .section-architect-grid { grid-template-columns: minmax(0, 1fr) 0px !important; }
+          .section-architect-grid > aside { display: none; }
+        }
+        @media (max-width: 760px) {
+          .section-architect-shell header { padding: 0.85rem 1rem !important; }
+          .section-architect-shell header > div:last-child > div { display: none; }
+          .section-architect-grid { display: block; overflow: auto; height: auto; min-height: calc(100vh - 70px); }
+          .section-architect-sidebar { height: 48vh !important; width: 100% !important; min-width: 100% !important; max-height: none; overflow-y: auto !important; border-right: 0 !important; border-bottom: 1px solid #dbe3ee; }
+          .section-architect-editor { min-width: 100% !important; width: 100% !important; overflow: visible !important; }
+        }
+      `}</style>
 
       {/* ── Toast ─────────────────────────────────────────────────────── */}
       {toast && (
@@ -549,7 +589,7 @@ export default function UnifiedSectionArchitect() {
       )}
 
       {/* ── HEADER ───────────────────────────────────────────────────── */}
-      <header style={{
+      <header className="section-architect-header" style={{
         background: '#0f172a', padding: '1.25rem 3rem',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, zIndex: 100,
@@ -578,15 +618,12 @@ export default function UnifiedSectionArchitect() {
 
         {/* ── PANEL 1: Section List / Forms Builder ──────────────────── */}
         <nav className="section-architect-sidebar" style={{
-          background: '#fff', borderRight: collapsedPanels.left ? 'none' : '1px solid #f1f5f9',
+          background: '#fff', borderRight: '1px solid #dbe3ee',
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
-          minWidth: collapsedPanels.left ? '0px' : `${leftPanelWidth}px`,
-          width: collapsedPanels.left ? '0px' : `${leftPanelWidth}px`,
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          minWidth: `${leftPanelWidth}px`,
+          width: `${leftPanelWidth}px`,
           overflowX: 'hidden',
         }}>
-          {!collapsedPanels.left && (
-            <>
               {/* Sidebar Mode Toggle */}
               <div style={{ padding: '0.9rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: '300px' }}>
                 <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '2px' }}>
@@ -628,9 +665,6 @@ export default function UnifiedSectionArchitect() {
                   </button>
                 </div>
                 <input type="range" min="360" max="640" step="10" value={leftPanelWidth} onChange={event => setLeftPanelWidth(Number(event.target.value))} title={`Left panel width: ${leftPanelWidth}px`} aria-label="Resize section list panel" style={{ width: 58, accentColor: '#D4AF37' }} />
-                <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className="fas fa-chevron-left" />
-                </button>
               </div>
 
               {sidebarMode === 'sections' ? (
@@ -640,9 +674,9 @@ export default function UnifiedSectionArchitect() {
                       <i className="fas fa-search" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.7rem' }} />
                       <input value={sectionSearch} onChange={event => setSectionSearch(event.target.value)} placeholder="Search sections by name or ID..." aria-label="Search existing sections" style={{ ...css.input(), padding: '0.65rem 0.75rem 0.65rem 2.25rem', fontSize: '0.72rem', background: '#fff' }} />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.55rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.45rem', marginTop: '0.7rem' }}>
                       {(['all', 'active', 'inactive', 'protected'] as const).map(filter => (
-                        <button key={filter} onClick={() => setSectionFilter(filter)} style={{ flex: 1, padding: '0.4rem 0.2rem', border: 0, borderRadius: '7px', background: sectionFilter === filter ? '#0f172a' : '#f1f5f9', color: sectionFilter === filter ? '#fff' : '#64748b', fontSize: '0.58rem', fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase' }}>
+                        <button key={filter} onClick={() => setSectionFilter(filter)} style={{ minWidth: 0, minHeight: 34, padding: '0.45rem 0.4rem', border: 0, borderRadius: '8px', background: sectionFilter === filter ? '#0f172a' : '#e8eef5', color: sectionFilter === filter ? '#fff' : '#475569', fontSize: '0.66rem', lineHeight: 1.1, fontWeight: 900, letterSpacing: '0.02em', cursor: 'pointer', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {filter}
                         </button>
                       ))}
@@ -651,14 +685,14 @@ export default function UnifiedSectionArchitect() {
                   </div>
 
                   {/* Core Sections Legend */}
-                  <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', minWidth: '300px', background: '#f0fdf4' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: 900, color: '#10b981', letterSpacing: '1.5px', marginBottom: '0.4rem' }}>🛡️ CORE SECTIONS (ESSENTIAL)</div>
-                    <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.5, fontWeight: 600 }}>
+                  <div style={{ padding: '1.1rem 1.15rem', borderBottom: '1px solid #bbf7d0', minWidth: '300px', background: 'linear-gradient(135deg, #ecfdf5, #f7fee7)' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 950, color: '#047857', letterSpacing: '1.7px', marginBottom: '0.5rem' }}>🛡️ CORE SECTIONS (ESSENTIAL)</div>
+                    <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.55, fontWeight: 700 }}>
                       These 7 sections contain the essential fields every vendor must fill. They are color-coded for quick identification.
                     </div>
                   </div>
 
-                  <div style={{ padding: '0.75rem', flex: 1, overflowY: 'auto', minWidth: '300px' }}>
+                  <div className="section-list-scroll" style={{ padding: '0.75rem', flex: 1, minHeight: 0, overflowY: 'auto', minWidth: '300px' }}>
                     {sections.length === 0 && (
                       <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', fontSize: '0.75rem', lineHeight: 1.5 }}>
                         <i className="fas fa-triangle-exclamation" style={{ color: '#f59e0b', fontSize: '1.4rem', display: 'block', marginBottom: '0.6rem' }} />
@@ -686,9 +720,9 @@ export default function UnifiedSectionArchitect() {
                       return (
                         <div key={sec.id}>
                           {showGroupHeader && (
-                            <div style={{ padding: '0.7rem 1rem 0.45rem', marginTop: idx === 0 ? 0 : '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ padding: '0.95rem 1rem 0.55rem', marginTop: idx === 0 ? 0 : '0.9rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                               <div style={{ flex: 1, height: '1px', background: isEnabled ? '#bbf7d0' : '#fecaca' }} />
-                              <span style={{ fontSize: '0.55rem', fontWeight: 900, color: isEnabled ? '#15803d' : '#b91c1c', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 950, color: isEnabled ? '#15803d' : '#b91c1c', letterSpacing: '1.7px', whiteSpace: 'nowrap' }}>
                                 {isEnabled ? 'ACTIVE SECTIONS' : 'INACTIVE SECTIONS'}
                               </span>
                               <div style={{ flex: 1, height: '1px', background: isEnabled ? '#bbf7d0' : '#fecaca' }} />
@@ -697,7 +731,7 @@ export default function UnifiedSectionArchitect() {
                           <button
                             onClick={() => selectSection(sec)}
                             style={{
-                              width: '100%', textAlign: 'left', padding: '0.85rem 1rem',
+                              width: '100%', textAlign: 'left', padding: isCore ? '1.1rem 1rem' : '0.85rem 1rem',
                               borderRadius: '12px',
                               borderStyle: 'solid',
                               borderTopWidth: '1.5px',
@@ -710,21 +744,21 @@ export default function UnifiedSectionArchitect() {
                               borderLeftColor: isCore ? coreColor : (isActive ? (isEnabled ? '#22c55e' : '#ef4444') : 'transparent'),
                               background: isActive ? (isCore ? coreColor + '08' : isEnabled ? '#f0fdf4' : '#fef2f2') : (isEnabled ? '#fff' : '#fff7f7'),
                               opacity: isEnabled ? 1 : 0.78,
-                              cursor: 'pointer', marginBottom: '2px', transition: 'all 0.2s',
+                              cursor: 'pointer', marginBottom: isCore ? '0.45rem' : '2px', transition: 'all 0.2s',
                               display: 'flex', alignItems: 'center', gap: '0.85rem',
                             }}
                           >
                             <div style={{
-                              width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
+                              width: isCore ? 44 : 36, height: isCore ? 44 : 36, borderRadius: '11px', flexShrink: 0,
                               background: isActive ? (isCore ? coreColor : isEnabled ? '#22c55e' : '#ef4444') : (isCore ? coreColor + '15' : isEnabled ? '#dcfce7' : '#fee2e2'),
                               color: isActive ? '#fff' : (isCore ? coreColor : isEnabled ? '#15803d' : '#b91c1c'),
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isCore ? '1.05rem' : '0.9rem',
                             }}>
                               <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
                             </div>
                             <div style={{ flex: 1, overflow: 'hidden' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <span style={{ fontWeight: isCore ? 900 : 800, fontSize: isCore ? '0.98rem' : '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {sec.name}
                                 </span>
                                 {isCore && core && (
@@ -737,7 +771,7 @@ export default function UnifiedSectionArchitect() {
                                 )}
                               </div>
                               <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                {isCore && core && <span style={{ color: coreColor }}>{core.emoji} {core.label}</span>}
+                                {isCore && core && <span style={{ color: coreColor, fontWeight: 800 }}>{core.emoji} {core.label}</span>}
                                 {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
                                 {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
                                 {!isEnabled && <span style={{ color: '#b91c1c' }}>● Inactive</span>}
@@ -996,23 +1030,11 @@ export default function UnifiedSectionArchitect() {
                   );
                 })()
               )}
-            </>
-          )}
         </nav>
 
         {/* ── PANEL 2: Editor ────────────────────────────────────────── */}
-        <main className="section-architect-editor" style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'auto', background: '#f8fafc', minWidth: collapsedPanels.center ? '72px' : '720px', width: collapsedPanels.center ? '72px' : 'auto' }}>
+        <main className="section-architect-editor" style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'auto', background: '#f8fafc' }}>
           <div style={{ background: '#fff', borderBottom: '1px solid #f1f5f9', padding: '0 2rem', display: 'flex', gap: '0.5rem', alignItems: 'center', minHeight: '60px' }}>
-            {collapsedPanels.left && (
-              <button onClick={() => togglePanel('left')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#D4AF37', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Show Sections Drawer">
-                <i className="fas fa-bars" />
-              </button>
-            )}
-            <button onClick={() => togglePanel('center')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <i className={`fas fa-chevron-${collapsedPanels.center ? 'right' : 'left'}`} />
-            </button>
-            {!collapsedPanels.center && (
-              <>
                 {[
                   { key: 'meta',   label: 'Section Settings', icon: 'fa-sliders-h' },
                   { key: 'fields', label: 'Field Builder',    icon: 'fa-list-alt', disabled: !selectedSection },
@@ -1068,21 +1090,8 @@ export default function UnifiedSectionArchitect() {
                     )}
                   </div>
                 )}
-              </>
-            )}
-            {collapsedPanels.right && !collapsedPanels.center && (
-              <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', flexShrink: 0 }} title="Show Stats &amp; Info Drawer">
-                <i className="fas fa-info-circle" />
-              </button>
-            )}
           </div>
 
-          {collapsedPanels.center ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem', padding: '2rem' }}>
-              Editor collapsed. Click the arrow to expand.
-            </div>
-          ) : (
-            <>
           {/* ── TAB: META ─────────────────────────────────────────── */}
           {activeTab === 'meta' && (
             <div style={{ padding: '2.5rem', maxWidth: '960px', width: '100%' }}>
@@ -1195,6 +1204,25 @@ export default function UnifiedSectionArchitect() {
                   })}
                 </div>
               </div>
+
+              {editSection.is_universal && (
+                <div style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#3b82f6', letterSpacing: '1px', marginBottom: '0.35rem' }}>PROTECTED SECTION</div>
+                    <div style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.5 }}>This section is currently marked as universal and protected from regular reassignment. Releasing it will let it be used as a normal assignable section elsewhere.</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditSection(s => ({ ...s, is_universal: false }));
+                      notify('Protection removed. This section can now be reassigned.', 'success');
+                    }}
+                    style={{ padding: '0.75rem 1.2rem', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.35)', background: 'rgba(59,130,246,0.08)', color: '#1d4ed8', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    <i className="fas fa-unlock" style={{ marginRight: '0.5rem' }} /> Release Protection
+                  </button>
+                </div>
+              )}
 
               {/* Content authority */}
               {(() => {
@@ -1651,27 +1679,17 @@ export default function UnifiedSectionArchitect() {
               )}
             </div>
           )}
-            </>
-          )}
         </main>
 
         {/* ── PANEL 3: Quick Stats / Help ─────────────────────────── */}
         <aside style={{
-          background: '#fff', borderLeft: collapsedPanels.right ? 'none' : '1px solid #f1f5f9',
+          background: '#fff', borderLeft: '1px solid #f1f5f9',
           overflowY: 'auto', overflowX: 'hidden',
-          padding: collapsedPanels.right ? '0' : '2rem 1.75rem',
-          minWidth: collapsedPanels.right ? '0px' : `${rightPanelWidth}px`,
-          width: collapsedPanels.right ? '0px' : `${rightPanelWidth}px`,
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          padding: '2rem 1.75rem',
+          minWidth: 0,
+          width: 'auto',
         }}>
-          {!collapsedPanels.right && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', minWidth: '320px' }}>
-                <input type="range" min="300" max="480" step="10" value={rightPanelWidth} onChange={event => setRightPanelWidth(Number(event.target.value))} title={`Right panel width: ${rightPanelWidth}px`} aria-label="Resize summary panel" style={{ width: 72, marginRight: '0.5rem', accentColor: '#D4AF37' }} />
-                <button onClick={() => togglePanel('right')} style={{ width: 34, height: 34, borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className="fas fa-chevron-right" />
-                </button>
-              </div>
+          <>
               <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '3px', marginBottom: '1.5rem' }}>SYSTEM OVERVIEW</div>
 
               {/* Stats */}
@@ -1746,8 +1764,7 @@ export default function UnifiedSectionArchitect() {
                   <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', lineHeight: 1.6 }}>{tip}</p>
                 </div>
               ))}
-            </>
-          )}
+          </>
         </aside>
       </div>
 

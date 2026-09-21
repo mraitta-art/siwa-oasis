@@ -46,6 +46,7 @@ export default function VanityBusinessClient({
   const [liveSettings, setLiveSettings] = useState<any>(siteSettings || null);
   const [minisiteLang, setMinisiteLang] = useState<'en' | 'ar'>('en');
   const [isRTL, setIsRTL] = useState(false);
+  const [isAdminToolsOpen, setIsAdminToolsOpen] = useState(false);
 
   // Initialize minisite language from localStorage or document default
   useEffect(() => {
@@ -287,6 +288,7 @@ export default function VanityBusinessClient({
         </div>
       )}
       <AutomatedMinisiteHero 
+        businessId={biz.id}
         businessName={biz.name}
         businessLogo={biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined)}
         logoSize={logoSize}
@@ -1280,6 +1282,152 @@ export default function VanityBusinessClient({
           {toast.message}
         </div>
       )}
+
+      {/* FLOATING QUICK ADMIN ACTION TOOLBAR */}
+      <aside 
+        aria-label="Admin Quick Tools"
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: isRTL ? 'auto' : '24px',
+          left: isRTL ? '24px' : 'auto',
+          zIndex: 9999,
+          fontFamily: 'system-ui, -apple-system, sans-serif'
+        }}
+      >
+        {isAdminToolsOpen ? (
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(212, 175, 55, 0.4)',
+            borderRadius: '16px',
+            padding: '1rem',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.6rem',
+            minWidth: '220px',
+            color: '#fff',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 900, fontSize: '0.75rem', letterSpacing: '1px' }}>
+                <i className="fas fa-bolt" /> ADMIN STUDIO
+              </div>
+              <button 
+                onClick={() => setIsAdminToolsOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', padding: '2px' }}
+                aria-label="Close admin tools"
+              >
+                ✕
+              </button>
+            </div>
+
+            <Link
+              href={`/jana/hero-carousel?targetScope=minisite&businessId=${biz?.id}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                color: '#f8fafc',
+                textDecoration: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.45rem 0.6rem',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.06)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-images" style={{ color: '#D4AF37', width: '16px' }} />
+              <span>Edit Hero & Carousels</span>
+            </Link>
+
+            <Link
+              href="/jana/content"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                color: '#f8fafc',
+                textDecoration: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.45rem 0.6rem',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.06)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-photo-film" style={{ color: '#38bdf8', width: '16px' }} />
+              <span>Edit Content & Stories</span>
+            </Link>
+
+            <Link
+              href={`/jana/businesses/${biz?.id}/edit`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                color: '#f8fafc',
+                textDecoration: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.45rem 0.6rem',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.06)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-cog" style={{ color: '#a78bfa', width: '16px' }} />
+              <span>Business Settings</span>
+            </Link>
+
+            <Link
+              href="/jana/minisite-builder"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                color: '#f8fafc',
+                textDecoration: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.45rem 0.6rem',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.06)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-store" style={{ color: '#34d399', width: '16px' }} />
+              <span>Minisite Studio Hub</span>
+            </Link>
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsAdminToolsOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(15, 23, 42, 0.9)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(212, 175, 55, 0.5)',
+              borderRadius: '50px',
+              padding: '0.55rem 1rem',
+              color: '#fff',
+              cursor: 'pointer',
+              boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              letterSpacing: '0.5px'
+            }}
+          >
+            <i className="fas fa-bolt" style={{ color: '#D4AF37' }} />
+            <span>ADMIN EDIT</span>
+          </button>
+        )}
+      </aside>
     </div>
   );
 }

@@ -127,27 +127,29 @@ const NAV_GROUPS = [
     defaultCollapsed: false,
     items: [
       { name: 'Visual Studio Hub', path: '/jana/studio', icon: 'fa-wand-magic-sparkles', badge: 'HUB' },
-      { name: 'Main Site Builder', path: '/jana/main-site-builder', icon: 'fa-globe' },
       {
-        name: 'Minisite Studio',
+        name: 'Main Site Builder',
+        path: '/jana/main-site-builder',
+        icon: 'fa-globe',
+        children: [
+          { name: 'Main Site Hub', path: '/jana/main-site-builder', icon: 'fa-globe' },
+          { name: 'Visual Page Editor', path: '/jana/website?page=main', icon: 'fa-palette' },
+          { name: 'Pages Directory', path: '/jana/pages', icon: 'fa-file' },
+          { name: 'Global Platform Carousel', path: '/jana/hero-carousel?targetScope=main', icon: 'fa-images' },
+        ]
+      },
+      {
+        name: 'Minisite Builder & Studio',
         path: '/jana/minisite-builder',
         icon: 'fa-store',
         children: [
-          { name: 'Minisite Builder', path: '/jana/minisite-builder', icon: 'fa-pen-to-square' },
-          { name: 'Minisite Templates', path: '/jana/minisite', icon: 'fa-store' },
+          { name: 'Minisite Builder Hub', path: '/jana/minisite-builder', icon: 'fa-store' },
+          { name: 'Typology Templates', path: '/jana/page-builder/templates', icon: 'fa-layer-group' },
+          { name: 'Forms & Sections', path: '/jana/business-forms', icon: 'fa-file-signature' },
+          { name: 'Business Content & CMS', path: '/jana/content', icon: 'fa-photo-film' },
+          { name: 'Minisite Dynamic Carousels', path: '/jana/hero-carousel?targetScope=minisite', icon: 'fa-images' },
         ]
       },
-      {
-        name: 'Pages Manager',
-        path: '/jana/pages',
-        icon: 'fa-copy',
-        children: [
-          { name: 'Pages Directory', path: '/jana/pages', icon: 'fa-file' },
-          { name: 'Visual Page Editor', path: '/jana/website?page=main', icon: 'fa-palette' },
-          { name: 'Homepage Editor', path: '/jana/homepage-editor', icon: 'fa-home' },
-        ]
-      },
-      { name: 'Hero Carousel', path: '/jana/hero-carousel', icon: 'fa-images' },
       {
         name: 'Blog Suite',
         path: '/jana/blog',
@@ -159,7 +161,6 @@ const NAV_GROUPS = [
           { name: 'Integration', path: '/jana/blog-integration', icon: 'fa-plug' },
         ]
       },
-      { name: 'Business Content', path: '/jana/content', icon: 'fa-photo-film', badge: 'CMS' },
       {
         name: 'Search Engine Suite',
         path: '/jana/search-engines',

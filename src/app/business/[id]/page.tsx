@@ -466,7 +466,7 @@ export default function BusinessProfilePage({ params }: { params: Promise<{ id: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context':'https://schema.org','@type':'LocalBusiness', name:biz.name, description:(data.basic?.description||biz.name+' in Siwa Oasis'), telephone:dynPhone, url:dynWebsite||`https://siwify.com/business/${id}`, address:{'@type':'PostalAddress',streetAddress:dynAddress,addressLocality:'Siwa Oasis',addressRegion:'Matrouh',addressCountry:'EG'}, ...(dynRating>0?{aggregateRating:{'@type':'AggregateRating',ratingValue:dynRating,bestRating:5}}:{}) }) }} />
 
       {/* HERO */}
-      <AutomatedMinisiteHero businessName={biz.name} businessLogo={biz.tier_features?.allow_custom_logo?dynLogo:undefined} activeSections={activeSections} customData={data} curationData={curation} tierFeatures={{ hero_automation:true, remove_watermark:biz.tier_features?.remove_watermark, allow_youtube_story:biz.tier_features?.allow_youtube_story }} settings={siteSettings || {}}/>
+      <AutomatedMinisiteHero businessId={id} businessName={biz.name} businessLogo={biz.tier_features?.allow_custom_logo?dynLogo:undefined} activeSections={activeSections} customData={data} curationData={curation} tierFeatures={{ hero_automation:true, remove_watermark:biz.tier_features?.remove_watermark, allow_youtube_story:biz.tier_features?.allow_youtube_story }} settings={siteSettings || {}}/>
 
       {/* QUICK INFO STRIP */}
       <div style={{ background:'#fff', borderBottom:'1px solid #f1f5f9', padding:'0.85rem 0' }}>

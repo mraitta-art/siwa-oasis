@@ -48,40 +48,6 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Fallback: If no sections are toggled, pull the first business with photos
-    if (slides.length === 0) {
-      businesses.forEach((biz: any) => {
-        const data = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : biz.custom_data;
-        const sid = Object.keys(data || {}).find(s => {
-          const g = data[s]?.section_gallery;
-          const hasGallery = typeof g === 'string' ? (() => { try { return JSON.parse(g).length > 0; } catch { return false; } })() : (Array.isArray(g) && g.length > 0);
-          return hasGallery || data[s]?.youtube_story;
-        });
-
-        if (sid) {
-          const section = data[sid];
-          const isYT = !!section.youtube_story;
-          let fallbackPhotos: any[] = [];
-          if (typeof section.section_gallery === 'string') {
-            try { fallbackPhotos = JSON.parse(section.section_gallery); } catch { fallbackPhotos = []; }
-          } else if (Array.isArray(section.section_gallery)) {
-            fallbackPhotos = section.section_gallery;
-          }
-          slides.push({
-            id: `auto_${biz.id}`,
-            type: isYT ? 'youtube' : 'image',
-            mediaUrl: isYT ? section.youtube_story : (fallbackPhotos[0]?.url || fallbackPhotos[0]),
-            title: biz.name.toUpperCase(),
-            subtitle: section.section_news || `Discover the legacy of ${biz.name}.`,
-            caption: 'FEATURED SELECTION',
-            ctaText: 'VIEW MINISITE',
-            ctaLink: `/business/${biz.id}`,
-            animation: 'kenburns'
-          });
-        }
-      });
-    }
-
     return NextResponse.json({ slides });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

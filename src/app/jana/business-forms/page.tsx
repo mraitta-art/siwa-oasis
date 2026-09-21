@@ -981,7 +981,7 @@ export default function BusinessFormsPage() {
                   }}>
                     {step === 1 ? '1' : <i className="fas fa-check"></i>}
                   </div>
-                  <span style={{ fontWeight: 800, color: step === 1 ? '#1e293b' : '#64748b', fontSize: '0.9rem' }}>Core Identity</span>
+                  <span style={{ fontWeight: 800, color: step === 1 ? '#1e293b' : '#64748b', fontSize: '0.9rem' }}>Registration Identity</span>
                 </div>
                 <div style={{ flex: 1, height: '2px', background: '#e2e8f0' }}></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -993,8 +993,12 @@ export default function BusinessFormsPage() {
                   }}>
                     2
                   </div>
-                  <span style={{ fontWeight: 800, color: step === 2 ? '#1e293b' : '#64748b', fontSize: '0.9rem' }}>Typology DNA fields</span>
+                  <span style={{ fontWeight: 800, color: step === 2 ? '#1e293b' : '#64748b', fontSize: '0.9rem' }}>Typology DNA Setup</span>
                 </div>
+              </div>
+
+              <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: '14px', padding: '0.9rem 1rem', marginBottom: '1.5rem', color: '#475569', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                <strong style={{ color: '#1e293b' }}>New business intake only:</strong> this wizard creates the initial record and typology DNA for a newly registering business. Existing businesses should be edited in the orchestrate/content workspace after the record exists.
               </div>
 
               {step === 1 ? (
@@ -1128,9 +1132,9 @@ export default function BusinessFormsPage() {
                 </div>
               ) : (
                 <div>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 800, fontSize: '1.25rem' }}>Step 2: Typology-Specific Fields</h3>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 800, fontSize: '1.25rem' }}>Step 2: Typology DNA Setup</h3>
                   <p style={{ margin: '0 0 2rem 0', fontSize: '0.85rem', color: '#64748b' }}>
-                    Fill out the dynamic fields designed for the <strong style={{ color: '#D4AF37' }}>{types.find(t => t.id === newBiz.type_id)?.name}</strong> typology.
+                    This registration step defines the initial DNA fields for the <strong style={{ color: '#D4AF37' }}>{types.find(t => t.id === newBiz.type_id)?.name}</strong> typology. After submission, the business is edited in the orchestrate/content workspace.
                   </p>
 
                   {newBizSections.length === 0 ? (

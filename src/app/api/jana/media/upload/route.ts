@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Validate file type (Images & Videos)
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif',
       'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
     ];
     if (!allowedTypes.includes(file.type)) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const maxBytes = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxBytes) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 50MB.' },
+        { error: `File too large. Maximum size is ${file.type.startsWith('video/') ? '50MB' : '10MB'}.` },
         { status: 400 }
       );
     }

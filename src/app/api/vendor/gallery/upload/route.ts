@@ -34,7 +34,9 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File;
     const sectionId = formData.get('sectionId') as string;
     const caption = formData.get('caption') as string;
-    const showOnMain = formData.get('show_on_main') !== 'false';
+    // New vendor media belongs to the business minisite by default.
+    // Public-main placement requires an explicit admin/vendor opt-in.
+    const showOnMain = formData.get('show_on_main') === 'true';
     const showOnMinisite = formData.get('show_on_minisite') !== 'false';
 
     if (!file || !sectionId) {

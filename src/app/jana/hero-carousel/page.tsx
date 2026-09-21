@@ -46,15 +46,14 @@ function extractYouTubeId(url: string): string | null {
 
 type TargetScope = 'main' | 'minisite' | 'readymade';
 
-const MINISITE_TABS = [
-  { id: 'main', label: '🏠 Main Home', tabParam: '' },
-  { id: 'stories', label: '📖 Stories & Heritage', tabParam: 'stories' },
-  { id: 'services', label: '💼 Services & Offerings', tabParam: 'services' },
-  { id: 'gallery', label: '🖼️ Media Gallery', tabParam: 'gallery' },
-  { id: 'offers', label: '🏷️ Special Deals', tabParam: 'offers' },
-  { id: 'contact', label: '📞 Contact & Location', tabParam: 'contact' },
-  { id: 'custom', label: '✍️ Custom Tab', tabParam: '' },
-];
+interface DynamicBusinessSection {
+  id: string;
+  name: string;
+  icon?: string;
+  custom_label?: string;
+  admin_hidden?: boolean;
+  admin_disabled?: boolean;
+}
 
 const MAIN_PAGE_PRESETS = [
   { id: 'discovery', label: '🏠 Homepage', url: '/' },
@@ -82,9 +81,11 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
 
 function HeroCarouselManagerContent() {
   const searchParams = useSearchParams();
-  const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string }[]>([]);
-  const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string; slug?: string } | null>(null);
+  const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string; type_id?: string }[]>([]);
+  const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string; slug?: string; type_id?: string } | null>(null);
   const [dynamicMainPages, setDynamicMainPages] = useState<{ slug: string; title: string }[]>([]);
+  const [businessSections, setBusinessSections] = useState<DynamicBusinessSection[]>([]);
+  const [loadingBusinessSections, setLoadingBusinessSections] = useState(false);
 
   const initialSiteId = searchParams?.get('siteId') || 'discovery';
   const initialBusinessId = searchParams?.get('businessId') || (
@@ -121,6 +122,85 @@ function HeroCarouselManagerContent() {
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
 
+  // Dynamically load real business sections, custom labels, and controls for the selected business
+  useEffect(() => {
+    if (!businessId) {
+      setBusinessSections([]);
+      return;
+    }
+    let isMounted = true;
+    setLoadingBusinessSections(true);
+
+    Promise.all([
+      fetch(`/api/jana/businesses?id=${encodeURIComponent(businessId)}`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/section-controls`).then(r => r.ok ? r.json() : null),
+    ]).then(async ([bizData, controlsData]) => {
+      if (!isMounted || !bizData) {
+        if (isMounted) {
+          setBusinessSections([]);
+          setLoadingBusinessSections(false);
+        }
+        return;
+      }
+      const typeId = bizData.type_id;
+      const controls: Record<string, any> = {};
+      (controlsData?.controls || []).forEach((c: any) => { controls[c.section_id] = c; });
+      const customLabels = bizData.custom_data?.section_labels || bizData.custom_data?.basic?.section_labels || {};
+
+      let rawSections: any[] = [];
+      if (typeId) {
+        try {
+          const secRes = await fetch(`/api/jana/sections?type=${encodeURIComponent(typeId)}`);
+          if (secRes.ok) {
+            rawSections = await secRes.json();
+          }
+        } catch {}
+      }
+
+      const activeSections: DynamicBusinessSection[] = (Array.isArray(rawSections) ? rawSections : [])
+        .filter((s: any) => {
+          const ctrl = controls[s.id];
+          return !ctrl?.admin_hidden && !ctrl?.admin_disabled;
+        })
+        .map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          icon: s.icon || 'fa-layer-group',
+          custom_label: controls[s.id]?.custom_label || customLabels[s.id] || s.name,
+          admin_hidden: !!controls[s.id]?.admin_hidden,
+          admin_disabled: !!controls[s.id]?.admin_disabled,
+        }));
+
+      if (isMounted) {
+        setBusinessSections(activeSections);
+        setLoadingBusinessSections(false);
+      }
+    }).catch(() => {
+      if (isMounted) {
+        setBusinessSections([]);
+        setLoadingBusinessSections(false);
+      }
+    });
+
+    return () => { isMounted = false; };
+  }, [businessId]);
+
+  const computedMinisiteTabs = React.useMemo(() => {
+    const tabs: { id: string; label: string; icon: string; tabParam: string }[] = [
+      { id: 'main', label: '🏠 Main Minisite Hero Banner', icon: 'fa-home', tabParam: '' }
+    ];
+    businessSections.forEach(sec => {
+      tabs.push({
+        id: sec.id,
+        label: sec.custom_label || sec.name,
+        icon: sec.icon || 'fa-layer-group',
+        tabParam: sec.id
+      });
+    });
+    tabs.push({ id: 'custom', label: '✍️ Custom Tab', icon: 'fa-pen', tabParam: '' });
+    return tabs;
+  }, [businessSections]);
+
   const getCarouselTarget = () => {
     if (targetScope === 'minisite') {
       const biz = businesses.find(b => b.id === businessId);
@@ -128,7 +208,7 @@ function HeroCarouselManagerContent() {
       const slugPath = biz ? (biz.slug ? `/${biz.slug}` : `/business/${biz.id}`) : `/business/${businessId || 'id'}`;
 
       let tabQuery = '';
-      let tabLabel = 'Main Home';
+      let tabLabel = 'Main Minisite Hero';
       let tabSuffix = 'hero';
 
       if (minisiteTab === 'custom') {
@@ -137,9 +217,9 @@ function HeroCarouselManagerContent() {
         tabLabel = cleanCustom ? `Custom Tab (${cleanCustom})` : 'Custom Tab';
         tabSuffix = cleanCustom ? `tab_${cleanCustom}_hero` : 'hero';
       } else if (minisiteTab && minisiteTab !== 'main') {
-        const found = MINISITE_TABS.find(t => t.id === minisiteTab);
-        tabQuery = `?tab=${minisiteTab}`;
-        tabLabel = found ? found.label : `Tab: ${minisiteTab}`;
+        const foundSec = businessSections.find(s => s.id === minisiteTab);
+        tabQuery = `#${minisiteTab}`;
+        tabLabel = foundSec ? (foundSec.custom_label || foundSec.name) : `Section: ${minisiteTab}`;
         tabSuffix = `tab_${minisiteTab}_hero`;
       }
 
@@ -242,9 +322,19 @@ function HeroCarouselManagerContent() {
   useEffect(() => {
     fetch('/api/jana/businesses')
       .then(res => res.ok ? res.json() : [])
-      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name, slug: business.slug })) : []))
+      .then(data => {
+        const nextBusinesses = Array.isArray(data)
+          ? data.map((business: any) => ({ id: business.id, name: business.name, slug: business.slug }))
+          : [];
+        setBusinesses(nextBusinesses);
+        setSelectedBusiness(nextBusinesses.find(business => business.id === businessId) || null);
+      })
       .catch(() => setBusinesses([]));
-  }, []);
+  }, [businessId]);
+
+  useEffect(() => {
+    setSelectedBusiness(businesses.find(business => business.id === businessId) || null);
+  }, [businesses, businessId]);
 
   const loadAllSlides = useCallback(async () => {
     setLoading(true);
@@ -346,8 +436,8 @@ function HeroCarouselManagerContent() {
         const file = files[i];
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('businessName', 'General');
-        fd.append('sectionName', 'Hero');
+        fd.append('businessName', currentTarget.bizName || currentTarget.title || 'General');
+        fd.append('sectionName', currentTarget.tabLabel ? `Hero ${currentTarget.tabLabel}` : 'Hero');
         const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
         const data = await res.json();
 
@@ -637,7 +727,9 @@ function HeroCarouselManagerContent() {
                 <select
                   value={businessId}
                   onChange={e => {
-                    setBusinessId(e.target.value);
+                    const nextBusinessId = e.target.value;
+                    setBusinessId(nextBusinessId);
+                    setSelectedBusiness(businesses.find(business => business.id === nextBusinessId) || null);
                     setShowForm(false);
                     setEditingId(null);
                   }}
@@ -654,9 +746,18 @@ function HeroCarouselManagerContent() {
 
               {/* Minisite Tab / Sub-Page Selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
-                <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>2. Select Minisite Page / Tab Target:</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>
+                    2. Select Minisite Hero or Dynamic Section:
+                  </span>
+                  {loadingBusinessSections && (
+                    <span style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 700 }}>
+                      <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.35rem' }} /> Loading business sections...
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {MINISITE_TABS.map(tab => {
+                  {computedMinisiteTabs.map(tab => {
                     const isActive = minisiteTab === tab.id;
                     return (
                       <button
@@ -667,6 +768,9 @@ function HeroCarouselManagerContent() {
                           setEditingId(null);
                         }}
                         style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
                           padding: '0.45rem 0.8rem',
                           borderRadius: '8px',
                           border: '1px solid',
@@ -679,6 +783,7 @@ function HeroCarouselManagerContent() {
                           transition: 'all 0.2s',
                         }}
                       >
+                        {tab.icon && <i className={`fas ${tab.icon}`} style={{ fontSize: '0.75rem', opacity: isActive ? 1 : 0.7 }} />}
                         {tab.label}
                       </button>
                     );

@@ -102,7 +102,7 @@ export async function POST(
       excerpt || content.substring(0, 160),
       status,
       publishedAt,
-      show_on_main !== false,
+      show_on_main === true,
       show_on_minisite !== false
     ];
 

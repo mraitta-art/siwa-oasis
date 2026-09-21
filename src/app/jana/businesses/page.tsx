@@ -547,9 +547,6 @@ export default function BusinessRegistryPage() {
                         <Link href={`/jana/businesses/${b.id}/qr`} className="btn btn-xs btn-outline" style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }} title="Print QR Onboarding Kit">
                           <i className="fas fa-qrcode"></i> QR KIT
                         </Link>
-                        <Link href={`/jana/businesses/${b.id}/promote`} className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="Promote to New Template">
-                          <i className="fas fa-rocket"></i> PROMOTE
-                        </Link>
                         <button className="btn btn-xs btn-outline" style={{ color: '#d97706', borderColor: '#d97706' }} onClick={() => cloneBusiness(b.id, b.name)} title="Clone Business Instance">
                           <i className="fas fa-copy"></i> CLONE
                         </button>

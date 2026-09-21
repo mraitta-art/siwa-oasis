@@ -218,7 +218,7 @@ export default function VendorStudio() {
       fd.append('file', files[i]);
       fd.append('sectionId', activeSection);
       fd.append('caption', files[i].name);
-      fd.append('show_on_main', 'true');
+      fd.append('show_on_main', 'false');
       fd.append('show_on_minisite', 'true');
       try {
         await fetch('/api/vendor/gallery/upload', { method: 'POST', body: fd });
@@ -1070,7 +1070,7 @@ export default function VendorStudio() {
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => setBlogForm({ title: '', content: '', show_on_main: true, show_on_minisite: true })} style={{ marginBottom: '2rem', padding: '0.75rem 1.5rem', background: '#f59e0b', color: '#1a1a1a', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button onClick={() => setBlogForm({ title: '', content: '', show_on_main: false, show_on_minisite: true })} style={{ marginBottom: '2rem', padding: '0.75rem 1.5rem', background: '#f59e0b', color: '#1a1a1a', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <i className="fas fa-plus"></i> Write New Blog Post
                     </button>
                   )}

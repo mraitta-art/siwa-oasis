@@ -5,7 +5,7 @@ import Link from 'next/link';
 const tools = [
   { href: '/jana/website?page=main', icon: 'fa-palette', title: 'Visual Page Builder', text: 'Arrange header, body, and footer components for the homepage and custom pages.' },
   { href: '/jana/pages', icon: 'fa-copy', title: 'Pages Manager', text: 'Create, rename, delete, and open main-site pages for editing.' },
-  { href: '/jana/hero-carousel', icon: 'fa-images', title: 'Global Carousel', text: 'Create homepage slides with media, captions, CTAs, and ordering.' },
+  { href: '/jana/hero-carousel?targetScope=main', icon: 'fa-images', title: 'Global Platform Carousel', text: 'Create homepage and discovery slides with media, captions, CTAs, and ordering.' },
   { href: '/jana/component-library', icon: 'fa-puzzle-piece', title: 'Component Library', text: 'Manage reusable components available to the main website builder.' },
   { href: '/jana/search-engines', icon: 'fa-search', title: 'Search and Discovery', text: 'Configure search engines, filters, and discovery page content.' },
   { href: '/jana/blog', icon: 'fa-newspaper', title: 'Blog Suite', text: 'Manage public articles, templates, layouts, and blog widgets.' },
