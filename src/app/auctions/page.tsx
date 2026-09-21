@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
 interface AuctionItem {
   business_id: string;
@@ -27,11 +29,28 @@ interface AuctionItem {
 export default function AuctionsPublicPage() {
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
+    // 1. Fetch site builder layout if configured
+    fetch('/api/jana/website?id=website_auctions')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        const config = Array.isArray(data) ? data[0] : data;
+        const layout = [
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || []),
+        ];
+        if (layout.length > 0) {
+          setBuilderConfig({ ...config, layout });
+        }
+      })
+      .catch(() => {});
+
     fetch('/api/discovery/auctions')
       .then((r) => r.json())
       .then((data) => {
@@ -78,8 +97,26 @@ export default function AuctionsPublicPage() {
     }
   };
 
+  if (builderConfig) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #0f0f0f)' }}>
+        <DynamicHomepageRenderer
+          layout={builderConfig.layout}
+          settings={builderConfig.site_settings || null}
+          pageId="auctions"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
+      {/* Operable Hero Carousel for Auctions */}
+      <AdvancedHeroCarousel
+        carouselName="auctions_hero"
+        height="clamp(380px, 55vh, 600px)"
+      />
+
       {/* Hero Section */}
       <div className="relative overflow-hidden py-16 sm:py-24 border-b border-gray-800">
         <div className="absolute inset-0 opacity-10">

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
 interface InvestmentOpportunity {
   id: string;
@@ -42,6 +44,7 @@ export default function MainSiteInvestmentOpportunitiesPage() {
   const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([]);
   const [sponsorships, setSponsorships] = useState<SponsorshipPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -52,6 +55,22 @@ export default function MainSiteInvestmentOpportunitiesPage() {
 
   // Load both investments and sponsorships
   useEffect(() => {
+    // 1. Fetch site builder layout if configured
+    fetch('/api/jana/website?id=website_investment-opportunities')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        const config = Array.isArray(data) ? data[0] : data;
+        const layout = [
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || []),
+        ];
+        if (layout.length > 0) {
+          setBuilderConfig({ ...config, layout });
+        }
+      })
+      .catch(() => {});
+
     setLoading(true);
     Promise.all([
       fetch('/api/discovery/investments').then((r) => r.json()),
@@ -167,9 +186,27 @@ export default function MainSiteInvestmentOpportunitiesPage() {
     }
   };
 
+  if (builderConfig) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #0f0f0f)' }}>
+        <DynamicHomepageRenderer
+          layout={builderConfig.layout}
+          settings={builderConfig.site_settings || null}
+          pageId="investment-opportunities"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] text-white">
       <MarketplaceHeader title="Investment & Sponsorship Hub" adminPath="/admin/investment-opportunities" activePath="/investment-opportunities" />
+
+      {/* Operable Hero Carousel for Investments */}
+      <AdvancedHeroCarousel
+        carouselName="investment-opportunities_hero"
+        height="clamp(380px, 55vh, 600px)"
+      />
 
       {/* Hero Section */}
       <div className="relative overflow-hidden py-16 sm:py-24 border-b border-gray-850">

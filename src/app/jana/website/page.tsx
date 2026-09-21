@@ -281,10 +281,10 @@ function MultiPageSiteBuilderComponent() {
       const cat = slug === 'accommodations' ? 'accommodation' : slug === 'transportation' ? 'transportation' : slug === 'activities' ? 'activity' : slug === 'food-beverage' ? 'food' : slug;
       const carouselId = `${slug}_hero`;
       return [
-        // Hero Carousel — editable from /jana/hero-carousel?mainPreset=<carouselId>
-        { id: `${slug}_carousel`, key: 'hero_carousel', zone: 'header', label: `${label} Hero Carousel`, props: { carousel_id: carouselId } },
-        // Thematic static hero (shown below carousel, or as fallback when carousel has no slides)
-        { id: `${slug}_hero`, key: 'category_hero', zone: 'header', label: `${label} Thematic Hero`, props: { category: cat, label, title: `Find the perfect ${label} in Siwa` } },
+        // Hero Carousel in BODY zone so it appears directly in the main Body builder workspace!
+        { id: `${slug}_carousel`, key: 'hero_carousel', zone: 'body', label: `${label} Hero Carousel`, props: { carousel_id: carouselId } },
+        // Thematic static hero (shown below carousel or as fallback when carousel has no slides)
+        { id: `${slug}_hero`, key: 'category_hero', zone: 'body', label: `${label} Thematic Hero`, props: { category: cat, label, title: `Find the perfect ${label} in Siwa` } },
         { id: `${slug}_search`, key: 'search_bar', zone: 'body', label: `${label} Search & Filters`, props: { defaultCategory: cat } },
         { id: `${slug}_deals`, key: 'category_commercial_tabs', zone: 'body', label: `${label} Packages & Deals`, props: { category: cat } },
         { id: `${slug}_directory`, key: 'services_hub', zone: 'body', label: `${label} Business Directory`, props: { category: cat } },
@@ -295,7 +295,7 @@ function MultiPageSiteBuilderComponent() {
 
     if (slug === 'journeys') {
       return [
-        { id: 'journeys_hero', key: 'hero_carousel', zone: 'header', label: 'Journey Hero Carousel', props: { carousel_id: 'journeys_hero' } },
+        { id: 'journeys_hero', key: 'hero_carousel', zone: 'body', label: 'Journey Hero Carousel', props: { carousel_id: 'journeys_hero' } },
         { id: 'journeys_planner', key: 'smart_journey_planner', zone: 'body', label: 'Smart Journey Planner', props: {} },
         { id: 'journeys_map', key: 'ecosystem_map', zone: 'body', label: 'Interactive Oasis Map', props: {} },
         { id: 'journeys_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
@@ -304,7 +304,7 @@ function MultiPageSiteBuilderComponent() {
 
     if (slug === 'categories') {
       return [
-        { id: 'categories_hero', key: 'hero_carousel', zone: 'header', label: 'Categories Hero Carousel', props: { carousel_id: 'categories_hero' } },
+        { id: 'categories_hero', key: 'hero_carousel', zone: 'body', label: 'Categories Hero Carousel', props: { carousel_id: 'categories_hero' } },
         { id: 'categories_showcase', key: 'experience_categories', zone: 'body', label: 'Experience Categories Showcase', props: {} },
         { id: 'categories_services', key: 'services_hub', zone: 'body', label: 'Services Hub Directory', props: {} },
         { id: 'categories_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
@@ -312,18 +312,44 @@ function MultiPageSiteBuilderComponent() {
     }
 
     if (['offers', 'packages', 'discounts'].includes(slug)) {
+      const label = slug.charAt(0).toUpperCase() + slug.slice(1);
       return [
-        { id: `${slug}_hero`, key: 'hero_carousel', zone: 'header', label: `${slug.toUpperCase()} Hero Carousel`, props: { carousel_id: `${slug}_hero` } },
-        { id: `${slug}_tabs`, key: 'category_commercial_tabs', zone: 'body', label: 'Deals, Packages & Discounts Tabs', props: {} },
+        { id: `${slug}_hero`, key: 'hero_carousel', zone: 'body', label: `${label} Hero Carousel`, props: { carousel_id: `${slug}_hero` } },
+        { id: `${slug}_tabs`, key: 'category_commercial_tabs', zone: 'body', label: `${label} & Commercial Showcase`, props: {} },
+        { id: `${slug}_directory`, key: 'services_hub', zone: 'body', label: 'Services & Partners Hub', props: {} },
         { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (slug === 'auctions') {
+      return [
+        { id: 'auctions_hero', key: 'hero_carousel', zone: 'body', label: 'Live Auctions Hero Carousel', props: { carousel_id: 'auctions_hero' } },
+        { id: 'auctions_tabs', key: 'category_commercial_tabs', zone: 'body', label: 'Auctions Showcase & Tabs', props: {} },
+        { id: 'auctions_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (slug === 'investment-opportunities') {
+      return [
+        { id: 'investment_hero', key: 'hero_carousel', zone: 'body', label: 'Investment Opportunities Hero Carousel', props: { carousel_id: 'investment-opportunities_hero' } },
+        { id: 'investment_feed', key: 'investment_feed', zone: 'body', label: 'Investment Marketplace Feed', props: {} },
+        { id: 'investment_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
       ];
     }
 
     if (slug === 'blog') {
       return [
-        { id: 'blog_hero', key: 'hero_carousel', zone: 'header', label: 'Siwa Stories Hero Carousel', props: { carousel_id: 'blog_hero' } },
+        { id: 'blog_hero', key: 'hero_carousel', zone: 'body', label: 'Siwa Stories Hero Carousel', props: { carousel_id: 'blog_hero' } },
         { id: 'blog_feed', key: 'blog', zone: 'body', label: 'Articles & Stories Feed', props: {} },
         { id: 'blog_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (slug === 'be-a-partner') {
+      return [
+        { id: 'partner_hero', key: 'hero_carousel', zone: 'body', label: 'Be a Partner Hero Carousel', props: { carousel_id: 'be-a-partner_hero' } },
+        { id: 'partner_cta_main', key: 'partner_cta', zone: 'body', label: 'Partner Value Proposition & Onboarding', props: {} },
+        { id: 'partner_footer_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
       ];
     }
 

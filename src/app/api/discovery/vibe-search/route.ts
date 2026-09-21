@@ -141,12 +141,16 @@ export async function POST(request: Request) {
       params.push(Number(minimumPassengers), Number(minimumPassengers), Number(minimumPassengers));
     }
 
+    const whereClause = conditions.length > 0
+      ? `b.status = 'active' AND b.published = 1 AND ${conditions.join(' AND ')}`
+      : `b.status = 'active' AND b.published = 1`;
+
     const results: any = await safeQuery(`
       SELECT b.*, bt.name as type_name 
       FROM businesses b
       JOIN business_types bt ON b.type_id = bt.id
       LEFT JOIN business_types parent_bt ON bt.parent_id = parent_bt.id
-      WHERE b.status = 'active' AND b.published = 1 AND ${conditions.join(' AND ')}
+      WHERE ${whereClause}
       ORDER BY b.is_featured DESC, b.is_recommended DESC, b.is_trusted DESC, b.views DESC
     `, params);
 

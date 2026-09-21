@@ -23,11 +23,31 @@ function formatDate(dateStr: string | null | undefined) {
   return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+
 export default function BlogListing() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
 
   useEffect(() => {
+    // 1. Fetch site builder layout if configured
+    fetch('/api/jana/website?id=website_blog')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        const config = Array.isArray(data) ? data[0] : data;
+        const layout = [
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || []),
+        ];
+        if (layout.length > 0) {
+          setBuilderConfig({ ...config, layout });
+        }
+      })
+      .catch(() => {});
+
     loadPosts();
   }, []);
 
@@ -45,20 +65,38 @@ export default function BlogListing() {
     }
   }
 
+  if (builderConfig) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+        <DynamicHomepageRenderer
+          layout={builderConfig.layout}
+          settings={builderConfig.site_settings || null}
+          pageId="blog"
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-      {/* Hero */}
+      {/* Managed Hero Carousel */}
+      <AdvancedHeroCarousel
+        carouselName="blog_hero"
+        height="clamp(400px, 60vh, 650px)"
+      />
+
+      {/* Default Hero Fallback when no carousel slides configured */}
       <div style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-        padding: '6rem 2rem',
+        padding: '5rem 2rem',
         textAlign: 'center',
         color: '#fff'
       }}>
         <h1 style={{ fontSize: '3.5rem', fontWeight: 900, marginBottom: '1rem' }}>
-          📝 Our Blog
+          📝 Our Blog & Stories
         </h1>
         <p style={{ fontSize: '1.25rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto' }}>
-          Insights, guides, and updates from the Siwa Oasis team
+          Insights, guides, and cultural narratives from Siwa Oasis
         </p>
       </div>
 

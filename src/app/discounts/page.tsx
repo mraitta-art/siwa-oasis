@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 
 interface DiscountItem {
   id: string;
@@ -31,11 +33,27 @@ const SEASON_ICONS: Record<string, string> = {
 export default function DiscountsPage() {
   const [items, setItems] = useState<DiscountItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
   const [search, setSearch] = useState('');
   const [seasonFilter, setSeasonFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
   useEffect(() => {
+    // 1. Fetch site builder layout if configured
+    fetch('/api/jana/website?id=website_discounts')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        const config = Array.isArray(data) ? data[0] : data;
+        const layout = [
+          ...(config?.header_components || []),
+          ...(config?.body_components || []),
+          ...(config?.footer_components || []),
+        ];
+        if (layout.length > 0) {
+          setBuilderConfig({ ...config, layout });
+        }
+      })
+      .catch(() => {});
     fetch('/api/discovery/discounts')
       .then(r => r.json())
       .then(j => {
@@ -146,9 +164,27 @@ export default function DiscountsPage() {
     );
   }
 
+  if (builderConfig) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+        <DynamicHomepageRenderer
+          layout={builderConfig.layout}
+          settings={builderConfig.site_settings || null}
+          pageId="discounts"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fffdf8,_#f8fafc_45%,_#f1f5f9_100%)] text-slate-800">
       <MarketplaceHeader title="Discounts" adminPath="/admin/discounts" activePath="/discounts" />
+
+      {/* Operable Hero Carousel for Discounts */}
+      <AdvancedHeroCarousel
+        carouselName="discounts_hero"
+        height="clamp(380px, 55vh, 600px)"
+      />
 
       <div className="page-shell py-10 sm:py-14 lg:py-16">
         <div className="premium-surface p-6 sm:p-8 lg:p-10">
