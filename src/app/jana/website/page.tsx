@@ -72,8 +72,16 @@ const STANDARD_CORE_PAGES: PageMeta[] = [
   { slug: 'activities', saved: false, type: 'page' },
   { slug: 'crafts-wellness', saved: false, type: 'page' },
   { slug: 'production-trade', saved: false, type: 'page' },
+  { slug: 'services', saved: false, type: 'page' },
   { slug: 'categories', saved: false, type: 'page' },
   { slug: 'journeys', saved: false, type: 'page' },
+  { slug: 'offers', saved: false, type: 'page' },
+  { slug: 'packages', saved: false, type: 'page' },
+  { slug: 'discounts', saved: false, type: 'page' },
+  { slug: 'auctions', saved: false, type: 'page' },
+  { slug: 'investment-opportunities', saved: false, type: 'page' },
+  { slug: 'blog', saved: false, type: 'page' },
+  { slug: 'be-a-partner', saved: false, type: 'page' },
 ];
 
 function MultiPageSiteBuilderComponent() {
