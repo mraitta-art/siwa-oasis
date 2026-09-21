@@ -2,9 +2,8 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
-import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
+import PageNotConfigured from '@/components/PageNotConfigured';
 
 function buildThemeCSS(settings: any): string {
   const bg = settings?.bg_color || '#FAF6F0';
@@ -18,15 +17,12 @@ function buildThemeCSS(settings: any): string {
       const g = parseInt(c.substring(2, 4), 16);
       const b = parseInt(c.substring(4, 6), 16);
       return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 140;
-    } catch {
-      return true;
-    }
+    } catch { return true; }
   })();
 
   if (light) {
     return `:root { --bg:${bg}; --bg-alt:${bg}ee; --card:#ffffff; --text:#202D15; --text-muted:#5A4A3A; --text-light:#8E7B6C; --border:#E8DFD3; --border-light:#F4ECE0; --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.06); --shadow-md:0 4px 12px rgba(0,0,0,0.08); --shadow-lg:0 10px 25px rgba(0,0,0,0.10); }`;
   }
-
   return `:root { --bg:${bg}; --bg-alt:${bg}dd; --card:rgba(255,255,255,0.04); --text:#f8fafc; --text-muted:#cbd5e1; --text-light:#94a3b8; --border:rgba(255,255,255,0.08); --border-light:rgba(255,255,255,0.05); --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.3); --shadow-md:0 4px 12px rgba(0,0,0,0.4); --shadow-lg:0 10px 25px rgba(0,0,0,0.5); }`;
 }
 
@@ -47,34 +43,16 @@ export default function JourneysPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.9rem' }}>LOADING JOURNEYS…</div>
+      <div style={{ minHeight: '100vh', background: '#070B12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!cfg || (!cfg.header_components?.length && !cfg.body_components?.length && !cfg.footer_components?.length)) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0f172a', color: '#fff', padding: '3rem 1.5rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <span style={{ display: 'inline-block', background: 'rgba(212,175,55,0.15)', color: '#D4AF37', padding: '0.4rem 1rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>
-              Tailored Siwa Itineraries
-            </span>
-            <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 900, margin: '1rem 0 0.5rem', color: '#fff' }}>
-              Smart Journey Planner
-            </h1>
-            <p style={{ maxWidth: '640px', margin: '0 auto', color: '#94a3b8', fontSize: '1rem', lineHeight: 1.7 }}>
-              Build your custom Siwa expedition step-by-step. Select your travel duration, preferences, and pace to discover curated activities, camps, and heritage guides.
-            </p>
-          </header>
+  const hasLayout = cfg?.header_components?.length || cfg?.body_components?.length || cfg?.footer_components?.length;
 
-          <div style={{ background: '#1e293b', borderRadius: '24px', padding: '2rem', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <SmartJourneyPlanner />
-          </div>
-        </div>
-      </div>
-    );
+  if (!cfg || !hasLayout) {
+    return <PageNotConfigured pageName="Journeys" pageId="journeys" />;
   }
 
   const layout = [

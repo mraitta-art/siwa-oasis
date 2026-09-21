@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import PageNotConfigured from '@/components/PageNotConfigured';
 
 interface CategorySearchPageProps {
   category: string;
@@ -21,14 +22,18 @@ export default function CategorySearchPage({
   const [builderConfig, setBuilderConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const pagePath = category === 'accommodation'
-    ? 'accommodations'
-    : category === 'transportation'
+  // Resolve the page path key used in website_configs (fix crafts-wellness double-s bug)
+  const pagePath =
+    category === 'accommodation'
+      ? 'accommodations'
+      : category === 'transportation'
       ? 'transportation'
-    : category === 'food'
+      : category === 'food'
       ? 'food-beverage'
-    : category === 'activity'
+      : category === 'activity'
       ? 'activities'
+      : category === 'crafts-wellness'
+      ? 'crafts-wellness'
       : `${category}s`;
 
   useEffect(() => {
@@ -47,54 +52,30 @@ export default function CategorySearchPage({
       .finally(() => setLoading(false));
   }, [pagePath]);
 
-  // Default dynamic layout if no customized database config has been saved yet
-  const defaultDynamicLayout = [
-    // ── Hero Carousel — managed at /jana/hero-carousel?mainPreset=<pagePath>_hero ──
-    {
-      id: `${pagePath}_carousel`,
-      type: 'hero_carousel',
-      props: { carousel_id: `${pagePath}_hero` }
-    },
-    // ── Thematic static hero banner (shown when carousel has no slides yet) ──
-    {
-      id: `${pagePath}_hero`,
-      type: 'category_hero',
-      props: { category, label, title, accent, description }
-    },
-    {
-      id: `${pagePath}_search`,
-      type: 'search_bar',
-      props: { defaultCategory: category }
-    },
-    {
-      id: `${pagePath}_deals`,
-      type: 'category_commercial_tabs',
-      props: { category }
-    },
-    {
-      id: `${pagePath}_directory`,
-      type: 'services_hub',
-      props: { title: `${label} Directory`, subtitle: `Verified ${label.toLowerCase()} partners across Siwa Oasis` }
-    },
-    {
-      id: `${pagePath}_story`,
-      type: 'storytelling_section',
-      props: { title: `Authentic ${label} in Siwa`, subtitle: 'Discover the traditions, heritage, and serene beauty of the oasis.' }
-    },
-    {
-      id: `${pagePath}_partner_cta`,
-      type: 'partner_cta',
-      props: { title: `Are you a ${label} provider in Siwa?`, subtitle: 'Join our ecosystem to list your business and receive direct bookings.' }
-    }
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#070B12' }}>
+        <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-  const activeLayout = builderConfig?.layout || defaultDynamicLayout;
+  // No builder config saved yet — show admin prompt
+  if (!builderConfig) {
+    return (
+      <PageNotConfigured
+        pageName={label}
+        pageId={pagePath}
+      />
+    );
+  }
 
-  const resolvedLayout = activeLayout.map((section: any) => (
+  // Ensure search_bar sections carry the correct category
+  const resolvedLayout = builderConfig.layout.map((section: any) =>
     section?.type === 'search_bar'
       ? { ...section, props: { ...(section.props || {}), defaultCategory: section.props?.defaultCategory || category } }
       : section
-  ));
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
