@@ -450,7 +450,9 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       }
     }
 
+    const seenSectionIds = new Set<string>();
     sections = sections.filter((s: any) => {
+      if (!s || !s.id || seenSectionIds.has(s.id)) return false;
       const sectionOptions = (() => {
         try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
       })();
@@ -459,6 +461,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       if (Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
       if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id])) return false;
 
+      seenSectionIds.add(s.id);
       return true;
     });
 

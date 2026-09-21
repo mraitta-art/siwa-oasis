@@ -182,11 +182,15 @@ export default function VanityBusinessClient({
   // Dynamically filter activeSections so sections without active components or data automatically disappear from header tabs, mobile menu, and hero
   const activeSections = React.useMemo(() => {
     const allowedIds = new Set(filterCoreSectionsForBusinessType(biz?.type_id, (sections || []).map(section => section.id)));
+    const seenIds = new Set<string>();
 
     return (sections || []).filter(section => {
+      if (!section || !section.id) return false;
+      if (seenIds.has(section.id)) return false;
       if (!allowedIds.has(section.id)) return false;
       if (!isSectionApprovedForMinisite(section.id, data)) return false;
 
+      seenIds.add(section.id);
       return true;
     });
   }, [sections, data, biz?.type_id]);
