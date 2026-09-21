@@ -490,7 +490,7 @@ export default function UnifiedSectionArchitect() {
   const selectableBusinessTypes = businessTypes
     .filter(t => !t.is_parent && Number(t.is_parent) !== 1 && t.parent_id && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
     .sort((a, b) => a.name.localeCompare(b.name));
-  const mainGridColumns = 'minmax(0, 1fr) minmax(0, 1fr)';
+  const mainGridColumns = `${leftPanelWidth}px minmax(0, 1fr)`;
   const toggleParent = (parentId: string) => {
     setExpandedParents(prev => ({ ...prev, [parentId]: !prev[parentId] }));
   };
@@ -515,40 +515,39 @@ export default function UnifiedSectionArchitect() {
           height: calc(100vh - 82px);
           min-height: 0;
           display: grid;
-          grid-template-columns: var(--section-grid-columns);
-          grid-template-rows: minmax(280px, 44vh) minmax(0, 1fr);
+          grid-template-columns: ${leftPanelWidth}px minmax(0, 1fr);
+          grid-template-rows: 1fr;
           overflow: hidden;
-          background: #e7edf5;
+          background: #e2e8f0;
           gap: 1px;
         }
         .section-architect-sidebar {
-          grid-column: 1 / -1;
-          width: auto !important;
+          width: 100% !important;
           min-width: 0 !important;
           height: 100% !important;
           max-height: none;
+          overflow-y: auto !important;
+          background: #ffffff;
+          border-right: 1px solid #dbe3ee;
+          box-shadow: 2px 0 10px rgba(15, 23, 42, 0.03);
         }
-        .section-architect-editor { min-width: 0 !important; width: auto !important; }
-        .section-architect-grid > aside { min-width: 0 !important; width: auto !important; }
-        .section-architect-sidebar, .section-architect-editor, .section-architect-grid > aside {
-          box-shadow: 0 12px 35px rgba(15, 23, 42, 0.04);
+        .section-architect-editor {
+          min-width: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          overflow-y: auto !important;
+          background: #f8fafc;
         }
-        .section-architect-sidebar { height: 100%; min-height: 0; overflow: hidden !important; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-        .section-architect-sidebar > div { min-height: 0; }
-        .section-architect-sidebar > div > div[style*="overflowY"] { min-height: 0; }
-        .section-architect-editor { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .section-architect-sidebar, .section-architect-editor {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
         .section-architect-shell h1, .section-architect-shell h2, .section-architect-shell h3 { letter-spacing: -0.02em; }
-        .section-architect-shell header { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); }
-        @media (max-width: 1100px) {
-          .section-architect-grid { grid-template-columns: minmax(0, 1fr) 0px !important; }
-          .section-architect-grid > aside { display: none; }
-        }
-        @media (max-width: 760px) {
-          .section-architect-shell header { padding: 0.85rem 1rem !important; }
-          .section-architect-shell header > div:last-child > div { display: none; }
+        .section-architect-shell header { box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12); }
+        @media (max-width: 1000px) {
           .section-architect-grid { display: block; overflow: auto; height: auto; min-height: calc(100vh - 70px); }
-          .section-architect-sidebar { height: 48vh !important; width: 100% !important; min-width: 100% !important; max-height: none; overflow-y: auto !important; border-right: 0 !important; border-bottom: 1px solid #dbe3ee; }
-          .section-architect-editor { min-width: 100% !important; width: 100% !important; overflow: visible !important; }
+          .section-architect-sidebar { height: auto !important; width: 100% !important; min-width: 100% !important; border-right: 0 !important; border-bottom: 1px solid #dbe3ee; }
+          .section-architect-editor { min-width: 100% !important; width: 100% !important; height: auto !important; overflow: visible !important; }
         }
       `}</style>
 
@@ -669,33 +668,60 @@ export default function UnifiedSectionArchitect() {
 
               {sidebarMode === 'sections' ? (
                 <>
-                  <div style={{ padding: '0.85rem 0.75rem', borderBottom: '1px solid #f1f5f9', background: '#fbfcfe', minWidth: '300px' }}>
+                  <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
                     <div style={{ position: 'relative' }}>
-                      <i className="fas fa-search" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.7rem' }} />
-                      <input value={sectionSearch} onChange={event => setSectionSearch(event.target.value)} placeholder="Search sections by name or ID..." aria-label="Search existing sections" style={{ ...css.input(), padding: '0.65rem 0.75rem 0.65rem 2.25rem', fontSize: '0.72rem', background: '#fff' }} />
+                      <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.85rem' }} />
+                      <input 
+                        value={sectionSearch} 
+                        onChange={event => setSectionSearch(event.target.value)} 
+                        placeholder="Search sections by name, label, or ID..." 
+                        aria-label="Search existing sections" 
+                        style={{ ...css.input(), padding: '0.75rem 1rem 0.75rem 2.5rem', fontSize: '0.82rem', background: '#fff', borderRadius: '12px' }} 
+                      />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.45rem', marginTop: '0.7rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.4rem', marginTop: '0.75rem' }}>
                       {(['all', 'active', 'inactive', 'protected'] as const).map(filter => (
-                        <button key={filter} onClick={() => setSectionFilter(filter)} style={{ minWidth: 0, minHeight: 34, padding: '0.45rem 0.4rem', border: 0, borderRadius: '8px', background: sectionFilter === filter ? '#0f172a' : '#e8eef5', color: sectionFilter === filter ? '#fff' : '#475569', fontSize: '0.66rem', lineHeight: 1.1, fontWeight: 900, letterSpacing: '0.02em', cursor: 'pointer', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <button 
+                          key={filter} 
+                          onClick={() => setSectionFilter(filter)} 
+                          style={{ 
+                            padding: '0.5rem 0.3rem', 
+                            border: '1px solid',
+                            borderColor: sectionFilter === filter ? '#0f172a' : '#cbd5e1',
+                            borderRadius: '8px', 
+                            background: sectionFilter === filter ? '#0f172a' : '#ffffff', 
+                            color: sectionFilter === filter ? '#ffffff' : '#475569', 
+                            fontSize: '0.7rem', 
+                            fontWeight: 900, 
+                            cursor: 'pointer', 
+                            textTransform: 'uppercase',
+                            transition: 'all 0.2s'
+                          }}
+                        >
                           {filter}
                         </button>
                       ))}
                     </div>
-                    <div style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.6rem', fontWeight: 700 }}>Showing {visibleSections.length} of {sections.length} sections</div>
-                  </div>
-
-                  {/* Core Sections Legend */}
-                  <div style={{ padding: '1.1rem 1.15rem', borderBottom: '1px solid #bbf7d0', minWidth: '300px', background: 'linear-gradient(135deg, #ecfdf5, #f7fee7)' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 950, color: '#047857', letterSpacing: '1.7px', marginBottom: '0.5rem' }}>🛡️ CORE SECTIONS (ESSENTIAL)</div>
-                    <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.55, fontWeight: 700 }}>
-                      These 7 sections contain the essential fields every vendor must fill. They are color-coded for quick identification.
+                    <div style={{ marginTop: '0.6rem', color: '#64748b', fontSize: '0.72rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Showing {visibleSections.length} sections</span>
+                      <span style={{ color: '#D4AF37', fontWeight: 900 }}>10 Universal Essentials</span>
                     </div>
                   </div>
 
-                  <div className="section-list-scroll" style={{ padding: '0.75rem', flex: 1, minHeight: 0, overflowY: 'auto', minWidth: '300px' }}>
+                  {/* Core Sections Legend */}
+                  <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid #d1fae5', background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0 }}>
+                      <i className="fas fa-shield-halved" />
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#065f46', lineHeight: 1.4, fontWeight: 700 }}>
+                      <strong>Universal Essential Sections</strong>: Each has a fixed canonical color across every business minisite.
+                    </div>
+                  </div>
+
+                  <div className="section-list-scroll" style={{ padding: '1rem', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                     {sections.length === 0 && (
-                      <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', fontSize: '0.75rem', lineHeight: 1.5 }}>
-                        <i className="fas fa-triangle-exclamation" style={{ color: '#f59e0b', fontSize: '1.4rem', display: 'block', marginBottom: '0.6rem' }} />
+                      <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '16px', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                        <i className="fas fa-triangle-exclamation" style={{ color: '#f59e0b', fontSize: '1.8rem', display: 'block', marginBottom: '0.75rem' }} />
                         No existing sections loaded. Check admin authentication or database connectivity, then reload.
                       </div>
                     )}
@@ -715,15 +741,15 @@ export default function UnifiedSectionArchitect() {
                       const isCore = Boolean(core);
                       const previousEnabled = idx > 0 && arr[idx - 1].active !== false;
                       const showGroupHeader = idx === 0 || previousEnabled !== isEnabled;
-                      const coreColor = core?.color ?? '#64748b';
+                      const coreColor = core?.color ?? (sec.is_universal ? '#2563eb' : '#64748b');
 
                       return (
-                        <div key={sec.id}>
+                        <div key={sec.id} style={{ marginBottom: '0.65rem' }}>
                           {showGroupHeader && (
-                            <div style={{ padding: '0.95rem 1rem 0.55rem', marginTop: idx === 0 ? 0 : '0.9rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <div style={{ padding: '0.75rem 0.5rem 0.45rem', marginTop: idx === 0 ? 0 : '0.75rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                               <div style={{ flex: 1, height: '1px', background: isEnabled ? '#bbf7d0' : '#fecaca' }} />
-                              <span style={{ fontSize: '0.68rem', fontWeight: 950, color: isEnabled ? '#15803d' : '#b91c1c', letterSpacing: '1.7px', whiteSpace: 'nowrap' }}>
-                                {isEnabled ? 'ACTIVE SECTIONS' : 'INACTIVE SECTIONS'}
+                              <span style={{ fontSize: '0.7rem', fontWeight: 950, color: isEnabled ? '#15803d' : '#b91c1c', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
+                                {isEnabled ? 'ACTIVE REGISTRY SECTIONS' : 'INACTIVE / ARCHIVED SECTIONS'}
                               </span>
                               <div style={{ flex: 1, height: '1px', background: isEnabled ? '#bbf7d0' : '#fecaca' }} />
                             </div>
@@ -731,50 +757,122 @@ export default function UnifiedSectionArchitect() {
                           <button
                             onClick={() => selectSection(sec)}
                             style={{
-                              width: '100%', textAlign: 'left', padding: isCore ? '1.1rem 1rem' : '0.85rem 1rem',
-                              borderRadius: '12px',
-                              borderStyle: 'solid',
-                              borderTopWidth: '1.5px',
-                              borderBottomWidth: '1.5px',
-                              borderRightWidth: '1.5px',
-                              borderLeftWidth: isCore ? '3px' : '1.5px',
-                              borderTopColor: isActive ? (isCore ? coreColor + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
-                              borderBottomColor: isActive ? (isCore ? coreColor + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
-                              borderRightColor: isActive ? (isCore ? coreColor + '60' : isEnabled ? '#86efac' : '#fca5a5') : 'transparent',
-                              borderLeftColor: isCore ? coreColor : (isActive ? (isEnabled ? '#22c55e' : '#ef4444') : 'transparent'),
-                              background: isActive ? (isCore ? coreColor + '08' : isEnabled ? '#f0fdf4' : '#fef2f2') : (isEnabled ? '#fff' : '#fff7f7'),
-                              opacity: isEnabled ? 1 : 0.78,
-                              cursor: 'pointer', marginBottom: isCore ? '0.45rem' : '2px', transition: 'all 0.2s',
-                              display: 'flex', alignItems: 'center', gap: '0.85rem',
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '1rem 1.15rem',
+                              borderRadius: '14px',
+                              border: '1.5px solid',
+                              borderColor: isActive ? coreColor : (isCore ? `${coreColor}30` : '#e2e8f0'),
+                              borderLeft: `5px solid ${isCore ? coreColor : (isActive ? '#2563eb' : '#cbd5e1')}`,
+                              background: isActive 
+                                ? (isCore ? `${coreColor}12` : '#eff6ff') 
+                                : (isCore ? `${coreColor}04` : (isEnabled ? '#ffffff' : '#fafafa')),
+                              boxShadow: isActive 
+                                ? `0 8px 24px ${coreColor}25` 
+                                : '0 2px 6px rgba(0,0,0,0.02)',
+                              opacity: isEnabled ? 1 : 0.75,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1rem',
                             }}
                           >
+                            {/* Distinctive Themed Icon Badge */}
                             <div style={{
-                              width: isCore ? 44 : 36, height: isCore ? 44 : 36, borderRadius: '11px', flexShrink: 0,
-                              background: isActive ? (isCore ? coreColor : isEnabled ? '#22c55e' : '#ef4444') : (isCore ? coreColor + '15' : isEnabled ? '#dcfce7' : '#fee2e2'),
-                              color: isActive ? '#fff' : (isCore ? coreColor : isEnabled ? '#15803d' : '#b91c1c'),
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isCore ? '1.05rem' : '0.9rem',
+                              width: 46,
+                              height: 46,
+                              borderRadius: '12px',
+                              flexShrink: 0,
+                              background: isActive ? coreColor : `${coreColor}18`,
+                              color: isActive ? '#ffffff' : coreColor,
+                              border: `1px solid ${coreColor}30`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.2rem',
+                              transition: 'all 0.2s ease',
+                              boxShadow: isActive ? `0 4px 12px ${coreColor}40` : 'none',
                             }}>
                               <i className={`fas ${sec.icon || 'fa-layer-group'}`} />
                             </div>
-                            <div style={{ flex: 1, overflow: 'hidden' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ fontWeight: isCore ? 900 : 800, fontSize: isCore ? '0.98rem' : '0.85rem', color: isActive ? '#1e293b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+
+                            {/* Section Details */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                                <span style={{ 
+                                  fontWeight: 900, 
+                                  fontSize: '0.96rem', 
+                                  color: isActive ? '#0f172a' : '#1e293b', 
+                                  whiteSpace: 'nowrap', 
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis' 
+                                }}>
                                   {sec.name}
                                 </span>
-                                {isCore && core && (
-                                  <span style={{
-                                    fontSize: '0.5rem', fontWeight: 900, letterSpacing: '0.5px',
-                                    background: coreColor + '18', color: coreColor,
-                                    padding: '1px 6px', borderRadius: '6px', border: `1px solid ${coreColor}30`,
-                                    whiteSpace: 'nowrap', flexShrink: 0,
-                                  }}>CORE</span>
-                                )}
+                                <span style={{
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                  color: '#64748b',
+                                  background: '#f1f5f9',
+                                  padding: '2px 6px',
+                                  borderRadius: '5px',
+                                  flexShrink: 0
+                                }}>
+                                  {sec.id}
+                                </span>
                               </div>
-                              <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, marginTop: '2px', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                {isCore && core && <span style={{ color: coreColor, fontWeight: 800 }}>{core.emoji} {core.label}</span>}
-                                {!isCore && sec.enable_gallery && <span style={{ color: '#6366f1' }}>◆ Gallery</span>}
-                                {!isCore && sec.enable_blog    && <span style={{ color: '#f59e0b' }}>◆ Blog</span>}
-                                {!isEnabled && <span style={{ color: '#b91c1c' }}>● Inactive</span>}
+
+                              {/* Badges & Identity */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                {isCore && core ? (
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 900,
+                                    letterSpacing: '0.4px',
+                                    background: `${coreColor}18`,
+                                    color: coreColor,
+                                    padding: '2px 7px',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${coreColor}35`,
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}>
+                                    <span>{core.emoji}</span>
+                                    <span>{core.label.toUpperCase()} (ESSENTIAL)</span>
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 800,
+                                    background: '#f1f5f9',
+                                    color: '#64748b',
+                                    padding: '2px 6px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0'
+                                  }}>
+                                    🧩 MODULAR
+                                  </span>
+                                )}
+
+                                {sec.enable_gallery && (
+                                  <span style={{ fontSize: '0.6rem', color: '#6366f1', fontWeight: 800, background: '#e0e7ff', padding: '1px 5px', borderRadius: '4px' }}>
+                                    🖼️ Gallery
+                                  </span>
+                                )}
+                                {sec.enable_blog && (
+                                  <span style={{ fontSize: '0.6rem', color: '#d97706', fontWeight: 800, background: '#fef3c7', padding: '1px 5px', borderRadius: '4px' }}>
+                                    📖 Stories
+                                  </span>
+                                )}
+                                {!isEnabled && (
+                                  <span style={{ fontSize: '0.6rem', color: '#dc2626', fontWeight: 900, background: '#fee2e2', padding: '1px 5px', borderRadius: '4px' }}>
+                                    🚫 Inactive
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </button>
