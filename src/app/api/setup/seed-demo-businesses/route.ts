@@ -188,8 +188,8 @@ export async function GET(req: NextRequest) {
     ];
 
     try {
-      const cols: any = await query(`DESCRIBE tour_products`);
-      const colNames = cols.map((c: any) => c.Field);
+      const cols: any = await execute(`DESCRIBE tour_products`);
+      const colNames = Array.isArray(cols) ? cols.map((c: any) => c.Field) : [];
       const titleCol = colNames.includes('title') ? 'title' : (colNames.includes('name') ? 'name' : null);
       if (titleCol) {
         for (const pkg of packages) {
