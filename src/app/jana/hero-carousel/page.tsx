@@ -90,6 +90,250 @@ const SOURCE_LABELS: Record<string, { label: string; color: string; bg: string }
   workflow:   { label: '📋 Workflow',   color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
 };
 
+const DEFAULT_STARTER_SLIDES: Record<string, Array<Omit<CarouselSlide, 'id' | 'displayOrder'>>> = {
+  activities_hero: [
+    {
+      title: 'Desert Safaris & Great Sand Sea',
+      subtitle: 'Experience towering golden dunes, 4x4 dune bashing, and desert expeditions in Siwa',
+      caption: 'Adrenaline & Nature',
+      mediaUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Explore Safaris',
+      ctaLink: '/activities',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+    {
+      title: 'Salt Lakes & Ancient Oasis Springs',
+      subtitle: 'Float effortlessly in crystal hyper-saline waters and Cleopatra natural bath',
+      caption: 'Natural Healing',
+      mediaUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Discover Springs',
+      ctaLink: '/activities',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+    {
+      title: 'Shali Fortress & Historical Walks',
+      subtitle: 'Uncover centuries of authentic Berber architecture, ancient oracles, and sacred tombs',
+      caption: 'Heritage & Culture',
+      mediaUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=1600',
+      type: 'image',
+      ctaText: 'View Tours',
+      ctaLink: '/activities',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  accommodations_hero: [
+    {
+      title: 'Authentic Eco-Lodges & Salt Rock Retreats',
+      subtitle: 'Traditional architecture handcrafted from natural Kershef and palm trunks',
+      caption: 'Serene Stays',
+      mediaUrl: 'https://images.unsplash.com/photo-1542314831-068cd1dbfe4c?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Browse Lodges',
+      ctaLink: '/accommodations',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+    {
+      title: 'Desert Camps Under the Starlit Sky',
+      subtitle: 'Fall asleep under the Milky Way in comfortable desert camp retreats',
+      caption: 'Desert Glamping',
+      mediaUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Explore Camps',
+      ctaLink: '/accommodations',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  transportation_hero: [
+    {
+      title: '4x4 Desert Transport & Private Dune Cruisers',
+      subtitle: 'Expert local drivers for desert expeditions, dune safaris, and transfers',
+      caption: 'Safe & Reliable',
+      mediaUrl: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Book Transport',
+      ctaLink: '/transportation',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  'food-beverage_hero': [
+    {
+      title: 'Siwan Gastronomy & Bedouin Feasts',
+      subtitle: 'Taste authentic Siwan recipes, fresh date delicacies, and wood-fired dishes',
+      caption: 'Flavors of Siwa',
+      mediaUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Discover Dining',
+      ctaLink: '/food-beverage',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  'crafts-wellness_hero': [
+    {
+      title: 'Therapeutic Salt Caves & Natural Wellness',
+      subtitle: 'Rejuvenate with ancient salt therapies, hot sand baths, and natural herbs',
+      caption: 'Holistic Wellness',
+      mediaUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Explore Wellness',
+      ctaLink: '/crafts-wellness',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  'production-trade_hero': [
+    {
+      title: 'Siwan Organic Dates & Pure Olive Oil',
+      subtitle: 'Finest organic produce harvested directly from heritage Siwa palm groves',
+      caption: 'Organic Heritage',
+      mediaUrl: 'https://images.unsplash.com/photo-1589927986089-35812388d1f4?q=80&w=1600',
+      type: 'image',
+      ctaText: 'View Products',
+      ctaLink: '/production-trade',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  services_hero: [
+    {
+      title: 'Verified Businesses & Local Guides Directory',
+      subtitle: 'Find licensed local operators, artisans, logistics, and concierge services',
+      caption: 'Trusted Partners',
+      mediaUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Browse Directory',
+      ctaLink: '/services',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  journeys_hero: [
+    {
+      title: 'Curated Siwa Expeditions & Multi-Day Itineraries',
+      subtitle: 'Handcrafted itineraries tailored to your pace, vibe, and travel duration',
+      caption: 'Tailored Expeditions',
+      mediaUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Start Planning',
+      ctaLink: '/journeys',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  offers_hero: [
+    {
+      title: 'Exclusive Deals & Seasonal Offers in Siwa',
+      subtitle: 'Unlock special promotions and discounted packages from top local providers',
+      caption: 'Special Savings',
+      mediaUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1600',
+      type: 'image',
+      ctaText: 'View Offers',
+      ctaLink: '/offers',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  packages_hero: [
+    {
+      title: 'All-Inclusive Travel Packages & Desert Tours',
+      subtitle: 'Complete bundles combining lodging, 4x4 safaris, dining, and local guides',
+      caption: 'Curated Experiences',
+      mediaUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Explore Packages',
+      ctaLink: '/packages',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  discounts_hero: [
+    {
+      title: 'Seasonal Discounts & Group Promotions',
+      subtitle: 'Save on excursions, stays, and activities across the oasis',
+      caption: 'Seasonal Discounts',
+      mediaUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Browse Discounts',
+      ctaLink: '/discounts',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  auctions_hero: [
+    {
+      title: 'Live & Upcoming Oasis Auctions',
+      subtitle: 'Bid on unique experiences, prime dates harvest, artisan crafts, and stays',
+      caption: 'Live Bidding',
+      mediaUrl: 'https://images.unsplash.com/photo-1579618218290-24a26f634559?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Join Auctions',
+      ctaLink: '/auctions',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  'investment-opportunities_hero': [
+    {
+      title: 'Heritage Investment & Partnership Opportunities',
+      subtitle: 'Discover sustainable eco-tourism, hospitality, and agriculture ventures in Siwa',
+      caption: 'Oasis Opportunities',
+      mediaUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Explore Investments',
+      ctaLink: '/investment-opportunities',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  blog_hero: [
+    {
+      title: 'Siwa Stories & Cultural Chronicles',
+      subtitle: 'Articles, traveler guides, traditions, and historical narratives from the oasis',
+      caption: 'Oasis Stories',
+      mediaUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Read Stories',
+      ctaLink: '/blog',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  'be-a-partner_hero': [
+    {
+      title: 'Grow Your Business in Siwa Oasis',
+      subtitle: 'Join the premier digital marketplace for hotels, camps, restaurants, and safaris',
+      caption: 'Vendor Ecosystem',
+      mediaUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Join as Partner',
+      ctaLink: '/be-a-partner#register',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  categories_hero: [
+    {
+      title: 'Explore Siwa by Category & Atmosphere',
+      subtitle: 'Navigate accommodations, dining, desert safaris, wellness, and trade',
+      caption: 'Full Taxonomy',
+      mediaUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Browse Categories',
+      ctaLink: '/categories',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+};
+
 function HeroCarouselManagerContent() {
   const searchParams = useSearchParams();
   const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string; type_id?: string }[]>([]);
@@ -423,6 +667,55 @@ function HeroCarouselManagerContent() {
     } else {
       showMsg('error', 'Failed to save changes');
       loadAllSlides(); // revert
+    }
+  };
+
+  const handleGenerateStarterSlides = async () => {
+    const starters = DEFAULT_STARTER_SLIDES[siteId] || [
+      {
+        title: `${currentTarget.title}`,
+        subtitle: 'Experience authentic desert hospitality and curated adventures in Siwa Oasis',
+        caption: 'Siwa Oasis',
+        mediaUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1600',
+        type: 'image' as const,
+        ctaText: 'Explore Now',
+        ctaLink: previewHref,
+        overlayOpacity: 0.4,
+        animation: 'kenburns',
+      }
+    ];
+
+    const generated: CarouselSlide[] = starters.map((s, idx) => ({
+      id: `slide_${Date.now()}_${idx}`,
+      title: s.title,
+      subtitle: s.subtitle,
+      caption: s.caption,
+      mediaUrl: s.mediaUrl,
+      type: s.type || 'image',
+      ctaText: s.ctaText,
+      ctaLink: s.ctaLink,
+      displayOrder: idx,
+      _source: 'manual',
+      imageFit: 'cover',
+      imagePosition: 'center',
+      bgColor: '#000000',
+      overlayOpacity: s.overlayOpacity ?? 0.4,
+      animation: s.animation || 'kenburns',
+      titleColor: '#FFFFFF',
+      titleSize: 0,
+      subtitleSize: 0,
+      textAlign: 'center',
+    }));
+
+    setSaving(true);
+    setAllSlides(generated);
+    const ok = await saveSlideConfig(generated);
+    setSaving(false);
+    if (ok) {
+      showMsg('success', `✨ Generated ${generated.length} starter slides for ${currentTarget.title}!`);
+      loadAllSlides();
+    } else {
+      showMsg('error', 'Failed to save starter slides');
     }
   };
 
@@ -1271,8 +1564,30 @@ function HeroCarouselManagerContent() {
             <p style={{ marginTop: '1rem' }}>Loading all carousel slides...</p>
           </div>
         ) : allSlides.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '5rem', background: '#1e293b', borderRadius: '16px', border: '2px dashed rgba(255,255,255,0.1)', color: '#64748b' }}>
-            <p>No slides yet. Click <strong style={{ color: '#D4AF37' }}>+ Add Slide</strong> to begin.</p>
+          <div style={{ textAlign: 'center', padding: '3.5rem 2rem', background: '#ffffff', borderRadius: '16px', border: '2px dashed #cbd5e1', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🎬</div>
+            <h3 style={{ color: '#0f172a', fontSize: '1.2rem', fontWeight: 900, margin: '0 0 0.5rem' }}>
+              No Custom Carousel Slides for {currentTarget.title} Yet
+            </h3>
+            <p style={{ maxWidth: 640, margin: '0 auto 1.5rem', fontSize: '0.85rem', lineHeight: 1.6, color: '#64748b' }}>
+              The live public page at <strong style={{ color: '#d97706' }}>{previewHref}</strong> currently displays the clean static <strong style={{ color: '#0f172a' }}>Thematic Category Banner</strong>.
+              Add slides or generate curated starter slides to activate the full-screen cinematic slideshow on that page!
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleGenerateStarterSlides}
+                disabled={saving}
+                style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(217,119,6,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <i className="fas fa-magic" /> {saving ? 'Generating...' : 'Generate Curated Starter Slides'}
+              </button>
+              <button
+                onClick={() => { resetForm(); setShowForm(true); }}
+                style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                + Add Custom Slide
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
