@@ -1,7 +1,10 @@
+'use client';
 export const dynamic = 'force-dynamic';
 
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 
 function buildThemeCSS(settings: any): string {
   const bg = settings?.bg_color || '#FAF6F0';
@@ -27,31 +30,47 @@ function buildThemeCSS(settings: any): string {
   return `:root { --bg:${bg}; --bg-alt:${bg}dd; --card:rgba(255,255,255,0.04); --text:#f8fafc; --text-muted:#cbd5e1; --text-light:#94a3b8; --border:rgba(255,255,255,0.08); --border-light:rgba(255,255,255,0.05); --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.3); --shadow-md:0 4px 12px rgba(0,0,0,0.4); --shadow-lg:0 10px 25px rgba(0,0,0,0.5); }`;
 }
 
-async function loadJourneyPage() {
-  const res = await fetch('/api/jana/website?id=website_journeys', { cache: 'no-store' });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return Array.isArray(data) ? data[0] : data;
-}
+export default function JourneysPage() {
+  const [cfg, setCfg] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function JourneysPage() {
-  const cfg = await loadJourneyPage();
+  useEffect(() => {
+    fetch('/api/jana/website?id=website_journeys')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        const config = Array.isArray(data) ? data[0] : data;
+        setCfg(config || null);
+      })
+      .catch(() => setCfg(null))
+      .finally(() => setLoading(false));
+  }, []);
 
-  if (!cfg) {
+  if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0f172a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem' }}>
-        <div style={{ maxWidth: '700px', textAlign: 'center' }}>
-          <h1 style={{ fontSize: '3rem', margin: '0 0 1rem', color: '#D4AF37' }}>Journey Explorer</h1>
-          <p style={{ fontSize: '1rem', lineHeight: 1.8, color: '#cbd5e1' }}>
-            This page is ready to be powered by your admin builder. Create a new website config named <code style={{ background: 'rgba(255,255,255,0.08)', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>website_journeys</code> via the portal architect, then add sections like a hero carousel, search bar, featured journeys, and planner.
-          </p>
-          <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <Link href="/jana/pages" style={{ padding: '0.85rem 1.5rem', background: '#D4AF37', color: '#000', borderRadius: '10px', fontWeight: 900, textDecoration: 'none' }}>
-              Open Pages Manager
-            </Link>
-            <Link href="/jana/website?page=journeys" style={{ padding: '0.85rem 1.5rem', background: 'rgba(255,255,255,0.08)', color: '#fff', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)', textDecoration: 'none' }}>
-              Edit Journey Page
-            </Link>
+      <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '0.9rem' }}>LOADING JOURNEYS…</div>
+      </div>
+    );
+  }
+
+  if (!cfg || (!cfg.header_components?.length && !cfg.body_components?.length && !cfg.footer_components?.length)) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0f172a', color: '#fff', padding: '3rem 1.5rem' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{ display: 'inline-block', background: 'rgba(212,175,55,0.15)', color: '#D4AF37', padding: '0.4rem 1rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>
+              Tailored Siwa Itineraries
+            </span>
+            <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 900, margin: '1rem 0 0.5rem', color: '#fff' }}>
+              Smart Journey Planner
+            </h1>
+            <p style={{ maxWidth: '640px', margin: '0 auto', color: '#94a3b8', fontSize: '1rem', lineHeight: 1.7 }}>
+              Build your custom Siwa expedition step-by-step. Select your travel duration, preferences, and pace to discover curated activities, camps, and heritage guides.
+            </p>
+          </header>
+
+          <div style={{ background: '#1e293b', borderRadius: '24px', padding: '2rem', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <SmartJourneyPlanner />
           </div>
         </div>
       </div>
