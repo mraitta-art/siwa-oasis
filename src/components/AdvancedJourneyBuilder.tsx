@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { 
   Plus, Trash2, Clock, MapPin, Sparkles, Building2, 
   Send, Calendar, User, Phone, Mail, CheckCircle2, Search,
-  Compass, RotateCcw, ArrowRight, ArrowLeft, Sliders, Eye
+  Compass, RotateCcw, ArrowRight, ArrowLeft, Sliders, Eye,
+  ShieldCheck, Gem, Layers, Info
 } from 'lucide-react';
 
 interface TimelineItem {
@@ -381,7 +382,7 @@ export default function AdvancedJourneyBuilder() {
   const searchParams = useSearchParams();
   const presetParam = searchParams.get('preset') || searchParams.get('template') || searchParams.get('tour') || '';
 
-  const [step, setStep] = useState(1); // 1: Setup/Template, 2: Timeline Builder, 3: Review & Submit
+  const [step, setStep] = useState(1); // 1: Blueprint, 2: Daily Timeline, 3: Review & Submit
   const [loadedPresetKey, setLoadedPresetKey] = useState<string | null>(null);
 
   const [packageInfo, setPackageInfo] = useState<AdvancedJourneyPackage>({
@@ -427,15 +428,15 @@ export default function AdvancedJourneyBuilder() {
 
   // Admin preset suggestions
   const adminPresets = [
-    { title: 'Siwan Silver Jewelry & Talisman Guild', parent: 'crafts', type: 'Silver Workshop' },
-    { title: 'Siwa Salt Crystal Art & Lamp Studio', parent: 'crafts', type: 'Salt Carving' },
-    { title: 'Date Palm Leaf Weaving & Basketry', parent: 'crafts', type: 'Handicrafts' },
-    { title: 'Ancient Clay Pottery Kiln Session', parent: 'crafts', type: 'Pottery Studio' },
+    { title: 'Siwan Silver Jewelry & Talisman Guild', parent: 'crafts', type: 'Silver Masterclass' },
+    { title: 'Siwa Salt Crystal Art & Lamp Studio', parent: 'crafts', type: 'Salt Stone Carving' },
+    { title: 'Date Palm Leaf Weaving & Basketry Workshop', parent: 'crafts', type: 'Handicrafts Guild' },
+    { title: 'Ancient Clay Pottery Kiln Session', parent: 'crafts', type: 'Pottery Masterclass' },
     { title: 'Heritage Olive Press & Natural Soap House', parent: 'production', type: 'Soap Crafting' },
-    { title: 'Cleopatra Spring Bath & Palm Grove Walk', parent: 'wellness', type: 'Freshwater Spring' },
+    { title: 'Cleopatra Natural Spring Bath & Palm Grove', parent: 'wellness', type: 'Freshwater Springs' },
     { title: '4x4 Great Sand Sea Dune Bashing & Sandboarding', parent: 'transportation', type: 'Desert Safari' },
-    { title: 'Hyper-Saline Salt Lake Flotation', parent: 'wellness', type: 'Salt Lake Float' },
-    { title: 'Stargazing Camp & Traditional Bedouin Dinner', parent: 'food', type: 'Campfire Feast' },
+    { title: 'Hyper-Saline Salt Lake Flotation Therapy', parent: 'wellness', type: 'Salt Lake Float' },
+    { title: 'Stargazing Camp & Traditional Bedouin Feast', parent: 'food', type: 'Campfire Dinner' },
   ];
 
   const [loading, setLoading] = useState(false);
@@ -745,86 +746,97 @@ export default function AdvancedJourneyBuilder() {
   return (
     <div className="w-full max-w-6xl mx-auto font-sans text-zinc-100">
       
-      {/* ── Top Sleek Header & Step Navigation ── */}
-      <div className="mb-8 border-b border-white/[0.08] pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-            <span>EXPEDITION ARCHITECT</span>
-            <span className="text-zinc-600">/</span>
-            <span className="text-zinc-400">SIWA OASIS</span>
-          </div>
-          <h1 className="text-2xl sm:text-4xl font-light tracking-tight text-white">
-            Custom Itinerary <span className="font-semibold text-[#D4AF37]">Studio</span>
-          </h1>
-          <p className="text-zinc-400 text-xs sm:text-sm mt-1 max-w-xl font-normal leading-relaxed">
-            Craft an authentic multi-day journey with exact timings, verified local artisans, and direct tour operator dispatch.
-          </p>
-        </div>
+      {/* ── 🌟 CINEMATIC HERO SECTION ── */}
+      <div className="relative mb-10 pb-8 border-b border-white/[0.08] overflow-hidden">
+        
+        {/* Subtle Ambient Radial Glow */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#556B2F]/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Minimalist Monochromatic Step Pill Indicator */}
-        <div className="inline-flex items-center gap-1.5 p-1 bg-white/[0.03] border border-white/[0.08] rounded-full text-xs">
-          {[
-            { num: 1, label: 'Overview' },
-            { num: 2, label: 'Timeline' },
-            { num: 3, label: 'Dispatch' },
-          ].map((s) => (
-            <button
-              key={s.num}
-              onClick={() => setStep(s.num)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                step === s.num
-                  ? 'bg-[#D4AF37] text-zinc-950 font-semibold shadow-sm'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              0{s.num} {s.label}
-            </button>
-          ))}
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-bold tracking-[0.2em] uppercase">
+              <Sparkles size={12} />
+              <span>Bespoke Expedition Studio</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+              Design Your <span className="bg-gradient-to-r from-[#D4AF37] via-[#f0c842] to-[#FFB700] bg-clip-text text-transparent">Custom Tour</span>
+            </h1>
+
+            <p className="text-zinc-400 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
+              Curate multi-day schedules with verified Siwan silversmiths, date palm guilds, desert drivers, and eco-lodges. Direct dispatch to licensed local operators.
+            </p>
+          </div>
+
+          {/* Stepper Pill Nav */}
+          <div className="inline-flex items-center p-1.5 bg-[#0F172A]/80 border border-white/[0.1] rounded-2xl backdrop-blur-xl shadow-lg">
+            {[
+              { num: 1, label: 'Blueprint' },
+              { num: 2, label: 'Timeline' },
+              { num: 3, label: 'Dispatch' },
+            ].map((s) => (
+              <button
+                key={s.num}
+                onClick={() => setStep(s.num)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all flex items-center gap-2 ${
+                  step === s.num
+                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black shadow-md font-bold'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <span className="opacity-70 text-[10px]">0{s.num}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── Active Preset Bar (Clean & Monochromatic) ── */}
+      {/* ── ✨ ACTIVE PRESET STATUS BAR ── */}
       {loadedPresetKey && !success && (
-        <div className="mb-8 p-4 sm:p-5 bg-[#121824]/60 border border-white/[0.08] rounded-xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] ring-4 ring-[#D4AF37]/20" />
+        <div className="mb-8 p-5 bg-gradient-to-r from-[#1E293B]/80 via-[#0F172A]/90 to-[#1E293B]/80 border border-[#D4AF37]/30 rounded-2xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#8C6D1F]/10 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
+              <Gem size={18} />
+            </div>
             <div>
-              <div className="text-[10px] font-semibold tracking-widest text-[#D4AF37] uppercase">
-                Active Curated Preset
+              <div className="text-[10px] font-bold tracking-widest text-[#D4AF37] uppercase">
+                Active Preset Loaded
               </div>
-              <div className="text-sm sm:text-base font-medium text-white flex items-center gap-2 mt-0.5">
+              <div className="text-sm sm:text-base font-bold text-white flex items-center gap-2 mt-0.5">
                 <span>{packageInfo.name || loadedPresetKey}</span>
                 <span className="text-xs text-zinc-400 font-normal">
-                  — {packageInfo.duration_days} Days · {totalStopsCount} Scheduled Stops
+                  • {packageInfo.duration_days} Days · {totalStopsCount} Curated Stops · ${packageInfo.price_usd || 320} / Person
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap text-xs">
+          <div className="flex items-center gap-2.5 flex-wrap text-xs">
             {step === 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="px-4 py-2 bg-[#D4AF37] text-zinc-950 font-semibold rounded-lg hover:brightness-110 transition-all shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-bold rounded-xl hover:brightness-110 transition-all shadow-md flex items-center gap-2"
               >
-                <span>Edit Daily Timeline</span>
+                <span>Edit Daily Timeline (Step 2)</span>
                 <ArrowRight size={13} />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="px-3.5 py-2 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-medium rounded-lg border border-white/[0.08] transition-all flex items-center gap-1.5"
+                className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 font-semibold rounded-xl border border-white/10 transition-all flex items-center gap-1.5"
               >
                 <ArrowLeft size={13} />
-                <span>Trip Overview</span>
+                <span>Trip Blueprint</span>
               </button>
             )}
             <button
               type="button"
               onClick={handleResetToCustomBlank}
-              className="px-3 py-2 bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 text-xs font-medium rounded-lg border border-white/[0.08] transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-transparent hover:bg-red-500/10 text-zinc-400 hover:text-red-400 text-xs font-semibold rounded-xl border border-white/[0.08] hover:border-red-500/30 transition-all flex items-center gap-1.5"
             >
               <RotateCcw size={12} />
               <span>Reset Blank</span>
@@ -833,24 +845,24 @@ export default function AdvancedJourneyBuilder() {
         </div>
       )}
 
-      {/* ── Success Confirmation Screen ── */}
+      {/* ── SUCCESS CONFIRMATION ── */}
       {success ? (
-        <div className="p-10 md:p-16 bg-[#121824]/80 border border-white/[0.08] rounded-2xl text-center flex flex-col items-center max-w-2xl mx-auto">
-          <div className="w-14 h-14 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] mb-5">
-            <CheckCircle2 size={32} />
+        <div className="p-12 md:p-16 bg-[#0F172A]/80 border border-[#D4AF37]/30 rounded-3xl text-center flex flex-col items-center max-w-2xl mx-auto shadow-2xl backdrop-blur-xl">
+          <div className="w-16 h-16 rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] mb-6 shadow-inner">
+            <CheckCircle2 size={36} />
           </div>
-          <div className="text-[11px] font-semibold tracking-widest text-[#D4AF37] uppercase mb-2">
-            Inquiry Dispatched
+          <div className="text-[11px] font-bold tracking-widest text-[#D4AF37] uppercase mb-2">
+            Itinerary Transmitted
           </div>
-          <h2 className="text-2xl sm:text-3xl font-light text-white mb-3 tracking-tight">
-            Itinerary Transmitted to Specialists
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight">
+            Direct Dispatch Complete!
           </h2>
-          <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed max-w-md mb-8">
-            Thank you, <strong className="text-white font-medium">{visitorName}</strong>. Your customized {packageInfo.duration_days}-day Siwa itinerary has been transmitted to licensed tour operators. You will receive quotes and confirmation via WhatsApp/Phone at <span className="text-zinc-200 font-medium">{visitorPhone}</span>.
+          <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed max-w-md mb-8">
+            Thank you, <strong className="text-white font-bold">{visitorName}</strong>. Your customized {packageInfo.duration_days}-day Siwa tour package has been dispatched directly to licensed operators and artisans. You will receive quotes and confirmation via WhatsApp/Phone at <span className="text-[#D4AF37] font-semibold">{visitorPhone}</span>.
           </p>
           <button
             onClick={() => { setSuccess(false); handleResetToCustomBlank(); }}
-            className="px-6 py-2.5 bg-[#D4AF37] text-zinc-950 font-semibold rounded-lg text-xs hover:brightness-110 transition-all shadow-sm"
+            className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-bold rounded-xl text-xs hover:brightness-110 transition-all shadow-lg"
           >
             Create Another Itinerary
           </button>
@@ -858,21 +870,24 @@ export default function AdvancedJourneyBuilder() {
       ) : (
         <>
           {/* ═════════════════════════════════════════════════════════════════════════ */}
-          {/* STEP 1: ITINERARY OVERVIEW & CURATED PRESET SELECTION                     */}
+          {/* STEP 1: BLUEPRINT & CURATED PRESETS                                       */}
           {/* ═════════════════════════════════════════════════════════════════════════ */}
           {step === 1 && (
             <div className="space-y-8 animate-fadeIn">
               
               {/* Curated Presets Grid */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[11px] font-semibold tracking-widest text-zinc-300 uppercase">
-                    Curated Signature Expeditions
-                  </span>
-                  <span className="text-[11px] text-zinc-500">1-Click Multi-Day Templates</span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#D4AF37]" />
+                    <span className="text-xs font-bold tracking-widest text-white uppercase">
+                      Curated Signature Expeditions
+                    </span>
+                  </div>
+                  <span className="text-xs text-zinc-400">1-Click Full Itineraries</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {Object.entries(CURATED_JOURNEY_PRESETS).map(([key, preset]) => {
                     const isCurrent = loadedPresetKey?.toLowerCase() === key;
                     const totalStops = preset.days.reduce((sum, d) => sum + d.items.length, 0);
@@ -880,39 +895,39 @@ export default function AdvancedJourneyBuilder() {
                       <div
                         key={key}
                         onClick={() => applyCuratedPreset(key)}
-                        className={`p-5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group ${
+                        className={`p-6 rounded-2xl cursor-pointer transition-all border flex flex-col justify-between group relative overflow-hidden ${
                           isCurrent
-                            ? 'bg-[#121824] border-[#D4AF37] shadow-sm ring-1 ring-[#D4AF37]'
-                            : 'bg-[#121824]/40 hover:bg-[#121824]/80 border-white/[0.08] hover:border-zinc-500'
+                            ? 'bg-[#1E293B]/90 border-[#D4AF37] shadow-xl ring-1 ring-[#D4AF37]'
+                            : 'bg-[#0F172A]/60 hover:bg-[#1E293B]/70 border-white/[0.08] hover:border-[#D4AF37]/50'
                         }`}
                       >
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#D4AF37] px-2 py-0.5 bg-[#D4AF37]/10 rounded border border-[#D4AF37]/20">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] px-2.5 py-1 bg-[#D4AF37]/10 rounded-full border border-[#D4AF37]/30">
                               {preset.badge}
                             </span>
-                            <span className="text-xs font-semibold text-zinc-300">
-                              ${preset.price_usd} <span className="text-[10px] font-normal text-zinc-500">/ person</span>
+                            <span className="text-sm font-black text-white">
+                              ${preset.price_usd} <span className="text-[10px] font-normal text-zinc-400">/ guest</span>
                             </span>
                           </div>
 
-                          <h4 className="text-sm sm:text-base font-medium text-white group-hover:text-[#D4AF37] transition-colors leading-snug">
+                          <h4 className="text-base font-bold text-white group-hover:text-[#D4AF37] transition-colors leading-snug">
                             {preset.name}
                           </h4>
 
-                          <p className="text-xs text-zinc-400 mt-2 line-clamp-3 leading-relaxed font-normal">
+                          <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed font-normal">
                             {preset.description}
                           </p>
                         </div>
 
-                        <div className="mt-5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-zinc-400">
-                          <div className="flex items-center gap-2">
-                            <span>{preset.duration_days} Days</span>
+                        <div className="mt-6 pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-400">
+                          <div className="flex items-center gap-2 text-zinc-300 font-medium">
+                            <span>⏱ {preset.duration_days} Days</span>
                             <span className="text-zinc-600">•</span>
-                            <span>{totalStops} Stops</span>
+                            <span>📍 {totalStops} Stops</span>
                           </div>
-                          <span className={`text-[11px] font-medium flex items-center gap-1 ${isCurrent ? 'text-[#D4AF37]' : 'text-zinc-400 group-hover:text-white'}`}>
-                            {isCurrent ? 'Active Preset' : 'Select Plan →'}
+                          <span className={`text-xs font-bold flex items-center gap-1 ${isCurrent ? 'text-[#D4AF37]' : 'text-zinc-400 group-hover:text-white'}`}>
+                            {isCurrent ? 'Active Plan ✓' : 'Select Plan →'}
                           </span>
                         </div>
                       </div>
@@ -923,32 +938,34 @@ export default function AdvancedJourneyBuilder() {
 
               {/* Operator Packages Option */}
               {agencyTours.length > 0 && (
-                <div className="p-5 bg-[#121824]/30 border border-white/[0.06] rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[11px] font-semibold tracking-widest text-zinc-400 uppercase">
-                      Tour Operator Packages
+                <div className="p-6 bg-[#0F172A]/40 border border-white/[0.08] rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold tracking-widest text-zinc-300 uppercase flex items-center gap-2">
+                      <Building2 size={14} className="text-[#D4AF37]" />
+                      <span>Tour Operator Packaged Routes</span>
                     </span>
-                    <span className="text-[11px] text-zinc-500">{agencyTours.length} verified packages</span>
+                    <span className="text-xs text-zinc-500">{agencyTours.length} verified packages</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                     {agencyTours.map((t) => (
                       <div
                         key={t.id}
                         onClick={() => handleLoadAgencyTour(t.id)}
-                        className="p-3.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] hover:border-zinc-500 rounded-lg cursor-pointer transition-all flex flex-col justify-between group"
+                        className="p-4 bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-[#D4AF37]/50 rounded-xl cursor-pointer transition-all flex flex-col justify-between group"
                       >
                         <div>
-                          <div className="text-xs font-medium text-zinc-200 group-hover:text-[#D4AF37] truncate">
+                          <div className="text-xs font-bold text-white group-hover:text-[#D4AF37] truncate">
                             {t.name}
                           </div>
-                          <div className="text-[11px] text-zinc-500 line-clamp-1 mt-1">
+                          <div className="text-[11px] text-zinc-400 line-clamp-1 mt-1 font-normal">
                             {t.description || 'Pre-designed operator schedule'}
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/[0.04] text-[11px] text-zinc-400">
-                          <span>{t.duration_days} Days</span>
-                          <span className="text-zinc-200 font-medium">
-                            {t.base_price_usd ? `$${t.base_price_usd}` : 'Quote'}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/[0.04] text-xs text-zinc-400 font-medium">
+                          <span>⏱ {t.duration_days} Days</span>
+                          <span className="text-[#D4AF37] font-bold">
+                            {t.base_price_usd ? `$${t.base_price_usd}` : 'Direct Quote'}
                           </span>
                         </div>
                       </div>
@@ -957,73 +974,74 @@ export default function AdvancedJourneyBuilder() {
                 </div>
               )}
 
-              {/* Custom Itinerary Metadata Form */}
-              <div className="p-6 bg-[#121824]/40 border border-white/[0.08] rounded-xl space-y-6">
-                <div className="text-[11px] font-semibold tracking-widest text-zinc-300 uppercase">
-                  Itinerary Parameters
+              {/* Itinerary Configuration Form */}
+              <div className="p-8 bg-[#0F172A]/60 border border-white/[0.08] rounded-2xl space-y-6 backdrop-blur-xl">
+                <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-[#D4AF37] uppercase">
+                  <Sliders size={14} />
+                  <span>Itinerary Parameters</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-2">
-                      Journey Name *
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">
+                      Tour Name *
                     </label>
                     <input
                       type="text"
                       value={packageInfo.name}
                       onChange={(e) => setPackageInfo({ ...packageInfo, name: e.target.value })}
                       placeholder="e.g. Siwa Artisan & Desert Exploration"
-                      className="w-full px-3.5 py-2.5 bg-[#0b0f17] border border-white/[0.1] rounded-lg text-white placeholder-zinc-600 focus:border-[#D4AF37] focus:outline-none text-xs font-normal"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 focus:border-[#D4AF37] focus:outline-none text-xs font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">
                       Experience Focus
                     </label>
                     <select
                       value={packageInfo.vibe}
                       onChange={(e) => setPackageInfo({ ...packageInfo, vibe: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-[#0b0f17] border border-white/[0.1] rounded-lg text-white focus:border-[#D4AF37] focus:outline-none text-xs font-normal"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white focus:border-[#D4AF37] focus:outline-none text-xs font-medium"
                     >
                       <option value="cultural">Artisanal Craft & Cultural Heritage</option>
                       <option value="adventure">Desert Safari & 4x4 Great Sand Sea</option>
                       <option value="wellness">Healing, Salt Lakes & Thermal Springs</option>
                       <option value="culinary">Gastronomy, Olive Groves & Date Harvest</option>
-                      <option value="slow-paced">Quiet Retreat & Stargazing</option>
+                      <option value="slow-paced">Quiet Detox & Stargazing</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-2">
-                    Trip Vision / Special Preferences
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">
+                    Trip Vision &amp; Special Preferences
                   </label>
                   <textarea
                     value={packageInfo.description}
                     onChange={(e) => setPackageInfo({ ...packageInfo, description: e.target.value })}
-                    placeholder="Describe your goals, desired pace, special interests, or must-see locations..."
-                    rows={2}
-                    className="w-full px-3.5 py-2.5 bg-[#0b0f17] border border-white/[0.1] rounded-lg text-white placeholder-zinc-600 focus:border-[#D4AF37] focus:outline-none text-xs font-normal"
+                    placeholder="Describe your desired pace, must-visit locations, or special logistics..."
+                    rows={3}
+                    className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 focus:border-[#D4AF37] focus:outline-none text-xs font-medium"
                   />
                 </div>
 
                 {/* Duration & Pace */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-white/[0.04]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/[0.06]">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-2">
-                      Duration: <span className="text-white font-semibold">{packageInfo.duration_days} Days</span>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2.5">
+                      Duration: <span className="text-[#D4AF37]">{packageInfo.duration_days} Days</span>
                     </label>
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="flex gap-2 flex-wrap">
                       {[1, 2, 3, 4, 5, 7, 10].map((d) => (
                         <button
                           key={d}
                           type="button"
                           onClick={() => handleChangeDays(d)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                             packageInfo.duration_days === d
-                              ? 'bg-[#D4AF37] text-zinc-950 font-semibold shadow-sm'
-                              : 'bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]'
+                              ? 'bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black shadow-md'
+                              : 'bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08]'
                           }`}
                         >
                           {d} {d === 1 ? 'Day' : 'Days'}
@@ -1033,19 +1051,19 @@ export default function AdvancedJourneyBuilder() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-2">
-                      Pace: <span className="text-white font-semibold capitalize">{packageInfo.pace}</span>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2.5">
+                      Pace: <span className="text-[#D4AF37] capitalize">{packageInfo.pace}</span>
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2.5">
                       {['relaxed', 'moderate', 'active'].map((p) => (
                         <button
                           key={p}
                           type="button"
                           onClick={() => setPackageInfo({ ...packageInfo, pace: p })}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-medium capitalize transition-all border ${
+                          className={`py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all border ${
                             packageInfo.pace === p
-                              ? 'bg-white/[0.08] border-[#D4AF37] text-[#D4AF37]'
-                              : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:text-white'
+                              ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
+                              : 'bg-white/[0.03] border-white/[0.06] text-zinc-400 hover:text-white'
                           }`}
                         >
                           {p}
@@ -1067,9 +1085,9 @@ export default function AdvancedJourneyBuilder() {
                     }
                     setStep(2);
                   }}
-                  className="px-6 py-3 bg-[#D4AF37] text-zinc-950 font-semibold rounded-lg text-xs hover:brightness-110 transition-all shadow-sm flex items-center gap-2"
+                  className="px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all shadow-xl flex items-center gap-2"
                 >
-                  <span>Proceed to Daily Timeline</span>
+                  <span>Configure Daily Timeline</span>
                   <ArrowRight size={14} />
                 </button>
               </div>
@@ -1077,14 +1095,14 @@ export default function AdvancedJourneyBuilder() {
           )}
 
           {/* ═════════════════════════════════════════════════════════════════════════ */}
-          {/* STEP 2: TIMELINE BUILDER (MINIMALIST & CLEAN)                             */}
+          {/* STEP 2: DAILY TIMELINE STUDIO (MODERN & STREAMLINED)                      */}
           {/* ═════════════════════════════════════════════════════════════════════════ */}
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
               
               {/* Presets Switcher Bar */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-                <span className="text-zinc-500 font-medium text-[11px] uppercase tracking-wider whitespace-nowrap">
+                <span className="text-zinc-500 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap">
                   Switch Plan:
                 </span>
                 {Object.entries(CURATED_JOURNEY_PRESETS).map(([key, preset]) => {
@@ -1094,10 +1112,10 @@ export default function AdvancedJourneyBuilder() {
                       key={key}
                       type="button"
                       onClick={() => applyCuratedPreset(key)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
                         isCurrent
-                          ? 'bg-[#D4AF37] text-zinc-950 border-[#D4AF37] font-semibold'
-                          : 'bg-white/[0.03] border-white/[0.08] text-zinc-400 hover:text-white hover:border-zinc-500'
+                          ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-bold shadow-sm'
+                          : 'bg-white/[0.03] border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#D4AF37]/50'
                       }`}
                     >
                       {preset.name}
@@ -1107,70 +1125,72 @@ export default function AdvancedJourneyBuilder() {
               </div>
 
               {/* Day Selector Tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-2 border-b border-white/[0.08]">
                 {packageInfo.itinerary.map((d) => (
                   <button
                     key={d.day}
                     type="button"
                     onClick={() => setSelectedDay(d.day)}
-                    className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
                       selectedDay === d.day
-                        ? 'bg-white/[0.1] text-white border border-[#D4AF37]'
-                        : 'bg-white/[0.02] text-zinc-400 hover:text-white border border-transparent'
+                        ? 'bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black shadow-md'
+                        : 'bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.06]'
                     }`}
                   >
-                    <span>Day 0{d.day}</span>
-                    <span className="px-1.5 py-0.2 bg-white/[0.08] rounded text-[10px] text-zinc-400 font-mono">
-                      {d.items.length}
+                    <span>Day {d.day}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                      selectedDay === d.day ? 'bg-black/20 text-black font-bold' : 'bg-white/10 text-zinc-300'
+                    }`}>
+                      {d.items.length} stops
                     </span>
                   </button>
                 ))}
               </div>
 
               {/* Grid: Timeline Stream (7 cols) + Add Activity Card (5 cols) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
                 {/* Daily Timeline List (7 cols) */}
-                <div className="lg:col-span-7 space-y-3">
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-                      <Calendar size={14} className="text-[#D4AF37]" />
-                      <span>Day 0{selectedDay} Scheduled Itinerary</span>
-                    </div>
-                    <span className="text-[11px] text-zinc-500 font-mono">
-                      {currentDayItems.length} activities
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <Calendar size={16} className="text-[#D4AF37]" />
+                      <span>Day {selectedDay} Schedule</span>
+                    </h3>
+                    <span className="text-xs text-zinc-400 font-mono font-medium">
+                      {currentDayItems.length} activities planned
                     </span>
                   </div>
 
                   {currentDayItems.length === 0 ? (
-                    <div className="p-8 border border-dashed border-white/[0.08] rounded-xl text-center text-zinc-500 text-xs">
-                      No stops scheduled for Day 0{selectedDay}.<br />
-                      Use the activity selector on the right to add visits, meals, or experiences.
+                    <div className="p-10 border border-dashed border-white/[0.1] rounded-2xl text-center text-zinc-500 text-xs">
+                      No stops scheduled for Day {selectedDay}.<br />
+                      Use the activity panel on the right to schedule visits, meals, or workshops.
                     </div>
                   ) : (
-                    <div className="space-y-2.5 relative before:absolute before:left-[35px] before:top-4 before:bottom-4 before:w-[1px] before:bg-white/[0.06]">
-                      {currentDayItems.map((item, idx) => (
+                    <div className="space-y-3 relative before:absolute before:left-[38px] before:top-4 before:bottom-4 before:w-[2px] before:bg-[#D4AF37]/20">
+                      {currentDayItems.map((item) => (
                         <div
                           key={item.id}
-                          className="p-3.5 bg-[#121824]/50 border border-white/[0.08] hover:border-white/[0.15] rounded-xl transition-all flex items-start justify-between gap-4 group"
+                          className="p-4 bg-[#0F172A]/70 border border-white/[0.08] hover:border-[#D4AF37]/40 rounded-2xl transition-all flex items-start justify-between gap-4 group backdrop-blur-md shadow-lg"
                         >
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-3.5">
                             {/* Time Badge */}
-                            <div className="px-2 py-1 bg-white/[0.04] border border-white/[0.08] rounded text-zinc-200 font-mono text-[11px] whitespace-nowrap text-center">
+                            <div className="px-2.5 py-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl text-[#D4AF37] font-mono font-bold text-xs whitespace-nowrap text-center">
                               {item.time}
                             </div>
 
-                            <div>
-                              <div className="text-xs sm:text-sm font-medium text-white flex items-center gap-2">
+                            <div className="space-y-1">
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
                                 <span>{item.business_name}</span>
                                 {item.is_custom_manual && (
-                                  <span className="px-1.5 py-0.2 bg-white/[0.06] text-zinc-400 text-[10px] rounded border border-white/[0.06]">
+                                  <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] rounded-full border border-blue-500/20 font-semibold">
                                     Custom
                                   </span>
                                 )}
                               </div>
 
-                              <div className="text-[11px] text-zinc-400 mt-0.5 flex items-center gap-1.5">
+                              <div className="text-xs text-zinc-400 flex items-center gap-2">
                                 <span>{item.child_type_name}</span>
                                 <span className="text-zinc-600">•</span>
                                 <span>
@@ -1179,7 +1199,7 @@ export default function AdvancedJourneyBuilder() {
                               </div>
 
                               {item.notes && (
-                                <div className="text-[11px] text-zinc-400 mt-1.5 italic font-normal bg-white/[0.02] p-1.5 rounded border border-white/[0.04]">
+                                <div className="text-xs text-zinc-300 italic font-normal bg-white/[0.03] p-2 rounded-xl border border-white/[0.05] mt-1.5">
                                   {item.notes}
                                 </div>
                               )}
@@ -1189,10 +1209,10 @@ export default function AdvancedJourneyBuilder() {
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(item.id)}
-                            className="p-1.5 text-zinc-600 hover:text-red-400 rounded transition-colors"
+                            className="p-2 text-zinc-500 hover:text-red-400 rounded-xl hover:bg-white/[0.05] transition-all"
                             title="Remove Stop"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       ))}
@@ -1201,18 +1221,18 @@ export default function AdvancedJourneyBuilder() {
                 </div>
 
                 {/* Right Form: Add Activity Panel (5 cols) */}
-                <div className="lg:col-span-5 bg-[#121824]/60 border border-white/[0.08] rounded-xl p-5 space-y-4 backdrop-blur-md">
-                  <div className="text-[11px] font-semibold tracking-widest text-zinc-300 uppercase">
-                    Add Activity to Day 0{selectedDay}
+                <div className="lg:col-span-5 bg-[#0F172A]/80 border border-white/[0.08] rounded-2xl p-6 space-y-4 backdrop-blur-xl shadow-xl">
+                  <div className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center justify-between">
+                    <span>Add Activity to Day {selectedDay}</span>
                   </div>
 
                   {/* Mode switcher */}
-                  <div className="grid grid-cols-3 gap-1 bg-white/[0.03] p-1 rounded-lg text-xs font-medium">
+                  <div className="grid grid-cols-3 gap-1 bg-white/[0.03] p-1 rounded-xl text-xs font-bold">
                     <button
                       type="button"
                       onClick={() => setInputMode('db_vendor')}
-                      className={`py-1.5 rounded text-xs transition-all ${
-                        inputMode === 'db_vendor' ? 'bg-white/[0.1] text-white font-semibold' : 'text-zinc-400 hover:text-white'
+                      className={`py-2 rounded-lg transition-all ${
+                        inputMode === 'db_vendor' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       Directory
@@ -1220,8 +1240,8 @@ export default function AdvancedJourneyBuilder() {
                     <button
                       type="button"
                       onClick={() => setInputMode('admin_curated')}
-                      className={`py-1.5 rounded text-xs transition-all ${
-                        inputMode === 'admin_curated' ? 'bg-white/[0.1] text-white font-semibold' : 'text-zinc-400 hover:text-white'
+                      className={`py-2 rounded-lg transition-all ${
+                        inputMode === 'admin_curated' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       Curated
@@ -1229,31 +1249,31 @@ export default function AdvancedJourneyBuilder() {
                     <button
                       type="button"
                       onClick={() => setInputMode('custom_manual')}
-                      className={`py-1.5 rounded text-xs transition-all ${
-                        inputMode === 'custom_manual' ? 'bg-white/[0.1] text-white font-semibold' : 'text-zinc-400 hover:text-white'
+                      className={`py-2 rounded-lg transition-all ${
+                        inputMode === 'custom_manual' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
-                      Manual
+                      Custom
                     </button>
                   </div>
 
                   {/* Timings Row */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-medium text-zinc-400 mb-1">Start Time</label>
+                      <label className="block text-[11px] font-bold text-zinc-400 mb-1">Start Time</label>
                       <input
                         type="time"
                         value={selectedTime}
                         onChange={(e) => setSelectedTime(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs font-mono focus:border-[#D4AF37] focus:outline-none"
+                        className="w-full px-3 py-2 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-mono focus:border-[#D4AF37] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-zinc-400 mb-1">Duration</label>
+                      <label className="block text-[11px] font-bold text-zinc-400 mb-1">Duration</label>
                       <select
                         value={businessDuration}
                         onChange={(e) => setBusinessDuration(parseInt(e.target.value))}
-                        className="w-full px-2.5 py-1.5 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                        className="w-full px-3 py-2 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs focus:border-[#D4AF37] focus:outline-none"
                       >
                         <option value={30}>30 mins</option>
                         <option value={60}>1 hour</option>
@@ -1268,31 +1288,31 @@ export default function AdvancedJourneyBuilder() {
 
                   {/* MODE 1: PULL FROM DB VENDORS */}
                   {inputMode === 'db_vendor' && (
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                       <div className="relative">
                         <input
                           type="text"
                           value={bizSearch}
                           onChange={(e) => setBizSearch(e.target.value)}
-                          placeholder="Search directory..."
-                          className="w-full pl-3 pr-8 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
+                          placeholder="Search hotel, restaurant, guide..."
+                          className="w-full pl-3 pr-8 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
                         />
-                        <Search size={13} className="absolute right-2.5 top-2.5 text-zinc-600" />
+                        <Search size={14} className="absolute right-3 top-3 text-zinc-500" />
                       </div>
 
-                      <div className="max-h-40 overflow-y-auto space-y-1 border border-white/[0.06] p-1 rounded-lg">
+                      <div className="max-h-44 overflow-y-auto space-y-1.5 border border-white/[0.06] p-1.5 rounded-xl">
                         {filteredBusinesses.map((b) => (
                           <div
                             key={b.service_id || b.id}
                             onClick={() => setSelectedBusiness(b)}
-                            className={`p-2 rounded text-xs cursor-pointer flex justify-between items-center transition-all ${
+                            className={`p-2.5 rounded-lg text-xs cursor-pointer flex justify-between items-center transition-all ${
                               selectedBusiness?.id === b.id
-                                ? 'bg-white/[0.1] text-white font-medium border border-[#D4AF37]'
-                                : 'bg-transparent hover:bg-white/[0.03] text-zinc-300'
+                                ? 'bg-[#D4AF37] text-black font-bold shadow-sm'
+                                : 'bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300'
                             }`}
                           >
                             <span className="truncate">{b.service_id ? `${b.name} · ${b.business_name || 'Service'}` : b.name}</span>
-                            <span className="text-[10px] text-zinc-500 uppercase">{b.type_name || b.type_id}</span>
+                            <span className="text-[10px] uppercase opacity-70">{b.type_name || b.type_id}</span>
                           </div>
                         ))}
                       </div>
@@ -1301,7 +1321,7 @@ export default function AdvancedJourneyBuilder() {
 
                   {/* MODE 2: CURATED PRESETS */}
                   {inputMode === 'admin_curated' && (
-                    <div className="space-y-1 max-h-48 overflow-y-auto border border-white/[0.06] p-1 rounded-lg">
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto border border-white/[0.06] p-1.5 rounded-xl">
                       {adminPresets.map((preset, idx) => (
                         <div
                           key={idx}
@@ -1314,10 +1334,10 @@ export default function AdvancedJourneyBuilder() {
                               false
                             );
                           }}
-                          className="p-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.04] rounded cursor-pointer transition-all flex items-center justify-between text-xs text-zinc-200"
+                          className="p-2.5 bg-white/[0.02] hover:bg-white/[0.08] border border-white/[0.04] rounded-lg cursor-pointer transition-all flex items-center justify-between text-xs text-zinc-200"
                         >
                           <span className="truncate">{preset.title}</span>
-                          <Plus size={13} className="text-[#D4AF37] flex-shrink-0 ml-2" />
+                          <Plus size={14} className="text-[#D4AF37] flex-shrink-0 ml-2" />
                         </div>
                       ))}
                     </div>
@@ -1325,27 +1345,27 @@ export default function AdvancedJourneyBuilder() {
 
                   {/* MODE 3: CUSTOM MANUAL ENTRY */}
                   {inputMode === 'custom_manual' && (
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                       <div>
-                        <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">
                           Custom Activity Name
                         </label>
                         <input
                           type="text"
                           value={customActivityName}
                           onChange={(e) => setCustomActivityName(e.target.value)}
-                          placeholder="e.g. Private sunset photography at Lake Siwa"
-                          className="w-full px-3 py-1.5 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                          placeholder="e.g. Private sunset picnic at Fatnas Island"
+                          className="w-full px-3.5 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs focus:border-[#D4AF37] focus:outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">
                           Category
                         </label>
                         <select
                           value={customCategory}
                           onChange={(e) => setCustomCategory(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                          className="w-full px-3.5 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs focus:border-[#D4AF37] focus:outline-none"
                         >
                           <option value="visit">Visit / Tour Site</option>
                           <option value="stay">Accommodation / Camp</option>
@@ -1359,13 +1379,13 @@ export default function AdvancedJourneyBuilder() {
 
                   {/* Optional Notes */}
                   <div>
-                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">Specific Wishes / Instructions</label>
+                    <label className="block text-[11px] font-bold text-zinc-400 mb-1">Specific Wishes / Notes</label>
                     <input
                       type="text"
                       value={businessNotes}
                       onChange={(e) => setBusinessNotes(e.target.value)}
-                      placeholder="e.g. Private guide required"
-                      className="w-full px-3 py-1.5 bg-[#0b0f17] border border-white/[0.08] rounded text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
+                      placeholder="e.g. English-speaking guide required"
+                      className="w-full px-3.5 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
                     />
                   </div>
 
@@ -1401,9 +1421,9 @@ export default function AdvancedJourneyBuilder() {
                           );
                         }
                       }}
-                      className="w-full py-2 bg-[#D4AF37] text-zinc-950 font-semibold rounded-lg text-xs hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                      className="w-full py-2.5 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-md"
                     >
-                      <Plus size={14} /> Add to Day 0{selectedDay} Itinerary
+                      <Plus size={15} /> Add to Day {selectedDay} Schedule
                     </button>
                   )}
                 </div>
@@ -1414,18 +1434,18 @@ export default function AdvancedJourneyBuilder() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-5 py-2.5 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 font-medium rounded-lg text-xs border border-white/[0.08] transition-all flex items-center gap-1.5"
+                  className="px-6 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-semibold rounded-xl text-xs border border-white/[0.08] transition-all flex items-center gap-2"
                 >
-                  <ArrowLeft size={13} />
-                  <span>Overview &amp; Parameters</span>
+                  <ArrowLeft size={14} />
+                  <span>Blueprint Parameters</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="px-6 py-2.5 bg-[#D4AF37] text-zinc-950 font-semibold rounded-lg text-xs hover:brightness-110 transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all shadow-xl flex items-center gap-2"
                 >
-                  <span>Review &amp; Dispatch</span>
-                  <ArrowRight size={13} />
+                  <span>Review &amp; Request Quotes</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1438,48 +1458,49 @@ export default function AdvancedJourneyBuilder() {
             <div className="space-y-6 animate-fadeIn">
               
               {/* Summary Stats Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-4 bg-[#121824]/40 border border-white/[0.08] rounded-xl">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Itinerary</div>
-                  <div className="text-xs sm:text-sm font-medium text-white mt-1 truncate">{packageInfo.name || 'Custom Plan'}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
+                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Itinerary</div>
+                  <div className="text-sm font-bold text-white mt-1 truncate">{packageInfo.name || 'Custom Plan'}</div>
                 </div>
-                <div className="p-4 bg-[#121824]/40 border border-white/[0.08] rounded-xl">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Duration</div>
-                  <div className="text-xs sm:text-sm font-medium text-white mt-1">{packageInfo.duration_days} Days</div>
+                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
+                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Duration</div>
+                  <div className="text-sm font-bold text-white mt-1">{packageInfo.duration_days} Days</div>
                 </div>
-                <div className="p-4 bg-[#121824]/40 border border-white/[0.08] rounded-xl">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Total Stops</div>
-                  <div className="text-xs sm:text-sm font-medium text-white mt-1">{totalStopsCount} Activities</div>
+                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
+                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Total Stops</div>
+                  <div className="text-sm font-bold text-white mt-1">{totalStopsCount} Activities</div>
                 </div>
-                <div className="p-4 bg-[#121824]/40 border border-white/[0.08] rounded-xl">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Estimated Price</div>
-                  <div className="text-xs sm:text-sm font-medium text-[#D4AF37] mt-1">
-                    {packageInfo.price_usd ? `$${packageInfo.price_usd} / person` : 'Custom Quote'}
+                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
+                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Estimated Cost</div>
+                  <div className="text-sm font-bold text-[#D4AF37] mt-1">
+                    {packageInfo.price_usd ? `$${packageInfo.price_usd} / guest` : 'Direct Operator Quote'}
                   </div>
                 </div>
               </div>
 
               {/* Day-by-Day Schedule Summary */}
-              <div className="p-5 bg-[#121824]/40 border border-white/[0.08] rounded-xl space-y-3">
-                <div className="text-[11px] font-semibold tracking-widest text-zinc-300 uppercase">
-                  Final Itinerary Overview
+              <div className="p-6 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl space-y-4 backdrop-blur-xl">
+                <div className="text-xs font-bold tracking-widest text-[#D4AF37] uppercase flex items-center gap-2">
+                  <Layers size={14} />
+                  <span>Final Itinerary Timeline</span>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {packageInfo.itinerary.map((d) => (
-                    <div key={d.day} className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-lg">
-                      <div className="text-xs font-semibold text-zinc-300 mb-1.5 flex items-center justify-between">
-                        <span>Day 0{d.day}</span>
-                        <span className="text-[11px] text-zinc-500 font-mono">{d.items.length} activities</span>
+                    <div key={d.day} className="p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl space-y-2">
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Day {d.day}</span>
+                        <span className="text-[11px] text-zinc-400 font-mono">{d.items.length} activities scheduled</span>
                       </div>
                       {d.items.length === 0 ? (
-                        <div className="text-[11px] text-zinc-500 italic">Free schedule / unassigned</div>
+                        <div className="text-xs text-zinc-500 italic">Free schedule / unassigned</div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                           {d.items.map((item) => (
-                            <div key={item.id} className="p-2 bg-white/[0.02] border border-white/[0.04] rounded text-xs flex items-center gap-2">
-                              <span className="font-mono text-zinc-400 text-[11px]">{item.time}</span>
-                              <span className="text-zinc-200 truncate">{item.business_name}</span>
+                            <div key={item.id} className="p-2.5 bg-white/[0.03] border border-white/[0.04] rounded-lg text-xs flex items-center gap-2.5">
+                              <span className="font-mono text-[#D4AF37] font-bold">{item.time}</span>
+                              <span className="text-zinc-200 font-medium truncate">{item.business_name}</span>
                             </div>
                           ))}
                         </div>
@@ -1489,77 +1510,77 @@ export default function AdvancedJourneyBuilder() {
                 </div>
               </div>
 
-              {/* Visitor Contact Input Form */}
-              <div className="p-6 bg-[#121824]/60 border border-white/[0.08] rounded-xl space-y-4">
-                <div className="text-[11px] font-semibold tracking-widest text-zinc-300 uppercase flex items-center gap-2">
-                  <User size={14} className="text-[#D4AF37]" />
-                  <span>Traveler Information (Transmitted Directly to Tour Specialists)</span>
+              {/* Traveler Contact Input Form */}
+              <div className="p-8 bg-[#0F172A]/80 border border-white/[0.08] rounded-2xl space-y-5 backdrop-blur-xl shadow-xl">
+                <div className="text-xs font-bold tracking-widest text-[#D4AF37] uppercase flex items-center gap-2">
+                  <User size={15} />
+                  <span>Traveler Information (Transmitted Directly to Licensed Siwan Operators)</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Full Name *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Full Name *</label>
                     <input
                       type="text"
                       value={visitorName}
                       onChange={(e) => setVisitorName(e.target.value)}
                       placeholder="e.g. Eleanor Vance"
-                      className="w-full px-3 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">WhatsApp / Phone *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">WhatsApp / Phone *</label>
                     <input
                       type="tel"
                       value={visitorPhone}
                       onChange={(e) => setVisitorPhone(e.target.value)}
                       placeholder="+20 100 000 0000"
-                      className="w-full px-3 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Email Address</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Email Address</label>
                     <input
                       type="email"
                       value={visitorEmail}
                       onChange={(e) => setVisitorEmail(e.target.value)}
                       placeholder="eleanor@example.com"
-                      className="w-full px-3 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Expected Travel Date</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Expected Travel Date</label>
                     <input
                       type="date"
                       value={arrivalDate}
                       onChange={(e) => setArrivalDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Party Size</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Party / Group Size</label>
                     <input
                       type="number"
                       min={1}
                       max={40}
                       value={groupSize}
                       onChange={(e) => setGroupSize(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Logistics, Dietary, or Accessibility Notes</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Special Requests, Dietary, or Transfers</label>
                   <input
                     type="text"
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
-                    placeholder="e.g. Cairo airport transfer required, vegetarian meals"
-                    className="w-full px-3 py-2 bg-[#0b0f17] border border-white/[0.08] rounded text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
+                    placeholder="e.g. Cairo pickup needed, vegetarian meals, private vehicle"
+                    className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
                   />
                 </div>
               </div>
@@ -1569,20 +1590,20 @@ export default function AdvancedJourneyBuilder() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="px-5 py-2.5 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 font-medium rounded-lg text-xs border border-white/[0.08] transition-all flex items-center gap-1.5"
+                  className="px-6 py-3 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-semibold rounded-xl text-xs border border-white/[0.08] transition-all flex items-center gap-2"
                 >
-                  <ArrowLeft size={13} />
-                  <span>Edit Schedule</span>
+                  <ArrowLeft size={14} />
+                  <span>Edit Timeline</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleSavePackage}
                   disabled={loading}
-                  className="px-6 py-2.5 bg-[#D4AF37] text-zinc-950 font-semibold rounded-lg text-xs hover:brightness-110 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all shadow-xl flex items-center gap-2 disabled:opacity-50"
                 >
-                  <Send size={14} />
-                  <span>{loading ? 'Transmitting...' : 'Dispatch Inquiry to Operators'}</span>
+                  <Send size={15} />
+                  <span>{loading ? 'Transmitting...' : 'Dispatch Tour Inquiry to Operators'}</span>
                 </button>
               </div>
             </div>
