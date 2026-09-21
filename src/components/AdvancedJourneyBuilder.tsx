@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   Plus, Trash2, ChevronDown, Clock, MapPin, Sparkles, Building2, 
-  Send, Calendar, User, Phone, Mail, CheckCircle2, Search, Edit3
+  Send, Calendar, User, Phone, Mail, CheckCircle2, Search, Edit3,
+  Flame, Compass, Heart, History, Utensils, RotateCcw
 } from 'lucide-react';
 
 interface TimelineItem {
@@ -59,8 +61,329 @@ interface ExistingTourProduct {
   description: string;
 }
 
+const CURATED_JOURNEY_PRESETS: Record<string, {
+  name: string;
+  badge: string;
+  icon: string;
+  description: string;
+  duration_days: number;
+  vibe: string;
+  pace: string;
+  price_usd?: number;
+  days: {
+    day: number;
+    items: Array<{
+      time: string;
+      end_time: string;
+      duration_minutes: number;
+      business_name: string;
+      parent_type_id: string;
+      parent_type_name: string;
+      child_type_name: string;
+      notes: string;
+    }>;
+  }[];
+}> = {
+  'artisan & crafts experience': {
+    name: 'Artisan & Crafts Experience',
+    badge: 'Artisanal & Heritage',
+    icon: '🧵',
+    description: 'Immerse yourself in authentic Siwan craftsmanship: traditional silver jewelry, fine embroidery, hand-carved salt crystal sculpting, date palm weaving, and ancient terracotta pottery.',
+    duration_days: 3,
+    vibe: 'cultural',
+    pace: 'moderate',
+    price_usd: 320,
+    days: [
+      {
+        day: 1,
+        items: [
+          {
+            time: '09:30',
+            end_time: '12:00',
+            duration_minutes: 150,
+            business_name: 'Siwan Silver Jewelry & Talisman Guild',
+            parent_type_id: 'crafts',
+            parent_type_name: 'HANDICRAFTS',
+            child_type_name: 'Silver Jewelry Workshop',
+            notes: 'Hands-on silversmithing session learning ancient Berber geometric engraving and wedding jewelry motifs.'
+          },
+          {
+            time: '13:00',
+            end_time: '14:30',
+            duration_minutes: 90,
+            business_name: 'Oasis Garden Traditional Restaurant',
+            parent_type_id: 'food',
+            parent_type_name: 'DINING',
+            child_type_name: 'Siwan Organic Lunch',
+            notes: 'Wood-fired tagine and date salad under the shade of mature olive and palm trees.'
+          },
+          {
+            time: '15:30',
+            end_time: '18:00',
+            duration_minutes: 150,
+            business_name: 'Siwa Women Embroidery & Textile Cooperative',
+            parent_type_id: 'crafts',
+            parent_type_name: 'HANDICRAFTS',
+            child_type_name: 'Silk & Cotton Embroidery',
+            notes: 'Learn the sacred five-color sunburst embroidery technique crafted on traditional linen shawls.'
+          }
+        ]
+      },
+      {
+        day: 2,
+        items: [
+          {
+            time: '09:00',
+            end_time: '11:30',
+            duration_minutes: 150,
+            business_name: 'Siwa Salt Crystal Art & Lamp Studio',
+            parent_type_id: 'crafts',
+            parent_type_name: 'WELLNESS & CRAFTS',
+            child_type_name: 'Salt Stone Carving',
+            notes: 'Carve natural salt rock lamps and artisanal meditation stones harvested from hyper-saline lakes.'
+          },
+          {
+            time: '12:30',
+            end_time: '15:00',
+            duration_minutes: 150,
+            business_name: 'Palm Grove Basketry & Weaving Workshop',
+            parent_type_id: 'crafts',
+            parent_type_name: 'HANDICRAFTS',
+            child_type_name: 'Date Palm Leaf Weaving',
+            notes: 'Master the traditional craft of weaving date palm fronds into durable baskets and desert mats.'
+          },
+          {
+            time: '16:30',
+            end_time: '19:00',
+            duration_minutes: 150,
+            business_name: 'Old Shali Fortress Mudbrick Guild Walk',
+            parent_type_id: 'cultural',
+            parent_type_name: 'HERITAGE',
+            child_type_name: 'Kershef Masonry Masterclass',
+            notes: 'Guided exploration of medieval salt-and-clay Kershef architecture and heritage preservation.'
+          }
+        ]
+      },
+      {
+        day: 3,
+        items: [
+          {
+            time: '09:00',
+            end_time: '12:00',
+            duration_minutes: 180,
+            business_name: 'Ancient Oasis Clay & Terracotta Kiln Studio',
+            parent_type_id: 'crafts',
+            parent_type_name: 'HANDICRAFTS',
+            child_type_name: 'Clay Pottery Workshop',
+            notes: 'Shape raw oasis clay pots and water jugs using age-old hand-turning and open-flame kiln firing.'
+          },
+          {
+            time: '13:30',
+            end_time: '15:30',
+            duration_minutes: 120,
+            business_name: 'Heritage Olive Press & Natural Soap House',
+            parent_type_id: 'production',
+            parent_type_name: 'TRADE & PRODUCTION',
+            child_type_name: 'Olive Soap & Oil Crafting',
+            notes: 'Discover cold-press olive oil extraction and artisanal herb-infused olive oil soap making.'
+          },
+          {
+            time: '17:00',
+            end_time: '19:30',
+            duration_minutes: 150,
+            business_name: 'Sunset Bedouin Camp & Artisan Souk',
+            parent_type_id: 'food',
+            parent_type_name: 'EVENING EXPERIENCES',
+            child_type_name: 'Desert Tea & Artisan Exchange',
+            notes: 'Relax around campfire with lemongrass Bedouin tea and private showcase of rare heritage crafts.'
+          }
+        ]
+      }
+    ]
+  },
+  'desert safari & great sand sea': {
+    name: 'Great Sand Sea & Desert Safari Expedition',
+    badge: '4x4 Dunes & Safari',
+    icon: '🐪',
+    description: 'Thrilling 4x4 dune bashing, sunset sandboarding, Bir Wahed thermal hot springs, cold lake swimming, and deep desert camping under the stars.',
+    duration_days: 3,
+    vibe: 'adventure',
+    pace: 'fast',
+    price_usd: 390,
+    days: [
+      {
+        day: 1,
+        items: [
+          {
+            time: '09:00',
+            end_time: '13:00',
+            duration_minutes: 240,
+            business_name: '4x4 Great Sand Sea Dune Bashing Safari',
+            parent_type_id: 'transportation',
+            parent_type_name: '4X4 SAFARI',
+            child_type_name: 'Deep Desert Expedition',
+            notes: 'Traverse massive rolling sand dunes with licensed desert drivers in customized 4x4 Land Cruisers.'
+          },
+          {
+            time: '15:00',
+            end_time: '19:00',
+            duration_minutes: 240,
+            business_name: 'Bir Wahed Hot Spring & Sandboarding',
+            parent_type_id: 'wellness',
+            parent_type_name: 'SPRINGS & ADVENTURE',
+            child_type_name: 'Thermal Bath & Sunset Dunes',
+            notes: 'Soak in the natural sulfur spring surrounded by dunes, followed by sandboarding at golden hour.'
+          }
+        ]
+      },
+      {
+        day: 2,
+        items: [
+          {
+            time: '09:30',
+            end_time: '13:30',
+            duration_minutes: 240,
+            business_name: 'Fossil Valley & Prehistoric Whale Remains',
+            parent_type_id: 'cultural',
+            parent_type_name: 'NATURE & HISTORY',
+            child_type_name: 'Geological Desert Trek',
+            notes: 'Explore million-year-old petrified coral reefs and prehistoric sea fossils embedded in desert stone.'
+          },
+          {
+            time: '16:00',
+            end_time: '21:00',
+            duration_minutes: 300,
+            business_name: 'Stargazing Camp & Bedouin Dinner',
+            parent_type_id: 'food',
+            parent_type_name: 'CAMP EXPERIENCE',
+            child_type_name: 'Starlit Campfire Feast',
+            notes: 'Midnight telescope astronomy, traditional underground lamb cooking (Mandi), and desert storytelling.'
+          }
+        ]
+      },
+      {
+        day: 3,
+        items: [
+          {
+            time: '08:30',
+            end_time: '12:00',
+            duration_minutes: 210,
+            business_name: 'Siwa Salt Crystal Lake Flotation',
+            parent_type_id: 'wellness',
+            parent_type_name: 'NATURAL WONDERS',
+            child_type_name: 'Emerald Salt Lake Swim',
+            notes: 'Weightless floating in turquoise salt lakes with 95% mineral purity.'
+          },
+          {
+            time: '14:00',
+            end_time: '17:00',
+            duration_minutes: 180,
+            business_name: 'Fatnas Island Sunset Palm Grove Walk',
+            parent_type_id: 'nature',
+            parent_type_name: 'RELAXATION',
+            child_type_name: 'Lake Birket Siwa Sunset',
+            notes: 'Fresh date juice and panoramic views of Lake Siwa backed by desert mountains.'
+          }
+        ]
+      }
+    ]
+  },
+  'wellness & salt lake healing retreat': {
+    name: 'Siwa Salt Lake & Thermal Healing Retreat',
+    badge: 'Rejuvenation & Springs',
+    icon: '🧂',
+    description: 'Rejuvenating thermal spring hydrotherapy, buoyant salt lake flotation, therapeutic sand baths, and organic herbal wellness.',
+    duration_days: 3,
+    vibe: 'wellness',
+    pace: 'relaxed',
+    price_usd: 350,
+    days: [
+      {
+        day: 1,
+        items: [
+          {
+            time: '09:00',
+            end_time: '12:00',
+            duration_minutes: 180,
+            business_name: 'Hyper-Saline Lake Flotation Therapy',
+            parent_type_id: 'wellness',
+            parent_type_name: 'HYDROTHERAPY',
+            child_type_name: 'Salt Water Therapy',
+            notes: 'Therapeutic floating for deep muscle relaxation and respiratory health.'
+          },
+          {
+            time: '14:00',
+            end_time: '17:00',
+            duration_minutes: 180,
+            business_name: 'Cleopatra Natural Spring Bath',
+            parent_type_id: 'wellness',
+            parent_type_name: 'NATURAL SPRINGS',
+            child_type_name: 'Freshwater Spring Soak',
+            notes: 'Rinse off in crystal clear freshwater spring shaded by date palms.'
+          }
+        ]
+      },
+      {
+        day: 2,
+        items: [
+          {
+            time: '09:30',
+            end_time: '12:30',
+            duration_minutes: 180,
+            business_name: 'Gebel Dakrour Hot Sand Therapy',
+            parent_type_id: 'wellness',
+            parent_type_name: 'ANCIENT HEALING',
+            child_type_name: 'Therapeutic Sand Bath',
+            notes: 'Traditional Siwan heat treatment renowned for joint rejuvenation and circulation.'
+          },
+          {
+            time: '15:30',
+            end_time: '18:30',
+            duration_minutes: 180,
+            business_name: 'Desert Salt Cave Halo-Therapy & Meditation',
+            parent_type_id: 'wellness',
+            parent_type_name: 'SALT CAVES',
+            child_type_name: 'Salt Cave Meditation',
+            notes: 'Negative ion respiratory session inside a carved underground salt chamber.'
+          }
+        ]
+      },
+      {
+        day: 3,
+        items: [
+          {
+            time: '09:00',
+            end_time: '12:00',
+            duration_minutes: 180,
+            business_name: 'Organic Herbal Medicine & Essential Oils Garden',
+            parent_type_id: 'wellness',
+            parent_type_name: 'HERBALISM',
+            child_type_name: 'Herbal Consultation',
+            notes: 'Tour of native Siwan medicinal herbs, olive leaf extracts, and essential oils.'
+          },
+          {
+            time: '14:30',
+            end_time: '18:00',
+            duration_minutes: 210,
+            business_name: 'Thermal Sulfur Spring & Sunset Sound Healing',
+            parent_type_id: 'wellness',
+            parent_type_name: 'SOUND & SPRINGS',
+            child_type_name: 'Sunset Sound Journey',
+            notes: 'Relaxing sound bath ceremony under palm trees as the sun sets over the oasis.'
+          }
+        ]
+      }
+    ]
+  }
+};
+
 export default function AdvancedJourneyBuilder() {
+  const searchParams = useSearchParams();
+  const presetParam = searchParams.get('preset') || searchParams.get('template') || searchParams.get('tour') || '';
+
   const [step, setStep] = useState(1); // 1: Setup/Template, 2: Timeline Builder, 3: Review & Submit
+  const [loadedPresetKey, setLoadedPresetKey] = useState<string | null>(null);
+
   const [packageInfo, setPackageInfo] = useState<AdvancedJourneyPackage>({
     name: '',
     description: '',
@@ -116,10 +439,54 @@ export default function AdvancedJourneyBuilder() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const appliedPresetRef = useRef(false);
+
+  const applyCuratedPreset = (presetKey: string) => {
+    const preset = CURATED_JOURNEY_PRESETS[presetKey.toLowerCase()];
+    if (!preset) return false;
+
+    const days = preset.duration_days;
+    const newItinerary: ItineraryDay[] = Array.from({ length: days }, (_, i) => ({
+      day: i + 1,
+      items: [],
+    }));
+
+    preset.days.forEach((d) => {
+      if (newItinerary[d.day - 1]) {
+        newItinerary[d.day - 1].items = d.items.map((item, idx) => ({
+          id: `preset_stop_${d.day}_${idx}_${Date.now()}`,
+          day_number: d.day,
+          time: item.time,
+          end_time: item.end_time,
+          business_id: `preset_${idx}`,
+          business_name: item.business_name,
+          parent_type_id: item.parent_type_id,
+          parent_type_name: item.parent_type_name,
+          child_type_name: item.child_type_name,
+          notes: item.notes,
+          duration_minutes: item.duration_minutes,
+          is_custom_manual: false,
+        }));
+      }
+    });
+
+    setPackageInfo({
+      name: preset.name,
+      description: preset.description,
+      duration_days: days,
+      vibe: preset.vibe,
+      pace: preset.pace,
+      price_usd: preset.price_usd,
+      itinerary: newItinerary,
+    });
+    setLoadedPresetKey(presetKey);
+    setSelectedDay(1);
+    setStep(2); // Jump straight into the interactive timeline
+    return true;
+  };
 
   // 1. Fetch live businesses and live agency tours on load
   useEffect(() => {
-    // Fetch live businesses from DB
     fetch('/api/jana/tour-builder?action=businesses')
       .then(res => res.json())
       .then(data => {
@@ -130,7 +497,6 @@ export default function AdvancedJourneyBuilder() {
       })
       .catch(err => console.error('Failed to load businesses:', err));
 
-    // Fetch existing agency packages
     fetch('/api/jana/tour-builder?action=list')
       .then(res => res.json())
       .then(data => {
@@ -140,6 +506,35 @@ export default function AdvancedJourneyBuilder() {
       })
       .catch(err => console.error('Failed to load tours:', err));
   }, []);
+
+  // 2. Preset query resolution
+  useEffect(() => {
+    if (!presetParam || appliedPresetRef.current) return;
+
+    const normalized = presetParam.trim().toLowerCase();
+    
+    // Check in curated library
+    const matchedCuratedKey = Object.keys(CURATED_JOURNEY_PRESETS).find(
+      k => k === normalized || normalized.includes(k) || k.includes(normalized)
+    );
+
+    if (matchedCuratedKey) {
+      applyCuratedPreset(matchedCuratedKey);
+      appliedPresetRef.current = true;
+      return;
+    }
+
+    // Check in agency tours
+    if (agencyTours.length > 0) {
+      const tour = agencyTours.find(t => t.name.toLowerCase().includes(normalized) || normalized.includes(t.name.toLowerCase()));
+      if (tour) {
+        handleLoadAgencyTour(tour.id);
+        setLoadedPresetKey(tour.name);
+        setStep(2);
+        appliedPresetRef.current = true;
+      }
+    }
+  }, [presetParam, agencyTours]);
 
   // Search filter for businesses
   useEffect(() => {
@@ -199,6 +594,8 @@ export default function AdvancedJourneyBuilder() {
           price_usd: data.base_price_usd ? parseFloat(data.base_price_usd) : undefined,
           itinerary: newItinerary,
         });
+        setLoadedPresetKey(data.name);
+        setStep(2);
       }
     } catch (err) {
       console.error('Failed to clone tour:', err);
@@ -326,6 +723,23 @@ export default function AdvancedJourneyBuilder() {
     }
   };
 
+  const handleResetToCustomBlank = () => {
+    setPackageInfo({
+      name: '',
+      description: '',
+      duration_days: 3,
+      vibe: 'adventure',
+      pace: 'moderate',
+      itinerary: Array.from({ length: 3 }, (_, i) => ({
+        day: i + 1,
+        items: [],
+      })),
+    });
+    setLoadedPresetKey(null);
+    setSelectedDay(1);
+    setStep(1);
+  };
+
   const currentDayItems = packageInfo.itinerary[selectedDay - 1]?.items || [];
 
   return (
@@ -366,6 +780,52 @@ export default function AdvancedJourneyBuilder() {
         </div>
       </div>
 
+      {/* Active Preset Banner */}
+      {loadedPresetKey && !success && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-[#D4AF37]/20 via-[#D4AF37]/10 to-white/[0.02] border border-[#D4AF37]/40 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✨</span>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-[#D4AF37]">
+                Active Preset Loaded
+              </div>
+              <div className="text-base font-bold text-white">
+                {packageInfo.name || loadedPresetKey}
+                <span className="text-xs font-normal text-gray-300 ml-2">
+                  ({packageInfo.duration_days} Days · {packageInfo.itinerary.reduce((sum, d) => sum + d.items.length, 0)} Scheduled Stops)
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {step === 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="px-4 py-2 bg-[#D4AF37] text-gray-950 text-xs font-black rounded-xl hover:scale-105 transition-all shadow"
+              >
+                Go to Timeline (Step 2) →
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all"
+              >
+                ← Edit Tour Info
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleResetToCustomBlank}
+              className="px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+            >
+              <RotateCcw size={13} /> Reset / Blank
+            </button>
+          </div>
+        </div>
+      )}
+
       {success ? (
         <div className="p-10 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-2xl text-center flex flex-col items-center">
           <CheckCircle2 size={64} className="text-[#D4AF37] mb-4" />
@@ -387,6 +847,58 @@ export default function AdvancedJourneyBuilder() {
           {/* ═════════════════════════════════════════════════════════════════════════ */}
           {step === 1 && (
             <div className="space-y-8 animate-fadeIn">
+              {/* Curated Signature Expeditions & Presets */}
+              <div className="p-5 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[#D4AF37]/30 rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-black tracking-wider text-[#D4AF37] uppercase flex items-center gap-2">
+                    <Sparkles size={16} /> Curated Signature Expeditions (1-Click Itineraries)
+                  </span>
+                  <span className="text-xs text-gray-400">Pre-built multi-day schedules</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(CURATED_JOURNEY_PRESETS).map(([key, preset]) => {
+                    const isCurrent = loadedPresetKey?.toLowerCase() === key;
+                    const totalStops = preset.days.reduce((sum, d) => sum + d.items.length, 0);
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => applyCuratedPreset(key)}
+                        className={`p-4 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group ${
+                          isCurrent
+                            ? 'bg-[#D4AF37]/15 border-[#D4AF37] shadow-lg shadow-[#D4AF37]/10 ring-1 ring-[#D4AF37]'
+                            : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-[#D4AF37]/50'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-2xl">{preset.icon}</span>
+                            <span className="px-2 py-0.5 bg-[#D4AF37]/20 text-[#D4AF37] rounded-full text-[10px] font-black uppercase tracking-wider">
+                              {preset.badge}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors leading-tight">
+                            {preset.name}
+                          </h4>
+                          <p className="text-xs text-gray-400 mt-2 line-clamp-3 leading-relaxed">
+                            {preset.description}
+                          </p>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <span>⏱ {preset.duration_days} Days</span>
+                            <span>•</span>
+                            <span>📍 {totalStops} Stops</span>
+                          </div>
+                          <span className="text-[#D4AF37] font-black">
+                            ${preset.price_usd}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Optional: Load from Operator Templates */}
               {agencyTours.length > 0 && (
                 <div className="p-5 bg-white/[0.02] border border-white/10 rounded-2xl">
@@ -541,6 +1053,30 @@ export default function AdvancedJourneyBuilder() {
           {/* ═════════════════════════════════════════════════════════════════════════ */}
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
+              {/* Quick Presets Bar in Step 2 */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                <span className="text-gray-400 font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider whitespace-nowrap">
+                  <Sparkles size={13} className="text-[#D4AF37]" /> Switch Preset:
+                </span>
+                {Object.entries(CURATED_JOURNEY_PRESETS).map(([key, preset]) => {
+                  const isCurrent = loadedPresetKey?.toLowerCase() === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => applyCuratedPreset(key)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                        isCurrent
+                          ? 'bg-[#D4AF37] text-gray-950 border-[#D4AF37] shadow-sm'
+                          : 'bg-white/5 border-white/10 text-gray-300 hover:border-[#D4AF37]/50'
+                      }`}
+                    >
+                      {preset.icon} {preset.name}
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Day selector tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10">
                 {packageInfo.itinerary.map((d) => (

@@ -283,6 +283,16 @@ export async function middleware(request: NextRequest) {
 
   const { subdomain, isCustomDomain, hostname } = extractSubdomain(request);
 
+  // ── Main-Site Only Routes Guard (Journey Builder is exclusively a main platform experience)
+  const isMainSiteOnlyRoute = pathname.startsWith('/journey-builder') || pathname.startsWith('/journey-builder-advanced');
+  if (isMainSiteOnlyRoute && (subdomain || isCustomDomain)) {
+    const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1');
+    const mainHost = isLocal ? (request.headers.get('host')?.includes(':') ? `localhost:${request.headers.get('host')?.split(':')[1]}` : 'localhost:3000') : 'siwify.com';
+    const proto = isLocal ? 'http' : 'https';
+    const redirectUrl = new URL(`${proto}://${mainHost}${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(redirectUrl);
+  }
+
   // 2. Full Custom Domain Handling (e.g. vendor's custom domain hotel.com -> /hotel.com or /[slug])
   if (isCustomDomain && hostname) {
     if (pathname === `/${hostname}` || pathname.startsWith(`/${hostname}/`)) {
