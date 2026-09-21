@@ -13,6 +13,8 @@ import LocalProductsShowcase from '@/components/LocalProductsShowcase';
 import StorytellingSection from '@/components/StorytellingSection';
 import VendorPartnerCTA from '@/components/VendorPartnerCTA';
 import ServicesHub from '@/components/ServicesHub';
+import CategoryCommercialTabs from '@/components/CategoryCommercialTabs';
+import CategoryPageHero from '@/components/CategoryPageHero';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
@@ -116,9 +118,33 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
       );
     }
 
+    // ─── CATEGORY HERO ─────────────────────────────────────
+    case 'category_hero': {
+      const cat = props?.category || (pageId === 'accommodations' ? 'accommodation' : pageId === 'transportation' ? 'transportation' : pageId === 'activities' ? 'activity' : pageId === 'food-beverage' ? 'food' : pageId || 'accommodation');
+      const label = props?.label || (pageId ? pageId.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Category');
+      const title = props?.title || `Find the perfect ${label} in Siwa`;
+      const accent = props?.accent || '#D4AF37';
+      return (
+        <CategoryPageHero category={cat} label={label} title={title} accent={accent} />
+      );
+    }
+
+    // ─── CATEGORY COMMERCIAL TABS (DEALS, PACKAGES, DISCOUNTS) ────
+    case 'category_commercial_tabs': {
+      const cat = props?.category || (pageId === 'accommodations' ? 'accommodation' : pageId === 'transportation' ? 'transportation' : pageId === 'activities' ? 'activity' : pageId === 'food-beverage' ? 'food' : pageId || 'accommodation');
+      return (
+        <AnimatedSection>
+          <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+            <CategoryCommercialTabs category={cat} />
+          </section>
+        </AnimatedSection>
+      );
+    }
+
     // ─── SEARCH ────────────────────────────────────────────
     case 'search_bar': {
       const engineId = props?.engine_id || props?.engineId || '';
+      const cat = props?.defaultCategory || (pageId === 'accommodations' ? 'accommodation' : pageId === 'transportation' ? 'transportation' : pageId === 'activities' ? 'activity' : pageId === 'food-beverage' ? 'food' : undefined);
       return (
         <AnimatedSection>
           <section id="discovery" style={{ background: 'var(--bg-alt)', padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem)', position: 'relative' }}>
@@ -127,7 +153,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
               padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
               border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
             }}>
-              <VibeSearch engineId={engineId} defaultCategory={props?.defaultCategory} />
+              <VibeSearch engineId={engineId} defaultCategory={cat} />
             </div>
           </section>
         </AnimatedSection>

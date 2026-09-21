@@ -18,10 +18,13 @@ interface PaletteItem {
 // ── Component catalogue — SYNCED with DynamicHomepageRenderer ─────────────────
 const PALETTE: PaletteItem[] = [
   // ── Header zone ──
+  { zone: 'header', key: 'category_hero',   name: 'Category Thematic Hero',   icon: '🌄', manager: null,                  color: '#D4AF37', desc: 'Themed hero banner tailored for this sector/category' },
   { zone: 'header', key: 'hero_carousel',  name: 'Hero Carousel',           icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
   { zone: 'header', key: 'search_bar',     name: 'Search Bar (Compact)',    icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Compact header search widget' },
 
   // ── Body zone ──
+  { zone: 'body',   key: 'category_hero',        name: 'Category Thematic Hero',   icon: '🌄', manager: null,                  color: '#D4AF37', desc: 'Themed hero banner tailored for this sector/category' },
+  { zone: 'body',   key: 'category_commercial_tabs', name: 'Deals & Packages Tabs', icon: '🎁', manager: null,                color: '#f59e0b', desc: 'Commercial packages, offers & discounts tabs for this category' },
   { zone: 'body',   key: 'hero_carousel',        name: 'Hero Carousel',            icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
   { zone: 'body',   key: 'service_directory',     name: 'Add Services Directory',   icon: '🧭', manager: '/jana/businesses',     color: '#6366f1', desc: 'Create a service listing block for your offerings' },
   { zone: 'body',   key: 'services_hub',          name: 'Services Hub',             icon: '🏛️', manager: '/jana/businesses',     color: '#6366f1', desc: 'Directory of all services & categories' },
@@ -269,6 +272,64 @@ function MultiPageSiteBuilderComponent() {
     { id: 'h9', key: 'partner_cta',           zone: 'body', label: 'Partner CTA',           props: {} },
   ];
 
+  const getDefaultSlotsForPage = (slug: string): Slot[] => {
+    if (slug === 'main') return DEFAULT_MAIN_SLOTS;
+
+    const isSector = ['accommodations', 'transportation', 'activities', 'food-beverage', 'crafts-wellness', 'production-trade', 'services'].includes(slug);
+    if (isSector) {
+      const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      const cat = slug === 'accommodations' ? 'accommodation' : slug === 'transportation' ? 'transportation' : slug === 'activities' ? 'activity' : slug === 'food-beverage' ? 'food' : slug;
+      return [
+        { id: `${slug}_hero`, key: 'category_hero', zone: 'header', label: `${label} Thematic Hero`, props: { category: cat, label, title: `Find the perfect ${label} in Siwa` } },
+        { id: `${slug}_search`, key: 'search_bar', zone: 'body', label: `${label} Search & Filters`, props: { defaultCategory: cat } },
+        { id: `${slug}_deals`, key: 'category_commercial_tabs', zone: 'body', label: `${label} Packages & Deals`, props: { category: cat } },
+        { id: `${slug}_directory`, key: 'services_hub', zone: 'body', label: `${label} Business Directory`, props: { category: cat } },
+        { id: `${slug}_story`, key: 'storytelling_section', zone: 'body', label: `${label} Heritage Narrative`, props: {} },
+        { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (slug === 'journeys') {
+      return [
+        { id: 'journeys_hero', key: 'hero_carousel', zone: 'header', label: 'Journey Hero Carousel', props: { carousel_id: 'journeys_hero' } },
+        { id: 'journeys_planner', key: 'smart_journey_planner', zone: 'body', label: 'Smart Journey Planner', props: {} },
+        { id: 'journeys_map', key: 'ecosystem_map', zone: 'body', label: 'Interactive Oasis Map', props: {} },
+        { id: 'journeys_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (slug === 'categories') {
+      return [
+        { id: 'categories_hero', key: 'hero_carousel', zone: 'header', label: 'Categories Hero Carousel', props: { carousel_id: 'categories_hero' } },
+        { id: 'categories_showcase', key: 'experience_categories', zone: 'body', label: 'Experience Categories Showcase', props: {} },
+        { id: 'categories_services', key: 'services_hub', zone: 'body', label: 'Services Hub Directory', props: {} },
+        { id: 'categories_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (['offers', 'packages', 'discounts'].includes(slug)) {
+      return [
+        { id: `${slug}_hero`, key: 'hero_carousel', zone: 'header', label: `${slug.toUpperCase()} Hero Carousel`, props: { carousel_id: `${slug}_hero` } },
+        { id: `${slug}_tabs`, key: 'category_commercial_tabs', zone: 'body', label: 'Deals, Packages & Discounts Tabs', props: {} },
+        { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    if (slug === 'blog') {
+      return [
+        { id: 'blog_hero', key: 'hero_carousel', zone: 'header', label: 'Siwa Stories Hero Carousel', props: { carousel_id: 'blog_hero' } },
+        { id: 'blog_feed', key: 'blog', zone: 'body', label: 'Articles & Stories Feed', props: {} },
+        { id: 'blog_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+      ];
+    }
+
+    return [
+      { id: `${slug}_hero`, key: 'hero_carousel', zone: 'body', label: 'Hero Carousel', carousel_id: pageCarouselId(slug), props: { carousel_id: pageCarouselId(slug) } },
+      { id: `${slug}_search`, key: 'search_bar', zone: 'body', label: 'Search Engine', props: {} },
+      { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
+    ];
+  };
+
   const pageCarouselId = (pageSlug = currentPage) => `${pageSlug || 'main'}_hero`;
 
   // Load layout when page/template changes
@@ -331,7 +392,7 @@ function MultiPageSiteBuilderComponent() {
           const t = Array.isArray(data) ? data[0] : data;
 
           if (!t) {
-            setSlots([]);
+            setSlots(getDefaultSlotsForPage(currentPage));
             return;
           }
 
@@ -341,10 +402,10 @@ function MultiPageSiteBuilderComponent() {
             ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
           ];
 
-          const hasSavedLayout = ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(t[key]));
-          setSlots(hasSavedLayout ? allLoaded : currentPage === 'main' ? DEFAULT_MAIN_SLOTS : [{ id: `${currentPage}_hero`, key: 'hero_carousel', zone: 'body', label: 'Hero Carousel', carousel_id: pageCarouselId(), props: { carousel_id: pageCarouselId() } }]);
+          const hasSavedLayout = ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(t[key]) && t[key].length > 0);
+          setSlots(hasSavedLayout ? allLoaded : getDefaultSlotsForPage(currentPage));
         } catch {
-          setSlots([]);
+          setSlots(getDefaultSlotsForPage(currentPage));
         }
       } else {
         const tmpl = templates.find(t => t.id === currentPage);
