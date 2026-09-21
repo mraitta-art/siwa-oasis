@@ -44,6 +44,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Category Pages', icon: '📱', href: '/admin/category-pages' },
       { label: 'Be-a-Partner Page', icon: '🤝', href: '/admin/homepage-editor/website_be-a-partner' },
       { label: 'Vendor Modal & Watermark', icon: '⏱️', href: '/admin/vendor-modal', badge: 'NEW', badgeColor: '#22c55e' },
+      { label: 'Subdomains & SEO Aliases', icon: '🌐', href: '/admin/subdomains', badge: 'NEW', badgeColor: '#3b82f6' },
     ],
   },
   {
