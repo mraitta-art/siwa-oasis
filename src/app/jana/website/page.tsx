@@ -70,6 +70,7 @@ type Mode = 'PAGES' | 'TEMPLATES';
 const STANDARD_CORE_PAGES: PageMeta[] = [
   { slug: 'main', saved: true, type: 'page' },
   { slug: 'accommodations', saved: false, type: 'page' },
+  { slug: 'restaurants', saved: false, type: 'page' },
   { slug: 'transportation', saved: false, type: 'page' },
   { slug: 'food-beverage', saved: false, type: 'page' },
   { slug: 'activities', saved: false, type: 'page' },
@@ -275,10 +276,10 @@ function MultiPageSiteBuilderComponent() {
   const getDefaultSlotsForPage = (slug: string): Slot[] => {
     if (slug === 'main') return DEFAULT_MAIN_SLOTS;
 
-    const isSector = ['accommodations', 'transportation', 'activities', 'food-beverage', 'crafts-wellness', 'production-trade', 'services'].includes(slug);
+    const isSector = ['accommodations', 'restaurants', 'transportation', 'activities', 'food-beverage', 'crafts-wellness', 'production-trade', 'services'].includes(slug);
     if (isSector) {
       const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-      const cat = slug === 'accommodations' ? 'accommodation' : slug === 'transportation' ? 'transportation' : slug === 'activities' ? 'activity' : slug === 'food-beverage' ? 'food' : slug;
+      const cat = slug === 'accommodations' ? 'accommodation' : slug === 'restaurants' ? 'restaurant' : slug === 'transportation' ? 'transportation' : slug === 'activities' ? 'activity' : slug === 'food-beverage' ? 'food' : slug;
       const carouselId = `${slug}_hero`;
       return [
         // Hero Carousel in BODY zone so it appears directly in the main Body builder workspace!
@@ -396,13 +397,20 @@ function MultiPageSiteBuilderComponent() {
     if (pageSlug === 'journeys') return '/journeys';
     if (pageSlug === 'categories') return '/categories';
     if (pageSlug === 'accommodations') return '/accommodations';
+    if (pageSlug === 'restaurants') return '/restaurants';
     if (pageSlug === 'transportation') return '/transportation';
     if (pageSlug === 'food-beverage') return '/food-beverage';
     if (pageSlug === 'activities') return '/activities';
     if (pageSlug === 'crafts-wellness') return '/crafts-wellness';
     if (pageSlug === 'production-trade') return '/production-trade';
-    if (pageSlug === 'deals') return '/offers';
-    if (pageSlug === 'investments') return '/investment-opportunities';
+    if (pageSlug === 'services') return '/services';
+    if (pageSlug === 'blog') return '/blog';
+    if (pageSlug === 'offers' || pageSlug === 'deals') return '/offers';
+    if (pageSlug === 'packages') return '/packages';
+    if (pageSlug === 'discounts') return '/discounts';
+    if (pageSlug === 'auctions') return '/auctions';
+    if (pageSlug === 'investment-opportunities' || pageSlug === 'investments') return '/investment-opportunities';
+    if (pageSlug === 'be-a-partner') return '/be-a-partner';
     if (resolvedType === 'search') return `/search/${pageSlug}`;
     return `/p/${pageSlug}`;
   };
