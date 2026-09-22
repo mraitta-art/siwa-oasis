@@ -121,8 +121,9 @@ export default function SectionContentStudio({
   const [blogBody, setBlogBody] = useState('');
   const [blogTitleAr, setBlogTitleAr] = useState('');
   const [blogBodyAr, setBlogBodyAr] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [meta, setMeta] = useState<ContentMeta>(EMPTY_META);
-  const [uploadProgress, setUploadProgress] = useState<{ total: number; done: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ total: number; done: number } | string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragOverItemIndex, setDragOverItemIndex] = useState<number | null>(null);
@@ -130,11 +131,13 @@ export default function SectionContentStudio({
   const [localMessage, setLocalMessage] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Hydrate from customData whenever sectionId or customData changes ──
   useEffect(() => {
     const sData = customData?.[sectionId] || {};
     const storedMeta = customData?.section_content_meta?.[sectionId] || {};
+    setLogoUrl(customData?.basic?.business_logo || customData?.sec_1_identity?.business_logo || customData?.business_logo || '');
     setSectionLabel(
       customData?.section_labels?.[sectionId] ||
       customData?.basic?.section_labels?.[sectionId] || ''
@@ -233,6 +236,35 @@ export default function SectionContentStudio({
     setGallery((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function uploadLogoFile(file: File) {
+    setUploadProgress('Uploading brand logo...');
+    try {
+      const formData = new FormData();
+      formData.append('files', file);
+      formData.append('businessName', businessName);
+      formData.append('sectionName', 'branding');
+
+      const res = await fetch('/api/jana/media/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        const uploadedUrl = result.urls?.[0] || result.url;
+        if (uploadedUrl) {
+          setLogoUrl(uploadedUrl);
+          setLocalMessage('✓ Logo uploaded successfully from device! Click Save to apply.');
+        }
+      } else {
+        setLocalMessage('⚠️ Logo upload failed.');
+      }
+    } catch {
+      setLocalMessage('⚠️ Logo upload failed.');
+    }
+    setUploadProgress(null);
+  }
+
   // ── Save ────────────────────────────────────────────────────────────
 
   async function handleSave() {
@@ -243,9 +275,18 @@ export default function SectionContentStudio({
     nextCustomData.section_labels_ar = { ...(nextCustomData.section_labels_ar || {}), [sectionId]: sectionLabelAr.trim() };
     nextCustomData.basic = {
       ...(nextCustomData.basic || {}),
+      business_logo: logoUrl || nextCustomData.basic?.business_logo,
       section_labels: { ...(nextCustomData.basic?.section_labels || {}), [sectionId]: sectionLabel.trim() },
       section_labels_ar: { ...(nextCustomData.basic?.section_labels_ar || {}), [sectionId]: sectionLabelAr.trim() },
     };
+
+    if (sectionId === 'sec_1_identity' || sectionId === 'basic') {
+      nextCustomData.sec_1_identity = {
+        ...(nextCustomData.sec_1_identity || {}),
+        business_logo: logoUrl,
+        logo: logoUrl,
+      };
+    }
 
     // Section content
     nextCustomData[sectionId] = {
@@ -274,10 +315,55 @@ export default function SectionContentStudio({
   const adminLocked = !!sectionControls[sectionId]?.admin_locked_label;
   const displayMessage = externalMessage || localMessage;
 
-  // ── Render ──────────────────────────────────────────────────────────
-
   return (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
+      {/* Brand Logo Uploader (from Device) */}
+      <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <i className="fas fa-shield-cat" style={{ color: '#D4AF37' }} />
+              Business Logo &amp; Brand Avatar
+            </h4>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+              Upload your official brand logo directly from your device (PNG, JPG, WebP, SVG).
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {logoUrl && (
+              <img src={logoUrl} alt="Brand Logo" style={{ height: '42px', width: '42px', objectFit: 'cover', borderRadius: '10px', border: '1.5px solid #D4AF37', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} />
+            )}
+            <button
+              type="button"
+              onClick={() => logoFileInputRef.current?.click()}
+              disabled={typeof uploadProgress === 'string'}
+              style={{ padding: '0.55rem 1rem', borderRadius: '8px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+            >
+              <i className="fas fa-upload" /> {typeof uploadProgress === 'string' ? 'Uploading...' : (logoUrl ? 'Change Logo' : 'Upload Logo from Device')}
+            </button>
+            <input
+              ref={logoFileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  uploadLogoFile(e.target.files[0]);
+                }
+              }}
+            />
+            {logoUrl && (
+              <button
+                type="button"
+                onClick={() => setLogoUrl('')}
+                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 800 }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Section Name Overrides */}
       <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
@@ -349,13 +435,22 @@ export default function SectionContentStudio({
         {/* Upload Progress */}
         {uploadProgress && (
           <div style={{ padding: '1rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#1d4ed8', marginBottom: '0.4rem' }}>
-              <span>Uploading Batch...</span>
-              <span>{uploadProgress.done} of {uploadProgress.total}</span>
-            </div>
-            <div style={{ width: '100%', height: '6px', background: '#dbeafe', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, height: '100%', background: '#2563eb', transition: 'width 0.2s' }} />
-            </div>
+            {typeof uploadProgress === 'string' ? (
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1d4ed8' }}>
+                <i className="fas fa-spinner fa-spin" style={{ marginRight: '6px' }} />
+                {uploadProgress}
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#1d4ed8', marginBottom: '0.4rem' }}>
+                  <span>Uploading Batch...</span>
+                  <span>{uploadProgress.done} of {uploadProgress.total}</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#dbeafe', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, height: '100%', background: '#2563eb', transition: 'width 0.2s' }} />
+                </div>
+              </>
+            )}
           </div>
         )}
 
