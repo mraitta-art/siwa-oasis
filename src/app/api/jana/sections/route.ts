@@ -89,7 +89,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(sortedSections);
     }
 
-    // 2. Otherwise, require admin to see all sections (including inactive)
+    // 2. Otherwise, return active public sections or require admin for all sections (including inactive)
+    if (searchParams.get('public') === 'true' || searchParams.get('all') === 'true') {
+      const sections = await getSections(true);
+      return NextResponse.json(sections);
+    }
     await requireAdmin();
     const sections = await getSections(false);
     return NextResponse.json(sections);
