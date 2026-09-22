@@ -234,9 +234,30 @@ export default function AutomatedMinisiteHero({
       });
     });
 
+    // ── HERO DECISION ENGINE SORTING & CURATION ─────────────────────
+    // 1. Separate real media slides from branded text-only fallbacks
+    const mediaSlides = allSlides.filter(s => s.mediaUrl && s.type !== 'branded');
+    const textSlides  = allSlides.filter(s => !s.mediaUrl || s.type === 'branded');
+
+    // 2. Deduplicate media slides by mediaUrl
+    const seenMedia = new Set<string>();
+    const uniqueMediaSlides = mediaSlides.filter(s => {
+      if (!s.mediaUrl || seenMedia.has(s.mediaUrl)) return false;
+      seenMedia.add(s.mediaUrl);
+      return true;
+    });
+
+    // 3. Decision Rule: If we have enough real media slides, show real media.
+    // Otherwise, append text fallbacks to reach at least 3 slides.
+    let curatedSlides = [...uniqueMediaSlides];
+    if (curatedSlides.length < 3 && textSlides.length > 0) {
+      const needed = 3 - curatedSlides.length;
+      curatedSlides = [...curatedSlides, ...textSlides.slice(0, needed)];
+    }
+
     const finalLimit = tierFeatures.maxSlides || 10;
-    return allSlides.slice(0, finalLimit);
-  }, [customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
+    return (adminSlides && adminSlides.length > 0 ? adminSlides : curatedSlides).slice(0, finalLimit);
+  }, [adminSlides, customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
 
   // Lock Check
   if (!tierFeatures.hero_automation) {
