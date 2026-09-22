@@ -585,9 +585,51 @@ export default function UnifiedSectionArchitect() {
           <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '2px' }}>
             {isCore && <span style={{ fontSize: '0.55rem', fontWeight: 900, background: `${coreColor}18`, color: coreColor, padding: '1px 5px', borderRadius: '4px' }}>ESSENTIAL</span>}
             {sec.is_universal && <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#dbeafe', color: '#1d4ed8', padding: '1px 5px', borderRadius: '4px' }}>🌐 UNIVERSAL</span>}
-            {!sec.vendor_editable && <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#fef3c7', color: '#92400e', padding: '1px 5px', borderRadius: '4px' }}>🔒 LOCKED</span>}
-            {!sec.show_on_minisite && <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px' }}>HIDDEN</span>}
-            {!isEnabled && <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px' }}>🚫 INACTIVE</span>}
+            {!sec.vendor_editable && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectSection(sec);
+                  setEditSection(s => ({ ...s, vendor_editable: true }));
+                  setActiveTab('meta');
+                }}
+                title="Click to Unlock Vendor Editing"
+                style={{ border: 'none', cursor: 'pointer', fontSize: '0.55rem', fontWeight: 900, background: '#fef3c7', color: '#92400e', padding: '1px 5px', borderRadius: '4px' }}
+              >
+                🔒 LOCKED (Click to Unlock)
+              </button>
+            )}
+            {!sec.show_on_minisite && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectSection(sec);
+                  setEditSection(s => ({ ...s, show_on_minisite: true }));
+                  setActiveTab('meta');
+                }}
+                title="Click to Show on Minisite"
+                style={{ border: 'none', cursor: 'pointer', fontSize: '0.55rem', fontWeight: 900, background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px' }}
+              >
+                👁️ HIDDEN (Click to Show)
+              </button>
+            )}
+            {!isEnabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectSection(sec);
+                  setEditSection(s => ({ ...s, active: true }));
+                  setActiveTab('meta');
+                }}
+                title="Click to Activate Section"
+                style={{ border: 'none', cursor: 'pointer', fontSize: '0.55rem', fontWeight: 900, background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px' }}
+              >
+                🚫 INACTIVE (Click to Activate)
+              </button>
+            )}
           </div>
         </div>
         {isLibrary && !isAssigned && selectedType && onAdd && (
@@ -881,6 +923,49 @@ export default function UnifiedSectionArchitect() {
             {/* Right actions */}
             {currentSection && (
               <div style={{marginLeft:'auto',display:'flex',gap:'0.5rem',alignItems:'center'}}>
+                <Link
+                  href={`/jana/content?section=${currentSection.id}`}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid #6366f1',
+                    background: '#eef2ff',
+                    color: '#4f46e5',
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="Open live content ops & minisite control for this section"
+                >
+                  <i className="fas fa-sliders" /> Control Live Minisite
+                </Link>
+                {!editSection.show_on_minisite && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditSection(s => ({ ...s, show_on_minisite: true }));
+                      notify('Minisite Visibility enabled — click Save Section to apply globally.');
+                    }}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: '#10b981',
+                      color: '#fff',
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <i className="fas fa-eye" /> Enable Minisite Visibility
+                  </button>
+                )}
                 <span style={{fontSize:'0.62rem',fontWeight:900,color:currentSection.active?'#10b981':'#94a3b8',background:currentSection.active?'#dcfce7':'#f1f5f9',padding:'4px 10px',borderRadius:'8px'}}>
                   {currentSection.active ? '● ACTIVE' : '○ INACTIVE'}
                 </span>
