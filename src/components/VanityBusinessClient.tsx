@@ -16,6 +16,41 @@ import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
  * VANITY URL CLIENT COMPONENT
  * Handles the interactive minisite UI.
  */
+function interpolateFieldTokens(text: string, secData: Record<string, any> = {}, sectionFields: any[] = []): string {
+  if (!text || typeof text !== 'string') return text || '';
+
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, rawKey) => {
+    const key = rawKey.trim().toLowerCase();
+    
+    // Find matching field definition by name or label
+    const fieldDef = (sectionFields || []).find((f: any) => 
+      String(f?.name || '').toLowerCase() === key || 
+      String(f?.label || '').toLowerCase() === key
+    );
+
+    const dataKey = fieldDef?.name || key;
+    const rawVal = secData?.[dataKey] ?? secData?.[key];
+
+    if (rawVal === undefined || rawVal === null || rawVal === '') {
+      return '';
+    }
+
+    if (Array.isArray(rawVal)) {
+      return rawVal.map(v => typeof v === 'object' ? (v.name || v.label || JSON.stringify(v)) : String(v)).join(', ');
+    }
+
+    if (typeof rawVal === 'boolean') {
+      return rawVal ? 'Yes' : 'No';
+    }
+
+    if (typeof rawVal === 'object') {
+      return rawVal.name || rawVal.title || rawVal.label || rawVal.value || JSON.stringify(rawVal);
+    }
+
+    return String(rawVal);
+  });
+}
+
 export default function VanityBusinessClient({ 
   slug, 
   initialData, 
@@ -724,27 +759,41 @@ export default function VanityBusinessClient({
                       </div>
                     )}
 
-                    {/* BLOG / NARRATIVE */}
-                    {dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar) ? (
-                      <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
-                        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
-                        <div className="rich-content" dangerouslySetInnerHTML={{ __html: dbBlog.content }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
-                      </div>
-                    ) : (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) ? (
-                      secData?.section_blog_ar ? (
-                        <div className="rich-content" dangerouslySetInnerHTML={{ __html: secData.section_blog_ar }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
-                      ) : (
-                        <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
-                          {secData.section_news_ar || secData.description_ar}
-                        </div>
-                      )
-                    ) : secData?.section_blog ? (
-                      <div className="rich-content" dangerouslySetInnerHTML={{ __html: secData.section_blog }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
-                    ) : secData?.description ? (
-                      <div style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '2.5rem' }}>
-                        {secData.section_news || secData.description}
-                      </div>
-                    ) : null}
+                    {/* BLOG / NARRATIVE WITH DYNAMIC FIELD TOKEN INTERPOLATION & SHOW/HIDE CONTROL */}
+                    {(() => {
+                      const sectionMeta = data?.section_content_meta?.[section.id] || {};
+                      const showBlogOnMinisite = sectionMeta.blogOnMinisite !== false && sectionMeta.blogOnMinisite !== 0;
+
+                      if (!showBlogOnMinisite) return null;
+
+                      if (dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar)) {
+                        const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields);
+                        return (
+                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
+                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                          </div>
+                        );
+                      }
+
+                      if (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) {
+                        const rawBlog = secData?.section_blog_ar || secData?.section_news_ar || secData?.description_ar;
+                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
+                        return (
+                          <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
+                        );
+                      }
+
+                      if (secData?.section_blog || secData?.description || secData?.section_news) {
+                        const rawBlog = secData?.section_blog || secData?.section_news || secData?.description;
+                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
+                        return (
+                          <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
+                        );
+                      }
+
+                      return null;
+                    })()}
 
                     {/* CUSTOM FIELDS GRID */}
                     {(secData || sectionHasDefinedFields) && (
