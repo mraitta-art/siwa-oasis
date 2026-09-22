@@ -246,7 +246,11 @@ export default function VanityBusinessClient({
   
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
   const identity = data.basic || data.sec_1_identity || data.business_info || {};
-  const dynamicPhone = isMasterTemplate ? '+20 (10) SIWA-TODAY' : (biz.vendor_phone || identity.phone || data.phone || '+20 (12) SIWA-OASIS');
+  const dynamicPhone = isMasterTemplate ? '+201000000000' : (biz.vendor_phone || identity.phone || data.phone || '+201200000000');
+  const dynamicWhatsapp = isMasterTemplate ? '201000000000' : (identity.whatsapp || identity.whatsapp_number || data.whatsapp || biz.vendor_phone || identity.phone || '201200000000');
+  const cleanPhone = String(dynamicPhone).replace(/[^0-9+]/g, '');
+  const cleanWhatsapp = String(dynamicWhatsapp).replace(/[^0-9]/g, '');
+  const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}`;
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
   const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;
@@ -427,6 +431,40 @@ export default function VanityBusinessClient({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Fixed Phone & WhatsApp Quick Direct Contact Buttons */}
+            {cleanPhone && (
+              <a
+                href={`tel:${cleanPhone}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '5px 12px', borderRadius: '20px', background: '#f8fafc',
+                  border: '1px solid #e2e8f0', color: '#1e293b', fontSize: '0.68rem',
+                  fontWeight: 900, textDecoration: 'none', transition: 'all 0.2s'
+                }}
+                title="Call Phone Direct"
+              >
+                <i className="fas fa-phone-alt" style={{ color: '#D4AF37', fontSize: '0.75rem' }} />
+                <span>CALL</span>
+              </a>
+            )}
+            {cleanWhatsapp && (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '5px 12px', borderRadius: '20px', background: '#dcfce7',
+                  border: '1px solid #86efac', color: '#15803d', fontSize: '0.68rem',
+                  fontWeight: 900, textDecoration: 'none', transition: 'all 0.2s'
+                }}
+                title="Chat on WhatsApp"
+              >
+                <i className="fab fa-whatsapp" style={{ color: '#16a34a', fontSize: '0.85rem' }} />
+                <span>WHATSAPP</span>
+              </a>
+            )}
+
             {/* Language Toggle Switcher — only shown when admin enables multilingual */}
             {(liveSettings?.enable_minisite_multilingual === true || biz?.tier_features?.allow_multilingual === true) && (
               <div style={{ 
@@ -1414,32 +1452,35 @@ export default function VanityBusinessClient({
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 99,
           height: '65px', background: '#fff', borderTop: '1px solid rgba(212,175,55,0.2)',
           boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', display: 'none',
-          gridTemplateColumns: 'repeat(3, 1fr)', alignItems: 'center'
+          gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'center'
         }}
       >
-        {biz.subscription_tier === 'free' ? (
-          <Link 
-            href={`/offers/${biz.slug}`}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifySelf: 'stretch',
-              justifyContent: 'center', height: '100%', textDecoration: 'none', color: '#D4AF37'
-            }}
-          >
-            <i className="fas fa-certificate" style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}></i>
-            <span style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.5px' }}>VIEW OFFER</span>
-          </Link>
-        ) : (
-          <a 
-            href={`tel:${dynamicPhone}`}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifySelf: 'stretch',
-              justifyContent: 'center', height: '100%', textDecoration: 'none', color: '#1e293b'
-            }}
-          >
-            <i className="fas fa-phone-alt" style={{ fontSize: '1.1rem', color: '#D4AF37', marginBottom: '0.2rem' }}></i>
-            <span style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.5px' }}>CALL DIRECT</span>
-          </a>
-        )}
+        <a 
+          href={`tel:${cleanPhone}`}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifySelf: 'stretch',
+            justifyContent: 'center', height: '100%', textDecoration: 'none', color: '#1e293b'
+          }}
+          title="Call Phone"
+        >
+          <i className="fas fa-phone-alt" style={{ fontSize: '1.1rem', color: '#D4AF37', marginBottom: '0.2rem' }}></i>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>CALL DIRECT</span>
+        </a>
+
+        <a 
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifySelf: 'stretch',
+            justifyContent: 'center', height: '100%', textDecoration: 'none', color: '#15803d',
+            borderLeft: '1px solid #f1f5f9'
+          }}
+          title="Chat on WhatsApp"
+        >
+          <i className="fab fa-whatsapp" style={{ fontSize: '1.25rem', color: '#16a34a', marginBottom: '0.2rem' }}></i>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>WHATSAPP</span>
+        </a>
 
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
@@ -1449,8 +1490,8 @@ export default function VanityBusinessClient({
             color: '#1e293b', borderLeft: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9'
           }}
         >
-          <i className="fas fa-compass" style={{ fontSize: '1.2rem', color: '#1e293b', marginBottom: '0.2rem' }}></i>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.5px' }}>CHAPTERS</span>
+          <i className="fas fa-compass" style={{ fontSize: '1.15rem', color: '#1e293b', marginBottom: '0.2rem' }}></i>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>CHAPTERS</span>
         </button>
 
         <button 
@@ -1462,7 +1503,7 @@ export default function VanityBusinessClient({
           }}
         >
           <i className="fas fa-share-alt" style={{ fontSize: '1.1rem', color: '#64748b', marginBottom: '0.2rem' }}></i>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.5px' }}>SHARE SITE</span>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>SHARE SITE</span>
         </button>
       </div>
 
