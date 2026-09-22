@@ -89,12 +89,17 @@ const STANDARD_CORE_PAGES: PageMeta[] = [
 ];
 
 function MultiPageSiteBuilderComponent() {
+  const searchParams = useSearchParams();
+  const queryPage = searchParams?.get('page') || null;
+  const queryBusiness = searchParams?.get('businessId') || '';
+
   const [mode, setMode]                 = useState<Mode>('PAGES');
   const [pages, setPages]               = useState<PageMeta[]>(STANDARD_CORE_PAGES);
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
-  const [currentPage, setCurrentPage]   = useState('main');
-  const [businessId, setBusinessId]     = useState('');
+  const [currentPage, setCurrentPage]   = useState(queryPage || 'main');
+  const [businessId, setBusinessId]     = useState(queryBusiness || '');
+  const [pageLoading, setPageLoading]   = useState(false);
   const [businesses, setBusinesses]     = useState<BusinessMeta[]>([]);
   const [businessContext, setBusinessContext] = useState<BusinessTemplateContext | null>(null);
   const [templateSaving, setTemplateSaving] = useState(false);
@@ -132,9 +137,6 @@ function MultiPageSiteBuilderComponent() {
     logo_url: '', show_watermark: true, watermark_text: '', show_platform_anchor: true, logo_height: 40,
     enable_minisite_multilingual: false,
   });
-  const searchParams = useSearchParams();
-  const queryPage = searchParams?.get('page') || null;
-  const queryBusiness = searchParams?.get('businessId') || '';
 
   const scopedPageId = (slug: string, type: 'page' | 'search' = 'page') => {
     const base = type === 'search' ? `website_search_${slug}` : `website_${slug}`;
@@ -418,32 +420,72 @@ function MultiPageSiteBuilderComponent() {
   const getPreviewUrl = () => getPreviewUrlForPage(currentPage);
 
   useEffect(() => {
+    let isCurrent = true;
     const loadPageLayout = async () => {
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
         const pageId = scopedPageId(currentPage, pageType);
 
+        setPageLoading(true);
         try {
           const res = await fetch(`/api/jana/website?id=${pageId}`);
           const data = await res.json();
+          if (!isCurrent) return;
           const t = Array.isArray(data) ? data[0] : data;
 
           if (!t) {
             setSlots(getDefaultSlotsForPage(currentPage));
+            setPageLoading(false);
             return;
           }
 
+          const pageCarId = `${currentPage || 'main'}_hero`;
+          const resolveCarousel = (c: any) => {
+            if (c.type !== 'hero_carousel') return c.props?.carousel_id;
+            const explicit = c.props?.carousel_id || c.carousel_id;
+            if (explicit && explicit !== 'discovery' && (currentPage === 'main' || explicit !== 'main_hero')) {
+              return explicit;
+            }
+            return pageCarId;
+          };
+
           const allLoaded = [
-            ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
-            ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
-            ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.type === 'hero_carousel' ? (c.props?.carousel_id && c.props.carousel_id !== 'discovery' ? c.props.carousel_id : pageCarouselId()) : c.props?.carousel_id, props: c.props })),
+            ...(t.header_components || []).map((c: any) => ({
+              id: c.id,
+              key: c.type,
+              zone: 'header' as Zone,
+              label: c.name || PALETTE.find(p => p.key === c.type)?.name || c.type,
+              engine_id: c.props?.engine_id,
+              carousel_id: resolveCarousel(c),
+              props: { ...(c.props || {}), ...(c.type === 'hero_carousel' ? { carousel_id: resolveCarousel(c) } : {}) }
+            })),
+            ...(t.body_components || []).map((c: any) => ({
+              id: c.id,
+              key: c.type,
+              zone: 'body' as Zone,
+              label: c.name || PALETTE.find(p => p.key === c.type)?.name || c.type,
+              engine_id: c.props?.engine_id,
+              carousel_id: resolveCarousel(c),
+              props: { ...(c.props || {}), ...(c.type === 'hero_carousel' ? { carousel_id: resolveCarousel(c) } : {}) }
+            })),
+            ...(t.footer_components || []).map((c: any) => ({
+              id: c.id,
+              key: c.type,
+              zone: 'footer' as Zone,
+              label: c.name || PALETTE.find(p => p.key === c.type)?.name || c.type,
+              engine_id: c.props?.engine_id,
+              carousel_id: resolveCarousel(c),
+              props: { ...(c.props || {}), ...(c.type === 'hero_carousel' ? { carousel_id: resolveCarousel(c) } : {}) }
+            })),
           ];
 
           const hasSavedLayout = ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(t[key]) && t[key].length > 0);
           setSlots(hasSavedLayout ? allLoaded : getDefaultSlotsForPage(currentPage));
         } catch {
-          setSlots(getDefaultSlotsForPage(currentPage));
+          if (isCurrent) setSlots(getDefaultSlotsForPage(currentPage));
+        } finally {
+          if (isCurrent) setPageLoading(false);
         }
       } else {
         const tmpl = templates.find(t => t.id === currentPage);
@@ -458,6 +500,7 @@ function MultiPageSiteBuilderComponent() {
     };
 
     loadPageLayout();
+    return () => { isCurrent = false; };
   }, [currentPage, mode, templates, pages, businessId]);
 
   const switchMode = (m: Mode) => {
@@ -513,7 +556,28 @@ function MultiPageSiteBuilderComponent() {
   const save = async () => {
     setSaving(true);
     try {
-      const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.key === 'hero_carousel' ? (s.carousel_id || pageCarouselId()) : s.carousel_id, ...(s.props || {}) } });
+      const toComp = (s: Slot) => {
+        const pageCarId = `${currentPage || 'main'}_hero`;
+        const explicitCarId = s.props?.carousel_id || s.carousel_id;
+        const resolvedCarId = s.key === 'hero_carousel'
+          ? (explicitCarId && explicitCarId !== 'discovery' && (currentPage === 'main' || explicitCarId !== 'main_hero')
+              ? explicitCarId
+              : pageCarId)
+          : undefined;
+
+        return {
+          id: s.id,
+          type: s.key,
+          name: s.label,
+          zone: s.zone,
+          props: {
+            title: s.label,
+            engine_id: s.engine_id,
+            ...(s.props || {}),
+            ...(s.key === 'hero_carousel' ? { carousel_id: resolvedCarId } : {}),
+          },
+        };
+      };
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
@@ -959,8 +1023,13 @@ function MultiPageSiteBuilderComponent() {
               </div>
             </div>
 
-            {/* Empty state */}
-            {slotsFor(activeZone).length === 0 ? (
+            {/* Empty or loading state */}
+            {pageLoading ? (
+              <div style={{ textAlign:'center', padding:'5rem 2rem', borderRadius:20, background:'#fff', border:'1px solid #e2e8f0' }}>
+                <div style={{ width:36, height:36, border:'3px solid #D4AF37', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 1rem' }} />
+                <div style={{ fontWeight:800, fontSize:'0.9rem', color:'#0f172a' }}>Loading {currentPage} layout…</div>
+              </div>
+            ) : slotsFor(activeZone).length === 0 ? (
               <div style={{ textAlign:'center', padding:'5rem 2rem', border:'2px dashed #e2e8f0', borderRadius:20, color:'#94a3b8', background:'#fff' }}>
                 <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>＋</div>
                 <div style={{ fontWeight:800, fontSize:'0.95rem' }}>No {activeZone} blocks added</div>
