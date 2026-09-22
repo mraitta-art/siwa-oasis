@@ -95,6 +95,26 @@ export function getEffectiveSectionLabel(sectionId: string, fallbackName?: strin
 
 export function isSectionHidden(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null, templateHidden: unknown[] = []): boolean {
   const normalizedId = resolveSectionId(sectionId);
+
+  // 1. Explicit admin per-business control override
+  if (sectionControl?.admin_hidden === 1 || sectionControl?.admin_hidden === true) {
+    return true;
+  }
+  if (sectionControl?.admin_hidden === 0 || sectionControl?.admin_hidden === false) {
+    return false;
+  }
+
+  // 2. Explicit customData per-business visible override
+  const visibleFromCustom = Array.isArray(customData?.basic?.visible_sections)
+    ? customData.basic.visible_sections
+    : (Array.isArray(customData?.visible_sections) ? customData.visible_sections : []);
+
+  const visibleSet = new Set<string>(visibleFromCustom.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId));
+  if (visibleSet.has(normalizedId) || visibleSet.has(sectionId)) {
+    return false;
+  }
+
+  // 3. CustomData per-business hidden override
   const hiddenFromCustom = Array.isArray(customData?.basic?.hidden_sections)
     ? customData.basic.hidden_sections
     : (Array.isArray(customData?.hidden_sections) ? customData.hidden_sections : []);
@@ -103,10 +123,6 @@ export function isSectionHidden(sectionId: string, customData?: Record<string, a
     ...templateHidden.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId),
     ...hiddenFromCustom.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId),
   ]);
-
-  if (sectionControl?.admin_hidden === 1 || sectionControl?.admin_hidden === true) {
-    hiddenSet.add(normalizedId);
-  }
 
   return hiddenSet.has(normalizedId) || hiddenSet.has(sectionId);
 }

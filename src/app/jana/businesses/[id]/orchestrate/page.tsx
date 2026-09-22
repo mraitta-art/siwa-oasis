@@ -290,8 +290,35 @@ export default function BusinessOrchestrator() {
                           <button
                             onClick={() => {
                               const hidden = [...(biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections || [])];
-                              const nextHidden = isHidden ? hidden.filter((hid: string) => hid !== s.id) : [...hidden, s.id];
-                              updateCustomData('basic', 'hidden_sections', nextHidden);
+                              const visible = [...(biz.custom_data?.basic?.visible_sections || biz.custom_data?.visible_sections || [])];
+
+                              let nextHidden: string[];
+                              let nextVisible: string[];
+
+                              if (isHidden) {
+                                // Enabling section for this specific business
+                                nextHidden = hidden.filter((hid: string) => resolveSectionId(hid) !== resolveSectionId(s.id));
+                                nextVisible = Array.from(new Set([...visible, s.id]));
+                              } else {
+                                // Disabling/hiding section for this specific business
+                                nextVisible = visible.filter((vis: string) => resolveSectionId(vis) !== resolveSectionId(s.id));
+                                nextHidden = Array.from(new Set([...hidden, s.id]));
+                              }
+
+                              setBiz((prev: any) => ({
+                                ...prev,
+                                custom_data: {
+                                  ...prev.custom_data,
+                                  basic: {
+                                    ...(prev.custom_data?.basic || {}),
+                                    hidden_sections: nextHidden,
+                                    visible_sections: nextVisible,
+                                  },
+                                  hidden_sections: nextHidden,
+                                  visible_sections: nextVisible,
+                                }
+                              }));
+
                               if (!isHidden && activeSectionId === s.id) {
                                 setActiveSectionId(sections.find((sec) => !nextHidden.includes(sec.id))?.id || null);
                               }
