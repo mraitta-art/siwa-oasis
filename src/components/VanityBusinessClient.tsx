@@ -223,7 +223,8 @@ export default function VanityBusinessClient({
   const platformName = liveSettings?.site_name || siteSettings?.site_name || 'SiWiFy.com';
   const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || '';
 
-  const serializedTemplateComponents = templatePlan?.components || [];
+  // Filter out hero_carousel from template components: AutomatedMinisiteHero handles the business-specific hero
+  const serializedTemplateComponents = (templatePlan?.components || []).filter(c => c.type !== 'hero_carousel');
 
   // Multilingual label helper: resolves Arabic label if active and present, otherwise standard label/section name
   const getSectionLabel = (sectionId: string, defaultName: string) => {
