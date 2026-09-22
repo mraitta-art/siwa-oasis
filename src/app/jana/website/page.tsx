@@ -42,6 +42,8 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'investment_feed',       name: 'Investment Marketplace',  icon: '💎', manager: null,                  color: '#ec4899', desc: 'Heritage investment opportunities' },
   { zone: 'body',   key: 'discovery_gateway',      name: 'Discovery Gateway',       icon: '🧭', manager: null,                  color: '#0f766e', desc: 'Primary navigation to experiences, journeys, deals, and investments' },
   { zone: 'body',   key: 'services',              name: 'Business Listings CTA',   icon: '🏢', manager: '/jana/businesses',     color: '#10b981', desc: 'Simple verified-businesses banner' },
+  { zone: 'body',   key: 'auctions_feed',         name: 'Live Auctions Feed',      icon: '🔨', manager: null,                  color: '#eab308', desc: 'Live & upcoming auctions with search and bidding' },
+  { zone: 'body',   key: 'partner_registration_form', name: 'Partner Onboarding Form', icon: '📝', manager: null,             color: '#D4AF37', desc: 'Complete partner application form with sector selection' },
 
   // ── Footer zone ──
   { zone: 'footer', key: 'partner_cta',    name: 'Partner CTA (Footer)',     icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Footer partnership call-to-action' },
@@ -137,6 +139,107 @@ function MultiPageSiteBuilderComponent() {
     logo_url: '', show_watermark: true, watermark_text: '', show_platform_anchor: true, logo_height: 40,
     enable_minisite_multilingual: false,
   });
+
+  // Dirty state tracking & Snapshot
+  const [initialSnapshot, setInitialSnapshot] = useState<string>('');
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [pendingTargetDesc, setPendingTargetDesc] = useState<string>('');
+  const [mobileTab, setMobileTab] = useState<'pages' | 'palette' | 'canvas'>('canvas');
+  const [reloadCounter, setReloadCounter] = useState(0);
+
+  const createSnapshot = (currentSlots: Slot[], currentSettings: any) => {
+    return JSON.stringify({
+      slots: currentSlots.map(s => ({
+        id: s.id,
+        key: s.key,
+        zone: s.zone,
+        label: s.label,
+        engine_id: s.engine_id || '',
+        carousel_id: s.carousel_id || '',
+        props: s.props || {},
+      })),
+      settings: currentSettings,
+    });
+  };
+
+  const isDirty = Boolean(initialSnapshot && createSnapshot(slots, siteSettings) !== initialSnapshot);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const attemptSwitchPage = (targetSlug: string) => {
+    if (targetSlug === currentPage) {
+      setMobileTab('canvas');
+      return;
+    }
+    if (isDirty) {
+      setPendingTargetDesc(`page "${targetSlug.toUpperCase()}"`);
+      setPendingAction(() => () => {
+        setCurrentPage(targetSlug);
+        updateUrlState(targetSlug, businessId);
+        setMobileTab('canvas');
+      });
+      setShowUnsavedModal(true);
+      return;
+    }
+    setCurrentPage(targetSlug);
+    updateUrlState(targetSlug, businessId);
+    setMobileTab('canvas');
+  };
+
+  const attemptSwitchMode = (m: Mode) => {
+    if (m === mode) return;
+    const targetPage = m === 'PAGES' ? (pages[0]?.slug || 'main') : (templates[0]?.id || '');
+    if (isDirty) {
+      setPendingTargetDesc(`mode "${m}"`);
+      setPendingAction(() => () => {
+        setMode(m);
+        setCurrentPage(targetPage);
+        setMobileTab('canvas');
+      });
+      setShowUnsavedModal(true);
+      return;
+    }
+    setMode(m);
+    setCurrentPage(targetPage);
+  };
+
+  const attemptSwitchBusiness = (nextBId: string) => {
+    if (nextBId === businessId) return;
+    if (isDirty) {
+      setPendingTargetDesc(`scope`);
+      setPendingAction(() => () => {
+        setBusinessId(nextBId);
+        setCurrentPage('main');
+        setSlots([]);
+        updateUrlState('main', nextBId);
+      });
+      setShowUnsavedModal(true);
+      return;
+    }
+    setBusinessId(nextBId);
+    setCurrentPage('main');
+    setSlots([]);
+    updateUrlState('main', nextBId);
+  };
+
+  const reloadCurrentPage = () => {
+    if (isDirty) {
+      const confirmed = window.confirm(`Discard unsaved changes on "${currentPage}" and reload the latest layout from the database?`);
+      if (!confirmed) return;
+    }
+    setReloadCounter(c => c + 1);
+    notify(`↻ Reloading ${currentPage.toUpperCase()} layout...`, 'info');
+  };
 
   const scopedPageId = (slug: string, type: 'page' | 'search' = 'page') => {
     const base = type === 'search' ? `website_search_${slug}` : `website_${slug}`;
@@ -327,7 +430,7 @@ function MultiPageSiteBuilderComponent() {
     if (slug === 'auctions') {
       return [
         { id: 'auctions_hero', key: 'hero_carousel', zone: 'body', label: 'Live Auctions Hero Carousel', props: { carousel_id: 'auctions_hero' } },
-        { id: 'auctions_tabs', key: 'category_commercial_tabs', zone: 'body', label: 'Auctions Showcase & Tabs', props: {} },
+        { id: 'auctions_feed', key: 'auctions_feed', zone: 'body', label: 'Live & Upcoming Auctions Feed', props: {} },
         { id: 'auctions_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
       ];
     }
@@ -351,7 +454,7 @@ function MultiPageSiteBuilderComponent() {
     if (slug === 'be-a-partner') {
       return [
         { id: 'partner_hero', key: 'hero_carousel', zone: 'body', label: 'Be a Partner Hero Carousel', props: { carousel_id: 'be-a-partner_hero' } },
-        { id: 'partner_cta_main', key: 'partner_cta', zone: 'body', label: 'Partner Value Proposition & Onboarding', props: {} },
+        { id: 'partner_form', key: 'partner_registration_form', zone: 'body', label: 'Partner Onboarding & Application Form', props: {} },
         { id: 'partner_footer_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
       ];
     }
@@ -1136,12 +1239,29 @@ function MultiPageSiteBuilderComponent() {
                         </ConfigBox>
                       )}
 
-                      {def?.manager && mode==='PAGES' && (
-                        <Link href={`${def.manager}${slot.carousel_id?`?siteId=${slot.carousel_id}`:''}`}
-                          style={{ alignSelf:'flex-start', padding:'0.38rem 0.85rem', background:color, color:'#fff', textDecoration:'none', borderRadius:7, fontSize:'0.6rem', fontWeight:800, display:'flex', alignItems:'center', gap:5 }}>
-                          ⚙️ MANAGE CONTENT
-                        </Link>
-                      )}
+                      {def?.manager && mode==='PAGES' && (() => {
+                        let managerHref = def.manager;
+                        if (slot.key === 'hero_carousel') {
+                          const pageCarId = `${currentPage || 'main'}_hero`;
+                          const carId = slot.props?.carousel_id || slot.carousel_id || pageCarId;
+                          const effectiveCarId = carId && carId !== 'discovery' && (currentPage === 'main' || carId !== 'main_hero')
+                            ? carId
+                            : pageCarId;
+
+                          managerHref = businessId
+                            ? `/jana/hero-carousel?targetScope=minisite&businessId=${encodeURIComponent(businessId)}&siteId=${encodeURIComponent(effectiveCarId)}`
+                            : `/jana/hero-carousel?targetScope=main&siteId=${encodeURIComponent(effectiveCarId)}&mainPreset=${encodeURIComponent(effectiveCarId)}`;
+                        } else if (slot.carousel_id || slot.props?.carousel_id) {
+                          const cId = slot.props?.carousel_id || slot.carousel_id;
+                          managerHref = `${def.manager}?siteId=${encodeURIComponent(cId)}`;
+                        }
+                        return (
+                          <Link href={managerHref}
+                            style={{ alignSelf:'flex-start', padding:'0.38rem 0.85rem', background:color, color:'#fff', textDecoration:'none', borderRadius:7, fontSize:'0.6rem', fontWeight:800, display:'flex', alignItems:'center', gap:5 }}>
+                            ⚙️ MANAGE CONTENT
+                          </Link>
+                        );
+                      })()}
                     </div>
                   </div>
                 );

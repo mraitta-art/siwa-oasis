@@ -34,6 +34,8 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
   text_section: { allowed: [...COMMON_TEXT, 'content', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   testimonials: { allowed: [...COMMON_TEXT, 'testimonials', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   faq: { allowed: [...COMMON_TEXT, 'faqs', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  auctions_feed: { allowed: [...COMMON_TEXT, 'filterType', 'filterStatus', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  partner_registration_form: { allowed: [...COMMON_TEXT, 'hero_title', 'hero_subtitle', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
 };
 
 function isPlainObject(value: unknown): value is ComponentProps {

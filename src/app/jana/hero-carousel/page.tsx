@@ -57,7 +57,9 @@ interface DynamicBusinessSection {
 
 const MAIN_PAGE_PRESETS = [
   { id: 'discovery', label: '🏠 Homepage', url: '/' },
+  { id: 'main_hero', label: '🏠 Homepage (Main)', url: '/' },
   { id: 'accommodations_hero', label: '🏨 Accommodations & Lodges', url: '/accommodations' },
+  { id: 'restaurants_hero', label: '🍴 Restaurants & Dining', url: '/restaurants' },
   { id: 'transportation_hero', label: '🚗 Transportation & 4x4', url: '/transportation' },
   { id: 'activities_hero', label: '🐪 Activities & Safari', url: '/activities' },
   { id: 'food-beverage_hero', label: '🍽️ Food & Dining', url: '/food-beverage' },
@@ -172,6 +174,19 @@ const DEFAULT_STARTER_SLIDES: Record<string, Array<Omit<CarouselSlide, 'id' | 'd
       type: 'image',
       ctaText: 'Discover Dining',
       ctaLink: '/food-beverage',
+      overlayOpacity: 0.4,
+      animation: 'kenburns',
+    },
+  ],
+  restaurants_hero: [
+    {
+      title: 'Authentic Siwan Dining & Desert Feasts',
+      subtitle: 'Taste authentic Siwan recipes, fresh date delicacies, and wood-fired dishes',
+      caption: 'Flavours of Siwa',
+      mediaUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1600',
+      type: 'image',
+      ctaText: 'Discover Restaurants',
+      ctaLink: '/restaurants',
       overlayOpacity: 0.4,
       animation: 'kenburns',
     },
@@ -509,11 +524,30 @@ function HeroCarouselManagerContent() {
       };
     }
 
-    const preset = MAIN_PAGE_PRESETS.find(p => p.id === mainPagePreset) || MAIN_PAGE_PRESETS[0];
+    const preset = MAIN_PAGE_PRESETS.find(p => p.id === mainPagePreset);
+    if (preset) {
+      return {
+        siteId: preset.id,
+        url: preset.url,
+        title: `Main Website: ${preset.label}`,
+        scopeLabel: '🏠 Main Website Page',
+      };
+    }
+
+    if (mainPagePreset && mainPagePreset !== 'discovery') {
+      const cleanSlug = mainPagePreset.replace(/_hero$/, '');
+      return {
+        siteId: mainPagePreset,
+        url: `/${cleanSlug}`,
+        title: `Main Website: ${cleanSlug.replace(/-/g, ' ')}`,
+        scopeLabel: '🏠 Main Website Page',
+      };
+    }
+
     return {
-      siteId: preset.id,
-      url: preset.url,
-      title: `Main Website: ${preset.label}`,
+      siteId: MAIN_PAGE_PRESETS[0].id,
+      url: MAIN_PAGE_PRESETS[0].url,
+      title: `Main Website: ${MAIN_PAGE_PRESETS[0].label}`,
       scopeLabel: '🏠 Main Website Page',
     };
   };

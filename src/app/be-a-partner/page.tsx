@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import VendorTierFeatureModal from '@/components/VendorTierFeatureModal';
 
 const DEFAULT_CONTENT = {
@@ -29,6 +30,7 @@ export default function BeAPartnerPage() {
   const [error, setError]       = useState('');
   const [content, setContent]   = useState(DEFAULT_CONTENT);
   const [types, setTypes]       = useState<{ id: string; name: string }[]>([]);
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
   const router = useRouter();
 
   // Form field state
@@ -38,12 +40,20 @@ export default function BeAPartnerPage() {
   const [typologyId, setTypologyId]     = useState('');
 
   useEffect(() => {
-    // Load editable copy from CMS
+    // Load layout and editable copy from CMS
     fetch('/api/jana/website?id=website_be-a-partner')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
           const config = Array.isArray(data) ? data[0] : data;
+          const layout = [
+            ...(config?.header_components || []),
+            ...(config?.body_components || []),
+            ...(config?.footer_components || []),
+          ];
+          if (layout.length > 0) {
+            setBuilderConfig({ ...config, layout });
+          }
           if (config?.site_settings) {
             setContent({ ...DEFAULT_CONTENT, ...config.site_settings });
           }
@@ -89,6 +99,18 @@ export default function BeAPartnerPage() {
       setLoading(false);
     }
   };
+
+  if (builderConfig) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+        <DynamicHomepageRenderer
+          layout={builderConfig.layout}
+          settings={builderConfig.site_settings || null}
+          pageId="be-a-partner"
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', color: '#1a1a2e', fontFamily: 'system-ui, -apple-system, sans-serif' }}>

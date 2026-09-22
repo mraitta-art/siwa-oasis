@@ -16,6 +16,8 @@ import ServicesHub from '@/components/ServicesHub';
 import CategoryCommercialTabs from '@/components/CategoryCommercialTabs';
 import CategoryPageHero from '@/components/CategoryPageHero';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
+import AuctionsShowcase from '@/components/AuctionsShowcase';
+import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
 import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
 
@@ -283,6 +285,32 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
         <AnimatedSection>
           <section>
             <VendorPartnerCTA title={props?.title} subtitle={props?.subtitle} />
+          </section>
+        </AnimatedSection>
+      );
+
+    // ─── AUCTIONS FEED & SHOWCASE ─────────────────────────
+    case 'auctions_feed':
+    case 'auctions_showcase':
+      return (
+        <AnimatedSection>
+          <section style={{ background: 'var(--bg, #0f172a)' }}>
+            <AuctionsShowcase title={props?.title} subtitle={props?.subtitle} />
+          </section>
+        </AnimatedSection>
+      );
+
+    // ─── PARTNER REGISTRATION FORM ────────────────────────
+    case 'partner_registration_form':
+      return (
+        <AnimatedSection>
+          <section style={{ background: 'var(--bg, #f8fafc)' }}>
+            <PartnerRegistrationForm
+              title={props?.title}
+              subtitle={props?.subtitle}
+              hero_title={props?.hero_title}
+              hero_subtitle={props?.hero_subtitle}
+            />
           </section>
         </AnimatedSection>
       );
