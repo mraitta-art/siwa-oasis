@@ -63,7 +63,8 @@ export default function VanityBusinessClient({
   isTrusted = false,
   siteSettings,
   initialActiveTab,
-  lockedSections = []
+  lockedSections = [],
+  isAdmin = false
 }: { 
   slug: string, 
   initialData: any, 
@@ -76,7 +77,8 @@ export default function VanityBusinessClient({
   isTrusted?: boolean,
   siteSettings?: any,
   initialActiveTab?: string,
-  lockedSections?: string[]
+  lockedSections?: string[],
+  isAdmin?: boolean
 }) {
   const [activeTab, setActiveTab] = useState<string | null>(initialActiveTab || null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1480,18 +1482,19 @@ export default function VanityBusinessClient({
         </div>
       )}
 
-      {/* FLOATING QUICK ADMIN ACTION TOOLBAR */}
-      <aside 
-        aria-label="Admin Quick Tools"
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: isRTL ? 'auto' : '24px',
-          left: isRTL ? '24px' : 'auto',
-          zIndex: 9999,
-          fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}
-      >
+      {/* FLOATING QUICK ADMIN ACTION TOOLBAR — ONLY VISIBLE TO AUTHENTICATED ADMINS */}
+      {isAdmin && (
+        <aside 
+          aria-label="Admin Quick Tools"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: isRTL ? 'auto' : '24px',
+            left: isRTL ? '24px' : 'auto',
+            zIndex: 9999,
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}
+        >
         {isAdminToolsOpen ? (
           <div style={{
             background: 'rgba(15, 23, 42, 0.95)',
@@ -1625,6 +1628,7 @@ export default function VanityBusinessClient({
           </button>
         )}
       </aside>
+      )}
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionA
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 
+import { getCurrentUser } from '@/lib/auth';
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -525,7 +527,11 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       }
     });
 
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} templatePlan={templatePlan} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} lockedSections={lockedSections} />;
+    // Check if viewing user is an authenticated admin
+    const user = await getCurrentUser().catch(() => null);
+    const isAdmin = user?.role === 'admin' || (user as any)?.is_admin === true;
+
+    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} templatePlan={templatePlan} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} lockedSections={lockedSections} isAdmin={isAdmin} />;
   } catch (e: any) {
     console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
     return (
