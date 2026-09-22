@@ -56,14 +56,12 @@ export default function BusinessOrchestrator() {
         const bizData = await bizRes.json();
         if (bizData.error) throw new Error(bizData.error);
 
-        const secRes = await fetch(`/api/jana/sections?type=${encodeURIComponent(bizData.type_id)}`);
+        const secRes = await fetch('/api/jana/sections');
         const rawSections = await secRes.json();
         const orderedSections = Array.isArray(rawSections) ? rawSections : [];
-        const deduped = Array.from(
+        const canonicalSections = Array.from(
           new Map(orderedSections.map((s: any) => [resolveSectionId(s.id), s])).values()
         );
-        const filteredIds = filterCoreSectionsForBusinessType(bizData.type_id, deduped.map((s: any) => s.id));
-        const canonicalSections = deduped.filter((s: any) => filteredIds.includes(resolveSectionId(s.id)));
 
         const typeRes = await fetch(`/api/jana/types?id=${bizData.type_id}`);
         const typeData = typeRes.ok ? await typeRes.json() : {};
