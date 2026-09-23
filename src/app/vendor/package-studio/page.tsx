@@ -4,10 +4,10 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Package, Plus, Edit2, Trash2, Eye, EyeOff, Star, StarOff, CheckCircle,
-  PauseCircle, Upload, Youtube, Image as ImageIcon, Video, X, ChevronDown,
-  ChevronUp, GripVertical, Save, ArrowLeft, Globe, Globe2, Tag, Clock,
-  Users, DollarSign, AlignLeft, List, Sparkles, ShieldCheck, AlertCircle, Send
+  Package, Plus, Edit2, Trash2, Star, CheckCircle,
+  PauseCircle, Upload, Image as ImageIcon, X,
+  Save, ArrowLeft, Globe, Tag,
+  AlignLeft, List, AlertCircle, Send
 } from 'lucide-react';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ function MiniRichEditor({
           className="w-7 h-7 flex items-center justify-center text-red-400 hover:bg-red-500/20 rounded"
           title="Embed YouTube"
         >
-          <Youtube size={14} />
+          <span style={{fontSize:'0.7rem',fontWeight:'900'}}>▶</span>
         </button>
 
         {uploading && <span className="text-xs text-[#D4AF37] animate-pulse px-2">Uploading...</span>}
@@ -369,7 +369,7 @@ function MediaGalleryManager({
           onClick={() => setAddingYt(!addingYt)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-sm text-red-300 font-semibold border border-red-500/30 transition"
         >
-          <Youtube size={16} />
+          <span style={{fontSize:'0.85rem'}}>▶</span>
           <span>{isRTL ? 'إضافة يوتيوب' : 'Add YouTube'}</span>
         </button>
       </div>
