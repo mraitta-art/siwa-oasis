@@ -122,6 +122,9 @@ export default function SectionContentStudio({
   const [blogTitleAr, setBlogTitleAr] = useState('');
   const [blogBodyAr, setBlogBodyAr] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappMsg, setWhatsappMsg] = useState('');
   const [meta, setMeta] = useState<ContentMeta>(EMPTY_META);
   const [uploadProgress, setUploadProgress] = useState<{ total: number; done: number } | string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -138,6 +141,9 @@ export default function SectionContentStudio({
     const sData = customData?.[sectionId] || {};
     const storedMeta = customData?.section_content_meta?.[sectionId] || {};
     setLogoUrl(customData?.basic?.business_logo || customData?.sec_1_identity?.business_logo || customData?.business_logo || '');
+    setPhone(customData?.basic?.phone || customData?.sec_1_identity?.phone || customData?.phone || '');
+    setWhatsapp(customData?.basic?.whatsapp || customData?.sec_1_identity?.whatsapp || customData?.whatsapp || '');
+    setWhatsappMsg(customData?.basic?.whatsapp_message || customData?.sec_1_identity?.whatsapp_message || customData?.whatsapp_message || '');
     setSectionLabel(
       customData?.section_labels?.[sectionId] ||
       customData?.basic?.section_labels?.[sectionId] || ''
@@ -276,6 +282,9 @@ export default function SectionContentStudio({
     nextCustomData.basic = {
       ...(nextCustomData.basic || {}),
       business_logo: logoUrl || nextCustomData.basic?.business_logo,
+      phone: phone.trim(),
+      whatsapp: whatsapp.trim(),
+      whatsapp_message: whatsappMsg.trim(),
       section_labels: { ...(nextCustomData.basic?.section_labels || {}), [sectionId]: sectionLabel.trim() },
       section_labels_ar: { ...(nextCustomData.basic?.section_labels_ar || {}), [sectionId]: sectionLabelAr.trim() },
     };
@@ -285,6 +294,9 @@ export default function SectionContentStudio({
         ...(nextCustomData.sec_1_identity || {}),
         business_logo: logoUrl,
         logo: logoUrl,
+        phone: phone.trim(),
+        whatsapp: whatsapp.trim(),
+        whatsapp_message: whatsappMsg.trim(),
       };
     }
 
@@ -362,6 +374,54 @@ export default function SectionContentStudio({
               </button>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Fixed Phone, WhatsApp & Pre-filled Message Controls */}
+      <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem' }}>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <i className="fas fa-phone-volume" style={{ color: '#D4AF37' }} />
+            Fixed Phone Call &amp; WhatsApp Direct Chat Controls
+          </h4>
+          <p style={{ margin: '0.2rem 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+            Set the exact phone call number, WhatsApp number, and pre-filled greeting message for your minisite fixed header &amp; mobile floating action bar.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: '#475569', letterSpacing: '0.5px', marginBottom: '0.35rem' }}>
+              DIRECT CALL PHONE NUMBER
+            </label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. +20 100 123 4567"
+              style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: '#15803d', letterSpacing: '0.5px', marginBottom: '0.35rem' }}>
+              WHATSAPP NUMBER
+            </label>
+            <input
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder="e.g. +20 100 123 4567"
+              style={{ width: '100%', padding: '0.65rem', border: '1px solid #86efac', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, background: '#f0fdf4', color: '#14532d', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: '#475569', letterSpacing: '0.5px', marginBottom: '0.35rem' }}>
+            PRE-FILLED WHATSAPP CHATTING MESSAGE (OPTIONAL)
+          </label>
+          <input
+            value={whatsappMsg}
+            onChange={(e) => setWhatsappMsg(e.target.value)}
+            placeholder="e.g. Hello! I am interested in your tour packages on SiWiFy."
+            style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, boxSizing: 'border-box' }}
+          />
         </div>
       </section>
 

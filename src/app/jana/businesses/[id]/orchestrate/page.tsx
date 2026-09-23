@@ -56,7 +56,7 @@ export default function BusinessOrchestrator() {
         const bizData = await bizRes.json();
         if (bizData.error) throw new Error(bizData.error);
 
-        const secRes = await fetch('/api/jana/sections');
+        const secRes = await fetch(bizData.type_id ? `/api/jana/sections?type=${bizData.type_id}` : '/api/jana/sections');
         const rawSections = await secRes.json();
         const orderedSections = Array.isArray(rawSections) ? rawSections : [];
         const canonicalSections = Array.from(
@@ -206,7 +206,7 @@ export default function BusinessOrchestrator() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <Link href={`/jana/content?business=${businessId}`} className="btn btn-outline">
+              <Link href={`/jana/content?businessId=${businessId}&section=${activeSectionId || ''}`} className="btn btn-outline">
                 <i className="fas fa-photo-film"></i> MEDIA STUDIO
               </Link>
               <Link href={`/${biz.slug}`} target="_blank" className="btn btn-outline">

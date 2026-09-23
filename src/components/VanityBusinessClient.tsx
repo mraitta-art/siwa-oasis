@@ -248,9 +248,11 @@ export default function VanityBusinessClient({
   const identity = data.basic || data.sec_1_identity || data.business_info || {};
   const dynamicPhone = isMasterTemplate ? '+201000000000' : (biz.vendor_phone || identity.phone || data.phone || '+201200000000');
   const dynamicWhatsapp = isMasterTemplate ? '201000000000' : (identity.whatsapp || identity.whatsapp_number || data.whatsapp || biz.vendor_phone || identity.phone || '201200000000');
+  const dynamicWhatsappMsg = identity.whatsapp_message || data.whatsapp_message || '';
   const cleanPhone = String(dynamicPhone).replace(/[^0-9+]/g, '');
   const cleanWhatsapp = String(dynamicWhatsapp).replace(/[^0-9]/g, '');
-  const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}`;
+  const whatsappMsgQuery = dynamicWhatsappMsg ? `?text=${encodeURIComponent(dynamicWhatsappMsg)}` : '';
+  const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}${whatsappMsgQuery}`;
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
   const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;

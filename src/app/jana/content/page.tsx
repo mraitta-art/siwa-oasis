@@ -1,13 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import DynamicForm from '@/components/DynamicForm';
 import SectionContentStudio from '@/components/SectionContentStudio';
 import { useLang } from '@/context/LangContext';
 
-export default function ContentManagementPage() {
+function ContentManagementContent() {
   const { isRTL } = useLang();
+  const searchParams = useSearchParams();
+  const paramBiz = searchParams.get('businessId') || searchParams.get('business');
+  const paramSec = searchParams.get('section');
 
   const copy = isRTL
     ? {
@@ -51,13 +55,20 @@ export default function ContentManagementPage() {
   const [fields, setFields] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
 
-  // ── Load businesses ────────────────────────────────────────────────
+  // ── Load businesses & handle deep-linked businessId ────────────────
   useEffect(() => {
     fetch('/api/jana/businesses')
       .then((r) => r.json())
-      .then((data) => setBusinesses(Array.isArray(data) ? data : []))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setBusinesses(list);
+        if (paramBiz) {
+          const matched = list.find((b: any) => b.id === paramBiz);
+          if (matched) setBusinessId(matched.id);
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [paramBiz]);
 
   // ── Load sections + controls when business changes ────────────────
   useEffect(() => {
@@ -82,9 +93,12 @@ export default function ContentManagementPage() {
       const ctrl: Record<string, any> = {};
       (controlData?.controls || []).forEach((c: any) => { ctrl[c.section_id] = c; });
       setSectionControls(ctrl);
-      setSectionId((cur) => cur || secs[0]?.id || '');
+      setSectionId((cur) => {
+        if (paramSec && secs.some((s: any) => s.id === paramSec)) return paramSec;
+        return cur || secs[0]?.id || '';
+      });
     });
-  }, [businessId, businesses]);
+  }, [businessId, businesses, paramSec]);
 
   // ── Load fields + components when section changes ─────────────────
   useEffect(() => {
@@ -329,5 +343,13 @@ export default function ContentManagementPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ContentManagementPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '3rem', color: '#64748b' }}>Loading content workspace...</div>}>
+      <ContentManagementContent />
+    </Suspense>
   );
 }
