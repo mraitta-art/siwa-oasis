@@ -37,7 +37,21 @@ export default function PackagesPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }} className="relative">
+      {/* Top Banner Callout */}
+      <div className="bg-[#0f172a] border-b border-[#D4AF37]/30 text-white px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-[#D4AF37] font-bold">✨ Want a custom itinerary?</span>
+          <span className="text-slate-300 hidden sm:inline">Mix & match salt lakes, 4x4 dunes, and eco-lodges with instant 15% bundle discounts!</span>
+        </div>
+        <a
+          href="/customize-journey"
+          className="px-3.5 py-1 rounded-full bg-[#D4AF37] text-black font-bold text-xs hover:bg-[#e5c158] transition shadow"
+        >
+          Customize Now →
+        </a>
+      </div>
+
       <DynamicHomepageRenderer
         layout={builderConfig.layout}
         settings={builderConfig.site_settings || null}

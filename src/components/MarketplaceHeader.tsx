@@ -15,6 +15,7 @@ interface MarketplaceHeaderProps {
 }
 
 const DEFAULT_NAV_LINKS: NavLink[] = [
+  { href: '/customize-journey', label: '✨ Customize Journey' },
   { href: '/offers', label: 'Offers' },
   { href: '/packages', label: 'Packages' },
   { href: '/discounts', label: 'Discounts' },

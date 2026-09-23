@@ -39,6 +39,7 @@ const NAV_GROUPS = [
     items: [
       { name: 'Journey Requests',   href: '/vendor/journey-requests',      faIcon: 'fa-route',      badge: 'REQ' },
       { name: 'Catalog & Offers',   href: '/vendor/packages',              faIcon: 'fa-box-open' },
+      { name: '✦ Package Studio',   href: '/vendor/package-studio',        faIcon: 'fa-wand-magic-sparkles', badge: 'NEW' },
     ],
   },
   {
