@@ -366,11 +366,13 @@ function SubmitOfferModal({
 // ─── JOURNEY CARD ─────────────────────────────────────────────────────────────
 
 function JourneyCard({
-  journey, caps, onOfferClick, blurred,
+  journey, caps, onOfferClick, onAcceptClick, onDeclineClick, blurred,
 }: {
   journey: Journey;
   caps: TierFeatures;
   onOfferClick: (j: Journey) => void;
+  onAcceptClick?: (j: Journey) => void;
+  onDeclineClick?: (j: Journey) => void;
   blurred: boolean;
 }) {
   const typeColor = TYPE_COLORS[journey.request_type] || '#D4AF37';
@@ -507,6 +509,17 @@ function JourneyCard({
           </div>
         )}
 
+        {/* Accept Request — 1 click */}
+        {caps.journey_submit_offer && onAcceptClick && (
+          <button onClick={() => onAcceptClick(journey)} style={{
+            padding: '0.6rem 1.25rem', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 900,
+            background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+          }}>
+            <i className="fas fa-check-circle" /> Accept Request
+          </button>
+        )}
+
         {/* Submit Offer — Premium+ */}
         {caps.journey_submit_offer ? (
           <button onClick={() => onOfferClick(journey)} style={{
@@ -524,6 +537,17 @@ function JourneyCard({
           }}>
             <i className="fas fa-lock" /> Submit Offer <span style={{ fontSize: '0.6rem' }}>PREMIUM</span>
           </div>
+        )}
+
+        {/* Decline — 1 click */}
+        {onDeclineClick && (
+          <button onClick={() => onDeclineClick(journey)} style={{
+            padding: '0.6rem 1rem', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 700,
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+          }}>
+            <i className="fas fa-times" /> Decline
+          </button>
         )}
       </div>
     </div>
@@ -580,6 +604,47 @@ export default function VendorJourneyRequests() {
     }
     setLoading(false);
   }
+
+  const handleAcceptRequest = async (j: Journey) => {
+    try {
+      const res = await fetch('/api/journeys/custom-dispatch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: String(j.id),
+          business_id: 'current',
+          vendor_status: 'accepted'
+        })
+      });
+      if (res.ok) {
+        setSuccessMsg(`✓ Successfully accepted request #${j.id}. The customer will be informed!`);
+        setTimeout(() => setSuccessMsg(''), 5000);
+        await loadData();
+      }
+    } catch (e) {
+      console.error('Error accepting request:', e);
+    }
+  };
+
+  const handleDeclineRequest = async (j: Journey) => {
+    if (!confirm(`Are you sure you want to decline request #${j.id}?`)) return;
+    try {
+      const res = await fetch('/api/journeys/custom-dispatch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: String(j.id),
+          business_id: 'current',
+          vendor_status: 'declined'
+        })
+      });
+      if (res.ok) {
+        await loadData();
+      }
+    } catch (e) {
+      console.error('Error declining request:', e);
+    }
+  };
 
   const filtered = filterVibe === 'all' ? journeys : journeys.filter(j => j.request_type === filterVibe);
   const tierInfo = TIER_LABELS[tier] || TIER_LABELS.free;
@@ -697,6 +762,8 @@ export default function VendorJourneyRequests() {
                     journey={j}
                     caps={caps}
                     onOfferClick={setSelectedJourney}
+                    onAcceptClick={handleAcceptRequest}
+                    onDeclineClick={handleDeclineRequest}
                     blurred={false}
                   />
                   {/* Basic tier — show first 2 full, blur the rest */}

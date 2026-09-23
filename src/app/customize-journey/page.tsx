@@ -188,6 +188,33 @@ const TRANSPORTS = [
   }
 ];
 
+const MEALS = [
+  {
+    id: 'mandi_lamb',
+    name_en: 'Bedouin Lamb Under Sand (Mendhi)',
+    name_ar: 'عشاء المدمون السيوى (لحم ضأن مطهو تحت الرمال)',
+    desc_en: 'Slow-roasted succulent lamb, spiced rice, Siwan soups & salads cooked over underground embers',
+    desc_ar: 'لحم ضأن طازج مطهو على الجمر تحت الأرض، أرز بالبهارات السيوية، شوربة وعسل تمر',
+    price_per_person: 450,
+  },
+  {
+    id: 'organic_vegan',
+    name_en: 'Organic Siwan Vegan Feast',
+    name_ar: 'وليمة سيوية نباتية عضوية من مزارع النخيل والزيتون',
+    desc_en: 'Seasonal oasis vegetables, fresh pomegranate, olive oil delicacies, sun-dried dates and herbal bread',
+    desc_ar: 'أطباق نباتية طازجة من مزارع سيوة، زيت زيتون بكر، تغميسات وخبز التنور السيوى الساخن',
+    price_per_person: 280,
+  },
+  {
+    id: 'breakfast_only',
+    name_en: 'Breakfast Only / Flexible Dining',
+    name_ar: 'إفطار واحاتي فقط وتناول وجبات حرة',
+    desc_en: 'Traditional breakfast included; explore local cafes and oasis kitchens at your own pace',
+    desc_ar: 'إفطار محلي شهي مع حرية استكشاف واختيار المطاعم والمطابخ الشعبية بنفسك',
+    price_per_person: 0,
+  }
+];
+
 export default function CustomizeJourneyPage() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [step, setStep] = useState<number>(1);
@@ -205,6 +232,7 @@ export default function CustomizeJourneyPage() {
   ]);
   const [selectedStay, setSelectedStay] = useState<string>('ecolodge_premium');
   const [selectedTransport, setSelectedTransport] = useState<string>('private_4x4');
+  const [selectedMeal, setSelectedMeal] = useState<string>('mandi_lamb');
   const [guideLang, setGuideLang] = useState<string>('ar');
 
   const [customerName, setCustomerName] = useState<string>('');
@@ -230,7 +258,10 @@ export default function CustomizeJourneyPage() {
   const transportItem = TRANSPORTS.find(t => t.id === selectedTransport);
   const transportSubtotal = (transportItem ? transportItem.rate_per_day * durationDays : 0);
 
-  const grossTotal = expsSubtotal + staySubtotal + transportSubtotal;
+  const mealItem = MEALS.find(m => m.id === selectedMeal);
+  const mealSubtotal = (mealItem ? mealItem.price_per_person * (adultsCount + childrenCount * 0.5) * durationDays : 0);
+
+  const grossTotal = expsSubtotal + staySubtotal + transportSubtotal + mealSubtotal;
 
   // 15% Multi-Experience Bundle Discount if 3+ experiences selected
   const isBundleDiscountEligible = selectedExps.length >= 3;
@@ -276,8 +307,8 @@ export default function CustomizeJourneyPage() {
           selected_experiences: chosenExpObjects,
           accommodation_preference: stayItem ? (lang === 'ar' ? stayItem.name_ar : stayItem.name_en) : 'None',
           transport_preference: transportItem ? (lang === 'ar' ? transportItem.name_ar : transportItem.name_en) : 'None',
-          meal_preference: 'Siwan Mandi & Fresh Local Herbs',
-          guide_language: guideLang === 'ar' ? 'العربية' : guideLang === 'en' ? 'English' : 'Italian / German / French',
+          meal_preference: mealItem ? (lang === 'ar' ? mealItem.name_ar : mealItem.name_en) : 'None',
+          guide_language: guideLang === 'ar' ? 'العربية' : guideLang === 'en' ? 'English' : guideLang === 'it' ? 'Italian' : guideLang === 'fr' ? 'French' : 'German',
           special_notes: specialNotes,
           estimated_price: grossTotal,
           discount_amount: bundleDiscountAmount,
@@ -809,22 +840,78 @@ export default function CustomizeJourneyPage() {
                 })}
               </div>
 
+              {/* Meals Selection */}
+              <div className="space-y-3 pt-2 border-t border-white/10">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  {isRTL ? 'الضيافة والوجبات السيوية' : 'Siwan Meals & Dining Experience'}
+                </label>
+                <div className="space-y-3">
+                  {MEALS.map((meal) => {
+                    const isSelected = selectedMeal === meal.id;
+                    const mealTotal = meal.price_per_person * (adultsCount + childrenCount * 0.5) * durationDays;
+                    return (
+                      <div
+                        key={meal.id}
+                        onClick={() => setSelectedMeal(meal.id)}
+                        className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                          isSelected
+                            ? 'bg-[#142036] border-[#D4AF37] shadow-lg'
+                            : 'bg-white/5 border-white/10 hover:bg-white/[0.08]'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-bold text-white">
+                            {isRTL ? meal.name_ar : meal.name_en}
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            {isRTL ? meal.desc_ar : meal.desc_en}
+                          </p>
+                        </div>
+
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 flex-shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-white/10">
+                          {meal.price_per_person > 0 ? (
+                            <>
+                              <span className="font-bold text-[#D4AF37] text-sm sm:text-base">
+                                {mealTotal} EGP
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                ({meal.price_per_person} EGP / {isRTL ? 'فرد / يوم' : 'person / day'})
+                              </span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-emerald-400 text-sm">
+                              {isRTL ? 'شامل الإفطار فقط' : 'Breakfast Only'}
+                            </span>
+                          )}
+                          <div className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center ${
+                            isSelected ? 'border-[#D4AF37] bg-[#D4AF37] text-black' : 'border-white/30'
+                          }`}>
+                            {isSelected && <Check size={12} />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Guide Language */}
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-2 border-t border-white/10">
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   {isRTL ? 'لغة المرشد السيوى المحلي' : 'Local Siwan Guide Language'}
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {[
-                    { id: 'ar', label: 'العربية (لهجة سيوية ومصرية)' },
-                    { id: 'en', label: 'English Fluent Guide' },
-                    { id: 'it', label: 'Guida Italiana' },
-                    { id: 'de_fr', label: 'Deutsch / Français' },
+                    { id: 'ar', label: 'العربية (سيوية ومصرية)' },
+                    { id: 'en', label: 'English Fluent' },
+                    { id: 'fr', label: 'Français' },
+                    { id: 'it', label: 'Italiano' },
+                    { id: 'de', label: 'Deutsch' },
                   ].map((g) => (
                     <button
                       key={g.id}
                       onClick={() => setGuideLang(g.id)}
-                      className={`p-3 rounded-xl text-xs font-semibold border transition ${
+                      className={`p-3 rounded-xl text-xs font-semibold border transition text-center ${
                         guideLang === g.id
                           ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-white font-bold'
                           : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
@@ -1017,6 +1104,10 @@ export default function CustomizeJourneyPage() {
               <div className="flex justify-between text-slate-300">
                 <span>{isRTL ? 'التنقل والسيارة:' : 'Transport:'}</span>
                 <span className="font-mono text-white">{transportSubtotal} EGP</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span>{isRTL ? 'الوجبات والضيافة:' : 'Meals & Dining:'}</span>
+                <span className="font-mono text-white">{mealSubtotal} EGP</span>
               </div>
             </div>
 

@@ -114,7 +114,8 @@ const NAV_GROUPS = [
       },
       { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
-      { name: 'Dispatch', path: '/jana/dispatch', icon: 'fa-paper-plane' },
+      { name: 'Dispatch Engine', path: '/jana/dispatch', icon: 'fa-paper-plane' },
+      { name: '✦ Journey Requests', path: '/jana/requests', icon: 'fa-compass', badge: 'LIVE' },
     ]
   },
   {
