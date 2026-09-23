@@ -88,6 +88,19 @@ export default function VanityBusinessClient({
   const [minisiteLang, setMinisiteLang] = useState<'en' | 'ar'>('en');
   const [isRTL, setIsRTL] = useState(false);
   const [isAdminToolsOpen, setIsAdminToolsOpen] = useState(false);
+  const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
+
+  // Fetch live marketplace packages, tours, and discounts for this business
+  useEffect(() => {
+    if (initialData?.id) {
+      fetch(`/api/jana/marketplace?businessId=${encodeURIComponent(initialData.id)}&status=approved`)
+        .then((r) => r.ok ? r.json() : [])
+        .then((items) => {
+          if (Array.isArray(items)) setMarketplaceItems(items);
+        })
+        .catch(() => {});
+    }
+  }, [initialData?.id]);
 
   // Initialize minisite language from localStorage or document default
   useEffect(() => {
@@ -990,7 +1003,139 @@ export default function VanityBusinessClient({
                       </div>
                     )}
 
-                    {/* TOUR PRODUCTS & PACKAGES CATALOG GRID */}
+                    {/* UNIFIED MARKETPLACE PACKAGES, TOURS & SPECIAL OFFERS */}
+                    {(() => {
+                      const sectionItems = marketplaceItems.filter((item) => {
+                        if (!item.publish_on_minisite) return false;
+                        if (item.section_id === section.id) return true;
+                        if (section.id === 'sec_9_marketplace_catalog' && (!item.section_id || item.section_id === 'sec_9_marketplace_catalog' || item.item_type === 'package' || item.item_type === 'discount_offer')) return true;
+                        if (section.id === 'sec_5_experiences' && (item.item_type === 'tour' || item.item_type === 'activity' || item.item_type === 'retreat')) return true;
+                        return false;
+                      });
+
+                      if (sectionItems.length === 0) return null;
+
+                      return (
+                        <div style={{ marginTop: '2.5rem', marginBottom: '3rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                              <div style={{ color: '#D4AF37', fontSize: '0.68rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                                ✦ {minisiteLang === 'ar' ? 'الباقات والعروض الخاصة' : 'PACKAGES, TOURS & EXCLUSIVE OFFERS'}
+                              </div>
+                              <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
+                                {minisiteLang === 'ar' ? 'العروض والبرامج السياحية المتاحة' : 'Featured Packages & Special Programs'}
+                              </h3>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.5rem' }}>
+                            {sectionItems.map((item: any) => {
+                              const title = minisiteLang === 'ar' && item.title_ar ? item.title_ar : item.title;
+                              const desc = minisiteLang === 'ar' && item.description_ar ? item.description_ar : item.description;
+                              const coverImg = item.media?.[0]?.url || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600';
+                              const hasDiscount = (item.discount_percentage > 0) || (item.original_price && item.original_price > item.price_amount);
+
+                              // Build WhatsApp pre-filled booking inquiry
+                              const inquiryMsg = encodeURIComponent(
+                                `Hello! I would like to inquire about booking the "${item.title}" (${item.price_amount > 0 ? `${item.price_amount} ${item.currency}` : 'Offer'}) on SiWiFy.`
+                              );
+                              const itemWhatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${inquiryMsg}`;
+
+                              return (
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    background: '#fff',
+                                    borderRadius: '20px',
+                                    overflow: 'hidden',
+                                    border: item.is_featured ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                                    boxShadow: item.is_featured ? '0 8px 30px rgba(212,175,55,0.18)' : '0 4px 16px rgba(0,0,0,0.04)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    transition: 'all 0.2s'
+                                  }}
+                                >
+                                  {/* Image Header */}
+                                  <div style={{ height: '180px', position: 'relative', background: '#090e17' }}>
+                                    <img src={coverImg} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    
+                                    {/* Type Badge */}
+                                    <div style={{ position: 'absolute', top: 10, left: 10, background: '#0f172a', color: '#fff', padding: '3px 9px', borderRadius: '12px', fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase' }}>
+                                      {item.item_type.replace('_', ' ')}
+                                    </div>
+
+                                    {/* Duration Badge */}
+                                    <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(6px)', color: '#fbbf24', padding: '3px 10px', borderRadius: '12px', fontSize: '0.65rem', fontWeight: 900 }}>
+                                      ⏱️ {item.duration_value} {item.duration_type.replace('_', ' ')}
+                                    </div>
+
+                                    {/* Discount Tag */}
+                                    {hasDiscount && (
+                                      <div style={{ position: 'absolute', bottom: 10, right: 10, background: '#dc2626', color: '#fff', padding: '3px 9px', borderRadius: '8px', fontSize: '0.68rem', fontWeight: 900 }}>
+                                        {item.discount_percentage ? `${item.discount_percentage}% OFF` : 'SPECIAL OFFER'}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Body */}
+                                  <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <h4 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                                      {title}
+                                    </h4>
+
+                                    {desc && (
+                                      <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6, flex: 1 }}>
+                                        {desc.length > 120 ? `${desc.substring(0, 120)}...` : desc}
+                                      </p>
+                                    )}
+
+                                    {/* Pricing & CTA */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.9rem', borderTop: '1px solid #f1f5f9', marginTop: 'auto' }}>
+                                      <div>
+                                        <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
+                                          {item.pricing_unit.replace('_', ' ')}
+                                        </div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                                          {item.price_amount > 0 ? `${item.price_amount} ${item.currency}` : 'Contact Us'}
+                                        </div>
+                                        {item.original_price && (
+                                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                                            {item.original_price} {item.currency}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <a
+                                        href={item.booking_cta_type === 'url' && item.booking_cta_url ? item.booking_cta_url : itemWhatsappLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          padding: '0.6rem 1.15rem',
+                                          background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+                                          color: '#1a1000',
+                                          borderRadius: '10px',
+                                          fontWeight: 900,
+                                          fontSize: '0.75rem',
+                                          textDecoration: 'none',
+                                          boxShadow: '0 4px 12px rgba(212,175,55,0.25)',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px'
+                                        }}
+                                      >
+                                        <i className="fab fa-whatsapp" /> {minisiteLang === 'ar' ? 'حجز / استفسار' : 'Book / Inquire'} →
+                                      </a>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* TOUR PRODUCTS & PACKAGES CATALOG GRID (LEGACY DB-BACKED) */}
                     {Array.isArray(section.tourProducts) && section.tourProducts.length > 0 && (
                       <div style={{ marginTop: '2.5rem', marginBottom: '3rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>

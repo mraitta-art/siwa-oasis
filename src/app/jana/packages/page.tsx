@@ -1,34 +1,65 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
 
-interface Package {
+export interface MarketplaceItem {
   id: string;
-  name: string;
+  business_id: string | null;
+  business_name?: string;
+  business_slug?: string;
+  business_type_name?: string;
+  section_id: string;
+  title: string;
+  title_ar: string;
+  slug: string;
+  item_type: 'package' | 'tour' | 'activity' | 'discount_offer' | 'room_bundle' | 'retreat';
+  category_id: string;
   description: string;
-  business_ids: string[];
-  pricing: any;
-  active: boolean;
-  created_at: string;
+  description_ar: string;
+  duration_type: 'hours' | 'full_day' | 'multi_day';
+  duration_value: number;
+  price_amount: number;
+  original_price: number | null;
+  discount_percentage: number;
+  discount_type: 'none' | 'percent' | 'fixed' | 'early_bird' | 'coupon';
+  coupon_code: string;
+  pricing_unit: 'per_person' | 'per_group' | 'per_room' | 'fixed';
+  currency: string;
+  itinerary: Array<{ day: number; title: string; title_ar?: string; description?: string; description_ar?: string }>;
+  included_features: string[];
+  excluded_features: string[];
+  media: Array<{ url: string; caption?: string }>;
+  status: 'draft' | 'pending_approval' | 'approved' | 'suspended' | 'archived';
+  publish_on_minisite: boolean;
+  publish_on_main_portal: boolean;
+  is_featured: boolean;
+  booking_cta_type: 'whatsapp' | 'phone' | 'url' | 'custom_quote';
+  booking_cta_url: string;
+  created_at?: string;
 }
 
-export default function PackagesManager() {
+export default function UnifiedMarketplaceCommandCenter() {
   const { notify } = useAdmin();
-  const [packages, setPackages] = useState<Package[]>([]);
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
-  const [editingPkg, setEditingPkg] = useState<Partial<Package> & {
-    package_type?: 'package' | 'program' | 'bundle';
-    program_type?: 'experience' | 'retreat' | 'wellness' | 'adventure';
-    duration_days?: number;
-    audience?: string;
-    is_featured?: boolean;
-  } | null>(null);
-  const [selectedBizes, setSelectedBizes] = useState<string[]>([]);
+
+  // Filter States
+  const [mode, setMode] = useState<'all' | 'platform' | 'vendor_proxy'>('all');
+  const [selectedVendorId, setSelectedVendorId] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Editing / Creation Modal
+  const [editingItem, setEditingItem] = useState<Partial<MarketplaceItem> | null>(null);
+  const [activeTab, setActiveTab] = useState<'basics' | 'pricing_discounts' | 'itinerary' | 'media' | 'governance'>('basics');
+  const [newInclusion, setNewInclusion] = useState('');
+  const [newExclusion, setNewExclusion] = useState('');
+  const [newMediaUrl, setNewMediaUrl] = useState('');
 
   useEffect(() => {
     loadData();
@@ -36,734 +67,976 @@ export default function PackagesManager() {
 
   async function loadData() {
     try {
-      const [pkgsRes, bizRes] = await Promise.all([
-        fetch('/api/jana/packages'),
+      setLoading(true);
+      const [marketRes, bizRes] = await Promise.all([
+        fetch('/api/jana/marketplace'),
         fetch('/api/jana/businesses')
       ]);
-      
-      const pkgs = await pkgsRes.json();
-      const bizes = await bizRes.json();
-      
-      setPackages(pkgs);
-      setBusinesses(bizes);
-    } catch (err) {
-      notify('Failed to load packages', 'error');
+
+      const marketData = await marketRes.json();
+      const bizData = await bizRes.json();
+
+      setItems(Array.isArray(marketData) ? marketData : []);
+      setBusinesses(Array.isArray(bizData) ? bizData : []);
+    } catch (err: any) {
+      notify('Failed to load marketplace catalog', 'error');
     } finally {
       setLoading(false);
     }
   }
 
-  const handleSave = async () => {
-    if (!editingPkg?.name) return notify('Package name is required', 'error');
-    
+  // Filtered items
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (mode === 'platform' && item.business_id !== null) return false;
+      if (mode === 'vendor_proxy' && item.business_id !== selectedVendorId) return false;
+      if (typeFilter !== 'all' && item.item_type !== typeFilter) return false;
+      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = (item.title || '').toLowerCase().includes(q) || (item.title_ar || '').includes(q);
+        const matchBiz = (item.business_name || '').toLowerCase().includes(q);
+        const matchCode = (item.coupon_code || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchBiz && !matchCode) return false;
+      }
+      return true;
+    });
+  }, [items, mode, selectedVendorId, typeFilter, statusFilter, searchQuery]);
+
+  // Quick Status Actions
+  async function toggleStatus(item: MarketplaceItem, nextStatus: MarketplaceItem['status']) {
+    try {
+      const res = await fetch('/api/jana/marketplace', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, status: nextStatus })
+      });
+      if (res.ok) {
+        setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: nextStatus } : i)));
+        notify(`Status changed to ${nextStatus}`, 'success');
+      } else {
+        throw new Error('Update failed');
+      }
+    } catch {
+      notify('Failed to update status', 'error');
+    }
+  }
+
+  async function toggleFeatured(item: MarketplaceItem) {
+    try {
+      const nextFeatured = !item.is_featured;
+      const res = await fetch('/api/jana/marketplace', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, is_featured: nextFeatured })
+      });
+      if (res.ok) {
+        setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_featured: nextFeatured } : i)));
+        notify(nextFeatured ? 'Promoted to Featured 👑' : 'Removed from Featured', 'success');
+      }
+    } catch {
+      notify('Failed to toggle featured status', 'error');
+    }
+  }
+
+  async function toggleVisibility(item: MarketplaceItem, field: 'publish_on_minisite' | 'publish_on_main_portal') {
+    try {
+      const nextVal = !item[field];
+      const res = await fetch('/api/jana/marketplace', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, [field]: nextVal })
+      });
+      if (res.ok) {
+        setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, [field]: nextVal } : i)));
+        notify('Visibility switch updated', 'success');
+      }
+    } catch {
+      notify('Failed to update visibility', 'error');
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Are you sure you want to permanently delete this item?')) return;
+    try {
+      const res = await fetch(`/api/jana/marketplace?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        notify('Item deleted successfully', 'success');
+      }
+    } catch {
+      notify('Failed to delete item', 'error');
+    }
+  }
+
+  // Save Modal
+  async function handleSaveItem() {
+    if (!editingItem?.title?.trim()) {
+      return notify('Title is required', 'error');
+    }
+
     setSaving(true);
     try {
-      const isNew = !editingPkg.id;
+      const isNew = !editingItem.id;
       const method = isNew ? 'POST' : 'PUT';
+
       const payload = {
-        ...editingPkg,
-        business_ids: selectedBizes,
-        package_type: editingPkg.package_type || 'package',
-        program_type: editingPkg.program_type || 'experience',
-        duration_days: Number(editingPkg.duration_days || 1),
-        audience: editingPkg.audience || 'all',
-        is_featured: !!editingPkg.is_featured,
-        pricing: {
-          ...(typeof editingPkg.pricing === 'object' && editingPkg.pricing ? editingPkg.pricing : {}),
-          package_type: editingPkg.package_type || 'package',
-          program_type: editingPkg.program_type || 'experience',
-          duration_days: Number(editingPkg.duration_days || 1),
-          audience: editingPkg.audience || 'all',
-          featured: !!editingPkg.is_featured,
-        }
+        ...editingItem,
+        business_id: editingItem.business_id || null,
+        duration_value: Number(editingItem.duration_value) || 1,
+        price_amount: Number(editingItem.price_amount) || 0,
+        original_price: editingItem.original_price ? Number(editingItem.original_price) : null,
+        discount_percentage: Number(editingItem.discount_percentage) || 0,
       };
 
-      const res = await fetch('/api/jana/packages', {
+      const res = await fetch('/api/jana/marketplace', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        notify(`Package ${isNew ? 'created' : 'updated'}!`, 'success');
-        setEditingPkg(null);
-        setSelectedBizes([]);
+        notify(`Item ${isNew ? 'created' : 'updated'} successfully!`, 'success');
+        setEditingItem(null);
         loadData();
       } else {
-        throw new Error('Save failed');
+        const err = await res.json();
+        throw new Error(err.error || 'Save failed');
       }
-    } catch (err) {
-      notify('Error saving package', 'error');
+    } catch (err: any) {
+      notify(err.message || 'Error saving item', 'error');
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure?')) return;
-    try {
-      const res = await fetch(`/api/jana/packages?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        notify('Package deleted', 'success');
-        loadData();
-      }
-    } catch (err) {
-      notify('Delete failed', 'error');
-    }
-  };
-
-  const startEdit = (pkg: Package) => {
-    setEditingPkg(pkg);
-    setSelectedBizes(Array.isArray(pkg.business_ids) ? pkg.business_ids : []);
-  };
-
-  if (loading) return <div className="loader-screen">SYNCING MARKETPLACE PACKAGES...</div>;
+  function startNewItem(type: MarketplaceItem['item_type'] = 'package') {
+    setEditingItem({
+      business_id: mode === 'vendor_proxy' && selectedVendorId ? selectedVendorId : null,
+      section_id: type === 'tour' || type === 'activity' ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
+      title: '',
+      title_ar: '',
+      item_type: type,
+      category_id: 'general',
+      description: '',
+      description_ar: '',
+      duration_type: type === 'tour' || type === 'package' ? 'full_day' : 'hours',
+      duration_value: 1,
+      price_amount: 0,
+      original_price: null,
+      discount_percentage: 0,
+      discount_type: 'none',
+      coupon_code: '',
+      pricing_unit: 'per_person',
+      currency: 'EGP',
+      itinerary: [],
+      included_features: [],
+      excluded_features: [],
+      media: [],
+      status: 'approved',
+      publish_on_minisite: true,
+      publish_on_main_portal: true,
+      is_featured: false,
+      booking_cta_type: 'whatsapp',
+      booking_cta_url: ''
+    });
+    setActiveTab('basics');
+  }
 
   return (
-    <div className="packages-page">
-      <div className="page-header">
-        <div className="container">
-          <Link href="/jana" className="back-link">← ADMIN DASHBOARD</Link>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-             <div>
-                <div className="badge-premium">EXPERIENCE ARCHITECT</div>
-                <h1 className="title">PACKAGES & OFFERS</h1>
-                <p className="subtitle">Curate multi-business journeys and bundle vendor offers into premium experiences.</p>
-             </div>
-             {!editingPkg && (
-               <button className="btn-create" onClick={() => { setEditingPkg({ name: '', description: '', active: true }); setSelectedBizes([]); }}>
-                 <i className="fas fa-plus"></i> CREATE NEW PACKAGE
-               </button>
-             )}
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '1.5rem' }}>
+      
+      {/* ── TOP HEADER ── */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <div>
+          <div style={{ color: '#D4AF37', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+            👑 PLATFORM GOVERNANCE &amp; INVENTORY ENGINE
           </div>
+          <h1 style={{ margin: '0.25rem 0', fontSize: '1.9rem', fontWeight: 900, color: '#0f172a' }}>
+            Unified Marketplace, Tours &amp; Offers Studio
+          </h1>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
+            Manage packages, tours, programs, activities, and discount promotions for the main website and individual vendor minisites.
+          </p>
         </div>
-      </div>
 
-      <div className="container" style={{ marginTop: '3rem' }}>
-        {editingPkg ? (
-          <div className="editor-card card-glass animate-in">
-            <h2 className="section-title">{editingPkg.id ? 'Edit Experience' : 'New Experience Package'}</h2>
-            
-            <div className="grid-editor">
-               <div className="form-main">
-                  <div className="form-group">
-                    <label className="dna-label">PACKAGE / PROGRAM NAME</label>
-                    <input 
-                      className="dna-input" 
-                      value={editingPkg.name || ''} 
-                      onChange={e => setEditingPkg({...editingPkg, name: e.target.value})} 
-                      placeholder="e.g. The Ultimate Siwan Sunset Journey"
-                    />
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => startNewItem('package')}
+            style={{ padding: '0.65rem 1.1rem', background: '#D4AF37', color: '#1a1000', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }}
+          >
+            <i className="fas fa-plus-circle" /> Create New Package
+          </button>
+          <button
+            onClick={() => startNewItem('tour')}
+            style={{ padding: '0.65rem 1.1rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <i className="fas fa-compass" /> Create Tour / Safari
+          </button>
+          <button
+            onClick={() => startNewItem('discount_offer')}
+            style={{ padding: '0.65rem 1.1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <i className="fas fa-tags" /> Add Special Offer / Discount
+          </button>
+        </div>
+      </header>
+
+      {/* ── SUPER ADMIN DUAL-MODE GOVERNANCE BAR ── */}
+      <section style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', marginBottom: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem', marginBottom: '1rem' }}>
+          
+          {/* Mode Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <i className="fas fa-user-shield" style={{ color: '#6366f1', marginRight: '6px' }} />
+              Management Mode:
+            </span>
+            <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+              <button
+                onClick={() => setMode('all')}
+                style={{ border: 'none', background: mode === 'all' ? '#0f172a' : 'transparent', color: mode === 'all' ? '#fff' : '#64748b', padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                All Platform Items ({items.length})
+              </button>
+              <button
+                onClick={() => setMode('platform')}
+                style={{ border: 'none', background: mode === 'platform' ? '#D4AF37' : 'transparent', color: mode === 'platform' ? '#1a1000' : '#64748b', padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                🌐 Main Portal Catalog
+              </button>
+              <button
+                onClick={() => setMode('vendor_proxy')}
+                style={{ border: 'none', background: mode === 'vendor_proxy' ? '#6366f1' : 'transparent', color: mode === 'vendor_proxy' ? '#fff' : '#64748b', padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                🏪 Act as Content Admin for Vendor
+              </button>
+            </div>
+          </div>
+
+          {/* Vendor Selector Dropdown (When in Vendor Proxy mode) */}
+          {mode === 'vendor_proxy' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, maxWidth: '400px' }}>
+              <select
+                value={selectedVendorId}
+                onChange={(e) => setSelectedVendorId(e.target.value)}
+                style={{ width: '100%', padding: '0.55rem', border: '1.5px solid #6366f1', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, background: '#eef2ff', color: '#312e81' }}
+              >
+                <option value="">-- Choose Vendor to Proxy / Seed Data --</option>
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.type_name || 'Business'}) · Tier: {b.subscription_tier || 'free'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Filters Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          {/* Search */}
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title, business, or code..."
+            style={{ padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem' }}
+          />
+
+          {/* Item Type */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
+          >
+            <option value="all">All Types (Packages, Tours, Offers...)</option>
+            <option value="package">📦 Packages &amp; Bundles</option>
+            <option value="tour">🧭 Tours &amp; Safaris</option>
+            <option value="activity">🎯 Activities &amp; Day Trips</option>
+            <option value="discount_offer">🏷️ Special Offers &amp; Discounts</option>
+            <option value="room_bundle">🛏️ Stay &amp; Room Packages</option>
+            <option value="retreat">🧘 Wellness Retreats</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="approved">✅ Approved &amp; Live</option>
+            <option value="pending_approval">⏳ Pending Moderation</option>
+            <option value="draft">📝 Draft (Private)</option>
+            <option value="suspended">⏸️ Suspended</option>
+          </select>
+        </div>
+      </section>
+
+      {/* ── INVENTORY GRID ── */}
+      {loading ? (
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#D4AF37', marginBottom: '1rem', display: 'block' }} />
+          Loading Marketplace Engine...
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div style={{ background: '#fff', border: '1.5px dashed #cbd5e1', borderRadius: '18px', padding: '5rem 2rem', textAlign: 'center', color: '#64748b' }}>
+          <i className="fas fa-box-open" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem', display: 'block' }} />
+          <h3 style={{ margin: '0 0 0.5rem', color: '#1e293b' }}>No Items Found</h3>
+          <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem' }}>
+            No marketplace items match your active filters. Create one above to get started.
+          </p>
+          <button
+            onClick={() => startNewItem('package')}
+            style={{ padding: '0.65rem 1.25rem', background: '#D4AF37', color: '#1a1000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer' }}
+          >
+            + Create First Package
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+          {filteredItems.map((item) => {
+            const hasDiscount = (item.discount_percentage > 0) || (item.original_price && item.original_price > item.price_amount);
+            const coverImage = item.media?.[0]?.url || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600';
+
+            return (
+              <div
+                key={item.id}
+                style={{
+                  background: '#fff',
+                  border: item.is_featured ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: item.is_featured ? '0 4px 20px rgba(212,175,55,0.15)' : '0 2px 10px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.2s'
+                }}
+              >
+                {/* Card Top Image & Badges */}
+                <div style={{ height: '170px', position: 'relative', background: '#090e17' }}>
+                  <img src={coverImage} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  
+                  {/* Status Badge */}
+                  <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.62rem',
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      background: item.status === 'approved' ? '#16a34a' : item.status === 'pending_approval' ? '#eab308' : item.status === 'suspended' ? '#ef4444' : '#64748b',
+                      color: '#fff'
+                    }}>
+                      {item.status}
+                    </span>
+
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.62rem',
+                      fontWeight: 900,
+                      background: '#0f172a',
+                      color: '#fff',
+                      textTransform: 'uppercase'
+                    }}>
+                      {item.item_type.replace('_', ' ')}
+                    </span>
                   </div>
 
-                  <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label className="dna-label">TYPE</label>
-                      <select
-                        className="dna-input"
-                        value={editingPkg.package_type || 'package'}
-                        onChange={e => setEditingPkg({...editingPkg, package_type: e.target.value as any})}
-                      >
-                        <option value="package">Package</option>
-                        <option value="program">Program</option>
-                        <option value="bundle">Bundle</option>
-                      </select>
+                  {/* Featured Crown */}
+                  {item.is_featured && (
+                    <div style={{ position: 'absolute', top: 10, right: 10, background: '#D4AF37', color: '#1a1000', fontSize: '0.65rem', fontWeight: 900, padding: '3px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <i className="fas fa-crown" /> FEATURED
                     </div>
+                  )}
+
+                  {/* Savings Tag */}
+                  {hasDiscount && (
+                    <div style={{ position: 'absolute', bottom: 10, right: 10, background: '#dc2626', color: '#fff', fontSize: '0.68rem', fontWeight: 900, padding: '3px 8px', borderRadius: '6px' }}>
+                      {item.discount_percentage ? `${item.discount_percentage}% OFF` : 'SPECIAL OFFER'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Content */}
+                <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  
+                  {/* Business Attribution */}
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: item.business_name ? '#6366f1' : '#D4AF37', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <i className={`fas ${item.business_name ? 'fa-store' : 'fa-globe'}`} style={{ marginRight: '5px' }} />
+                    {item.business_name ? `${item.business_name} (${item.business_type_name || 'Vendor'})` : 'Main Portal Platform Offer'}
+                  </div>
+
+                  {/* Title */}
+                  <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                    {item.title}
+                  </h3>
+                  {item.title_ar && (
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textAlign: 'right', direction: 'rtl', marginBottom: '0.5rem' }}>
+                      {item.title_ar}
+                    </div>
+                  )}
+
+                  {/* Pricing & Duration */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '0.75rem 0', padding: '0.6rem 0.75rem', background: '#f8fafc', borderRadius: '10px' }}>
                     <div>
-                      <label className="dna-label">PROGRAM STYLE</label>
-                      <select
-                        className="dna-input"
-                        value={editingPkg.program_type || 'experience'}
-                        onChange={e => setEditingPkg({...editingPkg, program_type: e.target.value as any})}
-                      >
-                        <option value="experience">Experience</option>
-                        <option value="wellness">Wellness</option>
-                        <option value="retreat">Retreat</option>
-                        <option value="adventure">Adventure</option>
-                      </select>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                        {item.price_amount > 0 ? `${item.price_amount} ${item.currency}` : 'Free / Contact'}
+                      </span>
+                      {item.original_price && (
+                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', textDecoration: 'line-through', marginLeft: '6px' }}>
+                          {item.original_price} {item.currency}
+                        </span>
+                      )}
+                      <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>
+                        {item.pricing_unit.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>
+                      <i className="fas fa-clock" style={{ marginRight: '4px', color: '#D4AF37' }} />
+                      {item.duration_value} {item.duration_type.replace('_', ' ')}
                     </div>
                   </div>
 
-                  <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label className="dna-label">DURATION (DAYS)</label>
-                      <input
-                        className="dna-input"
-                        type="number"
-                        min={1}
-                        value={editingPkg.duration_days || 1}
-                        onChange={e => setEditingPkg({...editingPkg, duration_days: Number(e.target.value) || 1})}
-                      />
-                    </div>
-                    <div>
-                      <label className="dna-label">TARGET AUDIENCE</label>
-                      <input
-                        className="dna-input"
-                        value={editingPkg.audience || ''}
-                        onChange={e => setEditingPkg({...editingPkg, audience: e.target.value})}
-                        placeholder="Couples, Families, Adventure"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="dna-label">DESCRIPTION / NARRATIVE</label>
-                    <textarea 
-                      className="dna-input" 
-                      rows={4}
-                      value={editingPkg.description || ''} 
-                      onChange={e => setEditingPkg({...editingPkg, description: e.target.value})}
-                      placeholder="Describe the curated experience..."
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="dna-label">FEATURED / HIGHLIGHT</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                  {/* Visibility Toggles */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', marginBottom: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.6rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={!!editingPkg.is_featured}
-                        onChange={e => setEditingPkg({...editingPkg, is_featured: e.target.checked})}
+                        checked={item.publish_on_minisite}
+                        onChange={() => toggleVisibility(item, 'publish_on_minisite')}
                       />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Make this offer stand out in searches and home sections</span>
-                    </div>
+                      Minisite
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={item.publish_on_main_portal}
+                        onChange={() => toggleVisibility(item, 'publish_on_main_portal')}
+                      />
+                      Main Portal
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => toggleFeatured(item)}
+                      style={{ border: 'none', background: 'transparent', color: item.is_featured ? '#D4AF37' : '#94a3b8', cursor: 'pointer', fontWeight: 800 }}
+                    >
+                      👑 {item.is_featured ? 'Featured' : 'Make Featured'}
+                    </button>
                   </div>
-                  
-                  <div style={{ marginTop: '2rem' }}>
-                     <label className="dna-label">PRICING STRATEGY (JSON)</label>
-                     <textarea 
-                       className="dna-input" 
-                       style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
-                       value={typeof editingPkg.pricing === 'string' ? editingPkg.pricing : JSON.stringify(editingPkg.pricing || { base: 0 }, null, 2)} 
-                       onChange={e => {
-                         try { setEditingPkg({...editingPkg, pricing: JSON.parse(e.target.value)}); }
-                         catch { setEditingPkg({...editingPkg, pricing: e.target.value}); }
-                       }}
-                     />
-                  </div>
-               </div>
 
-               <div className="form-sidebar">
-                  <div className="selection-header">
-                     <label className="dna-label">BUNDLE BUSINESSES & SELECT OFFERS</label>
-                     <span className="count-badge">{selectedBizes.length} SELECTED</span>
-                  </div>
-                  
-                  <div className="biz-selection-list">
-                    {businesses.map(b => {
-                      const isSelected = selectedBizes.includes(b.id);
-                      const customData = typeof b.custom_data === 'string' ? JSON.parse(b.custom_data) : b.custom_data || {};
-                      const offers = customData.sec_8_rates_offers || null;
-                      
-                      return (
-                        <div key={b.id} className={`biz-select-card ${isSelected ? 'active' : ''}`} onClick={() => {
-                          if (isSelected) setSelectedBizes(selectedBizes.filter(id => id !== b.id));
-                          else setSelectedBizes([...selectedBizes, b.id]);
-                        }}>
-                           <div className="biz-info">
-                              <i className={b.type_icon || 'fas fa-store'} style={{ color: b.type_icon_color || '#D4AF37' }}></i>
-                              <div>
-                                 <div className="biz-name">{b.name}</div>
-                                 <div className="biz-type">{b.type_name}</div>
-                              </div>
-                           </div>
-                           
-                           {isSelected && offers && (
-                             <div className="offers-preview animate-in">
-                                <div className="offers-label">VENDOR OFFERS:</div>
-                                {offers.active_discounts?.map((d: string, i: number) => (
-                                  <div key={i} className="offer-tag">
-                                    <i className="fas fa-tag"></i> {d}
-                                  </div>
-                                ))}
-                                {offers.price_standard && <div className="offer-price">{offers.price_standard}</div>}
-                             </div>
-                           )}
-                           
-                           <div className="select-indicator">
-                              {isSelected ? <i className="fas fa-check-circle"></i> : <i className="far fa-circle"></i>}
-                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-               </div>
-            </div>
+                  {/* Actions Bar */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                    <button
+                      onClick={() => { setEditingItem(item); setActiveTab('basics'); }}
+                      style={{ flex: 1, padding: '0.55rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      <i className="fas fa-edit" /> Edit
+                    </button>
 
-            <div className="form-footer">
-               <button className="btn-save" onClick={handleSave} disabled={saving}>
-                  {saving ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-cloud-upload-alt"></i>}
-                  {saving ? 'SYNCHRONIZING...' : 'SAVE PACKAGE DNA'}
-               </button>
-               <button className="btn-cancel" onClick={() => setEditingPkg(null)}>CANCEL</button>
-            </div>
-          </div>
-        ) : (
-          <div className="packages-grid">
-            {packages.map(p => (
-              <div key={p.id} className="package-card card-glass animate-in">
-                 <div className="card-top">
-                    <div className="badge-active">{p.active ? 'ACTIVE' : 'DRAFT'}</div>
-                    <div className="card-actions">
-                       <button onClick={() => startEdit(p)}><i className="fas fa-edit"></i></button>
-                       <button onClick={() => handleDelete(p.id)}><i className="fas fa-trash"></i></button>
-                    </div>
-                 </div>
-                 <h3 className="pkg-name">{p.name}</h3>
-                 <p className="pkg-desc">{p.description}</p>
-                 
-                 <div className="pkg-businesses">
-                    <div className="label">INCLUDED BUSINESSES:</div>
-                    <div className="biz-icons">
-                       {Array.isArray(p.business_ids) && p.business_ids.map(bid => {
-                         const biz = businesses.find(b => b.id === bid);
-                         if (!biz) return null;
-                         return (
-                           <div key={bid} className="biz-icon-pill" title={biz.name}>
-                              <i className={biz.type_icon || 'fas fa-store'}></i>
-                              <span>{biz.name}</span>
-                           </div>
-                         );
-                       })}
-                    </div>
-                 </div>
-                 
-                 <div className="pkg-footer">
-                    <div className="created-at">Created {new Date(p.created_at).toLocaleDateString()}</div>
-                    <button className="btn-view" onClick={() => startEdit(p)}>ORCHESTRATE JOURNEY</button>
-                 </div>
+                    {item.status !== 'approved' && (
+                      <button
+                        onClick={() => toggleStatus(item, 'approved')}
+                        style={{ padding: '0.55rem 0.75rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                        title="Approve &amp; Publish Live"
+                      >
+                        <i className="fas fa-check" />
+                      </button>
+                    )}
+
+                    {item.status === 'approved' && (
+                      <button
+                        onClick={() => toggleStatus(item, 'suspended')}
+                        style={{ padding: '0.55rem 0.75rem', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                        title="Suspend Item"
+                      >
+                        <i className="fas fa-pause" />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      style={{ padding: '0.55rem 0.75rem', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                      title="Delete"
+                    >
+                      <i className="fas fa-trash" />
+                    </button>
+                  </div>
+
+                </div>
               </div>
-            ))}
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── EDIT / CREATE MODAL ── */}
+      {editingItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }}>
             
-            {packages.length === 0 && (
-              <div className="empty-state">
-                 <i className="fas fa-box-open fa-3x"></i>
-                 <h3>No experience packages curated yet.</h3>
-                 <p>Start curating the best of Siwa into bundled journeys.</p>
-                 <button className="btn-create-large" onClick={() => { setEditingPkg({ name: '', description: '', active: true }); setSelectedBizes([]); }}>
-                   + INITIALIZE FIRST PACKAGE
-                 </button>
+            {/* Modal Header */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderRadius: '20px 20px 0 0' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+                  {editingItem.id ? 'Edit Marketplace Offer / Tour' : 'Create New Marketplace Item'}
+                </h3>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Universal inventory builder with typology-adaptive pricing and itinerary
+                </span>
               </div>
-            )}
+              <button
+                onClick={() => setEditingItem(null)}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#fff', padding: '0 1rem' }}>
+              {([
+                ['basics', '1. Basics & Details'],
+                ['pricing_discounts', '2. Pricing & Discounts'],
+                ['itinerary', '3. Multi-Day Itinerary'],
+                ['media', '4. Media & Photos'],
+                ['governance', '5. Governance & Visibility']
+              ] as const).map(([tabKey, label]) => (
+                <button
+                  key={tabKey}
+                  type="button"
+                  onClick={() => setActiveTab(tabKey)}
+                  style={{
+                    padding: '0.8rem 1rem',
+                    border: 'none',
+                    background: 'transparent',
+                    borderBottom: activeTab === tabKey ? '3px solid #D4AF37' : '3px solid transparent',
+                    color: activeTab === tabKey ? '#0f172a' : '#64748b',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem', flex: 1, display: 'grid', gap: '1.25rem' }}>
+              
+              {/* TAB 1: BASICS */}
+              {activeTab === 'basics' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        ASSIGN TO BUSINESS (OR LEAVE BLANK FOR GLOBAL PLATFORM)
+                      </label>
+                      <select
+                        value={editingItem.business_id || ''}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, business_id: e.target.value || null }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700 }}
+                      >
+                        <option value="">🌐 Global Platform (SiWiFy Main Marketplace)</option>
+                        {businesses.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name} ({b.type_name || 'Business'})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        ITEM TYPE
+                      </label>
+                      <select
+                        value={editingItem.item_type || 'package'}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, item_type: e.target.value as any }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700 }}
+                      >
+                        <option value="package">📦 Multi-Day Package &amp; Bundle</option>
+                        <option value="tour">🧭 Desert Tour / Safari / Itinerary</option>
+                        <option value="activity">🎯 Single Activity / Experience</option>
+                        <option value="discount_offer">🏷️ Special Discount &amp; Promo Code</option>
+                        <option value="room_bundle">🛏️ Stay &amp; Room Package</option>
+                        <option value="retreat">🧘 Wellness &amp; Yoga Retreat</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        TITLE (ENGLISH) *
+                      </label>
+                      <input
+                        value={editingItem.title || ''}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, title: e.target.value }))}
+                        placeholder="e.g. 3-Day Magic of Siwa Discovery Package"
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem', textAlign: 'right' }}>
+                        عنوان الباقة أو الرحلة (بالعربية)
+                      </label>
+                      <input
+                        value={editingItem.title_ar || ''}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, title_ar: e.target.value }))}
+                        placeholder="مثال: برنامج ٣ أيام لاكتشاف سحر واحة سيوة"
+                        dir="rtl"
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        DESCRIPTION (ENGLISH)
+                      </label>
+                      <textarea
+                        value={editingItem.description || ''}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, description: e.target.value }))}
+                        rows={4}
+                        placeholder="Describe the package highlights, experiences, and journey details..."
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem', textAlign: 'right' }}>
+                        الوصف الكامل (بالعربية)
+                      </label>
+                      <textarea
+                        value={editingItem.description_ar || ''}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, description_ar: e.target.value }))}
+                        rows={4}
+                        dir="rtl"
+                        placeholder="اكتب تفاصيل ومميزات البرنامج والرحلة باللغة العربية..."
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', textAlign: 'right', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: PRICING & DISCOUNTS */}
+              {activeTab === 'pricing_discounts' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        PRICE AMOUNT
+                      </label>
+                      <input
+                        type="number"
+                        value={editingItem.price_amount ?? 0}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, price_amount: Number(e.target.value) }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        ORIGINAL / STRIKETHROUGH PRICE
+                      </label>
+                      <input
+                        type="number"
+                        value={editingItem.original_price ?? ''}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, original_price: e.target.value ? Number(e.target.value) : null }))}
+                        placeholder="e.g. 2500"
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        CURRENCY
+                      </label>
+                      <select
+                        value={editingItem.currency || 'EGP'}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, currency: e.target.value }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}
+                      >
+                        <option value="EGP">EGP (Egyptian Pound)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        PRICING UNIT
+                      </label>
+                      <select
+                        value={editingItem.pricing_unit || 'per_person'}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, pricing_unit: e.target.value as any }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700 }}
+                      >
+                        <option value="per_person">Per Person</option>
+                        <option value="per_group">Per Group / Vehicle</option>
+                        <option value="per_room">Per Room / Night</option>
+                        <option value="fixed">Fixed Flat Rate</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Special Discounts Panel */}
+                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <i className="fas fa-percent" style={{ color: '#16a34a' }} />
+                      Special Promotion &amp; Discount Configuration
+                    </h4>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '0.25rem' }}>
+                          DISCOUNT TYPE
+                        </label>
+                        <select
+                          value={editingItem.discount_type || 'none'}
+                          onChange={(e) => setEditingItem((p) => ({ ...p, discount_type: e.target.value as any }))}
+                          style={{ width: '100%', padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                        >
+                          <option value="none">No Discount</option>
+                          <option value="percent">Percentage Off (%)</option>
+                          <option value="fixed">Fixed Amount Off</option>
+                          <option value="early_bird">Early Bird Advance Booking</option>
+                          <option value="coupon">Coupon Code Required</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '0.25rem' }}>
+                          DISCOUNT PERCENTAGE (%)
+                        </label>
+                        <input
+                          type="number"
+                          value={editingItem.discount_percentage ?? 0}
+                          onChange={(e) => setEditingItem((p) => ({ ...p, discount_percentage: Number(e.target.value) }))}
+                          style={{ width: '100%', padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '0.25rem' }}>
+                          PROMO COUPON CODE (OPTIONAL)
+                        </label>
+                        <input
+                          value={editingItem.coupon_code || ''}
+                          onChange={(e) => setEditingItem((p) => ({ ...p, coupon_code: e.target.value.toUpperCase() }))}
+                          placeholder="e.g. SIWA20"
+                          style={{ width: '100%', padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 800, boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: ITINERARY */}
+              {activeTab === 'itinerary' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>Day-by-Day Journey Itinerary</h4>
+                      <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>Add sequential milestones for tours and multi-day packages.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem((p) => ({
+                        ...p,
+                        itinerary: [...(p?.itinerary || []), { day: (p?.itinerary?.length || 0) + 1, title: '', title_ar: '', description: '', description_ar: '' }]
+                      }))}
+                      style={{ padding: '0.45rem 0.9rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      + Add Day / Milestone
+                    </button>
+                  </div>
+
+                  {(editingItem.itinerary || []).map((step, idx) => (
+                    <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.9rem', display: 'grid', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#D4AF37' }}>
+                          DAY {step.day || idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem((p) => ({ ...p, itinerary: (p?.itinerary || []).filter((_, i) => i !== idx) }))}
+                          style={{ border: 'none', background: 'transparent', color: '#ef4444', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 800 }}
+                        >
+                          Remove Day
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <input
+                          value={step.title}
+                          onChange={(e) => {
+                            const next = [...(editingItem.itinerary || [])];
+                            next[idx].title = e.target.value;
+                            setEditingItem((p) => ({ ...p, itinerary: next }));
+                          }}
+                          placeholder="Day Title (e.g. Great Sand Sea Safari &amp; Sunset Camp)"
+                          style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                        />
+                        <input
+                          value={step.title_ar || ''}
+                          onChange={(e) => {
+                            const next = [...(editingItem.itinerary || [])];
+                            next[idx].title_ar = e.target.value;
+                            setEditingItem((p) => ({ ...p, itinerary: next }));
+                          }}
+                          placeholder="عنوان اليوم بالعربية"
+                          dir="rtl"
+                          style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', textAlign: 'right' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* TAB 4: MEDIA & FEATURES */}
+              {activeTab === 'media' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {/* Photo Adder */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                      ADD PHOTO URL TO GALLERY
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        value={newMediaUrl}
+                        onChange={(e) => setNewMediaUrl(e.target.value)}
+                        placeholder="https://... (image URL)"
+                        style={{ flex: 1, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newMediaUrl.trim()) return;
+                          setEditingItem((p) => ({ ...p, media: [...(p?.media || []), { url: newMediaUrl.trim() }] }));
+                          setNewMediaUrl('');
+                        }}
+                        style={{ padding: '0 1.25rem', background: '#D4AF37', color: '#1a1000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        + Add Photo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Media Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.5rem' }}>
+                    {(editingItem.media || []).map((m, idx) => (
+                      <div key={idx} style={{ height: '90px', position: 'relative', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                        <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem((p) => ({ ...p, media: (p?.media || []).filter((_, i) => i !== idx) }))}
+                          style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(239,68,68,0.85)', color: '#fff', border: 'none', borderRadius: '4px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '0.7rem' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: GOVERNANCE & BOOKING */}
+              {activeTab === 'governance' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        PUBLICATION &amp; MODERATION STATUS
+                      </label>
+                      <select
+                        value={editingItem.status || 'approved'}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, status: e.target.value as any }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800 }}
+                      >
+                        <option value="approved">✅ Approved &amp; Live Publicly</option>
+                        <option value="pending_approval">⏳ Pending Moderation</option>
+                        <option value="draft">📝 Draft Mode (Private)</option>
+                        <option value="suspended">⏸️ Suspended</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
+                        BOOKING CTA BEHAVIOR
+                      </label>
+                      <select
+                        value={editingItem.booking_cta_type || 'whatsapp'}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, booking_cta_type: e.target.value as any }))}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700 }}
+                      >
+                        <option value="whatsapp">Direct WhatsApp Inquiry</option>
+                        <option value="phone">Direct Phone Call</option>
+                        <option value="url">External Booking Link (URL)</option>
+                        <option value="custom_quote">Request Custom Journey Quote</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={editingItem.publish_on_minisite !== false}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, publish_on_minisite: e.target.checked }))}
+                      />
+                      Publish on Vendor Minisite Catalog
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={editingItem.publish_on_main_portal !== false}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, publish_on_main_portal: e.target.checked }))}
+                      />
+                      Show on Main SiWiFy Marketplace
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: '#D4AF37', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!editingItem.is_featured}
+                        onChange={(e) => setEditingItem((p) => ({ ...p, is_featured: e.target.checked }))}
+                      />
+                      👑 Featured Spotlight Item
+                    </label>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderRadius: '0 0 20px 20px' }}>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                style={{ padding: '0.65rem 1.25rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#475569', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveItem}
+                disabled={saving}
+                style={{ padding: '0.65rem 1.75rem', background: saving ? '#94a3b8' : 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#1a1000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '0.82rem', cursor: saving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(212,175,55,0.35)' }}
+              >
+                <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} />
+                {saving ? 'Saving...' : (editingItem.id ? 'Save Changes' : 'Create & Publish Item')}
+              </button>
+            </div>
+
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;900&family=Inter:wght@400;600;800&display=swap');
-
-        .packages-page {
-          min-height: 100vh;
-          background: #090e17;
-          color: #fff;
-          font-family: 'Inter', sans-serif;
-          padding-bottom: 5rem;
-        }
-
-        .container {
-          max-width: 1600px;
-          margin: 0 auto;
-          padding: 0 2rem;
-        }
-
-        .page-header {
-          background: radial-gradient(circle at top right, rgba(212,175,55,0.1), transparent), #0f172a;
-          padding: 6rem 0 3rem;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .back-link {
-          color: #D4AF37;
-          text-decoration: none;
-          font-weight: 800;
-          font-size: 0.8rem;
-          letter-spacing: 1px;
-          display: block;
-          margin-bottom: 1.5rem;
-        }
-
-        .badge-premium {
-          background: #D4AF37;
-          color: #0f172a;
-          padding: 4px 12px;
-          border-radius: 50px;
-          font-size: 0.6rem;
-          font-weight: 900;
-          letter-spacing: 2px;
-          margin-bottom: 1rem;
-          display: inline-block;
-        }
-
-        .title {
-          font-family: 'Outfit', sans-serif;
-          font-size: 3rem;
-          font-weight: 900;
-          margin: 0;
-          letter-spacing: -2px;
-          line-height: 1;
-        }
-
-        .subtitle {
-          margin: 0.5rem 0 0;
-          color: #94a3b8;
-          font-weight: 500;
-        }
-
-        .btn-create {
-          background: #D4AF37;
-          color: #0f172a;
-          border: none;
-          padding: 1rem 2rem;
-          border-radius: 12px;
-          font-weight: 900;
-          font-family: 'Outfit', sans-serif;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
-        }
-
-        .card-glass {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 32px;
-          backdrop-filter: blur(20px);
-        }
-
-        .packages-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-          gap: 2rem;
-        }
-
-        .package-card {
-          padding: 2.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          transition: transform 0.3s;
-        }
-        
-        .package-card:hover {
-          transform: translateY(-5px);
-          border-color: rgba(212, 175, 55, 0.2);
-        }
-
-        .card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .badge-active {
-          background: rgba(34, 197, 94, 0.1);
-          color: #22c55e;
-          font-size: 0.6rem;
-          font-weight: 900;
-          padding: 4px 10px;
-          border-radius: 4px;
-        }
-
-        .card-actions {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .card-actions button {
-          background: none;
-          border: none;
-          color: #64748b;
-          cursor: pointer;
-          font-size: 1rem;
-          transition: color 0.3s;
-        }
-
-        .card-actions button:hover {
-          color: #fff;
-        }
-
-        .pkg-name {
-          font-family: 'Outfit', sans-serif;
-          font-weight: 900;
-          font-size: 1.5rem;
-          margin: 0;
-          letter-spacing: -0.5px;
-        }
-
-        .pkg-desc {
-          font-size: 0.85rem;
-          color: #94a3b8;
-          line-height: 1.6;
-          height: 3.2em;
-          overflow: hidden;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        }
-
-        .pkg-businesses .label {
-          font-size: 0.6rem;
-          font-weight: 900;
-          color: #D4AF37;
-          letter-spacing: 1px;
-          margin-bottom: 0.75rem;
-        }
-
-        .biz-icons {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-        }
-
-        .biz-icon-pill {
-          background: rgba(255, 255, 255, 0.05);
-          padding: 4px 12px;
-          border-radius: 50px;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.7rem;
-          font-weight: 700;
-        }
-
-        .pkg-footer {
-          margin-top: auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          padding-top: 1.5rem;
-        }
-
-        .created-at {
-          font-size: 0.65rem;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        .btn-view {
-          background: transparent;
-          border: 1px solid #D4AF37;
-          color: #D4AF37;
-          padding: 0.5rem 1rem;
-          border-radius: 8px;
-          font-weight: 800;
-          font-size: 0.7rem;
-          cursor: pointer;
-        }
-
-        /* EDITOR STYLES */
-        .editor-card {
-          padding: 3rem;
-        }
-
-        .grid-editor {
-          display: grid;
-          grid-template-columns: 1fr 400px;
-          gap: 3rem;
-        }
-
-        .section-title {
-          font-family: 'Outfit', sans-serif;
-          font-weight: 900;
-          font-size: 2rem;
-          margin: 0 0 3rem 0;
-          letter-spacing: -1px;
-        }
-
-        .dna-label {
-          font-size: 0.6rem;
-          font-weight: 900;
-          color: #D4AF37;
-          letter-spacing: 1.5px;
-          display: block;
-          margin-bottom: 1rem;
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .dna-input {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1.2px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
-          padding: 1rem;
-          color: #fff;
-          font-weight: 600;
-          outline: none;
-          transition: all 0.3s;
-          font-size: 0.9rem;
-        }
-
-        .biz-selection-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          max-height: 600px;
-          overflow-y: auto;
-          padding-right: 0.5rem;
-        }
-
-        .biz-select-card {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          padding: 1rem;
-          border-radius: 16px;
-          cursor: pointer;
-          transition: all 0.3s;
-          position: relative;
-        }
-
-        .biz-select-card.active {
-          background: rgba(212, 175, 55, 0.05);
-          border-color: #D4AF37;
-        }
-
-        .biz-info {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .biz-info i {
-          font-size: 1.2rem;
-          width: 1.5rem;
-          text-align: center;
-        }
-
-        .biz-name {
-          font-weight: 800;
-          font-size: 0.85rem;
-        }
-
-        .biz-type {
-          font-size: 0.65rem;
-          color: #94a3b8;
-          font-weight: 600;
-        }
-
-        .offers-preview {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px dashed rgba(212, 175, 55, 0.2);
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .offers-label {
-          font-size: 0.55rem;
-          font-weight: 900;
-          color: #D4AF37;
-          letter-spacing: 1px;
-        }
-
-        .offer-tag {
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: #22c55e;
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-        }
-
-        .offer-price {
-          font-size: 0.75rem;
-          font-weight: 900;
-          color: #fff;
-        }
-
-        .select-indicator {
-          position: absolute;
-          top: 1rem;
-          right: 1rem;
-          font-size: 1.2rem;
-          color: #64748b;
-        }
-
-        .active .select-indicator {
-          color: #D4AF37;
-        }
-
-        .form-footer {
-          margin-top: 4rem;
-          padding-top: 2rem;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          display: flex;
-          gap: 1.5rem;
-        }
-
-        .btn-save {
-          background: #D4AF37;
-          color: #0f172a;
-          border: none;
-          padding: 1.25rem 3rem;
-          border-radius: 50px;
-          font-weight: 900;
-          font-family: 'Outfit', sans-serif;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
-        }
-
-        .btn-cancel {
-          background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #fff;
-          padding: 1.25rem 3rem;
-          border-radius: 50px;
-          font-weight: 800;
-          cursor: pointer;
-        }
-
-        .empty-state {
-          grid-column: 1 / -1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 10rem 0;
-          color: #475569;
-          text-align: center;
-        }
-
-        .btn-create-large {
-          margin-top: 2rem;
-          background: transparent;
-          border: 2px dashed #D4AF37;
-          color: #D4AF37;
-          padding: 1.5rem 3rem;
-          border-radius: 20px;
-          font-weight: 900;
-          cursor: pointer;
-          font-family: 'Outfit', sans-serif;
-          transition: all 0.3s;
-        }
-
-        .btn-create-large:hover {
-          background: rgba(212, 175, 55, 0.05);
-          transform: scale(1.05);
-        }
-
-        .loader-screen {
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #090e17;
-          color: #D4AF37;
-          font-weight: 900;
-          letter-spacing: 10px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.2rem;
-        }
-
-        @media (max-width: 1200px) {
-          .grid-editor { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </div>
   );
 }
