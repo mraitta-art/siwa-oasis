@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter,
   AlignRight, AlignJustify, List, ListOrdered, Heading1, Heading2,
   Heading3, Image as ImageIcon, Link2, Quote, Undo, Redo, Palette,
-  Highlighter, Sparkles, Upload, Eye, Code, Type
+  Highlighter, Sparkles, Upload, Code, Type, AlignHorizontalDistributeCenter
 } from 'lucide-react';
 
 interface RichBlogEditorProps {
@@ -21,21 +21,45 @@ interface RichBlogEditorProps {
 export default function RichBlogEditor({
   value,
   onChange,
-  minHeight = '420px',
+  minHeight = '360px',
   placeholder = 'Write your rich blog content here...',
   businessName = 'General',
   sectionName = 'blog',
   dir = 'ltr'
 }: RichBlogEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const savedSelectionRef = useRef<Range | null>(null);
+  const lastRangeRef = useRef<Range | null>(null);
+  const isInternalChangeRef = useRef<boolean>(false);
   const [viewSource, setViewSource] = useState(false);
+  const [currentDir, setCurrentDir] = useState<'ltr' | 'rtl'>(dir);
   const [fontColor, setFontColor] = useState('#0f172a');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [blockColor, setBlockColor] = useState('#ffffff');
-  const [fontFamily, setFontFamily] = useState('Inter, sans-serif');
-  const [fontSize, setFontSize] = useState('3'); // HTML execCommand font size 1-7
+  const [fontFamily, setFontFamily] = useState(
+    dir === 'rtl' ? "'Cairo', 'Tajawal', sans-serif" : "'Inter', sans-serif"
+  );
+  const [fontSize, setFontSize] = useState('3');
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Keep dir in sync if parent changes it
+  useEffect(() => {
+    setCurrentDir(dir);
+    if (dir === 'rtl' && fontFamily.includes('Inter')) {
+      setFontFamily("'Cairo', 'Tajawal', 'Segoe UI', sans-serif");
+    }
+  }, [dir]);
+
+  // Sync external value to editor without losing cursor position
+  useEffect(() => {
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
+      return;
+    }
+    if (editorRef.current && editorRef.current.innerHTML !== (value || '')) {
+      editorRef.current.innerHTML = value || '';
+    }
+  }, [value]);
 
   const editorFontSize = ({
     '1': '0.75rem',
@@ -47,55 +71,102 @@ export default function RichBlogEditor({
     '7': '2.25rem',
   } as Record<string, string>)[fontSize] || '1rem';
 
-  // Sync editor content to parent
+  // Save selection inside editor whenever user clicks, types, or moves cursor
+  const updateSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !editorRef.current) return;
+    const range = sel.getRangeAt(0);
+    if (editorRef.current.contains(range.commonAncestorContainer)) {
+      lastRangeRef.current = range.cloneRange();
+    }
+  }, []);
+
   const handleInput = () => {
     if (editorRef.current) {
+      isInternalChangeRef.current = true;
       onChange(editorRef.current.innerHTML);
     }
+    updateSelection();
   };
 
-  const execute = (command: string, value: string | undefined = undefined) => {
-    document.execCommand(command, false, value);
+  const execute = (command: string, cmdValue: string | undefined = undefined) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    // Restore selection if lost
+    if (lastRangeRef.current) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(lastRangeRef.current);
+      }
+    }
+
+    document.execCommand(command, false, cmdValue);
     handleInput();
   };
 
-  const saveSelection = () => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || !editorRef.current?.contains(selection.anchorNode)) return;
-    savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
-  };
-
-  const restoreSelection = () => {
+  const insertHtmlAtCursor = (html: string) => {
     const editor = editorRef.current;
-    const selection = window.getSelection();
-    if (!editor || !selection) return;
+    if (!editor) return;
     editor.focus();
-    selection.removeAllRanges();
-    if (savedSelectionRef.current) {
-      selection.addRange(savedSelectionRef.current);
-    } else {
-      const range = document.createRange();
-      range.selectNodeContents(editor);
-      range.collapse(false);
-      selection.addRange(range);
+
+    const sel = window.getSelection();
+    let range: Range | null = null;
+
+    if (lastRangeRef.current && editor.contains(lastRangeRef.current.commonAncestorContainer)) {
+      range = lastRangeRef.current;
+    } else if (sel && sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      range = sel.getRangeAt(0);
     }
+
+    if (range) {
+      range.deleteContents();
+      const el = document.createElement('div');
+      el.innerHTML = html;
+      const frag = document.createDocumentFragment();
+      let node: ChildNode | null;
+      let lastNode: ChildNode | null = null;
+      while ((node = el.firstChild)) {
+        lastNode = frag.appendChild(node);
+      }
+      range.insertNode(frag);
+
+      // Place cursor after inserted content
+      if (lastNode && sel) {
+        const newRange = document.createRange();
+        newRange.setStartAfter(lastNode);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        lastRangeRef.current = newRange;
+      }
+    } else {
+      // Fallback: append at end
+      editor.innerHTML += html;
+    }
+
+    handleInput();
   };
 
   const handleLink = () => {
-    const url = prompt('Enter link URL:');
+    const url = prompt(currentDir === 'rtl' ? 'أدخل رابط URL:' : 'Enter link URL:');
     if (url) execute('createLink', url);
   };
 
-  // Media upload handler (uploads via the shared admin media endpoint).
+  // Upload image/video directly from device
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setUploadError(null);
+
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('businessName', businessName);
-    formData.append('sectionName', sectionName);
+    formData.append('businessName', businessName || 'general');
+    formData.append('sectionName', sectionName || 'blog');
 
     try {
       const res = await fetch('/api/jana/media/upload', {
@@ -103,22 +174,21 @@ export default function RichBlogEditor({
         body: formData
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (res.ok && (data.url || data.localUrl)) {
         const imageUrl = data.url || data.localUrl;
-        if (imageUrl) {
-          restoreSelection();
-          const mediaMarkup = file.type.startsWith('video/')
-            ? `<div style="margin: 1.5rem 0; text-align: center;"><video src="${imageUrl}" controls style="max-width: 100%; border-radius: 12px; display: inline-block;"></video></div><p><br></p>`
-            : `<div style="margin: 1.5rem 0; text-align: center;"><img src="${imageUrl}" alt="Blog media" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 0 auto; display: inline-block;" /><p style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem; font-style: italic;">Caption</p></div><p><br></p>`;
-          execute('insertHTML', mediaMarkup);
-        }
+        const isVideo = file.type.startsWith('video/');
+        const mediaMarkup = isVideo
+          ? `<div style="margin: 1.5rem 0; text-align: center;"><video src="${imageUrl}" controls style="max-width: 100%; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); display: inline-block;"></video></div><p><br></p>`
+          : `<div style="margin: 1.5rem 0; text-align: center;"><img src="${imageUrl}" alt="Story Media" style="max-width: 100%; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); display: inline-block;" /><p style="font-size: 0.8rem; color: #64748b; margin-top: 0.4rem; font-style: italic;">${file.name.replace(/\.[^/.]+$/, '')}</p></div><p><br></p>`;
+        
+        insertHtmlAtCursor(mediaMarkup);
       } else {
-        const err = await res.json();
-        alert('Upload failed: ' + (err.error || 'Unknown error'));
+        setUploadError(data.error || 'Upload failed');
       }
     } catch (err: any) {
-      alert('Upload error: ' + err.message);
+      setUploadError(err.message || 'Upload error');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -126,30 +196,34 @@ export default function RichBlogEditor({
   };
 
   const handleImageUrlPrompt = () => {
-    const url = prompt('Enter Image URL:');
+    const url = prompt(currentDir === 'rtl' ? 'أدخل رابط الصورة (URL):' : 'Enter Image URL:');
     if (url) {
-      execute('insertHTML', `<div style="margin: 1.5rem 0; text-align: center;"><img src="${url}" alt="Blog Image" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);" /></div><p><br></p>`);
+      insertHtmlAtCursor(`<div style="margin: 1.5rem 0; text-align: center;"><img src="${url}" alt="Story image" style="max-width: 100%; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); display: inline-block;" /></div><p><br></p>`);
     }
   };
 
-  // Apply custom callout/styled block
+  // Styled Callout Blocks
   const insertCallout = (type: 'info' | 'quote' | 'highlight') => {
     if (type === 'info') {
-      execute('insertHTML', `<div style="background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.02)); border-left: 4px solid #D4AF37; padding: 1.25rem 1.5rem; border-radius: 0 12px 12px 0; margin: 1.5rem 0;"><strong style="color: #D4AF37; font-size: 0.95rem; display: block; margin-bottom: 0.4rem;">💡 Oasis Tip</strong><p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #334155;">Write key advice, visitor guideline, or local recommendation here...</p></div><p><br></p>`);
+      const title = currentDir === 'rtl' ? '💡 نصيحة واحة سيوة' : '💡 Oasis Tip';
+      const text = currentDir === 'rtl' ? 'اكتب النصيحة أو الإرشاد السياحي هنا...' : 'Write key advice, visitor guideline, or local recommendation here...';
+      insertHtmlAtCursor(`<div style="background: linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.02)); border-${currentDir === 'rtl' ? 'right' : 'left'}: 4px solid #D4AF37; padding: 1.25rem 1.5rem; border-radius: ${currentDir === 'rtl' ? '12px 0 0 12px' : '0 12px 12px 0'}; margin: 1.5rem 0;"><strong style="color: #D4AF37; font-size: 0.95rem; display: block; margin-bottom: 0.4rem;">${title}</strong><p style="margin: 0; font-size: 0.95rem; line-height: 1.7; color: #334155;">${text}</p></div><p><br></p>`);
     } else if (type === 'quote') {
-      execute('insertHTML', `<blockquote style="border-left: 4px solid #3b82f6; margin: 1.5rem 0; padding: 1rem 1.5rem; background: #f8fafc; border-radius: 0 8px 8px 0; font-style: italic; font-size: 1.1rem; color: #1e293b;">"Siwa is not just a place, it is a timeless sanctuary where salt, springs, and desert tell stories."<cite style="display: block; text-align: right; font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; font-style: normal;">— Local Guide</cite></blockquote><p><br></p>`);
+      const quoteText = currentDir === 'rtl' ? '«سيوة ليست مجرد واحة، بل هي ملاذ خالد تحكي فيه عيون الماء والكثبان أسرار الطبيعة.»' : '"Siwa is not just an oasis, but a timeless sanctuary where salt lakes, springs, and dunes tell ancient stories."';
+      const author = currentDir === 'rtl' ? '— دليل محلي' : '— Local Guide';
+      insertHtmlAtCursor(`<blockquote style="border-${currentDir === 'rtl' ? 'right' : 'left'}: 4px solid #3b82f6; margin: 1.5rem 0; padding: 1rem 1.5rem; background: #f8fafc; border-radius: 8px; font-style: italic; font-size: 1.05rem; color: #1e293b; line-height: 1.8;">${quoteText}<cite style="display: block; text-align: ${currentDir === 'rtl' ? 'left' : 'right'}; font-size: 0.82rem; color: #64748b; margin-top: 0.5rem; font-style: normal;">${author}</cite></blockquote><p><br></p>`);
     } else if (type === 'highlight') {
-      execute('insertHTML', `<div style="background: #fef08a; padding: 0.2rem 0.6rem; border-radius: 4px; display: inline-block; font-weight: bold; color: #854d0e;">Important highlight</div>&nbsp;`);
+      insertHtmlAtCursor(`<span style="background: #fef08a; color: #854d0e; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">${currentDir === 'rtl' ? 'نص مميز' : 'Highlighted key point'}</span>&nbsp;`);
     }
   };
 
   return (
     <div style={{
-      border: '1px solid #cbd5e1',
+      border: '1.5px solid #cbd5e1',
       borderRadius: '16px',
       overflow: 'hidden',
       background: '#fff',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
     }}>
       {/* ── TOOLBAR ── */}
       <div style={{
@@ -158,16 +232,55 @@ export default function RichBlogEditor({
         padding: '0.6rem 0.8rem',
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '0.4rem',
-        alignItems: 'center'
+        gap: '0.35rem',
+        alignItems: 'center',
+        direction: 'ltr' // Keep toolbar buttons consistently laid out
       }}>
-        {/* Undo/Redo */}
-        <button type="button" onClick={() => execute('undo')} title="Undo" style={btnStyle}><Undo size={15} /></button>
-        <button type="button" onClick={() => execute('redo')} title="Redo" style={btnStyle}><Redo size={15} /></button>
+        {/* Undo / Redo */}
+        <button type="button" onClick={() => execute('undo')} title="Undo" style={btnStyle}><Undo size={14} /></button>
+        <button type="button" onClick={() => execute('redo')} title="Redo" style={btnStyle}><Redo size={14} /></button>
 
         <div style={separatorStyle} />
 
-        {/* Font Family Selector */}
+        {/* Direction Switcher (LTR / RTL) */}
+        <div style={{ display: 'inline-flex', background: '#e2e8f0', borderRadius: '6px', padding: '2px' }}>
+          <button
+            type="button"
+            onClick={() => setCurrentDir('ltr')}
+            title="Left to Right (English)"
+            style={{
+              ...btnStyle,
+              padding: '2px 7px',
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              background: currentDir === 'ltr' ? '#0f172a' : 'transparent',
+              color: currentDir === 'ltr' ? '#fff' : '#64748b',
+              borderRadius: '4px'
+            }}
+          >
+            LTR
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentDir('rtl')}
+            title="Right to Left (العربية)"
+            style={{
+              ...btnStyle,
+              padding: '2px 7px',
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              background: currentDir === 'rtl' ? '#D4AF37' : 'transparent',
+              color: currentDir === 'rtl' ? '#1a1000' : '#64748b',
+              borderRadius: '4px'
+            }}
+          >
+            عربي RTL
+          </button>
+        </div>
+
+        <div style={separatorStyle} />
+
+        {/* Font Family Selector (includes Arabic-friendly fonts) */}
         <select
           value={fontFamily}
           onChange={(e) => {
@@ -177,11 +290,12 @@ export default function RichBlogEditor({
           style={selectStyle}
           title="Font Family"
         >
-          <option value="'Inter', sans-serif">Inter (Modern)</option>
+          <option value="'Cairo', 'Tajawal', sans-serif">Cairo / Tajawal (Arabic Modern)</option>
+          <option value="'Amiri', serif">Amiri (Arabic Classical)</option>
+          <option value="'Inter', sans-serif">Inter (English Modern)</option>
           <option value="'Outfit', sans-serif">Outfit (Editorial)</option>
           <option value="'Georgia', serif">Georgia (Classic Serif)</option>
-          <option value="'Merriweather', serif">Merriweather (Literary)</option>
-          <option value="'Courier New', monospace">Courier (Code)</option>
+          <option value="'Courier New', monospace">Monospace</option>
         </select>
 
         {/* Font Size Selector */}
@@ -191,7 +305,7 @@ export default function RichBlogEditor({
             setFontSize(e.target.value);
             execute('fontSize', e.target.value);
           }}
-          style={{ ...selectStyle, width: '70px' }}
+          style={{ ...selectStyle, width: '65px' }}
           title="Font Size"
         >
           <option value="1">XS (10px)</option>
@@ -206,24 +320,24 @@ export default function RichBlogEditor({
         <div style={separatorStyle} />
 
         {/* Headings */}
-        <button type="button" onClick={() => execute('formatBlock', '<h1>')} title="Heading 1" style={btnStyle}><Heading1 size={16} /></button>
-        <button type="button" onClick={() => execute('formatBlock', '<h2>')} title="Heading 2" style={btnStyle}><Heading2 size={16} /></button>
-        <button type="button" onClick={() => execute('formatBlock', '<h3>')} title="Heading 3" style={btnStyle}><Heading3 size={16} /></button>
-        <button type="button" onClick={() => execute('formatBlock', '<p>')} title="Paragraph" style={btnStyle}><Type size={16} /></button>
+        <button type="button" onClick={() => execute('formatBlock', '<h1>')} title="Heading 1" style={btnStyle}><Heading1 size={15} /></button>
+        <button type="button" onClick={() => execute('formatBlock', '<h2>')} title="Heading 2" style={btnStyle}><Heading2 size={15} /></button>
+        <button type="button" onClick={() => execute('formatBlock', '<h3>')} title="Heading 3" style={btnStyle}><Heading3 size={15} /></button>
+        <button type="button" onClick={() => execute('formatBlock', '<p>')} title="Paragraph" style={btnStyle}><Type size={15} /></button>
 
         <div style={separatorStyle} />
 
-        {/* Formatting */}
-        <button type="button" onClick={() => execute('bold')} title="Bold" style={btnStyle}><Bold size={15} /></button>
-        <button type="button" onClick={() => execute('italic')} title="Italic" style={btnStyle}><Italic size={15} /></button>
-        <button type="button" onClick={() => execute('underline')} title="Underline" style={btnStyle}><Underline size={15} /></button>
-        <button type="button" onClick={() => execute('strikeThrough')} title="Strikethrough" style={btnStyle}><Strikethrough size={15} /></button>
+        {/* Text Style */}
+        <button type="button" onClick={() => execute('bold')} title="Bold" style={btnStyle}><Bold size={14} /></button>
+        <button type="button" onClick={() => execute('italic')} title="Italic" style={btnStyle}><Italic size={14} /></button>
+        <button type="button" onClick={() => execute('underline')} title="Underline" style={btnStyle}><Underline size={14} /></button>
+        <button type="button" onClick={() => execute('strikeThrough')} title="Strikethrough" style={btnStyle}><Strikethrough size={14} /></button>
 
         <div style={separatorStyle} />
 
-        {/* Font Color Picker */}
-        <label title="Font Color" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-          <Palette size={15} style={{ color: fontColor }} />
+        {/* Font Color */}
+        <label title="Font Color" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+          <Palette size={14} style={{ color: fontColor }} />
           <input
             type="color"
             value={fontColor}
@@ -235,22 +349,9 @@ export default function RichBlogEditor({
           />
         </label>
 
-        {/* Background Highlight Picker */}
-        <label title="Text Background Color" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                  {/* Block/background color */}
-                  <label title="Block Background Color" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                    <i className="fas fa-fill-drip" style={{ color: blockColor }} />
-                    <input
-                      type="color"
-                      value={blockColor}
-                      onChange={(e) => {
-                        setBlockColor(e.target.value);
-                        execute('backColor', e.target.value);
-                      }}
-                      style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-                    />
-                  </label>
-          <Highlighter size={15} style={{ color: bgColor === '#ffffff' ? '#ca8a04' : bgColor }} />
+        {/* Text Highlight Color */}
+        <label title="Text Highlight" style={{ ...btnStyle, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+          <Highlighter size={14} style={{ color: bgColor === '#ffffff' ? '#ca8a04' : bgColor }} />
           <input
             type="color"
             value={bgColor}
@@ -265,64 +366,72 @@ export default function RichBlogEditor({
         <div style={separatorStyle} />
 
         {/* Alignment */}
-        <button type="button" onClick={() => execute('justifyLeft')} title="Align Left" style={btnStyle}><AlignLeft size={15} /></button>
-        <button type="button" onClick={() => execute('justifyCenter')} title="Align Center" style={btnStyle}><AlignCenter size={15} /></button>
-        <button type="button" onClick={() => execute('justifyRight')} title="Align Right" style={btnStyle}><AlignRight size={15} /></button>
-        <button type="button" onClick={() => execute('justifyFull')} title="Justify" style={btnStyle}><AlignJustify size={15} /></button>
+        <button type="button" onClick={() => execute('justifyLeft')} title="Align Left" style={btnStyle}><AlignLeft size={14} /></button>
+        <button type="button" onClick={() => execute('justifyCenter')} title="Align Center" style={btnStyle}><AlignCenter size={14} /></button>
+        <button type="button" onClick={() => execute('justifyRight')} title="Align Right" style={btnStyle}><AlignRight size={14} /></button>
+        <button type="button" onClick={() => execute('justifyFull')} title="Justify" style={btnStyle}><AlignJustify size={14} /></button>
 
         <div style={separatorStyle} />
 
-        {/* Lists & Quotes */}
-        <button type="button" onClick={() => execute('insertUnorderedList')} title="Bullet List" style={btnStyle}><List size={15} /></button>
-        <button type="button" onClick={() => execute('insertOrderedList')} title="Numbered List" style={btnStyle}><ListOrdered size={15} /></button>
-        <button type="button" onClick={handleLink} title="Insert Link" style={btnStyle}><Link2 size={15} /></button>
+        {/* Lists & Links */}
+        <button type="button" onClick={() => execute('insertUnorderedList')} title="Bullet List" style={btnStyle}><List size={14} /></button>
+        <button type="button" onClick={() => execute('insertOrderedList')} title="Numbered List" style={btnStyle}><ListOrdered size={14} /></button>
+        <button type="button" onClick={handleLink} title="Insert Link" style={btnStyle}><Link2 size={14} /></button>
 
         <div style={separatorStyle} />
 
-        {/* Media & Upload */}
-        <label title="Upload image or video from device" style={{ ...btnStyle, cursor: 'pointer', background: uploading ? '#dbeafe' : 'transparent' }}>
-          <Upload size={15} className={uploading ? 'animate-bounce text-blue-600' : ''} />
+        {/* Media & Upload from Device */}
+        <label
+          title="Upload image or video into story"
+          style={{
+            ...btnStyle,
+            cursor: uploading ? 'wait' : 'pointer',
+            background: uploading ? '#dbeafe' : '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#15803d',
+            fontWeight: 800,
+            fontSize: '0.72rem',
+            gap: '4px'
+          }}
+        >
+          <Upload size={13} className={uploading ? 'animate-bounce text-blue-600' : ''} />
+          <span>{uploading ? 'Uploading...' : 'Insert Photo/Video'}</span>
           <input
             type="file"
             accept="image/*,video/*"
-            onClick={saveSelection}
+            onMouseDown={updateSelection}
             onChange={handleImageUpload}
             disabled={uploading}
             style={{ display: 'none' }}
           />
         </label>
-        <label title="Take a photo with the device camera" style={{ ...btnStyle, cursor: 'pointer', background: uploading ? '#dbeafe' : 'transparent' }}>
-          <i className="fas fa-camera" style={{ fontSize: '0.85rem' }} />
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onClick={saveSelection}
-            onChange={handleImageUpload}
-            disabled={uploading}
-            style={{ display: 'none' }}
-          />
-        </label>
-        <button type="button" onClick={handleImageUrlPrompt} title="Insert Image via URL" style={btnStyle}><ImageIcon size={15} /></button>
+        <button type="button" onClick={handleImageUrlPrompt} title="Insert Image via URL" style={btnStyle}><ImageIcon size={14} /></button>
 
         <div style={separatorStyle} />
 
-        {/* Styled Blocks */}
-        <button type="button" onClick={() => insertCallout('info')} title="Add Oasis Callout Box" style={{ ...btnStyle, color: '#D4AF37', fontWeight: 800 }}>
-          <Sparkles size={14} /> Callout
+        {/* Oasis Callouts */}
+        <button type="button" onClick={() => insertCallout('info')} title="Add Oasis Callout Box" style={{ ...btnStyle, color: '#D4AF37', fontWeight: 800, fontSize: '0.72rem' }}>
+          <Sparkles size={13} style={{ marginRight: '3px' }} /> Callout
         </button>
-        <button type="button" onClick={() => insertCallout('quote')} title="Add Blockquote" style={btnStyle}><Quote size={15} /></button>
+        <button type="button" onClick={() => insertCallout('quote')} title="Add Blockquote" style={btnStyle}><Quote size={14} /></button>
+        <button type="button" onClick={() => insertCallout('highlight')} title="Add Highlight" style={{ ...btnStyle, fontSize: '0.72rem', fontWeight: 700 }}>Badge</button>
 
-        {/* View HTML Code toggle */}
+        {/* HTML Source Toggle */}
         <button
           type="button"
           onClick={() => setViewSource(!viewSource)}
-          title="Toggle HTML Source"
+          title="Toggle HTML Code"
           style={{ ...btnStyle, marginLeft: 'auto', background: viewSource ? '#0f172a' : 'transparent', color: viewSource ? '#fff' : '#475569' }}
         >
-          <Code size={15} />
+          <Code size={14} />
         </button>
       </div>
+
+      {uploadError && (
+        <div style={{ padding: '0.5rem 1rem', background: '#fef2f2', color: '#b91c1c', fontSize: '0.75rem', fontWeight: 700, borderBottom: '1px solid #fee2e2' }}>
+          ⚠️ Upload error: {uploadError}
+        </div>
+      )}
 
       {/* ── CONTENT AREA ── */}
       {viewSource ? (
@@ -344,7 +453,7 @@ export default function RichBlogEditor({
             color: '#38bdf8',
             resize: 'vertical',
             boxSizing: 'border-box',
-            direction: dir
+            direction: currentDir
           }}
         />
       ) : (
@@ -352,18 +461,22 @@ export default function RichBlogEditor({
           ref={editorRef}
           contentEditable
           onInput={handleInput}
-          dangerouslySetInnerHTML={{ __html: value }}
+          onKeyUp={updateSelection}
+          onMouseUp={updateSelection}
+          onFocus={updateSelection}
+          onBlur={updateSelection}
           style={{
             minHeight,
             padding: '1.5rem',
             outline: 'none',
             fontSize: editorFontSize,
-            lineHeight: '1.8',
+            lineHeight: currentDir === 'rtl' ? '1.9' : '1.75',
             color: fontColor,
             fontFamily: fontFamily,
             backgroundColor: blockColor,
-            overflowY: 'auto'
-            ,direction: dir
+            overflowY: 'auto',
+            direction: currentDir,
+            textAlign: currentDir === 'rtl' ? 'right' : 'left'
           }}
           data-placeholder={placeholder}
         />
@@ -375,7 +488,7 @@ export default function RichBlogEditor({
 const btnStyle: React.CSSProperties = {
   background: 'transparent',
   border: '1px solid transparent',
-  padding: '0.4rem 0.5rem',
+  padding: '0.35rem 0.45rem',
   borderRadius: '6px',
   cursor: 'pointer',
   color: '#475569',
@@ -383,15 +496,15 @@ const btnStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   transition: 'all 0.15s ease',
-  fontSize: '0.8rem',
+  fontSize: '0.75rem',
 };
 
 const selectStyle: React.CSSProperties = {
   background: '#fff',
   border: '1px solid #cbd5e1',
   borderRadius: '6px',
-  padding: '0.3rem 0.5rem',
-  fontSize: '0.78rem',
+  padding: '0.25rem 0.45rem',
+  fontSize: '0.74rem',
   color: '#334155',
   outline: 'none',
   cursor: 'pointer'
@@ -399,7 +512,7 @@ const selectStyle: React.CSSProperties = {
 
 const separatorStyle: React.CSSProperties = {
   width: '1px',
-  height: '20px',
+  height: '18px',
   background: '#e2e8f0',
-  margin: '0 0.2rem'
+  margin: '0 0.15rem'
 };

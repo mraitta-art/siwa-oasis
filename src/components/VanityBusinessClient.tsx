@@ -593,14 +593,18 @@ export default function VanityBusinessClient({
               const hasContent = sectionHasDefinedFields || !!secData || sectionComponentInstances.length > 0 || !!dbBlog || (dbGallery && dbGallery.length > 0) || hasTours;
               if (!hasContent && !activeSections.some(s => s.id === section.id)) return null;
 
-              // Filter gallery items by placement
+              // Filter gallery items for carousel (respects in_carousel and placement)
               const carouselImages = dbGallery 
                 ? dbGallery.filter((img: any) => img.placement === 'carousel' || img.placement === 'both')
-                : (secData?.section_gallery && Array.isArray(secData.section_gallery) ? secData.section_gallery : []);
+                : (secData?.section_gallery && Array.isArray(secData.section_gallery)
+                    ? secData.section_gallery.filter((img: any) => (typeof img === 'string') || (img?.in_carousel !== false && img?.placement !== 'body'))
+                    : []);
 
               const bodyImages = dbGallery
                 ? dbGallery.filter((img: any) => img.placement === 'body' || img.placement === 'both')
-                : [];
+                : (secData?.section_gallery && Array.isArray(secData.section_gallery)
+                    ? secData.section_gallery.filter((img: any) => typeof img === 'object' && (img?.placement === 'body' || img?.placement === 'both'))
+                    : []);
 
               // Helpers for type-aware rendering
               const renderFieldValue = (key: string, val: any, fieldDef: any) => {
@@ -758,37 +762,80 @@ export default function VanityBusinessClient({
                         <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '1rem', padding: '1rem', background: '#f8fafc' }}>
                           {carouselImages.map((item: any, idx: number) => {
                             const url = typeof item === 'object' ? item.url : item;
-                            const caption = typeof item === 'object' ? item.caption : '';
+                            const caption = typeof item === 'object'
+                              ? (minisiteLang === 'ar' && item.caption_ar ? item.caption_ar : item.caption || '')
+                              : '';
                             const isVideo = url && (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.includes('/video/upload/'));
+                            const raw = typeof item === 'object' ? item.slide_data : null;
+                            const sd = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
+                            const title = minisiteLang === 'ar' && sd.title_ar ? sd.title_ar : (sd.title || '');
+                            const ctaLabel = minisiteLang === 'ar' && sd.cta_label_ar ? sd.cta_label_ar : (sd.cta_label || '');
+                            const targetSection = sd.target_section_id;
+
                             return (
-                              <div key={idx} style={{ flex: '0 0 85%', minWidth: '280px', scrollSnapAlign: 'start', borderRadius: '16px', overflow: 'hidden', background: '#000', height: '340px', position: 'relative' }}>
+                              <div
+                                key={idx}
+                                style={{
+                                  flex: '0 0 85%',
+                                  minWidth: '280px',
+                                  scrollSnapAlign: 'start',
+                                  borderRadius: '16px',
+                                  overflow: 'hidden',
+                                  background: '#000',
+                                  height: '340px',
+                                  position: 'relative',
+                                  cursor: targetSection ? 'pointer' : 'default'
+                                }}
+                                onClick={() => {
+                                  if (targetSection) {
+                                    try {
+                                      window.history.pushState(null, '', `/${slug}/${targetSection}`);
+                                    } catch {}
+                                    setActiveTab(targetSection);
+                                    const navEl = document.querySelector('nav');
+                                    if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                  }
+                                }}
+                              >
                                 {isVideo ? (
                                   <video src={url} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                  <img src={url} alt={caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img src={url} alt={caption || title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 )}
                                 {/* Rich Slide Overlay */}
                                 {(() => {
-                                  const raw = typeof item === 'object' ? item.slide_data : null;
-                                  const sd = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
                                   const showOverlay = sd.show_overlay !== false;
-                                  const hasContent = sd.title || caption || (sd.cta_label && sd.cta_url);
+                                  const hasContent = title || caption || (ctaLabel && (sd.cta_url || targetSection));
                                   if (!showOverlay || !hasContent) return null;
                                   return (
                                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.88))', padding: '2rem 1.25rem 1.25rem' }}>
-                                      {sd.title && (
+                                      {title && (
                                         <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff', lineHeight: 1.25, marginBottom: caption ? '0.35rem' : 0, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
-                                          {sd.title}
+                                          {title}
                                         </div>
                                       )}
                                       {caption && (
-                                        <div style={{ fontSize: '0.8rem', color: '#e2e8f0', fontWeight: 500, lineHeight: 1.4, marginBottom: (sd.cta_label && sd.cta_url) ? '0.75rem' : 0 }}>
+                                        <div style={{ fontSize: '0.8rem', color: '#e2e8f0', fontWeight: 500, lineHeight: 1.4, marginBottom: (ctaLabel && (sd.cta_url || targetSection)) ? '0.75rem' : 0 }}>
                                           {caption}
                                         </div>
                                       )}
-                                      {sd.cta_label && sd.cta_url && (
-                                        <a href={sd.cta_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.4rem 1rem', background: '#D4AF37', color: '#1a1a1a', borderRadius: '8px', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', letterSpacing: '0.3px' }}>
-                                          {sd.cta_label} →
+                                      {ctaLabel && (
+                                        <a
+                                          href={targetSection ? `/${slug}/${targetSection}` : (sd.cta_url || '#')}
+                                          target={targetSection || (sd.cta_url && sd.cta_url.startsWith('#')) ? '_self' : '_blank'}
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => {
+                                            if (targetSection) {
+                                              e.preventDefault();
+                                              try { window.history.pushState(null, '', `/${slug}/${targetSection}`); } catch {}
+                                              setActiveTab(targetSection);
+                                              const navEl = document.querySelector('nav');
+                                              if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            }
+                                          }}
+                                          style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.4rem 1rem', background: '#D4AF37', color: '#1a1a1a', borderRadius: '8px', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', letterSpacing: '0.3px' }}
+                                        >
+                                          {ctaLabel} →
                                         </a>
                                       )}
                                     </div>
@@ -801,7 +848,7 @@ export default function VanityBusinessClient({
                       </div>
                     )}
 
-                    {/* BLOG / NARRATIVE WITH DYNAMIC FIELD TOKEN INTERPOLATION & SHOW/HIDE CONTROL */}
+                    {/* BLOG / NARRATIVE WITH DYNAMIC FIELD TOKEN INTERPOLATION & BILINGUAL TITLES */}
                     {(() => {
                       const sectionMeta = data?.section_content_meta?.[section.id] || {};
                       const showBlogOnMinisite = sectionMeta.blogOnMinisite !== false && sectionMeta.blogOnMinisite !== 0;
@@ -820,17 +867,25 @@ export default function VanityBusinessClient({
 
                       if (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) {
                         const rawBlog = secData?.section_blog_ar || secData?.section_news_ar || secData?.description_ar;
+                        const blogTitleDisplay = secData?.section_blog_title_ar || '';
                         const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
                         return (
-                          <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
+                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right' }}>
+                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9 }} />
+                          </div>
                         );
                       }
 
                       if (secData?.section_blog || secData?.description || secData?.section_news) {
                         const rawBlog = secData?.section_blog || secData?.section_news || secData?.description;
+                        const blogTitleDisplay = secData?.section_blog_title || '';
                         const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
                         return (
-                          <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.8, marginBottom: '2.5rem' }} />
+                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
+                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                          </div>
                         );
                       }
 
