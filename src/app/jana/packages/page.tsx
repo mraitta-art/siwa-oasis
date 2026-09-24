@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
+import RichBlogEditor from '@/components/RichBlogEditor';
 
 export interface MarketplaceItem {
   id: string;
@@ -30,7 +31,8 @@ export interface MarketplaceItem {
   itinerary: Array<{ day: number; title: string; title_ar?: string; description?: string; description_ar?: string }>;
   included_features: string[];
   excluded_features: string[];
-  media: Array<{ url: string; caption?: string }>;
+  media: Array<{ url: string; caption?: string; type?: 'image' | 'youtube' }>;
+  youtube_embed_id?: string;
   status: 'draft' | 'pending_approval' | 'approved' | 'suspended' | 'archived';
   publish_on_minisite: boolean;
   publish_on_main_portal: boolean;
@@ -76,6 +78,9 @@ export default function UnifiedMarketplaceCommandCenter() {
   const [newInclusion, setNewInclusion] = useState('');
   const [newExclusion, setNewExclusion] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [newYoutubeUrl, setNewYoutubeUrl] = useState('');
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
 
   // Partner addition state for Tab 5
   const [partnerToAdd, setPartnerToAdd] = useState<{
@@ -333,6 +338,41 @@ export default function UnifiedMarketplaceCommandCenter() {
       assignments: []
     });
     setActiveTab('basics');
+  }
+
+  // ── Media Upload Helper ──────────────────────────────────────────────
+  async function handleMediaFileUpload(file: File) {
+    if (!file) return;
+    setMediaUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('businessName', editingItem?.business_name || 'platform');
+      fd.append('sectionName', 'package_gallery');
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.url) {
+        setEditingItem((p) => ({ ...p, media: [...(p?.media || []), { url: data.url, type: 'image' as const }] }));
+        notify('Photo uploaded ✓', 'success');
+      } else {
+        notify('Upload failed', 'error');
+      }
+    } catch {
+      notify('Upload error', 'error');
+    } finally {
+      setMediaUploading(false);
+    }
+  }
+
+  function extractYoutubeId(urlOrId: string): string {
+    const watchMatch = urlOrId.match(/[?&]v=([^&#]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = urlOrId.match(/youtu\.be\/([^?&#]+)/);
+    if (shortMatch) return shortMatch[1];
+    const embedMatch = urlOrId.match(/embed\/([^?&#]+)/);
+    if (embedMatch) return embedMatch[1];
+    // If none matched, treat as raw ID
+    return urlOrId.trim();
   }
 
   return (
@@ -807,30 +847,34 @@ export default function UnifiedMarketplaceCommandCenter() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  {/* Rich Descriptions */}
+                  <div style={{ display: 'grid', gap: '1.25rem' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
-                        DESCRIPTION (ENGLISH)
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>
+                        📝 DESCRIPTION — ENGLISH (Rich Text, Images, Embeds)
                       </label>
-                      <textarea
+                      <RichBlogEditor
                         value={editingItem.description || ''}
-                        onChange={(e) => setEditingItem((p) => ({ ...p, description: e.target.value }))}
-                        rows={4}
-                        placeholder="Describe the package highlights, experiences, and journey details..."
-                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                        onChange={(html) => setEditingItem((p) => ({ ...p, description: html }))}
+                        minHeight="260px"
+                        placeholder="Describe the package highlights, experiences, and journey details. Use formatting, lists, bold/italic, embed images, etc."
+                        businessName={editingItem.business_name || 'platform'}
+                        sectionName="package_description_en"
+                        dir="ltr"
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem', textAlign: 'right' }}>
-                        الوصف الكامل (بالعربية)
+                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.4rem', textAlign: 'right', letterSpacing: '0.05em' }}>
+                        📝 الوصف الكامل — بالعربية (نص منسّق، صور، محتوى متعدد)
                       </label>
-                      <textarea
+                      <RichBlogEditor
                         value={editingItem.description_ar || ''}
-                        onChange={(e) => setEditingItem((p) => ({ ...p, description_ar: e.target.value }))}
-                        rows={4}
+                        onChange={(html) => setEditingItem((p) => ({ ...p, description_ar: html }))}
+                        minHeight="260px"
+                        placeholder="اكتب تفاصيل ومميزات البرنامج والرحلة باللغة العربية. يمكنك إضافة تنسيق وصور..."
+                        businessName={editingItem.business_name || 'platform'}
+                        sectionName="package_description_ar"
                         dir="rtl"
-                        placeholder="اكتب تفاصيل ومميزات البرنامج والرحلة باللغة العربية..."
-                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', textAlign: 'right', boxSizing: 'border-box' }}
                       />
                     </div>
                   </div>
@@ -1011,50 +1055,179 @@ export default function UnifiedMarketplaceCommandCenter() {
                 </div>
               )}
 
-              {/* TAB 4: MEDIA & FEATURES */}
+              {/* TAB 4: MEDIA & GALLERY */}
               {activeTab === 'media' && (
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  {/* Photo Adder */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
-                      ADD PHOTO URL TO GALLERY
-                    </label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+
+                  {/* ── Upload & Add Row ── */}
+                  <div style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '14px', padding: '1.25rem', display: 'grid', gap: '0.75rem' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#334155', letterSpacing: '0.06em' }}>
+                      📸 ADD TO GALLERY — UPLOAD FILES, PASTE URL, OR EMBED YOUTUBE
+                    </div>
+
+                    {/* File Upload row */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <input
-                        value={newMediaUrl}
-                        onChange={(e) => setNewMediaUrl(e.target.value)}
-                        placeholder="https://... (image URL)"
-                        style={{ flex: 1, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem' }}
+                        ref={mediaFileRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleMediaFileUpload(file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => mediaFileRef.current?.click()}
+                        disabled={mediaUploading}
+                        style={{
+                          padding: '0.55rem 1.1rem', background: mediaUploading ? '#94a3b8' : '#0f172a',
+                          color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '0.78rem',
+                          cursor: mediaUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        {mediaUploading ? '⏳ Uploading…' : '📁 Upload from Device'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.capture = 'environment';
+                          input.onchange = (ev) => {
+                            const file = (ev.target as HTMLInputElement).files?.[0];
+                            if (file) handleMediaFileUpload(file);
+                          };
+                          input.click();
+                        }}
+                        style={{ padding: '0.55rem 1.1rem', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        📷 Camera
+                      </button>
+
+                      {/* URL Paste */}
+                      <div style={{ display: 'flex', gap: '0.4rem', flex: 1, minWidth: '200px' }}>
+                        <input
+                          value={newMediaUrl}
+                          onChange={(e) => setNewMediaUrl(e.target.value)}
+                          placeholder="Paste image URL (https://...)"
+                          style={{ flex: 1, padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem' }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newMediaUrl.trim()) {
+                              setEditingItem((p) => ({ ...p, media: [...(p?.media || []), { url: newMediaUrl.trim(), type: 'image' as const }] }));
+                              setNewMediaUrl('');
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newMediaUrl.trim()) return;
+                            setEditingItem((p) => ({ ...p, media: [...(p?.media || []), { url: newMediaUrl.trim(), type: 'image' as const }] }));
+                            setNewMediaUrl('');
+                          }}
+                          style={{ padding: '0.55rem 1rem', background: '#D4AF37', color: '#1a1000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          + Add URL
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* YouTube Embed Row */}
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#dc2626', whiteSpace: 'nowrap' }}>▶ YouTube:</span>
+                      <input
+                        value={newYoutubeUrl}
+                        onChange={(e) => setNewYoutubeUrl(e.target.value)}
+                        placeholder="Paste YouTube URL or video ID"
+                        style={{ flex: 1, minWidth: '180px', padding: '0.55rem 0.75rem', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '0.8rem' }}
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          if (!newMediaUrl.trim()) return;
-                          setEditingItem((p) => ({ ...p, media: [...(p?.media || []), { url: newMediaUrl.trim() }] }));
-                          setNewMediaUrl('');
+                          if (!newYoutubeUrl.trim()) return;
+                          const ytId = extractYoutubeId(newYoutubeUrl.trim());
+                          if (!ytId) return;
+                          setEditingItem((p) => ({
+                            ...p,
+                            youtube_embed_id: ytId,
+                            media: [...(p?.media || []), { url: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`, caption: `YouTube: ${ytId}`, type: 'youtube' as const }]
+                          }));
+                          setNewYoutubeUrl('');
                         }}
-                        style={{ padding: '0 1.25rem', background: '#D4AF37', color: '#1a1000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer' }}
+                        style={{ padding: '0.55rem 1rem', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
-                        + Add Photo
+                        + Embed Video
                       </button>
                     </div>
-                  </div>
 
-                  {/* Media Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.5rem' }}>
-                    {(editingItem.media || []).map((m, idx) => (
-                      <div key={idx} style={{ height: '90px', position: 'relative', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
-                        <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {/* YouTube Live Preview */}
+                    {editingItem.youtube_embed_id && (
+                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>
+                          ▶ YOUTUBE VIDEO PREVIEW
+                        </div>
+                        <div style={{ position: 'relative', paddingBottom: '42%', height: 0, borderRadius: '10px', overflow: 'hidden', background: '#000', maxWidth: '480px' }}>
+                          <iframe
+                            src={`https://www.youtube.com/embed/${editingItem.youtube_embed_id}`}
+                            title="YouTube preview"
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                            allowFullScreen
+                          />
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setEditingItem((p) => ({ ...p, media: (p?.media || []).filter((_, i) => i !== idx) }))}
-                          style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(239,68,68,0.85)', color: '#fff', border: 'none', borderRadius: '4px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '0.7rem' }}
+                          onClick={() => setEditingItem((p) => ({
+                            ...p,
+                            youtube_embed_id: undefined,
+                            media: (p?.media || []).filter((m) => m.type !== 'youtube')
+                          }))}
+                          style={{ marginTop: '0.5rem', padding: '0.35rem 0.75rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          ✕ Remove Video
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Media Grid ── */}
+                  {(editingItem.media || []).filter(m => m.type !== 'youtube').length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.82rem', border: '1px dashed #e2e8f0', borderRadius: '10px' }}>
+                      No photos yet — upload or paste image URLs above
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.6rem' }}>
+                    {(editingItem.media || []).filter(m => m.type !== 'youtube').map((m, idx) => (
+                      <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', aspectRatio: '16/10', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                        <img src={m.url} alt={m.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 55%)', pointerEvents: 'none' }} />
+                        {idx === 0 && (
+                          <span style={{ position: 'absolute', top: 6, left: 6, background: '#D4AF37', color: '#1a1000', fontSize: '0.6rem', fontWeight: 900, padding: '2px 7px', borderRadius: '10px' }}>
+                            COVER
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem((p) => {
+                            const imageMedia = (p?.media || []).filter(mi => mi.type !== 'youtube');
+                            const removed = imageMedia.filter((_, i) => i !== idx);
+                            const ytMedia = (p?.media || []).filter(mi => mi.type === 'youtube');
+                            return { ...p, media: [...removed, ...ytMedia] };
+                          })}
+                          style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: '4px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 900 }}
                         >
                           ✕
                         </button>
                       </div>
                     ))}
                   </div>
+
+                  {/* Included / Excluded Features */}
+
                 </div>
               )}
 
