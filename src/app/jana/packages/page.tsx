@@ -37,6 +37,21 @@ export interface MarketplaceItem {
   is_featured: boolean;
   booking_cta_type: 'whatsapp' | 'phone' | 'url' | 'custom_quote';
   booking_cta_url: string;
+  target_scope?: 'platform' | 'parent_category' | 'child_typology' | 'multi_business';
+  target_type_id?: string | null;
+  assignments?: Array<{
+    id?: string;
+    business_id: string;
+    business_name?: string;
+    business_slug?: string;
+    business_tier?: string;
+    business_role?: string;
+    role?: string;
+    revenue_share_percentage?: number | null;
+    commission_split_pct?: number | null;
+    visible_on_minisite?: boolean;
+    vendor_acceptance_status?: string;
+  }>;
   created_at?: string;
 }
 
@@ -44,11 +59,12 @@ export default function UnifiedMarketplaceCommandCenter() {
   const { notify } = useAdmin();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [businessTypes, setBusinessTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Filter States
-  const [mode, setMode] = useState<'all' | 'platform' | 'vendor_proxy'>('all');
+  const [mode, setMode] = useState<'all' | 'platform' | 'vendor_proxy' | 'multi_vendor'>('all');
   const [selectedVendorId, setSelectedVendorId] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -56,10 +72,76 @@ export default function UnifiedMarketplaceCommandCenter() {
 
   // Editing / Creation Modal
   const [editingItem, setEditingItem] = useState<Partial<MarketplaceItem> | null>(null);
-  const [activeTab, setActiveTab] = useState<'basics' | 'pricing_discounts' | 'itinerary' | 'media' | 'governance'>('basics');
+  const [activeTab, setActiveTab] = useState<'basics' | 'pricing_discounts' | 'itinerary' | 'media' | 'targeting_forwarding' | 'governance'>('basics');
   const [newInclusion, setNewInclusion] = useState('');
   const [newExclusion, setNewExclusion] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
+
+  // Partner addition state for Tab 5
+  const [partnerToAdd, setPartnerToAdd] = useState<{
+    business_id: string;
+    role: string;
+    commission_split_pct: number;
+    visible_on_minisite: boolean;
+  }>({
+    business_id: '',
+    role: 'partner',
+    commission_split_pct: 0,
+    visible_on_minisite: true
+  });
+
+  // Derived parent and child types
+  const parentTypes = useMemo(() => businessTypes.filter(t => t.is_parent || !t.parent_id), [businessTypes]);
+  const childTypes = useMemo(() => businessTypes.filter(t => !t.is_parent && t.parent_id), [businessTypes]);
+
+  const addPartnerToEditingItem = () => {
+    if (!partnerToAdd.business_id) return;
+    const currentAssignments = editingItem?.assignments || [];
+    if (currentAssignments.some(a => String(a.business_id) === String(partnerToAdd.business_id))) {
+      notify?.('This business is already assigned to this package', 'error');
+      return;
+    }
+    const updated = [
+      ...currentAssignments,
+      {
+        business_id: partnerToAdd.business_id,
+        role: partnerToAdd.role || 'partner',
+        business_role: partnerToAdd.role || 'partner',
+        commission_split_pct: Number(partnerToAdd.commission_split_pct) || 0,
+        revenue_share_percentage: Number(partnerToAdd.commission_split_pct) || 0,
+        visible_on_minisite: partnerToAdd.visible_on_minisite !== false,
+        vendor_acceptance_status: 'approved'
+      }
+    ];
+    setEditingItem(prev => prev ? ({ ...prev, assignments: updated }) : null);
+    setPartnerToAdd({ business_id: '', role: 'partner', commission_split_pct: 0, visible_on_minisite: true });
+  };
+
+  const removePartnerFromEditingItem = (bizId: string) => {
+    setEditingItem(prev => prev ? ({
+      ...prev,
+      assignments: (prev.assignments || []).filter(a => String(a.business_id) !== String(bizId))
+    }) : null);
+  };
+
+  const updatePartnerInEditingItem = (bizId: string, patch: Partial<{ role: string; business_role?: string; commission_split_pct: number; revenue_share_percentage?: number; visible_on_minisite: boolean }>) => {
+    setEditingItem(prev => prev ? ({
+      ...prev,
+      assignments: (prev.assignments || []).map(a => {
+        if (String(a.business_id) !== String(bizId)) return a;
+        const role = patch.role || patch.business_role || a.role || a.business_role || 'partner';
+        const pct = patch.commission_split_pct !== undefined ? patch.commission_split_pct : (patch.revenue_share_percentage !== undefined ? patch.revenue_share_percentage : (a.commission_split_pct ?? a.revenue_share_percentage ?? 0));
+        return {
+          ...a,
+          ...patch,
+          role,
+          business_role: role,
+          commission_split_pct: pct,
+          revenue_share_percentage: pct
+        };
+      })
+    }) : null);
+  };
 
   useEffect(() => {
     loadData();
@@ -68,16 +150,19 @@ export default function UnifiedMarketplaceCommandCenter() {
   async function loadData() {
     try {
       setLoading(true);
-      const [marketRes, bizRes] = await Promise.all([
+      const [marketRes, bizRes, typesRes] = await Promise.all([
         fetch('/api/jana/marketplace'),
-        fetch('/api/jana/businesses')
+        fetch('/api/jana/businesses'),
+        fetch('/api/jana/types')
       ]);
 
       const marketData = await marketRes.json();
       const bizData = await bizRes.json();
+      const typesData = typesRes.ok ? await typesRes.json() : [];
 
       setItems(Array.isArray(marketData) ? marketData : []);
       setBusinesses(Array.isArray(bizData) ? bizData : []);
+      setBusinessTypes(Array.isArray(typesData) ? typesData : []);
     } catch (err: any) {
       notify('Failed to load marketplace catalog', 'error');
     } finally {
@@ -88,8 +173,9 @@ export default function UnifiedMarketplaceCommandCenter() {
   // Filtered items
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      if (mode === 'platform' && item.business_id !== null) return false;
+      if (mode === 'platform' && (item.business_id !== null || (item.target_scope && item.target_scope !== 'platform'))) return false;
       if (mode === 'vendor_proxy' && item.business_id !== selectedVendorId) return false;
+      if (mode === 'multi_vendor' && (item.target_scope !== 'multi_business' && (item.assignments?.length || 0) === 0)) return false;
       if (typeFilter !== 'all' && item.item_type !== typeFilter) return false;
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
       if (searchQuery.trim()) {
@@ -187,6 +273,9 @@ export default function UnifiedMarketplaceCommandCenter() {
         price_amount: Number(editingItem.price_amount) || 0,
         original_price: editingItem.original_price ? Number(editingItem.original_price) : null,
         discount_percentage: Number(editingItem.discount_percentage) || 0,
+        target_scope: editingItem.target_scope || 'platform',
+        target_type_id: editingItem.target_type_id || null,
+        assignments: editingItem.assignments || []
       };
 
       const res = await fetch('/api/jana/marketplace', {
@@ -238,7 +327,10 @@ export default function UnifiedMarketplaceCommandCenter() {
       publish_on_main_portal: true,
       is_featured: false,
       booking_cta_type: 'whatsapp',
-      booking_cta_url: ''
+      booking_cta_url: '',
+      target_scope: 'platform',
+      target_type_id: null,
+      assignments: []
     });
     setActiveTab('basics');
   }
@@ -309,7 +401,13 @@ export default function UnifiedMarketplaceCommandCenter() {
                 onClick={() => setMode('vendor_proxy')}
                 style={{ border: 'none', background: mode === 'vendor_proxy' ? '#6366f1' : 'transparent', color: mode === 'vendor_proxy' ? '#fff' : '#64748b', padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
               >
-                🏪 Act as Content Admin for Vendor
+                🏪 Vendor Minisite
+              </button>
+              <button
+                onClick={() => setMode('multi_vendor')}
+                style={{ border: 'none', background: mode === 'multi_vendor' ? '#10b981' : 'transparent', color: mode === 'multi_vendor' ? '#fff' : '#64748b', padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                🤝 Multi-Vendor Bundles
               </button>
             </div>
           </div>
@@ -462,10 +560,26 @@ export default function UnifiedMarketplaceCommandCenter() {
                 {/* Card Content */}
                 <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   
-                  {/* Business Attribution */}
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: item.business_name ? '#6366f1' : '#D4AF37', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    <i className={`fas ${item.business_name ? 'fa-store' : 'fa-globe'}`} style={{ marginRight: '5px' }} />
-                    {item.business_name ? `${item.business_name} (${item.business_type_name || 'Vendor'})` : 'Main Portal Platform Offer'}
+                  {/* Business Attribution & Scope Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                    {item.target_scope === 'multi_business' && (item.assignments?.length || 0) > 0 ? (
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '12px' }}>
+                        🤝 Multi-Vendor ({item.assignments?.length} Partners)
+                      </span>
+                    ) : item.target_scope === 'parent_category' ? (
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px' }}>
+                        📁 Parent Sector Syndicate
+                      </span>
+                    ) : item.target_scope === 'child_typology' ? (
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '12px' }}>
+                        📂 Typology Syndicate
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: item.business_name ? '#6366f1' : '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <i className={`fas ${item.business_name ? 'fa-store' : 'fa-globe'}`} style={{ marginRight: '5px' }} />
+                        {item.business_name ? `${item.business_name} (${item.business_type_name || 'Vendor'})` : 'Main Portal Platform Offer'}
+                      </span>
+                    )}
                   </div>
 
                   {/* Title */}
@@ -596,13 +710,14 @@ export default function UnifiedMarketplaceCommandCenter() {
             </div>
 
             {/* Modal Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#fff', padding: '0 1rem' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#fff', padding: '0 1rem', overflowX: 'auto' }}>
               {([
                 ['basics', '1. Basics & Details'],
                 ['pricing_discounts', '2. Pricing & Discounts'],
                 ['itinerary', '3. Multi-Day Itinerary'],
                 ['media', '4. Media & Photos'],
-                ['governance', '5. Governance & Visibility']
+                ['targeting_forwarding', '5. 🎯 Targeting & Multi-Vendor'],
+                ['governance', '6. Governance & Booking']
               ] as const).map(([tabKey, label]) => (
                 <button
                   key={tabKey}
@@ -943,7 +1058,341 @@ export default function UnifiedMarketplaceCommandCenter() {
                 </div>
               )}
 
-              {/* TAB 5: GOVERNANCE & BOOKING */}
+              {/* TAB 5: TARGETING & MULTI-VENDOR FORWARDING */}
+              {activeTab === 'targeting_forwarding' && (
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                  
+                  {/* Scope Selection Cards */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: '#334155', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+                      DISTRIBUTION &amp; ASSIGNMENT TARGET SCOPE
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                      {[
+                        {
+                          id: 'platform',
+                          icon: '🌐',
+                          title: 'Platform Exclusive',
+                          desc: 'SiWiFy flagship tour. Managed centrally by platform concierge.'
+                        },
+                        {
+                          id: 'parent_category',
+                          icon: '🏛️',
+                          title: 'Parent Sector',
+                          desc: 'Auto-syndicate to all vendors in a major sector (e.g., all Eco-Lodges).'
+                        },
+                        {
+                          id: 'child_typology',
+                          icon: '🎯',
+                          title: 'Child Typology',
+                          desc: 'Target specialized vendors belonging to a specific sub-niche.'
+                        },
+                        {
+                          id: 'multi_business',
+                          icon: '🤝',
+                          title: 'Multi-Vendor Bundle',
+                          desc: 'Joint itinerary combining 2+ businesses with custom roles & splits.'
+                        }
+                      ].map(card => {
+                        const isSelected = (editingItem.target_scope || 'platform') === card.id;
+                        return (
+                          <div
+                            key={card.id}
+                            onClick={() => setEditingItem(p => ({ ...p, target_scope: card.id as any }))}
+                            style={{
+                              padding: '0.9rem',
+                              borderRadius: '10px',
+                              border: isSelected ? '2px solid #D4AF37' : '1px solid #e2e8f0',
+                              background: isSelected ? 'linear-gradient(135deg, rgba(212,175,55,0.08), rgba(245,158,11,0.04))' : '#fff',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '1.25rem' }}>{card.icon}</span>
+                              {isSelected && <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 900, background: '#fef3c7', padding: '2px 8px', borderRadius: '12px' }}>ACTIVE</span>}
+                            </div>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: isSelected ? '#92400e' : '#1e293b' }}>
+                              {card.title}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b', lineHeight: 1.3 }}>
+                              {card.desc}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Contextual Sub-Selectors based on scope */}
+                  {editingItem.target_scope === 'parent_category' && (
+                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: '#1e293b', marginBottom: '0.4rem' }}>
+                        SELECT PARENT CATEGORY / SECTOR
+                      </label>
+                      <select
+                        value={editingItem.target_type_id || ''}
+                        onChange={(e) => setEditingItem(p => ({ ...p, target_type_id: e.target.value }))}
+                        style={{ width: '100%', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}
+                      >
+                        <option value="">-- Choose Parent Sector --</option>
+                        {parentTypes.map(pt => (
+                          <option key={pt.id} value={pt.id}>
+                            {pt.icon || '📁'} {pt.name_en || pt.name} ({pt.name_ar || 'قطاع'})
+                          </option>
+                        ))}
+                      </select>
+                      {editingItem.target_type_id && (
+                        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#475569', background: '#e2e8f0', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
+                          ⚡ <strong>Auto-Syndication Active:</strong> All businesses registered under this parent category (and its child sub-types) will automatically receive and co-host this package in their minisites.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {editingItem.target_scope === 'child_typology' && (
+                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: '#1e293b', marginBottom: '0.4rem' }}>
+                        SELECT CHILD TYPOLOGY
+                      </label>
+                      <select
+                        value={editingItem.target_type_id || ''}
+                        onChange={(e) => setEditingItem(p => ({ ...p, target_type_id: e.target.value }))}
+                        style={{ width: '100%', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}
+                      >
+                        <option value="">-- Choose Sub-Typology --</option>
+                        {childTypes.map(ct => (
+                          <option key={ct.id} value={ct.id}>
+                            {ct.icon || '🏷️'} {ct.name_en || ct.name} ({ct.name_ar || 'نوع فرعي'})
+                          </option>
+                        ))}
+                      </select>
+                      {editingItem.target_type_id && (
+                        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#475569', background: '#e2e8f0', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
+                          🎯 <strong>Specialized Targeting Active:</strong> All businesses matching this exact typology will be syndicated with this package.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Multi-Vendor / Custom Assigned Partners Builder */}
+                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>
+                          🤝 Multi-Business Joint Team &amp; Forwarding Matrix
+                        </h4>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          Assign specific vendors to co-deliver this experience, allocate revenue shares, and check tier capabilities.
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, background: '#f1f5f9', padding: '4px 10px', borderRadius: '20px', color: '#334155' }}>
+                        {editingItem.assignments?.length || 0} Vendors Assigned
+                      </span>
+                    </div>
+
+                    {/* Add Partner Form */}
+                    <div style={{ background: '#f8fafc', padding: '0.9rem', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr auto', gap: '0.6rem', alignItems: 'end', marginBottom: '1.25rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#475569', marginBottom: '0.25rem' }}>
+                          SELECT VENDOR BUSINESS
+                        </label>
+                        <select
+                          value={partnerToAdd.business_id}
+                          onChange={(e) => setPartnerToAdd(p => ({ ...p, business_id: e.target.value }))}
+                          style={{ width: '100%', padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}
+                        >
+                          <option value="">-- Choose Business --</option>
+                          {businesses.map(b => (
+                            <option key={b.id} value={b.id}>
+                              {b.name} ({b.subscription_tier ? b.subscription_tier.toUpperCase() : 'FREE'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#475569', marginBottom: '0.25rem' }}>
+                          ASSIGNED ROLE
+                        </label>
+                        <select
+                          value={partnerToAdd.role}
+                          onChange={(e) => setPartnerToAdd(p => ({ ...p, role: e.target.value }))}
+                          style={{ width: '100%', padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}
+                        >
+                          <option value="lead_organizer">👑 Lead Organizer / Host</option>
+                          <option value="accommodation">🏨 Hotel / Ecolodge / Camp</option>
+                          <option value="safari_transport">🚙 4x4 Dune Safari / Transfer</option>
+                          <option value="guide">🧭 Certified Eco/Bedouin Guide</option>
+                          <option value="dining">🍽️ Traditional Bedouin Dining</option>
+                          <option value="wellness">🌿 Salt Lake / Sand Bath / Spa</option>
+                          <option value="partner">🤝 Service Partner</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#475569', marginBottom: '0.25rem' }}>
+                          REV SHARE %
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={partnerToAdd.commission_split_pct}
+                          onChange={(e) => setPartnerToAdd(p => ({ ...p, commission_split_pct: Number(e.target.value) }))}
+                          placeholder="e.g. 35"
+                          style={{ width: '100%', padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={addPartnerToEditingItem}
+                        style={{
+                          padding: '0.55rem 1rem',
+                          background: '#0f172a',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          height: '35px'
+                        }}
+                      >
+                        + Add Partner
+                      </button>
+                    </div>
+
+                    {/* Assigned Partners Table / Cards */}
+                    {(!editingItem.assignments || editingItem.assignments.length === 0) ? (
+                      <div style={{ textAlign: 'center', padding: '1.5rem', background: '#fafafa', borderRadius: '8px', border: '1px dashed #cbd5e1', color: '#94a3b8', fontSize: '0.78rem' }}>
+                        No individual vendor partners assigned yet. If using Parent or Child scope, all matching vendors are included automatically.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: '0.75rem' }}>
+                        {editingItem.assignments.map((assign, idx) => {
+                          const biz = businesses.find(b => String(b.id) === String(assign.business_id));
+                          const tier = (biz?.subscription_tier || 'free').toLowerCase();
+                          const isLowTier = tier === 'free' || tier === 'basic';
+                          const tierColor = tier === 'vip' ? '#10b981' : tier === 'gold' ? '#d97706' : tier === 'premium' ? '#8b5cf6' : tier === 'basic' ? '#3b82f6' : '#6b7280';
+
+                          return (
+                            <div
+                              key={assign.business_id || idx}
+                              style={{
+                                padding: '0.85rem 1rem',
+                                borderRadius: '10px',
+                                border: '1px solid #e2e8f0',
+                                background: '#f8fafc',
+                                display: 'grid',
+                                gridTemplateColumns: '2fr 1.5fr 1fr auto auto',
+                                gap: '0.75rem',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e293b' }}>
+                                    {biz?.name || `Business #${assign.business_id}`}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 900,
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      background: `${tierColor}15`,
+                                      color: tierColor,
+                                      border: `1px solid ${tierColor}40`
+                                    }}
+                                  >
+                                    {tier.toUpperCase()}
+                                  </span>
+                                </div>
+                                {isLowTier && (
+                                  <div style={{ fontSize: '0.65rem', color: '#d97706', marginTop: '2px', fontWeight: 600 }}>
+                                    ⚠️ Standard Tier: Bookings routed via admin. Upgrade to Gold/VIP for direct WhatsApp routing.
+                                  </div>
+                                )}
+                              </div>
+
+                              <div>
+                                <select
+                                  value={assign.role || 'partner'}
+                                  onChange={(e) => updatePartnerInEditingItem(String(assign.business_id), { role: e.target.value })}
+                                  style={{ width: '100%', padding: '0.45rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}
+                                >
+                                  <option value="lead_organizer">👑 Lead Host</option>
+                                  <option value="accommodation">🏨 Hotel/Camp</option>
+                                  <option value="safari_transport">🚙 4x4 Safari</option>
+                                  <option value="guide">🧭 Guide</option>
+                                  <option value="dining">🍽️ Dining</option>
+                                  <option value="wellness">🌿 Wellness/Spa</option>
+                                  <option value="partner">🤝 Partner</option>
+                                </select>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={assign.commission_split_pct || 0}
+                                  onChange={(e) => updatePartnerInEditingItem(String(assign.business_id), { commission_split_pct: Number(e.target.value) })}
+                                  style={{ width: '60px', padding: '0.45rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, textAlign: 'center' }}
+                                />
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>%</span>
+                              </div>
+
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700, color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={assign.visible_on_minisite !== false}
+                                  onChange={(e) => updatePartnerInEditingItem(String(assign.business_id), { visible_on_minisite: e.target.checked })}
+                                />
+                                Show on Minisite
+                              </label>
+
+                              <button
+                                type="button"
+                                onClick={() => removePartnerFromEditingItem(String(assign.business_id))}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '4px 8px' }}
+                                title="Remove Vendor"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+
+                        {/* Revenue Split Summary */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 800 }}>
+                          <span style={{ color: '#64748b' }}>Total Revenue Share Allocated:</span>
+                          <span
+                            style={{
+                              color: (editingItem.assignments.reduce((sum, a) => sum + (Number(a.commission_split_pct) || 0), 0)) === 100 ? '#10b981' : '#f59e0b',
+                              background: '#fff',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              border: '1px solid #e2e8f0'
+                            }}
+                          >
+                            {editingItem.assignments.reduce((sum, a) => sum + (Number(a.commission_split_pct) || 0), 0)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 6: GOVERNANCE & BOOKING */}
               {activeTab === 'governance' && (
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

@@ -123,7 +123,59 @@ export async function GET(request: NextRequest) {
       is_featured: row.is_featured,
     }));
 
-    return NextResponse.json({ success: true, packages: [...canonicalPackages, ...rows.map(normalizePackageRow)] });
+    let assignedMarketplaceRows: any[] = [];
+    try {
+      assignedMarketplaceRows = await query(
+        `SELECT 
+           m.*, 
+           pba.business_role, 
+           pba.revenue_share_percentage, 
+           pba.visible_on_minisite,
+           pba.vendor_acceptance_status
+         FROM marketplace_items m
+         JOIN package_business_assignments pba ON pba.item_id = m.id
+         WHERE pba.business_id = ? AND m.status = 'approved'
+         ORDER BY m.created_at DESC`,
+        [String(businessId)]
+      ) as any[];
+    } catch (e) {
+      // Table might not exist yet or empty
+    }
+
+    const assignedMarketplacePackages = (assignedMarketplaceRows || []).map((row: any) => ({
+      id: row.id,
+      package_name: row.title_en || row.title_ar || 'Multi-Vendor Package',
+      name: row.title_en || row.title_ar || 'Multi-Vendor Package',
+      description: row.description_en || row.description_ar || '',
+      package_type: 'bundle',
+      program_type: row.item_type || 'tour',
+      base_price: Number(row.base_price) || Number(row.sale_price) || 0,
+      package_price: Number(row.sale_price) || Number(row.base_price) || 0,
+      savings_percentage: (row.base_price && row.sale_price && Number(row.base_price) > Number(row.sale_price))
+        ? Math.round(((Number(row.base_price) - Number(row.sale_price)) / Number(row.base_price)) * 100)
+        : 0,
+      status: row.status === 'approved' ? 'active' : 'draft',
+      is_featured: Boolean(row.is_featured),
+      duration_days: Number(row.duration_days) || 1,
+      audience: 'All travelers',
+      valid_until: row.valid_until || '',
+      quantity_sold: 0,
+      quantity_available: 99,
+      approval_status: 'approved',
+      assigned_role: row.business_role || 'partner',
+      revenue_share_pct: row.revenue_share_percentage,
+      is_syndicated: true,
+      pricing: {
+        base_price: Number(row.base_price) || 0,
+        package_price: Number(row.sale_price) || 0,
+        currency: row.currency || 'USD'
+      }
+    }));
+
+    return NextResponse.json({
+      success: true,
+      packages: [...canonicalPackages, ...rows.map(normalizePackageRow), ...assignedMarketplacePackages]
+    });
   } catch (error: any) {
     console.error('[vendor packages GET]', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

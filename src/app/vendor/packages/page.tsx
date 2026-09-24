@@ -16,6 +16,9 @@ interface Package {
   quantity_available: number;
   approval_status: 'pending' | 'approved' | 'rejected';
   valid_until: string;
+  assigned_role?: string;
+  revenue_share_pct?: number;
+  is_syndicated?: boolean;
 }
 
 const PKG_CSS = `
@@ -38,6 +41,8 @@ const PKG_CSS = `
   .vp-badge.active { background: rgba(34,197,94,0.1); color: #16a34a; border: 1px solid rgba(34,197,94,0.2); }
   .vp-badge.draft { background: rgba(245,158,11,0.1); color: #d97706; border: 1px solid rgba(245,158,11,0.2); }
   .vp-badge.featured { background: rgba(212,175,55,0.15); color: #D4AF37; border: 1px solid rgba(212,175,55,0.3); }
+  .vp-badge.syndicated { background: rgba(99,102,241,0.12); color: #4f46e5; border: 1px solid rgba(99,102,241,0.3); }
+
 
   .vp-modal-overlay {
     position: fixed; inset: 0; background: rgba(15,23,42,0.6);
@@ -88,7 +93,11 @@ export default function VendorPackagesPage() {
     }
   }
 
-  const filtered = packages.filter(p => filterStatus === 'all' || p.status === filterStatus);
+  const filtered = packages.filter(p => {
+    if (filterStatus === 'all') return true;
+    if (filterStatus === 'syndicated') return !!p.is_syndicated;
+    return p.status === filterStatus;
+  });
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -176,14 +185,19 @@ export default function VendorPackagesPage() {
         </div>
 
         {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {['all', 'active', 'draft'].map(st => (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {[
+            { id: 'all', label: 'All Packages' },
+            { id: 'active', label: 'Active' },
+            { id: 'syndicated', label: '🤝 Co-Hosted Bundles' },
+            { id: 'draft', label: 'Draft' }
+          ].map(st => (
             <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              style={{ padding: '0.45rem 1.1rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: 800, border: 'none', cursor: 'pointer', textTransform: 'capitalize', background: filterStatus === st ? '#0f172a' : '#f1f5f9', color: filterStatus === st ? '#fff' : '#64748b', transition: 'all 0.2s' }}
+              key={st.id}
+              onClick={() => setFilterStatus(st.id)}
+              style={{ padding: '0.45rem 1.1rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: filterStatus === st.id ? '#0f172a' : '#f1f5f9', color: filterStatus === st.id ? '#fff' : '#64748b', transition: 'all 0.2s' }}
             >
-              {st === 'all' ? 'All Packages' : st}
+              {st.label}
             </button>
           ))}
         </div>
@@ -194,19 +208,30 @@ export default function VendorPackagesPage() {
         ) : (
           <div className="vp-grid">
             {filtered.map(pkg => (
-              <div key={pkg.id} className="vp-card">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span className={`vp-badge ${pkg.status}`}>{pkg.status}</span>
+              <div key={pkg.id} className="vp-card" style={pkg.is_syndicated ? { borderColor: '#c7d2fe', background: 'linear-gradient(180deg, #ffffff, #fafbff)' } : {}}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <span className={`vp-badge ${pkg.status}`}>{pkg.status}</span>
+                    {pkg.is_syndicated && (
+                      <span className="vp-badge syndicated">🤝 Co-Hosted</span>
+                    )}
+                  </div>
                   {pkg.is_featured && <span className="vp-badge featured">⭐ Featured</span>}
                 </div>
 
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.75rem', lineHeight: 1.35 }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem', lineHeight: 1.35 }}>
                   {pkg.package_name}
                 </h3>
 
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.7rem', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ marginBottom: '0.5rem', fontSize: '0.7rem', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {pkg.package_type || 'package'} • {pkg.package_type === 'program' ? 'experience' : 'offer'}
                 </div>
+
+                {pkg.is_syndicated && pkg.assigned_role && (
+                  <div style={{ marginBottom: '0.75rem', background: '#eef2ff', padding: '4px 8px', borderRadius: '6px', fontSize: '0.68rem', color: '#3730a3', fontWeight: 800, display: 'inline-block' }}>
+                    Role: {pkg.assigned_role.replace('_', ' ').toUpperCase()} {pkg.revenue_share_pct ? `• ${pkg.revenue_share_pct}% Revenue Share` : ''}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '1rem' }}>
                   <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#D4AF37' }}>${pkg.package_price}</span>
@@ -222,7 +247,7 @@ export default function VendorPackagesPage() {
 
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>
                   <span>Sold: <strong style={{ color: '#0f172a' }}>{pkg.quantity_sold}</strong></span>
-                  <span>Valid: <strong style={{ color: '#0f172a' }}>{pkg.valid_until}</strong></span>
+                  <span>Valid: <strong style={{ color: '#0f172a' }}>{pkg.valid_until || 'Ongoing'}</strong></span>
                 </div>
               </div>
             ))}
