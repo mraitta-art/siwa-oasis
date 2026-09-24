@@ -744,33 +744,33 @@ export default function AdvancedJourneyBuilder() {
   const currentDayItems = packageInfo.itinerary[selectedDay - 1]?.items || [];
 
   return (
-    <div className="w-full max-w-6xl mx-auto font-sans text-zinc-100">
+    <div className="w-full max-w-6xl mx-auto font-sans text-slate-900">
       
       {/* ── 🌟 CINEMATIC HERO SECTION ── */}
-      <div className="relative mb-10 pb-8 border-b border-white/[0.08] overflow-hidden">
+      <div className="relative mb-10 pb-8 border-b border-slate-200/80 overflow-hidden">
         
         {/* Subtle Ambient Radial Glow */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#556B2F]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-200/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-200/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-bold tracking-[0.2em] uppercase">
-              <Sparkles size={12} />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold tracking-[0.2em] uppercase shadow-xs">
+              <Sparkles size={13} className="text-amber-600" />
               <span>Bespoke Expedition Studio</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Design Your <span className="bg-gradient-to-r from-[#D4AF37] via-[#f0c842] to-[#FFB700] bg-clip-text text-transparent">Custom Tour</span>
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
+              Design Your <span className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 bg-clip-text text-transparent">Custom Tour</span>
             </h1>
 
-            <p className="text-zinc-400 text-xs sm:text-sm max-w-2xl font-normal leading-relaxed">
+            <p className="text-slate-600 text-xs sm:text-sm max-w-2xl font-medium leading-relaxed">
               Curate multi-day schedules with verified Siwan silversmiths, date palm guilds, desert drivers, and eco-lodges. Direct dispatch to licensed local operators.
             </p>
           </div>
 
           {/* Stepper Pill Nav */}
-          <div className="inline-flex items-center p-1.5 bg-[#0F172A]/80 border border-white/[0.1] rounded-2xl backdrop-blur-xl shadow-lg">
+          <div className="inline-flex items-center p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
             {[
               { num: 1, label: 'Blueprint' },
               { num: 2, label: 'Timeline' },
@@ -779,10 +779,10 @@ export default function AdvancedJourneyBuilder() {
               <button
                 key={s.num}
                 onClick={() => setStep(s.num)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold tracking-wider transition-all flex items-center gap-2 ${
                   step === s.num
-                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black shadow-md font-bold'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#f59e0b] text-slate-950 shadow-sm font-black'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <span className="opacity-70 text-[10px]">0{s.num}</span>
@@ -795,18 +795,18 @@ export default function AdvancedJourneyBuilder() {
 
       {/* ── ✨ ACTIVE PRESET STATUS BAR ── */}
       {loadedPresetKey && !success && (
-        <div className="mb-8 p-5 bg-gradient-to-r from-[#1E293B]/80 via-[#0F172A]/90 to-[#1E293B]/80 border border-[#D4AF37]/30 rounded-2xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl shadow-xl">
+        <div className="mb-8 p-5 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/80 border border-amber-200/90 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#8C6D1F]/10 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shadow-xs">
               <Gem size={18} />
             </div>
             <div>
-              <div className="text-[10px] font-bold tracking-widest text-[#D4AF37] uppercase">
+              <div className="text-[10px] font-black tracking-widest text-amber-800 uppercase">
                 Active Preset Loaded
               </div>
-              <div className="text-sm sm:text-base font-bold text-white flex items-center gap-2 mt-0.5">
+              <div className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2 mt-0.5">
                 <span>{packageInfo.name || loadedPresetKey}</span>
-                <span className="text-xs text-zinc-400 font-normal">
+                <span className="text-xs text-slate-500 font-medium">
                   • {packageInfo.duration_days} Days · {totalStopsCount} Curated Stops · ${packageInfo.price_usd || 320} / Person
                 </span>
               </div>
@@ -818,7 +818,7 @@ export default function AdvancedJourneyBuilder() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="px-4 py-2 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-bold rounded-xl hover:brightness-110 transition-all shadow-md flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-[#D4AF37] to-[#f59e0b] text-slate-950 font-black rounded-xl hover:brightness-105 transition-all shadow-sm flex items-center gap-2"
               >
                 <span>Edit Daily Timeline (Step 2)</span>
                 <ArrowRight size={13} />
@@ -827,7 +827,7 @@ export default function AdvancedJourneyBuilder() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 font-semibold rounded-xl border border-white/10 transition-all flex items-center gap-1.5"
+                className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 transition-all flex items-center gap-1.5"
               >
                 <ArrowLeft size={13} />
                 <span>Trip Blueprint</span>
@@ -836,7 +836,7 @@ export default function AdvancedJourneyBuilder() {
             <button
               type="button"
               onClick={handleResetToCustomBlank}
-              className="px-3.5 py-2 bg-transparent hover:bg-red-500/10 text-zinc-400 hover:text-red-400 text-xs font-semibold rounded-xl border border-white/[0.08] hover:border-red-500/30 transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 text-xs font-bold rounded-xl border border-slate-200 hover:border-red-200 transition-all flex items-center gap-1.5"
             >
               <RotateCcw size={12} />
               <span>Reset Blank</span>
@@ -847,31 +847,29 @@ export default function AdvancedJourneyBuilder() {
 
       {/* ── SUCCESS CONFIRMATION ── */}
       {success ? (
-        <div className="p-12 md:p-16 bg-[#0F172A]/80 border border-[#D4AF37]/30 rounded-3xl text-center flex flex-col items-center max-w-2xl mx-auto shadow-2xl backdrop-blur-xl">
-          <div className="w-16 h-16 rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] mb-6 shadow-inner">
+        <div className="p-12 md:p-16 bg-white border border-emerald-200 rounded-3xl text-center flex flex-col items-center max-w-2xl mx-auto shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-6 shadow-sm">
             <CheckCircle2 size={36} />
           </div>
-          <div className="text-[11px] font-bold tracking-widest text-[#D4AF37] uppercase mb-2">
+          <div className="text-[11px] font-black tracking-widest text-emerald-700 uppercase mb-2">
             Itinerary Transmitted
           </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mb-3 tracking-tight">
             Direct Dispatch Complete!
           </h2>
-          <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed max-w-md mb-8">
-            Thank you, <strong className="text-white font-bold">{visitorName}</strong>. Your customized {packageInfo.duration_days}-day Siwa tour package has been dispatched directly to licensed operators and artisans. You will receive quotes and confirmation via WhatsApp/Phone at <span className="text-[#D4AF37] font-semibold">{visitorPhone}</span>.
+          <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-md mb-8 font-medium">
+            Thank you, <strong className="text-slate-900 font-bold">{visitorName}</strong>. Your customized {packageInfo.duration_days}-day Siwa tour package has been dispatched directly to licensed operators and artisans. You will receive quotes and confirmation via WhatsApp/Phone at <span className="text-amber-700 font-bold">{visitorPhone}</span>.
           </p>
           <button
             onClick={() => { setSuccess(false); handleResetToCustomBlank(); }}
-            className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-bold rounded-xl text-xs hover:brightness-110 transition-all shadow-lg"
+            className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#f59e0b] text-slate-950 font-black rounded-xl text-xs hover:brightness-105 transition-all shadow-md"
           >
             Create Another Itinerary
           </button>
         </div>
       ) : (
         <>
-          {/* ═════════════════════════════════════════════════════════════════════════ */}
-          {/* STEP 1: BLUEPRINT & CURATED PRESETS                                       */}
-          {/* ═════════════════════════════════════════════════════════════════════════ */}
+          {/* STEP 1: BLUEPRINT & CURATED PRESETS */}
           {step === 1 && (
             <div className="space-y-8 animate-fadeIn">
               
@@ -879,12 +877,12 @@ export default function AdvancedJourneyBuilder() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#D4AF37]" />
-                    <span className="text-xs font-bold tracking-widest text-white uppercase">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
+                    <span className="text-xs font-black tracking-widest text-slate-900 uppercase">
                       Curated Signature Expeditions
                     </span>
                   </div>
-                  <span className="text-xs text-zinc-400">1-Click Full Itineraries</span>
+                  <span className="text-xs text-slate-500 font-medium">1-Click Full Itineraries</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -897,36 +895,36 @@ export default function AdvancedJourneyBuilder() {
                         onClick={() => applyCuratedPreset(key)}
                         className={`p-6 rounded-2xl cursor-pointer transition-all border flex flex-col justify-between group relative overflow-hidden ${
                           isCurrent
-                            ? 'bg-[#1E293B]/90 border-[#D4AF37] shadow-xl ring-1 ring-[#D4AF37]'
-                            : 'bg-[#0F172A]/60 hover:bg-[#1E293B]/70 border-white/[0.08] hover:border-[#D4AF37]/50'
+                            ? 'bg-amber-50/60 border-2 border-amber-500 shadow-lg ring-2 ring-amber-500/20'
+                            : 'bg-white hover:bg-slate-50/80 border-slate-200 hover:border-amber-400 shadow-xs hover:shadow-md'
                         }`}
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] px-2.5 py-1 bg-[#D4AF37]/10 rounded-full border border-[#D4AF37]/30">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 px-2.5 py-1 bg-amber-100/70 rounded-full border border-amber-200">
                               {preset.badge}
                             </span>
-                            <span className="text-sm font-black text-white">
-                              ${preset.price_usd} <span className="text-[10px] font-normal text-zinc-400">/ guest</span>
+                            <span className="text-sm font-black text-slate-900">
+                              ${preset.price_usd} <span className="text-[10px] font-medium text-slate-500">/ guest</span>
                             </span>
                           </div>
 
-                          <h4 className="text-base font-bold text-white group-hover:text-[#D4AF37] transition-colors leading-snug">
+                          <h4 className="text-base font-black text-slate-900 group-hover:text-amber-800 transition-colors leading-snug">
                             {preset.name}
                           </h4>
 
-                          <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed font-normal">
+                          <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed font-normal">
                             {preset.description}
                           </p>
                         </div>
 
-                        <div className="mt-6 pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-400">
-                          <div className="flex items-center gap-2 text-zinc-300 font-medium">
+                        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                          <div className="flex items-center gap-2 text-slate-700 font-semibold">
                             <span>⏱ {preset.duration_days} Days</span>
-                            <span className="text-zinc-600">•</span>
+                            <span className="text-slate-300">•</span>
                             <span>📍 {totalStops} Stops</span>
                           </div>
-                          <span className={`text-xs font-bold flex items-center gap-1 ${isCurrent ? 'text-[#D4AF37]' : 'text-zinc-400 group-hover:text-white'}`}>
+                          <span className={`text-xs font-black flex items-center gap-1 ${isCurrent ? 'text-amber-700' : 'text-slate-500 group-hover:text-slate-900'}`}>
                             {isCurrent ? 'Active Plan ✓' : 'Select Plan →'}
                           </span>
                         </div>
@@ -938,13 +936,13 @@ export default function AdvancedJourneyBuilder() {
 
               {/* Operator Packages Option */}
               {agencyTours.length > 0 && (
-                <div className="p-6 bg-[#0F172A]/40 border border-white/[0.08] rounded-2xl space-y-4">
+                <div className="p-6 bg-white border border-slate-200 rounded-2xl space-y-4 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tracking-widest text-zinc-300 uppercase flex items-center gap-2">
-                      <Building2 size={14} className="text-[#D4AF37]" />
+                    <span className="text-xs font-black tracking-widest text-slate-900 uppercase flex items-center gap-2">
+                      <Building2 size={14} className="text-amber-600" />
                       <span>Tour Operator Packaged Routes</span>
                     </span>
-                    <span className="text-xs text-zinc-500">{agencyTours.length} verified packages</span>
+                    <span className="text-xs text-slate-500 font-medium">{agencyTours.length} verified packages</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -952,19 +950,19 @@ export default function AdvancedJourneyBuilder() {
                       <div
                         key={t.id}
                         onClick={() => handleLoadAgencyTour(t.id)}
-                        className="p-4 bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-[#D4AF37]/50 rounded-xl cursor-pointer transition-all flex flex-col justify-between group"
+                        className="p-4 bg-slate-50/80 hover:bg-amber-50/50 border border-slate-200 hover:border-amber-400 rounded-xl cursor-pointer transition-all flex flex-col justify-between group shadow-xs"
                       >
                         <div>
-                          <div className="text-xs font-bold text-white group-hover:text-[#D4AF37] truncate">
+                          <div className="text-xs font-bold text-slate-900 group-hover:text-amber-800 truncate">
                             {t.name}
                           </div>
-                          <div className="text-[11px] text-zinc-400 line-clamp-1 mt-1 font-normal">
+                          <div className="text-[11px] text-slate-500 line-clamp-1 mt-1 font-normal">
                             {t.description || 'Pre-designed operator schedule'}
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/[0.04] text-xs text-zinc-400 font-medium">
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200 text-xs text-slate-600 font-medium">
                           <span>⏱ {t.duration_days} Days</span>
-                          <span className="text-[#D4AF37] font-bold">
+                          <span className="text-amber-700 font-black">
                             {t.base_price_usd ? `$${t.base_price_usd}` : 'Direct Quote'}
                           </span>
                         </div>
@@ -975,15 +973,15 @@ export default function AdvancedJourneyBuilder() {
               )}
 
               {/* Itinerary Configuration Form */}
-              <div className="p-8 bg-[#0F172A]/60 border border-white/[0.08] rounded-2xl space-y-6 backdrop-blur-xl">
-                <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-[#D4AF37] uppercase">
+              <div className="p-8 bg-white border border-slate-200 rounded-2xl space-y-6 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-black tracking-widest text-amber-800 uppercase">
                   <Sliders size={14} />
                   <span>Itinerary Parameters</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                       Tour Name *
                     </label>
                     <input
@@ -991,30 +989,30 @@ export default function AdvancedJourneyBuilder() {
                       value={packageInfo.name}
                       onChange={(e) => setPackageInfo({ ...packageInfo, name: e.target.value })}
                       placeholder="e.g. Siwa Artisan & Desert Exploration"
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 focus:border-[#D4AF37] focus:outline-none text-xs font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:outline-none text-xs font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                       Experience Focus
                     </label>
                     <select
                       value={packageInfo.vibe}
                       onChange={(e) => setPackageInfo({ ...packageInfo, vibe: e.target.value })}
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white focus:border-[#D4AF37] focus:outline-none text-xs font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:border-amber-500 focus:outline-none text-xs font-bold"
                     >
-                      <option value="cultural">Artisanal Craft & Cultural Heritage</option>
-                      <option value="adventure">Desert Safari & 4x4 Great Sand Sea</option>
-                      <option value="wellness">Healing, Salt Lakes & Thermal Springs</option>
-                      <option value="culinary">Gastronomy, Olive Groves & Date Harvest</option>
-                      <option value="slow-paced">Quiet Detox & Stargazing</option>
+                      <option value="cultural">Artisanal Craft &amp; Cultural Heritage</option>
+                      <option value="adventure">Desert Safari &amp; 4x4 Great Sand Sea</option>
+                      <option value="wellness">Healing, Salt Lakes &amp; Thermal Springs</option>
+                      <option value="culinary">Gastronomy, Olive Groves &amp; Date Harvest</option>
+                      <option value="slow-paced">Quiet Detox &amp; Stargazing</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                     Trip Vision &amp; Special Preferences
                   </label>
                   <textarea
@@ -1022,15 +1020,15 @@ export default function AdvancedJourneyBuilder() {
                     onChange={(e) => setPackageInfo({ ...packageInfo, description: e.target.value })}
                     placeholder="Describe your desired pace, must-visit locations, or special logistics..."
                     rows={3}
-                    className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 focus:border-[#D4AF37] focus:outline-none text-xs font-medium"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:outline-none text-xs font-medium"
                   />
                 </div>
 
                 {/* Duration & Pace */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/[0.06]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2.5">
-                      Duration: <span className="text-[#D4AF37]">{packageInfo.duration_days} Days</span>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
+                      Duration: <span className="text-amber-700 font-black">{packageInfo.duration_days} Days</span>
                     </label>
                     <div className="flex gap-2 flex-wrap">
                       {[1, 2, 3, 4, 5, 7, 10].map((d) => (
@@ -1040,8 +1038,8 @@ export default function AdvancedJourneyBuilder() {
                           onClick={() => handleChangeDays(d)}
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                             packageInfo.duration_days === d
-                              ? 'bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black shadow-md'
-                              : 'bg-white/[0.04] text-zinc-300 hover:text-white hover:bg-white/[0.08]'
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                           }`}
                         >
                           {d} {d === 1 ? 'Day' : 'Days'}
@@ -1051,8 +1049,8 @@ export default function AdvancedJourneyBuilder() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2.5">
-                      Pace: <span className="text-[#D4AF37] capitalize">{packageInfo.pace}</span>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
+                      Pace: <span className="text-amber-700 font-black capitalize">{packageInfo.pace}</span>
                     </label>
                     <div className="grid grid-cols-3 gap-2.5">
                       {['relaxed', 'moderate', 'active'].map((p) => (
@@ -1062,8 +1060,8 @@ export default function AdvancedJourneyBuilder() {
                           onClick={() => setPackageInfo({ ...packageInfo, pace: p })}
                           className={`py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all border ${
                             packageInfo.pace === p
-                              ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
-                              : 'bg-white/[0.03] border-white/[0.06] text-zinc-400 hover:text-white'
+                              ? 'bg-amber-100 border-amber-400 text-amber-900 font-black'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           {p}
@@ -1085,7 +1083,7 @@ export default function AdvancedJourneyBuilder() {
                     }
                     setStep(2);
                   }}
-                  className="px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all shadow-xl flex items-center gap-2"
+                  className="px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] via-[#f59e0b] to-[#d97706] text-slate-950 font-black rounded-xl text-xs hover:brightness-105 transition-all shadow-md flex items-center gap-2"
                 >
                   <span>Configure Daily Timeline</span>
                   <ArrowRight size={14} />
@@ -1094,15 +1092,13 @@ export default function AdvancedJourneyBuilder() {
             </div>
           )}
 
-          {/* ═════════════════════════════════════════════════════════════════════════ */}
-          {/* STEP 2: DAILY TIMELINE STUDIO (MODERN & STREAMLINED)                      */}
-          {/* ═════════════════════════════════════════════════════════════════════════ */}
+          {/* STEP 2: DAILY TIMELINE STUDIO */}
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
               
               {/* Presets Switcher Bar */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-                <span className="text-zinc-500 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                <span className="text-slate-500 font-black text-[11px] uppercase tracking-wider whitespace-nowrap">
                   Switch Plan:
                 </span>
                 {Object.entries(CURATED_JOURNEY_PRESETS).map(([key, preset]) => {
@@ -1112,10 +1108,10 @@ export default function AdvancedJourneyBuilder() {
                       key={key}
                       type="button"
                       onClick={() => applyCuratedPreset(key)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                         isCurrent
-                          ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-bold shadow-sm'
-                          : 'bg-white/[0.03] border-white/[0.08] text-zinc-400 hover:text-white hover:border-[#D4AF37]/50'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-amber-400'
                       }`}
                     >
                       {preset.name}
@@ -1125,21 +1121,21 @@ export default function AdvancedJourneyBuilder() {
               </div>
 
               {/* Day Selector Tabs */}
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-2 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-2 border-b border-slate-200">
                 {packageInfo.itinerary.map((d) => (
                   <button
                     key={d.day}
                     type="button"
                     onClick={() => setSelectedDay(d.day)}
-                    className={`px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+                    className={`px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center gap-2 ${
                       selectedDay === d.day
-                        ? 'bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black shadow-md'
-                        : 'bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.06]'
+                        ? 'bg-gradient-to-r from-[#D4AF37] to-[#f59e0b] text-slate-950 shadow-sm'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     <span>Day {d.day}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                      selectedDay === d.day ? 'bg-black/20 text-black font-bold' : 'bg-white/10 text-zinc-300'
+                      selectedDay === d.day ? 'bg-black/15 text-black font-black' : 'bg-slate-100 text-slate-600'
                     }`}>
                       {d.items.length} stops
                     </span>
@@ -1153,53 +1149,53 @@ export default function AdvancedJourneyBuilder() {
                 {/* Daily Timeline List (7 cols) */}
                 <div className="lg:col-span-7 space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                      <Calendar size={16} className="text-[#D4AF37]" />
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <Calendar size={16} className="text-amber-600" />
                       <span>Day {selectedDay} Schedule</span>
                     </h3>
-                    <span className="text-xs text-zinc-400 font-mono font-medium">
+                    <span className="text-xs text-slate-500 font-mono font-bold">
                       {currentDayItems.length} activities planned
                     </span>
                   </div>
 
                   {currentDayItems.length === 0 ? (
-                    <div className="p-10 border border-dashed border-white/[0.1] rounded-2xl text-center text-zinc-500 text-xs">
+                    <div className="p-10 border-2 border-dashed border-slate-200 rounded-2xl text-center text-slate-500 text-xs bg-white">
                       No stops scheduled for Day {selectedDay}.<br />
                       Use the activity panel on the right to schedule visits, meals, or workshops.
                     </div>
                   ) : (
-                    <div className="space-y-3 relative before:absolute before:left-[38px] before:top-4 before:bottom-4 before:w-[2px] before:bg-[#D4AF37]/20">
+                    <div className="space-y-3 relative before:absolute before:left-[38px] before:top-4 before:bottom-4 before:w-[2px] before:bg-amber-200">
                       {currentDayItems.map((item) => (
                         <div
                           key={item.id}
-                          className="p-4 bg-[#0F172A]/70 border border-white/[0.08] hover:border-[#D4AF37]/40 rounded-2xl transition-all flex items-start justify-between gap-4 group backdrop-blur-md shadow-lg"
+                          className="p-4 bg-white border border-slate-200 hover:border-amber-400 rounded-2xl transition-all flex items-start justify-between gap-4 group shadow-xs hover:shadow-sm"
                         >
                           <div className="flex items-start gap-3.5">
                             {/* Time Badge */}
-                            <div className="px-2.5 py-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl text-[#D4AF37] font-mono font-bold text-xs whitespace-nowrap text-center">
+                            <div className="px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded-xl text-amber-900 font-mono font-black text-xs whitespace-nowrap text-center">
                               {item.time}
                             </div>
 
                             <div className="space-y-1">
-                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                              <div className="text-sm font-black text-slate-900 flex items-center gap-2">
                                 <span>{item.business_name}</span>
                                 {item.is_custom_manual && (
-                                  <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] rounded-full border border-blue-500/20 font-semibold">
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] rounded-full border border-blue-200 font-bold">
                                     Custom
                                   </span>
                                 )}
                               </div>
 
-                              <div className="text-xs text-zinc-400 flex items-center gap-2">
+                              <div className="text-xs text-slate-500 flex items-center gap-2 font-medium">
                                 <span>{item.child_type_name}</span>
-                                <span className="text-zinc-600">•</span>
+                                <span className="text-slate-300">•</span>
                                 <span>
                                   {Math.floor(item.duration_minutes! / 60)}h {item.duration_minutes! % 60 > 0 && `${item.duration_minutes! % 60}m`}
                                 </span>
                               </div>
 
                               {item.notes && (
-                                <div className="text-xs text-zinc-300 italic font-normal bg-white/[0.03] p-2 rounded-xl border border-white/[0.05] mt-1.5">
+                                <div className="text-xs text-slate-600 italic font-normal bg-slate-50 p-2 rounded-xl border border-slate-200 mt-1.5">
                                   {item.notes}
                                 </div>
                               )}
@@ -1209,7 +1205,7 @@ export default function AdvancedJourneyBuilder() {
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(item.id)}
-                            className="p-2 text-zinc-500 hover:text-red-400 rounded-xl hover:bg-white/[0.05] transition-all"
+                            className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition-all"
                             title="Remove Stop"
                           >
                             <Trash2 size={15} />
@@ -1221,18 +1217,18 @@ export default function AdvancedJourneyBuilder() {
                 </div>
 
                 {/* Right Form: Add Activity Panel (5 cols) */}
-                <div className="lg:col-span-5 bg-[#0F172A]/80 border border-white/[0.08] rounded-2xl p-6 space-y-4 backdrop-blur-xl shadow-xl">
-                  <div className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center justify-between">
+                <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+                  <div className="text-xs font-black uppercase tracking-wider text-amber-800 flex items-center justify-between">
                     <span>Add Activity to Day {selectedDay}</span>
                   </div>
 
                   {/* Mode switcher */}
-                  <div className="grid grid-cols-3 gap-1 bg-white/[0.03] p-1 rounded-xl text-xs font-bold">
+                  <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
                     <button
                       type="button"
                       onClick={() => setInputMode('db_vendor')}
                       className={`py-2 rounded-lg transition-all ${
-                        inputMode === 'db_vendor' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                        inputMode === 'db_vendor' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Directory
@@ -1241,7 +1237,7 @@ export default function AdvancedJourneyBuilder() {
                       type="button"
                       onClick={() => setInputMode('admin_curated')}
                       className={`py-2 rounded-lg transition-all ${
-                        inputMode === 'admin_curated' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                        inputMode === 'admin_curated' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Curated
@@ -1250,7 +1246,7 @@ export default function AdvancedJourneyBuilder() {
                       type="button"
                       onClick={() => setInputMode('custom_manual')}
                       className={`py-2 rounded-lg transition-all ${
-                        inputMode === 'custom_manual' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                        inputMode === 'custom_manual' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Custom
@@ -1260,20 +1256,20 @@ export default function AdvancedJourneyBuilder() {
                   {/* Timings Row */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-zinc-400 mb-1">Start Time</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Start Time</label>
                       <input
                         type="time"
                         value={selectedTime}
                         onChange={(e) => setSelectedTime(e.target.value)}
-                        className="w-full px-3 py-2 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-mono focus:border-[#D4AF37] focus:outline-none"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-mono focus:bg-white focus:border-amber-500 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-zinc-400 mb-1">Duration</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Duration</label>
                       <select
                         value={businessDuration}
                         onChange={(e) => setBusinessDuration(parseInt(e.target.value))}
-                        className="w-full px-3 py-2 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:bg-white focus:border-amber-500 focus:outline-none"
                       >
                         <option value={30}>30 mins</option>
                         <option value={60}>1 hour</option>
@@ -1295,24 +1291,24 @@ export default function AdvancedJourneyBuilder() {
                           value={bizSearch}
                           onChange={(e) => setBizSearch(e.target.value)}
                           placeholder="Search hotel, restaurant, guide..."
-                          className="w-full pl-3 pr-8 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
+                          className="w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
                         />
-                        <Search size={14} className="absolute right-3 top-3 text-zinc-500" />
+                        <Search size={14} className="absolute right-3 top-3 text-slate-400" />
                       </div>
 
-                      <div className="max-h-44 overflow-y-auto space-y-1.5 border border-white/[0.06] p-1.5 rounded-xl">
+                      <div className="max-h-44 overflow-y-auto space-y-1.5 border border-slate-200 p-1.5 rounded-xl bg-slate-50">
                         {filteredBusinesses.map((b) => (
                           <div
                             key={b.service_id || b.id}
                             onClick={() => setSelectedBusiness(b)}
                             className={`p-2.5 rounded-lg text-xs cursor-pointer flex justify-between items-center transition-all ${
                               selectedBusiness?.id === b.id
-                                ? 'bg-[#D4AF37] text-black font-bold shadow-sm'
-                                : 'bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300'
+                                ? 'bg-amber-100 text-amber-950 font-black border border-amber-300 shadow-xs'
+                                : 'bg-white hover:bg-slate-100 text-slate-800'
                             }`}
                           >
-                            <span className="truncate">{b.service_id ? `${b.name} · ${b.business_name || 'Service'}` : b.name}</span>
-                            <span className="text-[10px] uppercase opacity-70">{b.type_name || b.type_id}</span>
+                            <span className="truncate font-medium">{b.service_id ? `${b.name} · ${b.business_name || 'Service'}` : b.name}</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-500">{b.type_name || b.type_id}</span>
                           </div>
                         ))}
                       </div>
@@ -1321,7 +1317,7 @@ export default function AdvancedJourneyBuilder() {
 
                   {/* MODE 2: CURATED PRESETS */}
                   {inputMode === 'admin_curated' && (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto border border-white/[0.06] p-1.5 rounded-xl">
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto border border-slate-200 p-1.5 rounded-xl bg-slate-50">
                       {adminPresets.map((preset, idx) => (
                         <div
                           key={idx}
@@ -1334,10 +1330,10 @@ export default function AdvancedJourneyBuilder() {
                               false
                             );
                           }}
-                          className="p-2.5 bg-white/[0.02] hover:bg-white/[0.08] border border-white/[0.04] rounded-lg cursor-pointer transition-all flex items-center justify-between text-xs text-zinc-200"
+                          className="p-2.5 bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg cursor-pointer transition-all flex items-center justify-between text-xs text-slate-800 font-medium"
                         >
                           <span className="truncate">{preset.title}</span>
-                          <Plus size={14} className="text-[#D4AF37] flex-shrink-0 ml-2" />
+                          <Plus size={14} className="text-amber-700 flex-shrink-0 ml-2" />
                         </div>
                       ))}
                     </div>
@@ -1347,7 +1343,7 @@ export default function AdvancedJourneyBuilder() {
                   {inputMode === 'custom_manual' && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
                           Custom Activity Name
                         </label>
                         <input
@@ -1355,17 +1351,17 @@ export default function AdvancedJourneyBuilder() {
                           value={customActivityName}
                           onChange={(e) => setCustomActivityName(e.target.value)}
                           placeholder="e.g. Private sunset picnic at Fatnas Island"
-                          className="w-full px-3.5 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
                           Category
                         </label>
                         <select
                           value={customCategory}
                           onChange={(e) => setCustomCategory(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:bg-white focus:border-amber-500 focus:outline-none"
                         >
                           <option value="visit">Visit / Tour Site</option>
                           <option value="stay">Accommodation / Camp</option>
@@ -1379,13 +1375,13 @@ export default function AdvancedJourneyBuilder() {
 
                   {/* Optional Notes */}
                   <div>
-                    <label className="block text-[11px] font-bold text-zinc-400 mb-1">Specific Wishes / Notes</label>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Specific Wishes / Notes</label>
                     <input
                       type="text"
                       value={businessNotes}
                       onChange={(e) => setBusinessNotes(e.target.value)}
                       placeholder="e.g. English-speaking guide required"
-                      className="w-full px-3.5 py-2.5 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 text-xs focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
 
@@ -1421,7 +1417,7 @@ export default function AdvancedJourneyBuilder() {
                           );
                         }
                       }}
-                      className="w-full py-2.5 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-md"
+                      className="w-full py-2.5 bg-gradient-to-r from-[#D4AF37] to-[#f59e0b] text-slate-950 font-black rounded-xl text-xs hover:brightness-105 transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                       <Plus size={15} /> Add to Day {selectedDay} Schedule
                     </button>
@@ -1430,11 +1426,11 @@ export default function AdvancedJourneyBuilder() {
               </div>
 
               {/* Step Navigation */}
-              <div className="flex justify-between pt-6 border-t border-white/[0.08]">
+              <div className="flex justify-between pt-6 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-6 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-semibold rounded-xl text-xs border border-white/[0.08] transition-all flex items-center gap-2"
+                  className="px-6 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all flex items-center gap-2"
                 >
                   <ArrowLeft size={14} />
                   <span>Blueprint Parameters</span>
@@ -1442,7 +1438,7 @@ export default function AdvancedJourneyBuilder() {
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all shadow-xl flex items-center gap-2"
+                  className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] via-[#f59e0b] to-[#d97706] text-slate-950 font-black rounded-xl text-xs hover:brightness-105 transition-all shadow-md flex items-center gap-2"
                 >
                   <span>Review &amp; Request Quotes</span>
                   <ArrowRight size={14} />
@@ -1451,56 +1447,54 @@ export default function AdvancedJourneyBuilder() {
             </div>
           )}
 
-          {/* ═════════════════════════════════════════════════════════════════════════ */}
-          {/* STEP 3: REVIEW & DIRECT VENDOR TRANSMISSION                               */}
-          {/* ═════════════════════════════════════════════════════════════════════════ */}
+          {/* STEP 3: REVIEW & DIRECT VENDOR TRANSMISSION */}
           {step === 3 && (
             <div className="space-y-6 animate-fadeIn">
               
               {/* Summary Stats Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
-                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Itinerary</div>
-                  <div className="text-sm font-bold text-white mt-1 truncate">{packageInfo.name || 'Custom Plan'}</div>
+                <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Itinerary</div>
+                  <div className="text-sm font-black text-slate-900 mt-1 truncate">{packageInfo.name || 'Custom Plan'}</div>
                 </div>
-                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
-                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Duration</div>
-                  <div className="text-sm font-bold text-white mt-1">{packageInfo.duration_days} Days</div>
+                <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Duration</div>
+                  <div className="text-sm font-black text-slate-900 mt-1">{packageInfo.duration_days} Days</div>
                 </div>
-                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
-                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Total Stops</div>
-                  <div className="text-sm font-bold text-white mt-1">{totalStopsCount} Activities</div>
+                <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Total Stops</div>
+                  <div className="text-sm font-black text-slate-900 mt-1">{totalStopsCount} Activities</div>
                 </div>
-                <div className="p-5 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl backdrop-blur-xl">
-                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Estimated Cost</div>
-                  <div className="text-sm font-bold text-[#D4AF37] mt-1">
+                <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Estimated Cost</div>
+                  <div className="text-sm font-black text-amber-700 mt-1">
                     {packageInfo.price_usd ? `$${packageInfo.price_usd} / guest` : 'Direct Operator Quote'}
                   </div>
                 </div>
               </div>
 
               {/* Day-by-Day Schedule Summary */}
-              <div className="p-6 bg-[#0F172A]/70 border border-white/[0.08] rounded-2xl space-y-4 backdrop-blur-xl">
-                <div className="text-xs font-bold tracking-widest text-[#D4AF37] uppercase flex items-center gap-2">
+              <div className="p-6 bg-white border border-slate-200 rounded-2xl space-y-4 shadow-sm">
+                <div className="text-xs font-black tracking-widest text-amber-800 uppercase flex items-center gap-2">
                   <Layers size={14} />
                   <span>Final Itinerary Timeline</span>
                 </div>
 
                 <div className="space-y-3">
                   {packageInfo.itinerary.map((d) => (
-                    <div key={d.day} className="p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl space-y-2">
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                    <div key={d.day} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                      <div className="text-xs font-black text-slate-900 flex items-center justify-between">
                         <span>Day {d.day}</span>
-                        <span className="text-[11px] text-zinc-400 font-mono">{d.items.length} activities scheduled</span>
+                        <span className="text-[11px] text-slate-500 font-mono">{d.items.length} activities scheduled</span>
                       </div>
                       {d.items.length === 0 ? (
-                        <div className="text-xs text-zinc-500 italic">Free schedule / unassigned</div>
+                        <div className="text-xs text-slate-400 italic">Free schedule / unassigned</div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                           {d.items.map((item) => (
-                            <div key={item.id} className="p-2.5 bg-white/[0.03] border border-white/[0.04] rounded-lg text-xs flex items-center gap-2.5">
-                              <span className="font-mono text-[#D4AF37] font-bold">{item.time}</span>
-                              <span className="text-zinc-200 font-medium truncate">{item.business_name}</span>
+                            <div key={item.id} className="p-2.5 bg-white border border-slate-200 rounded-lg text-xs flex items-center gap-2.5 shadow-xs">
+                              <span className="font-mono text-amber-700 font-bold">{item.time}</span>
+                              <span className="text-slate-800 font-semibold truncate">{item.business_name}</span>
                             </div>
                           ))}
                         </div>
@@ -1511,86 +1505,86 @@ export default function AdvancedJourneyBuilder() {
               </div>
 
               {/* Traveler Contact Input Form */}
-              <div className="p-8 bg-[#0F172A]/80 border border-white/[0.08] rounded-2xl space-y-5 backdrop-blur-xl shadow-xl">
-                <div className="text-xs font-bold tracking-widest text-[#D4AF37] uppercase flex items-center gap-2">
+              <div className="p-8 bg-white border border-slate-200 rounded-2xl space-y-5 shadow-sm">
+                <div className="text-xs font-black tracking-widest text-amber-800 uppercase flex items-center gap-2">
                   <User size={15} />
                   <span>Traveler Information (Transmitted Directly to Licensed Siwan Operators)</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Full Name *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Full Name *</label>
                     <input
                       type="text"
                       value={visitorName}
                       onChange={(e) => setVisitorName(e.target.value)}
                       placeholder="e.g. Eleanor Vance"
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">WhatsApp / Phone *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">WhatsApp / Phone *</label>
                     <input
                       type="tel"
                       value={visitorPhone}
                       onChange={(e) => setVisitorPhone(e.target.value)}
                       placeholder="+20 100 000 0000"
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Email Address</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Email Address</label>
                     <input
                       type="email"
                       value={visitorEmail}
                       onChange={(e) => setVisitorEmail(e.target.value)}
                       placeholder="eleanor@example.com"
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Expected Travel Date</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Expected Travel Date</label>
                     <input
                       type="date"
                       value={arrivalDate}
                       onChange={(e) => setArrivalDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Party / Group Size</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Party / Group Size</label>
                     <input
                       type="number"
                       min={1}
                       max={40}
                       value={groupSize}
                       onChange={(e) => setGroupSize(parseInt(e.target.value) || 1)}
-                      className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2">Special Requests, Dietary, or Transfers</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Special Requests, Dietary, or Transfers</label>
                   <input
                     type="text"
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
                     placeholder="e.g. Cairo pickup needed, vegetarian meals, private vehicle"
-                    className="w-full px-4 py-3 bg-[#070B12] border border-white/[0.1] rounded-xl text-white placeholder-zinc-600 text-xs font-medium focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-between items-center pt-4 border-t border-white/[0.08]">
+              <div className="flex justify-between items-center pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="px-6 py-3 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-semibold rounded-xl text-xs border border-white/[0.08] transition-all flex items-center gap-2"
+                  className="px-6 py-3 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all flex items-center gap-2"
                 >
                   <ArrowLeft size={14} />
                   <span>Edit Timeline</span>
@@ -1600,7 +1594,7 @@ export default function AdvancedJourneyBuilder() {
                   type="button"
                   onClick={handleSavePackage}
                   disabled={loading}
-                  className="px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] to-[#8C6D1F] text-black font-black rounded-xl text-xs hover:brightness-110 transition-all shadow-xl flex items-center gap-2 disabled:opacity-50"
+                  className="px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] via-[#f59e0b] to-[#d97706] text-slate-950 font-black rounded-xl text-xs hover:brightness-105 transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
                 >
                   <Send size={15} />
                   <span>{loading ? 'Transmitting...' : 'Dispatch Tour Inquiry to Operators'}</span>
