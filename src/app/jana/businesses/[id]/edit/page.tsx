@@ -338,13 +338,29 @@ export default function BusinessEditPage() {
                 {(() => {
                   const currentSection = sections.find(s => s.id === activeTab);
                   const secData = biz.custom_data?.[activeTab] || {};
-                  const bgImage = secData.section_gallery?.[0]?.url || secData.logo || "https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=800";
+                  const bgImage = 
+                    (Array.isArray(secData._media?.images) && secData._media.images[0]?.url) ||
+                    (Array.isArray(secData.section_gallery) && secData.section_gallery[0]?.url) ||
+                    secData.image ||
+                    secData.cover_image ||
+                    secData.hero_image ||
+                    secData.logo ||
+                    biz.custom_data?.sec_1_identity?.logo ||
+                    biz.logo ||
+                    biz.image_url ||
+                    "https://images.unsplash.com/photo-1505881502353-a1986add373c?q=80&w=800";
                   const story = secData.mini_blog || secData.description || "Synthesizing DNA story...";
+                  const logoImg = biz.custom_data?.sec_1_identity?.logo || biz.logo || secData.logo;
                   
                   return (
                     <>
-                      <img src={bgImage} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                      <img src={bgImage} alt="Hero preview" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                       <div style={{ position: 'absolute', inset: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'linear-gradient(to top, rgba(15,23,42,0.9), transparent)' }}>
+                        {logoImg && (
+                          <div style={{ width: '36px', height: '36px', borderRadius: '8px', overflow: 'hidden', background: '#fff', border: '1px solid #D4AF37', marginBottom: '0.5rem', padding: '2px' }}>
+                            <img src={logoImg} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
+                        )}
                         <div style={{ fontSize: '0.5rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', marginBottom: '0.5rem' }}>
                           {currentSection?.name.toUpperCase()} DNA
                         </div>

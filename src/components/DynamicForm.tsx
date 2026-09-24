@@ -258,6 +258,59 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
       }
     };
 
+    const handleSingleUpload = async (file: File) => {
+      if (!file) return;
+      try {
+        setUploadingFields(prev => ({ ...prev, [field.id]: true }));
+        const compressed = await compressImage(file);
+        if (compressed.size > uploadSizeLimit) {
+          alert(`File exceeds ${Math.round(uploadSizeLimit / 1024 / 1024)}MB limit. Please choose a smaller file.`);
+          setUploadingFields(prev => ({ ...prev, [field.id]: false }));
+          return;
+        }
+
+        const fd = new FormData();
+        fd.append('file', compressed);
+        fd.append('businessName', businessName || 'General');
+        const sName = sections?.find(s => s.id === sectionId)?.name || sectionId;
+        fd.append('sectionName', sName);
+
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const json = await res.json();
+        if (json.url) {
+          handleChange(json.url);
+          notify(`Image uploaded successfully`, 'success');
+        } else if (json.error) {
+          notify(json.error, 'error');
+        }
+      } catch (err: any) {
+        console.error('Single image upload failed', err);
+        notify(err.message || 'Image upload failed', 'error');
+      } finally {
+        setUploadingFields(prev => ({ ...prev, [field.id]: false }));
+      }
+    };
+
+    const isImageField = 
+      field.field_type === 'image' ||
+      field.field_type === 'file' ||
+      field.field_type === 'logo' ||
+      field.field_type === 'photo' ||
+      field.field_type === 'picture' ||
+      field.name === 'logo' ||
+      field.name.includes('logo') ||
+      field.name.endsWith('_image') ||
+      field.name.endsWith('_img') ||
+      field.name.endsWith('_photo') ||
+      field.name === 'cover_image' ||
+      field.name === 'hero_image' ||
+      field.name === 'featured_image' ||
+      field.name === 'thumbnail' ||
+      field.name === 'avatar' ||
+      field.name === 'image_url' ||
+      field.name === 'photo_url' ||
+      field.name === 'profile_photo';
+
     return (
       <div
         key={`${sectionId}-${field.name}`}
@@ -988,6 +1041,105 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
               {value ? 'ENABLED' : 'DISABLED'}
             </span>
           </label>
+        ) : isImageField ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#f8fafc', padding: '1rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+            {/* Live Visual Thumbnail Preview */}
+            {value && typeof value === 'string' && value.trim() ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#fff', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9', flexShrink: 0 }}>
+                  <img 
+                    src={value} 
+                    alt={field.label || 'Preview'} 
+                    style={{ width: '100%', height: '100%', objectFit: (field.name.includes('logo') || field.field_type === 'logo') ? 'contain' : 'cover', background: '#fff' }} 
+                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {value.split('/').pop() || 'Uploaded Photo / Asset'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.35rem' }}>
+                    <a 
+                      href={value} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <i className="fas fa-external-link-alt" style={{ fontSize: '0.55rem' }}></i> View Full
+                    </a>
+                    {!isFieldLocked && (
+                      <button 
+                        type="button"
+                        onClick={() => handleChange('')}
+                        style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', padding: '3px 8px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <i className="fas fa-trash-alt"></i> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Upload Controls */}
+            {!isFieldLocked && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                {uploadingFields[field.id] ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '8px 16px', background: '#e2e8f0', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, color: '#475569' }}>
+                    <i className="fas fa-circle-notch fa-spin" style={{ color: '#D4AF37' }}></i>
+                    <span>Processing & Uploading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <label className="btn btn-sm" style={{ cursor: 'pointer', background: '#1e293b', color: '#fff', padding: '8px 14px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <i className="fas fa-cloud-upload-alt" style={{ color: '#D4AF37' }}></i>
+                      <span>{value ? 'Replace Image' : 'Upload Image'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        disabled={uploadingFields[field.id]}
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (f) await handleSingleUpload(f);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+
+                    <label className="btn btn-sm" style={{ cursor: 'pointer', background: '#D4AF37', color: '#fff', padding: '8px 14px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <i className="fas fa-camera"></i>
+                      <span>Camera</span>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        capture="environment"
+                        style={{ display: 'none' }}
+                        disabled={uploadingFields[field.id]}
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (f) await handleSingleUpload(f);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </>
+                )}
+
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Or paste direct image URL (https://...)" 
+                    value={value || ''} 
+                    onChange={e => handleChange(e.target.value)} 
+                    readOnly={isFieldLocked}
+                    style={{ fontSize: '0.75rem', height: '36px' }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         ) : field.field_type === 'textarea' ? (
           <textarea
             className="form-control" value={value || ''}
@@ -1142,25 +1294,33 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           const handleSectionImageUpload = async (slotIndex: number, file: File) => {
             const key = `${sid}_img${slotIndex}`;
             setUploadingSectionMedia(prev => ({ ...prev, [key]: true }));
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('folder', `sections/${sid}`);
             try {
+              const compressed = await compressImage(file);
+              const fd = new FormData();
+              fd.append('file', compressed);
+              fd.append('businessName', businessName || 'General');
+              fd.append('sectionName', sectionName || sid);
+              
               const res = await fetch('/api/upload', { method: 'POST', body: fd });
               const json = await res.json();
               if (json.url) {
                 const newImages = [...sectionImages];
                 newImages[slotIndex] = {
-                  url: json.url, caption: newImages[slotIndex]?.caption || '',
+                  url: json.url, 
+                  caption: newImages[slotIndex]?.caption || '',
                   is_minisite_carousel: newImages[slotIndex]?.is_minisite_carousel ?? true,
                   is_main_site_carousel: newImages[slotIndex]?.is_main_site_carousel ?? false,
                   show_in_cards: newImages[slotIndex]?.show_in_cards ?? true,
                   show_in_search: newImages[slotIndex]?.show_in_search ?? true,
                 };
                 updateMedia({ images: newImages });
+                notify?.('Section photo uploaded successfully', 'success');
+              } else if (json.error) {
+                notify?.(json.error, 'error');
               }
-            } catch (e) {
-              notify?.('Image upload failed', 'error');
+            } catch (e: any) {
+              console.error('Section image upload failed', e);
+              notify?.(e.message || 'Image upload failed', 'error');
             } finally {
               setUploadingSectionMedia(prev => ({ ...prev, [key]: false }));
             }
