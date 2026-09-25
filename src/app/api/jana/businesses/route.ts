@@ -3,6 +3,19 @@ import { query, queryOne, execute } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
 import { createBusinessEntity } from '@/lib/business-creation';
+import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
+
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+}
 
 // GET all businesses
 export async function GET(request: NextRequest) {
@@ -172,11 +185,20 @@ export async function PUT(request: NextRequest) {
 
     const sets: string[] = [];
     const params: any[] = [];
+    const scalarFields = [
+      'name', 'type_id', 'subscription_tier', 'status', 'published',
+      'vendor_id', 'approved_by_vendor', 'template_id',
+      'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
+      'logo_url', 'cover_image', 'description', 'short_description',
+      'phone', 'email', 'website', 'address', 'city', 'latitude', 'longitude'
+    ];
+    const boolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'];
+
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key)) {
+      if (scalarFields.includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key) ? (value ? 1 : 0) : value);
-        
+        params.push(boolFields.includes(key) ? (value ? 1 : 0) : value);
+
         // Also update slug if name is changed
         if (key === 'name' && typeof value === 'string') {
           sets.push(`slug = ?`);
@@ -229,10 +251,19 @@ export async function PATCH(request: NextRequest) {
     const params: any[] = [];
 
     for (const [key, value] of Object.entries(updates)) {
-      if (['name', 'type_id', 'subscription_tier', 'status', 'published', 'vendor_id', 'approved_by_vendor', 'template_id', 'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key)) {
+      const patchScalarFields = [
+        'name', 'type_id', 'subscription_tier', 'status', 'published',
+        'vendor_id', 'approved_by_vendor', 'template_id',
+        'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
+        'logo_url', 'cover_image', 'description', 'short_description',
+        'phone', 'email', 'website', 'address', 'city', 'latitude', 'longitude'
+      ];
+      const patchBoolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'];
+
+      if (patchScalarFields.includes(key)) {
         sets.push(`${key} = ?`);
-        params.push(['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'].includes(key) ? (value ? 1 : 0) : value);
-        
+        params.push(patchBoolFields.includes(key) ? (value ? 1 : 0) : value);
+
         if (key === 'name' && typeof value === 'string') {
           sets.push(`slug = ?`);
           params.push(slugify(value));
