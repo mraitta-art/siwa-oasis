@@ -147,35 +147,42 @@ export default function SectionContentStudio({
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const directCarouselInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Hydrate from customData whenever sectionId or customData changes ──
-  useEffect(() => {
-    const sData = customData?.[sectionId] || {};
-    const storedMeta = customData?.section_content_meta?.[sectionId] || {};
-    
-    setLogoUrl(customData?.sec_1_identity?.business_logo || customData?.basic?.business_logo || customData?.business_logo || '');
-    setPhone(customData?.basic?.phone || customData?.sec_1_identity?.phone || customData?.phone || '');
-    setWhatsapp(customData?.basic?.whatsapp || customData?.sec_1_identity?.whatsapp || customData?.whatsapp || '');
-    setWhatsappMsg(customData?.basic?.whatsapp_message || customData?.sec_1_identity?.whatsapp_message || customData?.whatsapp_message || '');
-    
-    setSectionLabel(
-      customData?.section_labels?.[sectionId] ||
-      customData?.basic?.section_labels?.[sectionId] || ''
-    );
-    setSectionLabelAr(
-      customData?.section_labels_ar?.[sectionId] ||
-      customData?.basic?.section_labels_ar?.[sectionId] || ''
-    );
+  const prevSectionIdRef = useRef<string | null>(null);
 
-    setGallery(parseGallery(sData.section_gallery));
-    setBlogTitle(sData.section_blog_title || '');
-    setBlogBody(sData.section_blog || sData.mini_blog || '');
-    setBlogTitleAr(sData.section_blog_title_ar || '');
-    setBlogBodyAr(sData.section_blog_ar || '');
-    setMeta({ ...EMPTY_META, ...storedMeta });
-    setNewImage({ url: '', caption: '', caption_ar: '' });
-    setActiveSlideConfigIndex(null);
-    setLocalMessage('');
-  }, [sectionId, customData]);
+  // ── Hydrate from customData only when switching sectionId or on mount ──
+  useEffect(() => {
+    const isNewSection = prevSectionIdRef.current !== sectionId;
+    prevSectionIdRef.current = sectionId;
+
+    if (isNewSection || !prevSectionIdRef.current) {
+      const sData = customData?.[sectionId] || {};
+      const storedMeta = customData?.section_content_meta?.[sectionId] || {};
+      
+      setLogoUrl(customData?.sec_1_identity?.business_logo || customData?.basic?.business_logo || customData?.business_logo || '');
+      setPhone(customData?.basic?.phone || customData?.sec_1_identity?.phone || customData?.phone || '');
+      setWhatsapp(customData?.basic?.whatsapp || customData?.sec_1_identity?.whatsapp || customData?.whatsapp || '');
+      setWhatsappMsg(customData?.basic?.whatsapp_message || customData?.sec_1_identity?.whatsapp_message || customData?.whatsapp_message || '');
+      
+      setSectionLabel(
+        customData?.section_labels?.[sectionId] ||
+        customData?.basic?.section_labels?.[sectionId] || ''
+      );
+      setSectionLabelAr(
+        customData?.section_labels_ar?.[sectionId] ||
+        customData?.basic?.section_labels_ar?.[sectionId] || ''
+      );
+
+      setGallery(parseGallery(sData.section_gallery));
+      setBlogTitle(sData.section_blog_title || '');
+      setBlogBody(sData.section_blog || sData.mini_blog || '');
+      setBlogTitleAr(sData.section_blog_title_ar || '');
+      setBlogBodyAr(sData.section_blog_ar || '');
+      setMeta({ ...EMPTY_META, ...storedMeta });
+      setNewImage({ url: '', caption: '', caption_ar: '' });
+      setActiveSlideConfigIndex(null);
+      setLocalMessage('');
+    }
+  }, [sectionId]);
 
   // ── Logo Upload ───────────────────────────────────────────────────────
   async function uploadLogoFile(file: File) {

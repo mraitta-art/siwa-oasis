@@ -214,30 +214,42 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       );
     }
 
-    // Fetch sections directly from DB
-    const [typeData] = await safeQuery<any>('SELECT name, sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
-    let sections: any[] = [];
-    let sectionIds: string[] = [];
+    // Fetch sections directly from DB by traversing the typology hierarchy
+    let currentTypeId: string | null = biz.type_id;
+    const collectedSectionIds = new Set<string>();
+    let primaryTypeName = '';
 
-    if (typeData) {
-      sectionIds = [
-        ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
-        ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
-      ];
-      sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
-
-      // Keep tourism minisites usable when an older business type has no section
-      // assignment yet. Explicit type assignments still take precedence.
-      if (sectionIds.length === 0 && /tourism|travel|tour operator|agency/i.test(`${biz.type_id} ${typeData.name || ''} ${biz.name || ''}`)) {
-        sectionIds = [...TRAVEL_AGENCY_CORE_SECTION_IDS];
+    while (currentTypeId) {
+      const typeRows = await safeQuery<any>('SELECT id, name, parent_id, sections, own_sections FROM business_types WHERE id = ?', [currentTypeId]);
+      if (typeRows && typeRows.length > 0) {
+        const t = typeRows[0];
+        if (!primaryTypeName) primaryTypeName = t.name || '';
+        const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections || '[]') : t.sections || [];
+        const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections || '[]') : t.own_sections || [];
+        (Array.isArray(s1) ? s1 : []).forEach((sid: string) => sid && collectedSectionIds.add(sid));
+        (Array.isArray(s2) ? s2 : []).forEach((sid: string) => sid && collectedSectionIds.add(sid));
+        currentTypeId = t.parent_id;
+      } else {
+        currentTypeId = null;
       }
+    }
 
-      if (sectionIds.length > 0) {
-        const placeholders = sectionIds.map(() => '?').join(',');
-        const rows = await safeQuery<any>(
-          `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
-          sectionIds
-        );
+    let sectionIds: string[] = Array.from(collectedSectionIds);
+    sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
+
+    // If still empty, include all active universal sections
+    if (sectionIds.length === 0) {
+      const universalRows = await safeQuery<any>('SELECT id FROM sections WHERE is_universal = 1 AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC');
+      sectionIds = (universalRows || []).map((r: any) => r.id);
+    }
+
+    let sections: any[] = [];
+    if (sectionIds.length > 0) {
+      const placeholders = sectionIds.map(() => '?').join(',');
+      const rows = await safeQuery<any>(
+        `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
+        sectionIds
+      );
         
         // Fetch field metadata definitions to display user-friendly labels on minisite
         const fieldDefs = await safeQuery<any>(
