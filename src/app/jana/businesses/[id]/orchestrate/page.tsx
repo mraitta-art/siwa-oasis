@@ -185,21 +185,40 @@ export default function BusinessOrchestrator() {
   const handleStudioSave = async (nextCustomData: Record<string, any>) => {
     setStudioSaving(true);
     try {
+      // ALWAYS include identity + basic keys — never skip them via diff.
+      // Logo lives in basic.business_logo AND sec_1_identity.business_logo.
+      // If either key was unchanged in the diff it would be silently dropped,
+      // causing the logo to revert to the previous value on next page load.
+      const ALWAYS_INCLUDE_KEYS = ['basic', 'sec_1_identity', 'section_labels', 'section_labels_ar'];
+
       const changedCustomData = Object.fromEntries(
         Object.entries(nextCustomData).filter(([key, value]) =>
+          ALWAYS_INCLUDE_KEYS.includes(key) ||
           JSON.stringify(value) !== JSON.stringify(biz.custom_data?.[key])
         )
       );
+
+      // Also extract logo_url and save it directly on the business row
+      // so it is always accessible without parsing custom_data.
+      const logoUrl =
+        nextCustomData?.sec_1_identity?.business_logo ||
+        nextCustomData?.basic?.business_logo ||
+        nextCustomData?.business_logo ||
+        null;
+
+      const payload: Record<string, any> = { id: businessId, custom_data: changedCustomData };
+      if (logoUrl) payload.logo_url = logoUrl;
+
       const res = await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: businessId, custom_data: changedCustomData }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Content save failed' }));
         throw new Error(err.error || `Content save failed (HTTP ${res.status})`);
       }
-      setBiz((prev: any) => ({ ...prev, custom_data: nextCustomData }));
+      setBiz((prev: any) => ({ ...prev, custom_data: nextCustomData, logo_url: logoUrl || prev.logo_url }));
       initialCustomDataRef.current = nextCustomData;
       notify('Content & Media synced', 'success');
     } catch (err: any) {
