@@ -35,23 +35,97 @@ export default function ComponentLibrary() {
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [dataSources, setDataSources] = useState<{ sections: Array<{ id: string; name: string }>; fields: Array<{ name: string; label: string }> }>({
+    sections: [],
+    fields: []
+  });
   const [filterType, setFilterType] = useState<string>('all');
   const [filter, setFilter] = useState({ zone: 'all', category: 'all' });
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchComponents();
+    fetchDataSources();
   }, []);
 
   const fetchComponents = async () => {
     try {
       const res = await fetch('/api/jana/site-components');
       const data = await res.json();
-      setComponents(data);
+      setComponents(Array.isArray(data) ? data : []);
     } catch (error) {
       showToast('Failed to load components', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDataSources = async () => {
+    try {
+      const res = await fetch('/api/jana/form-fields');
+      if (res.ok) {
+        const data = await res.json();
+        setDataSources({
+          sections: data.sections || [],
+          fields: data.fields || []
+        });
+      }
+    } catch {
+      // Gracefully continue with defaults
+    }
+  };
+
+  const getGradient = (type?: string) => {
+    switch (type) {
+      case 'carousel': return 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+      case 'blog':
+      case 'blog_sidebar': return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+      case 'gallery': return 'linear-gradient(135deg, #10b981 0%, #047857 100%)';
+      case 'map': return 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)';
+      default: return 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)';
+    }
+  };
+
+  const getIcon = (type?: string) => {
+    switch (type) {
+      case 'carousel': return '🎬';
+      case 'blog':
+      case 'blog_sidebar': return '📰';
+      case 'gallery': return '🖼️';
+      case 'map': return '🗺️';
+      default: return '📦';
+    }
+  };
+
+  const toggleActive = async (id: string, currentActive?: boolean) => {
+    try {
+      const res = await fetch(`/api/jana/site-components/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !currentActive })
+      });
+      if (res.ok) {
+        showToast(`Component ${currentActive ? 'disabled' : 'enabled'}`, 'success');
+        fetchComponents();
+      }
+    } catch {
+      showToast('Failed to update component status', 'error');
+    }
+  };
+
+  const deleteComponent = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this component?')) return;
+    try {
+      const res = await fetch(`/api/jana/site-components/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        showToast('Component deleted', 'success');
+        fetchComponents();
+      }
+    } catch {
+      showToast('Failed to delete component', 'error');
     }
   };
 
@@ -674,7 +748,7 @@ export default function ComponentLibrary() {
                 });
                 if (res.ok) {
                   setShowCreateModal(false);
-                  loadComponents();
+                  fetchComponents();
                 } else {
                   alert('Failed to save component');
                 }
