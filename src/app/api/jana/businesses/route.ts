@@ -185,17 +185,39 @@ export async function PUT(request: NextRequest) {
 
     const sets: string[] = [];
     const params: any[] = [];
-    const scalarFields = [
+    const dbColumns = [
       'name', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
-      'logo_url', 'cover_image', 'description', 'short_description',
-      'phone', 'email', 'website', 'address', 'city', 'latitude', 'longitude'
+      'active', 'location_id', 'custom_domain'
     ];
-    const boolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'];
+    const boolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed', 'active'];
+
+    // If logo or contact fields are passed at root level, ensure they are stored in custom_data
+    let customDataToSave = updates.custom_data;
+    if (updates.logo_url || updates.cover_image || updates.phone || updates.email || updates.website || updates.description) {
+      const existingBiz = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [id]) as any;
+      let cur = {};
+      try { cur = typeof existingBiz?.custom_data === 'string' ? JSON.parse(existingBiz.custom_data) : existingBiz?.custom_data || {}; } catch {}
+      const base = (typeof customDataToSave === 'object' && customDataToSave !== null) ? { ...cur, ...customDataToSave } : { ...cur };
+      if (!base.basic) base.basic = {};
+      if (!base.sec_1_identity) base.sec_1_identity = {};
+      if (updates.logo_url) {
+        base.basic.business_logo = updates.logo_url;
+        base.sec_1_identity.business_logo = updates.logo_url;
+        base.sec_1_identity.logo = updates.logo_url;
+        base.business_logo = updates.logo_url;
+      }
+      if (updates.cover_image) { base.basic.cover_image = updates.cover_image; base.sec_1_identity.cover_image = updates.cover_image; }
+      if (updates.phone) { base.basic.phone = updates.phone; base.sec_1_identity.phone = updates.phone; }
+      if (updates.email) { base.basic.email = updates.email; base.sec_1_identity.email = updates.email; }
+      if (updates.website) { base.basic.website = updates.website; base.sec_1_identity.website = updates.website; }
+      if (updates.description) { base.basic.description = updates.description; }
+      customDataToSave = base;
+    }
 
     for (const [key, value] of Object.entries(updates)) {
-      if (scalarFields.includes(key)) {
+      if (dbColumns.includes(key)) {
         sets.push(`${key} = ?`);
         params.push(boolFields.includes(key) ? (value ? 1 : 0) : value);
 
@@ -205,10 +227,19 @@ export async function PUT(request: NextRequest) {
           params.push(slugify(value));
         }
       }
-      if (['custom_data', 'draft_data', 'curation_data'].includes(key)) {
-        sets.push(`${key} = ?`);
-        params.push(typeof value === 'object' && value !== null ? JSON.stringify(value) : value);
-      }
+    }
+
+    if (customDataToSave !== undefined) {
+      sets.push(`custom_data = ?`);
+      params.push(typeof customDataToSave === 'object' && customDataToSave !== null ? JSON.stringify(customDataToSave) : customDataToSave);
+    }
+    if (updates.draft_data !== undefined) {
+      sets.push(`draft_data = ?`);
+      params.push(typeof updates.draft_data === 'object' && updates.draft_data !== null ? JSON.stringify(updates.draft_data) : updates.draft_data);
+    }
+    if (updates.curation_data !== undefined) {
+      sets.push(`curation_data = ?`);
+      params.push(typeof updates.curation_data === 'object' && updates.curation_data !== null ? JSON.stringify(updates.curation_data) : updates.curation_data);
     }
 
     if (sets.length) {
@@ -226,6 +257,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
+    console.error('Update business error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
@@ -249,18 +281,16 @@ export async function PATCH(request: NextRequest) {
 
     const sets: string[] = [];
     const params: any[] = [];
+    const patchDbColumns = [
+      'name', 'type_id', 'subscription_tier', 'status', 'published',
+      'vendor_id', 'approved_by_vendor', 'template_id',
+      'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
+      'active', 'location_id', 'custom_domain'
+    ];
+    const patchBoolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed', 'active'];
 
     for (const [key, value] of Object.entries(updates)) {
-      const patchScalarFields = [
-        'name', 'type_id', 'subscription_tier', 'status', 'published',
-        'vendor_id', 'approved_by_vendor', 'template_id',
-        'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
-        'logo_url', 'cover_image', 'description', 'short_description',
-        'phone', 'email', 'website', 'address', 'city', 'latitude', 'longitude'
-      ];
-      const patchBoolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed'];
-
-      if (patchScalarFields.includes(key)) {
+      if (patchDbColumns.includes(key)) {
         sets.push(`${key} = ?`);
         params.push(patchBoolFields.includes(key) ? (value ? 1 : 0) : value);
 
@@ -269,32 +299,61 @@ export async function PATCH(request: NextRequest) {
           params.push(slugify(value));
         }
       }
+    }
 
-      if (key === 'custom_data' && value && typeof value === 'object') {
-        // PERFORM DEEP MERGE: Merge the incoming custom_data with the existing one
-        // This ensures that "promoting" or updating one section doesn't wipe others.
-        const mergedData: Record<string, any> = { ...currentData, ...(value as object) };
-        
-        // Deep merge sections if they exist in both
-        for (const sectionId in value as object) {
-          if (currentData[sectionId] && typeof (value as any)[sectionId] === 'object') {
-            mergedData[sectionId] = { ...currentData[sectionId], ...(value as any)[sectionId] };
-          }
+    // Deep merge custom_data
+    let mergedData: Record<string, any> = { ...currentData };
+    if (updates.custom_data && typeof updates.custom_data === 'object') {
+      mergedData = { ...currentData, ...updates.custom_data };
+      for (const sectionId in updates.custom_data) {
+        if (currentData[sectionId] && typeof updates.custom_data[sectionId] === 'object' && updates.custom_data[sectionId] !== null) {
+          mergedData[sectionId] = { ...currentData[sectionId], ...updates.custom_data[sectionId] };
         }
+      }
+    }
 
-        sets.push(`custom_data = ?`);
-        params.push(JSON.stringify(mergedData));
-      }
-      
-      if (key === 'draft_data') {
-        sets.push(`${key} = ?`);
-        params.push(JSON.stringify(value));
-      }
+    // Also map root fields like logo_url into mergedData
+    if (updates.logo_url) {
+      if (!mergedData.basic) mergedData.basic = {};
+      if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
+      mergedData.basic.business_logo = updates.logo_url;
+      mergedData.sec_1_identity.business_logo = updates.logo_url;
+      mergedData.sec_1_identity.logo = updates.logo_url;
+      mergedData.business_logo = updates.logo_url;
+    }
+    if (updates.cover_image) {
+      if (!mergedData.basic) mergedData.basic = {};
+      if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
+      mergedData.basic.cover_image = updates.cover_image;
+      mergedData.sec_1_identity.cover_image = updates.cover_image;
+    }
+    if (updates.phone) {
+      if (!mergedData.basic) mergedData.basic = {};
+      mergedData.basic.phone = updates.phone;
+    }
+    if (updates.email) {
+      if (!mergedData.basic) mergedData.basic = {};
+      mergedData.basic.email = updates.email;
+    }
+    if (updates.website) {
+      if (!mergedData.basic) mergedData.basic = {};
+      mergedData.basic.website = updates.website;
+    }
+    if (updates.description) {
+      if (!mergedData.basic) mergedData.basic = {};
+      mergedData.basic.description = updates.description;
+    }
 
-      if (key === 'curation_data') {
-        sets.push(`curation_data = ?`);
-        params.push(typeof value === 'object' && value !== null ? JSON.stringify(value) : value);
-      }
+    sets.push(`custom_data = ?`);
+    params.push(JSON.stringify(mergedData));
+
+    if (updates.draft_data !== undefined) {
+      sets.push(`draft_data = ?`);
+      params.push(typeof updates.draft_data === 'object' && updates.draft_data !== null ? JSON.stringify(updates.draft_data) : updates.draft_data);
+    }
+    if (updates.curation_data !== undefined) {
+      sets.push(`curation_data = ?`);
+      params.push(typeof updates.curation_data === 'object' && updates.curation_data !== null ? JSON.stringify(updates.curation_data) : updates.curation_data);
     }
 
     if (sets.length) {
@@ -312,6 +371,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Business DNA merged successfully' });
   } catch (e: any) {
+    console.error('PATCH business error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
