@@ -138,6 +138,12 @@ export function normalizeSectionIds(value: unknown, fallbackToAll = false): stri
   return valid.length || fallbackToAll ? [...new Set(valid.length ? valid : CANONICAL_SECTION_IDS)] : [];
 }
 
+export function getMinisiteSectionIds(typeId?: string | null, explicitSectionIds: string[] = []): string[] {
+  const sourceIds = explicitSectionIds.length > 0 ? explicitSectionIds : [...CANONICAL_SECTION_IDS];
+  const resolved = filterCoreSectionsForBusinessType(typeId, sourceIds).map(resolveSectionId);
+  return [...new Set(resolved)];
+}
+
 export function getEffectiveSectionLabel(sectionId: string, fallbackName?: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null): string {
   const labelCandidates = [
     sectionControl?.custom_label,

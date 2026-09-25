@@ -17,6 +17,7 @@ interface PendingBusiness {
   status: 'pending' | 'active' | 'inactive' | 'hidden';
   created_at: string;
   custom_data: any;
+  logo_url?: string;
   is_standalone: boolean;
   template_id: string;
   subscription_tier: string;

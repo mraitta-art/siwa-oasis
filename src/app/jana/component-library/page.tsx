@@ -7,13 +7,18 @@ interface Component {
   id: string;
   key: string;
   name: string;
-  description: string;
-  icon: string;
-  zone: string;
-  category: string;
-  enabled: boolean;
-  manager_url: string;
-  version: string;
+  description?: string;
+  icon?: string;
+  zone?: string;
+  category?: string;
+  enabled?: boolean;
+  is_active?: boolean;
+  is_global?: boolean;
+  manager_url?: string;
+  version?: string;
+  type?: string;
+  usage_count?: number;
+  created_at?: string;
   deprecation_notice?: string;
   component_config?: Record<string, any>;
   config_schema?: any;
@@ -35,23 +40,32 @@ export default function ComponentLibrary() {
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState({ zone: 'all', category: 'all' });
+  const [filterType, setFilterType] = useState('all');
+  const [dataSources, setDataSources] = useState<{ sections: any[]; fields: any[] }>({ sections: [], fields: [] });
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchComponents();
+    setDataSources({ sections: [], fields: [] });
   }, []);
 
-  const fetchComponents = async () => {
+  const loadComponents = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/jana/site-components');
       const data = await res.json();
-      setComponents(data);
+      setComponents(Array.isArray(data) ? data : []);
     } catch (error) {
       showToast('Failed to load components', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchComponents = async () => {
+    await loadComponents();
   };
 
   const openConfigEditor = async (component: Component) => {
@@ -105,6 +119,49 @@ export default function ComponentLibrary() {
       }
     } catch (error) {
       showToast('Error resetting config', 'error');
+    }
+  };
+
+  const getGradient = (type?: string) => {
+    switch (type) {
+      case 'carousel': return 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)';
+      case 'blog_sidebar': return 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)';
+      default: return 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)';
+    }
+  };
+
+  const getIcon = (type?: string) => {
+    switch (type) {
+      case 'carousel': return '🎬';
+      case 'blog_sidebar': return '📰';
+      default: return '📦';
+    }
+  };
+
+  const toggleActive = async (id: string, isActive: boolean) => {
+    try {
+      const res = await fetch('/api/jana/site-components', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, enabled: !isActive })
+      });
+      if (res.ok) {
+        await fetchComponents();
+      }
+    } catch (error) {
+      showToast('Failed to toggle component', 'error');
+    }
+  };
+
+  const deleteComponent = async (id: string) => {
+    if (!confirm('Delete this component?')) return;
+    try {
+      const res = await fetch(`/api/jana/site-components?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await fetchComponents();
+      }
+    } catch (error) {
+      showToast('Failed to delete component', 'error');
     }
   };
 

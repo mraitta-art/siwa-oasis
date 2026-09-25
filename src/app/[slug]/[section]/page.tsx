@@ -146,6 +146,9 @@ export default async function VanitySectionPage({
         [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
+      if (biz?.slug && biz.slug !== slug) {
+        redirect(`/${biz.slug}/${section}`);
+      }
     }
 
     if (biz) {

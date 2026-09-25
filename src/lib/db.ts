@@ -249,7 +249,7 @@ export function normalizeCustomData(rawCustomData: any): any {
     'admin_only'
   ];
 
-  const publicData = Object.fromEntries(
+  const publicData: Record<string, any> = Object.fromEntries(
     Object.entries(c).filter(([key]) => !adminOnlyKeys.includes(key))
   );
 

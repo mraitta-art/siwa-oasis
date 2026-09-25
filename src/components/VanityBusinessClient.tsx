@@ -9,7 +9,7 @@ import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
-import { filterCoreSectionsForBusinessType, isSectionApprovedForMinisite } from '@/lib/section-registry';
+import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 
 /**
@@ -254,10 +254,11 @@ export default function VanityBusinessClient({
 
   // Dynamically filter activeSections so sections without active components or data automatically disappear from header tabs, mobile menu, and hero
   const activeSections = React.useMemo(() => {
-    const allowedIds = new Set(filterCoreSectionsForBusinessType(biz?.type_id, (sections || []).map(section => section.id)));
+    const sourceSections = (sections || []).length > 0 ? sections : getMinisiteSectionIds(biz?.type_id, []).map(id => ({ id }));
+    const allowedIds = new Set(filterCoreSectionsForBusinessType(biz?.type_id, sourceSections.map(section => section.id)));
     const seenIds = new Set<string>();
 
-    return (sections || []).filter(section => {
+    return sourceSections.filter(section => {
       if (!section || !section.id) return false;
       if (seenIds.has(section.id)) return false;
       if (!allowedIds.has(section.id)) return false;

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
-import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
+import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { getBusinessSlugCandidates } from '@/lib/public-url';
@@ -138,6 +138,9 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
+      if (biz?.slug && biz.slug !== slug) {
+        redirect(`/${biz.slug}`);
+      }
     }
 
     // Service controls are optional until the local service migration is applied.
@@ -246,7 +249,13 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     let sectionIds: string[] = Array.from(collectedSectionIds);
     sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
 
-    // If still empty, include all active universal sections
+    // If the business has no assigned section IDs, restore the canonical public set.
+    // This prevents a partially-migrated or stale business record from collapsing to an empty minisite.
+    if (sectionIds.length === 0) {
+      sectionIds = getMinisiteSectionIds(biz.type_id, []);
+    }
+
+    // If the canonical fallback still yields nothing, include all active universal sections.
     if (sectionIds.length === 0) {
       const universalRows = await safeQuery<any>('SELECT id FROM sections WHERE is_universal = 1 AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC');
       sectionIds = (universalRows || []).map((r: any) => r.id);

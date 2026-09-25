@@ -32,12 +32,21 @@ export default function ComponentRegistryPage() {
   const [editingComponent, setEditingComponent] = useState<SiteComponent | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    key: string;
+    name: string;
+    description: string;
+    icon: string;
+    zone: 'header' | 'body' | 'footer';
+    category: string;
+    manager_url: string;
+    sort_order: number;
+  }>({
     key: '',
     name: '',
     description: '',
     icon: '',
-    zone: 'body' as const,
+    zone: 'body',
     category: '',
     manager_url: '',
     sort_order: 999
