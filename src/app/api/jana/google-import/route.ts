@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { execute, queryOne } from '@/lib/db';
 import crypto from 'crypto';
+import { createBusinessEntity } from '@/lib/business-creation';
 
 interface GooglePlaceData {
   name: string;
@@ -286,25 +287,15 @@ export async function POST(request: NextRequest) {
         }
       };
 
-      const slug = slugify(name);
-      
-      // Auto-assign default template for 'free' subscription tier
-      let template_id = null;
-      try {
-        const tierRow = await queryOne('SELECT default_template_id FROM subscription_tiers WHERE id = "free"') as any;
-        if (tierRow?.default_template_id) {
-          template_id = tierRow.default_template_id;
-        }
-      } catch {}
-
-      const id = crypto.randomUUID();
-
-      // Save into DB under 'pending' status for admin approval
-      await execute(
-        `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, template_id, custom_data, status, published, approved_by_vendor) 
-         VALUES (?, ?, ?, ?, 'free', ?, ?, 'pending', 1, 0)`,
-        [id, name, slug, type_id, template_id, JSON.stringify(custom_data)]
-      );
+      const created = await createBusinessEntity({
+        name,
+        type_id,
+        custom_data,
+        status: 'pending',
+        is_standalone: true,
+        source: 'google_maps_import',
+        actor_id: user.id,
+      });
 
       // Create Admin Dashboard Activity Log Notification
       try {
@@ -325,8 +316,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        id,
-        slug,
+        id: created.id,
+        slug: created.slug,
         name
       });
     }

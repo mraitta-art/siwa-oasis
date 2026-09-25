@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
-import { slugifyBusinessName, getPublicAppUrl } from '@/lib/public-url';
+import { getPublicAppUrl } from '@/lib/public-url';
+import { createBusinessEntity } from '@/lib/business-creation';
 
 function slugify(text: string): string {
   return text
@@ -146,15 +147,6 @@ export async function POST(req: NextRequest) {
     ───────────────────────────────────────────────────────── */
     if (!businessId && newBusinessName) {
       const targetBizId = randomUUID();
-      const rawSlug     = slugifyBusinessName(newBusinessName) || `biz-${Date.now().toString(36)}`;
-      let   finalSlug   = rawSlug;
-
-      // Ensure slug uniqueness
-      const slugCheck = (await query('SELECT id FROM businesses WHERE slug = ?', [rawSlug])) as any[];
-      if (slugCheck.length > 0) {
-        finalSlug = `${rawSlug}-${Date.now().toString(36).slice(-4)}`;
-      }
-
       // 1. Create vendor profile FIRST — prevents orphaned business if this fails
       await execute(
         'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -171,12 +163,18 @@ export async function POST(req: NextRequest) {
       }
 
       // 2. Create the business — is_shared = 0 (one vendor only policy)
+      const created = await createBusinessEntity({
+        id: targetBizId,
+        name: newBusinessName.trim(),
+        type_id: businessType,
+        vendor_id: userId,
+        status: needsApproval ? 'pending' : 'active',
+        is_shared: false,
+        source: 'vendor_signup',
+      });
+      const finalSlug = created.slug;
       const isClaimedVal = needsApproval ? 0 : 1;
-      await execute(
-        `INSERT INTO businesses (id, name, slug, type_id, vendor_id, subscription_tier, status, is_shared, is_claimed, approved_by_vendor, created_at)
-         VALUES (?, ?, ?, ?, ?, 'free', 'active', 0, ?, ?, NOW())`,
-        [targetBizId, newBusinessName.trim(), finalSlug, businessType, userId, isClaimedVal, isClaimedVal]
-      );
+      await execute('UPDATE businesses SET is_claimed = ?, approved_by_vendor = ? WHERE id = ?', [isClaimedVal, isClaimedVal, targetBizId]);
 
       if (needsApproval) {
         return NextResponse.json({

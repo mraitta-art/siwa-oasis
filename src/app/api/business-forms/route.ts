@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { query, queryOne, execute, normalizeCustomData } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
+import { createBusinessEntity } from '@/lib/business-creation';
 
 // Helper to create URL-friendly slugs
 function slugify(text: string) {
@@ -72,9 +73,6 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Name and Type are required' }, { status: 400 });
     }
 
-    const id = crypto.randomUUID();
-    const slug = slugify(business_name);
-
     // Build the dynamic custom_data structure
     const baseCustomData = custom_data || {};
     if (!baseCustomData.basic) {
@@ -86,33 +84,18 @@ export async function POST(req: Request) {
     if (phone) baseCustomData.basic.phone_number = phone;
     if (description) baseCustomData.basic.description = description;
 
-    // Resolve default template from subscription tier (free)
-    let template_id = null;
-    try {
-      const tierRow = await queryOne('SELECT default_template_id FROM subscription_tiers WHERE id = ?', ['free']) as any;
-      if (tierRow?.default_template_id) {
-        template_id = tierRow.default_template_id;
-      }
-    } catch (e) {}
-
-    const sql = `
-      INSERT INTO businesses (id, name, slug, type_id, subscription_tier, status, custom_data, published, is_standalone, template_id)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, 1, 1, ?)
-    `;
-
-    await execute(sql, [
-      id,
-      business_name,
-      slug,
-      business_type,
-      'free',
-      JSON.stringify(baseCustomData),
-      template_id
-    ]);
+    const created = await createBusinessEntity({
+      name: business_name,
+      type_id: business_type,
+      custom_data: baseCustomData,
+      status: 'pending',
+      is_standalone: true,
+      source: 'public_business_submission',
+    });
 
     return Response.json({
       success: true,
-      id,
+      id: created.id,
       message: 'Business registration submitted for review.'
     }, { status: 201 });
   } catch (error: any) {

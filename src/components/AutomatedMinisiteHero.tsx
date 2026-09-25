@@ -14,6 +14,7 @@ interface AutomatedMinisiteHeroProps {
   customData: any;
   curationData?: any;
   activeSections: any[];
+  activeSectionId?: string | null;
   tierFeatures?: {
     hero_automation?: boolean;
     [key: string]: any;
@@ -47,6 +48,7 @@ export default function AutomatedMinisiteHero({
   logoPosition,
   customData = {},
   activeSections = [],
+  activeSectionId = null,
   tierFeatures = {},
   settings = {},
   onSectionNavigate,
@@ -57,7 +59,9 @@ export default function AutomatedMinisiteHero({
 
   useEffect(() => {
     if (!businessId) return;
-    const siteId = `biz_${businessId}_hero`;
+    const sectionId = activeSectionId || activeSections[0]?.id || '';
+    const siteId = sectionId ? `biz_${businessId}_tab_${sectionId}_hero` : `biz_${businessId}_hero`;
+    setAdminSlides(null);
     fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -68,13 +72,16 @@ export default function AutomatedMinisiteHero({
         }
       })
       .catch(() => {/* fall back to auto-generated slides silently */});
-  }, [businessId]);
+  }, [businessId, activeSectionId, activeSections]);
 
   const slides = useMemo(() => {
     const allSlides: any[] = [];
     const capturedSectionIds = new Set<string>();
+    // The hero is the business-wide carousel. Collect eligible media from every
+    // active section so the first tab cannot hide images stored in later tabs.
+    const heroSections = activeSections || [];
     const activeCanonicalIds = new Set(
-      (activeSections || [])
+      heroSections
         .map((section: any) => resolveSectionId(String(section?.id || '')))
         .filter(Boolean)
     );
@@ -85,7 +92,7 @@ export default function AutomatedMinisiteHero({
       return videoExtensions.some(ext => url.toLowerCase().endsWith(ext)) || url.includes('/video/upload/');
     };
 
-    activeSections.forEach((section: any) => {
+    heroSections.forEach((section: any) => {
       const sectionId = resolveSectionId(String(section?.id || ''));
       if (!sectionId || sectionId === 'sec_7_investment') return;
 
@@ -102,7 +109,7 @@ export default function AutomatedMinisiteHero({
 
       const sectionData = customData[sectionId] || customData[section?.id] || {};
       const sectionName = section?.name || sectionId.replace(/_/g, ' ');
-      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${sectionName.toLowerCase()} DNA.`;
+      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData._media?.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${sectionName.toLowerCase()} DNA.`;
 
       const allowedMedia = tierFeatures.allowedMediaTypes || ['image'];
       const youtubeStory = (allowedMedia.includes('youtube') && sectionData.youtube_story) ? sectionData.youtube_story : null;
@@ -112,14 +119,24 @@ export default function AutomatedMinisiteHero({
         ? sectionData.section_gallery
         : (sectionData.section_gallery ? [sectionData.section_gallery] : []);
       const galleryFromDataDirect = Array.isArray(sectionData.gallery) ? sectionData.gallery : [];
-      const photos = [...galleryFromSection, ...galleryFromData, ...galleryFromDataDirect].filter(Boolean);
+      const galleryFromMedia = Array.isArray(sectionData._media?.images) ? sectionData._media.images : [];
+      const photos = [...galleryFromSection, ...galleryFromData, ...galleryFromDataDirect, ...galleryFromMedia].filter(Boolean);
 
-      const featuredPhotos = photos.filter((p: any) => {
+      const isSelectedForCarousel = (photo: any) => {
+        if (typeof photo === 'string') return true;
+        if (!photo) return false;
+        if (photo.is_minisite_carousel !== undefined) return photo.is_minisite_carousel !== false;
+        if (photo.in_carousel !== undefined) return photo.in_carousel !== false;
+        if (photo.placement !== undefined) return photo.placement !== 'body';
+        return true;
+      };
+      const carouselPhotos = photos.filter(isSelectedForCarousel);
+
+      const featuredPhotos = carouselPhotos.filter((p: any) => {
         if (!p) return false;
-        const isHero = p.is_hero === true || p.is_hero === 1 || p.placement === 'hero' || p.placement === 'both';
         const isApproved = p.approval_status === 'approved' || p.approval_status === undefined;
         const isMinisiteVisible = p.show_on_minisite !== 0 && p.show_on_minisite !== false;
-        return isHero && isApproved && isMinisiteVisible;
+        return isApproved && isMinisiteVisible;
       });
 
       if (youtubeStory) {
@@ -162,42 +179,6 @@ export default function AutomatedMinisiteHero({
           bgColor: photo.bg_color || (hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)')
         });
       });
-
-      if (!youtubeStory && featuredPhotos.length === 0 && photos.length > 0) {
-        const firstPhoto = photos[0];
-        const url = (typeof firstPhoto === 'object' ? firstPhoto.url : firstPhoto) || '';
-        const caption = (typeof firstPhoto === 'object' ? firstPhoto.caption : '') || '';
-        const isVid = url ? isHeroVideo(url) : false;
-        const hasMedia = !!url;
-
-        allSlides.push({
-          id: `${sectionId}_img_first`,
-          type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
-          mediaUrl: url || null,
-          title: caption || sectionName,
-          subtitle: `EXPLORE OUR ${(sectionName || '').toUpperCase()}`,
-          caption: (businessName || '').toUpperCase(),
-          ctaText: 'EXPLORE',
-          ctaLink: `#${sectionId}`,
-          animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
-          bgColor: hasMedia ? null : 'linear-gradient(135deg, #0f172a, #1e293b)'
-        });
-      } else if (!youtubeStory && featuredPhotos.length === 0 && photos.length === 0) {
-        allSlides.push({
-          id: `${sectionId}_branded_fallback`,
-          type: 'branded',
-          mediaUrl: null,
-          title: (sectionName || '').toUpperCase(),
-          subtitle: `DISCOVER ${(businessName || '').toUpperCase()} — ${(sectionName || '').toUpperCase()}`,
-          caption: (businessName || '').toUpperCase(),
-          ctaText: `EXPLORE ${(sectionName || '').toUpperCase()}`,
-          ctaLink: `#${sectionId}`,
-          animation: 'fade',
-          displayMode: 'text_only',
-          showCaption: true,
-          bgColor: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)'
-        });
-      }
     });
 
     Object.entries(customData).forEach(([sectionKey, sectionData]: [string, any]) => {
@@ -207,9 +188,15 @@ export default function AutomatedMinisiteHero({
       if (!activeCanonicalIds.has(canonicalKey)) return;
       if (!sectionData || typeof sectionData !== 'object') return;
 
-      const gallery = sectionData.section_gallery || [];
+      const gallery = sectionData.section_gallery || sectionData._media?.images || [];
       const photos = Array.isArray(gallery) ? gallery : [];
-      const heroPhotos = photos.filter((p: any) => p && p.is_hero);
+      const heroPhotos = photos.filter((p: any) => {
+        if (!p || typeof p !== 'object') return false;
+        if (p.is_minisite_carousel !== undefined) return p.is_minisite_carousel !== false;
+        if (p.in_carousel !== undefined) return p.in_carousel !== false;
+        if (p.placement !== undefined) return p.placement !== 'body';
+        return p.is_hero === true;
+      });
 
       heroPhotos.forEach((photo: any, idx: number) => {
         const url = typeof photo === 'object' ? photo.url : photo;
@@ -237,8 +224,6 @@ export default function AutomatedMinisiteHero({
     // ── HERO DECISION ENGINE SORTING & CURATION ─────────────────────
     // 1. Separate real media slides from branded text-only fallbacks
     const mediaSlides = allSlides.filter(s => s.mediaUrl && s.type !== 'branded');
-    const textSlides  = allSlides.filter(s => !s.mediaUrl || s.type === 'branded');
-
     // 2. Deduplicate media slides by mediaUrl
     const seenMedia = new Set<string>();
     const uniqueMediaSlides = mediaSlides.filter(s => {
@@ -247,20 +232,38 @@ export default function AutomatedMinisiteHero({
       return true;
     });
 
-    // 3. Decision Rule: If we have enough real media slides, show real media.
-    // Otherwise, append text fallbacks to reach at least 3 slides.
+    // 3. Only explicitly selected media becomes a slide. Empty sections do not
+    // create synthetic hero slides or pad the carousel with unrelated text.
     let curatedSlides = [...uniqueMediaSlides];
-    if (curatedSlides.length < 3 && textSlides.length > 0) {
-      const needed = 3 - curatedSlides.length;
-      curatedSlides = [...curatedSlides, ...textSlides.slice(0, needed)];
-    }
 
     const finalLimit = tierFeatures.maxSlides || 10;
-    return (adminSlides && adminSlides.length > 0 ? adminSlides : curatedSlides).slice(0, finalLimit);
-  }, [adminSlides, customData, activeSections, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
+    const explicitAdminMedia = (adminSlides || []).filter((slide: any) =>
+      slide?.mediaUrl || slide?.type === 'youtube'
+    );
+    const mergedSlides = [...explicitAdminMedia, ...curatedSlides].filter((slide, index, list) => {
+      const mediaKey = slide.mediaUrl || slide.id;
+      return list.findIndex(candidate => (candidate.mediaUrl || candidate.id) === mediaKey) === index;
+    });
+    if (mergedSlides.length === 0) {
+      const coverUrl = customData?.basic?.cover_image || customData?.sec_1_identity?.cover_image || customData?.cover_image;
+      if (coverUrl) {
+        mergedSlides.push({
+          id: 'default_cover',
+          type: 'image',
+          mediaUrl: coverUrl,
+          title: (businessName || '').toUpperCase(),
+          subtitle: 'SIWA OASIS',
+          caption: 'AUTHENTIC EXPERIENCE',
+          animation: 'kenburns',
+        });
+      }
+    }
 
-  // Lock Check
-  if (!tierFeatures.hero_automation) {
+    return mergedSlides.slice(0, finalLimit);
+  }, [adminSlides, customData, activeSections, activeSectionId, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
+
+  // Lock Check: Only lock if tier explicitly disables hero automation
+  if (tierFeatures.hero_automation === false) {
     return (
       <div style={{ height: settings.height || '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', color: '#fff' }}>
@@ -380,7 +383,7 @@ export default function AutomatedMinisiteHero({
 
       {/* THE CINEMATIC CAROUSEL */}
       <AdvancedHeroCarousel
-        slides={adminSlides !== null ? adminSlides : slides}
+        slides={slides}
         height={settings.height || '100vh'}
         autoPlay={settings.carousel_autoplay !== false}
         autoPlayInterval={settings.carousel_interval || 8000}

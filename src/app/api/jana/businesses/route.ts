@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
-import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
+import { createBusinessEntity } from '@/lib/business-creation';
 
 // GET all businesses
 export async function GET(request: NextRequest) {
@@ -89,185 +89,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper to create URL-friendly slugs
-function slugify(text: string) {
-  let s = text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\u0621-\u064A-]+/g, '') // allow alphanumeric, dash, and Arabic characters
-    .replace(/--+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return s || `biz-${Date.now()}`;
-}
-
-// Helper to guarantee uniqueness in database
-async function generateUniqueSlug(text: string): Promise<string> {
-  const baseSlug = slugify(text);
-  let candidateSlug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const existing = await queryOne('SELECT id FROM businesses WHERE slug = ? LIMIT 1', [candidateSlug]);
-    if (!existing) {
-      break;
-    }
-    candidateSlug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-
-  return candidateSlug;
-}
-
 // POST create a new business
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    let { 
-      name, 
-      type_id, 
-      subscription_tier = 'free', 
-      vendor_id = null, 
-      template_id = null, 
-      custom_data = {}, 
-      status = 'active', 
-      is_standalone = false,
-      clone_from_id = null,
-      is_master = false,
-      is_shared = false
-    } = body;
-
-    // Sanitize: Treat empty string as null for foreign key compliance
-    if (vendor_id === '') vendor_id = null;
-    if (template_id === '') template_id = null;
-
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // CLONING SYSTEM / INHERITANCE
-    // ══════════════════════════════════════════════════════════════
-    if (clone_from_id) {
-      const src = await queryOne(
-        'SELECT type_id, subscription_tier, template_id, custom_data, is_standalone FROM businesses WHERE id = ?',
-        [clone_from_id]
-      ) as any;
-      
-      if (!src) {
-        return NextResponse.json({ error: 'Source template business not found' }, { status: 404 });
-      }
-
-      type_id = src.type_id;
-      subscription_tier = src.subscription_tier;
-      template_id = src.template_id;
-      is_standalone = src.is_standalone === 1 || src.is_standalone === true;
-      
-      try {
-        custom_data = typeof src.custom_data === 'string' ? JSON.parse(src.custom_data) : src.custom_data || {};
-      } catch (e) {
-        custom_data = src.custom_data || {};
-      }
-    }
-
-    if (!type_id) {
-      return NextResponse.json({ error: 'Business type (typology) is required' }, { status: 400 });
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // RULE 1: Only CHILD types (with a parent_id) can hold businesses.
-    // Parent/container types are classification buckets — not registrants.
-    // ══════════════════════════════════════════════════════════════
-    const selectedType = await queryOne(
-      'SELECT id, name, is_parent, parent_id, default_template_id FROM business_types WHERE id = ?',
-      [type_id]
-    ) as any;
-    if (!selectedType) {
-      return NextResponse.json({ error: `Business type "${type_id}" not found.` }, { status: 400 });
-    }
-    if (selectedType.is_parent || !selectedType.parent_id) {
-      return NextResponse.json({
-        error: `❌ Rule violation: "${selectedType.name}" is a parent/category type. Businesses can only be registered under a child (leaf) type that belongs to a parent. Please select a specific sub-type.`,
-        rule: 'PARENT_TYPE_NO_REGISTRATION'
-      }, { status: 400 });
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // RULE 2: Every business name defaults to the anonymous vendor
-    // until a real vendor claims it. Never leave vendor_id as NULL.
-    // ══════════════════════════════════════════════════════════════
-    if (!vendor_id) {
-      // Look up the system anonymous profile
-      const anonProfile = await queryOne(
-        `SELECT id FROM profiles WHERE role = 'anonymous' OR id = 'anonymous' OR email = 'anonymous@siwify.com' LIMIT 1`
-      ) as any;
-      vendor_id = anonProfile?.id || 'anonymous';
-    }
-
-    // Generate Guaranteed Unique Slug
-    const slug = await generateUniqueSlug(name);
-
-    // ══════════════════════════════════════════════════════════════
-    // TEMPLATE RESOLUTION CHAIN (minisite template inheritance):
-    //   1. Explicitly chosen template_id (body)
-    //   2. Child type's own default_template_id
-    //   3. Parent type's default_template_id  ← free template inheritance
-    //   4. Subscription tier's default_template_id
-    // ══════════════════════════════════════════════════════════════
-    if (!template_id) {
-      // 2. Check child type's own default template
-      if (selectedType.default_template_id) {
-        template_id = selectedType.default_template_id;
-      }
-    }
-
-    if (!template_id && selectedType.parent_id) {
-      // 3. Resolve parent type's free/default minisite template
-      try {
-        const parentType = await queryOne(
-          'SELECT default_template_id FROM business_types WHERE id = ?',
-          [selectedType.parent_id]
-        ) as any;
-        if (parentType?.default_template_id) {
-          template_id = parentType.default_template_id;
-        }
-      } catch (e) {}
-    }
-
-    if (!template_id) {
-      // 4. Fall back to subscription tier default
-      try {
-        const tierRow = await queryOne('SELECT default_template_id FROM subscription_tiers WHERE id = ?', [subscription_tier]) as any;
-        if (tierRow?.default_template_id) {
-          template_id = tierRow.default_template_id;
-        }
-      } catch (e) {}
-    }
-    
-    if (!template_id && !is_standalone) {
-      return NextResponse.json({ error: 'No minisite template could be resolved. Assign a default template to the parent business type or the subscription tier.' }, { status: 400 });
-    }
-
-    const id = crypto.randomUUID();
-    const isMasterVal = is_master ? 1 : 0;
-    const isSharedVal = is_shared ? 1 : 0;
-    const isClaimedVal = (vendor_id && vendor_id !== 'anonymous') ? 1 : 0;
-
-    await execute(
-      `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone ? 1 : 0, JSON.stringify(custom_data), status, 1, isMasterVal, isSharedVal, isClaimedVal]
-    );
-
-    try {
-      await syncManifestFromLegacyData(id, 'business_created', user.id);
-    } catch (manifestError: any) {
-      console.warn('[MANIFEST BOOTSTRAP SKIPPED]', manifestError?.message || manifestError);
-    }
-
-    return NextResponse.json({ id, name, slug, type_id, vendor_id, is_master: isMasterVal, is_claimed: isClaimedVal }, { status: 201 });
+    const result = await createBusinessEntity({ ...body, actor_id: user.id, source: body.source || 'admin_orchestrator' });
+    return NextResponse.json(result, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

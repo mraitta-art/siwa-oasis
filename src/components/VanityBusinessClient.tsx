@@ -51,6 +51,17 @@ function interpolateFieldTokens(text: string, secData: Record<string, any> = {},
   });
 }
 
+function prepareRichContent(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  const decoded = text.includes('&lt;') || text.includes('&gt;')
+    ? text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+    : text;
+  return /<\/?[a-z][\s\S]*>/i.test(decoded)
+    ? decoded
+    : decoded.replace(/\r?\n/g, '<br />');
+}
+
 export default function VanityBusinessClient({ 
   slug, 
   initialData, 
@@ -258,7 +269,7 @@ export default function VanityBusinessClient({
   }, [sections, data, biz?.type_id]);
   
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
-  const identity = data.basic || data.sec_1_identity || data.business_info || {};
+  const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
   const dynamicPhone = isMasterTemplate ? '+201000000000' : (biz.vendor_phone || identity.phone || data.phone || '+201200000000');
   const dynamicWhatsapp = isMasterTemplate ? '201000000000' : (identity.whatsapp || identity.whatsapp_number || data.whatsapp || biz.vendor_phone || identity.phone || '201200000000');
   const dynamicWhatsappMsg = identity.whatsapp_message || data.whatsapp_message || '';
@@ -367,6 +378,7 @@ export default function VanityBusinessClient({
         logoSize={logoSize}
         logoPosition={logoPosition}
         activeSections={activeSections}
+        activeSectionId={activeTab}
         customData={data}
         curationData={curation}
         tierFeatures={{ 
@@ -596,7 +608,8 @@ export default function VanityBusinessClient({
 
               // Core DB-backed assets
               const dbBlog = Array.isArray(section.blogs) && section.blogs.length > 0 ? section.blogs[0] : null;
-              const dbGallery = Array.isArray(section.gallery) ? section.gallery : null;
+              // An empty vendor gallery must not hide the uploaded section_gallery in custom_data.
+              const dbGallery = Array.isArray(section.gallery) && section.gallery.length > 0 ? section.gallery : null;
               const hasTours = Array.isArray(section.tourProducts) && section.tourProducts.length > 0;
 
               // Show every valid travel-core section in the nav and on-page flow, even when
@@ -606,18 +619,37 @@ export default function VanityBusinessClient({
               const hasContent = sectionHasDefinedFields || !!secData || sectionComponentInstances.length > 0 || !!dbBlog || (dbGallery && dbGallery.length > 0) || hasTours;
               if (!hasContent && !activeSections.some(s => s.id === section.id)) return null;
 
-              // Filter gallery items for carousel (respects in_carousel and placement)
-              const carouselImages = dbGallery 
-                ? dbGallery.filter((img: any) => img.placement === 'carousel' || img.placement === 'both')
-                : (secData?.section_gallery && Array.isArray(secData.section_gallery)
-                    ? secData.section_gallery.filter((img: any) => (typeof img === 'string') || (img?.in_carousel !== false && img?.placement !== 'body'))
-                    : []);
+              // Merge approved DB media with admin-selected custom media while keeping DB rows authoritative.
+              const sectionMeta = data.section_content_meta?.[section.id] || {};
+              const storedGallery = (sectionMeta.galleryStatus === undefined || sectionMeta.galleryStatus === 'approved') && sectionMeta.galleryOnMinisite !== false && Array.isArray(secData?.section_gallery)
+                ? secData.section_gallery
+                : [];
+              const legacyGallery = Array.isArray(secData?._media?.images) ? secData._media.images : [];
+              const gallerySource: any[] = [];
+              const galleryIds = new Set<string>();
+              const galleryUrls = new Set<string>();
+              [...(dbGallery || []), ...storedGallery, ...legacyGallery].forEach((img: any) => {
+                const id = img && typeof img === 'object' ? img.id : null;
+                const url = typeof img === 'string' ? img : img?.url;
+                const normalizedUrl = typeof url === 'string' ? url.trim().replace(/\/$/, '').toLowerCase() : '';
+                const normalizedId = id !== undefined && id !== null && String(id) !== '' ? String(id) : '';
+                if ((normalizedId && galleryIds.has(normalizedId)) || (normalizedUrl && galleryUrls.has(normalizedUrl))) return;
+                if (normalizedId) galleryIds.add(normalizedId);
+                if (normalizedUrl) galleryUrls.add(normalizedUrl);
+                gallerySource.push(img);
+              });
 
-              const bodyImages = dbGallery
-                ? dbGallery.filter((img: any) => img.placement === 'body' || img.placement === 'both')
-                : (secData?.section_gallery && Array.isArray(secData.section_gallery)
-                    ? secData.section_gallery.filter((img: any) => typeof img === 'object' && (img?.placement === 'body' || img?.placement === 'both'))
-                    : []);
+              const carouselImages = gallerySource.filter((img: any) =>
+                dbGallery?.includes(img)
+                  ? img.placement === 'carousel' || img.placement === 'both' || img.is_minisite_carousel
+                  : typeof img === 'string' ||
+                    (img?.is_minisite_carousel !== false && img?.in_carousel !== false && img?.placement !== 'body')
+              );
+
+              const bodyImages = gallerySource.filter((img: any) =>
+                typeof img === 'object' &&
+                (img?.placement === 'body' || img?.placement === 'both' || img?.is_minisite_carousel === false)
+              );
 
               // Helpers for type-aware rendering
               const renderFieldValue = (key: string, val: any, fieldDef: any) => {
@@ -722,7 +754,7 @@ export default function VanityBusinessClient({
                 }
                 // rich_text → safe HTML
                 if (fieldType === 'rich_text') {
-                  return <div dangerouslySetInnerHTML={{ __html: String(val) }} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.7 }} />;
+                  return <div dangerouslySetInnerHTML={{ __html: prepareRichContent(val) }} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.7 }} />;
                 }
                 // default → text
                 return <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>{String(val)}</span>;
@@ -873,7 +905,7 @@ export default function VanityBusinessClient({
                         return (
                           <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
                           </div>
                         );
                       }
@@ -885,19 +917,19 @@ export default function VanityBusinessClient({
                         return (
                           <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right' }}>
                             {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9 }} />
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9 }} />
                           </div>
                         );
                       }
 
-                      if (secData?.section_blog || secData?.description || secData?.section_news) {
-                        const rawBlog = secData?.section_blog || secData?.section_news || secData?.description;
+                      if (secData?.section_blog || secData?.mini_blog || secData?.description || secData?.section_news || secData?._media?.mini_blog) {
+                        const rawBlog = secData?.section_blog || secData?.mini_blog || secData?._media?.mini_blog || secData?.section_news || secData?.description;
                         const blogTitleDisplay = secData?.section_blog_title || '';
                         const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
                         return (
                           <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                             {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: interpolated }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
                           </div>
                         );
                       }
@@ -930,7 +962,7 @@ export default function VanityBusinessClient({
                           }
 
                           return fieldEntries.map(({ key, val, matchedField }, index) => {
-                            if (['section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
+                            if (['_media', 'media', 'section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
 
                             const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
                             if (!isPublic) return null;

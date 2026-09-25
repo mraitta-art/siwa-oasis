@@ -41,6 +41,7 @@ export default function RichBlogEditor({
   const [fontSize, setFontSize] = useState('3');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<HTMLImageElement | HTMLVideoElement | null>(null);
 
   // Keep dir in sync if parent changes it
   useEffect(() => {
@@ -153,6 +154,35 @@ export default function RichBlogEditor({
   const handleLink = () => {
     const url = prompt(currentDir === 'rtl' ? 'أدخل رابط URL:' : 'Enter link URL:');
     if (url) execute('createLink', url);
+  };
+
+  const selectMedia = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const media = target.closest('img, video') as HTMLImageElement | HTMLVideoElement | null;
+    if (selectedMedia && selectedMedia !== media) selectedMedia.style.outline = '';
+    if (media) {
+      media.style.outline = '2px solid #D4AF37';
+      setSelectedMedia(media);
+    } else {
+      setSelectedMedia(null);
+    }
+  };
+
+  const resizeSelectedMedia = (width: string) => {
+    if (!selectedMedia) return;
+    selectedMedia.style.width = width;
+    selectedMedia.style.maxWidth = '100%';
+    selectedMedia.style.height = 'auto';
+    selectedMedia.style.display = 'block';
+    selectedMedia.style.marginLeft = 'auto';
+    selectedMedia.style.marginRight = 'auto';
+    handleInput();
+  };
+
+  const promptMediaWidth = () => {
+    if (!selectedMedia) return;
+    const width = prompt('Image/video width (for example 420px or 65%):', selectedMedia.style.width || '100%');
+    if (width?.trim()) resizeSelectedMedia(width.trim());
   };
 
   // Upload image/video directly from device
@@ -407,6 +437,21 @@ export default function RichBlogEditor({
         </label>
         <button type="button" onClick={handleImageUrlPrompt} title="Insert Image via URL" style={btnStyle}><ImageIcon size={14} /></button>
 
+        {selectedMedia && (
+          <>
+            <div style={separatorStyle} />
+            <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>MEDIA SIZE</span>
+            {['25%', '50%', '75%', '100%'].map(width => (
+              <button key={width} type="button" onClick={() => resizeSelectedMedia(width)} title={`Set media width to ${width}`} style={{ ...btnStyle, fontSize: '0.65rem', fontWeight: 800 }}>
+                {width}
+              </button>
+            ))}
+            <button type="button" onClick={promptMediaWidth} title="Set custom media width" style={{ ...btnStyle, fontSize: '0.65rem', fontWeight: 800 }}>
+              Custom
+            </button>
+          </>
+        )}
+
         <div style={separatorStyle} />
 
         {/* Oasis Callouts */}
@@ -465,6 +510,7 @@ export default function RichBlogEditor({
           onMouseUp={updateSelection}
           onFocus={updateSelection}
           onBlur={updateSelection}
+          onClick={selectMedia}
           style={{
             minHeight,
             padding: '1.5rem',

@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { requireAdmin } from '@/lib/auth';
+import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { safeMediaSegment, saveUploadedBuffer } from '@/lib/media-storage';
 import { db, queryOne, execute } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    let user: any = null;
+    try {
+      user = await requireAdmin();
+    } catch (authErr) {
+      user = await getCurrentUser().catch(() => null);
+      if (!user && process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      }
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -77,7 +85,7 @@ export async function POST(request: NextRequest) {
     // 1. Try Cloudinary (Shared/public storage)
     if (process.env.CLOUDINARY_CLOUD_NAME) {
       try {
-        const result: any = await uploadToCloudinary(buffer, cloudFolder);
+        const result: any = await uploadToCloudinary(buffer, file.name, cloudFolder);
         finalUrl = result?.secure_url || '';
       } catch (cloudErr: any) {
         console.error('[CLOUDINARY ERROR - FALLBACK TO DATA/LOCAL]', cloudErr);

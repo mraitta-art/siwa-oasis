@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { execute, queryOne } from '@/lib/db';
+import { createBusinessEntity } from '@/lib/business-creation';
 import { parseHospitalityRawText, hospitalityDataTo10Sections } from '@/lib/hospitality-mapper';
 import { detectBusinessCategory } from '@/lib/category-detector';
 import {
@@ -159,13 +160,43 @@ export async function POST(req: NextRequest) {
 
       if (businessId) {
         // Update existing business
+        const existing = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [businessId]) as any;
+        let existingData: Record<string, any> = {};
+        try {
+          existingData = typeof existing?.custom_data === 'string'
+            ? JSON.parse(existing.custom_data)
+            : existing?.custom_data || {};
+        } catch {
+          existingData = {};
+        }
+
+        const mergedCustomData: Record<string, any> = {
+          ...existingData,
+          ...customData,
+        };
+        for (const [sectionId, sectionValue] of Object.entries(customData)) {
+          if (
+            existingData[sectionId] &&
+            sectionValue &&
+            typeof existingData[sectionId] === 'object' &&
+            typeof sectionValue === 'object' &&
+            !Array.isArray(existingData[sectionId]) &&
+            !Array.isArray(sectionValue)
+          ) {
+            mergedCustomData[sectionId] = {
+              ...existingData[sectionId],
+              ...sectionValue,
+            };
+          }
+        }
+
         await execute(
           `UPDATE businesses 
            SET custom_data = ?, 
                name = COALESCE(NULLIF(?, ''), name),
                updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
-          [JSON.stringify(customData), name, businessId]
+          [JSON.stringify(mergedCustomData), name, businessId]
         );
         return NextResponse.json({
           success: true,
@@ -175,19 +206,19 @@ export async function POST(req: NextRequest) {
         });
       } else {
         // Create new business listing
-        const res = await execute(
-          `INSERT INTO businesses 
-           (name, slug, type_id, status, published, approved_by_vendor, custom_data, created_at, updated_at) 
-           VALUES (?, ?, ?, 'active', 1, 1, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-          [name, slug, resolvedTypeId, JSON.stringify(customData)]
-        ) as any;
-
-        const newId = res.insertId;
+        const created = await createBusinessEntity({
+          name,
+          type_id: resolvedTypeId,
+          custom_data,
+          status: 'pending',
+          is_standalone: true,
+          source: 'paste_import',
+        });
         return NextResponse.json({
           success: true,
           message: 'Business created and imported successfully',
-          businessId: newId,
-          slug,
+          businessId: created.id,
+          slug: created.slug,
         });
       }
     }

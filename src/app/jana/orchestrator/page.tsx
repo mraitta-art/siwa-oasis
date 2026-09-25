@@ -35,6 +35,7 @@ interface WizardState {
   businessData: Record<string, any>;
   minisiteTemplate: string;
   fields: any[];
+  createdBizId?: string;
 }
 
 const STORAGE_KEY = 'siwa_governance_wizard_state';
@@ -125,8 +126,9 @@ function OrchestratorContent() {
         })
       });
       if (bizRes.ok) {
+        const created = await bizRes.json();
         localStorage.removeItem(STORAGE_KEY);
-        updateState({ step: 'DEPLOYMENT' });
+        updateState({ step: 'DEPLOYMENT', createdBizId: created.id });
         notify('Entity Synthesized Successfully', 'success');
       }
     } catch (err) { notify('Orchestration Failed', 'error'); }
@@ -336,15 +338,18 @@ function OrchestratorContent() {
                 <div className="check-ring">
                   <i className="fas fa-check"></i>
                 </div>
-                <h2>Deployment Synchronized</h2>
-                <p>The entity has been permanently written to the Siwa Registry.</p>
+                <h2>Entity Registered &amp; Ready</h2>
+                <p>The business entity has been created in the database. Open the Unified Orchestrator to add logo, photos, carousel slides, and AI stories.</p>
                 
-                <div className="actions">
-                   <Link href="/jana/businesses" className="btn-premium">ENTER REGISTRY</Link>
-                   <button onClick={() => {
-                     localStorage.removeItem(STORAGE_KEY);
-                     window.location.reload();
-                   }} className="btn-outline">ORCHESTRATE NEW ENTITY</button>
+                <div className="actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                   {state.createdBizId ? (
+                     <Link href={`/jana/businesses/${state.createdBizId}/orchestrate`} className="btn-premium">
+                       <i className="fas fa-wand-magic-sparkles" style={{ marginRight: '6px' }} /> OPEN IN UNIFIED ORCHESTRATOR &amp; EDIT
+                     </Link>
+                   ) : (
+                     <Link href="/jana/businesses" className="btn-premium">ENTER BUSINESS REGISTRY</Link>
+                   )}
+                   <Link href="/jana/businesses" className="btn-outline">VIEW ALL IN REGISTRY</Link>
                 </div>
              </div>
           )}

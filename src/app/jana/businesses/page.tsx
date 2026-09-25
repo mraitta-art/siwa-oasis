@@ -33,6 +33,7 @@ export default function BusinessRegistryPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
   
+  const [selectedParentId, setSelectedParentId] = useState('');
   const [newBiz, setNewBiz] = useState({
     name: '',
     type_id: '',
@@ -157,7 +158,7 @@ export default function BusinessRegistryPage() {
         notify(`Cloned successfully as "${newName}"`, 'success');
         loadBusinesses();
         // Redirect to edit page
-        window.location.href = `/jana/businesses/${data.id}/edit`;
+        window.location.href = `/jana/businesses/${data.id}/orchestrate`;
       } else {
         const err = await res.json();
         notify(err.error || 'Cloning failed', 'error');
@@ -212,15 +213,10 @@ export default function BusinessRegistryPage() {
       });
       if (res.ok) {
         const newBusiness = await res.json();
-        notify(`Business "${newBiz.name}" registered successfully!`, 'success');
+        notify(`Business "${newBiz.name}" registered successfully! Redirecting to Unified Orchestrator...`, 'success');
         setShowWizard(false);
-        loadBusinesses();
-        // Open WhatsApp Barcode & Credentials Card immediately
-        setWhatsAppModal({
-          isOpen: true,
-          businessId: newBusiness.id,
-          businessName: newBusiness.name || newBiz.name
-        });
+        // Seamlessly open the Unified Orchestrator for the new business entity
+        window.location.href = `/jana/businesses/${newBusiness.id}/orchestrate`;
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to register business');
@@ -272,31 +268,56 @@ export default function BusinessRegistryPage() {
               <input className="form-control" placeholder="e.g. Great Sand Sea Expedition"
                 value={newBiz.name} onChange={e => setNewBiz({...newBiz, name: e.target.value})} />
             </div>
-            {/* Business Type — only CHILD types (those with a parent) are selectable */}
+            {/* 1. Parent Category */}
             <div>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS TYPOLOGY * <span style={{ color: '#3b82f6', fontWeight: 600 }}>(child typologies only)</span></label>
-              <select className="form-control" value={newBiz.type_id}
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>
+                1. PARENT CATEGORY *
+              </label>
+              <select
+                className="form-control"
+                value={selectedParentId}
+                onChange={e => {
+                  const pid = e.target.value;
+                  setSelectedParentId(pid);
+                  setNewBiz({ ...newBiz, type_id: '', template_id: '' });
+                  setFilteredTemplates([]);
+                }}
+              >
+                <option value="">-- Step 1: Select Parent Category --</option>
+                {selectableParents.map((parent: any) => (
+                  <option key={parent.id} value={parent.id}>
+                    {parent.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Child Typology (Sub-Type) */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: selectedParentId ? '#6b7280' : '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>
+                2. CHILD TYPOLOGY * {selectedParentId ? <span style={{ color: '#16a34a', fontWeight: 600 }}>({(selectableTypesByParent.get(selectedParentId) || []).length} available)</span> : <span style={{ color: '#ef4444', fontWeight: 600 }}>(select parent first)</span>}
+              </label>
+              <select
+                className="form-control"
+                value={newBiz.type_id}
+                disabled={!selectedParentId}
+                style={{ background: !selectedParentId ? '#f1f5f9' : '#fff' }}
                 onChange={e => {
                   const tid = e.target.value;
-                  setNewBiz({...newBiz, type_id: tid, template_id: ''});
+                  setNewBiz({ ...newBiz, type_id: tid, template_id: '' });
                   // Show all templates: type-specific + universal (type_id = null)
                   setFilteredTemplates(templates.filter((t: any) => t.type_id === tid || !t.type_id));
-                }}>
-                <option value="">-- Select Sub-Type --</option>
-                {selectableParents.map((parent: any) => (
-                  <optgroup key={parent.id} label={parent.name}>
-                    {(selectableTypesByParent.get(parent.id) || []).map((type: any) => (
-                      <option key={type.id} value={type.id}>{type.name}</option>
-                    ))}
-                  </optgroup>
+                }}
+              >
+                <option value="">
+                  {!selectedParentId ? '-- Pick Parent Category First --' : '-- Step 2: Select Sub-Category --'}
+                </option>
+                {(selectableTypesByParent.get(selectedParentId) || []).map((type: any) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
                 ))}
-                {selectableBusinessTypes.length === 0 && (
-                  <option disabled>No child types found — create child types first</option>
-                )}
               </select>
-              <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                ⚠️ Parent/category types are excluded — they cannot hold business registrations
-              </div>
             </div>
             {/* Template — auto-resolves from tier when not set */}
             <div>
@@ -533,8 +554,8 @@ export default function BusinessRegistryPage() {
                         <Link href={`/${b.slug || b.id}`} target="_blank" className="btn btn-xs btn-outline" style={{ color: '#10b981', borderColor: '#10b981' }} title="View Public Minisite">
                           <i className="fas fa-external-link-alt"></i> VIEW SITE
                         </Link>
-                        <Link href={`/jana/businesses/${b.id}/edit`} className="btn btn-xs btn-outline gold-border" title="Manage Content">
-                          <i className="fas fa-photo-film"></i> CONTENT
+                        <Link href={`/jana/businesses/${b.id}/orchestrate`} className="btn btn-xs btn-premium" title="Orchestrate Minisite & Content">
+                          <i className="fas fa-wand-magic-sparkles"></i> ORCHESTRATE &amp; EDIT
                         </Link>
                         <button 
                           className="btn btn-xs btn-outline" 
@@ -550,9 +571,6 @@ export default function BusinessRegistryPage() {
                         <button className="btn btn-xs btn-outline" style={{ color: '#d97706', borderColor: '#d97706' }} onClick={() => cloneBusiness(b.id, b.name)} title="Clone Business Instance">
                           <i className="fas fa-copy"></i> CLONE
                         </button>
-                        <Link href={`/jana/businesses/${b.id}/orchestrate`} className="btn btn-xs btn-premium" title="Orchestrate Unified DNA">
-                          <i className="fas fa-wand-sparkles"></i> ORCHESTRATE
-                        </Link>
                        <button className="btn btn-xs btn-outline" style={{ color: '#ef4444' }} onClick={() => deleteBiz(b.id, b.name)}><i className="fas fa-trash"></i></button>
                     </div>
                 </td>

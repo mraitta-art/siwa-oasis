@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     // 1. Try Cloudinary if configured
     if (process.env.CLOUDINARY_CLOUD_NAME) {
       try {
-        const result: any = await uploadToCloudinary(buffer, cloudFolder);
+        const result: any = await uploadToCloudinary(buffer, file.name, cloudFolder);
         finalUrl = result.secure_url;
       } catch (cloudErr: any) {
         console.error('[CLOUDINARY ERROR]', cloudErr);

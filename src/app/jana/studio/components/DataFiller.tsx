@@ -138,11 +138,12 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
     const current = typeof selectedBusiness.custom_data === 'object' ? (selectedBusiness.custom_data || {}) : {};
     const updated = { ...current, [sectionId]: sectionData };
     try {
-      await fetch(`/api/jana/businesses/${selectedBusiness.id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/jana/businesses?id=${encodeURIComponent(selectedBusiness.id)}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ custom_data: updated })
+        body: JSON.stringify({ custom_data: { [sectionId]: sectionData } })
       });
+      if (!res.ok) throw new Error('Failed to save section');
       setSelectedBusiness({ ...selectedBusiness, custom_data: updated });
       setCompletion(prev => ({ ...prev, [sectionId]: true }));
       notify('Section saved!', 'success');
@@ -164,10 +165,15 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
       }
     };
     try {
-      const res = await fetch(`/api/jana/businesses/${selectedBusiness.id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/jana/businesses?id=${encodeURIComponent(selectedBusiness.id)}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ custom_data: updated })
+        body: JSON.stringify({
+          custom_data: {
+            section_labels: sectionLabels,
+            basic: updated.basic,
+          }
+        })
       });
       if (!res.ok) throw new Error('Failed to save settings');
       setSelectedBusiness({ ...selectedBusiness, custom_data: updated });
@@ -183,9 +189,8 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
     setPublishing(true);
     // Build full data structure merging with existing config keys
     const current = typeof selectedBusiness.custom_data === 'object' ? (selectedBusiness.custom_data || {}) : {};
-    const allData: Record<string, any> = {
-      ...current
-    };
+    const changedData: Record<string, any> = {};
+    const allData: Record<string, any> = { ...current };
     sections.forEach(section => {
       const sectionData: Record<string, any> = {};
       Object.entries(formData).forEach(([key, val]) => {
@@ -195,14 +200,16 @@ export default function DataFiller({ selectedTypeId, selectedTypeName }: DataFil
       });
       if (Object.keys(sectionData).length > 0) {
         allData[section.id] = sectionData;
+        changedData[section.id] = sectionData;
       }
     });
     try {
-      await fetch(`/api/jana/businesses/${selectedBusiness.id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/jana/businesses?id=${encodeURIComponent(selectedBusiness.id)}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ custom_data: allData })
+        body: JSON.stringify({ custom_data: changedData })
       });
+      if (!res.ok) throw new Error('Failed to publish business');
       // Sync local state as well
       setSelectedBusiness({ ...selectedBusiness, custom_data: allData });
       notify(`"${selectedBusiness.name}" is now LIVE! 🎉`, 'success');

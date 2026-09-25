@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
 import RichBlogEditor from '@/components/RichBlogEditor';
 
@@ -15,7 +16,7 @@ export interface MarketplaceItem {
   title: string;
   title_ar: string;
   slug: string;
-  item_type: 'package' | 'tour' | 'activity' | 'discount_offer' | 'room_bundle' | 'retreat';
+  item_type: 'package' | 'program' | 'tour' | 'activity' | 'discount_offer' | 'room_bundle' | 'retreat';
   category_id: string;
   description: string;
   description_ar: string;
@@ -59,6 +60,7 @@ export interface MarketplaceItem {
 
 export default function UnifiedMarketplaceCommandCenter() {
   const { notify } = useAdmin();
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [businessTypes, setBusinessTypes] = useState<any[]>([]);
@@ -94,6 +96,14 @@ export default function UnifiedMarketplaceCommandCenter() {
     commission_split_pct: 0,
     visible_on_minisite: true
   });
+
+  useEffect(() => {
+    const businessId = searchParams.get('businessId');
+    if (businessId) {
+      setMode('vendor_proxy');
+      setSelectedVendorId(businessId);
+    }
+  }, [searchParams]);
 
   // Derived parent and child types
   const parentTypes = useMemo(() => businessTypes.filter(t => t.is_parent || !t.parent_id), [businessTypes]);
@@ -307,14 +317,14 @@ export default function UnifiedMarketplaceCommandCenter() {
   function startNewItem(type: MarketplaceItem['item_type'] = 'package') {
     setEditingItem({
       business_id: mode === 'vendor_proxy' && selectedVendorId ? selectedVendorId : null,
-      section_id: type === 'tour' || type === 'activity' ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
+      section_id: type === 'tour' || type === 'activity' || type === 'program' ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
       title: '',
       title_ar: '',
       item_type: type,
       category_id: 'general',
       description: '',
       description_ar: '',
-      duration_type: type === 'tour' || type === 'package' ? 'full_day' : 'hours',
+      duration_type: type === 'tour' || type === 'package' || type === 'program' ? 'full_day' : 'hours',
       duration_value: 1,
       price_amount: 0,
       original_price: null,
@@ -405,6 +415,12 @@ export default function UnifiedMarketplaceCommandCenter() {
           >
             <i className="fas fa-compass" /> Create Tour / Safari
           </button>
+            <button
+              onClick={() => startNewItem('program')}
+              style={{ padding: '0.7rem 1rem', background: '#0f766e', color: '#fff', border: 'none', borderRadius: '9px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer' }}
+            >
+              <i className="fas fa-calendar-check" /> Create Program
+            </button>
           <button
             onClick={() => startNewItem('discount_offer')}
             style={{ padding: '0.65rem 1.1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -490,6 +506,7 @@ export default function UnifiedMarketplaceCommandCenter() {
             <option value="all">All Types (Packages, Tours, Offers...)</option>
             <option value="package">📦 Packages &amp; Bundles</option>
             <option value="tour">🧭 Tours &amp; Safaris</option>
+            <option value="program">📅 Programs</option>
             <option value="activity">🎯 Activities &amp; Day Trips</option>
             <option value="discount_offer">🏷️ Special Offers &amp; Discounts</option>
             <option value="room_bundle">🛏️ Stay &amp; Room Packages</option>
@@ -812,6 +829,7 @@ export default function UnifiedMarketplaceCommandCenter() {
                         style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700 }}
                       >
                         <option value="package">📦 Multi-Day Package &amp; Bundle</option>
+                        <option value="program">📅 Program / Scheduled Experience</option>
                         <option value="tour">🧭 Desert Tour / Safari / Itinerary</option>
                         <option value="activity">🎯 Single Activity / Experience</option>
                         <option value="discount_offer">🏷️ Special Discount &amp; Promo Code</option>

@@ -42,7 +42,7 @@ export async function generateMetadata({
 
     biz.custom_data = normalizeCustomData(biz.custom_data);
     const data = biz.custom_data || {};
-    const identity = data.basic || data.sec_1_identity || data.business_info || {};
+    const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
 
     // Fetch section details & label
     const [secRow] = await safeQuery<any>('SELECT name, description FROM sections WHERE id = ? LIMIT 1', [section]);

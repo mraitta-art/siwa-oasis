@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import DynamicForm from '@/components/DynamicForm';
 import SectionContentStudio from '@/components/SectionContentStudio';
@@ -19,7 +19,7 @@ import {
  * CONTENT tab powered by the shared SectionContentStudio component.
  */
 
-type Tab = 'IDENTITY' | 'ARCHITECTURE' | 'CONTENT' | 'BRANDING' | 'MEDIA';
+type Tab = 'IDENTITY' | 'ARCHITECTURE' | 'CONTENT' | 'COMMERCIAL' | 'BRANDING' | 'MEDIA' | 'READINESS';
 
 export default function BusinessOrchestrator() {
   const { id } = useParams();
@@ -41,11 +41,16 @@ export default function BusinessOrchestrator() {
   const [sectionControls, setSectionControls] = useState<Record<string, any>>({});
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [studioSaving, setStudioSaving] = useState(false);
+  const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
+  const [minisiteControl, setMinisiteControl] = useState<any>({ minisiteStatus: 'active' });
+  const [commercialLoading, setCommercialLoading] = useState(false);
+  const initialCustomDataRef = useRef<Record<string, any>>({});
 
   // ── Load business data ─────────────────────────────────────────────
   useEffect(() => {
     async function loadData() {
-      if (!businessId || businessId === 'business-id' || businessId === '{business-id}') {
+      const isPlaceholderId = !businessId || /\{?business[_-]?id\}?/i.test(businessId);
+      if (isPlaceholderId) {
         setBiz(null);
         setLoading(false);
         return;
@@ -75,6 +80,7 @@ export default function BusinessOrchestrator() {
             ? JSON.parse(bizData.custom_data)
             : bizData.custom_data || {};
 
+        initialCustomDataRef.current = customData;
         setBiz({ ...bizData, custom_data: customData, blueprint });
         setSections(canonicalSections);
 
@@ -90,6 +96,22 @@ export default function BusinessOrchestrator() {
           : Object.fromEntries((controlsData || []).map((c: any) => [c.section_id, c]));
         setSectionControls(normalizedControls);
 
+        // Load the business-scoped commercial and minisite state for the
+        // Commercial and Readiness steps without duplicating catalog data.
+        setCommercialLoading(true);
+        const [marketplaceRes, minisiteRes] = await Promise.all([
+          fetch(`/api/jana/marketplace?businessId=${encodeURIComponent(businessId)}&status=all`),
+          fetch(`/api/minisite-services/${encodeURIComponent(businessId)}`),
+        ]);
+        if (marketplaceRes.ok) {
+          const marketplaceData = await marketplaceRes.json();
+          setMarketplaceItems(Array.isArray(marketplaceData) ? marketplaceData : []);
+        }
+        if (minisiteRes.ok) {
+          setMinisiteControl(await minisiteRes.json());
+        }
+        setCommercialLoading(false);
+
         // Deep-link section activation
         if (sectionParam) {
           setActiveSectionId(sectionParam);
@@ -99,6 +121,7 @@ export default function BusinessOrchestrator() {
           if (firstActive) setActiveSectionId(firstActive.id);
         }
       } catch (err: any) {
+        setCommercialLoading(false);
         notify(err.message || 'Failed to load orchestrator data', 'error');
       } finally {
         setLoading(false);
@@ -125,15 +148,31 @@ export default function BusinessOrchestrator() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const changedCustomData = Object.fromEntries(
+        Object.entries(biz.custom_data || {}).filter(([key, value]) =>
+          JSON.stringify(value) !== JSON.stringify(initialCustomDataRef.current[key])
+        )
+      );
       const res = await fetch('/api/jana/businesses', {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: businessId, ...biz }),
+        body: JSON.stringify({
+          id: businessId,
+          name: biz.name,
+          type_id: biz.type_id,
+          subscription_tier: biz.subscription_tier,
+          vendor_id: biz.vendor_id,
+          template_id: biz.template_id,
+          status: biz.status,
+          custom_data: changedCustomData,
+        }),
       });
       if (res.ok) {
+        initialCustomDataRef.current = biz.custom_data || {};
         notify('Business DNA Synchronized', 'success');
       } else {
-        throw new Error('Save failed');
+        const errorBody = await res.json().catch(() => null);
+        throw new Error(errorBody?.error || `Save failed (HTTP ${res.status})`);
       }
     } catch (err: any) {
       notify(err.message || 'Synchronization Failed', 'error');
@@ -146,16 +185,22 @@ export default function BusinessOrchestrator() {
   const handleStudioSave = async (nextCustomData: Record<string, any>) => {
     setStudioSaving(true);
     try {
+      const changedCustomData = Object.fromEntries(
+        Object.entries(nextCustomData).filter(([key, value]) =>
+          JSON.stringify(value) !== JSON.stringify(biz.custom_data?.[key])
+        )
+      );
       const res = await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: businessId, custom_data: nextCustomData }),
+        body: JSON.stringify({ id: businessId, custom_data: changedCustomData }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Content save failed' }));
-        throw new Error(err.error || 'Content save failed');
+        throw new Error(err.error || `Content save failed (HTTP ${res.status})`);
       }
       setBiz((prev: any) => ({ ...prev, custom_data: nextCustomData }));
+      initialCustomDataRef.current = nextCustomData;
       notify('Content & Media synced', 'success');
     } catch (err: any) {
       notify(err.message || 'Content save failed', 'error');
@@ -175,6 +220,22 @@ export default function BusinessOrchestrator() {
     .map((s) => s.id);
   const visibleSections = sections.filter((s) => !hiddenSections.includes(s.id));
   const activeSectionIds = visibleSections.map((s) => s.id);
+  const identityData = biz.custom_data?.sec_1_identity || biz.custom_data?.basic || biz.custom_data?.business_info || {};
+  const galleryCount = Object.values(biz.custom_data || {}).reduce((count: number, value: any) => {
+    const gallery = Array.isArray(value?.section_gallery) ? value.section_gallery : [];
+    return count + gallery.length;
+  }, 0);
+  const approvedMarketplaceItems = marketplaceItems.filter((item) => ['approved', 'published'].includes(String(item.status || '').toLowerCase()));
+  const minisiteReady = minisiteControl.minisiteStatus === 'active';
+  const readinessChecks = [
+    { label: 'Business identity', complete: Boolean(biz.name && biz.slug) },
+    { label: 'Public sections', complete: activeSectionIds.length > 0 },
+    { label: 'Contact details', complete: Boolean(identityData.phone || identityData.whatsapp || identityData.email) },
+    { label: 'Logo or gallery media', complete: Boolean(identityData.business_logo || identityData.logo || galleryCount > 0) },
+    { label: 'Minisite service', complete: minisiteReady },
+    { label: 'Approved commercial items', complete: approvedMarketplaceItems.length > 0 },
+  ];
+  const readinessComplete = readinessChecks.every((check) => check.complete);
 
   return (
     <div className="orchestrator-page">
@@ -220,7 +281,7 @@ export default function BusinessOrchestrator() {
           </div>
 
           <div className="orchestrator-tabs">
-            {(['IDENTITY', 'ARCHITECTURE', 'CONTENT', 'BRANDING', 'MEDIA'] as Tab[]).map((t) => (
+            {(['IDENTITY', 'ARCHITECTURE', 'CONTENT', 'COMMERCIAL', 'BRANDING', 'MEDIA', 'READINESS'] as Tab[]).map((t) => (
               <button
                 key={t}
                 className={`tab-btn ${activeTab === t ? 'active' : ''}`}
@@ -437,6 +498,49 @@ export default function BusinessOrchestrator() {
             </div>
           )}
 
+          {/* ── TAB 4: COMMERCIAL ── */}
+          {activeTab === 'COMMERCIAL' && (
+            <div className="tab-content animate-in">
+              <h2 className="section-title">Tours, Packages &amp; Offers</h2>
+              <p style={{ maxWidth: 760, color: '#64748b', lineHeight: 1.6, marginBottom: '2rem' }}>
+                Prepare commercial content for this business using the canonical marketplace records. Items created here remain connected to approval, pricing, discounts, and minisite visibility policies.
+              </p>
+
+              <div className="grid-responsive" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: '2rem' }}>
+                {[
+                  { label: 'Approved items', value: approvedMarketplaceItems.length, color: '#15803d' },
+                  { label: 'Draft / review items', value: marketplaceItems.length - approvedMarketplaceItems.length, color: '#b45309' },
+                  { label: 'Minisite status', value: minisiteControl.minisiteStatus || 'active', color: minisiteReady ? '#15803d' : '#b91c1c' },
+                ].map((metric) => (
+                  <div key={metric.label} style={{ padding: '1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+                    <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase' }}>{metric.label}</div>
+                    <div style={{ color: metric.color, fontSize: '1.8rem', fontWeight: 900, marginTop: '0.4rem' }}>{commercialLoading ? '...' : metric.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+                <Link href={`/admin/packages?businessId=${businessId}`} className="btn btn-premium"><i className="fas fa-box-open" /> Create tours &amp; packages</Link>
+                <Link href={`/admin/offers?businessId=${businessId}`} className="btn btn-outline"><i className="fas fa-tags" /> Create offers</Link>
+                <Link href={`/admin/discounts?businessId=${businessId}`} className="btn btn-outline"><i className="fas fa-percent" /> Configure discounts</Link>
+                <Link href={`/jana/catalog?businessId=${businessId}`} className="btn btn-outline"><i className="fas fa-clipboard-check" /> Review catalog</Link>
+                <Link href={`/jana/vendor-services?businessId=${businessId}`} className="btn btn-outline"><i className="fas fa-concierge-bell" /> Manage services</Link>
+              </div>
+
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden' }}>
+                <div style={{ padding: '1rem 1.25rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontWeight: 900, color: '#0f172a' }}>Assigned commercial items</div>
+                {marketplaceItems.length === 0 ? (
+                  <div style={{ padding: '2rem', color: '#64748b', textAlign: 'center' }}>No tours, packages, offers, or discounts are assigned yet.</div>
+                ) : marketplaceItems.map((item) => (
+                  <div key={item.id} style={{ padding: '1rem 1.25rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div><strong>{item.title}</strong><div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '0.25rem' }}>{item.item_type} · {item.currency} {item.price_amount}</div></div>
+                    <span style={{ color: ['approved', 'published'].includes(String(item.status).toLowerCase()) ? '#15803d' : '#b45309', fontWeight: 900, fontSize: '0.72rem', textTransform: 'uppercase' }}>{item.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── TAB 4: BRANDING ── */}
           {activeTab === 'BRANDING' && (
             <div className="tab-content animate-in">
@@ -505,6 +609,29 @@ export default function BusinessOrchestrator() {
                     </Link>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 7: READINESS ── */}
+          {activeTab === 'READINESS' && (
+            <div className="tab-content animate-in">
+              <h2 className="section-title">Publish Readiness</h2>
+              <p style={{ maxWidth: 760, color: '#64748b', lineHeight: 1.6, marginBottom: '2rem' }}>
+                This checklist is calculated from the selected business record and its approved public content.
+              </p>
+              <div style={{ display: 'grid', gap: '0.75rem', maxWidth: 760 }}>
+                {readinessChecks.map((check) => (
+                  <div key={check.label} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderRadius: '12px', border: `1px solid ${check.complete ? '#bbf7d0' : '#fde68a'}`, background: check.complete ? '#f0fdf4' : '#fffbeb' }}>
+                    <i className={`fas ${check.complete ? 'fa-check-circle' : 'fa-circle-exclamation'}`} style={{ color: check.complete ? '#15803d' : '#b45309' }} />
+                    <span style={{ fontWeight: 800, color: '#0f172a' }}>{check.label}</span>
+                    <span style={{ marginLeft: 'auto', color: check.complete ? '#15803d' : '#b45309', fontSize: '0.7rem', fontWeight: 900 }}>{check.complete ? 'READY' : 'ACTION NEEDED'}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <Link href={`/${biz.slug}`} target="_blank" className="btn btn-outline"><i className="fas fa-external-link-alt" /> Preview minisite</Link>
+                <span style={{ color: readinessComplete ? '#15803d' : '#b45309', fontWeight: 900, fontSize: '0.8rem' }}>{readinessComplete ? 'Business is ready for review.' : 'Complete the outstanding actions before publishing.'}</span>
               </div>
             </div>
           )}

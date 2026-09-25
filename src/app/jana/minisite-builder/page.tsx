@@ -248,7 +248,7 @@ export default function MinisiteBuilderEntry() {
                       <i className="fas fa-photo-film" style={{ color: '#2563eb' }} /> Content
                     </Link>
                     <Link
-                      href={`/jana/businesses/${biz.id}/edit`}
+                      href={`/jana/businesses/${biz.id}/orchestrate`}
                       style={{
                         flex: 1,
                         padding: '0.45rem 0.6rem',

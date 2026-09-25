@@ -125,12 +125,20 @@ function ContentManagementContent() {
     setSaving(true);
     setSaveMessage('');
     try {
+      const changedCustomData = Object.fromEntries(
+        Object.entries(nextCustomData).filter(([key, value]) =>
+          JSON.stringify(value) !== JSON.stringify(business.custom_data?.[key])
+        )
+      );
       const res = await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: business.id, custom_data: nextCustomData }),
+        body: JSON.stringify({ id: business.id, custom_data: changedCustomData }),
       });
-      if (!res.ok) throw new Error('Save failed');
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => null);
+        throw new Error(errorBody?.error || `Save failed (HTTP ${res.status})`);
+      }
       setBusiness((prev: any) => ({ ...prev, custom_data: nextCustomData }));
       setSaveMessage('All media, placements, captions, and blog stories saved successfully!');
     } catch (err: any) {

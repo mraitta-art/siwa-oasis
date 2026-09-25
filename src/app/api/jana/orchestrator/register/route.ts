@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, transaction } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
-import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
+import { createBusinessEntity } from '@/lib/business-creation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,16 +24,18 @@ export async function POST(request: NextRequest) {
     const businessDataObj = businessData && typeof businessData === 'object' ? businessData : {};
     const finalSiteId = siteId || 'website_main';
 
-    const businessId = crypto.randomUUID();
+    const created = await createBusinessEntity({
+      name: businessName,
+      type_id: typeId,
+      vendor_id: vendorId || null,
+      custom_data: businessDataObj,
+      source: 'legacy_orchestrator_register',
+      actor_id: user.id,
+    });
+    const businessId = created.id;
 
     // Use a transaction to ensure partial inserts don't leave the DB in a bad state
     await transaction(async (conn) => {
-      await conn.query(
-        `INSERT INTO businesses (id, name, type_id, vendor_id, custom_data, status) 
-         VALUES (?, ?, ?, ?, ?, 'active')`,
-        [businessId, businessName, typeId, vendorId || null, JSON.stringify(businessDataObj)]
-      );
-
       // Inject Hybrid Fields into Form Architect (if any)
       for (const field of fieldsArr) {
         if (!field || !field.name) continue; // skip invalid entries
@@ -70,12 +72,6 @@ export async function POST(request: NextRequest) {
         [`Orchestration Successful: ${businessName} onboarded with 4 pages and hybrid fields.`, user.email]
       );
     });
-
-    try {
-      await syncManifestFromLegacyData(businessId, 'orchestrator_created', user.id);
-    } catch (manifestError: any) {
-      console.warn('[MANIFEST ORCHESTRATOR BOOTSTRAP SKIPPED]', manifestError?.message || manifestError);
-    }
 
     return NextResponse.json({ success: true, businessId });
   } catch (e: any) { 

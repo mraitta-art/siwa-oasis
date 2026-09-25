@@ -140,6 +140,7 @@ export default function SectionContentStudio({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [activeSlideConfigIndex, setActiveSlideConfigIndex] = useState<number | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const [localMessage, setLocalMessage] = useState('');
 
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
@@ -151,7 +152,7 @@ export default function SectionContentStudio({
     const sData = customData?.[sectionId] || {};
     const storedMeta = customData?.section_content_meta?.[sectionId] || {};
     
-    setLogoUrl(customData?.basic?.business_logo || customData?.sec_1_identity?.business_logo || customData?.business_logo || '');
+    setLogoUrl(customData?.sec_1_identity?.business_logo || customData?.basic?.business_logo || customData?.business_logo || '');
     setPhone(customData?.basic?.phone || customData?.sec_1_identity?.phone || customData?.phone || '');
     setWhatsapp(customData?.basic?.whatsapp || customData?.sec_1_identity?.whatsapp || customData?.whatsapp || '');
     setWhatsappMsg(customData?.basic?.whatsapp_message || customData?.sec_1_identity?.whatsapp_message || customData?.whatsapp_message || '');
@@ -258,6 +259,35 @@ export default function SectionContentStudio({
     if (e.dataTransfer.files?.length) uploadMultipleFiles(e.dataTransfer.files, true);
   }
 
+  async function handleGenerateAiStory() {
+    setGeneratingAi(true);
+    try {
+      const res = await fetch('/api/jana/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: businessName || 'Siwa Oasis Entity',
+          sectionName: sectionLabel || section?.name || sectionId,
+          typology: customData?.type_name || 'Experience & Hospitality',
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.title) setBlogTitle(data.title);
+        if (data.story) setBlogBody(data.story);
+        if (data.title_ar) setBlogTitleAr(data.title_ar);
+        if (data.story_ar) setBlogBodyAr(data.story_ar);
+        setLocalMessage('✨ AI generated high-fidelity bilingual story (English & Arabic) successfully!');
+      } else {
+        alert(data.error || 'Failed to generate story');
+      }
+    } catch (err: any) {
+      alert(err.message || 'AI generation error');
+    } finally {
+      setGeneratingAi(false);
+    }
+  }
+
   // ── Manual Media Adder ────────────────────────────────────────────────
   function addImageManual() {
     if (!newImage.url.trim()) return;
@@ -336,16 +366,14 @@ export default function SectionContentStudio({
       section_labels_ar: { ...(nextCustomData.basic?.section_labels_ar || {}), [sectionId]: sectionLabelAr.trim() },
     };
 
-    if (sectionId === 'sec_1_identity' || sectionId === 'basic') {
-      nextCustomData.sec_1_identity = {
-        ...(nextCustomData.sec_1_identity || {}),
-        business_logo: logoUrl,
-        logo: logoUrl,
-        phone: phone.trim(),
-        whatsapp: whatsapp.trim(),
-        whatsapp_message: whatsappMsg.trim(),
-      };
-    }
+    nextCustomData.sec_1_identity = {
+      ...(nextCustomData.sec_1_identity || {}),
+      business_logo: logoUrl,
+      logo: logoUrl,
+      phone: phone.trim(),
+      whatsapp: whatsapp.trim(),
+      whatsapp_message: whatsappMsg.trim(),
+    };
 
     // Ensure placement aligns with in_carousel
     const normalizedGallery = gallery.map((item) => ({
@@ -383,6 +411,74 @@ export default function SectionContentStudio({
 
   return (
     <div style={{ display: 'grid', gap: '1.5rem' }}>
+
+      {/* ── 0. MINISITE READINESS & CAROUSEL POLICY DIAGNOSTIC ── */}
+      <section style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ background: '#0f172a', color: '#D4AF37', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.5px' }}>
+              ⚡ MINISITE &amp; CAROUSEL POLICY HEALTH
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
+              {section?.name || sectionId} Live Readiness
+            </span>
+          </div>
+          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+            Minisite rules automatically enforced
+          </div>
+        </div>
+
+        {/* Diagnostic Badges Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+          
+          {/* Logo Status */}
+          <div style={{ background: logoUrl ? '#f0fdf4' : '#fffbeb', border: logoUrl ? '1px solid #86efac' : '1px solid #fcd34d', borderRadius: '10px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <i className={`fas ${logoUrl ? 'fa-check-circle' : 'fa-triangle-exclamation'}`} style={{ color: logoUrl ? '#16a34a' : '#d97706', fontSize: '1.1rem' }} />
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: logoUrl ? '#166534' : '#92400e' }}>
+                {logoUrl ? 'Brand Logo Active' : 'Logo Not Uploaded'}
+              </div>
+              <div style={{ fontSize: '0.65rem', color: logoUrl ? '#15803d' : '#b45309' }}>
+                {logoUrl ? 'Displays in navigation & hero' : 'Upload logo below for identity'}
+              </div>
+            </div>
+          </div>
+
+          {/* Carousel Presentation Status */}
+          <div style={{ background: activeCarouselSlides.length >= 2 ? '#f0fdf4' : (activeCarouselSlides.length === 1 ? '#eff6ff' : '#fff1f2'), border: activeCarouselSlides.length >= 2 ? '1px solid #86efac' : (activeCarouselSlides.length === 1 ? '1px solid #93c5fd' : '1px solid #fecdd3'), borderRadius: '10px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <i className={`fas ${activeCarouselSlides.length >= 2 ? 'fa-film' : (activeCarouselSlides.length === 1 ? 'fa-info-circle' : 'fa-circle-xmark')}`} style={{ color: activeCarouselSlides.length >= 2 ? '#16a34a' : (activeCarouselSlides.length === 1 ? '#2563eb' : '#e11d48'), fontSize: '1.1rem' }} />
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: activeCarouselSlides.length >= 2 ? '#166534' : (activeCarouselSlides.length === 1 ? '#1e40af' : '#9f1239') }}>
+                {activeCarouselSlides.length >= 2 ? `${activeCarouselSlides.length} Carousel Slides Active` : (activeCarouselSlides.length === 1 ? '1 Slide in Carousel' : 'Carousel Empty (0 Slides)')}
+              </div>
+              <div style={{ fontSize: '0.65rem', color: activeCarouselSlides.length >= 2 ? '#15803d' : (activeCarouselSlides.length === 1 ? '#1d4ed8' : '#be123c') }}>
+                {activeCarouselSlides.length >= 2 ? 'Slides will animate automatically' : (activeCarouselSlides.length === 1 ? 'Add 1+ more photo for slider' : 'Upload photos and click "+ Add to Carousel"')}
+              </div>
+            </div>
+          </div>
+
+          {/* Bilingual Narrative Status */}
+          <div style={{ background: (blogBody && blogBodyAr) ? '#f0fdf4' : (blogBody || blogBodyAr ? '#eff6ff' : '#faf5ff'), border: (blogBody && blogBodyAr) ? '1px solid #86efac' : '1px solid #e9d5ff', borderRadius: '10px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <i className="fas fa-feather-pointed" style={{ color: (blogBody && blogBodyAr) ? '#16a34a' : '#7e22ce', fontSize: '1.1rem' }} />
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: (blogBody && blogBodyAr) ? '#166534' : '#6b21a8' }}>
+                {(blogBody && blogBodyAr) ? 'Bilingual Story Complete' : (blogBody ? 'English Story Active (Arabic empty)' : 'No Story Written Yet')}
+              </div>
+              <div style={{ fontSize: '0.65rem', color: (blogBody && blogBodyAr) ? '#15803d' : '#7e22ce' }}>
+                {(blogBody && blogBodyAr) ? 'Published for EN & AR explorers' : 'Use "✨ Generate with AI" button below'}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Collapsible Policy Requirements */}
+        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <div><i className="fas fa-check" style={{ color: '#16a34a', marginRight: '4px' }} /> Landscape images (16:9) recommended for Hero Carousel</div>
+          <div><i className="fas fa-check" style={{ color: '#16a34a', marginRight: '4px' }} /> Square logo (1:1) recommended for Brand Logo</div>
+          <div><i className="fas fa-check" style={{ color: '#16a34a', marginRight: '4px' }} /> Max 10MB per image, 50MB per video</div>
+        </div>
+      </section>
 
       {/* ── 1. BRAND IDENTITY & CONTACT BAR ── */}
       <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
@@ -1026,42 +1122,67 @@ export default function SectionContentStudio({
               </p>
             </div>
 
-            {/* Language Switcher */}
-            <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px', border: '1px solid #e2e8f0' }}>
+            {/* Language Switcher & AI Generator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => setBlogLangTab('en')}
+                onClick={handleGenerateAiStory}
+                disabled={generatingAi}
                 style={{
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                  color: '#fff',
                   border: 'none',
-                  background: blogLangTab === 'en' ? '#1e293b' : 'transparent',
-                  color: blogLangTab === 'en' ? '#fff' : '#64748b',
-                  padding: '5px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
                   fontWeight: 900,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
+                  fontSize: '0.75rem',
+                  cursor: generatingAi ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 10px rgba(99,102,241,0.25)'
                 }}
               >
-                🇬🇧 English Story
+                <i className={generatingAi ? "fas fa-spinner fa-spin" : "fas fa-wand-magic-sparkles"} />
+                {generatingAi ? 'Generating Story with AI...' : '✨ Generate Bilingual Story with AI'}
               </button>
-              <button
-                type="button"
-                onClick={() => setBlogLangTab('ar')}
-                style={{
-                  border: 'none',
-                  background: blogLangTab === 'ar' ? '#D4AF37' : 'transparent',
-                  color: blogLangTab === 'ar' ? '#1a1000' : '#64748b',
-                  padding: '5px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-              >
-                🇪🇬 القصة بالعربية
-              </button>
+
+              <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px', border: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  onClick={() => setBlogLangTab('en')}
+                  style={{
+                    border: 'none',
+                    background: blogLangTab === 'en' ? '#1e293b' : 'transparent',
+                    color: blogLangTab === 'en' ? '#fff' : '#64748b',
+                    padding: '5px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  🇬🇧 English Story
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBlogLangTab('ar')}
+                  style={{
+                    border: 'none',
+                    background: blogLangTab === 'ar' ? '#D4AF37' : 'transparent',
+                    color: blogLangTab === 'ar' ? '#1a1000' : '#64748b',
+                    padding: '5px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  🇪🇬 القصة بالعربية
+                </button>
+              </div>
             </div>
           </div>
 

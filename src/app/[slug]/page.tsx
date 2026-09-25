@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
-import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
+import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
 
     const data = biz.custom_data || {};
-    const identity = data.basic || data.sec_1_identity || data.business_info || {};
+    const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
     const vibe = data.vibe || data.sec_3_services || {};
     
     const description = identity.description || identity.section_blog 
@@ -215,7 +215,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     }
 
     // Fetch sections directly from DB
-    const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
+    const [typeData] = await safeQuery<any>('SELECT name, sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
     let sections: any[] = [];
     let sectionIds: string[] = [];
 
@@ -225,6 +225,12 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
       ];
       sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
+
+      // Keep tourism minisites usable when an older business type has no section
+      // assignment yet. Explicit type assignments still take precedence.
+      if (sectionIds.length === 0 && /tourism|travel|tour operator|agency/i.test(`${biz.type_id} ${typeData.name || ''} ${biz.name || ''}`)) {
+        sectionIds = [...TRAVEL_AGENCY_CORE_SECTION_IDS];
+      }
 
       if (sectionIds.length > 0) {
         const placeholders = sectionIds.map(() => '?').join(',');

@@ -55,6 +55,7 @@ export default function BusinessFormsPage() {
   const [newBiz, setNewBiz] = useState({
     name: '',
     type_id: '',
+    parent_type_id: '',
     email: '',
     phone: '',
     description: '',
@@ -101,6 +102,12 @@ export default function BusinessFormsPage() {
   }
 
   const parentTypes = types.filter(t => (t.is_parent || Number(t.is_parent) === 1) && t.active !== false && Number(t.active) !== 0);
+  const newBizParentTypes = parentTypes;
+  const newBizChildTypes = types.filter(t =>
+    String(t.parent_id || '') === String(newBiz.parent_type_id) &&
+    t.active !== false &&
+    Number(t.active) !== 0
+  );
   const childTypes = types.filter(t => t.parent_id === selectedParentId);
   const selectedManagerTypeId = managerTarget === 'business'
     ? businesses.find(b => b.id === selectedBusinessId)?.type_id || ''
@@ -362,6 +369,18 @@ export default function BusinessFormsPage() {
     }
   }
 
+  function handleNewBizParentChange(parentId: string) {
+    setNewBiz(prev => ({
+      ...prev,
+      parent_type_id: parentId,
+      type_id: '',
+      custom_data: {},
+    }));
+    setNewBizFields([]);
+    setNewBizSections([]);
+    setNewBizActiveTab('');
+  }
+
   // Handle dynamic form data edits for onboarding wizard
   const handleNewBizDataChange = (sectionId: string, name: string, value: any) => {
     setNewBiz(prev => {
@@ -374,8 +393,8 @@ export default function BusinessFormsPage() {
 
   // Submit new registration from wizard
   async function handleSubmitRegistration() {
-    if (!newBiz.name.trim() || !newBiz.type_id) {
-      alert('Please fill out Business Name and Typology');
+    if (!newBiz.parent_type_id || !newBiz.type_id || !newBiz.name.trim()) {
+      alert('Please select a parent category, child typology, and business name');
       return;
     }
     
@@ -400,6 +419,7 @@ export default function BusinessFormsPage() {
         setNewBiz({
           name: '',
           type_id: '',
+          parent_type_id: '',
           email: '',
           phone: '',
           description: '',
@@ -1006,32 +1026,13 @@ export default function BusinessFormsPage() {
                   <h3 style={{ margin: '0 0 1.5rem 0', fontWeight: 800, fontSize: '1.25rem' }}>Step 1: Core Entity Details</h3>
                   <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: '1fr 1fr' }}>
                     
-                    {/* Name */}
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Official Business Name *</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="e.g. Siwa Salt Lake Eco Lodge"
-                        value={newBiz.name}
-                        onChange={e => setNewBiz({ ...newBiz, name: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem 1rem',
-                          border: '1.5px solid #e2e8f0',
-                          borderRadius: '10px',
-                          fontSize: '0.95rem'
-                        }}
-                      />
-                    </div>
-
-                    {/* Typology */}
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Business Typology (Archetype) *</label>
+                    {/* Parent category */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Parent Category *</label>
                       <select
                         className="form-control"
-                        value={newBiz.type_id}
-                        onChange={e => handleTypeChange(e.target.value)}
+                        value={newBiz.parent_type_id}
+                        onChange={e => handleNewBizParentChange(e.target.value)}
                         style={{
                           width: '100%',
                           padding: '0.8rem 1rem',
@@ -1041,14 +1042,60 @@ export default function BusinessFormsPage() {
                           appearance: 'auto'
                         }}
                       >
-                        <option value="">-- Select Typology --</option>
-                        {types.map(t => (
+                        <option value="">-- Select Parent Category --</option>
+                        {newBizParentTypes.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Child typology */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Child Typology *</label>
+                      <select
+                        className="form-control"
+                        value={newBiz.type_id}
+                        onChange={e => handleTypeChange(e.target.value)}
+                        disabled={!newBiz.parent_type_id}
+                        style={{
+                          width: '100%',
+                          padding: '0.8rem 1rem',
+                          border: '1.5px solid #e2e8f0',
+                          borderRadius: '10px',
+                          fontSize: '0.95rem',
+                          appearance: 'auto',
+                          background: !newBiz.parent_type_id ? '#f8fafc' : '#fff'
+                        }}
+                      >
+                        <option value="">{newBiz.parent_type_id ? '-- Select Child Typology --' : '-- Select Parent First --'}</option>
+                        {newBizChildTypes.map(t => (
                           <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                       </select>
                       <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.7rem', color: '#94a3b8' }}>
-                        This choice dynamically configures the fields in step 2.
+                        The child typology dynamically configures the DNA fields in step 2.
                       </p>
+                    </div>
+
+                    {/* Name, after typology selection */}
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Official Business Name *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder={newBiz.type_id ? 'e.g. Siwa Salt Lake Eco Lodge' : 'Select a child typology first'}
+                        value={newBiz.name}
+                        onChange={e => setNewBiz({ ...newBiz, name: e.target.value })}
+                        disabled={!newBiz.type_id}
+                        style={{
+                          width: '100%',
+                          padding: '0.8rem 1rem',
+                          border: '1.5px solid #e2e8f0',
+                          borderRadius: '10px',
+                          fontSize: '0.95rem',
+                          background: !newBiz.type_id ? '#f8fafc' : '#fff'
+                        }}
+                      />
                     </div>
 
                     {/* Email */}
@@ -1113,7 +1160,7 @@ export default function BusinessFormsPage() {
                   <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       onClick={() => setStep(2)}
-                      disabled={!newBiz.name.trim() || !newBiz.type_id}
+                      disabled={!newBiz.name.trim() || !newBiz.parent_type_id || !newBiz.type_id}
                       className="btn"
                       style={{
                         background: '#1e293b',
@@ -1122,8 +1169,8 @@ export default function BusinessFormsPage() {
                         padding: '0.8rem 2rem',
                         borderRadius: '12px',
                         fontWeight: 800,
-                        cursor: (!newBiz.name.trim() || !newBiz.type_id) ? 'not-allowed' : 'pointer',
-                        opacity: (!newBiz.name.trim() || !newBiz.type_id) ? 0.5 : 1
+                        cursor: (!newBiz.name.trim() || !newBiz.parent_type_id || !newBiz.type_id) ? 'not-allowed' : 'pointer',
+                        opacity: (!newBiz.name.trim() || !newBiz.parent_type_id || !newBiz.type_id) ? 0.5 : 1
                       }}
                     >
                       Next Step <i className="fas fa-arrow-right" style={{ marginLeft: '0.5rem' }}></i>

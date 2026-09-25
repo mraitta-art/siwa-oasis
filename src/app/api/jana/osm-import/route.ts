@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, queryOne } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
+import { createBusinessEntity } from '@/lib/business-creation';
 
 const SIWA_BBOX = '29.10,25.35,29.35,25.75';
 const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
-
-function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
-}
 
 function classify(tags: Record<string, string> = {}) {
   const text = `${tags.tourism || ''} ${tags.name || ''} ${tags.description || ''}`.toLowerCase();
@@ -71,7 +68,6 @@ export async function POST(request: NextRequest) {
     if (duplicate) return NextResponse.json({ error: `Already imported as ${duplicate.name}`, id: duplicate.id }, { status: 409 });
 
     const typeId = body.type_id || place.type_id || 'hotel';
-    const id = crypto.randomUUID();
     const customData = {
       sec_1_identity: { description: place.description || '', source_name: 'OpenStreetMap' },
       sec_2_ambience: {},
@@ -87,15 +83,19 @@ export async function POST(request: NextRequest) {
       contact: { phone: place.phone || '', website: place.website || '' },
       source: { provider: 'openstreetmap', source_id: place.source_id, imported_at: new Date().toISOString(), tags: place.tags || {} },
     };
-    await execute(
-      `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, custom_data, status, published, approved_by_vendor)
-       VALUES (?, ?, ?, ?, 'free', ?, 'pending', 0, 0)`,
-      [id, place.name, `${slugify(place.name)}-${id.slice(0, 8)}`, typeId, JSON.stringify(customData)]
-    );
+    const created = await createBusinessEntity({
+      name: place.name,
+      type_id: typeId,
+      custom_data: customData,
+      status: 'pending',
+      is_standalone: true,
+      source: 'openstreetmap_import',
+      actor_id: user.id,
+    });
     try {
       await execute('INSERT INTO activity_log (message, user_email) VALUES (?, ?)', [`OpenStreetMap draft imported: ${place.name}`, user.email]);
     } catch {}
-    return NextResponse.json({ success: true, id, status: 'pending', attribution: 'OpenStreetMap contributors' }, { status: 201 });
+    return NextResponse.json({ success: true, id: created.id, status: 'pending', attribution: 'OpenStreetMap contributors' }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Could not save OpenStreetMap draft' }, { status: 500 });
   }
