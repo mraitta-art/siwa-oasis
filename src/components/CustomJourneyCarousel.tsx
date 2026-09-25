@@ -21,67 +21,34 @@ export default function CustomJourneyCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Sample data for demonstration
-  const samplePackages: JourneyPackage[] = [
-    {
-      id: 'pkg_1',
-      name: 'Desert Wellness Escape',
-      description: 'Therapeutic sand baths, salt spring immersion, and yoga sessions with gourmet healthy cuisine',
-      duration_days: 4,
-      price_usd: 1200,
-      vibe: 'wellness',
-      consultant_name: 'Amira Al-Siwi',
-      total_items: 5,
-      image_url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
-    },
-    {
-      id: 'pkg_2',
-      name: 'Adventure Explorer\'s Dream',
-      description: '4x4 desert safari, camel trekking, ancient site exploration, and stargazing under the Milky Way',
-      duration_days: 5,
-      price_usd: 1500,
-      vibe: 'adventure',
-      consultant_name: 'Hassan Mohamed',
-      total_items: 6,
-      image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
-    },
-    {
-      id: 'pkg_3',
-      name: 'Culinary Heritage Journey',
-      description: 'Cooking classes, organic date harvest, traditional kitchen experiences, and farm-to-table dining',
-      duration_days: 3,
-      price_usd: 900,
-      vibe: 'culinary',
-      consultant_name: 'Fatima El-Siwi',
-      total_items: 4,
-      image_url: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=800',
-    },
-    {
-      id: 'pkg_4',
-      name: 'Cultural Deep Dive',
-      description: 'Homestays, museum tours, elder storytelling, traditional ceremonies, and artisan workshops',
-      duration_days: 6,
-      price_usd: 1400,
-      vibe: 'cultural',
-      consultant_name: 'Khalil Hassan',
-      total_items: 7,
-      image_url: 'https://images.unsplash.com/photo-1516026672322-5e36f05c2ce7?q=80&w=800',
-    },
-  ];
-
   useEffect(() => {
     const loadPackages = async () => {
       try {
-        // In production, fetch from API
-        // const res = await fetch('/api/custom-journey-packages?is_featured=true');
-        // const data = await res.json();
-        // setPackages(data.packages);
-
-        // For now, use sample data
-        setPackages(samplePackages);
-        setLoading(false);
+        const res = await fetch('/api/jana/marketplace?status=approved');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = data.map((item: any) => ({
+              id: item.id,
+              name: item.title || item.name,
+              description: item.description || '',
+              duration_days: item.duration_value || 1,
+              price_usd: item.price_amount ? Number(item.price_amount) : undefined,
+              vibe: item.category_id || 'adventure',
+              consultant_name: item.business_name || 'Siwa Guide',
+              total_items: Array.isArray(item.included_features) ? item.included_features.length : 4,
+              image_url: Array.isArray(item.media) && item.media[0] ? (typeof item.media[0] === 'string' ? item.media[0] : item.media[0].url) : undefined,
+            }));
+            setPackages(mapped);
+            setLoading(false);
+            return;
+          }
+        }
+        setPackages([]);
       } catch (error) {
-        console.error('Error loading packages:', error);
+        console.error('Error loading dynamic packages:', error);
+        setPackages([]);
+      } finally {
         setLoading(false);
       }
     };
