@@ -125,21 +125,35 @@ function ContentManagementContent() {
     setSaving(true);
     setSaveMessage('');
     try {
+      // ALWAYS include identity/basic keys — never drop them via diff
+      const ALWAYS_INCLUDE_KEYS = ['basic', 'sec_1_identity', 'section_labels', 'section_labels_ar'];
       const changedCustomData = Object.fromEntries(
         Object.entries(nextCustomData).filter(([key, value]) =>
+          ALWAYS_INCLUDE_KEYS.includes(key) ||
           JSON.stringify(value) !== JSON.stringify(business.custom_data?.[key])
         )
       );
+
+      // Save logo_url directly on the business row as well
+      const logoUrl =
+        nextCustomData?.sec_1_identity?.business_logo ||
+        nextCustomData?.basic?.business_logo ||
+        nextCustomData?.business_logo ||
+        null;
+
+      const payload: Record<string, any> = { id: business.id, custom_data: changedCustomData };
+      if (logoUrl) payload.logo_url = logoUrl;
+
       const res = await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: business.id, custom_data: changedCustomData }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         throw new Error(errorBody?.error || `Save failed (HTTP ${res.status})`);
       }
-      setBusiness((prev: any) => ({ ...prev, custom_data: nextCustomData }));
+      setBusiness((prev: any) => ({ ...prev, custom_data: nextCustomData, logo_url: logoUrl || prev.logo_url }));
       setSaveMessage('All media, placements, captions, and blog stories saved successfully!');
     } catch (err: any) {
       setSaveMessage(err.message || 'Save failed');

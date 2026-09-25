@@ -148,11 +148,22 @@ export default function BusinessOrchestrator() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Always include identity keys in the diff — never skip basic/sec_1_identity
+      const ALWAYS_INCLUDE_KEYS = ['basic', 'sec_1_identity', 'section_labels', 'section_labels_ar'];
       const changedCustomData = Object.fromEntries(
         Object.entries(biz.custom_data || {}).filter(([key, value]) =>
+          ALWAYS_INCLUDE_KEYS.includes(key) ||
           JSON.stringify(value) !== JSON.stringify(initialCustomDataRef.current[key])
         )
       );
+
+      // Extract logo from custom_data so it is also saved to the direct column
+      const logoUrl =
+        biz.custom_data?.sec_1_identity?.business_logo ||
+        biz.custom_data?.basic?.business_logo ||
+        biz.logo_url ||
+        null;
+
       const res = await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -164,6 +175,16 @@ export default function BusinessOrchestrator() {
           vendor_id: biz.vendor_id,
           template_id: biz.template_id,
           status: biz.status,
+          published: biz.published,
+          description: biz.description,
+          short_description: biz.short_description,
+          phone: biz.phone,
+          email: biz.email,
+          website: biz.website,
+          address: biz.address,
+          city: biz.city,
+          ...(logoUrl ? { logo_url: logoUrl } : {}),
+          ...(biz.cover_image ? { cover_image: biz.cover_image } : {}),
           custom_data: changedCustomData,
         }),
       });
