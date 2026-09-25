@@ -107,15 +107,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Always also save a local E: copy for the local app
+    // 2. Save local copy only when filesystem is available (not on Vercel serverless)
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || !process.env.SIWA_MEDIA_ROOT);
     const ext = file.name.split('.').pop() || 'bin';
     const filename = `${crypto.randomUUID()}.${ext}`;
     const localSubfolder = `businesses/${safeMediaSegment(bizName, 'general')}/${safeMediaSegment(sectionName, 'general')}`;
-    const localResult = saveUploadedBuffer(buffer, filename, localSubfolder);
-    console.log(`✅ File uploaded locally: ${localResult.url}`);
+    let localUrl = '';
 
+    if (!isServerless) {
+      try {
+        const localResult = saveUploadedBuffer(buffer, filename, localSubfolder);
+        localUrl = localResult.url;
+        console.log(`✅ File uploaded locally: ${localUrl}`);
+        if (!finalUrl) finalUrl = localUrl;
+      } catch (fsErr: any) {
+        console.warn('[FS SAVE SKIPPED]', fsErr.message);
+      }
+    }
+
+    // 3. Last resort — base64 data URL (always works, even on serverless)
     if (!finalUrl) {
-      finalUrl = localResult.url;
+      finalUrl = `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+      console.warn('[UPLOAD] Using base64 fallback — Cloudinary not configured or failed');
     }
 
     // Store file hash for future duplicate detection if available
@@ -125,10 +138,9 @@ export async function POST(request: NextRequest) {
           `INSERT INTO uploaded_files (file_hash, url, localUrl, file_name, file_size, mime_type, folder, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
            ON DUPLICATE KEY UPDATE created_at = NOW()`,
-          [fileHash, finalUrl, localResult.url, file.name, file.size, file.type, cloudFolder]
+          [fileHash, finalUrl, localUrl || finalUrl, file.name, file.size, file.type, cloudFolder]
         );
       } catch (dbErr: any) {
-        // Silently disable future attempts if this fails
         _uploadedFilesTableAvailable = false;
         if (process.env.NODE_ENV !== 'production') {
           console.log('[INFO] File hash storage failed — disabling further hash stores:', dbErr.message);
@@ -136,7 +148,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ url: finalUrl, localUrl: localResult.url, folder: cloudFolder, isDuplicate: false });
+    return NextResponse.json({ url: finalUrl, localUrl: localUrl || finalUrl, folder: cloudFolder, isDuplicate: false });
+
   } catch (err: any) {
     console.error('❌ [UPLOAD API ERROR]:', err);
     return NextResponse.json({ 
