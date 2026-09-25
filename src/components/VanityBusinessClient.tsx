@@ -261,12 +261,12 @@ export default function VanityBusinessClient({
       if (!section || !section.id) return false;
       if (seenIds.has(section.id)) return false;
       if (!allowedIds.has(section.id)) return false;
-      if (!isSectionApprovedForMinisite(section.id, data)) return false;
+      if (!isSectionApprovedForMinisite(section.id, data, undefined, isAdmin)) return false;
 
       seenIds.add(section.id);
       return true;
     });
-  }, [sections, data, biz?.type_id]);
+  }, [sections, data, biz?.type_id, isAdmin]);
   
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
   const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };

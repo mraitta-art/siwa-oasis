@@ -202,17 +202,21 @@ export async function PUT(request: NextRequest) {
       const base = (typeof customDataToSave === 'object' && customDataToSave !== null) ? { ...cur, ...customDataToSave } : { ...cur };
       if (!base.basic) base.basic = {};
       if (!base.sec_1_identity) base.sec_1_identity = {};
+      if (!base.business_info) base.business_info = {};
       if (updates.logo_url) {
         base.basic.business_logo = updates.logo_url;
+        base.basic.logo = updates.logo_url;
+        base.business_info.business_logo = updates.logo_url;
+        base.business_info.logo = updates.logo_url;
         base.sec_1_identity.business_logo = updates.logo_url;
         base.sec_1_identity.logo = updates.logo_url;
         base.business_logo = updates.logo_url;
       }
-      if (updates.cover_image) { base.basic.cover_image = updates.cover_image; base.sec_1_identity.cover_image = updates.cover_image; }
-      if (updates.phone) { base.basic.phone = updates.phone; base.sec_1_identity.phone = updates.phone; }
-      if (updates.email) { base.basic.email = updates.email; base.sec_1_identity.email = updates.email; }
-      if (updates.website) { base.basic.website = updates.website; base.sec_1_identity.website = updates.website; }
-      if (updates.description) { base.basic.description = updates.description; }
+      if (updates.cover_image) { base.basic.cover_image = updates.cover_image; base.business_info.cover_image = updates.cover_image; base.sec_1_identity.cover_image = updates.cover_image; }
+      if (updates.phone) { base.basic.phone = updates.phone; base.business_info.phone = updates.phone; base.sec_1_identity.phone = updates.phone; }
+      if (updates.email) { base.basic.email = updates.email; base.business_info.email = updates.email; base.sec_1_identity.email = updates.email; }
+      if (updates.website) { base.basic.website = updates.website; base.business_info.website = updates.website; base.sec_1_identity.website = updates.website; }
+      if (updates.description) { base.basic.description = updates.description; base.business_info.description = updates.description; }
       customDataToSave = base;
     }
 
@@ -316,7 +320,11 @@ export async function PATCH(request: NextRequest) {
     if (updates.logo_url) {
       if (!mergedData.basic) mergedData.basic = {};
       if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
+      if (!mergedData.business_info) mergedData.business_info = {};
       mergedData.basic.business_logo = updates.logo_url;
+      mergedData.basic.logo = updates.logo_url;
+      mergedData.business_info.business_logo = updates.logo_url;
+      mergedData.business_info.logo = updates.logo_url;
       mergedData.sec_1_identity.business_logo = updates.logo_url;
       mergedData.sec_1_identity.logo = updates.logo_url;
       mergedData.business_logo = updates.logo_url;
@@ -324,24 +332,40 @@ export async function PATCH(request: NextRequest) {
     if (updates.cover_image) {
       if (!mergedData.basic) mergedData.basic = {};
       if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
+      if (!mergedData.business_info) mergedData.business_info = {};
       mergedData.basic.cover_image = updates.cover_image;
+      mergedData.business_info.cover_image = updates.cover_image;
       mergedData.sec_1_identity.cover_image = updates.cover_image;
     }
     if (updates.phone) {
       if (!mergedData.basic) mergedData.basic = {};
+      if (!mergedData.business_info) mergedData.business_info = {};
+      if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
       mergedData.basic.phone = updates.phone;
+      mergedData.business_info.phone = updates.phone;
+      mergedData.sec_1_identity.phone = updates.phone;
     }
     if (updates.email) {
       if (!mergedData.basic) mergedData.basic = {};
+      if (!mergedData.business_info) mergedData.business_info = {};
+      if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
       mergedData.basic.email = updates.email;
+      mergedData.business_info.email = updates.email;
+      mergedData.sec_1_identity.email = updates.email;
     }
     if (updates.website) {
       if (!mergedData.basic) mergedData.basic = {};
+      if (!mergedData.business_info) mergedData.business_info = {};
+      if (!mergedData.sec_1_identity) mergedData.sec_1_identity = {};
       mergedData.basic.website = updates.website;
+      mergedData.business_info.website = updates.website;
+      mergedData.sec_1_identity.website = updates.website;
     }
     if (updates.description) {
       if (!mergedData.basic) mergedData.basic = {};
+      if (!mergedData.business_info) mergedData.business_info = {};
       mergedData.basic.description = updates.description;
+      mergedData.business_info.description = updates.description;
     }
 
     sets.push(`custom_data = ?`);

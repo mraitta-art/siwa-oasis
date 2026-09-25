@@ -2,19 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
-import { getPublicAppUrl } from '@/lib/public-url';
+import { getPublicAppUrl, normalizeBusinessSlug } from '@/lib/public-url';
 import { createBusinessEntity } from '@/lib/business-creation';
 
 function slugify(text: string): string {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
+  return normalizeBusinessSlug(text);
 }
 
 /** Read vendor_registration_mode from admin_settings */
@@ -86,7 +78,7 @@ export async function POST(req: NextRequest) {
       phone: String(contact?.phone || '').trim(),
     }));
 
-    if (!email || !password || !phone || normalizedContacts.length !== 3 || normalizedContacts.some(c => !c.phone) || (!businessId && !newBusinessName) || !businessType) {
+    if (!email || !password || !phone || normalizedContacts.length === 0 || normalizedContacts.some(c => !c.phone) || (!businessId && !newBusinessName) || !businessType) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
     }
     if (!normalizedContacts.some(c => c.name)) {
@@ -95,8 +87,8 @@ export async function POST(req: NextRequest) {
     if (normalizedContacts.some(c => !/^\+[1-9][0-9]{7,14}$/.test(c.phone))) {
       return NextResponse.json({ error: 'Each registration contact must use a valid international phone number' }, { status: 400 });
     }
-    if (new Set(normalizedContacts.map(c => c.phone)).size !== 3) {
-      return NextResponse.json({ error: 'The three registration contact numbers must be different' }, { status: 400 });
+    if (new Set(normalizedContacts.map(c => c.phone)).size !== normalizedContacts.length) {
+      return NextResponse.json({ error: 'Registration contact numbers must be different' }, { status: 400 });
     }
 
     if (!termsAccepted) {

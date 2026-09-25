@@ -19,44 +19,15 @@ interface VendorInfo {
 /* ─── Nav Structure ──────────────────────────────────────── */
 const NAV_GROUPS = [
   {
-    title: 'Dashboard',
+    title: 'Business Setup',
     items: [
-      { name: 'Overview',        href: '/vendor',                          icon: 'fa-grid-2',      faIcon: 'fa-th-large' },
-      { name: 'Analytics',       href: '/vendor/analytics',                icon: 'fa-chart-line',  faIcon: 'fa-chart-line' },
-    ],
-  },
-  {
-    title: 'My Business',
-    items: [
-      { name: 'Content & Profile',  href: '/vendor/sections',              faIcon: 'fa-layer-group' },
-      { name: 'Media Gallery',      href: '/vendor/media',                 faIcon: 'fa-images' },
-      { name: 'Theme & Publish',    href: '/vendor/minisite',              faIcon: 'fa-globe',      badge: 'LIVE' },
-      { name: 'Template Library',   href: '/vendor/templates',              faIcon: 'fa-palette' },
-    ],
-  },
-  {
-    title: 'Sales & Leads',
-    items: [
-      { name: 'Journey Requests',   href: '/vendor/journey-requests',      faIcon: 'fa-route',      badge: 'REQ' },
-      { name: 'Catalog & Offers',   href: '/vendor/packages',              faIcon: 'fa-box-open' },
-      { name: '✦ Package Studio',   href: '/vendor/package-studio',        faIcon: 'fa-wand-magic-sparkles', badge: 'NEW' },
-    ],
-  },
-  {
-    title: 'Account & Services',
-    items: [
-      { name: 'Plan, QR & Services', href: '/vendor/services', faIcon: 'fa-layer-group' },
-      { name: 'Verification', href: '/vendor/verification', faIcon: 'fa-user-check' },
+      { name: 'Intake & Business Studio', href: '/vendor', faIcon: 'fa-briefcase' },
     ],
   },
 ];
 
 const MOBILE_TABS = [
-  { name: 'Home',     href: '/vendor',                   faIcon: 'fa-th-large' },
-  { name: 'Content',  href: '/vendor/sections',          faIcon: 'fa-layer-group' },
-  { name: 'Media',    href: '/vendor/media',             faIcon: 'fa-images' },
-  { name: 'Requests', href: '/vendor/journey-requests',  faIcon: 'fa-route' },
-  { name: 'Services', href: '/vendor/services',           faIcon: 'fa-qrcode' },
+  { name: 'Intake', href: '/vendor', faIcon: 'fa-briefcase' },
 ];
 
 /* ─── CSS injected once ───────────────────────────────────── */
@@ -516,6 +487,13 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
+  /* Redirect any legacy vendor screens back to the single intake studio */
+  useEffect(() => {
+    if (pathname && pathname.startsWith('/vendor/') && pathname !== '/vendor') {
+      router.replace('/vendor');
+    }
+  }, [pathname, router]);
+
   /* Active route check */
   const isActive = useCallback((href: string) =>
     pathname === href || (href !== '/vendor' && pathname.startsWith(href + '/')),
@@ -523,7 +501,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
 
   /* Page title from route */
   const pageTitle = (() => {
-    if (pathname === '/vendor') return 'Overview';
+    if (pathname === '/vendor') return 'Business Intake';
     const seg = pathname.split('/').filter(Boolean).pop() || '';
     return seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   })();
@@ -581,9 +559,9 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="vs-ring-pct">{vendor.profilePct}% complete</div>
           </div>
           <Link
-            href="/vendor/sections"
+            href="/vendor"
             style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: 'var(--gold-dim)', border: '1px solid rgba(212,175,55,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
-            title="Edit Profile"
+            title="Business Intake"
           >
             <i className="fas fa-pen" style={{ fontSize: '0.65rem', color: 'var(--gold)' }} />
           </Link>

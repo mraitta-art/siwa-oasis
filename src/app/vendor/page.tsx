@@ -421,6 +421,11 @@ export default function VendorDashboardPage() {
   const [profilePct,  setProfilePct]  = useState(0);
   const [verificationStatus, setVerificationStatus] = useState<string>('unverified');
   const [trustRejectionNote, setTrustRejectionNote] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState('');
+  const [description, setDescription] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [savingIntake, setSavingIntake] = useState(false);
+  const [intakeMessage, setIntakeMessage] = useState('');
 
   /* ── Fetch data ── */
   useEffect(() => {
@@ -430,6 +435,13 @@ export default function VendorDashboardPage() {
       .then((data: any) => {
         if (data?.business) {
           setStory(data);
+          const basic = data.business?.custom_data?.basic || {};
+          const secOne = data.business?.custom_data?.sec_1_identity || {};
+          const businessInfo = data.business?.custom_data?.business_info || {};
+          const resolvedLogo = basic.business_logo || basic.logo || secOne.business_logo || secOne.logo || businessInfo.business_logo || businessInfo.logo || '';
+          setBusinessName(data.business.name || '');
+          setDescription(data.business.description || basic.description || '');
+          setLogoUrl(resolvedLogo);
           const total  = data.structure.reduce((a: number, s: any) => a + s.fields.length, 0);
           const filled = data.structure.reduce((a: number, s: any) =>
             a + s.fields.filter((f: any) => f.value != null && f.value !== '').length, 0);
@@ -452,6 +464,69 @@ export default function VendorDashboardPage() {
   }, []);
 
   /* ── Derived ── */
+  async function handleLogoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('businessName', businessName || 'Vendor Business');
+    formData.append('sectionName', 'brand');
+
+    try {
+      const res = await fetch('/api/jana/media/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && (data.url || data.localUrl)) {
+        setLogoUrl(data.url || data.localUrl);
+        setIntakeMessage('Logo uploaded and ready to save.');
+      } else {
+        setIntakeMessage(data.error || 'Logo upload failed.');
+      }
+    } catch {
+      setIntakeMessage('Logo upload failed.');
+    }
+  }
+
+  async function handleSaveIntake() {
+    setSavingIntake(true);
+    setIntakeMessage('');
+    try {
+      const payload = {
+        data: {
+          basic: {
+            business_name: businessName,
+            business_logo: logoUrl,
+            logo: logoUrl,
+            description,
+          },
+          sec_1_identity: {
+            business_name: businessName,
+            business_logo: logoUrl,
+            logo: logoUrl,
+            description,
+          },
+          business_info: {
+            business_name: businessName,
+            business_logo: logoUrl,
+            logo: logoUrl,
+            description,
+          },
+        }
+      };
+      const res = await fetch('/api/vendor/story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Could not save the business setup');
+      setIntakeMessage('Business intake saved and the public page will use this information.');
+      if (story?.business?.slug) setIntakeMessage(`Business intake saved. Public link: /${story.business.slug}`);
+    } catch (e: any) {
+      setIntakeMessage(e.message || 'Save failed');
+    } finally {
+      setSavingIntake(false);
+    }
+  }
+
   const isPublished = !!(story?.business?.is_published || story?.business?.published);
   const isTrusted = !!story?.business?.is_trusted;
   const visibleUntil = story?.business?.minisite_visible_until;
@@ -512,6 +587,67 @@ export default function VendorDashboardPage() {
     <>
       <style dangerouslySetInnerHTML={{ __html: PAGE_CSS }} />
       <div className="vd-root">
+
+        <div style={{ marginBottom: '1.5rem', background: '#fff', border: '1px solid #eef0f5', borderRadius: '22px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <div>
+              <div style={{ fontSize: '0.62rem', letterSpacing: '1.2px', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase' }}>Business Intake</div>
+              <h2 style={{ margin: '0.35rem 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Create and manage your business from one place</h2>
+            </div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>
+              {story?.business?.slug ? `/${story.business.slug}` : '/your-business-link'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1.2rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>Business Name</label>
+              <input
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="Enter business name"
+                style={{ width: '100%', border: '1px solid #e2e8f0', background: '#fff', borderRadius: '12px', padding: '0.9rem 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}
+              />
+
+              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add your business description"
+                rows={4}
+                style={{ width: '100%', border: '1px solid #e2e8f0', background: '#fff', borderRadius: '12px', padding: '0.9rem 1rem', fontSize: '0.9rem', fontWeight: 500, color: '#0f172a', resize: 'vertical', marginBottom: '1rem' }}
+              />
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button onClick={handleSaveIntake} disabled={savingIntake} style={{ background: 'linear-gradient(135deg, #D4AF37, #f0c842)', border: 'none', color: '#1a1000', padding: '0.8rem 1.3rem', borderRadius: '12px', fontWeight: 900, cursor: 'pointer' }}>
+                  {savingIntake ? 'Saving...' : 'Save Business'}
+                </button>
+                {!story?.business?.slug && <span style={{ color: '#64748b', fontSize: '0.75rem', alignSelf: 'center' }}>The public link is created automatically when the record is saved.</span>}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>Business Logo</label>
+              <div style={{ width: '100%', minHeight: '180px', border: '1px dashed #dbe3ee', borderRadius: '16px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Business logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#64748b', padding: '1rem' }}>
+                    <i className="fas fa-image" style={{ fontSize: '2rem', marginBottom: '0.75rem', display: 'block' }} />
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>No logo yet</div>
+                  </div>
+                )}
+              </div>
+              <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ marginTop: '0.8rem', width: '100%' }} />
+            </div>
+          </div>
+
+          {intakeMessage && (
+            <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', color: '#7c5d00', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+              {intakeMessage}
+            </div>
+          )}
+        </div>
 
         {/* ─── Hero ─── */}
         <div className="vd-hero">

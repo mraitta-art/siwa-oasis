@@ -363,9 +363,17 @@ export default function SectionContentStudio({
     nextCustomData.section_labels_ar = { ...(nextCustomData.section_labels_ar || {}), [sectionId]: sectionLabelAr.trim() };
     
     // Core Basic & Brand Identity Assets
+    const safeLogo = logoUrl || nextCustomData.basic?.business_logo || nextCustomData.sec_1_identity?.business_logo || nextCustomData.business_logo || nextCustomData.logo || '';
+
+    nextCustomData.business_logo = safeLogo;
+    nextCustomData.logo = safeLogo;
+    nextCustomData.logo_url = safeLogo;
+
     nextCustomData.basic = {
       ...(nextCustomData.basic || {}),
-      business_logo: logoUrl || nextCustomData.basic?.business_logo,
+      business_logo: safeLogo,
+      logo: safeLogo,
+      logo_url: safeLogo,
       phone: phone.trim(),
       whatsapp: whatsapp.trim(),
       whatsapp_message: whatsappMsg.trim(),
@@ -375,11 +383,19 @@ export default function SectionContentStudio({
 
     nextCustomData.sec_1_identity = {
       ...(nextCustomData.sec_1_identity || {}),
-      business_logo: logoUrl,
-      logo: logoUrl,
+      business_logo: safeLogo,
+      logo: safeLogo,
+      logo_url: safeLogo,
       phone: phone.trim(),
       whatsapp: whatsapp.trim(),
       whatsapp_message: whatsappMsg.trim(),
+    };
+
+    nextCustomData.business_info = {
+      ...(nextCustomData.business_info || {}),
+      business_logo: safeLogo,
+      logo: safeLogo,
+      logo_url: safeLogo,
     };
 
     // Ensure placement aligns with in_carousel

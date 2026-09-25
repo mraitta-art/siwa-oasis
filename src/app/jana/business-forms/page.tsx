@@ -59,8 +59,10 @@ export default function BusinessFormsPage() {
     email: '',
     phone: '',
     description: '',
+    logo_url: '',
     custom_data: {} as Record<string, any>
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [newBizFields, setNewBizFields] = useState<any[]>([]);
   const [newBizSections, setNewBizSections] = useState<any[]>([]);
   const [newBizActiveTab, setNewBizActiveTab] = useState<string>('');
@@ -392,6 +394,42 @@ export default function BusinessFormsPage() {
   };
 
   // Submit new registration from wizard
+  async function handleLogoUpload(file: File, mode: 'new' | 'review' = 'new') {
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('businessName', mode === 'new' ? (newBiz.name || 'business') : (reviewBiz?.business_name || 'business'));
+      formData.append('sectionName', 'branding');
+
+      const res = await fetch('/api/jana/media/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await res.json();
+      const uploadedUrl = result.url || result.localUrl;
+
+      if (!res.ok || !uploadedUrl) {
+        notify(result.error || 'Logo upload failed', 'error');
+        return;
+      }
+
+      if (mode === 'new') {
+        setNewBiz(prev => ({ ...prev, logo_url: uploadedUrl }));
+        notify('Logo uploaded and ready to submit', 'success');
+      } else if (reviewBiz) {
+        setReviewBiz(prev => prev ? { ...prev, custom_data: { ...(prev.custom_data || {}), basic: { ...(prev.custom_data?.basic || {}), business_logo: uploadedUrl, logo: uploadedUrl }, sec_1_identity: { ...(prev.custom_data?.sec_1_identity || {}), business_logo: uploadedUrl, logo: uploadedUrl }, business_info: { ...(prev.custom_data?.business_info || {}), business_logo: uploadedUrl, logo: uploadedUrl }, business_logo: uploadedUrl, logo_url: uploadedUrl }, logo_url: uploadedUrl } : prev);
+        notify('Logo uploaded for review', 'success');
+      }
+    } catch (e) {
+      console.error('Logo upload error', e);
+      notify('Logo upload failed', 'error');
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
   async function handleSubmitRegistration() {
     if (!newBiz.parent_type_id || !newBiz.type_id || !newBiz.name.trim()) {
       alert('Please select a parent category, child typology, and business name');
@@ -409,6 +447,7 @@ export default function BusinessFormsPage() {
           email: newBiz.email,
           phone: newBiz.phone,
           description: newBiz.description,
+          logo_url: newBiz.logo_url,
           custom_data: newBiz.custom_data
         })
       });
@@ -423,6 +462,7 @@ export default function BusinessFormsPage() {
           email: '',
           phone: '',
           description: '',
+          logo_url: '',
           custom_data: {}
         });
         setNewBizFields([]);
@@ -1155,6 +1195,35 @@ export default function BusinessFormsPage() {
                         }}
                       />
                     </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Business Logo</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '1rem', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
+                        <div style={{ width: '140px', height: '140px', borderRadius: '14px', overflow: 'hidden', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1' }}>
+                          {newBiz.logo_url ? (
+                            <img src={newBiz.logo_url} alt="Business logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ color: '#64748b', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700 }}>No logo</div>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) await handleLogoUpload(file, 'new');
+                              e.target.value = '';
+                            }}
+                            disabled={uploadingLogo}
+                            style={{ width: '100%' }}
+                          />
+                          <div style={{ marginTop: '0.55rem', fontSize: '0.72rem', color: '#64748b' }}>
+                            {uploadingLogo ? 'Uploading logo...' : 'Upload a logo to store it with the business record and public minisite.'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
@@ -1291,6 +1360,33 @@ export default function BusinessFormsPage() {
               >
                 <i className="fas fa-times-circle"></i>
               </button>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ width: '100px', height: '100px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {(reviewBiz.custom_data?.basic?.business_logo || reviewBiz.custom_data?.sec_1_identity?.business_logo || reviewBiz.custom_data?.business_info?.business_logo || reviewBiz.custom_data?.business_logo || reviewBiz.logo_url) ? (
+                    <img src={reviewBiz.custom_data?.basic?.business_logo || reviewBiz.custom_data?.sec_1_identity?.business_logo || reviewBiz.custom_data?.business_info?.business_logo || reviewBiz.custom_data?.business_logo || reviewBiz.logo_url} alt="Business logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, textAlign: 'center' }}>No logo</div>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Brand logo</div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) await handleLogoUpload(file, 'review');
+                      e.target.value = '';
+                    }}
+                    disabled={uploadingLogo}
+                    style={{ width: '100%' }}
+                  />
+                  <div style={{ marginTop: '0.45rem', fontSize: '0.7rem', color: '#64748b' }}>{uploadingLogo ? 'Uploading...' : 'Upload logo and keep it synced with the public minisite record.'}</div>
+                </div>
+              </div>
             </div>
 
             {/* Meta Information */}

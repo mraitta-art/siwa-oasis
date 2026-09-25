@@ -65,6 +65,67 @@ export function resolveSectionId(id: string): string {
   return LEGACY_SECTION_ALIASES[id] || id;
 }
 
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+      }
+    } catch {
+      // Fall through to comma-separated parsing below.
+    }
+
+    return trimmed
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function collectSectionData(customData: Record<string, any> | undefined, sectionId: string): Record<string, any> {
+  const normalizedId = resolveSectionId(sectionId);
+  const candidates = [
+    customData?.[normalizedId],
+    customData?.[sectionId],
+    customData?.basic?.[normalizedId],
+    customData?.basic?.[sectionId],
+    customData?.basic,
+    customData?.sec_1_identity?.[normalizedId],
+    customData?.sec_1_identity?.[sectionId],
+    customData?.sec_1_identity,
+    customData?.business_info?.[normalizedId],
+    customData?.business_info?.[sectionId],
+    customData?.business_info,
+  ];
+
+  return candidates.reduce<Record<string, any>>((acc, candidate) => {
+    if (!candidate || typeof candidate !== 'object') return acc;
+    return { ...acc, ...candidate };
+  }, {});
+}
+
+function collectVisibilitySet(customData: Record<string, any> | undefined, key: 'visible_sections' | 'hidden_sections'): Set<string> {
+  const values = [
+    customData?.[key],
+    customData?.basic?.[key],
+    customData?.sec_1_identity?.[key],
+    customData?.business_info?.[key],
+  ];
+
+  const ids = values.flatMap(toStringArray).map(resolveSectionId);
+  return new Set(ids);
+}
+
 export function normalizeSectionIds(value: unknown, fallbackToAll = false): string[] {
   let ids: unknown[] = [];
   if (Array.isArray(value)) ids = value;
@@ -93,7 +154,9 @@ export function getEffectiveSectionLabel(sectionId: string, fallbackName?: strin
   return resolved ? String(resolved).trim() : fallbackName || sectionId;
 }
 
-export function isSectionHidden(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null, templateHidden: unknown[] = []): boolean {
+export function isSectionHidden(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null, templateHidden: unknown[] = [], isAdmin = false): boolean {
+  if (isAdmin) return false;
+
   const normalizedId = resolveSectionId(sectionId);
 
   // 1. Explicit admin per-business control override
@@ -104,34 +167,46 @@ export function isSectionHidden(sectionId: string, customData?: Record<string, a
     return false;
   }
 
-  // 2. Explicit customData per-business visible override
-  const visibleFromCustom = Array.isArray(customData?.basic?.visible_sections)
-    ? customData.basic.visible_sections
-    : (Array.isArray(customData?.visible_sections) ? customData.visible_sections : []);
-
-  const visibleSet = new Set<string>(visibleFromCustom.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId));
+  // 2. Explicit customData per-business visible override across all legacy + modern shapes
+  const visibleSet = new Set<string>([
+    ...collectVisibilitySet(customData, 'visible_sections'),
+    ...templateHidden.filter((id): id is string => typeof id === 'string').map(resolveSectionId),
+  ]);
   if (visibleSet.has(normalizedId) || visibleSet.has(sectionId)) {
     return false;
   }
 
-  // 3. CustomData per-business hidden override
-  const hiddenFromCustom = Array.isArray(customData?.basic?.hidden_sections)
-    ? customData.basic.hidden_sections
-    : (Array.isArray(customData?.hidden_sections) ? customData.hidden_sections : []);
-
+  // 3. CustomData per-business hidden override across all legacy + modern shapes
   const hiddenSet = new Set<string>([
-    ...templateHidden.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId),
-    ...hiddenFromCustom.filter((id: unknown): id is string => typeof id === 'string').map(resolveSectionId),
+    ...templateHidden.filter((id): id is string => typeof id === 'string').map(resolveSectionId),
+    ...collectVisibilitySet(customData, 'hidden_sections'),
   ]);
 
   return hiddenSet.has(normalizedId) || hiddenSet.has(sectionId);
 }
 
-export function getSectionApprovalState(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null): { approved: boolean; valid: boolean; reason?: string; data: Record<string, any> } {
+export function getSectionApprovalState(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null, isAdmin = false): { approved: boolean; valid: boolean; reason?: string; data: Record<string, any> } {
   const normalizedId = resolveSectionId(sectionId);
-  const sectionData = (customData && typeof customData === 'object' && (customData[normalizedId] || customData[sectionId])) || {};
-  const approvalStatus = sectionData.approval_status || sectionData.section_approval_status || sectionControl?.approval_status;
-  const showOnMinisite = sectionData.show_on_minisite ?? sectionData.show_on_public ?? sectionControl?.show_on_minisite ?? true;
+  const sectionData = collectSectionData(customData, sectionId);
+
+  if (isAdmin) {
+    return { approved: true, valid: true, data: sectionData };
+  }
+
+  const approvalStatus =
+    sectionData.approval_status ||
+    sectionData.section_approval_status ||
+    customData?.basic?.approval_status ||
+    customData?.sec_1_identity?.approval_status ||
+    customData?.business_info?.approval_status ||
+    sectionControl?.approval_status;
+  const showOnMinisite =
+    sectionData.show_on_minisite ??
+    sectionData.show_on_public ??
+    customData?.basic?.show_on_minisite ??
+    customData?.sec_1_identity?.show_on_minisite ??
+    customData?.business_info?.show_on_minisite ??
+    sectionControl?.show_on_minisite ?? true;
 
   const adminHidden = sectionControl?.admin_hidden === 1 || sectionControl?.admin_hidden === true;
   if (adminHidden) {
@@ -139,7 +214,7 @@ export function getSectionApprovalState(sectionId: string, customData?: Record<s
   }
 
   const isApproved = approvalStatus === undefined || approvalStatus === null || approvalStatus === 'approved' || approvalStatus === 'published';
-  const isVisible = showOnMinisite !== false && showOnMinisite !== 0;
+  const isVisible = showOnMinisite !== false && showOnMinisite !== 0 && showOnMinisite !== '0' && showOnMinisite !== 'false';
   const valid = isApproved && isVisible;
 
   return {
@@ -150,6 +225,6 @@ export function getSectionApprovalState(sectionId: string, customData?: Record<s
   };
 }
 
-export function isSectionApprovedForMinisite(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null): boolean {
-  return getSectionApprovalState(sectionId, customData, sectionControl).valid;
+export function isSectionApprovedForMinisite(sectionId: string, customData?: Record<string, any>, sectionControl?: Record<string, any> | null, isAdmin = false): boolean {
+  return getSectionApprovalState(sectionId, customData, sectionControl, isAdmin).valid;
 }

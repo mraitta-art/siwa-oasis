@@ -6,6 +6,8 @@ import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
+import { getBusinessSlugCandidates } from '@/lib/public-url';
+import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,9 +33,17 @@ export async function generateMetadata({
       if (bizById?.slug) return { title: `Redirecting to ${bizById.name}...` };
       biz = bizById;
     } else {
+      const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
+      const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
+      const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
+      const params = [...lookupCandidates, ...lookupCandidates];
+
       const [row] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features FROM businesses b LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id WHERE b.slug = ? OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
-        [slug, slug, slug]
+        `SELECT b.*, t.features as tier_features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
+        [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
     }
@@ -122,13 +132,18 @@ export default async function VanitySectionPage({
       );
       if (bizById?.slug) redirect(`/${bizById.slug}/${section}`);
     } else {
+      const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
+      const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
+      const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
+      const params = [...lookupCandidates, ...lookupCandidates];
+
       const [row] = await safeQuery<any>(
         `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ? OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
-        [slug, slug, slug]
+         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
+        [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
     }
@@ -161,6 +176,10 @@ export default async function VanitySectionPage({
     if (biz.service_minisite_status === 'suspended' || biz.service_minisite_status === 'expired' || serviceExpired) {
       redirect(`/${slug}`);
     }
+
+    // Check if viewing user is an authenticated admin
+    const user = await getCurrentUser().catch(() => null);
+    const isAdmin = user?.role === 'admin' || (user as any)?.is_admin === true;
 
     // Fetch sections directly from DB by traversing the typology hierarchy
     let currentTypeId: string | null = biz.type_id;
@@ -257,7 +276,6 @@ export default async function VanitySectionPage({
           };
         });
       }
-    }
 
     const templateHidden = biz.template_features?.hidden_sections;
     const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
@@ -362,9 +380,9 @@ export default async function VanitySectionPage({
         try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
       })();
       if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
-      if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [])) return false;
-      if (Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
-      if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id])) return false;
+      if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [], isAdmin)) return false;
+      if (Array.isArray(customHidden) && customHidden.includes(s.id) && !isAdmin) return false;
+      if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id], isAdmin)) return false;
 
       seenSectionIds.add(s.id);
       return true;

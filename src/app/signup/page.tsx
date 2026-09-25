@@ -68,7 +68,7 @@ export default function VendorSignup() {
   const [countryCode,    setCountryCode]    = useState('+20');
   const [phone,          setPhone]          = useState('');
   const [registrationContacts, setRegistrationContacts] = useState([
-    { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' },
+    { name: '', phone: '' },
   ]);
   const [password,       setPassword]       = useState('');
   const [confirmPw,      setConfirmPw]      = useState('');
@@ -171,7 +171,7 @@ export default function VendorSignup() {
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
     if (!phone.trim())       errs.phone       = 'Phone number is required';
     else if (!/^\+[1-9][0-9]{7,14}$/.test(normalizedPhone)) errs.phone = 'Enter a valid phone number for the selected country';
-    if (registrationContacts.filter(contact => contact.phone.trim()).length !== 3) errs.registrationContacts = 'Three registration contact phone numbers are required';
+    if (registrationContacts.filter(contact => contact.phone.trim()).length === 0) errs.registrationContacts = 'At least one registration contact phone number is required';
     else if (!registrationContacts.some(contact => contact.name.trim())) errs.registrationContacts = 'At least one contact name is required';
     if (!password)           errs.password    = 'Password is required';
     else if (password.length < 8) errs.password = 'At least 8 characters';
@@ -460,8 +460,8 @@ export default function VendorSignup() {
               </div>
 
               <div className="field-group">
-                <label className="field-label">Three Responsibility Contacts</label>
-                <span className="field-hint">The admin will call all three numbers before approving investment information. At least one name is required.</span>
+                <label className="field-label">Responsibility Contacts</label>
+                <span className="field-hint">Add at least one primary contact who can be reached for business verification and approvals.</span>
                 {registrationContacts.map((contact, index) => (
                   <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.6rem', marginTop: '0.6rem' }}>
                     <input
@@ -480,6 +480,14 @@ export default function VendorSignup() {
                     />
                   </div>
                 ))}
+                <button
+                  type="button"
+                  className="btn-inline"
+                  style={{ marginTop: '0.6rem' }}
+                  onClick={() => setRegistrationContacts(current => [...current, { name: '', phone: '' }])}
+                >
+                  <i className="fas fa-plus" /> Add another contact
+                </button>
                 {fieldErr.registrationContacts && <span className="field-err">{fieldErr.registrationContacts}</span>}
               </div>
 

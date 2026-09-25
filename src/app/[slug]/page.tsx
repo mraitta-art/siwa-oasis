@@ -6,6 +6,7 @@ import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
+import { getBusinessSlugCandidates } from '@/lib/public-url';
 
 import { getCurrentUser } from '@/lib/auth';
 
@@ -36,15 +37,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         return { title: `Redirecting to ${bizById.name || 'Business'}...` };
       }
     } else {
-      // Fetch by slug directly from DB (avoids SSR self-fetch issues)
+      const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
+      const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
+      const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
+      const params = [...lookupCandidates, ...lookupCandidates];
+
       const [row] = await safeQuery<any>(
         `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
           t.features as tier_features, mt.settings as template_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ? OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
-        [slug, slug, slug]
+         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
+        [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
     }
@@ -119,14 +124,18 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       );
       if (bizById?.slug) redirect(`/${bizById.slug}`);
     } else {
-      // Fetch by slug directly from DB (avoids SSR self-fetch issues)
+      const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
+      const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
+      const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
+      const params = [...lookupCandidates, ...lookupCandidates];
+
       const [row] = await safeQuery<any>(
         `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.slug = ? OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR LOWER(REPLACE(TRIM(b.name), ' ', '-')) = ?`,
-        [slug, slug, slug]
+         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
+        [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
     }
@@ -328,11 +337,14 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
           };
         });
       }
-    }
 
     // --- MULTI-LAYERED SECTION GOVERNANCE ---
     const templateHidden = biz.template_features?.hidden_sections;
     const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
+
+    // Check if viewing user is an authenticated admin
+    const user = await getCurrentUser().catch(() => null);
+    const isAdmin = user?.role === 'admin' || (user as any)?.is_admin === true;
 
     // Fetch Admin Overrides & Custom Labels for this business
     const controlsResult = await safeQuery<any>(
@@ -477,9 +489,9 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
       })();
       if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
-      if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [])) return false;
-      if (Array.isArray(customHidden) && customHidden.includes(s.id)) return false;
-      if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id])) return false;
+      if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [], isAdmin)) return false;
+      if (Array.isArray(customHidden) && customHidden.includes(s.id) && !isAdmin) return false;
+      if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id], isAdmin)) return false;
 
       seenSectionIds.add(s.id);
       return true;
@@ -544,10 +556,6 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
         }
       }
     });
-
-    // Check if viewing user is an authenticated admin
-    const user = await getCurrentUser().catch(() => null);
-    const isAdmin = user?.role === 'admin' || (user as any)?.is_admin === true;
 
     return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} templatePlan={templatePlan} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} lockedSections={lockedSections} isAdmin={isAdmin} />;
   } catch (e: any) {

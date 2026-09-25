@@ -67,18 +67,35 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { business_name, business_type, email, phone, description, custom_data } = body;
+    const { business_name, business_type, email, phone, description, custom_data, logo_url } = body;
 
     if (!business_name || !business_type) {
       return Response.json({ error: 'Name and Type are required' }, { status: 400 });
     }
 
-    // Build the dynamic custom_data structure
-    const baseCustomData = custom_data || {};
-    if (!baseCustomData.basic) {
-      baseCustomData.basic = {};
+    const baseCustomData = custom_data ? { ...custom_data } : {};
+    if (!baseCustomData.basic) baseCustomData.basic = {};
+    if (!baseCustomData.sec_1_identity) baseCustomData.sec_1_identity = {};
+    if (!baseCustomData.business_info) baseCustomData.business_info = {};
+
+    const finalLogo = logo_url || baseCustomData.basic.business_logo || baseCustomData.basic.logo || baseCustomData.sec_1_identity.business_logo || baseCustomData.sec_1_identity.logo || baseCustomData.business_info.business_logo || baseCustomData.business_info.logo || baseCustomData.business_logo || baseCustomData.logo || '';
+
+    if (finalLogo) {
+      baseCustomData.business_logo = finalLogo;
+      baseCustomData.logo = finalLogo;
+      baseCustomData.logo_url = finalLogo;
+      baseCustomData.basic.business_logo = finalLogo;
+      baseCustomData.basic.logo = finalLogo;
+      baseCustomData.basic.logo_url = finalLogo;
+      baseCustomData.basic.display_name = business_name;
+      baseCustomData.business_info.business_logo = finalLogo;
+      baseCustomData.business_info.logo = finalLogo;
+      baseCustomData.business_info.logo_url = finalLogo;
+      baseCustomData.sec_1_identity.business_logo = finalLogo;
+      baseCustomData.sec_1_identity.logo = finalLogo;
+      baseCustomData.sec_1_identity.logo_url = finalLogo;
     }
-    // Ensure contact details are synced to custom_data.basic
+
     baseCustomData.basic.display_name = business_name;
     if (email) baseCustomData.basic.email_address = email;
     if (phone) baseCustomData.basic.phone_number = phone;
@@ -109,10 +126,36 @@ export async function PATCH(req: Request) {
   try {
     await requireAdmin();
     const body = await req.json();
-    const { id, status, template_id, subscription_tier, is_standalone, custom_data } = body;
+    const { id, status, template_id, subscription_tier, is_standalone, custom_data, logo_url } = body;
 
     if (!id || !status) {
       return Response.json({ error: 'Missing id or status' }, { status: 400 });
+    }
+
+    let mergedCustomData = custom_data;
+    if (custom_data !== undefined) {
+      const existing = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [id]) as any;
+      let current = {};
+      try {
+        current = typeof existing?.custom_data === 'string' ? JSON.parse(existing.custom_data) : existing?.custom_data || {};
+      } catch {}
+      mergedCustomData = { ...current, ...custom_data };
+      for (const section of Object.keys(custom_data || {})) {
+        if (current[section] && typeof custom_data[section] === 'object') {
+          mergedCustomData[section] = { ...current[section], ...custom_data[section] };
+        }
+      }
+    }
+
+    const effectiveLogo = logo_url || mergedCustomData?.basic?.business_logo || mergedCustomData?.basic?.logo || mergedCustomData?.sec_1_identity?.business_logo || mergedCustomData?.sec_1_identity?.logo || mergedCustomData?.business_info?.business_logo || mergedCustomData?.business_info?.logo || mergedCustomData?.business_logo || mergedCustomData?.logo || '';
+    if (effectiveLogo) {
+      mergedCustomData = { ...(mergedCustomData || {}) };
+      mergedCustomData.business_logo = effectiveLogo;
+      mergedCustomData.logo = effectiveLogo;
+      mergedCustomData.logo_url = effectiveLogo;
+      mergedCustomData.basic = { ...(mergedCustomData.basic || {}), business_logo: effectiveLogo, logo: effectiveLogo, logo_url: effectiveLogo };
+      mergedCustomData.sec_1_identity = { ...(mergedCustomData.sec_1_identity || {}), business_logo: effectiveLogo, logo: effectiveLogo, logo_url: effectiveLogo };
+      mergedCustomData.business_info = { ...(mergedCustomData.business_info || {}), business_logo: effectiveLogo, logo: effectiveLogo, logo_url: effectiveLogo };
     }
 
     const sets: string[] = ['status = ?'];
@@ -130,9 +173,9 @@ export async function PATCH(req: Request) {
       sets.push('is_standalone = ?');
       params.push(is_standalone ? 1 : 0);
     }
-    if (custom_data !== undefined) {
+    if (mergedCustomData !== undefined) {
       sets.push('custom_data = ?');
-      params.push(JSON.stringify(custom_data));
+      params.push(JSON.stringify(mergedCustomData));
     }
 
     params.push(id);

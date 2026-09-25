@@ -46,6 +46,65 @@ export async function GET(req: NextRequest) {
         }
       },
       {
+        id: 'demo_hh',
+        name: 'HH Serenity Siwa',
+        type: 'travel_agency',
+        tier: 'premium',
+        data: {
+          basic: {
+            business_logo: 'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?q=80&w=800',
+            phone: '+201200000000',
+            whatsapp: '+201200000000',
+            email: 'hello@hhsiwa.com',
+            address: 'Siwa Oasis, Egypt',
+            description: 'A modern Siwa host experience blending desert luxury, local heritage, and curated day trips.',
+            section_labels: {
+              sec_1_identity: 'About HH',
+              sec_2_ambience: 'The Siwa Vibe',
+              sec_5_experiences: 'Signature Experiences',
+              sec_9_marketplace_catalog: 'Featured Packages'
+            },
+            section_labels_ar: {
+              sec_1_identity: 'عن HH',
+              sec_2_ambience: 'أجواء سيوة',
+              sec_5_experiences: 'التجارب المميزة',
+              sec_9_marketplace_catalog: 'العروض المختارة'
+            }
+          },
+          sec_1_identity: {
+            business_logo: 'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?q=80&w=800',
+            logo: 'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?q=80&w=800',
+            title: 'Modern Siwa hospitality, grounded in local culture',
+            description: 'HH Serenity Siwa offers guided desert escapes, wellness stays, and authentic local experiences across the oasis.',
+            section_blog: 'Every stay is built around warm hospitality, slow travel, and unforgettable desert nights.',
+            section_gallery: [
+              { url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200', caption: 'Desert arrival', is_hero: true },
+              { url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1200', caption: 'Oasis sunrise', is_hero: false }
+            ]
+          },
+          sec_2_ambience: {
+            description: 'Soft golden light, warm stone textures, and calm desert evenings.',
+            experience_focus: ['Sunset dune teas', 'Wellness rituals', 'Slow luxury stays'],
+            section_gallery: [
+              { url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1200', caption: 'Golden hour in Siwa', is_hero: true }
+            ]
+          },
+          sec_5_experiences: {
+            title: 'Curated experiences for every traveler',
+            description: 'Explore local heritage, salt lakes, and private desert adventures designed for groups, couples, and families.',
+            section_blog: 'Our tours combine local storytelling, hidden viewpoints, and flexible itineraries with comfortable transportation.'
+          },
+          sec_9_marketplace_catalog: {
+            title: 'Featured packages',
+            description: 'Handpicked stays and excursions for short city breaks and full Siwa escapes.',
+            items: [
+              { name: 'Sunrise Escape', price: 'USD 95', description: 'Half-day tour and local breakfast' },
+              { name: 'Weekend Oasis Stay', price: 'USD 220', description: 'Two nights with guided excursions' }
+            ]
+          }
+        }
+      },
+      {
         id: 'demo_taziry',
         name: 'Taziry Eco-Resort',
         type: 'accommodation',

@@ -1,6 +1,49 @@
 import crypto from 'crypto';
 import { execute, queryOne } from '@/lib/db';
 import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
+import { normalizeBusinessSlug } from '@/lib/public-url';
+
+export function normalizeBusinessName(name: string) {
+  return String(name ?? '').replace(/\s+/g, ' ').trim();
+}
+
+export function buildBusinessSlug(name: string, existingSlug?: string) {
+  const base = normalizeBusinessSlug(name) || existingSlug || `biz-${Date.now()}`;
+  return base;
+}
+
+export function buildCanonicalBusinessCustomData(name: string, customData: Record<string, any> = {}) {
+  const normalizedName = normalizeBusinessName(name);
+  const next = { ...(customData || {}) };
+  const safeBasic = { ...(next.basic || {}) };
+  const safeIdentity = { ...(next.sec_1_identity || {}) };
+  const safeBusinessInfo = { ...(next.business_info || {}) };
+
+  const sharedIdentityName = normalizedName || safeBasic.business_name || safeIdentity.business_name || safeBusinessInfo.business_name || 'Business';
+
+  next.basic = {
+    ...safeBasic,
+    name: safeBasic.name || sharedIdentityName,
+    business_name: safeBasic.business_name || sharedIdentityName,
+    display_name: safeBasic.display_name || sharedIdentityName,
+  };
+
+  next.sec_1_identity = {
+    ...safeIdentity,
+    name: safeIdentity.name || sharedIdentityName,
+    business_name: safeIdentity.business_name || sharedIdentityName,
+    display_name: safeIdentity.display_name || sharedIdentityName,
+  };
+
+  next.business_info = {
+    ...safeBusinessInfo,
+    name: safeBusinessInfo.name || sharedIdentityName,
+    business_name: safeBusinessInfo.business_name || sharedIdentityName,
+    display_name: safeBusinessInfo.display_name || sharedIdentityName,
+  };
+
+  return next;
+}
 
 export interface CreateBusinessInput {
   id?: string;
@@ -36,7 +79,8 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     actor_id: actorId,
   } = input;
 
-  if (!name?.trim()) throw new Error('Name is required');
+  const canonicalName = normalizeBusinessName(name);
+  if (!canonicalName) throw new Error('Name is required');
   if (!typeId) throw new Error('Business type (typology) is required');
   if (vendorId === '') vendorId = null;
   if (templateId === '') templateId = null;
@@ -98,11 +142,7 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     throw new Error('No minisite template could be resolved. Assign a default template to the parent business type or subscription tier.');
   }
 
-  const baseSlug = name.toString().toLowerCase().trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\u0621-\u064A-]+/g, '')
-    .replace(/--+/g, '-')
-    .replace(/^-+|-+$/g, '') || `biz-${Date.now()}`;
+  const baseSlug = buildBusinessSlug(canonicalName);
   let slug = baseSlug;
   let counter = 1;
   while (await queryOne('SELECT id FROM businesses WHERE slug = ? LIMIT 1', [slug])) {
@@ -113,17 +153,19 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   const masterValue = isMaster ? 1 : 0;
   const sharedValue = isShared ? 1 : 0;
   const claimedValue = vendorId !== 'anonymous' ? 1 : 0;
+  const normalizedCustomData = buildCanonicalBusinessCustomData(canonicalName, customData);
+
   const provenance = {
     source,
     created_at: new Date().toISOString(),
-    ...(customData.source_provenance || {}),
+    ...(normalizedCustomData.source_provenance || {}),
   };
-  const persistedData = { ...customData, source_provenance: provenance };
+  const persistedData = { ...normalizedCustomData, source_provenance: provenance };
 
   await execute(
     `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, name.trim(), slug, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
+    [id, canonicalName, slug, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
       JSON.stringify(persistedData), status, status === 'active' ? 1 : 0, masterValue, sharedValue, claimedValue]
   );
 
@@ -135,5 +177,5 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     }
   }
 
-  return { id, name: name.trim(), slug, type_id: typeId, vendor_id: vendorId, is_master: masterValue, is_claimed: claimedValue };
+  return { id, name: canonicalName, slug, type_id: typeId, vendor_id: vendorId, is_master: masterValue, is_claimed: claimedValue };
 }

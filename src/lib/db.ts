@@ -252,12 +252,26 @@ export function normalizeCustomData(rawCustomData: any): any {
   const publicData = Object.fromEntries(
     Object.entries(c).filter(([key]) => !adminOnlyKeys.includes(key))
   );
-  
+
+  const visibilitySeed = {
+    visible_sections: publicData.visible_sections ?? publicData.basic?.visible_sections ?? publicData.sec_1_identity?.visible_sections ?? publicData.business_info?.visible_sections ?? [],
+    hidden_sections: publicData.hidden_sections ?? publicData.basic?.hidden_sections ?? publicData.sec_1_identity?.hidden_sections ?? publicData.business_info?.hidden_sections ?? [],
+  };
+
+  const brandAssetSeed = {
+    business_logo: publicData.business_logo ?? publicData.logo ?? publicData.logo_url ?? publicData.business_info?.business_logo ?? publicData.sec_1_identity?.business_logo ?? publicData.basic?.business_logo ?? '',
+    logo: publicData.logo ?? publicData.business_logo ?? publicData.logo_url ?? publicData.business_info?.logo ?? publicData.sec_1_identity?.logo ?? publicData.basic?.logo ?? '',
+    logo_url: publicData.logo_url ?? publicData.business_logo ?? publicData.logo ?? publicData.business_info?.logo_url ?? publicData.sec_1_identity?.logo_url ?? publicData.basic?.logo_url ?? '',
+    cover_image: publicData.cover_image ?? publicData.business_info?.cover_image ?? publicData.sec_1_identity?.cover_image ?? publicData.basic?.cover_image ?? '',
+  };
+
   const basic = {
     ...(publicData.business_info || {}),
     ...(publicData.sec_1_identity || {}),
     ...(publicData.about || {}),
-    ...(publicData.basic || {})
+    ...(publicData.basic || {}),
+    ...visibilitySeed,
+    ...brandAssetSeed,
   };
   
   const vibe = {
