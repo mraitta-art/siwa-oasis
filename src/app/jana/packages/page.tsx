@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
@@ -58,7 +58,7 @@ export interface MarketplaceItem {
   created_at?: string;
 }
 
-export default function UnifiedMarketplaceCommandCenter() {
+function UnifiedMarketplaceCommandCenterInner() {
   const { notify } = useAdmin();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
@@ -1680,3 +1680,12 @@ export default function UnifiedMarketplaceCommandCenter() {
     </div>
   );
 }
+
+export default function UnifiedMarketplaceCommandCenter() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500 font-bold">Loading Marketplace Command Center...</div>}>
+      <UnifiedMarketplaceCommandCenterInner />
+    </Suspense>
+  );
+}
+

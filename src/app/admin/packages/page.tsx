@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { AdminProvider } from '@/context/AdminContext';
 import { LangProvider } from '@/context/LangContext';
@@ -84,7 +84,9 @@ export default function AdminPackagesPage() {
           </div>
 
           {/* ── UNIFIED COMMAND CENTER & MULTI-VENDOR MATRIX ── */}
-          <UnifiedMarketplaceCommandCenter />
+          <Suspense fallback={<div className="p-8 text-center text-slate-500 font-bold">Loading Package Governance...</div>}>
+            <UnifiedMarketplaceCommandCenter />
+          </Suspense>
         </div>
       </LangProvider>
     </AdminProvider>

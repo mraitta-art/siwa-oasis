@@ -35,6 +35,7 @@ export default function ComponentLibrary() {
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [filterType, setFilterType] = useState<string>('all');
   const [filter, setFilter] = useState({ zone: 'all', category: 'all' });
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -285,17 +286,17 @@ export default function ComponentLibrary() {
           <span style={{ fontWeight: 700, color: '#475569', fontSize: '0.85rem' }}>Filter:</span>
           {[
             { key: 'all', label: `All`, icon: '📦', count: components.length },
-            { key: 'carousel', label: 'Carousels', icon: '🎬', count: components.filter(c => c.type === 'carousel').length },
-            { key: 'blog_sidebar', label: 'Blog Sidebars', icon: '📰', count: components.filter(c => c.type === 'blog_sidebar').length }
-          ].map(filter => (
+            { key: 'carousel', label: 'Carousels', icon: '🎬', count: components.filter((c: any) => c.type === 'carousel').length },
+            { key: 'blog_sidebar', label: 'Blog Sidebars', icon: '📰', count: components.filter((c: any) => c.type === 'blog_sidebar').length }
+          ].map(f => (
             <button
-              key={filter.key}
-              onClick={() => setFilterType(filter.key)}
+              key={f.key}
+              onClick={() => setFilterType(f.key)}
               style={{
                 padding: '0.6rem 1.2rem',
-                background: filterType === filter.key ? 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)' : '#f8fafc',
-                color: filterType === filter.key ? '#0f172a' : '#64748b',
-                border: filterType === filter.key ? 'none' : '1px solid #e2e8f0',
+                background: filterType === f.key ? 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)' : '#f8fafc',
+                color: filterType === f.key ? '#0f172a' : '#64748b',
+                border: filterType === f.key ? 'none' : '1px solid #e2e8f0',
                 borderRadius: '8px',
                 fontWeight: 700,
                 fontSize: '0.85rem',
@@ -306,26 +307,26 @@ export default function ComponentLibrary() {
                 gap: '0.5rem'
               }}
               onMouseEnter={(e) => {
-                if (filterType !== filter.key) {
+                if (filterType !== f.key) {
                   e.currentTarget.style.background = '#f1f5f9';
                 }
               }}
               onMouseLeave={(e) => {
-                if (filterType !== filter.key) {
+                if (filterType !== f.key) {
                   e.currentTarget.style.background = '#f8fafc';
                 }
               }}
             >
-              <span>{filter.icon}</span>
-              <span>{filter.label}</span>
+              <span>{f.icon}</span>
+              <span>{f.label}</span>
               <span style={{
-                background: filterType === filter.key ? 'rgba(15,23,42,0.15)' : '#e2e8f0',
+                background: filterType === f.key ? 'rgba(15,23,42,0.15)' : '#e2e8f0',
                 padding: '0.2rem 0.6rem',
                 borderRadius: '12px',
                 fontSize: '0.75rem',
                 fontWeight: 800
               }}>
-                {filter.count}
+                {f.count}
               </span>
             </button>
           ))}
