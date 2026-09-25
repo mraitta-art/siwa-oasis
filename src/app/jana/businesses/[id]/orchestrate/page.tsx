@@ -148,19 +148,11 @@ export default function BusinessOrchestrator() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Always include identity keys in the diff — never skip basic/sec_1_identity
-      const ALWAYS_INCLUDE_KEYS = ['basic', 'sec_1_identity', 'section_labels', 'section_labels_ar'];
-      const changedCustomData = Object.fromEntries(
-        Object.entries(biz.custom_data || {}).filter(([key, value]) =>
-          ALWAYS_INCLUDE_KEYS.includes(key) ||
-          JSON.stringify(value) !== JSON.stringify(initialCustomDataRef.current[key])
-        )
-      );
-
-      // Extract logo from custom_data so it is also saved to the direct column
+      // Extract logo from custom_data
       const logoUrl =
         biz.custom_data?.sec_1_identity?.business_logo ||
         biz.custom_data?.basic?.business_logo ||
+        biz.custom_data?.business_logo ||
         biz.logo_url ||
         null;
 
@@ -170,6 +162,7 @@ export default function BusinessOrchestrator() {
         body: JSON.stringify({
           id: businessId,
           name: biz.name,
+          slug: biz.slug,
           type_id: biz.type_id,
           subscription_tier: biz.subscription_tier,
           vendor_id: biz.vendor_id,
@@ -185,12 +178,12 @@ export default function BusinessOrchestrator() {
           city: biz.city,
           ...(logoUrl ? { logo_url: logoUrl } : {}),
           ...(biz.cover_image ? { cover_image: biz.cover_image } : {}),
-          custom_data: changedCustomData,
+          custom_data: biz.custom_data || {},
         }),
       });
       if (res.ok) {
         initialCustomDataRef.current = biz.custom_data || {};
-        notify('Business DNA Synchronized', 'success');
+        notify('Business DNA Synchronized Successfully', 'success');
       } else {
         const errorBody = await res.json().catch(() => null);
         throw new Error(errorBody?.error || `Save failed (HTTP ${res.status})`);
@@ -206,28 +199,16 @@ export default function BusinessOrchestrator() {
   const handleStudioSave = async (nextCustomData: Record<string, any>) => {
     setStudioSaving(true);
     try {
-      // ALWAYS include identity + basic keys — never skip them via diff.
-      // Logo lives in basic.business_logo AND sec_1_identity.business_logo.
-      // If either key was unchanged in the diff it would be silently dropped,
-      // causing the logo to revert to the previous value on next page load.
-      const ALWAYS_INCLUDE_KEYS = ['basic', 'sec_1_identity', 'section_labels', 'section_labels_ar'];
-
-      const changedCustomData = Object.fromEntries(
-        Object.entries(nextCustomData).filter(([key, value]) =>
-          ALWAYS_INCLUDE_KEYS.includes(key) ||
-          JSON.stringify(value) !== JSON.stringify(biz.custom_data?.[key])
-        )
-      );
-
-      // Also extract logo_url and save it directly on the business row
-      // so it is always accessible without parsing custom_data.
       const logoUrl =
         nextCustomData?.sec_1_identity?.business_logo ||
         nextCustomData?.basic?.business_logo ||
         nextCustomData?.business_logo ||
         null;
 
-      const payload: Record<string, any> = { id: businessId, custom_data: changedCustomData };
+      const payload: Record<string, any> = {
+        id: businessId,
+        custom_data: nextCustomData || {}
+      };
       if (logoUrl) payload.logo_url = logoUrl;
 
       const res = await fetch('/api/jana/businesses', {
@@ -241,7 +222,7 @@ export default function BusinessOrchestrator() {
       }
       setBiz((prev: any) => ({ ...prev, custom_data: nextCustomData, logo_url: logoUrl || prev.logo_url }));
       initialCustomDataRef.current = nextCustomData;
-      notify('Content & Media synced', 'success');
+      notify('Section Media & Content Saved Successfully', 'success');
     } catch (err: any) {
       notify(err.message || 'Content save failed', 'error');
       throw err;
