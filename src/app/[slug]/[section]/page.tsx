@@ -162,24 +162,39 @@ export default async function VanitySectionPage({
       redirect(`/${slug}`);
     }
 
-    // Fetch sections directly from DB
-    const [typeData] = await safeQuery<any>('SELECT sections, own_sections FROM business_types WHERE id = ?', [biz.type_id]);
+    // Fetch sections directly from DB by traversing the typology hierarchy
+    let currentTypeId: string | null = biz.type_id;
+    const collectedSectionIds = new Set<string>();
+
+    while (currentTypeId) {
+      const typeRows = await safeQuery<any>('SELECT id, name, parent_id, sections, own_sections FROM business_types WHERE id = ?', [currentTypeId]);
+      if (typeRows && typeRows.length > 0) {
+        const t = typeRows[0];
+        const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections || '[]') : t.sections || [];
+        const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections || '[]') : t.own_sections || [];
+        (Array.isArray(s1) ? s1 : []).forEach((sid: string) => sid && collectedSectionIds.add(sid));
+        (Array.isArray(s2) ? s2 : []).forEach((sid: string) => sid && collectedSectionIds.add(sid));
+        currentTypeId = t.parent_id;
+      } else {
+        currentTypeId = null;
+      }
+    }
+
+    let sectionIds: string[] = Array.from(collectedSectionIds);
+    sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
+
+    if (sectionIds.length === 0) {
+      const universalRows = await safeQuery<any>('SELECT id FROM sections WHERE is_universal = 1 AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC');
+      sectionIds = (universalRows || []).map((r: any) => r.id);
+    }
+
     let sections: any[] = [];
-    let sectionIds: string[] = [];
-
-    if (typeData) {
-      sectionIds = [
-        ...(typeof typeData.sections === 'string' ? JSON.parse(typeData.sections || '[]') : typeData.sections || []),
-        ...(typeof typeData.own_sections === 'string' ? JSON.parse(typeData.own_sections || '[]') : typeData.own_sections || [])
-      ];
-      sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
-
-      if (sectionIds.length > 0) {
-        const placeholders = sectionIds.map(() => '?').join(',');
-        const rows = await safeQuery<any>(
-          `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
-          sectionIds
-        );
+    if (sectionIds.length > 0) {
+      const placeholders = sectionIds.map(() => '?').join(',');
+      const rows = await safeQuery<any>(
+        `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
+        sectionIds
+      );
         
         const fieldDefs = await safeQuery<any>(
           `SELECT name, label, section_id, field_type, options, acl, required_feature FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
