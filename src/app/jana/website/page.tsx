@@ -1,6 +1,5 @@
 'use client';
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface PaletteItem {
@@ -12,26 +11,19 @@ interface PaletteItem {
   color: string;
   desc: string;
   isDynamic?: boolean;
-  defaultProps?: Record<string, unknown>;
 }
 
 // ── Component catalogue — SYNCED with DynamicHomepageRenderer ─────────────────
 const PALETTE: PaletteItem[] = [
   // ── Header zone ──
-  { zone: 'header', key: 'category_hero',   name: 'Category Thematic Hero',   icon: '🌄', manager: null,                  color: '#D4AF37', desc: 'Themed hero banner tailored for this sector/category' },
   { zone: 'header', key: 'hero_carousel',  name: 'Hero Carousel',           icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
   { zone: 'header', key: 'search_bar',     name: 'Search Bar (Compact)',    icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Compact header search widget' },
 
   // ── Body zone ──
-  { zone: 'body',   key: 'category_hero',        name: 'Category Thematic Hero',   icon: '🌄', manager: null,                  color: '#D4AF37', desc: 'Themed hero banner tailored for this sector/category' },
-  { zone: 'body',   key: 'category_commercial_tabs', name: 'Deals & Packages Tabs', icon: '🎁', manager: null,                color: '#f59e0b', desc: 'Commercial packages, offers & discounts tabs for this category' },
   { zone: 'body',   key: 'hero_carousel',        name: 'Hero Carousel',            icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
-  { zone: 'body',   key: 'service_directory',     name: 'Add Services Directory',   icon: '🧭', manager: '/jana/businesses',     color: '#6366f1', desc: 'Create a service listing block for your offerings' },
   { zone: 'body',   key: 'services_hub',          name: 'Services Hub',             icon: '🏛️', manager: '/jana/businesses',     color: '#6366f1', desc: 'Directory of all services & categories' },
-  { zone: 'body',   key: 'category_showcase',     name: 'Add Category Cards',      icon: '🎯', manager: null,                  color: '#8b5cf6', desc: 'Show category cards for experiences and offers' },
   { zone: 'body',   key: 'experience_categories', name: 'Experience Categories',    icon: '🎭', manager: null,                  color: '#8b5cf6', desc: 'Interactive category cards' },
   { zone: 'body',   key: 'search_bar',            name: 'Search Engine (Full)',     icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Full-width search block' },
-  { zone: 'body',   key: 'journey_collection',    name: 'Add Journey Block',       icon: '🗺️', manager: '/jana/journey-templates-manager', color: '#14b8a6', desc: 'Show curated journeys or itinerary cards' },
   { zone: 'body',   key: 'smart_journey_planner', name: 'Journey Planner',         icon: '🗓️', manager: null,                  color: '#14b8a6', desc: 'AI-powered trip planning tool' },
   { zone: 'body',   key: 'ecosystem_map',         name: 'Interactive Map',         icon: '🗺️', manager: null,                  color: '#10b981', desc: 'Full ecosystem map of Siwa' },
   { zone: 'body',   key: 'local_products',        name: 'Local Products',          icon: '🫒', manager: null,                  color: '#84cc16', desc: 'Showcase of artisan & local goods' },
@@ -40,10 +32,7 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'blog',                  name: 'Blog / Articles',         icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Latest blog posts feed' },
   { zone: 'body',   key: 'featured_vibe',         name: 'Featured Vibe Story',     icon: '🪄', manager: null,                  color: '#D4AF37', desc: 'Highlighted experience story' },
   { zone: 'body',   key: 'investment_feed',       name: 'Investment Marketplace',  icon: '💎', manager: null,                  color: '#ec4899', desc: 'Heritage investment opportunities' },
-  { zone: 'body',   key: 'discovery_gateway',      name: 'Discovery Gateway',       icon: '🧭', manager: null,                  color: '#0f766e', desc: 'Primary navigation to experiences, journeys, deals, and investments' },
   { zone: 'body',   key: 'services',              name: 'Business Listings CTA',   icon: '🏢', manager: '/jana/businesses',     color: '#10b981', desc: 'Simple verified-businesses banner' },
-  { zone: 'body',   key: 'auctions_feed',         name: 'Live Auctions Feed',      icon: '🔨', manager: null,                  color: '#eab308', desc: 'Live & upcoming auctions with search and bidding' },
-  { zone: 'body',   key: 'partner_registration_form', name: 'Partner Onboarding Form', icon: '📝', manager: null,             color: '#D4AF37', desc: 'Complete partner application form with sector selection' },
 
   // ── Footer zone ──
   { zone: 'footer', key: 'partner_cta',    name: 'Partner CTA (Footer)',     icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Footer partnership call-to-action' },
@@ -55,63 +44,20 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
 interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
-interface BusinessMeta { id: string; name: string; slug?: string; }
-interface BusinessTemplateContext {
-  id: string;
-  name: string;
-  type_id?: string | null;
-  parent_type_id?: string | null;
-  type_name?: string | null;
-  parent_type_name?: string | null;
-  template_id?: string | null;
-  child_default_template_id?: string | null;
-  parent_default_template_id?: string | null;
-}
 type Mode = 'PAGES' | 'TEMPLATES';
 
-const STANDARD_CORE_PAGES: PageMeta[] = [
-  { slug: 'main', saved: true, type: 'page' },
-  { slug: 'accommodations', saved: false, type: 'page' },
-  { slug: 'restaurants', saved: false, type: 'page' },
-  { slug: 'transportation', saved: false, type: 'page' },
-  { slug: 'food-beverage', saved: false, type: 'page' },
-  { slug: 'activities', saved: false, type: 'page' },
-  { slug: 'crafts-wellness', saved: false, type: 'page' },
-  { slug: 'production-trade', saved: false, type: 'page' },
-  { slug: 'services', saved: false, type: 'page' },
-  { slug: 'categories', saved: false, type: 'page' },
-  { slug: 'journeys', saved: false, type: 'page' },
-  { slug: 'offers', saved: false, type: 'page' },
-  { slug: 'packages', saved: false, type: 'page' },
-  { slug: 'discounts', saved: false, type: 'page' },
-  { slug: 'auctions', saved: false, type: 'page' },
-  { slug: 'investment-opportunities', saved: false, type: 'page' },
-  { slug: 'blog', saved: false, type: 'page' },
-  { slug: 'be-a-partner', saved: false, type: 'page' },
-];
-
-function MultiPageSiteBuilderComponent() {
-  const searchParams = useSearchParams();
-  const queryPage = searchParams?.get('page') || null;
-  const queryBusiness = searchParams?.get('businessId') || '';
-
+export default function MultiPageSiteBuilder() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
-  const [pages, setPages]               = useState<PageMeta[]>(STANDARD_CORE_PAGES);
+  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true }]);
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
-  const [currentPage, setCurrentPage]   = useState(queryPage || 'main');
-  const [businessId, setBusinessId]     = useState(queryBusiness || '');
-  const [pageLoading, setPageLoading]   = useState(false);
-  const [businesses, setBusinesses]     = useState<BusinessMeta[]>([]);
-  const [businessContext, setBusinessContext] = useState<BusinessTemplateContext | null>(null);
-  const [templateSaving, setTemplateSaving] = useState(false);
+  const [currentPage, setCurrentPage]   = useState('main');
   const [pageSearch, setPageSearch]     = useState('');
   const [slots, setSlots]               = useState<Slot[]>([]);
   const [activeZone, setActiveZone]     = useState<Zone>('body');
   const [saving, setSaving]             = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [dynamicComponents, setDynamic] = useState<PaletteItem[]>([]);
-  const [runtimeComponents, setRuntimeComponents] = useState<PaletteItem[]>([]);
   const [searchEngines, setSearchEngines] = useState<any[]>([]);
   const [tiers, setTiers]               = useState<any[]>([]);
   const [toast, setToast]               = useState<{ msg: string; type: 'success'|'error'|'info' }|null>(null);
@@ -133,142 +79,11 @@ function MultiPageSiteBuilderComponent() {
 
   // Site settings
   const [siteSettings, setSiteSettings] = useState({
-    site_name: 'SiWiFy.com', primary_color: '#D4AF37',
+    site_name: 'Siwa Today', primary_color: '#D4AF37',
     tagline: 'Experience the magic of the oasis.',
     show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
-    logo_url: '', show_watermark: true, watermark_text: '', show_platform_anchor: true, logo_height: 40,
-    enable_minisite_multilingual: false,
+    logo_url: '', show_watermark: true, logo_height: 40,
   });
-
-  // Dirty state tracking & Snapshot
-  const [initialSnapshot, setInitialSnapshot] = useState<string>('');
-  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const [pendingTargetDesc, setPendingTargetDesc] = useState<string>('');
-  const [mobileTab, setMobileTab] = useState<'pages' | 'palette' | 'canvas'>('canvas');
-  const [reloadCounter, setReloadCounter] = useState(0);
-
-  const createSnapshot = (currentSlots: Slot[], currentSettings: any) => {
-    return JSON.stringify({
-      slots: currentSlots.map(s => ({
-        id: s.id,
-        key: s.key,
-        zone: s.zone,
-        label: s.label,
-        engine_id: s.engine_id || '',
-        carousel_id: s.carousel_id || '',
-        props: s.props || {},
-      })),
-      settings: currentSettings,
-    });
-  };
-
-  const isDirty = Boolean(initialSnapshot && createSnapshot(slots, siteSettings) !== initialSnapshot);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty]);
-
-  const attemptSwitchPage = (targetSlug: string) => {
-    if (targetSlug === currentPage) {
-      setMobileTab('canvas');
-      return;
-    }
-    if (isDirty) {
-      setPendingTargetDesc(`page "${targetSlug.toUpperCase()}"`);
-      setPendingAction(() => () => {
-        setCurrentPage(targetSlug);
-        updateUrlState(targetSlug, businessId);
-        setMobileTab('canvas');
-      });
-      setShowUnsavedModal(true);
-      return;
-    }
-    setCurrentPage(targetSlug);
-    updateUrlState(targetSlug, businessId);
-    setMobileTab('canvas');
-  };
-
-  const attemptSwitchMode = (m: Mode) => {
-    if (m === mode) return;
-    const targetPage = m === 'PAGES' ? (pages[0]?.slug || 'main') : (templates[0]?.id || '');
-    if (isDirty) {
-      setPendingTargetDesc(`mode "${m}"`);
-      setPendingAction(() => () => {
-        setMode(m);
-        setCurrentPage(targetPage);
-        setMobileTab('canvas');
-      });
-      setShowUnsavedModal(true);
-      return;
-    }
-    setMode(m);
-    setCurrentPage(targetPage);
-  };
-
-  const attemptSwitchBusiness = (nextBId: string) => {
-    if (nextBId === businessId) return;
-    if (isDirty) {
-      setPendingTargetDesc(`scope`);
-      setPendingAction(() => () => {
-        setBusinessId(nextBId);
-        setCurrentPage('main');
-        setSlots([]);
-        updateUrlState('main', nextBId);
-      });
-      setShowUnsavedModal(true);
-      return;
-    }
-    setBusinessId(nextBId);
-    setCurrentPage('main');
-    setSlots([]);
-    updateUrlState('main', nextBId);
-  };
-
-  const reloadCurrentPage = () => {
-    if (isDirty) {
-      const confirmed = window.confirm(`Discard unsaved changes on "${currentPage}" and reload the latest layout from the database?`);
-      if (!confirmed) return;
-    }
-    setReloadCounter(c => c + 1);
-    notify(`↻ Reloading ${currentPage.toUpperCase()} layout...`, 'info');
-  };
-
-  const scopedPageId = (slug: string, type: 'page' | 'search' = 'page') => {
-    const base = type === 'search' ? `website_search_${slug}` : `website_${slug}`;
-    return businessId ? `website_business_${businessId}_${base}` : base;
-  };
-
-  const templateById = (id?: string | null) => templates.find((template: any) => template.id === id);
-  const effectiveTemplateId = businessContext?.template_id || businessContext?.child_default_template_id || businessContext?.parent_default_template_id || '';
-  const availableBusinessTemplates = templates.filter((template: any) => !template.type_id || template.type_id === businessContext?.parent_type_id);
-
-  const saveBusinessTemplateOverride = async (templateId: string) => {
-    if (!businessContext) return;
-    setTemplateSaving(true);
-    try {
-      const response = await fetch('/api/jana/businesses', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: businessContext.id, template_id: templateId || null }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Template update failed');
-      setBusinessContext(previous => previous ? { ...previous, template_id: templateId || null } : previous);
-      notify(templateId ? 'Business template override saved.' : 'Business now inherits its child template.');
-    } catch (error: any) {
-      notify(error.message || 'Template update failed.', 'error');
-    } finally {
-      setTemplateSaving(false);
-    }
-  };
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ msg, type });
@@ -277,62 +92,25 @@ function MultiPageSiteBuilderComponent() {
 
   // Ctrl+S to save
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        save();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    const scope = businessId ? `?businessId=${encodeURIComponent(businessId)}` : '';
-    fetch(`/api/jana/website/list${scope}`).then(r => r.json()).then(data => {
-      if (!Array.isArray(data)) return;
-      const loadedPages = data.map((p: any) => {
-        const type = String(p.type || '');
-        const prefix = businessId ? `website_business_${businessId}_` : '';
-        const pageType = type.startsWith(`${prefix}website_search_`) ? 'search' : 'page';
-        const base = `${prefix}website_${pageType === 'search' ? 'search_' : ''}`;
-        return { slug: type.replace(base, ''), saved: true, type: pageType as 'page' | 'search' };
-      });
-
-      if (!businessId) {
-        const existingSlugs = new Set(loadedPages.map(p => p.slug));
-        const merged = [...loadedPages];
-        STANDARD_CORE_PAGES.forEach(core => {
-          if (!existingSlugs.has(core.slug)) {
-            merged.push(core);
-          }
-        });
-        setPages(merged);
-      } else {
-        setPages(loadedPages.length ? loadedPages : [{ slug: 'main', saved: true, type: 'page' }]);
-      }
-      setCurrentPage(queryPage || 'main');
-    }).catch(() => {});
-  }, [businessId, queryPage]);
-
-  useEffect(() => {
-    if (!businessId) {
-      setBusinessContext(null);
-      return;
-    }
-    fetch(`/api/jana/businesses?id=${encodeURIComponent(businessId)}`)
-      .then(response => response.ok ? response.json() : null)
-      .then(data => setBusinessContext(data || null))
-      .catch(() => setBusinessContext(null));
-  }, [businessId]);
+    const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  });
 
   // Initial data fetch
   useEffect(() => {
-    setBusinessId(queryBusiness);
-    fetch('/api/jana/businesses')
-      .then(r => r.json())
-      .then(data => setBusinesses(Array.isArray(data) ? data.map((business: any) => ({ id: business.id, name: business.name, slug: business.slug })) : []))
-      .catch(() => setBusinesses([]));
+    fetch('/api/jana/website/list').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) {
+        setPages(data.map(p => {
+          const type_str = p.type || '';
+          if (type_str.startsWith('website_search_')) {
+            return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
+          } else {
+            return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
+          }
+        }));
+      }
+    }).catch(() => {});
 
     fetch('/api/jana/templates').then(r => r.json()).then(data => setTemplates(Array.isArray(data) ? data : [])).catch(() => {});
 
@@ -346,20 +124,6 @@ function MultiPageSiteBuilderComponent() {
       })));
     }).catch(() => {});
 
-    fetch('/api/jana/site-components?enabled=true').then(r => r.json()).then(data => {
-      if (!Array.isArray(data)) return;
-      setRuntimeComponents(data.map(c => ({
-        zone: c.zone,
-        key: c.key,
-        name: c.name,
-        icon: c.icon || '📦',
-        manager: c.manager_url || null,
-        color: c.zone === 'header' ? '#D4AF37' : c.zone === 'footer' ? '#64748b' : '#10b981',
-        desc: c.description || 'Registered site component',
-        defaultProps: typeof c.component_config === 'string' ? JSON.parse(c.component_config) : (c.component_config || {}),
-      })));
-    }).catch(() => {});
-
     fetch('/api/jana/search-engines').then(r => r.json()).then(d => setSearchEngines(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/jana/types').then(r => r.json()).then(d => setTypes(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/jana/tiers').then(r => r.json()).then(d => setTiers(Array.isArray(d) ? d : [])).catch(() => {});
@@ -367,7 +131,7 @@ function MultiPageSiteBuilderComponent() {
 
   // Default layout seeded into the builder when no modules are saved yet
   const DEFAULT_MAIN_SLOTS: Slot[] = [
-    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'main_hero' } },
+    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'discovery' } },
     { id: 'h2', key: 'services_hub',          zone: 'body', label: 'Services Hub',          props: {} },
     { id: 'h3', key: 'experience_categories', zone: 'body', label: 'Experience Categories', props: {} },
     { id: 'h4', key: 'search_bar',            zone: 'body', label: 'Search Engine (Full)',  props: {} },
@@ -378,233 +142,39 @@ function MultiPageSiteBuilderComponent() {
     { id: 'h9', key: 'partner_cta',           zone: 'body', label: 'Partner CTA',           props: {} },
   ];
 
-  const getDefaultSlotsForPage = (slug: string): Slot[] => {
-    if (slug === 'main') return DEFAULT_MAIN_SLOTS;
-
-    const isSector = ['accommodations', 'restaurants', 'transportation', 'activities', 'food-beverage', 'crafts-wellness', 'production-trade', 'services'].includes(slug);
-    if (isSector) {
-      const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-      const cat = slug === 'accommodations' ? 'accommodation' : slug === 'restaurants' ? 'restaurant' : slug === 'transportation' ? 'transportation' : slug === 'activities' ? 'activity' : slug === 'food-beverage' ? 'food' : slug;
-      const carouselId = `${slug}_hero`;
-      return [
-        // Hero Carousel in BODY zone so it appears directly in the main Body builder workspace!
-        { id: `${slug}_carousel`, key: 'hero_carousel', zone: 'body', label: `${label} Hero Carousel`, props: { carousel_id: carouselId } },
-        // Thematic static hero (shown below carousel or as fallback when carousel has no slides)
-        { id: `${slug}_hero`, key: 'category_hero', zone: 'body', label: `${label} Thematic Hero`, props: { category: cat, label, title: `Find the perfect ${label} in Siwa` } },
-        { id: `${slug}_search`, key: 'search_bar', zone: 'body', label: `${label} Search & Filters`, props: { defaultCategory: cat } },
-        { id: `${slug}_deals`, key: 'category_commercial_tabs', zone: 'body', label: `${label} Packages & Deals`, props: { category: cat } },
-        { id: `${slug}_directory`, key: 'services_hub', zone: 'body', label: `${label} Business Directory`, props: { category: cat } },
-        { id: `${slug}_story`, key: 'storytelling_section', zone: 'body', label: `${label} Heritage Narrative`, props: {} },
-        { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (slug === 'journeys') {
-      return [
-        { id: 'journeys_hero', key: 'hero_carousel', zone: 'body', label: 'Journey Hero Carousel', props: { carousel_id: 'journeys_hero' } },
-        { id: 'journeys_planner', key: 'smart_journey_planner', zone: 'body', label: 'Smart Journey Planner', props: {} },
-        { id: 'journeys_map', key: 'ecosystem_map', zone: 'body', label: 'Interactive Oasis Map', props: {} },
-        { id: 'journeys_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (slug === 'categories') {
-      return [
-        { id: 'categories_hero', key: 'hero_carousel', zone: 'body', label: 'Categories Hero Carousel', props: { carousel_id: 'categories_hero' } },
-        { id: 'categories_showcase', key: 'experience_categories', zone: 'body', label: 'Experience Categories Showcase', props: {} },
-        { id: 'categories_services', key: 'services_hub', zone: 'body', label: 'Services Hub Directory', props: {} },
-        { id: 'categories_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (['offers', 'packages', 'discounts'].includes(slug)) {
-      const label = slug.charAt(0).toUpperCase() + slug.slice(1);
-      return [
-        { id: `${slug}_hero`, key: 'hero_carousel', zone: 'body', label: `${label} Hero Carousel`, props: { carousel_id: `${slug}_hero` } },
-        { id: `${slug}_tabs`, key: 'category_commercial_tabs', zone: 'body', label: `${label} & Commercial Showcase`, props: {} },
-        { id: `${slug}_directory`, key: 'services_hub', zone: 'body', label: 'Services & Partners Hub', props: {} },
-        { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (slug === 'auctions') {
-      return [
-        { id: 'auctions_hero', key: 'hero_carousel', zone: 'body', label: 'Live Auctions Hero Carousel', props: { carousel_id: 'auctions_hero' } },
-        { id: 'auctions_feed', key: 'auctions_feed', zone: 'body', label: 'Live & Upcoming Auctions Feed', props: {} },
-        { id: 'auctions_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (slug === 'investment-opportunities') {
-      return [
-        { id: 'investment_hero', key: 'hero_carousel', zone: 'body', label: 'Investment Opportunities Hero Carousel', props: { carousel_id: 'investment-opportunities_hero' } },
-        { id: 'investment_feed', key: 'investment_feed', zone: 'body', label: 'Investment Marketplace Feed', props: {} },
-        { id: 'investment_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (slug === 'blog') {
-      return [
-        { id: 'blog_hero', key: 'hero_carousel', zone: 'body', label: 'Siwa Stories Hero Carousel', props: { carousel_id: 'blog_hero' } },
-        { id: 'blog_feed', key: 'blog', zone: 'body', label: 'Articles & Stories Feed', props: {} },
-        { id: 'blog_partner_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    if (slug === 'be-a-partner') {
-      return [
-        { id: 'partner_hero', key: 'hero_carousel', zone: 'body', label: 'Be a Partner Hero Carousel', props: { carousel_id: 'be-a-partner_hero' } },
-        { id: 'partner_form', key: 'partner_registration_form', zone: 'body', label: 'Partner Onboarding & Application Form', props: {} },
-        { id: 'partner_footer_cta', key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-      ];
-    }
-
-    return [
-      { id: `${slug}_hero`, key: 'hero_carousel', zone: 'body', label: 'Hero Carousel', carousel_id: pageCarouselId(slug), props: { carousel_id: pageCarouselId(slug) } },
-      { id: `${slug}_search`, key: 'search_bar', zone: 'body', label: 'Search Engine', props: {} },
-      { id: `${slug}_partner_cta`, key: 'partner_cta', zone: 'footer', label: 'Partner CTA', props: {} },
-    ];
-  };
-
-  const pageCarouselId = (pageSlug = currentPage) => `${pageSlug || 'main'}_hero`;
-
   // Load layout when page/template changes
   useEffect(() => {
-    if (queryPage && queryPage !== currentPage) {
-      setCurrentPage(queryPage);
-      if (!pages.some(page => page.slug === queryPage)) {
-        setPages(prev => [...prev, { slug: queryPage, saved: false, type: 'page' as const }]);
-      }
-    }
-  }, [queryPage, pages, currentPage]);
-
-  const updateUrlState = (pageSlug: string, bId: string) => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams();
-    if (pageSlug && pageSlug !== 'main') params.set('page', pageSlug);
-    else params.set('page', 'main');
-    if (bId) params.set('businessId', bId);
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState(null, '', newUrl);
-  };
-
-  const getPreviewUrlForPage = (pageSlug = currentPage, pageType?: 'page' | 'search') => {
-    if (businessId) {
-      const selectedBiz = businesses.find(b => b.id === businessId);
-      const baseSlug = selectedBiz ? (selectedBiz.slug || `business/${selectedBiz.id}`) : `business/${businessId}`;
-      const cleanBase = baseSlug.startsWith('/') ? baseSlug : `/${baseSlug}`;
-      if (pageSlug === 'main') return cleanBase;
-      return `${cleanBase}?tab=${pageSlug}`;
-    }
-    const currentPageData = pages.find(p => p.slug === pageSlug);
-    const resolvedType = pageType || currentPageData?.type;
-    if (pageSlug === 'main') return '/';
-    if (pageSlug === 'journeys') return '/journeys';
-    if (pageSlug === 'categories') return '/categories';
-    if (pageSlug === 'accommodations') return '/accommodations';
-    if (pageSlug === 'restaurants') return '/restaurants';
-    if (pageSlug === 'transportation') return '/transportation';
-    if (pageSlug === 'food-beverage') return '/food-beverage';
-    if (pageSlug === 'activities') return '/activities';
-    if (pageSlug === 'crafts-wellness') return '/crafts-wellness';
-    if (pageSlug === 'production-trade') return '/production-trade';
-    if (pageSlug === 'services') return '/services';
-    if (pageSlug === 'blog') return '/blog';
-    if (pageSlug === 'offers' || pageSlug === 'deals') return '/offers';
-    if (pageSlug === 'packages') return '/packages';
-    if (pageSlug === 'discounts') return '/discounts';
-    if (pageSlug === 'auctions') return '/auctions';
-    if (pageSlug === 'investment-opportunities' || pageSlug === 'investments') return '/investment-opportunities';
-    if (pageSlug === 'be-a-partner') return '/be-a-partner';
-    if (resolvedType === 'search') return `/search/${pageSlug}`;
-    return `/p/${pageSlug}`;
-  };
-
-  const getPreviewUrl = () => getPreviewUrlForPage(currentPage);
-
-  useEffect(() => {
-    let isCurrent = true;
-    const loadPageLayout = async () => {
-      if (mode === 'PAGES') {
-        const currentPageData = pages.find(p => p.slug === currentPage);
-        const pageType = currentPageData?.type || 'page';
-        const pageId = scopedPageId(currentPage, pageType);
-
-        setPageLoading(true);
-        try {
-          const res = await fetch(`/api/jana/website?id=${pageId}`);
-          const data = await res.json();
-          if (!isCurrent) return;
-          const t = Array.isArray(data) ? data[0] : data;
-
-          if (!t) {
-            setSlots(getDefaultSlotsForPage(currentPage));
-            setPageLoading(false);
-            return;
-          }
-
-          const pageCarId = `${currentPage || 'main'}_hero`;
-          const resolveCarousel = (c: any) => {
-            if (c.type !== 'hero_carousel') return c.props?.carousel_id;
-            const explicit = c.props?.carousel_id || c.carousel_id;
-            if (explicit && explicit !== 'discovery' && (currentPage === 'main' || explicit !== 'main_hero')) {
-              return explicit;
-            }
-            return pageCarId;
-          };
-
-          const allLoaded = [
-            ...(t.header_components || []).map((c: any) => ({
-              id: c.id,
-              key: c.type,
-              zone: 'header' as Zone,
-              label: c.name || PALETTE.find(p => p.key === c.type)?.name || c.type,
-              engine_id: c.props?.engine_id,
-              carousel_id: resolveCarousel(c),
-              props: { ...(c.props || {}), ...(c.type === 'hero_carousel' ? { carousel_id: resolveCarousel(c) } : {}) }
-            })),
-            ...(t.body_components || []).map((c: any) => ({
-              id: c.id,
-              key: c.type,
-              zone: 'body' as Zone,
-              label: c.name || PALETTE.find(p => p.key === c.type)?.name || c.type,
-              engine_id: c.props?.engine_id,
-              carousel_id: resolveCarousel(c),
-              props: { ...(c.props || {}), ...(c.type === 'hero_carousel' ? { carousel_id: resolveCarousel(c) } : {}) }
-            })),
-            ...(t.footer_components || []).map((c: any) => ({
-              id: c.id,
-              key: c.type,
-              zone: 'footer' as Zone,
-              label: c.name || PALETTE.find(p => p.key === c.type)?.name || c.type,
-              engine_id: c.props?.engine_id,
-              carousel_id: resolveCarousel(c),
-              props: { ...(c.props || {}), ...(c.type === 'hero_carousel' ? { carousel_id: resolveCarousel(c) } : {}) }
-            })),
-          ];
-
-          const hasSavedLayout = ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(t[key]) && t[key].length > 0);
-          setSlots(hasSavedLayout ? allLoaded : getDefaultSlotsForPage(currentPage));
-        } catch {
-          if (isCurrent) setSlots(getDefaultSlotsForPage(currentPage));
-        } finally {
-          if (isCurrent) setPageLoading(false);
-        }
-      } else {
-        const tmpl = templates.find(t => t.id === currentPage);
-        if (!tmpl) {
-          setSlots([]);
+    if (mode === 'PAGES') {
+      const currentPageData = pages.find(p => p.slug === currentPage);
+      const pageType = currentPageData?.type || 'page';
+      const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
+      
+      fetch(`/api/jana/website?id=${pageId}`).then(r => r.json()).then(data => {
+        const t = data[0];
+        if (!t) {
+          // No config in DB at all — show defaults for main, empty for others
+          setSlots(currentPage === 'main' ? DEFAULT_MAIN_SLOTS : []);
           return;
         }
-        setTemplateMeta({ name: tmpl.name || '', type_id: tmpl.type_id || '', level: tmpl.level || 'basic' });
-        const comps = Array.isArray(tmpl.layout) ? tmpl.layout : [];
-        setSlots(comps.map((c: any) => ({ id: c.id, key: c.type, zone: (c.zone || 'body') as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })));
-      }
-    };
+        if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
 
-    loadPageLayout();
-    return () => { isCurrent = false; };
-  }, [currentPage, mode, templates, pages, businessId]);
+        const allLoaded = [
+          ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+          ...(t.body_components   || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'body'   as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+          ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
+        ];
+
+        // Config exists in DB — always respect it, even if empty (admin cleared the page)
+        setSlots(allLoaded);
+      }).catch(() => setSlots([]));
+    } else {
+      const tmpl = templates.find(t => t.id === currentPage);
+      if (!tmpl) return setSlots([]);
+      setTemplateMeta({ name: tmpl.name || '', type_id: tmpl.type_id || '', level: tmpl.level || 'basic' });
+      const comps = Array.isArray(tmpl.layout) ? tmpl.layout : [];
+      setSlots(comps.map((c: any) => ({ id: c.id, key: c.type, zone: (c.zone || 'body') as Zone, label: c.name, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })));
+    }
+  }, [currentPage, mode, templates]);
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -612,8 +182,7 @@ function MultiPageSiteBuilderComponent() {
   };
 
   // ── Slot helpers ────────────────────────────────────────────────────────────
-  const fallbackPalette = runtimeComponents.length === 0 ? PALETTE : [];
-  const FULL_PALETTE = [...runtimeComponents, ...fallbackPalette, ...dynamicComponents];
+  const FULL_PALETTE = [...PALETTE, ...dynamicComponents];
   const palettFor = (z: Zone) => FULL_PALETTE.filter(p => p.zone === z);
   const slotsFor  = (z: Zone) => slots.filter(s => s.zone === z);
 
@@ -622,23 +191,14 @@ function MultiPageSiteBuilderComponent() {
     if (isAdded(item)) {
       // Allow re-adding with a unique ID for power users
       const count = slots.filter(s => s.key === item.key && s.zone === item.zone).length;
-      const carousel_id = item.key === 'hero_carousel' ? `${pageCarouselId()}_${count + 1}` : undefined;
-      setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: `${item.name} #${count + 1}`, carousel_id, props: { ...(item.defaultProps || {}), ...(carousel_id ? { carousel_id } : {}) } }]);
+      setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: `${item.name} #${count + 1}` }]);
       notify(`✅ ${item.name} #${count + 1} added`);
       return;
     }
-    const carousel_id = item.key === 'hero_carousel' ? pageCarouselId() : undefined;
-    setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: item.name, carousel_id, props: { ...(item.defaultProps || {}), ...(carousel_id ? { carousel_id } : {}) } }]);
+    setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: item.name }]);
     notify(`✅ ${item.name} added`);
   };
   const removeSlot = (id: string) => setSlots(prev => prev.filter(s => s.id !== id));
-  const clearActiveZone = () => {
-    if (slotsFor(activeZone).length === 0) return;
-    const confirmClear = window.confirm(`Remove all ${activeZone} sections from this form?`);
-    if (!confirmClear) return;
-    setSlots(prev => prev.filter(s => s.zone !== activeZone));
-    notify(`🧹 ${activeZone.toUpperCase()} zone cleared`);
-  };
   const moveSlot = (id: string, dir: 'up'|'down') => {
     setSlots(prev => {
       const zone = prev.find(s => s.id === id)?.zone; if (!zone) return prev;
@@ -659,32 +219,11 @@ function MultiPageSiteBuilderComponent() {
   const save = async () => {
     setSaving(true);
     try {
-      const toComp = (s: Slot) => {
-        const pageCarId = `${currentPage || 'main'}_hero`;
-        const explicitCarId = s.props?.carousel_id || s.carousel_id;
-        const resolvedCarId = s.key === 'hero_carousel'
-          ? (explicitCarId && explicitCarId !== 'discovery' && (currentPage === 'main' || explicitCarId !== 'main_hero')
-              ? explicitCarId
-              : pageCarId)
-          : undefined;
-
-        return {
-          id: s.id,
-          type: s.key,
-          name: s.label,
-          zone: s.zone,
-          props: {
-            title: s.label,
-            engine_id: s.engine_id,
-            ...(s.props || {}),
-            ...(s.key === 'hero_carousel' ? { carousel_id: resolvedCarId } : {}),
-          },
-        };
-      };
+      const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id, ...(s.props || {}) } });
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
-        const pageId = scopedPageId(currentPage, pageType);
+        const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
         
         const res = await fetch('/api/jana/website', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -719,7 +258,7 @@ function MultiPageSiteBuilderComponent() {
       const slug = newPageName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if (!slug) return;
       if (pages.find(p => p.slug === slug)) { notify('⚠️ Page already exists!', 'error'); return; }
-      setPages(prev => [...prev, { slug, saved: false, type: 'page' as const }]);
+      setPages(prev => [...prev, { slug, saved: false }]);
       setCurrentPage(slug); setSlots([]);
       setShowNewModal(false); setNewPageName('');
       notify(`✨ "${slug}" created – don't forget to publish!`, 'info');
@@ -741,7 +280,7 @@ function MultiPageSiteBuilderComponent() {
       const pg = pages.find(p => p.slug === deleteTarget);
       if (pg?.saved) {
         const pageType = pg.type || 'page';
-        const pageId = scopedPageId(deleteTarget, pageType);
+        const pageId = pageType === 'search' ? `website_search_${deleteTarget}` : `website_${deleteTarget}`;
         const res = await fetch(`/api/jana/website?id=${pageId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error((await res.json()).error || 'Delete failed');
       }
@@ -762,8 +301,8 @@ function MultiPageSiteBuilderComponent() {
     if (pg?.saved) {
       try {
         const pageType = pg.type || 'page';
-        const oldPageId = scopedPageId(renameTarget, pageType);
-        const newPageId = scopedPageId(newSlug, pageType);
+        const oldPageId = pageType === 'search' ? `website_search_${renameTarget}` : `website_${renameTarget}`;
+        const newPageId = pageType === 'search' ? `website_search_${newSlug}` : `website_${newSlug}`;
         
         const res = await fetch(`/api/jana/website?id=${oldPageId}`);
         const data = await res.json();
@@ -774,7 +313,7 @@ function MultiPageSiteBuilderComponent() {
         }
       } catch (e: any) { notify(`❌ Rename failed: ${e.message}`, 'error'); setShowRenameModal(false); return; }
     }
-    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg?.type || 'page' } : p));
+    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg.type } : p));
     if (currentPage === renameTarget) setCurrentPage(newSlug);
     notify(`✅ Renamed to "${newSlug}"`);
     setShowRenameModal(false); setRenameTarget(''); setRenameValue('');
@@ -833,44 +372,6 @@ function MultiPageSiteBuilderComponent() {
 
         {/* Right: status + actions */}
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.62rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
-            BUILDER SCOPE
-            <select
-              value={businessId}
-              onChange={event => {
-                const nextBId = event.target.value;
-                setBusinessId(nextBId);
-                setCurrentPage('main');
-                setSlots([]);
-                updateUrlState('main', nextBId);
-              }}
-              style={{ maxWidth: 190, padding: '0.42rem 0.55rem', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontSize: '0.68rem', fontWeight: 700 }}
-            >
-              <option value="">Main site</option>
-              {businesses.map(business => <option key={business.id} value={business.id}>{business.name}</option>)}
-            </select>
-          </label>
-          {businessContext && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.62rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
-              TEMPLATE OVERRIDE
-              <select
-                value={businessContext.template_id || ''}
-                disabled={templateSaving}
-                onChange={event => saveBusinessTemplateOverride(event.target.value)}
-                style={{ maxWidth: 190, padding: '0.42rem 0.55rem', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: '#1e293b', color: '#fff', fontSize: '0.68rem', fontWeight: 700 }}
-              >
-                <option value="">Inherit child template</option>
-                {availableBusinessTemplates.map((template: any) => <option key={template.id} value={template.id}>{template.name}</option>)}
-              </select>
-            </label>
-          )}
-          {businessContext && (
-            <div title="Template inheritance chain" style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.58rem', lineHeight: 1.2, maxWidth: 180 }}>
-              Parent: {templateById(businessContext.parent_default_template_id)?.name || 'platform default'}<br />
-              Child: {templateById(businessContext.child_default_template_id)?.name || 'inherits parent'}<br />
-              Active: {templateById(effectiveTemplateId)?.name || 'platform default'}
-            </div>
-          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.35rem 0.85rem', borderRadius: '8px' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: currentDraft ? '#f59e0b' : '#10b981', display: 'inline-block', boxShadow: `0 0 6px ${currentDraft ? '#f59e0b' : '#10b981'}` }} />
             <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
@@ -882,10 +383,9 @@ function MultiPageSiteBuilderComponent() {
           <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />
 
           {mode === 'PAGES' && (
-            <a href={getPreviewUrl()} target="_blank" rel="noopener noreferrer"
-              title={`Preview: https://siwify.com${getPreviewUrl()}`}
-              style={{ padding: '0.38rem 0.85rem', background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 7, color: '#D4AF37', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
-              👁 Preview ({getPreviewUrl()})
+            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer"
+              style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+              👁 Preview
             </a>
           )}
 
@@ -904,17 +404,14 @@ function MultiPageSiteBuilderComponent() {
             <div style={{ fontSize: '0.5rem', fontWeight: 900, color: '#cbd5e1', letterSpacing: '2px', whiteSpace: 'nowrap' }}>PAGE CONFIG</div>
             <Sep />
             <Field label="TITLE">
-              <input value={siteSettings.site_name} onChange={e => setSiteSettings(s=>({...s,site_name:e.target.value}))} placeholder="Site Name" style={fieldStyle(130)} />
+              <input value={siteSettings.site_name} onChange={e => setSiteSettings(s=>({...s,site_name:e.target.value}))} placeholder="Site Name" style={fieldStyle(140)} />
             </Field>
             <Field label="TAGLINE">
-              <input value={siteSettings.tagline} onChange={e => setSiteSettings(s=>({...s,tagline:e.target.value}))} placeholder="Tagline" style={{...fieldStyle(180), flex:1}} />
-            </Field>
-            <Field label="COLOR">
-              <input type="color" value={siteSettings.primary_color||'#D4AF37'} onChange={e => setSiteSettings(s=>({...s,primary_color:e.target.value}))} style={{ width:24, height:24, padding:0, border:'none', cursor:'pointer', borderRadius:4, background:'transparent' }} title="Primary Theme Color" />
+              <input value={siteSettings.tagline} onChange={e => setSiteSettings(s=>({...s,tagline:e.target.value}))} placeholder="Tagline" style={{...fieldStyle(220), flex:1}} />
             </Field>
             <Sep />
             <Field label="LOGO URL">
-              <input value={siteSettings.logo_url||''} onChange={e => setSiteSettings(s=>({...s,logo_url:e.target.value}))} placeholder="https://…" style={fieldStyle(140)} />
+              <input value={siteSettings.logo_url||''} onChange={e => setSiteSettings(s=>({...s,logo_url:e.target.value}))} placeholder="https://…" style={fieldStyle(160)} />
               <label style={{ cursor:'pointer', background:'#f8fafc', padding:'3px 8px', borderRadius:'6px', fontSize:'0.58rem', fontWeight:800, border:'1px solid #e2e8f0', whiteSpace:'nowrap', color:'#64748b' }}>
                 ☁ Upload
                 <input type="file" hidden accept="image/*" onChange={async e=>{
@@ -929,23 +426,11 @@ function MultiPageSiteBuilderComponent() {
               </label>
             </Field>
             <Field label="H(px)">
-              <input type="number" value={siteSettings.logo_height||40} onChange={e => setSiteSettings(s=>({...s,logo_height:parseInt(e.target.value)||40}))} style={fieldStyle(48)} />
-            </Field>
-            <Field label="SIGNATURE">
-              <input value={siteSettings.watermark_text||''} onChange={e => setSiteSettings(s=>({...s,watermark_text:e.target.value}))} placeholder={siteSettings.site_name || "SiWiFy.com"} style={fieldStyle(120)} />
+              <input type="number" value={siteSettings.logo_height||40} onChange={e => setSiteSettings(s=>({...s,logo_height:parseInt(e.target.value)||40}))} style={fieldStyle(58)} />
             </Field>
             <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
               <input type="checkbox" checked={siteSettings.show_watermark!==false} onChange={e=>setSiteSettings(s=>({...s,show_watermark:e.target.checked}))} />
-              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>🏅 WATERMARK</span>
-            </label>
-            <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
-              <input type="checkbox" checked={siteSettings.show_platform_anchor!==false} onChange={e=>setSiteSettings(s=>({...s,show_platform_anchor:e.target.checked}))} />
-              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>📍 MINISITE BADGE</span>
-            </label>
-            <Sep />
-            <label style={{ display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
-              <input type="checkbox" checked={siteSettings.enable_minisite_multilingual===true} onChange={e=>setSiteSettings(s=>({...s,enable_minisite_multilingual:e.target.checked}))} />
-              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#8b5cf6' }}>🌐 MULTILINGUAL (EN/AR)</span>
+              <span style={{ fontSize:'0.6rem', fontWeight:900, color:'#475569' }}>🏅 SIGNATURE</span>
             </label>
           </>
         ) : (
@@ -1010,7 +495,7 @@ function MultiPageSiteBuilderComponent() {
                 : filteredPages.map(page => {
                   const active = currentPage === page.slug;
                   return (
-                    <div key={page.slug} onClick={()=>{ setCurrentPage(page.slug); updateUrlState(page.slug, businessId); }}
+                    <div key={page.slug} onClick={()=>setCurrentPage(page.slug)}
                       style={{ padding:'0.55rem 0.65rem', borderRadius:10, marginBottom:'0.25rem', background:active?'rgba(212,175,55,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${active?'rgba(212,175,55,0.25)':'rgba(255,255,255,0.04)'}`, cursor:'pointer', transition:'all 0.18s', display:'flex', alignItems:'center', gap:'0.55rem' }}>
                       <span style={{ width:7, height:7, borderRadius:'50%', background:page.saved?'#10b981':'#f59e0b', flexShrink:0, boxShadow:`0 0 5px ${page.saved?'#10b98166':'#f59e0b66'}`, display:'inline-block' }} />
                       <div style={{ flex:1, minWidth:0 }}>
@@ -1023,7 +508,7 @@ function MultiPageSiteBuilderComponent() {
                       </div>
                       {/* Quick actions */}
                       <div style={{ display:'flex', gap:'3px', flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-                        <a href={getPreviewUrlForPage(page.slug, page.type)} target="_blank" rel="noopener noreferrer" title={`Preview ${getPreviewUrlForPage(page.slug, page.type)}`}
+                        <a href={page.slug==='main'?'/':page.type==='search'?`/search/${page.slug}`:`/p/${page.slug}`} target="_blank" rel="noopener noreferrer" title="Preview"
                           style={iconBtn('#fff')}>👁</a>
                         {page.slug !== 'main' && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
@@ -1112,27 +597,18 @@ function MultiPageSiteBuilderComponent() {
                   {mode==='PAGES' ? ` · editing ${currentPage}` : ` · template`}
                 </p>
               </div>
-              <div style={{ display:'flex', gap:'5px', alignItems:'center' }}>
+              <div style={{ display:'flex', gap:'5px' }}>
                 {(['header','body','footer'] as Zone[]).map(z => (
                   <button key={z} onClick={()=>setActiveZone(z)}
                     style={{ padding:'0.3rem 0.75rem', border:`1px solid ${activeZone===z?ZONE_COLORS[z]:'#e2e8f0'}`, borderRadius:6, background:activeZone===z?`${ZONE_COLORS[z]}12`:'#fff', color:activeZone===z?ZONE_COLORS[z]:'#94a3b8', fontSize:'0.58rem', fontWeight:800, cursor:'pointer', textTransform:'uppercase', transition:'all 0.18s' }}>
                     {z} ({slotsFor(z).length})
                   </button>
                 ))}
-                <button onClick={clearActiveZone} disabled={slotsFor(activeZone).length===0}
-                  style={{ padding:'0.3rem 0.75rem', border:'1px solid #fecaca', borderRadius:6, background: slotsFor(activeZone).length===0 ? '#f8fafc' : '#fff1f2', color: slotsFor(activeZone).length===0 ? '#cbd5e1' : '#ef4444', fontSize:'0.58rem', fontWeight:800, cursor: slotsFor(activeZone).length===0 ? 'not-allowed' : 'pointer', transition:'all 0.18s' }}>
-                  🧹 Clear {activeZone}
-                </button>
               </div>
             </div>
 
-            {/* Empty or loading state */}
-            {pageLoading ? (
-              <div style={{ textAlign:'center', padding:'5rem 2rem', borderRadius:20, background:'#fff', border:'1px solid #e2e8f0' }}>
-                <div style={{ width:36, height:36, border:'3px solid #D4AF37', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 1rem' }} />
-                <div style={{ fontWeight:800, fontSize:'0.9rem', color:'#0f172a' }}>Loading {currentPage} layout…</div>
-              </div>
-            ) : slotsFor(activeZone).length === 0 ? (
+            {/* Empty state */}
+            {slotsFor(activeZone).length === 0 ? (
               <div style={{ textAlign:'center', padding:'5rem 2rem', border:'2px dashed #e2e8f0', borderRadius:20, color:'#94a3b8', background:'#fff' }}>
                 <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>＋</div>
                 <div style={{ fontWeight:800, fontSize:'0.95rem' }}>No {activeZone} blocks added</div>
@@ -1187,40 +663,6 @@ function MultiPageSiteBuilderComponent() {
                         </ConfigBox>
                       )}
 
-                      {slot.key === 'discovery_gateway' && (
-                        <ConfigBox label="DISCOVERY GATEWAY CONTENT">
-                          <div style={{ display:'grid', gap:'0.5rem' }}>
-                            <input value={slot.props?.eyebrow || ''} onChange={e=>updateSlotProp(slot.id,'eyebrow',e.target.value)} placeholder="Eyebrow, e.g. DISCOVER SIWA" style={{...fieldStyle('100%'),width:'100%'}} />
-                            <input value={slot.props?.title || ''} onChange={e=>updateSlotProp(slot.id,'title',e.target.value)} placeholder="Heading, e.g. Start with an experience" style={{...fieldStyle('100%'),width:'100%'}} />
-                            <input value={slot.props?.subtitle || ''} onChange={e=>updateSlotProp(slot.id,'subtitle',e.target.value)} placeholder="Supporting description" style={{...fieldStyle('100%'),width:'100%'}} />
-                            <textarea
-                              value={Array.isArray(slot.props?.destinations) ? JSON.stringify(slot.props.destinations, null, 2) : (slot.props?.destinations || '')}
-                              onChange={e=>{
-                                const value = e.target.value;
-                                if (!value.trim()) {
-                                  setSlots(prev => prev.map(s => {
-                                    if (s.id !== slot.id) return s;
-                                    const props = { ...(s.props || {}) };
-                                    delete props.destinations;
-                                    return { ...s, props };
-                                  }));
-                                  return;
-                                }
-                                try {
-                                  const destinations = JSON.parse(value);
-                                  if (Array.isArray(destinations)) {
-                                    setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, props: { ...(s.props || {}), destinations } } : s));
-                                  }
-                                } catch { /* Keep the last valid value while editing JSON. */ }
-                              }}
-                              placeholder='[] to remove all cards, or [{"href":"/search/vibe","label":"Experiences","description":"...","icon":"fa-compass","color":"#0f766e"}]'
-                              style={{ width:'100%', minHeight:150, padding:'0.55rem 0.65rem', border:'1.5px solid #e2e8f0', borderRadius:7, fontSize:'0.68rem', fontFamily:'monospace', boxSizing:'border-box' }}
-                            />
-                            <div style={{ fontSize:'0.58rem', color:'#64748b' }}>Edit or delete cards as JSON. Leave this empty to use the default cards.</div>
-                          </div>
-                        </ConfigBox>
-                      )}
-
                       {/* Featured vibe props */}
                       {slot.key === 'featured_vibe' && (
                         <ConfigBox label="VIBE STORY SETTINGS">
@@ -1239,29 +681,12 @@ function MultiPageSiteBuilderComponent() {
                         </ConfigBox>
                       )}
 
-                      {def?.manager && mode==='PAGES' && (() => {
-                        let managerHref = def.manager;
-                        if (slot.key === 'hero_carousel') {
-                          const pageCarId = `${currentPage || 'main'}_hero`;
-                          const carId = slot.props?.carousel_id || slot.carousel_id || pageCarId;
-                          const effectiveCarId = carId && carId !== 'discovery' && (currentPage === 'main' || carId !== 'main_hero')
-                            ? carId
-                            : pageCarId;
-
-                          managerHref = businessId
-                            ? `/jana/hero-carousel?targetScope=minisite&businessId=${encodeURIComponent(businessId)}&siteId=${encodeURIComponent(effectiveCarId)}`
-                            : `/jana/hero-carousel?targetScope=main&siteId=${encodeURIComponent(effectiveCarId)}&mainPreset=${encodeURIComponent(effectiveCarId)}`;
-                        } else if (slot.carousel_id || slot.props?.carousel_id) {
-                          const cId = slot.props?.carousel_id || slot.carousel_id;
-                          managerHref = `${def.manager}?siteId=${encodeURIComponent(cId)}`;
-                        }
-                        return (
-                          <Link href={managerHref}
-                            style={{ alignSelf:'flex-start', padding:'0.38rem 0.85rem', background:color, color:'#fff', textDecoration:'none', borderRadius:7, fontSize:'0.6rem', fontWeight:800, display:'flex', alignItems:'center', gap:5 }}>
-                            ⚙️ MANAGE CONTENT
-                          </Link>
-                        );
-                      })()}
+                      {def?.manager && mode==='PAGES' && (
+                        <Link href={`${def.manager}${slot.carousel_id?`?siteId=${slot.carousel_id}`:''}`}
+                          style={{ alignSelf:'flex-start', padding:'0.38rem 0.85rem', background:color, color:'#fff', textDecoration:'none', borderRadius:7, fontSize:'0.6rem', fontWeight:800, display:'flex', alignItems:'center', gap:5 }}>
+                          ⚙️ MANAGE CONTENT
+                        </Link>
+                      )}
                     </div>
                   </div>
                 );
@@ -1432,15 +857,3 @@ const modalSub:   React.CSSProperties = { margin:'0 0 1.25rem', fontSize:'0.75re
 const modalInput: React.CSSProperties = { width:'100%', padding:'0.85rem 1rem', borderRadius:12, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', marginBottom:'0.65rem', boxSizing:'border-box' };
 const modalCancelBtn: React.CSSProperties = { flex:1, padding:'0.8rem', border:'1.5px solid #e2e8f0', borderRadius:12, fontWeight:800, cursor:'pointer', color:'#64748b', background:'#fff', fontSize:'0.78rem' };
 const modalConfirmBtn = (bg:string, color:string): React.CSSProperties => ({ flex:2, padding:'0.8rem', background:bg, border:'none', borderRadius:12, color, fontWeight:900, cursor:'pointer', fontSize:'0.82rem' });
-
-export default function MultiPageSiteBuilder() {
-  return (
-    <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-        <div style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '4px', fontSize: '1rem' }}>LOADING SITE BUILDER…</div>
-      </div>
-    }>
-      <MultiPageSiteBuilderComponent />
-    </Suspense>
-  );
-}

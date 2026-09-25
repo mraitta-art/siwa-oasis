@@ -7,22 +7,16 @@ interface Component {
   id: string;
   key: string;
   name: string;
-  description?: string | null;
-  icon?: string | null;
+  description: string;
+  icon: string;
   zone: string;
-  category?: string | null;
-  enabled?: boolean | number | null;
-  manager_url?: string | null;
-  version?: string | null;
-  deprecation_notice?: string | null;
+  category: string;
+  enabled: boolean;
+  manager_url: string;
+  version: string;
+  deprecation_notice?: string;
   component_config?: Record<string, any>;
   config_schema?: any;
-  type?: string | null;
-  is_active?: boolean | number | null;
-  is_global?: boolean | number | null;
-  usage_count?: number | null;
-  created_at?: string | null;
-  deprecated?: boolean | number | null;
 }
 
 interface ConfigField {
@@ -40,132 +34,34 @@ export default function ComponentLibrary() {
   const [loading, setLoading] = useState(true);
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [editingConfig, setEditingConfig] = useState<Record<string, any>>({});
-  const [editingConfigText, setEditingConfigText] = useState('');
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filterType, setFilterType] = useState('all');
   const [filter, setFilter] = useState({ zone: 'all', category: 'all' });
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-  const dataSources = { sections: [] as any[], fields: [] as any[] };
-
-  const getGradient = (type?: string | null) => 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
-  const getIcon = (type?: string | null) => '📦';
-
-  const showToast = (msg: string, type: 'success' | 'error' | 'info') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const getComponentConfig = (component: Component) => {
-    const raw = (component as any).config;
-    if (typeof raw === 'string') {
-      try { return JSON.parse(raw); } catch { return {}; }
-    }
-    return raw || {};
-  };
-
-  const toggleMinisiteAccess = async (component: Component) => {
-    const currentConfig = getComponentConfig(component);
-    const nextConfig = { ...currentConfig, minisite_access: !Boolean(currentConfig.minisite_access) };
-
-    try {
-      const res = await fetch(`/api/jana/component-library/${component.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: nextConfig })
-      });
-
-      if (res.ok) {
-        showToast(nextConfig.minisite_access ? 'Minisite access enabled' : 'Minisite access disabled', 'success');
-        fetchComponents();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'Failed to update minisite access', 'error');
-      }
-    } catch (error) {
-      showToast('Error updating minisite access', 'error');
-    }
-  };
-
-  const fetchComponents = async () => {
-    try {
-      const res = await fetch('/api/jana/component-library');
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || 'Failed to load components');
-      }
-
-      setComponents(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      setComponents([]);
-      showToast(error?.message || 'Failed to load components', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleActive = async (id: string, active: boolean) => {
-    try {
-      const res = await fetch(`/api/jana/component-library/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: active })
-      });
-
-      if (res.ok) {
-        showToast(active ? 'Component enabled' : 'Component disabled', 'success');
-        fetchComponents();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'Failed to update component', 'error');
-      }
-    } catch (error) {
-      showToast('Error updating component', 'error');
-    }
-  };
-
-  const deleteComponent = async (id: string) => {
-    if (!confirm('Delete this component?')) return;
-
-    try {
-      const res = await fetch(`/api/jana/component-library/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast('Component deleted', 'success');
-        fetchComponents();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'Failed to delete component', 'error');
-      }
-    } catch (error) {
-      showToast('Error deleting component', 'error');
-    }
-  };
-
-  const loadComponents = () => fetchComponents();
 
   useEffect(() => {
     fetchComponents();
   }, []);
 
+  const fetchComponents = async () => {
+    try {
+      const res = await fetch('/api/jana/site-components');
+      const data = await res.json();
+      setComponents(data);
+    } catch (error) {
+      showToast('Failed to load components', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openConfigEditor = async (component: Component) => {
     setSelectedComponent(component);
     try {
-      const res = await fetch(`/api/jana/component-library/${component.id}`);
+      const res = await fetch(`/api/jana/site-components/config/${component.id}`);
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || 'Failed to load component');
-      }
-
-      const currentConfig = (data?.config && typeof data.config === 'string') ? JSON.parse(data.config) : data?.config || {};
-      setEditingConfig(currentConfig);
-      setEditingConfigText(JSON.stringify(currentConfig, null, 2));
-    } catch (error: any) {
-      setEditingConfig({});
-      setEditingConfigText('{}');
-      showToast(error?.message || 'Failed to load config', 'error');
+      setEditingConfig(data.currentConfig || {});
+    } catch (error) {
+      showToast('Failed to load config', 'error');
     }
     setShowConfigModal(true);
   };
@@ -173,19 +69,11 @@ export default function ComponentLibrary() {
   const saveConfig = async () => {
     if (!selectedComponent) return;
 
-    let parsedConfig: Record<string, any> = {};
     try {
-      parsedConfig = editingConfigText ? JSON.parse(editingConfigText) : {};
-    } catch (error: any) {
-      showToast('Invalid JSON configuration', 'error');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/jana/component-library/${selectedComponent.id}`, {
+      const res = await fetch(`/api/jana/site-components/config/${selectedComponent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: parsedConfig })
+        body: JSON.stringify({ component_config: editingConfig })
       });
 
       if (res.ok) {
@@ -193,8 +81,7 @@ export default function ComponentLibrary() {
         setShowConfigModal(false);
         fetchComponents();
       } else {
-        const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'Failed to save config', 'error');
+        showToast('Failed to save config', 'error');
       }
     } catch (error) {
       showToast('Error saving config', 'error');
@@ -203,28 +90,27 @@ export default function ComponentLibrary() {
 
   const resetConfig = async () => {
     if (!selectedComponent) return;
-    if (!confirm('Reset configuration to an empty object?')) return;
+    if (!confirm('Reset to default configuration?')) return;
 
     try {
-      const res = await fetch(`/api/jana/component-library/${selectedComponent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: {} })
+      const res = await fetch(`/api/jana/site-components/config/${selectedComponent.id}`, {
+        method: 'DELETE'
       });
 
       if (res.ok) {
         showToast('✅ Configuration reset', 'success');
         setEditingConfig({});
-        setEditingConfigText('{}');
         setShowConfigModal(false);
         fetchComponents();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'Failed to reset config', 'error');
       }
     } catch (error) {
       showToast('Error resetting config', 'error');
     }
+  };
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
   return (
@@ -315,12 +201,6 @@ export default function ComponentLibrary() {
               <span style={{ fontSize: '1.2rem' }}>+</span>
               Create Component
             </button>
-            <Link
-              href="/jana/components"
-              style={{ padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
-            >
-              Runtime Registry
-            </Link>
           </div>
         </div>
 
@@ -356,7 +236,7 @@ export default function ComponentLibrary() {
               Active
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#22c55e' }}>
-              {components.filter(c => Boolean(c.enabled ?? c.is_active)).length}
+              {components.filter(c => c.is_active).length}
             </div>
           </div>
           <div style={{
@@ -370,7 +250,7 @@ export default function ComponentLibrary() {
               Carousels
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#D4AF37' }}>
-              {components.filter(c => (c.type || c.key || '').toString().includes('carousel')).length}
+              {components.filter(c => c.type === 'carousel').length}
             </div>
           </div>
           <div style={{
@@ -384,7 +264,7 @@ export default function ComponentLibrary() {
               Blog Sidebars
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#3b82f6' }}>
-              {components.filter(c => (c.type || c.key || '').toString().includes('blog')).length}
+              {components.filter(c => c.type === 'blog_sidebar').length}
             </div>
           </div>
         </div>
@@ -405,8 +285,8 @@ export default function ComponentLibrary() {
           <span style={{ fontWeight: 700, color: '#475569', fontSize: '0.85rem' }}>Filter:</span>
           {[
             { key: 'all', label: `All`, icon: '📦', count: components.length },
-            { key: 'carousel', label: 'Carousels', icon: '🎬', count: components.filter(c => (c.type || c.key || '').toString().includes('carousel')).length },
-            { key: 'blog_sidebar', label: 'Blog Sidebars', icon: '📰', count: components.filter(c => (c.type || c.key || '').toString().includes('blog')).length }
+            { key: 'carousel', label: 'Carousels', icon: '🎬', count: components.filter(c => c.type === 'carousel').length },
+            { key: 'blog_sidebar', label: 'Blog Sidebars', icon: '📰', count: components.filter(c => c.type === 'blog_sidebar').length }
           ].map(filter => (
             <button
               key={filter.key}
@@ -498,7 +378,7 @@ export default function ComponentLibrary() {
                   borderRadius: '16px',
                   padding: '2rem',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                  border: Boolean(comp.enabled ?? comp.is_active) ? '2px solid #22c55e' : '2px solid #e2e8f0',
+                  border: comp.is_active ? '2px solid #22c55e' : '2px solid #e2e8f0',
                   transition: 'all 0.3s ease'
                 }}
                 onMouseEnter={(e) => {
@@ -543,7 +423,7 @@ export default function ComponentLibrary() {
                           fontWeight: 700,
                           textTransform: 'capitalize'
                         }}>
-                          {String(comp.type ?? comp.key ?? '').replace(/_/g, ' ')}
+                          {comp.type.replace('_', ' ')}
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
@@ -557,33 +437,23 @@ export default function ComponentLibrary() {
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
-                          background: Boolean(comp.is_global) ? '#dcfce7' : '#fef3c7',
-                          color: Boolean(comp.is_global) ? '#166534' : '#92400e',
+                          background: comp.is_global ? '#dcfce7' : '#fef3c7',
+                          color: comp.is_global ? '#166534' : '#92400e',
                           borderRadius: '20px',
                           fontSize: '0.8rem',
                           fontWeight: 700
                         }}>
-                          {Boolean(comp.is_global) ? '🌐 Global' : '🔒 Private'}
+                          {comp.is_global ? '🌐 Global' : '🔒 Private'}
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
-                          background: Boolean(comp.enabled ?? comp.is_active) ? '#dcfce7' : '#fee2e2',
-                          color: Boolean(comp.enabled ?? comp.is_active) ? '#166534' : '#991b1b',
+                          background: comp.is_active ? '#dcfce7' : '#fee2e2',
+                          color: comp.is_active ? '#166534' : '#991b1b',
                           borderRadius: '20px',
                           fontSize: '0.8rem',
                           fontWeight: 700
                         }}>
-                          {Boolean(comp.enabled ?? comp.is_active) ? '✓ Active' : '✗ Inactive'}
-                        </span>
-                        <span style={{
-                          padding: '0.4rem 0.9rem',
-                          background: Boolean(getComponentConfig(comp).minisite_access) ? '#dcfce7' : '#fef3c7',
-                          color: Boolean(getComponentConfig(comp).minisite_access) ? '#166534' : '#92400e',
-                          borderRadius: '20px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700
-                        }}>
-                          {Boolean(getComponentConfig(comp).minisite_access) ? '🧩 Minisite enabled' : '🔒 Hidden from minisites'}
+                          {comp.is_active ? '✓ Active' : '✗ Inactive'}
                         </span>
                       </div>
                     </div>
@@ -595,77 +465,51 @@ export default function ComponentLibrary() {
                     )}
 
                     <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#64748b', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
-                      <span style={{ fontWeight: 600 }}>📊 Used {comp.usage_count ?? 0} {((comp.usage_count ?? 0) === 1 ? 'time' : 'times')}</span>
-                      <span style={{ fontWeight: 600 }}>📅 Created {comp.created_at ? new Date(comp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown'}</span>
+                      <span style={{ fontWeight: 600 }}>📊 Used {comp.usage_count} {comp.usage_count === 1 ? 'time' : 'times'}</span>
+                      <span style={{ fontWeight: 600 }}>📅 Created {new Date(comp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
-                    {comp.manager_url ? (
-                      <Link
-                        href={`${comp.manager_url}${comp.manager_url.includes('?') ? '&' : '?'}componentId=${encodeURIComponent(comp.id)}`}
-                        style={{
-                          padding: '0.7rem 1.5rem',
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
-                          color: '#fff',
-                          borderRadius: '8px',
-                          textDecoration: 'none',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          textAlign: 'center',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 8px rgba(59,130,246,0.3)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 12px rgba(59,130,246,0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(59,130,246,0.3)';
-                        }}
-                      >
-                        🔧 Deep Edit
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => openConfigEditor(comp)}
-                        style={{
-                          padding: '0.7rem 1.5rem',
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 8px rgba(59,130,246,0.3)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        ✏️ Edit Config
-                      </button>
-                    )}
-                    <button
-                      onClick={() => openConfigEditor(comp)}
+                    <Link
+                      href={`/jana/hero-carousel?componentId=${comp.id}`}
                       style={{
                         padding: '0.7rem 1.5rem',
-                        background: '#e2e8ff',
-                        color: '#1e3a8a',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                        color: '#fff',
+                        borderRadius: '8px',
+                        textDecoration: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        textAlign: 'center',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 8px rgba(59,130,246,0.3)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 12px rgba(59,130,246,0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(59,130,246,0.3)';
+                      }}
+                    >
+                      ✏️ Edit
+                    </Link>
+                    <button
+                      onClick={() => toggleActive(comp.id, comp.is_active)}
+                      style={{
+                        padding: '0.7rem 1.5rem',
+                        background: comp.is_active ? 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)' : 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
+                        color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
                         fontWeight: 700,
                         fontSize: '0.85rem',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: '0 4px 8px rgba(59,130,246,0.12)'
+                        boxShadow: comp.is_active ? '0 4px 8px rgba(239,68,68,0.3)' : '0 4px 8px rgba(34,197,94,0.3)'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
@@ -674,47 +518,7 @@ export default function ComponentLibrary() {
                         e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      ⚙️ Configure
-                    </button>
-                    <button
-                      onClick={() => toggleActive(comp.id, !Boolean(comp.enabled ?? comp.is_active))}
-                      style={{
-                        padding: '0.7rem 1.5rem',
-                        background: Boolean(comp.enabled ?? comp.is_active) ? 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)' : 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: Boolean(comp.enabled ?? comp.is_active) ? '0 4px 8px rgba(239,68,68,0.3)' : '0 4px 8px rgba(34,197,94,0.3)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      {Boolean(comp.enabled ?? comp.is_active) ? '⏸️ Disable' : '▶️ Enable'}
-                    </button>
-                    <button
-                      onClick={() => toggleMinisiteAccess(comp)}
-                      style={{
-                        padding: '0.7rem 1.5rem',
-                        background: Boolean(getComponentConfig(comp).minisite_access) ? 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' : 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 4px 8px rgba(100,116,139,0.2)'
-                      }}
-                    >
-                      {Boolean(getComponentConfig(comp).minisite_access) ? '🧩 Allow on Minisite' : '🔒 Hide from Minisite'}
+                      {comp.is_active ? '⏸️ Disable' : '▶️ Enable'}
                     </button>
                     <button
                       onClick={() => deleteComponent(comp.id)}
@@ -852,7 +656,6 @@ export default function ComponentLibrary() {
                 const type = formData.get('type');
                 const sourceField = formData.get('sourceField');
 
-                const source = typeof sourceField === 'string' ? sourceField : '';
                 const res = await fetch('/api/jana/component-library', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -862,8 +665,8 @@ export default function ComponentLibrary() {
                     category: 'dynamic',
                     is_global: true,
                     config: {
-                      dataSource: source.startsWith('section:') ? 'form_section' : 'form_field',
-                      sourceField: source.replace('section:', ''),
+                      dataSource: (sourceField as string).startsWith('section:') ? 'form_section' : 'form_field',
+                      sourceField: (sourceField as string).replace('section:', ''),
                       displayStyle: type === 'carousel' ? 'slider' : 'grid'
                     }
                   })
@@ -917,50 +720,6 @@ export default function ComponentLibrary() {
                   <button type="submit" style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #D4AF37 0%, #F5E6AD 100%)', color: '#0f172a', border: 'none', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }}>Create Component</button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {showConfigModal && selectedComponent && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ background: '#fff', width: '100%', maxWidth: '720px', borderRadius: '18px', padding: '1.75rem', boxShadow: '0 24px 60px rgba(15,23,42,0.35)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Edit Component Config</h2>
-                  <p style={{ margin: '0.5rem 0 0 0', color: '#475569', fontSize: '0.95rem' }}>{selectedComponent.name}</p>
-                </div>
-                <button onClick={() => setShowConfigModal(false)} style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
-              </div>
-              <textarea
-                value={editingConfigText}
-                onChange={(e) => setEditingConfigText(e.target.value)}
-                style={{ width: '100%', minHeight: '320px', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: '0.95rem', color: '#0f172a', resize: 'vertical' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={resetConfig}
-                  style={{ padding: '0.9rem 1.25rem', background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}
-                >
-                  Reset To Blank
-                </button>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowConfigModal(false)}
-                    style={{ padding: '0.9rem 1.25rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={saveConfig}
-                    style={{ padding: '0.9rem 1.25rem', background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}
-                  >
-                    Save Config
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
