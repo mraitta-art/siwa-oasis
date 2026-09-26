@@ -144,6 +144,9 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
             </h1>
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
+            <Link href={`/jana/businesses/${id}/contact-dashboard`} className="btn btn-outline" style={{ borderColor: '#D4AF37', color: '#D4AF37' }}>
+              <i className="fas fa-address-card" style={{ marginRight: '0.4rem' }}></i> CONTACT DASHBOARD
+            </Link>
             <Link href={`/jana/businesses/${id}/orchestrate`} className="btn btn-outline" style={{ borderColor: '#D4AF37', color: '#D4AF37' }}>
               <i className="fas fa-photo-film" style={{ marginRight: '0.4rem' }}></i> BUSINESS CONTENT
             </Link>

@@ -288,6 +288,9 @@ export default function BusinessOrchestrator() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <Link href={`/jana/businesses/${businessId}/contact-dashboard`} className="btn btn-outline">
+                <i className="fas fa-address-card"></i> CONTACT DASHBOARD
+              </Link>
               <Link href={`/jana/content?businessId=${businessId}&section=${activeSectionId || ''}`} className="btn btn-outline">
                 <i className="fas fa-photo-film"></i> MEDIA STUDIO
               </Link>
