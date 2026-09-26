@@ -423,6 +423,10 @@ export default function BusinessFormsPage() {
         setReviewBiz(prev => prev ? { ...prev, custom_data: { ...(prev.custom_data || {}), basic: { ...(prev.custom_data?.basic || {}), business_logo: uploadedUrl, logo: uploadedUrl }, sec_1_identity: { ...(prev.custom_data?.sec_1_identity || {}), business_logo: uploadedUrl, logo: uploadedUrl }, business_info: { ...(prev.custom_data?.business_info || {}), business_logo: uploadedUrl, logo: uploadedUrl }, business_logo: uploadedUrl, logo_url: uploadedUrl }, logo_url: uploadedUrl } : prev);
         notify('Logo uploaded for review', 'success');
       }
+
+      if (typeof window !== 'undefined') {
+        setTimeout(() => window.location.reload(), 300);
+      }
     } catch (e) {
       console.error('Logo upload error', e);
       notify('Logo upload failed', 'error');

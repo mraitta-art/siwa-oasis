@@ -476,13 +476,19 @@ export default function VendorDashboardPage() {
       const res = await fetch('/api/jana/media/upload', { method: 'POST', body: formData });
       const data = await res.json();
       if (res.ok && (data.url || data.localUrl)) {
-        setLogoUrl(data.url || data.localUrl);
+        const uploadedUrl = data.url || data.localUrl;
+        setLogoUrl(uploadedUrl);
         setIntakeMessage('Logo uploaded and ready to save.');
+        if (typeof window !== 'undefined') {
+          setTimeout(() => window.location.reload(), 300);
+        }
       } else {
         setIntakeMessage(data.error || 'Logo upload failed.');
       }
     } catch {
       setIntakeMessage('Logo upload failed.');
+    } finally {
+      if (event.target) event.target.value = '';
     }
   }
 

@@ -54,6 +54,7 @@ function ContentManagementContent() {
   const [activeTab, setActiveTab] = useState<'content' | 'fields' | 'components'>('content');
   const [fields, setFields] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
+  const SHOW_SECTION_COMPONENTS_UI = true;
 
   // ── Load businesses & handle deep-linked businessId ────────────────
   useEffect(() => {
@@ -273,7 +274,7 @@ function ContentManagementContent() {
                 {([
                   ['content', `${copy.contentMedia}`, 'fa-photo-film'],
                   ['fields', `${copy.fields} (${fields.length})`, 'fa-list-check'],
-                  ['components', `${copy.components} (${components.length})`, 'fa-cubes'],
+                  ...(!SHOW_SECTION_COMPONENTS_UI ? [] : [['components', `${copy.components} (${components.length})`, 'fa-cubes'] as const]),
                 ] as const).map(([tab, label, icon]) => (
                   <button
                     key={tab}
@@ -327,7 +328,7 @@ function ContentManagementContent() {
               )}
 
               {/* TAB 3: Components */}
-              {activeTab === 'components' && (
+              {SHOW_SECTION_COMPONENTS_UI && activeTab === 'components' && (
                 <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div>

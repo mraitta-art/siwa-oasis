@@ -62,7 +62,8 @@ export async function POST(
 
       const config = {
         fields: template.fields || [],
-        repeatable: comp.isRepeatable
+        repeatable: comp.isRepeatable,
+        visible: comp.isVisible !== undefined ? comp.isVisible : true
       };
 
       await db.query(query, [

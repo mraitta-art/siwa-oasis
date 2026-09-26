@@ -17,6 +17,7 @@ interface SelectedComponent {
   isRequired: boolean;
   isRepeatable: boolean;
   maxItems: number;
+  isVisible: boolean;
 }
 
 export default function AddComponentsPage() {
@@ -28,10 +29,6 @@ export default function AddComponentsPage() {
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    router.replace('/jana/sections');
-  }, [router]);
 
   useEffect(() => {
     loadTemplates();
@@ -63,10 +60,29 @@ export default function AddComponentsPage() {
           label: template.name,
           isRequired: false,
           isRepeatable: ['team_member', 'testimonial', 'faq', 'pricing'].includes(templateId),
-          maxItems: 10
+          maxItems: 10,
+          isVisible: true
         }
       ]);
     }
+  };
+
+  const selectAllComponents = () => {
+    const combined = templates.map((template) => ({
+      templateId: template.id,
+      label: template.name,
+      isRequired: false,
+      isRepeatable: ['team_member', 'testimonial', 'faq', 'pricing'].includes(template.id),
+      maxItems: 10,
+      isVisible: true,
+    }));
+    setSelectedComponents(combined);
+  };
+
+  const clearAllComponents = () => setSelectedComponents([]);
+
+  const setSelectedVisibility = (visible: boolean) => {
+    setSelectedComponents(prev => prev.map(component => ({ ...component, isVisible: visible })));
   };
 
   const updateComponent = (templateId: string, field: string, value: any) => {
@@ -279,6 +295,19 @@ export default function AddComponentsPage() {
         Vendors will see these components in their dashboard and can add their business details.
       </div>
 
+      {!loading && templates.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          <button style={{ ...S.button, ...S.continueButton, flex: '0 0 auto', padding: '0.6rem 1rem' }} onClick={selectAllComponents}>Select All</button>
+          <button style={{ ...S.button, ...S.skipButton, flex: '0 0 auto', padding: '0.6rem 1rem' }} onClick={clearAllComponents}>Clear All</button>
+          {selectedComponents.length > 0 && (
+            <>
+              <button style={{ ...S.button, ...S.continueButton, flex: '0 0 auto', padding: '0.6rem 1rem' }} onClick={() => setSelectedVisibility(true)}>Show All Selected</button>
+              <button style={{ ...S.button, ...S.skipButton, flex: '0 0 auto', padding: '0.6rem 1rem' }} onClick={() => setSelectedVisibility(false)}>Hide All Selected</button>
+            </>
+          )}
+        </div>
+      )}
+
       <div style={S.mainContent}>
         {/* Available Templates */}
         {!loading && (
@@ -343,6 +372,15 @@ export default function AddComponentsPage() {
                     </div>
 
                     <div style={S.checkboxGroup}>
+                      <div style={S.checkboxItem}>
+                        <input
+                          type="checkbox"
+                          checked={comp.isVisible}
+                          onChange={(e) => updateComponent(comp.templateId, 'isVisible', e.target.checked)}
+                        />
+                        <label>{comp.isVisible ? 'Visible on public minisite' : 'Hidden from public minisite'}</label>
+                      </div>
+
                       <div style={S.checkboxItem}>
                         <input
                           type="checkbox"
