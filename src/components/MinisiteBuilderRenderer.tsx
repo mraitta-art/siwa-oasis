@@ -398,7 +398,10 @@ export default function MinisiteBuilderRenderer({
       // 4. VENDOR PACKAGES & TOURS
       // ──────────────────────────────────────────────
       case 'vendor_packages': {
-        const title = props.title || 'Curated Packages & Expeditions';
+        const isArabic = ((siteSettings as any)?.lang === 'ar' || (typeof window !== 'undefined' && document.documentElement.dir === 'rtl'));
+        const defaultTitle = isArabic ? 'الباقات والعروض الحصرية' : 'Curated Packages & Exclusive Offers';
+        const title = props.title || defaultTitle;
+        const subtitle = props.subtitle || (isArabic ? 'عروض وباقات مخصصة بأفضل الأسعار مع حجز مباشر عبر الواتساب' : 'Special promotional rates & turnkey experiences with direct WhatsApp booking');
         const packages =
           mode === 'untied'
             ? Array.isArray(props.packages)
@@ -407,6 +410,26 @@ export default function MinisiteBuilderRenderer({
             : business.tourProducts || [];
 
         if (packages.length === 0) return null;
+
+        const getCategoryMeta = (cat: string) => {
+          const c = String(cat || '').toLowerCase();
+          if (c.includes('hotel') || c.includes('lodge') || c.includes('camp') || c.includes('stay')) {
+            return { icon: 'fa-hotel', label: isArabic ? 'إقامة فندقية' : 'Hotel Stay' };
+          }
+          if (c.includes('safari') || c.includes('transport') || c.includes('transfer') || c.includes('4x4')) {
+            return { icon: 'fa-truck-monster', label: isArabic ? 'سفاري ونقل 4x4' : 'Safari & 4x4' };
+          }
+          if (c.includes('food') || c.includes('dining') || c.includes('restaurant') || c.includes('feast')) {
+            return { icon: 'fa-utensils', label: isArabic ? 'طعام وعشاء بدوي' : 'Dining & Feast' };
+          }
+          if (c.includes('wellness') || c.includes('salt') || c.includes('spa') || c.includes('spring')) {
+            return { icon: 'fa-spa', label: isArabic ? 'استشفاء وملاحات' : 'Wellness & Salt' };
+          }
+          if (c.includes('tour') || c.includes('operator') || c.includes('bundle') || c.includes('all-inclusive')) {
+            return { icon: 'fa-compass', label: isArabic ? 'باقة سياحية شاملة' : 'Tour Operator Bundle' };
+          }
+          return { icon: 'fa-box-open', label: isArabic ? 'باقة مميزة' : 'Experience Offer' };
+        };
 
         return (
           <section
@@ -418,105 +441,237 @@ export default function MinisiteBuilderRenderer({
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  background: `${primaryColor}15`,
+                  color: primaryColor,
+                  border: `1px solid ${primaryColor}35`,
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                <i className="fas fa-tags" /> {isArabic ? 'عروض وخصومات مميزة' : 'PACKAGES & PROMOTIONS'}
+              </div>
               <h2
                 style={{
                   fontSize: 'clamp(1.5rem, 3.5vw, 2.3rem)',
                   fontWeight: 900,
                   color: textColor,
-                  marginBottom: '0.5rem',
+                  margin: '0 0 0.5rem 0',
                 }}
               >
                 {title}
               </h2>
+              {subtitle && (
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', maxWidth: 640, margin: '0 auto' }}>
+                  {subtitle}
+                </p>
+              )}
             </div>
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
                 gap: '1.5rem',
               }}
             >
-              {packages.map((pkg: any, idx: number) => (
-                <div
-                  key={pkg.id || idx}
-                  style={{
-                    borderRadius: '18px',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  {pkg.cover_image && (
-                    <img
-                      src={pkg.cover_image}
-                      alt={pkg.title}
-                      style={{ width: '100%', height: '180px', objectFit: 'cover' }}
-                    />
-                  )}
-                  <div style={{ padding: '1.5rem', flex: 1 }}>
-                    <h3
-                      style={{
-                        fontSize: '1.15rem',
-                        fontWeight: 800,
-                        color: textColor,
-                        marginBottom: '0.5rem',
-                      }}
-                    >
-                      {pkg.title}
-                    </h3>
-                    {pkg.description && (
-                      <p
-                        style={{
-                          fontSize: '0.85rem',
-                          color: 'rgba(255,255,255,0.65)',
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {pkg.description.substring(0, 140)}...
-                      </p>
-                    )}
-                    <div
-                      style={{
-                        marginTop: '1rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      {pkg.price && (
-                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: primaryColor }}>
-                          {pkg.price} {pkg.currency || 'EGP'}
-                        </span>
+              {packages.map((pkg: any, idx: number) => {
+                const pkgTitle = (isArabic && pkg.title_ar ? pkg.title_ar : pkg.title || pkg.name || 'Special Package');
+                const pkgDesc = (isArabic && pkg.description_ar ? pkg.description_ar : pkg.description || '');
+                const currentPrice = Number(pkg.price || pkg.package_price || pkg.base_price || 0);
+                const originalPrice = Number(pkg.original_price || pkg.base_price || 0);
+                const hasDiscount = originalPrice > currentPrice;
+                const discountPct = pkg.savings_percentage || (hasDiscount ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0);
+                const catMeta = getCategoryMeta(pkg.category || pkg.vendor_category || pkg.package_type);
+                const highlights: string[] = Array.isArray(pkg.highlights) ? pkg.highlights : (Array.isArray(pkg.inclusions) ? pkg.inclusions : []);
+                const bookingPhone = (business.vendorPhone || identity.whatsapp || identity.phone || '').replace(/[^0-9]/g, '');
+                const bookingText = encodeURIComponent(
+                  isArabic
+                    ? `مرحباً ${business.name}! أرغب في حجز والاستفسار عن: "${pkgTitle}" بسعر ${currentPrice} ${pkg.currency || 'EGP'}.`
+                    : `Hello ${business.name}! I would like to book or inquire about: "${pkgTitle}" (${currentPrice} ${pkg.currency || 'EGP'}).`
+                );
+                const waUrl = bookingPhone ? `https://wa.me/${bookingPhone}?text=${bookingText}` : '#contact';
+
+                return (
+                  <div
+                    key={pkg.id || idx}
+                    style={{
+                      borderRadius: '20px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.09)',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Cover image or fallback badge */}
+                    <div style={{ position: 'relative', height: '180px', background: '#090e17' }}>
+                      {pkg.cover_image ? (
+                        <img
+                          src={pkg.cover_image}
+                          alt={pkgTitle}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: `${primaryColor}60`, fontSize: '2.5rem' }}>
+                          <i className={`fas ${catMeta.icon}`} />
+                        </div>
                       )}
-                      <a
-                        href={
-                          phone
-                            ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Inquiry about ${encodeURIComponent(pkg.title || '')}`
-                            : '#contact'
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
+
+                      {/* Category Tag */}
+                      <div
                         style={{
-                          fontSize: '0.8rem',
+                          position: 'absolute',
+                          top: '12px',
+                          left: isArabic ? 'auto' : '12px',
+                          right: isArabic ? '12px' : 'auto',
+                          background: 'rgba(15,23,42,0.85)',
+                          backdropFilter: 'blur(8px)',
+                          color: '#ffffff',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '0.68rem',
                           fontWeight: 800,
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          background: `${primaryColor}20`,
-                          color: primaryColor,
-                          border: `1px solid ${primaryColor}40`,
-                          textDecoration: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
                         }}
                       >
-                        Inquire
-                      </a>
+                        <i className={`fas ${catMeta.icon}`} style={{ color: primaryColor }} />
+                        {catMeta.label}
+                      </div>
+
+                      {/* Discount Badge */}
+                      {discountPct > 0 && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: isArabic ? 'auto' : '12px',
+                            left: isArabic ? '12px' : 'auto',
+                            background: '#dc2626',
+                            color: '#ffffff',
+                            padding: '4px 10px',
+                            borderRadius: '16px',
+                            fontSize: '0.7rem',
+                            fontWeight: 900,
+                            boxShadow: '0 4px 10px rgba(220,38,38,0.4)',
+                          }}
+                        >
+                          {discountPct}% {isArabic ? 'خصم' : 'OFF'}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ padding: '1.4rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <h3
+                        style={{
+                          fontSize: '1.15rem',
+                          fontWeight: 900,
+                          color: textColor,
+                          margin: '0 0 0.5rem 0',
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {pkgTitle}
+                      </h3>
+
+                      {pkgDesc && (
+                        <p
+                          style={{
+                            fontSize: '0.84rem',
+                            color: 'rgba(255,255,255,0.65)',
+                            lineHeight: 1.6,
+                            margin: '0 0 1rem 0',
+                            flex: 1,
+                          }}
+                        >
+                          {pkgDesc.length > 130 ? `${pkgDesc.substring(0, 130)}...` : pkgDesc}
+                        </p>
+                      )}
+
+                      {/* Highlights */}
+                      {highlights.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1.25rem' }}>
+                          {highlights.slice(0, 3).map((hl: string, hIdx: number) => (
+                            <span
+                              key={hIdx}
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: '8px',
+                                background: 'rgba(255,255,255,0.06)',
+                                color: 'rgba(255,255,255,0.85)',
+                              }}
+                            >
+                              ✦ {hl}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Pricing & Booking CTA */}
+                      <div
+                        style={{
+                          marginTop: 'auto',
+                          paddingTop: '1rem',
+                          borderTop: '1px solid rgba(255,255,255,0.07)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                        }}
+                      >
+                        <div>
+                          {hasDiscount && originalPrice > 0 && (
+                            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through' }}>
+                              {originalPrice} {pkg.currency || 'EGP'}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: primaryColor }}>
+                            {currentPrice > 0 ? `${currentPrice} ${pkg.currency || 'EGP'}` : (isArabic ? 'تواصل للسعر' : 'Inquire')}
+                          </div>
+                        </div>
+
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            padding: '0.55rem 1.15rem',
+                            borderRadius: '10px',
+                            background: primaryColor,
+                            color: '#000000',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            boxShadow: `0 4px 12px ${primaryColor}30`,
+                            transition: 'transform 0.15s',
+                          }}
+                        >
+                          <i className="fab fa-whatsapp" /> {isArabic ? 'احجز العرض' : 'Book Deal'}
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         );

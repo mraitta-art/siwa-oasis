@@ -375,7 +375,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
 
       // In Replace mode, prefetch vendor data for injection
       if (minisiteLayout.mode === 'replace') {
-        const [gRes, bRes, tRes] = await Promise.all([
+        const [gRes, bRes, tRes, expRes] = await Promise.all([
           safeQuery<any>(
             `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
              FROM vendor_gallery 
@@ -393,10 +393,35 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
             `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
             [biz.id]
           ).catch(() => []),
+          safeQuery<any>(
+            `SELECT * FROM experience_packages WHERE active = 1 AND JSON_CONTAINS(CAST(business_ids AS JSON), JSON_QUOTE(?), '$') ORDER BY created_at DESC`,
+            [String(biz.id)]
+          ).catch(() => []),
         ]);
         galleryItems = gRes;
         blogPosts = bRes;
-        tourProducts = tRes;
+        const normalizedExpPackages = (expRes || []).map((p: any) => {
+          const pr = typeof p.pricing === 'string' ? JSON.parse(p.pricing) : (p.pricing || {});
+          return {
+            id: p.id,
+            title: p.name,
+            title_ar: pr.name_ar || p.name_ar,
+            description: p.description,
+            description_ar: pr.description_ar || p.description_ar,
+            price: pr.package_price || pr.price || pr.base_price || 0,
+            original_price: pr.base_price || 0,
+            savings_percentage: pr.savings_percentage || 0,
+            category: pr.category || pr.vendor_category || pr.package_type || 'package',
+            duration_days: pr.duration_days || 1,
+            cover_image: pr.cover_image || p.cover_image || null,
+            highlights: pr.highlights || pr.inclusions || [],
+            is_composed_bundle: pr.is_composed_bundle || false,
+            included_services: pr.included_services || [],
+            is_featured: pr.featured || p.is_featured || false,
+            currency: pr.currency || 'EGP',
+          };
+        });
+        tourProducts = [...normalizedExpPackages, ...tRes];
       }
 
       const businessContext = {
