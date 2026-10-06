@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(new URL(redirectTo.startsWith('/') ? redirectTo : '/jana', url.origin));
     response.cookies.set(process.env.SESSION_COOKIE_NAME || 'siwa_session', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: (process.env.NODE_ENV as string) === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',

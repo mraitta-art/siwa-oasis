@@ -6,7 +6,7 @@
  * 
  * Monitors synchronization status between:
  *   1. Local Development (localhost:3000)
- *   2. Production (siwa.today)
+ *   2. Production (siwify.com)
  *   3. GitHub Repository
  * 
  * Generates:

@@ -12,10 +12,12 @@ export default cloudinary;
 /**
  * Uploads a file buffer to Cloudinary
  */
-export async function uploadToCloudinary(buffer: Buffer, folder: string = 'siwa-oasis') {
+export async function uploadToCloudinary(buffer: Buffer, arg1?: string, arg2?: string) {
   if (!process.env.CLOUDINARY_CLOUD_NAME) {
     throw new Error('Cloudinary not configured');
   }
+
+  const folder = arg2 ? arg2 : (arg1 || 'siwa-oasis');
 
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(

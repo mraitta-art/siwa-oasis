@@ -142,7 +142,7 @@ async function pushChanges(reason = 'file change') {
     log('Pushed to GitHub ✓', 'success');
 
     separator();
-    log('Vercel deployment triggered — live in ~2-4 min at siwa.today', 'success');
+    log('Vercel deployment triggered — live in ~2-4 min at siwify.com', 'success');
     separator('═');
 
   } catch (err) {
@@ -180,7 +180,7 @@ function onFileChange(filePath) {
 // ─── File watcher ──────────────────────────────────────────────────────────
 function startWatcher() {
   separator('═');
-  log('SIWA.TODAY LIVE-DEPLOY WATCHER STARTED', 'push');
+  log('SIWIFY.COM LIVE-DEPLOY WATCHER STARTED', 'push');
   separator();
   log(`Watching ${WATCH_TARGETS.length} target(s) for changes...`);
   WATCH_TARGETS.forEach(t => log(`  📁 ${path.relative(ROOT, t)}`));
@@ -189,7 +189,7 @@ function startWatcher() {
   log(`Branch:   origin/${getCurrentBranch()}`);
   log(`Commit:   ${getLastCommitHash()} — ${getLastCommitMessage()}`);
   separator();
-  log('Press Ctrl+C to stop. File saves now auto-push to siwa.today.', 'success');
+  log('Press Ctrl+C to stop. File saves now auto-push to siwify.com.', 'success');
   separator('═');
 
   WATCH_TARGETS.forEach(target => {
@@ -222,7 +222,7 @@ function startWatcher() {
 // ─── Status command ────────────────────────────────────────────────────────
 function showStatus() {
   separator('═');
-  log('SIWA.TODAY SYNC STATUS');
+  log('SIWIFY.COM SYNC STATUS');
   separator();
   log(`Branch:        origin/${getCurrentBranch()}`);
   log(`Last commit:   ${getLastCommitHash()} — ${getLastCommitMessage()}`);

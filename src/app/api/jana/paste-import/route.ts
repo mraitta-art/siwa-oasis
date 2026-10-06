@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
         const created = await createBusinessEntity({
           name,
           type_id: resolvedTypeId,
-          custom_data,
+          custom_data: customData,
           status: 'pending',
           is_standalone: true,
           source: 'paste_import',

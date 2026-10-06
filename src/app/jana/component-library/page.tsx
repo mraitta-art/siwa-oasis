@@ -480,7 +480,7 @@ export default function ComponentLibrary() {
                           fontWeight: 700,
                           textTransform: 'capitalize'
                         }}>
-                          {comp.type.replace('_', ' ')}
+                          {comp.type ? comp.type.replace('_', ' ') : 'Component'}
                         </span>
                         <span style={{
                           padding: '0.4rem 0.9rem',
@@ -523,7 +523,7 @@ export default function ComponentLibrary() {
 
                     <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#64748b', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
                       <span style={{ fontWeight: 600 }}>📊 Used {comp.usage_count} {comp.usage_count === 1 ? 'time' : 'times'}</span>
-                      <span style={{ fontWeight: 600 }}>📅 Created {new Date(comp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      <span style={{ fontWeight: 600 }}>📅 Created {comp.created_at ? new Date(comp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently'}</span>
                     </div>
                   </div>
 
@@ -555,7 +555,7 @@ export default function ComponentLibrary() {
                       ✏️ Edit
                     </Link>
                     <button
-                      onClick={() => toggleActive(comp.id, comp.is_active)}
+                      onClick={() => toggleActive(comp.id, Boolean(comp.is_active))}
                       style={{
                         padding: '0.7rem 1.5rem',
                         background: comp.is_active ? 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)' : 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',

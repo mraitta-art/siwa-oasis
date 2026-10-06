@@ -135,7 +135,7 @@ export async function PATCH(req: Request) {
     let mergedCustomData = custom_data;
     if (custom_data !== undefined) {
       const existing = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [id]) as any;
-      let current = {};
+      let current: Record<string, any> = {};
       try {
         current = typeof existing?.custom_data === 'string' ? JSON.parse(existing.custom_data) : existing?.custom_data || {};
       } catch {}

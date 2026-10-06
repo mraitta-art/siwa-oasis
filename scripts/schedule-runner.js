@@ -138,7 +138,7 @@ function triggerDeploy(triggeredBy = 'scheduler') {
       const onFailOnly = sched?.alarms?.onFailOnly ?? true;
       const shouldAlarm = webhookUrl && (!onFailOnly || code !== 0);
       if (shouldAlarm) {
-        const text = `${emoji} Siwa.Today Scheduled Deploy ${code === 0 ? 'SUCCESS' : 'FAILED'} — ${new Date().toLocaleString()} (${Math.round(durationMs / 1000)}s)`;
+        const text = `${emoji} Siwify.com Scheduled Deploy ${code === 0 ? 'SUCCESS' : 'FAILED'} — ${new Date().toLocaleString()} (${Math.round(durationMs / 1000)}s)`;
         // Use dynamic import for fetch (Node 18+)
         fetch(webhookUrl, {
           method: 'POST',
