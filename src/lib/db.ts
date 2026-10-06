@@ -92,12 +92,31 @@ async function initializePool(): Promise<mysql.Pool> {
   }
 
   poolInitPromise = (async () => {
+    // In production, always use the production pool directly.
     if (process.env.NODE_ENV === 'production') {
       pool = mysql.createPool(buildPoolConfig('production'));
       activeMode = 'production';
       return pool;
     }
 
+    // Skip the local MySQL probe if the env explicitly points to a cloud DB or
+    // sets DB_FALLBACK_TO_PROD=true. This avoids a 2-5 second TCP timeout on
+    // every cold start when local MySQL isn't running.
+    const host = process.env.DB_HOST || '';
+    const isCloudHost = host.includes('tidbcloud') || host.includes('aws') ||
+      host.includes('aivencloud') || host.includes('psdb.net') ||
+      host.includes('planetscale') || host.includes('neon') ||
+      host.includes('supabase');
+    const forceRemote = process.env.DB_FALLBACK_TO_PROD === 'true' || isCloudHost;
+
+    if (forceRemote) {
+      console.log('[DB] Cloud DB detected or DB_FALLBACK_TO_PROD=true — skipping local probe, using production pool.');
+      pool = mysql.createPool(buildPoolConfig('production'));
+      activeMode = 'production';
+      return pool;
+    }
+
+    // Only try local MySQL when the host really looks like localhost.
     const localPool = mysql.createPool(buildPoolConfig('local'));
     try {
       await localPool.query('SELECT 1');

@@ -1,20 +1,50 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { getBusinessSlugCandidates } from '@/lib/public-url';
-
 import { getCurrentUser } from '@/lib/auth';
 
 // ISR: cache minisite pages for 60 seconds, then regenerate in background.
-// Business data changes infrequently — this eliminates repeated TiDB round-trips
-// for every visitor while keeping content reasonably fresh.
 export const revalidate = 60;
 export const dynamic = 'auto';
+
+/**
+ * Memoized business data fetcher — deduplicates the DB query between
+ * generateMetadata() and VanityBusinessPage() which both run for the same
+ * page load. React cache() returns the same promise for identical args within
+ * one request, so TiDB is hit only once per page render.
+ */
+const fetchBusinessData = cache(async (slug: string) => {
+  const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+  const lookupCandidates = isId ? [] : [...new Set(getBusinessSlugCandidates(slug))];
+  const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
+  const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
+  const bizParams = isId ? [slug] : [...lookupCandidates, ...lookupCandidates, slug, ...lookupCandidates];
+
+  const rows = await safeQuery<any>(
+    isId
+      ? `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
+          t.features as tier_features, mt.settings as template_features, mt.components as template_components
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+         WHERE b.id = ?`
+      : `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
+          t.features as tier_features, mt.settings as template_features, mt.components as template_components
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
+    bizParams
+  );
+  return { biz: rows[0] ?? null, isId };
+});
 
 /**
  * SERVER-SIDE SEO ENGINE & REDIRECT HANDLER
@@ -22,57 +52,21 @@ export const dynamic = 'auto';
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    // Check if it's a UUID (36 chars with dashes)
-    const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-    
-    let biz: any = null;
-    if (isId) {
-      // Fetch by ID to get the slug for redirection
-      const [bizById] = await safeQuery<any>(
-        `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
-          t.features as tier_features, mt.settings as template_features
-         FROM businesses b
-         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.id = ?`,
-        [slug]
-      );
-      if (bizById && bizById.slug) {
-        return { title: `Redirecting to ${bizById.name || 'Business'}...` };
-      }
-    } else {
-      const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
-      const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
-      const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
-      const params = [...lookupCandidates, ...lookupCandidates];
-
-      const [row] = await safeQuery<any>(
-        `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
-          t.features as tier_features, mt.settings as template_features
-         FROM businesses b
-         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
-        [...params, slug, ...lookupCandidates]
-      );
-      biz = row ?? null;
-    }
+    const { biz, isId } = await fetchBusinessData(slug);
 
     if (!biz) return { title: 'Business Not Found - SiWiFy.com' };
+    if (isId && biz.slug) return { title: `Redirecting to ${biz.name || 'Business'}...` };
 
     // Robust JSON Parsing & Normalization
-    if (biz) {
-      biz.custom_data = normalizeCustomData(biz.custom_data);
-    }
+    biz.custom_data = normalizeCustomData(biz.custom_data);
     try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
     try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
 
     const data = biz.custom_data || {};
     const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
-    const vibe = data.vibe || data.sec_3_services || {};
-    
-    const description = identity.description || identity.section_blog 
-      ? (identity.description || identity.section_blog).substring(0, 160).replace(/<[^>]*>/g, '') 
+
+    const description = identity.description || identity.section_blog
+      ? (identity.description || identity.section_blog).substring(0, 160).replace(/<[^>]*>/g, '')
       : `Discover the unique ${biz.name} experience in Siwa Oasis.`;
 
     const logoUrl = identity.business_logo || identity.logo || data.business_info?.business_logo || data.business_info?.logo;
@@ -104,33 +98,11 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
   const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
   
   try {
-    // Run site-settings and business lookup in PARALLEL — they are independent.
-    const lookupCandidates = isId ? [] : [...new Set(getBusinessSlugCandidates(slug))];
-    const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
-    const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
-    const bizParams = isId ? [slug] : [...lookupCandidates, ...lookupCandidates, slug, ...lookupCandidates];
-
-    const [siteConfigRows, bizRows] = await Promise.all([
-      // Global platform settings (needed for platform name, branding)
+    // Use the cached business fetcher — deduplicates with generateMetadata() which runs first.
+    // Also fetch site settings in parallel since it's independent.
+    const [{ biz: rawBiz, isId: _isId }, siteConfigRows] = await Promise.all([
+      fetchBusinessData(slug),
       safeQuery<any>("SELECT config FROM website_configs WHERE type = 'website_main' LIMIT 1").catch(() => [] as any[]),
-      // Business record lookup
-      isId
-        ? safeQuery<any>(
-            `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
-             FROM businesses b
-             LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-             LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-             WHERE b.id = ?`,
-            [slug]
-          )
-        : safeQuery<any>(
-            `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
-             FROM businesses b
-             LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-             LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-             WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
-            bizParams
-          ),
     ]);
 
     let siteSettings: any = null;
@@ -142,7 +114,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     } catch {}
 
     const platformName = siteSettings?.site_name || 'SiWiFy.com';
-    let biz: any = bizRows?.[0] ?? null;
+    let biz: any = rawBiz;
 
     // UUID redirect — redirect to the canonical slug URL
     if (isId && biz?.slug) redirect(`/${biz.slug}`);
@@ -151,6 +123,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     if (!isId && biz?.slug && biz.slug !== slug) {
       redirect(`/${biz.slug}`);
     }
+
 
     // Service controls are optional until the local service migration is applied.
     if (biz) {
