@@ -888,538 +888,587 @@ export default function VanityBusinessClient({
                       </Link>
                     </div>
                   ) : (
-                  <div>
-                    {/* CAROUSEL IMAGES (Top placement - Responsive Carousel Cards) */}
-                    {carouselImages.length > 0 && (
-                      <div style={{ marginBottom: '2.5rem', borderRadius: '24px', overflow: 'hidden', border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '1.25rem', padding: '1.25rem', background: '#f8fafc', WebkitOverflowScrolling: 'touch' }}>
-                          {carouselImages.map((item: any, idx: number) => {
-                            const url = typeof item === 'object' ? item.url : item;
-                            const caption = typeof item === 'object'
-                              ? (minisiteLang === 'ar' && item.caption_ar ? item.caption_ar : item.caption || '')
-                              : '';
-                            const isVideo = url && (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.includes('/video/upload/'));
-                            const raw = typeof item === 'object' ? item.slide_data : null;
-                            const sd = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
-                            const title = minisiteLang === 'ar' && sd.title_ar ? sd.title_ar : (sd.title || '');
-                            const ctaLabel = minisiteLang === 'ar' && sd.cta_label_ar ? sd.cta_label_ar : (sd.cta_label || '');
-                            const targetSection = sd.target_section_id;
+                    /* DYNAMIC UNIFIED SECTION BLOCK DISPATCHER */
+                    (() => {
+                      const maskedFields: string[] = (data as any)?.masked_fields || [];
+                      const getMarketplaceWhatsAppUrl = (item: any) => {
+                        const itemTitle = item.title || 'Experience';
+                        const priceText = item.price ? ` ($${item.price})` : '';
+                        const text = encodeURIComponent(`Hello! I would like to book or inquire about: ${itemTitle}${priceText} from ${biz.name}.`);
+                        return `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${text}`;
+                      };
+                      const defaultBlockSequence = ['carousel', 'blog', 'fields', 'components', 'marketplace', 'tours', 'gallery'];
+                      const activeBlockSequence: string[] = (() => {
+                        const configured = secData?.block_order || (data as any)?.section_block_order?.[section.id] || (data as any)?.block_order;
+                        if (Array.isArray(configured) && configured.length > 0) {
+                          return configured
+                            .filter((b: any) => (typeof b === 'object' ? b.visible !== false : true))
+                            .map((b: any) => (typeof b === 'object' ? b.id : b));
+                        }
+                        return defaultBlockSequence;
+                      })();
 
-                            return (
-                              <div
-                                key={idx}
-                                style={{
-                                  flex: carouselImages.length === 1 ? '1 1 100%' : '0 0 clamp(280px, 46%, 460px)',
-                                  minWidth: '260px',
-                                  maxWidth: carouselImages.length === 1 ? '100%' : '520px',
-                                  scrollSnapAlign: 'start',
-                                  borderRadius: '16px',
-                                  overflow: 'hidden',
-                                  background: '#090e17',
-                                  height: 'clamp(240px, 32vw, 360px)',
-                                  position: 'relative',
-                                  cursor: targetSection ? 'pointer' : 'default',
-                                  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                                  transition: 'transform 0.2s ease'
-                                }}
-                                onClick={() => {
-                                  if (targetSection) {
-                                    try {
-                                      window.history.pushState(null, '', `/${slug}/${targetSection}`);
-                                    } catch {}
-                                    setActiveTab(targetSection);
-                                    const navEl = document.querySelector('nav');
-                                    if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                  }
-                                }}
-                              >
-                                {isVideo ? (
-                                  <video src={url} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-                                ) : (
-                                  <img src={url} alt={caption || title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-                                )}
-                                {/* Rich Slide Overlay */}
-                                {(() => {
-                                  const showOverlay = sd.show_overlay !== false;
-                                  const hasContent = title || caption || (ctaLabel && (sd.cta_url || targetSection));
-                                  if (!showOverlay || !hasContent) return null;
-                                  return (
-                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.88))', padding: '2rem 1.25rem 1.25rem' }}>
-                                      {title && (
-                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff', lineHeight: 1.25, marginBottom: caption ? '0.35rem' : 0, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
-                                          {title}
+                      // 1. CAROUSEL BLOCK
+                      const renderCarouselBlock = () => {
+                        if (carouselImages.length === 0) return null;
+                        return (
+                          <div key={`${section.id}_carousel_block`} style={{ marginBottom: '2.5rem', borderRadius: '24px', overflow: 'hidden', border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '1.25rem', padding: '1.25rem', background: '#f8fafc', WebkitOverflowScrolling: 'touch' }}>
+                              {carouselImages.map((item: any, idx: number) => {
+                                const url = typeof item === 'object' ? item.url : item;
+                                const caption = typeof item === 'object'
+                                  ? (minisiteLang === 'ar' && item.caption_ar ? item.caption_ar : item.caption || '')
+                                  : '';
+                                const isVideo = url && (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.includes('/video/upload/'));
+                                const raw = typeof item === 'object' ? item.slide_data : null;
+                                const sd = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
+                                const title = minisiteLang === 'ar' && sd.title_ar ? sd.title_ar : (sd.title || '');
+                                const ctaLabel = minisiteLang === 'ar' && sd.cta_label_ar ? sd.cta_label_ar : (sd.cta_label || '');
+                                const targetSection = sd.target_section_id;
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      flex: carouselImages.length === 1 ? '1 1 100%' : '0 0 clamp(280px, 46%, 460px)',
+                                      minWidth: '260px',
+                                      maxWidth: carouselImages.length === 1 ? '100%' : '520px',
+                                      scrollSnapAlign: 'start',
+                                      borderRadius: '16px',
+                                      overflow: 'hidden',
+                                      background: '#090e17',
+                                      height: 'clamp(240px, 32vw, 360px)',
+                                      position: 'relative',
+                                      cursor: targetSection ? 'pointer' : 'default',
+                                      boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                      transition: 'transform 0.2s ease'
+                                    }}
+                                    onClick={() => {
+                                      if (targetSection) {
+                                        try {
+                                          window.history.pushState(null, '', `/${slug}/${targetSection}`);
+                                        } catch {}
+                                        setActiveTab(targetSection);
+                                        const navEl = document.querySelector('nav');
+                                        if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                      }
+                                    }}
+                                  >
+                                    {isVideo ? (
+                                      <video src={url} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+                                    ) : (
+                                      <img src={url} alt={caption || title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+                                    )}
+                                    {/* Rich Slide Overlay */}
+                                    {(() => {
+                                      const showOverlay = sd.show_overlay !== false;
+                                      const hasContent = title || caption || (ctaLabel && (sd.cta_url || targetSection));
+                                      if (!showOverlay || !hasContent) return null;
+                                      return (
+                                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.88))', padding: '2rem 1.25rem 1.25rem' }}>
+                                          {title && (
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff', lineHeight: 1.25, marginBottom: caption ? '0.35rem' : 0, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                                              {title}
+                                            </div>
+                                          )}
+                                          {caption && (
+                                            <div style={{ fontSize: '0.8rem', color: '#e2e8f0', fontWeight: 500, lineHeight: 1.4, marginBottom: (ctaLabel && (sd.cta_url || targetSection)) ? '0.75rem' : 0 }}>
+                                              {caption}
+                                            </div>
+                                          )}
+                                          {ctaLabel && (
+                                            <a
+                                              href={targetSection ? `/${slug}/${targetSection}` : (sd.cta_url || '#')}
+                                              target={targetSection || (sd.cta_url && sd.cta_url.startsWith('#')) ? '_self' : '_blank'}
+                                              rel="noopener noreferrer"
+                                              onClick={(e) => {
+                                                if (targetSection) {
+                                                  e.preventDefault();
+                                                  try { window.history.pushState(null, '', `/${slug}/${targetSection}`); } catch {}
+                                                  setActiveTab(targetSection);
+                                                  const navEl = document.querySelector('nav');
+                                                  if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                }
+                                              }}
+                                              style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.4rem 1rem', background: '#D4AF37', color: '#1a1a1a', borderRadius: '8px', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', letterSpacing: '0.3px' }}
+                                            >
+                                              {ctaLabel} →
+                                            </a>
+                                          )}
                                         </div>
-                                      )}
-                                      {caption && (
-                                        <div style={{ fontSize: '0.8rem', color: '#e2e8f0', fontWeight: 500, lineHeight: 1.4, marginBottom: (ctaLabel && (sd.cta_url || targetSection)) ? '0.75rem' : 0 }}>
-                                          {caption}
-                                        </div>
-                                      )}
-                                      {ctaLabel && (
-                                        <a
-                                          href={targetSection ? `/${slug}/${targetSection}` : (sd.cta_url || '#')}
-                                          target={targetSection || (sd.cta_url && sd.cta_url.startsWith('#')) ? '_self' : '_blank'}
-                                          rel="noopener noreferrer"
-                                          onClick={(e) => {
-                                            if (targetSection) {
-                                              e.preventDefault();
-                                              try { window.history.pushState(null, '', `/${slug}/${targetSection}`); } catch {}
-                                              setActiveTab(targetSection);
-                                              const navEl = document.querySelector('nav');
-                                              if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                            }
-                                          }}
-                                          style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.4rem 1rem', background: '#D4AF37', color: '#1a1a1a', borderRadius: '8px', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', letterSpacing: '0.3px' }}
-                                        >
-                                          {ctaLabel} →
-                                        </a>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* BLOG / NARRATIVE WITH DYNAMIC FIELD TOKEN INTERPOLATION & BILINGUAL TITLES */}
-                    {(() => {
-                      const sectionMeta = data?.section_content_meta?.[section.id] || {};
-                      const showBlogOnMinisite = sectionMeta.blogOnMinisite !== false && sectionMeta.blogOnMinisite !== 0;
-
-                      if (!showBlogOnMinisite) return null;
-
-                      if (dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar)) {
-                        const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields, biz.custom_data);
-                        return (
-                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dbBlog.title}</h3>
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
-                          </div>
-                        );
-                      }
-
-                      if (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) {
-                        const rawBlog = secData?.section_blog_ar || secData?.section_news_ar || secData?.description_ar;
-                        const blogTitleDisplay = secData?.section_blog_title_ar || '';
-                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
-                        return (
-                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
-                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{blogTitleDisplay}</h3>}
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
-                          </div>
-                        );
-                      }
-
-                      if (secData?.section_blog || secData?.mini_blog || secData?.description || secData?.section_news || secData?._media?.mini_blog) {
-                        const rawBlog = secData?.section_blog || secData?.mini_blog || secData?._media?.mini_blog || secData?.section_news || secData?.description;
-                        const blogTitleDisplay = secData?.section_blog_title || '';
-                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
-                        return (
-                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
-                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{blogTitleDisplay}</h3>}
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
-                          </div>
-                        );
-                      }
-
-                      return null;
-                    })()}
-
-                    {/* CUSTOM FIELDS GRID */}
-                    {(secData || sectionHasDefinedFields) && (
-                      <div className="grid-2" style={{ marginBottom: '2.5rem' }}>
-                        {(() => {
-                          const fieldEntries: Array<{ key: string; val: any; matchedField: any }> = [];
-                          const seen = new Set<string>();
-
-                          if (Array.isArray(section.fields)) {
-                            section.fields.forEach((field: any) => {
-                              const key = field?.name;
-                              if (!key) return;
-                              seen.add(key);
-                              fieldEntries.push({ key, val: secData?.[key], matchedField: field });
-                            });
-                          }
-
-                          if (secData) {
-                            Object.entries(secData).forEach(([key, val]) => {
-                              if (seen.has(key)) return;
-                              const matchedField = Array.isArray(section.fields) ? section.fields.find((f: any) => f.name === key) : null;
-                              fieldEntries.push({ key, val, matchedField });
-                            });
-                          }
-
-                          const hiddenFields: string[] = [
-                            ...(Array.isArray(biz.custom_data?.hidden_fields) ? biz.custom_data.hidden_fields : []),
-                            ...(Array.isArray(biz.custom_data?.basic?.hidden_fields) ? biz.custom_data.basic.hidden_fields : []),
-                            ...(Array.isArray(secData?.hidden_fields) ? secData.hidden_fields : []),
-                          ].map(String);
-
-                          const maskedFields: string[] = [
-                            ...(Array.isArray(biz.custom_data?.masked_fields) ? biz.custom_data.masked_fields : []),
-                            ...(Array.isArray(biz.custom_data?.hidden_values) ? biz.custom_data.hidden_values : []),
-                            ...(Array.isArray(biz.custom_data?.basic?.masked_fields) ? biz.custom_data.basic.masked_fields : []),
-                            ...(Array.isArray(secData?.masked_fields) ? secData.masked_fields : []),
-                            ...(Array.isArray(secData?.hidden_values) ? secData.hidden_values : []),
-                          ].map(String);
-
-                          return fieldEntries.map(({ key, val, matchedField }, index) => {
-                            if (['_media', 'media', 'section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'hidden_fields', 'masked_fields', 'hidden_values', 'basic', 'about', 'section_title'].includes(key)) return null;
-
-                            // 1. Hide entire field (both label and value)
-                            if (hiddenFields.includes(key) || hiddenFields.includes(`${section.id}.${key}`)) {
-                              return null;
-                            }
-
-                            const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
-                            if (!isPublic) return null;
-
-                            const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
-                            const uniqueKey = `${section.id || 'section'}-${key || 'field'}-${index}`;
-
-                            // 2. Hide / mask value only (keep label, mask content)
-                            const isValueMasked = maskedFields.includes(key) || maskedFields.includes(`${section.id}.${key}`);
-                            if (isValueMasked) {
-                              return (
-                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', minWidth: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
-                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
-                                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                    <i className="fas fa-lock" style={{ color: '#D4AF37', fontSize: '0.8rem' }} />
-                                    <span>Private / Available on request</span>
+                                      );
+                                    })()}
                                   </div>
-                                </div>
-                              );
-                            }
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      };
 
-                            let finalVal = val;
-                            const isPriceField = key.includes('price');
-                            if (isPriceField && (!val || String(val).toLowerCase() === 'call' || String(val).toLowerCase() === 'call us')) {
-                              finalVal = 'call_for_price_fallback';
-                            }
+                      // 2. BLOG BLOCK
+                      const renderBlogBlock = () => {
+                        const sectionMeta = data?.section_content_meta?.[section.id] || {};
+                        const showBlogOnMinisite = sectionMeta.blogOnMinisite !== false && sectionMeta.blogOnMinisite !== 0;
+                        if (!showBlogOnMinisite) return null;
 
-                            const isEmptyValue = finalVal === null || finalVal === undefined || finalVal === '';
-                            const isGated = isPriceField && !isTrusted && biz.subscription_tier === 'free';
-
-                            if (isGated) {
-                              return (
-                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden', minWidth: 0, boxSizing: 'border-box' }}>
-                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
-                                  <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
-                                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                      <i className="fas fa-lock" /> VERIFIED ONLY
-                                    </span>
-                                    <span style={{ fontSize: '0.5rem', color: '#94a3b8', fontWeight: 700 }}>Unlock upon official verification</span>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            const ctaPhoneNumber = section.cta_phone || section.cta_phone_override || dynamicPhone;
-                            const rendered = isEmptyValue
-                              ? <span style={{ color: '#94a3b8', fontWeight: 600, fontStyle: 'italic' }}>Not provided</span>
-                              : finalVal === 'call_for_price_fallback'
-                                ? (
-                                  <a href={`tel:${ctaPhoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#D4AF37', fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
-                                    <i className="fas fa-phone-alt" /> CALL FOR PRICE
-                                  </a>
-                                )
-                                : renderFieldValue(key, finalVal, matchedField);
-
-                            const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
-
-                            return (
-                              <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto', minWidth: 0, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', minWidth: 0, maxWidth: '100%', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{rendered}</div>
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                    )}
-
-                    {/* DYNAMIC COMPONENT INSTANCES */}
-                    {sectionComponentInstances.length > 0 && (
-                      <div style={{ marginTop: '2.5rem', marginBottom: '2.5rem' }}>
-                        {sectionComponentInstances.map(component => {
-                          const componentTitle = component.title || component.label || component.props?.title || component.props?.custom_title || 'Section Component';
+                        if (dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar)) {
+                          const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields, biz.custom_data);
                           return (
-                            <div key={component.id} style={{ marginBottom: '2rem' }}>
-                              <div style={{ marginBottom: '1rem', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', color: '#94a3b8' }}>
-                                {componentTitle}
-                              </div>
-                              <DynamicComponentRenderer component={component} />
+                            <div key={`${section.id}_blog_db`} style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dbBlog.title}</h3>
+                              <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
                             </div>
                           );
-                        })}
-                      </div>
-                    )}
+                        }
 
-                    {/* UNIFIED MARKETPLACE PACKAGES, TOURS & SPECIAL OFFERS */}
-                    {(() => {
-                      const sectionItems = marketplaceItems.filter((item) => {
-                        if (!item.publish_on_minisite) return false;
-                        if (item.section_id === section.id) return true;
-                        if (section.id === 'sec_9_marketplace_catalog' && (!item.section_id || item.section_id === 'sec_9_marketplace_catalog' || item.item_type === 'package' || item.item_type === 'discount_offer')) return true;
-                        if (section.id === 'sec_5_experiences' && (item.item_type === 'tour' || item.item_type === 'activity' || item.item_type === 'retreat')) return true;
-                        return false;
-                      });
-
-                      if (sectionItems.length === 0) return null;
-
-                      return (
-                        <div style={{ marginTop: '2.5rem', marginBottom: '3rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                              <div style={{ color: '#D4AF37', fontSize: '0.68rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-                                ✦ {minisiteLang === 'ar' ? 'الباقات والعروض الخاصة' : 'PACKAGES, TOURS & EXCLUSIVE OFFERS'}
-                              </div>
-                              <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
-                                {minisiteLang === 'ar' ? 'العروض والبرامج السياحية المتاحة' : 'Featured Packages & Special Programs'}
-                              </h3>
+                        if (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) {
+                          const rawBlog = secData?.section_blog_ar || secData?.section_news_ar || secData?.description_ar;
+                          const blogTitleDisplay = secData?.section_blog_title_ar || '';
+                          const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
+                          return (
+                            <div key={`${section.id}_blog_ar`} style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                              {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{blogTitleDisplay}</h3>}
+                              <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
                             </div>
-                          </div>
+                          );
+                        }
 
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
-                            {sectionItems.map((item: any) => {
-                              const title = minisiteLang === 'ar' && item.title_ar ? item.title_ar : item.title;
-                              const desc = minisiteLang === 'ar' && item.description_ar ? item.description_ar : item.description;
-                              const coverImg = item.media?.[0]?.url || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600';
-                              const hasDiscount = (item.discount_percentage > 0) || (item.original_price && item.original_price > item.price_amount);
+                        if (secData?.section_blog || secData?.mini_blog || secData?.description || secData?.section_news || secData?._media?.mini_blog) {
+                          const rawBlog = secData?.section_blog || secData?.mini_blog || secData?._media?.mini_blog || secData?.section_news || secData?.description;
+                          const blogTitleDisplay = secData?.section_blog_title || '';
+                          const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
+                          return (
+                            <div key={`${section.id}_blog_en`} style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                              {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{blogTitleDisplay}</h3>}
+                              <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
+                            </div>
+                          );
+                        }
 
-                              // Build WhatsApp pre-filled booking inquiry
-                              const inquiryMsg = encodeURIComponent(
-                                `Hello! I would like to inquire about booking the "${item.title}" (${item.price_amount > 0 ? `${item.price_amount} ${item.currency}` : 'Offer'}) on SiWiFy.`
-                              );
-                              const itemWhatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${inquiryMsg}`;
+                        return null;
+                      };
+
+                      // 3. FIELDS GRID BLOCK
+                      const renderFieldsBlock = () => {
+                        if (!secData && !sectionHasDefinedFields) return null;
+                        const fieldEntries: Array<{ key: string; val: any; matchedField: any }> = [];
+                        const seen = new Set<string>();
+
+                        if (Array.isArray(section.fields)) {
+                          section.fields.forEach((field: any) => {
+                            const key = field?.name;
+                            if (!key || seen.has(key)) return;
+                            seen.add(key);
+                            const val = secData?.[key];
+                            fieldEntries.push({ key, val, matchedField: field });
+                          });
+                        }
+
+                        if (secData && typeof secData === 'object') {
+                          Object.keys(secData).forEach((key) => {
+                            if (seen.has(key)) return;
+                            if (
+                              key.startsWith('_') ||
+                              key === 'section_blog' ||
+                              key === 'section_blog_ar' ||
+                              key === 'section_blog_title' ||
+                              key === 'section_blog_title_ar' ||
+                              key === 'section_gallery' ||
+                              key === 'gallery' ||
+                              key === 'section_news' ||
+                              key === 'section_news_ar' ||
+                              key === 'description' ||
+                              key === 'description_ar' ||
+                              key === 'mini_blog' ||
+                              key === 'source' ||
+                              key === 'block_order'
+                            )
+                              return;
+                            seen.add(key);
+                            const val = secData[key];
+                            const matchedField = section.fields?.find((f: any) => f.name === key);
+                            fieldEntries.push({ key, val, matchedField });
+                          });
+                        }
+
+                        if (fieldEntries.length === 0) return null;
+
+                        return (
+                          <div key={`${section.id}_fields_block`} className="grid-2" style={{ marginBottom: '2.5rem' }}>
+                            {fieldEntries.map(({ key, val, matchedField }) => {
+                              const uniqueKey = `${section.id}_${key}`;
+                              const rawDisplayName = matchedField?.label || key.replace(/_/g, ' ');
+                              const isArabic = minisiteLang === 'ar';
+                              const displayName = isArabic && matchedField?.label_ar ? matchedField.label_ar : rawDisplayName;
+
+                              const isValueMasked = maskedFields.includes(key) || maskedFields.includes(`${section.id}.${key}`);
+                              if (isValueMasked) {
+                                return (
+                                  <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', minWidth: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                      <i className="fas fa-lock" style={{ color: '#D4AF37', fontSize: '0.8rem' }} />
+                                      <span>Private / Available on request</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              let finalVal = val;
+                              const isPriceField = key.includes('price');
+                              if (isPriceField && (!val || String(val).toLowerCase() === 'call' || String(val).toLowerCase() === 'call us')) {
+                                finalVal = 'call_for_price_fallback';
+                              }
+
+                              const isEmptyValue = finalVal === null || finalVal === undefined || finalVal === '';
+                              const isGated = isPriceField && !isTrusted && biz.subscription_tier === 'free';
+
+                              if (isGated) {
+                                return (
+                                  <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden', minWidth: 0, boxSizing: 'border-box' }}>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+                                    <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
+                                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        <i className="fas fa-lock" /> VERIFIED ONLY
+                                      </span>
+                                      <span style={{ fontSize: '0.5rem', color: '#94a3b8', fontWeight: 700 }}>Unlock upon official verification</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              const ctaPhoneNumber = section.cta_phone || section.cta_phone_override || dynamicPhone;
+                              const rendered = isEmptyValue
+                                ? <span style={{ color: '#94a3b8', fontWeight: 600, fontStyle: 'italic' }}>Not provided</span>
+                                : finalVal === 'call_for_price_fallback'
+                                ? (
+                                    <a
+                                      href={`tel:${ctaPhoneNumber.replace(/[^0-9+]/g, '')}`}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#0284c7', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none', background: '#f0f9ff', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid #bae6fd' }}
+                                    >
+                                      <i className="fas fa-phone-alt" style={{ fontSize: '0.75rem' }} /> Call For Price
+                                    </a>
+                                  )
+                                : renderFieldValue(key, finalVal, matchedField);
+
+                              const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
 
                               return (
-                                <div
-                                  key={item.id}
-                                  style={{
-                                    background: '#fff',
-                                    borderRadius: '20px',
-                                    overflow: 'hidden',
-                                    border: item.is_featured ? '2px solid #D4AF37' : '1px solid #e2e8f0',
-                                    boxShadow: item.is_featured ? '0 8px 30px rgba(212,175,55,0.18)' : '0 4px 16px rgba(0,0,0,0.04)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    transition: 'all 0.2s'
-                                  }}
-                                >
-                                  {/* Image Header */}
-                                  <div style={{ height: 'clamp(160px, 22vw, 220px)', position: 'relative', background: '#090e17' }}>
-                                    <img src={coverImg} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    
-                                    {/* Type Badge */}
-                                    <div style={{ position: 'absolute', top: 10, left: 10, background: '#0f172a', color: '#fff', padding: '3px 9px', borderRadius: '12px', fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase' }}>
-                                      {item.item_type.replace('_', ' ')}
-                                    </div>
-
-                                    {/* Duration Badge */}
-                                    <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(6px)', color: '#fbbf24', padding: '3px 10px', borderRadius: '12px', fontSize: '0.65rem', fontWeight: 900 }}>
-                                      ⏱️ {item.duration_value} {item.duration_type.replace('_', ' ')}
-                                    </div>
-
-                                    {/* Discount Tag */}
-                                    {hasDiscount && (
-                                      <div style={{ position: 'absolute', bottom: 10, right: 10, background: '#dc2626', color: '#fff', padding: '3px 9px', borderRadius: '8px', fontSize: '0.68rem', fontWeight: 900 }}>
-                                        {item.discount_percentage ? `${item.discount_percentage}% OFF` : 'SPECIAL OFFER'}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Body */}
-                                  <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <h4 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
-                                      {title}
-                                    </h4>
-
-                                    {desc && (
-                                      <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6, flex: 1 }}>
-                                        {desc.length > 120 ? `${desc.substring(0, 120)}...` : desc}
-                                      </p>
-                                    )}
-
-                                    {/* Pricing & CTA */}
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.9rem', borderTop: '1px solid #f1f5f9', marginTop: 'auto' }}>
-                                      <div>
-                                        <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
-                                          {item.pricing_unit.replace('_', ' ')}
-                                        </div>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
-                                          {item.price_amount > 0 ? `${item.price_amount} ${item.currency}` : 'Contact Us'}
-                                        </div>
-                                        {item.original_price && (
-                                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                                            {item.original_price} {item.currency}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      <a
-                                        href={item.booking_cta_type === 'url' && item.booking_cta_url ? item.booking_cta_url : itemWhatsappLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                          padding: '0.6rem 1.15rem',
-                                          background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
-                                          color: '#1a1000',
-                                          borderRadius: '10px',
-                                          fontWeight: 900,
-                                          fontSize: '0.75rem',
-                                          textDecoration: 'none',
-                                          boxShadow: '0 4px 12px rgba(212,175,55,0.25)',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px'
-                                        }}
-                                      >
-                                        <i className="fab fa-whatsapp" /> {minisiteLang === 'ar' ? 'حجز / استفسار' : 'Book / Inquire'} →
-                                      </a>
-                                    </div>
-                                  </div>
+                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto', minWidth: 0, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
+                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+                                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', minWidth: 0, maxWidth: '100%', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{rendered}</div>
                                 </div>
                               );
                             })}
                           </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      };
 
-                    {/* TOUR PRODUCTS & PACKAGES CATALOG GRID (LEGACY DB-BACKED) */}
-                    {Array.isArray(section.tourProducts) && section.tourProducts.length > 0 && (
-                      <div style={{ marginTop: '2.5rem', marginBottom: '3rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                          <div>
-                            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#1e293b' }}>
-                              <i className="fas fa-cubes" style={{ color: '#D4AF37', marginRight: '0.6rem' }} />
-                              Featured Packages & Expeditions
-                            </h3>
-                            <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
-                              Browse curated tour packages, group safaris, and custom itineraries.
+                      // 4. COMPONENTS BLOCK
+                      const renderComponentsBlock = () => {
+                        if (sectionComponentInstances.length === 0) return null;
+                        return (
+                          <div key={`${section.id}_components_block`} style={{ marginTop: '2.5rem', marginBottom: '2.5rem' }}>
+                            {sectionComponentInstances.map(component => {
+                              const componentTitle = component.title || component.label || component.props?.title || component.props?.custom_title || 'Section Component';
+                              return (
+                                <div key={component.id} style={{ marginBottom: '2rem' }}>
+                                  <div style={{ marginBottom: '1rem', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', color: '#94a3b8' }}>
+                                    {componentTitle}
+                                  </div>
+                                  <DynamicComponentRenderer component={component} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      };
+
+                      // 5. MARKETPLACE BLOCK
+                      const renderMarketplaceBlock = () => {
+                        const sectionItems = marketplaceItems.filter((item) => {
+                          if (!item.publish_on_minisite) return false;
+                          if (item.section_id) return item.section_id === section.id;
+                          return (
+                            section.id === 'sec_5_experiences' ||
+                            section.id === 'sec_3_facilities' ||
+                            section.id === 'sec_9_marketplace_catalog'
+                          );
+                        });
+
+                        if (sectionItems.length === 0) return null;
+
+                        return (
+                          <div key={`${section.id}_marketplace_block`} style={{ marginTop: '3rem', marginBottom: '3rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                              <div>
+                                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', textTransform: 'uppercase' }}>
+                                  AVAILABLE PACKAGES & OFFERS
+                                </div>
+                                <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
+                                  Book Directly With {biz.name}
+                                </h3>
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: '50px', background: 'rgba(212,175,55,0.12)', color: '#92400e', border: '1px solid rgba(212,175,55,0.3)' }}>
+                                0% Platform Fee · Direct WhatsApp
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
+                              {sectionItems.map((item) => {
+                                const whatsappUrl = getMarketplaceWhatsAppUrl(item);
+                                const hasDiscount = item.original_price && item.original_price > item.price;
+                                const discountPct = hasDiscount ? Math.round(((item.original_price - item.price) / item.original_price) * 100) : 0;
+
+                                return (
+                                  <div key={item.id} style={{ background: '#fff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s, box-shadow 0.2s' }}>
+                                    <div style={{ height: 'clamp(160px, 22vw, 220px)', position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
+                                      {item.image_url ? (
+                                        <img src={item.image_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '2rem' }}>
+                                          <i className={`fas ${item.type === 'tour' ? 'fa-route' : item.type === 'service' ? 'fa-concierge-bell' : item.type === 'activity' ? 'fa-hiking' : 'fa-box-open'}`} />
+                                        </div>
+                                      )}
+
+                                      <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        {item.category || item.type}
+                                      </div>
+
+                                      {hasDiscount && (
+                                        <div style={{ position: 'absolute', top: '12px', right: '12px', background: '#dc2626', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 900 }}>
+                                          {discountPct}% OFF
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
+                                        {item.title}
+                                      </h4>
+
+                                      {item.description && (
+                                        <p style={{ margin: '0 0 1rem', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.6, flex: 1 }}>
+                                          {item.description.length > 120 ? `${item.description.substring(0, 120)}...` : item.description}
+                                        </p>
+                                      )}
+
+                                      {item.highlights && item.highlights.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1.25rem' }}>
+                                          {item.highlights.slice(0, 3).map((h: any, i: number) => (
+                                            <span key={i} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '10px', background: '#f1f5f9', color: '#334155' }}>
+                                              ✦ {h}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                        <div>
+                                          {hasDiscount && (
+                                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                                              ${item.original_price}
+                                            </div>
+                                          )}
+                                          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                                            ${item.price}
+                                            {item.unit && (
+                                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                                                {' '}/{item.unit}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <a
+                                          href={whatsappUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            padding: '0.65rem 1.15rem',
+                                            borderRadius: '12px',
+                                            background: '#25D366',
+                                            color: '#fff',
+                                            fontWeight: 900,
+                                            fontSize: '0.8rem',
+                                            textDecoration: 'none',
+                                            boxShadow: '0 4px 12px rgba(37,211,102,0.25)',
+                                          }}
+                                        >
+                                          <i className="fab fa-whatsapp" /> Inquire
+                                        </a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                          <Link href="/journey-builder-advanced" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.25rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', color: '#1e293b', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
-                            <i className="fas fa-sliders-h" style={{ color: '#D4AF37' }} /> Custom Journey Builder →
-                          </Link>
-                        </div>
+                        );
+                      };
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
-                          {section.tourProducts.map((tour: any) => {
-                            const highlights = (() => {
-                              try {
-                                return typeof tour.highlights === 'string' ? JSON.parse(tour.highlights) : tour.highlights || [];
-                              } catch {
-                                return [];
-                              }
-                            })();
-
-                            return (
-                              <div key={tour.id} style={{ background: '#fff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s' }}>
-                                <div style={{ height: 'clamp(160px, 22vw, 220px)', position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
-                                  <img src={tour.image_url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62'} alt={tour.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', color: '#fbbf24', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 900, border: '1px solid rgba(251,191,36,0.3)' }}>
-                                    ⏱️ {tour.duration_days} Days / {tour.duration_hours || 8}h
-                                  </div>
+                      // 6. TOURS BLOCK
+                      const renderToursBlock = () => {
+                        if (!Array.isArray(section.tourProducts) || section.tourProducts.length === 0) return null;
+                        return (
+                          <div key={`${section.id}_tours_block`} style={{ marginTop: '2.5rem', marginBottom: '3rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                              <div>
+                                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#1e293b' }}>
+                                  <i className="fas fa-cubes" style={{ color: '#D4AF37', marginRight: '0.6rem' }} />
+                                  Featured Packages & Expeditions
+                                </h3>
+                                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
+                                  Browse curated tour packages, group safaris, and custom itineraries.
                                 </div>
+                              </div>
+                              <Link href="/journey-builder-advanced" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.25rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', color: '#1e293b', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
+                                <i className="fas fa-sliders-h" style={{ color: '#D4AF37' }} /> Custom Journey Builder →
+                              </Link>
+                            </div>
 
-                                <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                  <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{tour.name}</h4>
-                                  <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>
-                                    {tour.description ? (tour.description.length > 120 ? tour.description.substring(0, 120) + '...' : tour.description) : 'Experience authentic Siwa Oasis with expert guides.'}
-                                  </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
+                              {section.tourProducts.map((tour: any) => {
+                                const highlights = (() => {
+                                  try {
+                                    return typeof tour.highlights === 'string' ? JSON.parse(tour.highlights) : tour.highlights || [];
+                                  } catch {
+                                    return [];
+                                  }
+                                })();
 
-                                  {Array.isArray(highlights) && highlights.length > 0 && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1.25rem' }}>
-                                      {highlights.slice(0, 3).map((h: string, idx: number) => (
-                                        <span key={idx} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: '#f1f5f9', color: '#334155' }}>
-                                          ✦ {h}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
-                                    <div>
-                                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.5px' }}>STARTING FROM</div>
-                                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e293b' }}>
-                                        ${tour.base_price_usd} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ pax</span>
+                                return (
+                                  <div key={tour.id} style={{ background: '#fff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s' }}>
+                                    <div style={{ height: 'clamp(160px, 22vw, 220px)', position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
+                                      <img src={tour.image_url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62'} alt={tour.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', color: '#fbbf24', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 900, border: '1px solid rgba(251,191,36,0.3)' }}>
+                                        ⏱️ {tour.duration_days} Days / {tour.duration_hours || 8}h
                                       </div>
                                     </div>
 
-                                    <Link href={`/journey-builder-advanced?preset=${encodeURIComponent(tour.name)}`} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#1a1000', borderRadius: '12px', fontWeight: 900, fontSize: '0.78rem', textDecoration: 'none', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
-                                      Inquire Package →
-                                    </Link>
+                                    <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{tour.name}</h4>
+                                      <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>
+                                        {tour.description ? (tour.description.length > 120 ? tour.description.substring(0, 120) + '...' : tour.description) : 'Experience authentic Siwa Oasis with expert guides.'}
+                                      </p>
+
+                                      {Array.isArray(highlights) && highlights.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1.25rem' }}>
+                                          {highlights.slice(0, 3).map((h: string, idx: number) => (
+                                            <span key={idx} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: '#f1f5f9', color: '#334155' }}>
+                                              ✦ {h}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                        <div>
+                                          <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.5px' }}>STARTING FROM</div>
+                                          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e293b' }}>
+                                            ${tour.base_price_usd} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ pax</span>
+                                          </div>
+                                        </div>
+
+                                        <Link href={`/journey-builder-advanced?preset=${encodeURIComponent(tour.name)}`} style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#1a1000', borderRadius: '12px', fontWeight: 900, fontSize: '0.78rem', textDecoration: 'none', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
+                                          Inquire Package →
+                                        </Link>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      };
 
-                    {/* BODY IMAGES (In-line / Bottom grid placement) */}
-                    {bodyImages.length > 0 && (
-                      <div style={{ marginTop: '2.5rem' }}>
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', 
-                          gap: '1.5rem' 
-                        }}>
-                          {bodyImages.map((item: any, i: number) => {
-                            const mediaUrl = typeof item === 'object' ? item.url : item;
-                            const caption = typeof item === 'object' ? item.caption : '';
-                            const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.mov') || mediaUrl.includes('/video/upload/'));
-                            const isWide = caption && caption.length > 200;
+                      // 7. GALLERY BLOCK
+                      const renderGalleryBlock = () => {
+                        if (bodyImages.length === 0) return null;
+                        return (
+                          <div key={`${section.id}_gallery_block`} style={{ marginTop: '2.5rem' }}>
+                            <div style={{ 
+                              display: 'grid', 
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', 
+                              gap: '1.5rem' 
+                            }}>
+                              {bodyImages.map((item: any, i: number) => {
+                                const mediaUrl = typeof item === 'object' ? item.url : item;
+                                const caption = typeof item === 'object' ? item.caption : '';
+                                const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.mov') || mediaUrl.includes('/video/upload/'));
+                                const isWide = caption && caption.length > 200;
 
+                                return (
+                                  <div key={i} style={{ 
+                                    borderRadius: '20px', overflow: 'hidden', background: '#fff', 
+                                    border: '1px solid #f1f5f9', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.03)',
+                                    gridColumn: isWide ? '1 / -1' : 'auto',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                  }}>
+                                    <div style={{ 
+                                      width: '100%',
+                                      height: isWide ? 'clamp(260px, 36vw, 420px)' : 'clamp(200px, 24vw, 290px)', 
+                                      overflow: 'hidden', 
+                                      position: 'relative', 
+                                      background: '#090e17' 
+                                    }}>
+                                      {isVideo ? (
+                                        <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+                                      ) : (
+                                        <img 
+                                          src={mediaUrl} 
+                                          alt={caption || `${section.name} image ${i + 1}`} 
+                                          style={{ 
+                                            width: '100%', 
+                                            height: '100%', 
+                                            objectFit: 'cover', 
+                                            objectPosition: 'center'
+                                          }} 
+                                        />
+                                      )}
+                                    </div>
+                                    {caption && (
+                                      <div style={{ padding: '1.25rem 1.5rem', fontSize: '0.92rem', color: '#475569', lineHeight: 1.7, fontWeight: 500, borderTop: '1px solid #f8fafc', flex: 1 }}>
+                                        {caption}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <div>
+                          {activeBlockSequence.map((blockId, bIdx) => {
+                            let content = null;
+                            if (blockId === 'carousel' || blockId === 'hero_carousel') content = renderCarouselBlock();
+                            else if (blockId === 'blog' || blockId === 'story_blog') content = renderBlogBlock();
+                            else if (blockId === 'fields' || blockId === 'fields_grid') content = renderFieldsBlock();
+                            else if (blockId === 'components' || blockId === 'custom_components') content = renderComponentsBlock();
+                            else if (blockId === 'marketplace' || blockId === 'packages_catalog') content = renderMarketplaceBlock();
+                            else if (blockId === 'tours') content = renderToursBlock();
+                            else if (blockId === 'gallery' || blockId === 'media_gallery') content = renderGalleryBlock();
+
+                            if (!content) return null;
                             return (
-                              <div key={i} style={{ 
-                                borderRadius: '20px', overflow: 'hidden', background: '#fff', 
-                                border: '1px solid #f1f5f9', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.03)',
-                                gridColumn: isWide ? '1 / -1' : 'auto',
-                                display: 'flex',
-                                flexDirection: 'column'
-                              }}>
-                                <div style={{ 
-                                  width: '100%',
-                                  height: isWide ? 'clamp(260px, 36vw, 420px)' : 'clamp(200px, 24vw, 290px)', 
-                                  overflow: 'hidden', 
-                                  position: 'relative', 
-                                  background: '#090e17' 
-                                }}>
-                                  {isVideo ? (
-                                    <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-                                  ) : (
-                                    <img 
-                                      src={mediaUrl} 
-                                      alt={caption || `${section.name} image ${i + 1}`} 
-                                      style={{ 
-                                        width: '100%', 
-                                        height: '100%', 
-                                        objectFit: 'cover',
-                                        objectPosition: 'center'
-                                      }} 
-                                    />
-                                  )}
-                                </div>
-                                {caption && (
-                                  <div style={{ padding: '1.25rem 1.5rem', fontSize: '0.92rem', color: '#475569', lineHeight: 1.7, fontWeight: 500, borderTop: '1px solid #f8fafc', flex: 1 }}>
-                                    {caption}
-                                  </div>
-                                )}
-                              </div>
+                              <React.Fragment key={`${section.id}_block_${blockId}_${bIdx}`}>
+                                {content}
+                              </React.Fragment>
                             );
                           })}
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      );
+                    })()
                   )}
                 </section>
               );

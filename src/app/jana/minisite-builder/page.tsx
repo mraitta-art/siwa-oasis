@@ -39,6 +39,7 @@ function MinisiteBuilderStudioContent() {
   const [selectedSlug, setSelectedSlug] = useState<string>(initialSlug);
   const [businessInfo, setBusinessInfo] = useState<any>(null);
   const [allowedComponents, setAllowedComponents] = useState<MinisiteComponentType[]>([]);
+  const [lang, setLang] = useState<'en' | 'ar'>('en');
 
   // Studio State
   const [mode, setMode] = useState<MinisiteMode>('replace');
@@ -288,6 +289,25 @@ function MinisiteBuilderStudioContent() {
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
+            onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+            style={{
+              padding: '0.55rem 0.9rem',
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#0f172a',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            🌐 {lang === 'en' ? '🇸🇦 عربي' : '🇬🇧 English'}
+          </button>
+
+          <button
             onClick={handleOpenGovernance}
             style={{
               padding: '0.55rem 1rem',
@@ -350,6 +370,120 @@ function MinisiteBuilderStudioContent() {
           </button>
         </div>
       </header>
+
+      {/* Quick Content Bridges Toolbar */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          borderRadius: '16px',
+          padding: '1rem 1.35rem',
+          marginBottom: '1.5rem',
+          color: '#ffffff',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 4px 18px rgba(15, 23, 42, 0.15)',
+        }}
+      >
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+              {lang === 'ar' ? 'جسور الإدارة المتكاملة للمحتوى' : 'UNIFIED CONTENT MANAGEMENT BRIDGES'}
+            </span>
+          </div>
+          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc' }}>
+            {lang === 'ar' ? `الربط المباشر مع أدوات المحتوى: ${businessInfo?.name || selectedSlug}` : `Direct Content Flow & Management: ${businessInfo?.name || selectedSlug}`}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <Link
+            href={`/jana/blog/editor?target_type=business_minisite&businessId=${businessInfo?.id || ''}&sectionId=sec_1_identity`}
+            target="_blank"
+            style={{
+              padding: '0.5rem 0.85rem',
+              borderRadius: '10px',
+              background: 'rgba(37, 99, 235, 0.25)',
+              border: '1px solid #3b82f6',
+              color: '#93c5fd',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <i className="fas fa-pen-nib" style={{ color: '#60a5fa' }} />
+            {lang === 'ar' ? '✍️ كتابة مقال ونشره' : '✍️ Blog Studio'}
+          </Link>
+
+          <Link
+            href={`/vendor/social-toolkit?slug=${selectedSlug}`}
+            target="_blank"
+            style={{
+              padding: '0.5rem 0.85rem',
+              borderRadius: '10px',
+              background: 'rgba(236, 72, 153, 0.25)',
+              border: '1px solid #ec4899',
+              color: '#fbcfe8',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <i className="fas fa-video" style={{ color: '#f472b6' }} />
+            {lang === 'ar' ? '🎬 مزامنة الفيديوهات والريلز' : '🎬 Reels & Videos'}
+          </Link>
+
+          <Link
+            href="/vendor/packages"
+            target="_blank"
+            style={{
+              padding: '0.5rem 0.85rem',
+              borderRadius: '10px',
+              background: 'rgba(16, 185, 129, 0.25)',
+              border: '1px solid #10b981',
+              color: '#a7f3d0',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <i className="fas fa-box-open" style={{ color: '#34d399' }} />
+            {lang === 'ar' ? '📦 باقات وتجارب' : '📦 Package Studio'}
+          </Link>
+
+          <Link
+            href="/jana/whatsapp-outreach"
+            target="_blank"
+            style={{
+              padding: '0.5rem 0.85rem',
+              borderRadius: '10px',
+              background: 'rgba(34, 197, 94, 0.25)',
+              border: '1px solid #22c55e',
+              color: '#bbf7d0',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <i className="fab fa-whatsapp" style={{ color: '#4ade80' }} />
+            {lang === 'ar' ? '📲 تفعيل الواتساب' : '📲 WhatsApp Hub'}
+          </Link>
+        </div>
+      </div>
 
       {/* Status banner */}
       {message && (
@@ -857,6 +991,142 @@ function MinisiteBuilderStudioContent() {
                         fontSize: '0.85rem',
                       }}
                     />
+                  </div>
+                )}
+
+                {/* Contextual Bridge: Blog Post Studio */}
+                {selectedComp.type === 'vendor_blog' && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e40af', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fas fa-newspaper" style={{ color: '#2563eb' }} />
+                      {lang === 'ar' ? 'إدارة ونشر مقالات هذا النشاط' : 'Manage & Write Blog Posts'}
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#3b82f6', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
+                      {lang === 'ar'
+                        ? 'يمكنك كتابة مقال ونشره مباشرة ليكون مربوطاً بهذا النشاط وقسمه المحدد عبر محرر المقالات الموحد.'
+                        : 'Write and publish rich articles directly attached to this business and section via the unified blog editor.'}
+                    </p>
+                    <Link
+                      href={`/jana/blog/editor?target_type=business_minisite&businessId=${businessInfo?.id || ''}&sectionId=sec_1_identity`}
+                      target="_blank"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.85rem',
+                        borderRadius: '8px',
+                        background: '#2563eb',
+                        color: '#fff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <i className="fas fa-feather-pointed" />
+                      {lang === 'ar' ? 'فتح محرر المقالات' : 'Launch Blog Editor'}
+                    </Link>
+                  </div>
+                )}
+
+                {/* Contextual Bridge: Reels / Video Sync */}
+                {selectedComp.type === 'vendor_carousel' && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#fdf2f8', border: '1px solid #fbcfe8', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#9d174d', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fas fa-film" style={{ color: '#ec4899' }} />
+                      {lang === 'ar' ? 'مزامنة فيديوهات وريلز السوشيال' : 'Sync Reels & Videos'}
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#db2777', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
+                      {lang === 'ar'
+                        ? 'استورد فيديوهات إنستجرام وتيك توك وربطها بسلايدر الهيرو أو المعرض لهذا النشاط.'
+                        : 'Import Instagram and TikTok videos directly into this business carousel & gallery.'}
+                    </p>
+                    <Link
+                      href={`/vendor/social-toolkit?slug=${selectedSlug}`}
+                      target="_blank"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.85rem',
+                        borderRadius: '8px',
+                        background: '#ec4899',
+                        color: '#fff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <i className="fas fa-video" />
+                      {lang === 'ar' ? 'فتح أدوات السوشيال' : 'Launch Social Toolkit'}
+                    </Link>
+                  </div>
+                )}
+
+                {/* Contextual Bridge: Packages */}
+                {selectedComp.type === 'vendor_packages' && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#065f46', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fas fa-box-open" style={{ color: '#059669' }} />
+                      {lang === 'ar' ? 'باقات وتجارب الجولات' : 'Tour & Package Studio'}
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#047857', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
+                      {lang === 'ar'
+                        ? 'إدارة باقات التجارب السياحية والأسعار وخيارات الحجز.'
+                        : 'Manage tour packages, pricing tiers, and booking options.'}
+                    </p>
+                    <Link
+                      href="/vendor/packages"
+                      target="_blank"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.85rem',
+                        borderRadius: '8px',
+                        background: '#059669',
+                        color: '#fff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <i className="fas fa-compass" />
+                      {lang === 'ar' ? 'فتح استوديو الباقات' : 'Open Package Studio'}
+                    </Link>
+                  </div>
+                )}
+
+                {/* Contextual Bridge: Gallery */}
+                {selectedComp.type === 'vendor_gallery' && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fas fa-images" style={{ color: '#D4AF37' }} />
+                      {lang === 'ar' ? 'معرض صور النشاط' : 'Business Gallery & Media'}
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
+                      {lang === 'ar'
+                        ? 'رفع وإدارة الصور والفيديوهات في معرض النشاط.'
+                        : 'Upload and approve media items displayed in this gallery block.'}
+                    </p>
+                    <Link
+                      href={`/vendor/social-toolkit?slug=${selectedSlug}`}
+                      target="_blank"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.85rem',
+                        borderRadius: '8px',
+                        background: '#334155',
+                        color: '#fff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <i className="fas fa-cloud-arrow-up" />
+                      {lang === 'ar' ? 'إدارة الوسائط' : 'Manage Media'}
+                    </Link>
                   </div>
                 )}
               </div>

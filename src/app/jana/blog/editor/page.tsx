@@ -99,8 +99,27 @@ function BlogEditorContent() {
     loadBusinesses();
     if (postId) {
       loadPost();
+    } else {
+      const qTargetType = searchParams.get('target_type');
+      const qBizId = searchParams.get('businessId') || searchParams.get('business_id');
+      const qSecId = searchParams.get('sectionId') || searchParams.get('section_id');
+      const qTemplateId = searchParams.get('templateId') || searchParams.get('template_id');
+      const qPageSlug = searchParams.get('pageSlug') || searchParams.get('page_slug');
+      const qTitle = searchParams.get('title');
+
+      if (qTargetType || qBizId || qSecId || qTitle) {
+        setFormData((prev) => ({
+          ...prev,
+          target_type: (qTargetType as any) || (qBizId && qSecId ? 'business_section' : qBizId ? 'business_minisite' : prev.target_type),
+          target_business_id: qBizId || prev.target_business_id,
+          target_section_id: qSecId || prev.target_section_id,
+          target_template_id: qTemplateId || prev.target_template_id,
+          target_page_slug: qPageSlug || prev.target_page_slug,
+          title: qTitle || prev.title,
+        }));
+      }
     }
-  }, [postId]);
+  }, [postId, searchParams]);
 
   async function loadCategories() {
     try {
