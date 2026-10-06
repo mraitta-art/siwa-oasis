@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import CarouselSocialMediaModal, { SocialImportedSlide } from '@/components/CarouselSocialMediaModal';
 
 interface CarouselSlide {
   id: string;
@@ -391,6 +392,7 @@ function HeroCarouselManagerContent() {
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
+  const [showSocialModal, setShowSocialModal] = useState(false);
 
   // Dynamically load real business sections, custom labels, and controls for the selected business
   useEffect(() => {
@@ -969,6 +971,38 @@ function HeroCarouselManagerContent() {
     setShowForm(false);
   };
 
+  const handleAddSocialSlideDirectly = async (socialSlide: SocialImportedSlide) => {
+    const newSlide: CarouselSlide = {
+      ...socialSlide,
+      id: `slide_social_${Date.now()}`,
+      displayOrder: allSlides.length,
+      _source: 'manual',
+    };
+    const updated = [...allSlides, newSlide].map((s, idx) => ({ ...s, displayOrder: idx }));
+    setAllSlides(updated);
+    setSaving(true);
+    const ok = await saveSlideConfig(updated);
+    setSaving(false);
+    if (ok) {
+      showMsg('success', `✨ Added social media slide "${socialSlide.title}" to ${currentTarget.title}!`);
+      loadAllSlides();
+    } else {
+      showMsg('error', 'Failed to save slide');
+    }
+  };
+
+  const handlePopulateSocialSlideInEditor = (slideData: Partial<SocialImportedSlide>) => {
+    resetForm();
+    setShowForm(true);
+    setFormData(prev => ({
+      ...prev,
+      ...slideData,
+      mediaUrl: slideData.mediaUrl || '',
+      type: (slideData.type as any) || 'image',
+    }));
+    showMsg('success', `Populated "${slideData.title}" into slide editor! Review and click Save.`);
+  };
+
   const ytPreviewId = formData.type === 'youtube' ? extractYouTubeId(formData.mediaUrl || '') : null;
 
   return (
@@ -997,6 +1031,27 @@ function HeroCarouselManagerContent() {
             >
               <i className="fas fa-external-link-alt" style={{ color: '#d97706' }} /> Open Target Page: {previewHref}
             </a>
+            <button
+              type="button"
+              onClick={() => setShowSocialModal(true)}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.75rem 1.35rem',
+                borderRadius: '10px',
+                fontWeight: 900,
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'transform 0.15s ease',
+              }}
+            >
+              <i className="fas fa-photo-video" /> 📲 Import from Social Media
+            </button>
             <div style={{ position: 'relative' }}>
               <button style={{ background: '#d97706', color: '#ffffff', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(217,119,6,0.2)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                 <i className="fas fa-upload" /> {saving ? 'Uploading...' : 'Quick Upload from Device'}
@@ -1405,6 +1460,18 @@ function HeroCarouselManagerContent() {
                         </div>
                       </>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setShowSocialModal(true)}
+                      style={{
+                        background: '#059669', color: '#fff', border: 'none',
+                        padding: '0.75rem 1rem', borderRadius: '8px', fontWeight: 800,
+                        cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: '0 2px 8px rgba(5,150,105,0.25)',
+                      }}
+                    >
+                      📲 Social Import
+                    </button>
                   </div>
                   {/* YouTube validation feedback */}
                   {formData.type === 'youtube' && formData.mediaUrl && (
@@ -1792,6 +1859,11 @@ function HeroCarouselManagerContent() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
                       <h3 style={{ color: '#fff', fontWeight: 800, margin: 0, fontSize: '0.95rem' }}>{slide.title}</h3>
                       <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '20px', background: src.bg, color: src.color }}>{src.label}</span>
+                      {(slide as any)._platform && (
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '20px', background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>
+                          📱 {(slide as any)._platform.toUpperCase()}
+                        </span>
+                      )}
                       <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'rgba(255,255,255,0.05)', color: '#64748b' }}>{slide.type.toUpperCase()}</span>
                     </div>
                     {slide.subtitle && <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0 }}>{slide.subtitle}</p>}
@@ -1837,6 +1909,16 @@ function HeroCarouselManagerContent() {
             Once you save a slide here, the carousel goes into <strong style={{ color: '#D4AF37' }}>full manual mode</strong> — you control every slide shown.
           </p>
         </div>
+
+        {/* Social Media Import Modal */}
+        <CarouselSocialMediaModal
+          isOpen={showSocialModal}
+          onClose={() => setShowSocialModal(false)}
+          targetTitle={currentTarget.title}
+          targetSiteId={siteId}
+          onAddSlideDirectly={handleAddSocialSlideDirectly}
+          onPopulateInEditor={handlePopulateSocialSlideInEditor}
+        />
       </div>
     </div>
   );
