@@ -342,9 +342,9 @@ export const config = {
      * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - public media / assets (.svg, .png, .jpg, .jpeg, .gif, .webp, .css, .js)
+     * - favicon.ico, sitemap.xml, robots.txt, manifest.json, icon.svg, apple-touch-icon.png
+     * - public media / assets / fonts (.svg, .png, .jpg, .jpeg, .gif, .webp, .css, .js, .woff, .woff2, .ttf, .ico, .map)
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|icon.svg|apple-touch-icon.png|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|woff|woff2|ttf|ico|map)$).*)',
   ],
 };

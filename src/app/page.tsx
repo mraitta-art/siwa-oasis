@@ -15,8 +15,9 @@ import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import { getWebsiteTemplate } from '@/lib/cache';
 
-// ISR: serve cached page for 30 seconds, then regenerate in background
-export const revalidate = 30;
+// ISR: serve cached page for 120 seconds, then regenerate in background
+// Significantly reduces Vercel Serverless Function GB-Hours and database queries
+export const revalidate = 120;
 // Remove force-dynamic so Next.js can cache the page output
 export const dynamic = 'auto';
 

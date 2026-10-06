@@ -12,8 +12,8 @@ import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { getBusinessSlugCandidates } from '@/lib/public-url';
 import { getCurrentUser } from '@/lib/auth';
 
-// ISR: cache minisite pages for 60 seconds, then regenerate in background.
-export const revalidate = 60;
+// ISR: cache minisite pages for 120 seconds, then regenerate in background.
+export const revalidate = 120;
 export const dynamic = 'auto';
 
 /**

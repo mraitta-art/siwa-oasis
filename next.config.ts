@@ -47,11 +47,31 @@ const nextConfig: NextConfig = {
     return config;
   },
   compress: true,
+  images: {
+    minimumCacheTTL: 86400,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'cdnjs.cloudflare.com' },
+    ],
+  },
   async headers() {
     return [
       {
         source: '/:path*',
         headers: securityHeaders,
+      },
+      {
+        source: '/icons/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/:file(icon\\.svg|apple-touch-icon\\.png|favicon\\.ico|manifest\\.json)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+        ],
       },
     ];
   },
