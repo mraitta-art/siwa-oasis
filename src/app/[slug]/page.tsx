@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
+import MinisiteBuilderRenderer from '@/components/MinisiteBuilderRenderer';
+import { fetchMinisiteLayout } from '@/lib/minisite-layout';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
@@ -235,6 +237,68 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       } else {
         currentTypeId = null;
       }
+    }
+
+    // ── MINISITE BUILDER ENGINE (Custom Builder Layout) ─────────────────
+    // If admin has configured a custom layout (or template) for this minisite,
+    // render it directly via MinisiteBuilderRenderer with governed privileges.
+    const minisiteLayout = await fetchMinisiteLayout(biz.slug || slug);
+
+    if (minisiteLayout && Array.isArray(minisiteLayout.components) && minisiteLayout.components.length > 0) {
+      const user = await getCurrentUser().catch(() => null);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'content_admin' || (user as any)?.is_admin === true;
+
+      let galleryItems: any[] = [];
+      let blogPosts: any[] = [];
+      let tourProducts: any[] = [];
+
+      // In Replace mode, prefetch vendor data for injection
+      if (minisiteLayout.mode === 'replace') {
+        const [gRes, bRes, tRes] = await Promise.all([
+          safeQuery<any>(
+            `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
+             FROM vendor_gallery 
+             WHERE business_id = ? AND approval_status = 'approved' AND show_on_minisite = 1`,
+            [biz.id]
+          ).catch(() => []),
+          safeQuery<any>(
+            `SELECT id, title, content, excerpt, section_id, show_on_main, show_on_minisite, status 
+             FROM section_blogs 
+             WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1 
+             ORDER BY published_at DESC`,
+            [biz.id]
+          ).catch(() => []),
+          safeQuery<any>(
+            `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
+            [biz.id]
+          ).catch(() => []),
+        ]);
+        galleryItems = gRes;
+        blogPosts = bRes;
+        tourProducts = tRes;
+      }
+
+      const businessContext = {
+        id: biz.id,
+        slug: biz.slug || slug,
+        name: biz.name,
+        type_id: biz.type_id,
+        type_name: primaryTypeName || biz.type_name || '',
+        custom_data: biz.custom_data,
+        gallery: galleryItems,
+        blogs: blogPosts,
+        tourProducts: tourProducts,
+        siteSettings,
+        vendorPhone: biz.vendor_phone,
+      };
+
+      return (
+        <MinisiteBuilderRenderer
+          layout={minisiteLayout}
+          business={businessContext}
+          isAdmin={isAdmin}
+        />
+      );
     }
 
     let sectionIds: string[] = Array.from(collectedSectionIds);
