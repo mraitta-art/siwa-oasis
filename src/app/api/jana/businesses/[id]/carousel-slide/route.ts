@@ -49,6 +49,7 @@ export async function POST(
       subtitle: slide.subtitle || `Featured ${platform ? platform.toUpperCase() : 'Video'}`,
       caption: slide.caption || (platform ? `${platform.toUpperCase()} REEL` : 'FEATURED'),
       mediaUrl: slide.mediaUrl || thumbnail || '',
+      embedUrl: slide.embedUrl || (platform === 'tiktok' || platform === 'instagram' ? source_url : ''),
       type: slide.type || 'image',
       ctaText: slide.ctaText || 'Watch Now',
       ctaLink: slide.ctaLink || source_url || '#',

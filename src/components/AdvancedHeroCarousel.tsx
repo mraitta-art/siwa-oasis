@@ -6,8 +6,10 @@ import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';
 
 interface Slide {
   id: string;
-  type: 'image' | 'youtube' | 'video' | 'branded';
+  type: 'image' | 'youtube' | 'video' | 'branded' | 'embed';
   mediaUrl: string | null;
+  embedUrl?: string;
+  _platform?: string;
   title: string;
   subtitle: string;
   // Optional: id of a DOM element on the homepage to scroll to when this slide is activated or its CTA is clicked
@@ -207,8 +209,9 @@ export default function AdvancedHeroCarousel({
     setTimeout(() => setIsTransitioning(false), transitionDuration);
   }, [isTransitioning, validSlides, transitionDuration]);
 
-  // Auto-pause when current slide is a YouTube video so visitor can watch fully
+  // Auto-pause when current slide is a YouTube video or Social Embed so visitor can watch fully
   const isYouTubeSlide = validSlides[currentSlide]?.type === 'youtube';
+  const isEmbedSlide = validSlides[currentSlide]?.type === 'embed' || !!validSlides[currentSlide]?.embedUrl;
 
   // Update lazy-load range whenever slide changes — only init YT players near current
   useEffect(() => {
@@ -221,12 +224,10 @@ export default function AdvancedHeroCarousel({
   }, [currentSlide, validSlides.length]);
 
   useEffect(() => {
-    if (isYouTubeSlide) {
-      setIsPaused(true);  // auto-pause on YouTube slides
+    if (isYouTubeSlide || isEmbedSlide) {
+      setIsPaused(true);  // auto-pause on YouTube & Embed slides so visitor can watch
     }
-    // Note: we do NOT auto-resume here — visitor must click play or navigate
-    // away via arrows. This gives full control while watching.
-  }, [isYouTubeSlide, currentSlide]);
+  }, [isYouTubeSlide, isEmbedSlide, currentSlide]);
 
   useEffect(() => {
     if (validSlides.length <= 1 || isPaused || !autoPlay) return;
@@ -289,7 +290,7 @@ export default function AdvancedHeroCarousel({
         fontFamily: slideFontFamily
       }}
       onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => { if (!isYouTubeSlide) setIsPaused(false); }}
+      onMouseLeave={() => { if (!isYouTubeSlide && !isEmbedSlide) setIsPaused(false); }}
     >
       <div style={{ position: 'absolute', inset: 0 }}>
         {validSlides.map((s, index) => (
@@ -362,14 +363,16 @@ export default function AdvancedHeroCarousel({
             padding: 'clamp(5.5rem, 12vh, 8rem) clamp(1.5rem, 6vw, 5rem) clamp(2.5rem, 5vh, 4rem)', 
             color: '#fff',
             textDecoration: 'none',
-            cursor: 'pointer'
+            cursor: isEmbedSlide ? 'default' : 'pointer',
+            pointerEvents: isEmbedSlide ? 'none' : 'auto',
           }}
         >
           <div style={{
             maxWidth: '1000px',
             opacity: isTransitioning ? 0 : 1,
             transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
-            transition: 'all 0.6s ease-out'
+            transition: 'all 0.6s ease-out',
+            pointerEvents: isEmbedSlide ? 'auto' : 'inherit',
           }}>
             {slide.showCaption !== false && slide.caption && (
               <div style={{
@@ -598,6 +601,62 @@ function SlideMedia({ slide, animation, isActive, muted, canInitYT = true, water
     return (
       <div style={{ position: 'absolute', inset: 0, backgroundColor: slide.bgColor || '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <video src={slide.mediaUrl || undefined} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPos }} />
+      </div>
+    );
+  }
+
+  if (slide.type === 'embed' || slide.embedUrl) {
+    const embedSrc = slide.embedUrl || slide.mediaUrl || '';
+    const isTikTok = embedSrc.includes('tiktok.com');
+    const isInstagram = embedSrc.includes('instagram.com');
+    const isVimeo = embedSrc.includes('vimeo.com');
+
+    let vimeoEmbed = embedSrc;
+    if (isVimeo) {
+      const vimeoMatch = embedSrc.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+      if (vimeoMatch?.[1]) {
+        vimeoEmbed = `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&muted=${muted ? 1 : 0}&loop=1&background=1`;
+      }
+    }
+
+    let tikTokEmbed = embedSrc;
+    if (isTikTok) {
+      const ttMatch = embedSrc.match(/\/video\/(\d+)/);
+      if (ttMatch?.[1]) {
+        tikTokEmbed = `https://www.tiktok.com/embed/v2/${ttMatch[1]}`;
+      }
+    }
+
+    let igEmbed = embedSrc;
+    if (isInstagram && !embedSrc.includes('/embed')) {
+      const igMatch = embedSrc.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
+      if (igMatch?.[2]) {
+        igEmbed = `https://www.instagram.com/reel/${igMatch[2]}/embed`;
+      }
+    }
+
+    return (
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundColor: slide.bgColor || '#000',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+        <iframe
+          src={isVimeo ? vimeoEmbed : (isTikTok ? tikTokEmbed : (isInstagram ? igEmbed : embedSrc))}
+          style={{
+            width: isVimeo ? '100vw' : '100%',
+            height: isVimeo ? '100vh' : '100%',
+            maxWidth: isVimeo ? 'none' : (isTikTok ? '460px' : (isInstagram ? '480px' : '100%')),
+            maxHeight: isVimeo ? 'none' : '90vh',
+            border: 'none',
+            borderRadius: isVimeo ? '0' : '16px',
+            boxShadow: isVimeo ? 'none' : '0 10px 40px rgba(0,0,0,0.5)',
+            pointerEvents: 'auto',
+          }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
       </div>
     );
   }

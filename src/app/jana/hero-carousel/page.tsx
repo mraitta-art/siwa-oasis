@@ -11,7 +11,9 @@ interface CarouselSlide {
   subtitle?: string;
   caption?: string;
   mediaUrl: string | null;
-  type: 'image' | 'youtube' | 'video' | 'branded';
+  embedUrl?: string;
+  type: 'image' | 'youtube' | 'video' | 'branded' | 'embed';
+  _platform?: string;
   ctaText?: string;
   ctaLink?: string;
   targetSectionId?: string;
@@ -1369,13 +1371,13 @@ function HeroCarouselManagerContent() {
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SLIDE TYPE</label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {(['image', 'youtube', 'video', 'branded'] as const).map(t => (
+                  {(['image', 'youtube', 'video', 'embed', 'branded'] as const).map(t => (
                     <button key={t} onClick={() => setFormData(p => ({ ...p, type: t }))}
                       style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '2px solid', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', transition: 'all 0.2s',
                         borderColor: formData.type === t ? '#d97706' : '#cbd5e1',
                         background: formData.type === t ? '#fffdf5' : '#ffffff',
                         color: formData.type === t ? '#d97706' : '#64748b' }}>
-                      {t === 'image' ? '🖼 Image' : t === 'youtube' ? '▶ YouTube' : t === 'video' ? '🎥 Video' : '✨ Text/Branded'}
+                      {t === 'image' ? '🖼 Image' : t === 'youtube' ? '▶ YouTube' : t === 'video' ? '🎥 Video' : t === 'embed' ? '🎬 Social Embed' : '✨ Text/Branded'}
                     </button>
                   ))}
                 </div>

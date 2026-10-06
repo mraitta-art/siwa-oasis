@@ -9,7 +9,8 @@ export interface SocialImportedSlide {
   subtitle?: string;
   caption?: string;
   mediaUrl: string;
-  type: 'image' | 'youtube' | 'video' | 'branded';
+  type: 'image' | 'youtube' | 'video' | 'branded' | 'embed';
+  embedUrl?: string;
   ctaText?: string;
   ctaLink?: string;
   targetSectionId?: string;
@@ -68,7 +69,7 @@ export default function CarouselSocialMediaModal({
   const [customCaption, setCustomCaption] = useState('');
   const [customCtaText, setCustomCtaText] = useState('');
   const [customCtaLink, setCustomCtaLink] = useState('');
-  const [slideType, setSlideType] = useState<'image' | 'youtube' | 'video'>('image');
+  const [slideType, setSlideType] = useState<'image' | 'youtube' | 'video' | 'embed'>('image');
 
   // Detect platform as user types
   const detectedPlatform = React.useMemo(() => {
@@ -112,7 +113,17 @@ export default function CarouselSocialMediaModal({
         setCustomCaption(data.suggested_slide?.caption || `${data.platformLabel?.toUpperCase()} MEDIA`);
         setCustomCtaText(data.suggested_slide?.ctaText || 'Explore');
         setCustomCtaLink(data.suggested_slide?.ctaLink || toImport);
-        setSlideType(data.suggested_slide?.type || (data.platform === 'youtube' ? 'youtube' : 'image'));
+
+        const isEmbeddable = data.platform === 'tiktok' || data.platform === 'instagram' || data.platform === 'vimeo' || data.platform === 'facebook';
+        if (isEmbeddable && (data.embedUrl || data.originalUrl)) {
+          setSlideType('embed');
+        } else if (data.platform === 'youtube') {
+          setSlideType('youtube');
+        } else if (data.platform === 'direct_video') {
+          setSlideType('video');
+        } else {
+          setSlideType(data.suggested_slide?.type || 'image');
+        }
       }
     } catch {
       setError('Network connection error. Please try again.');
@@ -143,6 +154,7 @@ export default function CarouselSocialMediaModal({
         subtitle: customSubtitle || result.suggested_slide.subtitle,
         caption: customCaption || result.suggested_slide.caption,
         mediaUrl: slideType === 'youtube' ? result.originalUrl : (result.videoUrl || result.thumbnail || result.suggested_slide.mediaUrl),
+        embedUrl: result.embedUrl || result.originalUrl,
         type: slideType,
         ctaText: customCtaText || result.suggested_slide.ctaText,
         ctaLink: customCtaLink || result.suggested_slide.ctaLink,
@@ -177,6 +189,7 @@ export default function CarouselSocialMediaModal({
       subtitle: customSubtitle || result.suggested_slide.subtitle,
       caption: customCaption || result.suggested_slide.caption,
       mediaUrl: slideType === 'youtube' ? result.originalUrl : (result.videoUrl || result.thumbnail || result.suggested_slide.mediaUrl),
+      embedUrl: result.embedUrl || result.originalUrl,
       type: slideType,
       ctaText: customCtaText || result.suggested_slide.ctaText,
       ctaLink: customCtaLink || result.suggested_slide.ctaLink,
@@ -419,6 +432,7 @@ export default function CarouselSocialMediaModal({
                       { id: 'image', label: '🖼️ Animated Image Slide (Fast, Ultra-Reliable)', desc: 'Plays Ken-Burns motion with direct link' },
                       ...(result.platform === 'youtube' ? [{ id: 'youtube', label: '▶️ Native YouTube Player Slide', desc: 'Streams HD video seamlessly' }] : []),
                       ...(result.platform === 'direct_video' ? [{ id: 'video', label: '🎥 HTML5 Video Slide', desc: 'Autoplays background video' }] : []),
+                      ...(result.platform !== 'youtube' && result.platform !== 'direct_video' ? [{ id: 'embed', label: `🎬 Live ${result.platformLabel} Embed Player`, desc: 'Plays video directly on carousel slide' }] : []),
                     ].map(t => (
                       <button
                         key={t.id}
