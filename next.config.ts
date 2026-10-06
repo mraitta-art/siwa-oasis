@@ -5,12 +5,12 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: `
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://cdnjs.cloudflare.com https://kit.fontawesome.com;
       frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com;
-      connect-src 'self' https://www.youtube.com https://youtube.com;
+      connect-src 'self' https://www.youtube.com https://youtube.com https://ka-f.fontawesome.com;
       img-src 'self' data: https: blob:;
-      style-src 'self' 'unsafe-inline';
-      font-src 'self' data:;
+      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;
+      font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com https://ka-f.fontawesome.com;
       media-src 'self' https:;
     `.replace(/\n/g, '').replace(/\s+/g, ' ')
   },
@@ -25,22 +25,16 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: __dirname,
-  },
-  /* config options here */
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable prerendering for API routes to prevent build-time module resolution errors
   staticPageGenerationTimeout: 300,
   experimental: {
     webpackBuildWorker: false,
   },
-  // Reduce memory usage for cPanel deployment
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -52,9 +46,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Optimize for production build
   compress: true,
-  // Add security headers for production
   async headers() {
     return [
       {
@@ -63,7 +55,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Redirect /studio to /jana/studio natively
   async redirects() {
     return [
       {

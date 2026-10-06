@@ -80,16 +80,29 @@ function OrchestratorContent() {
       setState(prev => ({ ...prev, minisiteTemplate: searchParams.get('template') || prev.minisiteTemplate }));
     }
 
+    const safeFetch = (url: string) =>
+      fetch(url)
+        .then(async res => {
+          if (res.status === 401 || res.status === 403) {
+            // Not authenticated in production — redirect to login
+            window.location.href = '/login?redirect=/jana/orchestrator';
+            return [];
+          }
+          const data = await res.json();
+          return Array.isArray(data) ? data : [];
+        })
+        .catch(() => []);
+
     Promise.all([
-      fetch('/api/jana/types').then(res => res.json()),
-      fetch('/api/jana/vendors').then(res => res.json()),
-      fetch('/api/jana/sections').then(res => res.json()),
-      fetch('/api/jana/templates').then(res => res.json()).catch(() => [])
+      safeFetch('/api/jana/types'),
+      safeFetch('/api/jana/vendors'),
+      safeFetch('/api/jana/sections'),
+      safeFetch('/api/jana/templates'),
     ]).then(([types, vendorList, sectionsList, visualList]) => {
-      setTypologies(Array.isArray(types) ? types : []);
-      setVendors(Array.isArray(vendorList) ? vendorList : []);
-      setAllSections(Array.isArray(sectionsList) ? sectionsList : []);
-      setVisualTemplates(Array.isArray(visualList) ? visualList : []);
+      setTypologies(types);
+      setVendors(vendorList);
+      setAllSections(sectionsList);
+      setVisualTemplates(visualList);
       setLoading(false);
     });
   }, [searchParams]);
@@ -377,7 +390,7 @@ function OrchestratorContent() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .loader-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8fafc; color: #d97706; font-weight: 900; letter-spacing: 5px; }
         
         .orchestrator-container {
