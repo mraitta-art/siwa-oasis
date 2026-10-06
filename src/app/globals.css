@@ -1373,13 +1373,47 @@ tr:hover td { background: #f9fafb; }
   margin-bottom: 0;
 }
 
-.rich-content img,
-.rich-content video,
+.rich-content img {
+  max-width: 100% !important;
+  max-height: clamp(260px, 50vh, 480px) !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  border-radius: 16px !important;
+  display: block !important;
+  margin: 1.5rem auto !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08) !important;
+}
+
+.rich-content video {
+  max-width: 100% !important;
+  max-height: clamp(260px, 50vh, 480px) !important;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+  border-radius: 16px !important;
+  display: block !important;
+  margin: 1.5rem auto !important;
+}
+
 .rich-content iframe {
   max-width: 100% !important;
-  height: auto;
-  border-radius: 12px;
-  display: block;
+  width: 100% !important;
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+  max-height: 480px !important;
+  border-radius: 16px !important;
+  display: block !important;
+  margin: 1.5rem auto !important;
+}
+
+.rich-content div:has(> img) {
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  margin: 1rem auto !important;
 }
 
 .rich-content pre,

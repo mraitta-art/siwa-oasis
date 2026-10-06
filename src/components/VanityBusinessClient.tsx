@@ -104,13 +104,18 @@ function interpolateFieldTokens(
 
 function prepareRichContent(value: unknown): string {
   if (value === null || value === undefined) return '';
-  const text = String(value);
-  const decoded = text.includes('&lt;') || text.includes('&gt;')
-    ? text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
-    : text;
-  return /<\/?[a-z][\s\S]*>/i.test(decoded)
-    ? decoded
-    : decoded.replace(/\r?\n/g, '<br />');
+  let text = String(value);
+  if (text.includes('&lt;') || text.includes('&gt;')) {
+    text = text
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+  }
+  // Normalize repeated empty break paragraphs
+  text = text.replace(/(<p>\s*(?:<br\s*\/?>|\s*|&nbsp;)*\s*<\/p>\s*){2,}/gi, '<p><br /></p>');
+  return /<\/?[a-z][\s\S]*>/i.test(text) ? text : text.replace(/\r?\n/g, '<br />');
 }
 
 export default function VanityBusinessClient({ 
