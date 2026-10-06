@@ -40,6 +40,42 @@ export const CATEGORY_FEATURE_PRESETS: Record<string, { en: string[]; ar: string
       '🧭 دليل صحراوي خبير بأمان ودروب الواحة',
     ],
   },
+  wellness: {
+    en: [
+      '🧂 Crystal Clear Healing Salt Lakes Floating Sessions',
+      '🏜️ Natural Hot Sand Baths at Mount Dakrour (Rheumatism & Joint Relief)',
+      '♨️ Natural Warm Sulfur Mineral Springs Relaxation',
+      '🌿 Organic Siwan Olive Oil & Salt Scrub Therapeutic Massages',
+      '🧘 Private Quiet Wellness Oasis & Sunset Meditation',
+      '🍵 Traditional Siwan Herbal Detox Teas & Fresh Dates',
+    ],
+    ar: [
+      '🧂 جلسات طفو واستشفاء في بحيرات الملح الكريستالية النقية',
+      '🏜️ حمامات الرمال الساخنة بجبل الدكرور لعلاج الروماتيزم وتجديد الطاقة',
+      '♨️ عيون المياه الكبريتية الساخنة الطبيعية للاسترخاء والعافية',
+      '🌿 مساج وجلسات تقشير بالملح الصخري وزيوت الزيتون العضوية',
+      '🧘 جلسات هدوء وتأمل بين واحات النخيل وقت الغروب',
+      '🍵 ضيافة شاي الأعشاب السيوية المنقية للجسم وتمور الواحة الطبيعية',
+    ],
+  },
+  tour_operator: {
+    en: [
+      '🗺️ All-Inclusive Multi-Day Siwa Itineraries (Safari + Hotel + Camp + Salt Lakes)',
+      '🚐 Private Group & Corporate Retreat Logistics from Cairo & Alexandria',
+      '🧭 Certified Multilingual Siwan Guides with Deep Cultural Knowledge',
+      '⛺ Tailor-Made Sunset Camps, Stargazing & Bedouin Dinners',
+      '🎟️ Desert Permits, Heritage Site Entrance & 24/7 Ground Support Included',
+      '🤝 Custom Tailored Bundles matching your exact budget (0% Hidden Fees)',
+    ],
+    ar: [
+      '🗺️ برامج سياحية متكاملة شاملة (سفاري 4x4 + إقامة بفندق/مخيم + بحيرات الملح + وجبات)',
+      '🚐 تنظيم كامل لرحلات المجموعات والشركات من القاهرة والإسكندرية',
+      '🧭 مرشدين سياحيين سيويين معتمدين ومتعددي اللغات',
+      '⛺ تجهيز مخيمات خاصة لمشاهدة النجوم وحفلات عشاء بدوية فاخرة',
+      '🎟️ استخراج تصاريح الصحراء وتذاكر المزارات ودعم ميداني 24/7',
+      '🤝 باقات مخصصة تناسب ميزانيتك وجدولك بدون أي عمولات وسيطة',
+    ],
+  },
   hotel: {
     en: [
       '🏨 Authentic Siwan Architecture & Salt-Rock Decor',
@@ -114,6 +150,18 @@ function buildSmartWelcomePitch(params: {
 }) {
   const { name, parentTypeName, childTypeName, categoryKey, vanityUrl, socialToolkitUrl, mobileDashboardUrl, claimUrl } = params;
 
+  // Industry-specific upgrade bullet points
+  let upgradeBulletsAr = `• الظهور في النتيجة #1 في بحث سيوة والخرائط أمام آلاف السياح.\n• علامة التوثيق الذهبية (Verified Gold Badge) لزيادة ثقة العملاء.\n• إمكانية تحصيل العربون والدفع الإلكتروني المسبق للجولات والحجوزات.\n• نظام إدارة الحجوزات والرسائل التلقائية عبر الواتساب (CRM).`;
+  let upgradeBulletsEn = `• #1 Priority ranking on Siwa search results & interactive maps.\n• Verified Gold Trust Badge to maximize tourist booking confidence.\n• Accept online deposits & automated reservation calendar.\n• Customer Leads CRM with automated WhatsApp confirmations.`;
+
+  if (categoryKey === 'wellness') {
+    upgradeBulletsAr = `• إتاحة حجز برامج الاستشفاء وجلسات الدكرور وبحيرات الملح مع استمارات طبية مسبقة.\n• تحصيل العربون الإلكتروني المسبق لتأكيد مواعيد الجلسات ومجموعات الاستشفاء.\n• تصدر نتائج محركات البحث لجذب راغبي السياحة العلاجية من مصر ودول الخليج وأوروبا.\n• علامة التوثيق الذهبية كمركز استشفاء معتمد رسمياً في واحة سيوة.`;
+    upgradeBulletsEn = `• Enable online bookings for multi-day Salt Lake & Mount Dakrour wellness retreats.\n• Collect advance deposits & medical intake notes directly.\n• Top SEO ranking for health tourists looking for Siwa healing therapies.\n• Official Verified Gold Medical & Wellness Center Badge.`;
+  } else if (categoryKey === 'tour_operator') {
+    upgradeBulletsAr = `• نظام دمج الباقات المتكاملة (حجز Safari 4x4 + إقامة + نقل + وجبات في فاتورة واحدة للعميل).\n• تحصيل دفعات وحجوزات المجموعات السياحية والشركات مباشرة عبر المنصة.\n• استخراج كشوفات وجداول البرامج السياحية (Itinerary PDFs) تلقائياً بهوية شركتك.\n• الصدارة في صفحات "برامج سيوة المتكاملة" والرحلات الشاملة لزيادة مبيعاتك.`;
+    upgradeBulletsEn = `• Multi-Service Package Bundler (Book 4x4 + Hotel + Meals + Transfers in one single guest checkout).\n• Online group deposit & seat management for corporate & private retreats.\n• Automated branded Customer Itinerary PDF generator.\n• Top placement on Siwa All-Inclusive Tour Packages directory.`;
+  }
+
   // Arabic tailored pitch
   const arPitch = `مرحباً بك يا كابتن/صاحب نشاط *${name}* في سيوة! 🌴✨
 
@@ -139,11 +187,8 @@ function buildSmartWelcomePitch(params: {
 ━━━━━━━━━━━━━━━━━━
 🚀 *لماذا وكيف ترقّي باقتك إلى (SiWiFy Premium)؟*
 ━━━━━━━━━━━━━━━━━━
-⭐ *لماذا الترقية؟*
-• الظهور في النتيجة #1 في بحث سيوة والخرائط أمام آلاف السياح.
-• علامة التوثيق الذهبية (Verified Gold Badge) لزيادة ثقة العملاء.
-• إمكانية تحصيل العربون والدفع الإلكتروني المسبق للجولات والحجوزات.
-• نظام إدارة الحجوزات والرسائل التلقائية عبر الواتساب (CRM).
+⭐ *لماذا الترقية لـ ${childTypeName}؟*
+${upgradeBulletsAr}
 
 💡 *كيف ترقّي؟*
 يمكنك الترقية بضغطة واحدة من داخل لوحة تحكمك أو الرد على هذه الرسالة للتواصل مع فريق الدعم الفني مباشرة.
@@ -175,11 +220,8 @@ Your business has been officially verified on *SiWiFy.com* under:
 ━━━━━━━━━━━━━━━━━━
 🚀 *Why & How to Upgrade to (SiWiFy Premium)?*
 ━━━━━━━━━━━━━━━━━━
-⭐ *Why Upgrade?*
-• #1 Priority ranking on Siwa search results & interactive maps.
-• Verified Gold Trust Badge to maximize tourist booking confidence.
-• Accept online deposits & automated reservation calendar.
-• Customer Leads CRM with automated WhatsApp confirmations.
+⭐ *Why Upgrade for ${childTypeName}?*
+${upgradeBulletsEn}
 
 💡 *How to Upgrade?*
 Upgrade with 1-click in your mobile dashboard or reply to this message to connect with our Partner Success team.
@@ -230,15 +272,27 @@ export async function GET(request: NextRequest) {
     const parentIdStr = String(business.parent_type_id || '').toLowerCase();
     let categoryKey = 'general';
 
-    if (typeIdStr.includes('trans') || typeIdStr.includes('move') || typeIdStr.includes('tuk') || typeIdStr.includes('driver') || parentIdStr.includes('trans')) {
+    if (
+      typeIdStr.includes('wellness') || typeIdStr.includes('health') || typeIdStr.includes('spa') ||
+      typeIdStr.includes('salt') || typeIdStr.includes('dakrour') || typeIdStr.includes('healing') ||
+      typeIdStr.includes('bath') || typeIdStr.includes('spring') || parentIdStr.includes('wellness') || parentIdStr.includes('crafts-wellness')
+    ) {
+      categoryKey = 'wellness';
+    } else if (
+      typeIdStr.includes('tour_operator') || typeIdStr.includes('operator') || typeIdStr.includes('journey') ||
+      typeIdStr.includes('package') || typeIdStr.includes('itinerary') || typeIdStr.includes('planner') ||
+      typeIdStr.includes('agency') || typeIdStr.includes('trip') || parentIdStr.includes('journey') || parentIdStr.includes('tour')
+    ) {
+      categoryKey = 'tour_operator';
+    } else if (typeIdStr.includes('trans') || typeIdStr.includes('move') || typeIdStr.includes('tuk') || typeIdStr.includes('driver') || parentIdStr.includes('trans')) {
       categoryKey = 'transport';
-    } else if (typeIdStr.includes('safari') || typeIdStr.includes('tour') || typeIdStr.includes('desert') || typeIdStr.includes('act') || parentIdStr.includes('safari') || parentIdStr.includes('tour')) {
+    } else if (typeIdStr.includes('safari') || typeIdStr.includes('desert') || parentIdStr.includes('safari')) {
       categoryKey = 'safari';
-    } else if (typeIdStr.includes('hotel') || typeIdStr.includes('camp') || typeIdStr.includes('stay') || typeIdStr.includes('lodge') || parentIdStr.includes('stay') || parentIdStr.includes('hotel')) {
+    } else if (typeIdStr.includes('hotel') || typeIdStr.includes('camp') || typeIdStr.includes('stay') || typeIdStr.includes('lodge') || parentIdStr.includes('stay') || parentIdStr.includes('hotel') || parentIdStr.includes('accommodations')) {
       categoryKey = 'hotel';
     } else if (typeIdStr.includes('food') || typeIdStr.includes('eat') || typeIdStr.includes('rest') || typeIdStr.includes('cafe') || parentIdStr.includes('food')) {
       categoryKey = 'dining';
-    } else if (typeIdStr.includes('craft') || typeIdStr.includes('date') || typeIdStr.includes('olive') || typeIdStr.includes('oil') || typeIdStr.includes('salt') || parentIdStr.includes('craft') || parentIdStr.includes('prod')) {
+    } else if (typeIdStr.includes('craft') || typeIdStr.includes('date') || typeIdStr.includes('olive') || typeIdStr.includes('oil') || parentIdStr.includes('craft') || parentIdStr.includes('production-trade')) {
       categoryKey = 'crafts';
     }
 
