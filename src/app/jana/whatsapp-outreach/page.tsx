@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import WhatsAppFeatureStudioModal from '@/components/WhatsAppFeatureStudioModal';
 
 interface BusinessItem {
   id: string;
@@ -37,6 +38,9 @@ export default function WhatsAppOutreachPage() {
   const [search, setSearch] = useState('');
   const [msgLang, setMsgLang] = useState<'ar' | 'en'>('ar');
   
+  // Showcase modal state
+  const [showcaseBiz, setShowcaseBiz] = useState<{ id: string; name: string } | null>(null);
+
   // Editing contact
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editWhatsapp, setEditWhatsapp] = useState('');
@@ -437,6 +441,29 @@ export default function WhatsAppOutreachPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button
                     type="button"
+                    onClick={() => setShowcaseBiz({ id: biz.id, name: biz.name })}
+                    style={{
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #D4AF37, #F5E6AD)',
+                      color: '#0f172a',
+                      fontWeight: 900,
+                      fontSize: '0.8rem',
+                      border: 0,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      boxShadow: '0 2px 8px rgba(212,175,55,0.2)',
+                    }}
+                    title="Customize features & upload photos (driver, tuk-tuk, etc.)"
+                  >
+                    <span>✨</span>
+                    <span>Customize Showcase</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => handleCopyMessage(biz)}
                     style={{
                       padding: '0.55rem 0.9rem',
@@ -488,6 +515,16 @@ export default function WhatsAppOutreachPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* WHATSAPP FEATURE & PHOTO SHOWCASE STUDIO MODAL */}
+      {showcaseBiz && (
+        <WhatsAppFeatureStudioModal
+          isOpen={!!showcaseBiz}
+          businessId={showcaseBiz.id}
+          businessName={showcaseBiz.name}
+          onClose={() => setShowcaseBiz(null)}
+        />
       )}
     </div>
   );
