@@ -28,6 +28,7 @@ const NAV_GROUPS = [
   {
     title: 'Media & Social Growth',
     items: [
+      { name: 'Social Toolkit & App', href: '/vendor/social-toolkit', faIcon: 'fa-wand-magic-sparkles', badge: 'APP' },
       { name: 'Hero Carousel & Reels', href: '/vendor/media', faIcon: 'fa-images', badge: 'NEW' },
       { name: 'Minisite & Bio Link', href: '/vendor/minisite', faIcon: 'fa-globe', badge: 'LIVE' },
       { name: 'Templates & Themes', href: '/vendor/templates', faIcon: 'fa-palette' },

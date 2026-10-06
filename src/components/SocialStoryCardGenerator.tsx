@@ -12,14 +12,50 @@ interface SocialStoryCardProps {
   whatsappNumber?: string;
   primaryColor?: string;
   platformName?: string;
+  lang?: 'en' | 'ar';
 }
 
 type CardFormat = 'story' | 'feed' | 'landscape';
 
-const FORMAT_SIZES: Record<CardFormat, { w: number; h: number; label: string; icon: string }> = {
-  story:     { w: 1080, h: 1920, label: 'Instagram / TikTok Story',   icon: '📱' },
-  feed:      { w: 1080, h: 1080, label: 'Instagram / Facebook Post',   icon: '⬜' },
-  landscape: { w: 1280, h: 720,  label: 'Twitter / LinkedIn Banner',   icon: '🖥️' },
+const FORMAT_SIZES: Record<CardFormat, { w: number; h: number; label: string; labelAr: string; icon: string }> = {
+  story:     { w: 1080, h: 1920, label: 'Instagram / TikTok Story', labelAr: 'قصة إنستغرام / تيك توك (ستوري)', icon: '📱' },
+  feed:      { w: 1080, h: 1080, label: 'Instagram / Facebook Post', labelAr: 'منشور إنستغرام / فيسبوك (مربع)', icon: '⬜' },
+  landscape: { w: 1280, h: 720,  label: 'Twitter / LinkedIn Banner', labelAr: 'غلاف تويتر / لينكد إن (أفقي)', icon: '🖥️' },
+};
+
+const I18N = {
+  en: {
+    title: 'Social Story Card Generator',
+    subtitle: 'Generate a branded card to post on Instagram, TikTok, Facebook, and Twitter',
+    btnGenerating: 'Generating...',
+    btnReGenerate: 'Re-Generate Card',
+    btnGenerate: 'Generate Card',
+    btnDownload: 'Download PNG',
+    btnShare: 'Share',
+    howToUseTitle: '📌 HOW TO USE YOUR CARD',
+    guideStory: '① Download PNG  ② Open Instagram/TikTok  ③ Add to Story  ④ Add "Link" sticker pointing to your bio link',
+    guideFeed: '① Download PNG  ② Post to Instagram Feed or Facebook Page  ③ Caption: "Book directly — link in bio 🔗"',
+    guideLandscape: '① Download PNG  ② Post to Twitter/X or LinkedIn  ③ Pin the post to your profile for maximum visibility',
+    readyFor: 'Ready for',
+    ctaBooking: '📲 Book directly · Zero platform commission',
+    ctaGeneral: '✨ Explore · Discover · Experience Siwa Oasis',
+  },
+  ar: {
+    title: 'مولد بطاقات وقصص السوشيال ميديا (ستوري / بوست)',
+    subtitle: 'صمم بطاقة تسويقية تحمل هويتك ورابط حجزك المباشر للنشر على إنستغرام، تيك توك، وفيسبوك',
+    btnGenerating: 'جاري التصميم...',
+    btnReGenerate: 'إعادة تصميم البطاقة',
+    btnGenerate: 'تصميم البطاقة',
+    btnDownload: 'تحميل الصورة PNG',
+    btnShare: 'مشاركة سريعة',
+    howToUseTitle: '📌 كيف تستخدم بطاقتك التسويقية بذكاء',
+    guideStory: '١. حمّل الصورة  ٢. افتح إنستغرام أو تيك توك  ٣. اختر إضافة ستوري  ٤. أضف ملصق "رابط / Link" يوجه لرابط موقعك المصغر',
+    guideFeed: '١. حمّل الصورة  ٢. انشرها كبوست في إنستغرام أو فيسبوك  ٣. اكتب في الوصف: "احجز مباشرة بدون عمولة — الرابط في البايو 🔗"',
+    guideLandscape: '١. حمّل الصورة  ٢. انشرها على تويتر أو منصاتك  ٣. ثبّت المنشور في صفحتك لأعلى نسبة وصول وتفاعل',
+    readyFor: 'جاهز لـ',
+    ctaBooking: '📲 احجز مباشرة · 0% عمولة وسيط',
+    ctaGeneral: '✨ استمتع باكتشاف وسحر واحة سيوة الأصيلة',
+  },
 };
 
 export default function SocialStoryCardGenerator({
@@ -32,6 +68,7 @@ export default function SocialStoryCardGenerator({
   whatsappNumber,
   primaryColor = '#D4AF37',
   platformName = 'SiWiFy.com',
+  lang = 'en',
 }: SocialStoryCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [format, setFormat] = useState<CardFormat>('story');
@@ -39,7 +76,10 @@ export default function SocialStoryCardGenerator({
   const [generated, setGenerated] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const vanityUrl = `${platformName}/${businessSlug}`;
+  const t = I18N[lang] || I18N.en;
+  const isRTL = lang === 'ar';
+
+  const vanityUrl = `${platformName.toLowerCase()}/${businessSlug}`;
   const whatsappUrl = whatsappNumber
     ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`
     : null;
@@ -68,7 +108,6 @@ export default function SocialStoryCardGenerator({
     if (heroImage) {
       try {
         const bgImg = await loadImage(heroImage);
-        // Cover-fit the image
         const imgAspect = bgImg.width / bgImg.height;
         const canvasAspect = w / h;
         let sw: number, sh: number, sx: number, sy: number;
@@ -81,7 +120,6 @@ export default function SocialStoryCardGenerator({
         }
         ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, w, h);
       } catch {
-        // fallback gradient bg
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         grad.addColorStop(0, '#0f172a');
         grad.addColorStop(1, '#1e293b');
@@ -113,13 +151,14 @@ export default function SocialStoryCardGenerator({
     ctx.fillStyle = primaryColor;
     ctx.fillRect(0, 0, w, Math.round(8 * sc));
 
-    // SiWiFy badge top-left
+    // Platform badge top-left / top-right
     const badgePad = Math.round(32 * sc);
     const badgeFontSize = Math.round(28 * sc);
-    ctx.font = `900 ${badgeFontSize}px "Arial Black", Arial, sans-serif`;
+    ctx.font = `900 ${badgeFontSize}px "Cairo", "Arial Black", Arial, sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.globalAlpha = 0.9;
-    ctx.fillText(platformName.toUpperCase(), badgePad, badgePad + badgeFontSize);
+    ctx.textAlign = isRTL ? 'right' : 'left';
+    ctx.fillText(platformName.toUpperCase(), isRTL ? w - badgePad : badgePad, badgePad + badgeFontSize);
     ctx.globalAlpha = 1;
 
     // ── LOGO (if available) ────────────────────────────────────────────
@@ -138,8 +177,8 @@ export default function SocialStoryCardGenerator({
 
     // ── BUSINESS NAME ─────────────────────────────────────────────────
     const nameY = format === 'story' ? h * 0.72 : h * 0.62;
-    const nameFontSize = Math.round(72 * sc);
-    ctx.font = `900 ${nameFontSize}px "Arial Black", Arial, sans-serif`;
+    const nameFontSize = Math.round(68 * sc);
+    ctx.font = `900 ${nameFontSize}px "Cairo", "Arial Black", Arial, sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.7)';
@@ -160,25 +199,26 @@ export default function SocialStoryCardGenerator({
       }
     }
     if (line) nameLines.push(line);
-    const lineHeight = nameFontSize * 1.1;
+    const lineHeight = nameFontSize * 1.15;
     nameLines.forEach((l, i) => {
       ctx.fillText(l, w / 2, nameY + i * lineHeight);
     });
     ctx.shadowBlur = 0;
 
     // ── CATEGORY PILL ─────────────────────────────────────────────────
-    const pillY = nameY + nameLines.length * lineHeight + Math.round(24 * sc);
-    const catFontSize = Math.round(28 * sc);
-    ctx.font = `700 ${catFontSize}px Arial, sans-serif`;
+    const pillY = nameY + nameLines.length * lineHeight + Math.round(20 * sc);
+    const catFontSize = Math.round(26 * sc);
+    ctx.font = `700 ${catFontSize}px "Cairo", Arial, sans-serif`;
     const catText = categoryLabel.toUpperCase();
     const catW = ctx.measureText(catText).width + Math.round(48 * sc);
-    const catH = Math.round(52 * sc);
+    const catH = Math.round(50 * sc);
     const catX = (w - catW) / 2;
     ctx.fillStyle = primaryColor;
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.95;
+    
     // Rounded rect
     ctx.beginPath();
-    const r = Math.round(26 * sc);
+    const r = Math.round(25 * sc);
     ctx.moveTo(catX + r, pillY);
     ctx.lineTo(catX + catW - r, pillY);
     ctx.quadraticCurveTo(catX + catW, pillY, catX + catW, pillY + r);
@@ -192,13 +232,13 @@ export default function SocialStoryCardGenerator({
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#1a1000';
-    ctx.fillText(catText, w / 2, pillY + catFontSize + Math.round(12 * sc));
+    ctx.fillText(catText, w / 2, pillY + catFontSize + Math.round(11 * sc));
 
     // ── TAGLINE ───────────────────────────────────────────────────────
     if (tagline) {
       const tagY = pillY + catH + Math.round(36 * sc);
-      const tagFontSize = Math.round(32 * sc);
-      ctx.font = `500 ${tagFontSize}px Arial, sans-serif`;
+      const tagFontSize = Math.round(30 * sc);
+      ctx.font = `600 ${tagFontSize}px "Cairo", Arial, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.fillText(tagline.substring(0, 80), w / 2, tagY);
     }
@@ -222,11 +262,9 @@ export default function SocialStoryCardGenerator({
 
     // CTA text
     const ctaFontSize = Math.round(26 * sc);
-    ctx.font = `600 ${ctaFontSize}px Arial, sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    const ctaLine = whatsappUrl
-      ? '📲 Book directly · Zero platform commission'
-      : '✨ Explore · Discover · Experience Siwa Oasis';
+    ctx.font = `700 ${ctaFontSize}px "Cairo", Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    const ctaLine = whatsappUrl ? t.ctaBooking : t.ctaGeneral;
     ctx.fillText(ctaLine, w / 2, ctaStripY + Math.round(100 * sc));
 
     // ── Bottom gold bar ───────────────────────────────────────────────
@@ -238,7 +276,7 @@ export default function SocialStoryCardGenerator({
     setPreviewUrl(dataUrl);
     setGenerated(true);
     setGenerating(false);
-  }, [format, businessName, businessSlug, businessLogo, heroImage, categoryLabel, tagline, whatsappNumber, primaryColor, platformName, vanityUrl, whatsappUrl]);
+  }, [format, businessName, businessSlug, businessLogo, heroImage, categoryLabel, tagline, whatsappNumber, primaryColor, platformName, vanityUrl, whatsappUrl, isRTL, t]);
 
   const downloadCard = () => {
     if (!previewUrl) return;
@@ -256,7 +294,7 @@ export default function SocialStoryCardGenerator({
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: `${businessName} on SiWiFy.com`,
-          text: `Book directly at ${vanityUrl}`,
+          text: isRTL ? `احجز معنا مباشرة في سيوة عبر الرابط: https://${vanityUrl}` : `Book directly at https://${vanityUrl}`,
           files: [file],
         });
       } else {
@@ -268,29 +306,34 @@ export default function SocialStoryCardGenerator({
   };
 
   return (
-    <div style={{
-      background: '#fff',
-      borderRadius: '24px',
-      border: '1px solid #f1f5f9',
-      padding: '2rem',
-      boxShadow: '0 20px 40px -15px rgba(0,0,0,0.06)',
-      maxWidth: '100%',
-      boxSizing: 'border-box'
-    }}>
+    <div
+      dir={isRTL ? 'rtl' : 'ltr'}
+      style={{
+        background: '#fff',
+        borderRadius: '24px',
+        border: '1px solid #f1f5f9',
+        padding: '2rem',
+        boxShadow: '0 20px 40px -15px rgba(0,0,0,0.06)',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        textAlign: isRTL ? 'right' : 'left',
+      }}
+    >
       {/* HEADER */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
           <div style={{
             width: '40px', height: '40px', borderRadius: '12px',
             background: 'rgba(212,175,55,0.12)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem'
+            alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem',
+            flexShrink: 0,
           }}>🎨</div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
-              Social Story Card Generator
+              {t.title}
             </h3>
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              Generate a branded card to post on Instagram, TikTok, Facebook, and Twitter
+            <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              {t.subtitle}
             </div>
           </div>
         </div>
@@ -314,7 +357,7 @@ export default function SocialStoryCardGenerator({
             }}
           >
             <span>{meta.icon}</span>
-            <span>{meta.label}</span>
+            <span>{isRTL ? meta.labelAr : meta.label}</span>
           </button>
         ))}
       </div>
@@ -338,7 +381,7 @@ export default function SocialStoryCardGenerator({
             }}
           />
           <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
-            {FORMAT_SIZES[format].w} × {FORMAT_SIZES[format].h}px — Ready for {FORMAT_SIZES[format].label}
+            {FORMAT_SIZES[format].w} × {FORMAT_SIZES[format].h}px — {t.readyFor} {isRTL ? FORMAT_SIZES[format].labelAr : FORMAT_SIZES[format].label}
           </div>
         </div>
       )}
@@ -359,7 +402,7 @@ export default function SocialStoryCardGenerator({
           }}
         >
           <span>🎨</span>
-          <span>{generating ? 'Generating...' : generated ? 'Re-Generate Card' : 'Generate Card'}</span>
+          <span>{generating ? t.btnGenerating : generated ? t.btnReGenerate : t.btnGenerate}</span>
         </button>
 
         {generated && previewUrl && (
@@ -375,7 +418,7 @@ export default function SocialStoryCardGenerator({
               }}
             >
               <span>⬇️</span>
-              <span>Download PNG</span>
+              <span>{t.btnDownload}</span>
             </button>
 
             <button
@@ -390,7 +433,7 @@ export default function SocialStoryCardGenerator({
               }}
             >
               <span>📤</span>
-              <span>Share</span>
+              <span>{t.btnShare}</span>
             </button>
           </>
         )}
@@ -402,12 +445,12 @@ export default function SocialStoryCardGenerator({
         background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9'
       }}>
         <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.4rem', letterSpacing: '0.5px' }}>
-          📌 HOW TO USE YOUR CARD
+          {t.howToUseTitle}
         </div>
         <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.6 }}>
-          {format === 'story' && '① Download PNG  ② Open Instagram/TikTok  ③ Add to Story  ④ Add "Link" sticker pointing to your bio link'}
-          {format === 'feed' && '① Download PNG  ② Post to Instagram Feed or Facebook Page  ③ Caption: "Book directly — link in bio 🔗"'}
-          {format === 'landscape' && '① Download PNG  ② Post to Twitter/X or LinkedIn  ③ Pin the post to your profile for maximum visibility'}
+          {format === 'story' && t.guideStory}
+          {format === 'feed' && t.guideFeed}
+          {format === 'landscape' && t.guideLandscape}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import AnalyticsTracker from '@/components/AnalyticsTracker';
 export const metadata: Metadata = {
   title: 'SIWA OASIS | The Premium Desert Marketplace',
   description: 'Discover Siwa Oasis - Hotels, restaurants, tours, shops and experiences in Egypt\'s most magical desert oasis',
+  manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
   },

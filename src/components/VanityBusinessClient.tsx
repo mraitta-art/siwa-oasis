@@ -12,8 +12,6 @@ import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteLocationMap from '@/components/MinisiteLocationMap';
 import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
 import MinisiteContributions from '@/components/MinisiteContributions';
-import SocialStoryCardGenerator from '@/components/SocialStoryCardGenerator';
-import SocialVideoImporter from '@/components/SocialVideoImporter';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 
@@ -1597,70 +1595,6 @@ export default function VanityBusinessClient({
               )}
             </div>
           </aside>
-        </div>
-      </div>
-
-      {/* 📲 SOCIAL MEDIA TOOLKIT — Video Import + Story Card Generator + UTM Traffic Source */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem 3rem' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>
-              📲 SOCIAL MEDIA TOOLKIT
-            </div>
-            <h2 style={{ margin: '0.25rem 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
-              Grow Your Reach Across All Platforms
-            </h2>
-          </div>
-          {/* UTM Traffic Source Badge */}
-          {utmSource && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.4rem 1rem', borderRadius: '50px',
-              background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)',
-              fontSize: '0.78rem', fontWeight: 800, color: '#92400e'
-            }}>
-              <span>
-                {utmSource === 'instagram' ? '📸' : utmSource === 'tiktok' ? '🎵' : utmSource === 'facebook' ? '📘' : utmSource === 'twitter' ? '🐦' : '🔗'}
-              </span>
-              <span>Visitor from {utmSource.charAt(0).toUpperCase() + utmSource.slice(1)}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Two-column responsive grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.25rem' }}>
-          {/* Video Importer */}
-          <SocialVideoImporter
-            businessId={biz.id}
-            businessSlug={slug}
-            businessName={biz.name}
-            primaryColor="#D4AF37"
-          />
-          {/* Story Card Generator */}
-          <SocialStoryCardGenerator
-            businessName={biz.name}
-            businessSlug={slug}
-            businessLogo={dynamicLogo}
-            heroImage={(() => {
-              for (const secKey of Object.keys(data)) {
-                const sec = data[secKey];
-                if (!sec || typeof sec !== 'object') continue;
-                const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
-                const arr = Array.isArray(gallery) ? gallery : [];
-                for (const item of arr) {
-                  const url = typeof item === 'object' ? (item as any).url : item;
-                  if (url && typeof url === 'string' && url.startsWith('http') && !url.match(/\.(mp4|webm|mov)$/i)) return url;
-                }
-              }
-              return undefined;
-            })()}
-            categoryLabel={biz.type_name || identity.category || 'Siwa Oasis'}
-            tagline={identity.tagline || identity.slogan || ''}
-            whatsappNumber={dynamicWhatsapp}
-            primaryColor="#D4AF37"
-            platformName={platformName}
-          />
         </div>
       </div>
 
