@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface AdminContextType {
   advancedMode: boolean;
@@ -22,15 +22,18 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     if (saved === 'true') setAdvancedMode(true);
   }, []);
 
-  const toggleAdvanced = (mode: boolean) => {
-    setAdvancedMode(mode);
-    localStorage.setItem('siwa_advanced_mode', String(mode));
-    notify(mode ? 'Advanced Mode Activated' : 'Standard Mode Activated', 'success');
-  };
+  const dismiss = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
 
-  const notify = (message: string, type: 'success' | 'error' | 'warning' = 'success', sticky: boolean = false) => {
+  const notify = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success', sticky: boolean = false) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setNotifications(prev => [...prev, { id, message, type, sticky }]);
+    setNotifications(prev => {
+      // Prevent exact duplicate notifications from stacking
+      const exists = prev.some(n => n.message === message && n.type === type);
+      if (exists) return prev;
+      return [...prev, { id, message, type, sticky }];
+    });
     
     // Auto-dismiss if NOT sticky
     if (!sticky) {
@@ -38,11 +41,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         setNotifications(prev => prev.filter(n => n.id !== id));
       }, 5000);
     }
-  };
+  }, []);
 
-  const dismiss = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  const toggleAdvanced = useCallback((mode: boolean) => {
+    setAdvancedMode(mode);
+    localStorage.setItem('siwa_advanced_mode', String(mode));
+    notify(mode ? 'Advanced Mode Activated' : 'Standard Mode Activated', 'success');
+  }, [notify]);
 
   return (
     <AdminContext.Provider value={{ advancedMode, setAdvancedMode: toggleAdvanced, notifications, notify, dismiss }}>

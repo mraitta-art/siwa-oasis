@@ -144,14 +144,14 @@ export default function BusinessOrchestrator() {
         }
       } catch (err: any) {
         setCommercialLoading(false);
-        notify(err.message || 'Failed to load orchestrator data', 'error');
+        setBiz(null);
       } finally {
         setLoading(false);
       }
     }
 
     loadData();
-  }, [businessId, fieldParam, notify, sectionParam]);
+  }, [businessId, fieldParam, sectionParam]);
 
   // ── Helpers ────────────────────────────────────────────────────────
 
