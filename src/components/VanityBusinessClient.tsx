@@ -16,38 +16,84 @@ import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
  * VANITY URL CLIENT COMPONENT
  * Handles the interactive minisite UI.
  */
-function interpolateFieldTokens(text: string, secData: Record<string, any> = {}, sectionFields: any[] = []): string {
+function formatInterpolatedValue(rawVal: any): string {
+  if (Array.isArray(rawVal)) {
+    return rawVal
+      .map(v => (typeof v === 'object' ? v.name || v.label || v.title || JSON.stringify(v) : String(v)))
+      .join(', ');
+  }
+  if (typeof rawVal === 'boolean') {
+    return rawVal ? 'Yes' : 'No';
+  }
+  if (typeof rawVal === 'object' && rawVal !== null) {
+    return rawVal.name || rawVal.title || rawVal.label || rawVal.value || JSON.stringify(rawVal);
+  }
+  return String(rawVal);
+}
+
+function interpolateFieldTokens(
+  text: string,
+  secData: Record<string, any> = {},
+  sectionFields: any[] = [],
+  allCustomData: Record<string, any> = {}
+): string {
   if (!text || typeof text !== 'string') return text || '';
 
   return text.replace(/\{\{([^}]+)\}\}/g, (match, rawKey) => {
-    const key = rawKey.trim().toLowerCase();
-    
-    // Find matching field definition by name or label
+    const fullKey = rawKey.trim();
+    const key = fullKey.toLowerCase();
+
+    // 1. Direct section dot lookup: e.g. {{sec_3_facilities.pool_size}} or {{basic.phone}}
+    if (fullKey.includes('.')) {
+      const [secPart, fieldPart] = fullKey.split('.');
+      const val =
+        allCustomData?.[secPart]?.[fieldPart] ??
+        allCustomData?.[secPart.toLowerCase()]?.[fieldPart] ??
+        allCustomData?.[secPart]?.[fieldPart.toLowerCase()];
+      if (val !== undefined && val !== null && val !== '') {
+        return formatInterpolatedValue(val);
+      }
+    }
+
+    // 2. Find matching field definition by name or label in the current section
     const fieldDef = (sectionFields || []).find((f: any) => 
       String(f?.name || '').toLowerCase() === key || 
       String(f?.label || '').toLowerCase() === key
     );
 
     const dataKey = fieldDef?.name || key;
-    const rawVal = secData?.[dataKey] ?? secData?.[key];
+    let rawVal = secData?.[dataKey] ?? secData?.[key];
+
+    // 3. Fallback: Search across root custom_data and all sections
+    if (rawVal === undefined || rawVal === null || rawVal === '') {
+      rawVal =
+        allCustomData?.[dataKey] ??
+        allCustomData?.[key] ??
+        allCustomData?.basic?.[dataKey] ??
+        allCustomData?.basic?.[key] ??
+        allCustomData?.sec_1_identity?.[dataKey] ??
+        allCustomData?.sec_1_identity?.[key] ??
+        allCustomData?.business_info?.[dataKey] ??
+        allCustomData?.business_info?.[key];
+
+      if (rawVal === undefined || rawVal === null || rawVal === '') {
+        for (const secKey of Object.keys(allCustomData || {})) {
+          if (allCustomData[secKey] && typeof allCustomData[secKey] === 'object') {
+            const candidate = allCustomData[secKey][dataKey] ?? allCustomData[secKey][key];
+            if (candidate !== undefined && candidate !== null && candidate !== '') {
+              rawVal = candidate;
+              break;
+            }
+          }
+        }
+      }
+    }
 
     if (rawVal === undefined || rawVal === null || rawVal === '') {
       return '';
     }
 
-    if (Array.isArray(rawVal)) {
-      return rawVal.map(v => typeof v === 'object' ? (v.name || v.label || JSON.stringify(v)) : String(v)).join(', ');
-    }
-
-    if (typeof rawVal === 'boolean') {
-      return rawVal ? 'Yes' : 'No';
-    }
-
-    if (typeof rawVal === 'object') {
-      return rawVal.name || rawVal.title || rawVal.label || rawVal.value || JSON.stringify(rawVal);
-    }
-
-    return String(rawVal);
+    return formatInterpolatedValue(rawVal);
   });
 }
 
@@ -902,7 +948,7 @@ export default function VanityBusinessClient({
                       if (!showBlogOnMinisite) return null;
 
                       if (dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar)) {
-                        const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields);
+                        const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields, biz.custom_data);
                         return (
                           <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
@@ -914,7 +960,7 @@ export default function VanityBusinessClient({
                       if (minisiteLang === 'ar' && (secData?.section_blog_ar || secData?.description_ar || secData?.section_news_ar)) {
                         const rawBlog = secData?.section_blog_ar || secData?.section_news_ar || secData?.description_ar;
                         const blogTitleDisplay = secData?.section_blog_title_ar || '';
-                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
+                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
                         return (
                           <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right' }}>
                             {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
@@ -926,7 +972,7 @@ export default function VanityBusinessClient({
                       if (secData?.section_blog || secData?.mini_blog || secData?.description || secData?.section_news || secData?._media?.mini_blog) {
                         const rawBlog = secData?.section_blog || secData?.mini_blog || secData?._media?.mini_blog || secData?.section_news || secData?.description;
                         const blogTitleDisplay = secData?.section_blog_title || '';
-                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields);
+                        const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
                         return (
                           <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                             {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
