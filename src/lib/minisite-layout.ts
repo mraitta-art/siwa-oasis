@@ -1,5 +1,5 @@
 import { queryOne, execute } from '@/lib/db';
-import { MinisiteMode, MinisiteComponentType } from './minisite-governance';
+import { MinisiteMode, MinisiteComponentType } from './minisite-governance-client';
 
 export const MINISITE_LAYOUT_KEY = (slug: string) => `minisite_layout_${slug.toLowerCase()}`;
 export const MINISITE_TEMPLATE_KEY = (typeId: string) => `minisite_template_${typeId.toLowerCase()}`;

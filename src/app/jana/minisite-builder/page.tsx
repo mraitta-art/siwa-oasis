@@ -8,8 +8,9 @@ import {
   MinisiteComponentType,
   MinisiteMode,
   MinisiteTier,
-} from '@/lib/minisite-governance';
-import { MinisiteLayout, MinisiteLayoutComponent } from '@/lib/minisite-layout';
+  MinisiteLayout,
+  MinisiteLayoutComponent,
+} from '@/lib/minisite-governance-client';
 
 export default function MinisiteBuilderStudio() {
   const searchParams = useSearchParams();
@@ -757,7 +758,7 @@ export default function MinisiteBuilderStudio() {
                   </label>
                   <input
                     type="text"
-                    value={selectedComp.props?.title || ''}
+                    value={String(selectedComp.props?.title ?? '')}
                     onChange={(e) => {
                       const updated = components.map((c) =>
                         c.id === selectedComp.id
@@ -783,7 +784,7 @@ export default function MinisiteBuilderStudio() {
                   </label>
                   <textarea
                     rows={3}
-                    value={selectedComp.props?.subtitle || selectedComp.props?.description || selectedComp.props?.content || ''}
+                    value={String(selectedComp.props?.subtitle ?? selectedComp.props?.description ?? selectedComp.props?.content ?? '')}
                     onChange={(e) => {
                       const updated = components.map((c) =>
                         c.id === selectedComp.id
@@ -819,7 +820,7 @@ export default function MinisiteBuilderStudio() {
                     </label>
                     <input
                       type="text"
-                      value={selectedComp.props?.buttonText || ''}
+                      value={String(selectedComp.props?.buttonText ?? '')}
                       onChange={(e) => {
                         const updated = components.map((c) =>
                           c.id === selectedComp.id
