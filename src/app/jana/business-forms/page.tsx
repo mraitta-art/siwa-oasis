@@ -53,6 +53,9 @@ export default function BusinessFormsPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [types, setTypes] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
+  const [tiers, setTiers] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [newBiz, setNewBiz] = useState({
     name: '',
     type_id: '',
@@ -61,6 +64,10 @@ export default function BusinessFormsPage() {
     phone: '',
     description: '',
     logo_url: '',
+    subscription_tier: 'free',
+    template_id: '',
+    vendor_id: '',
+    status: 'active',
     custom_data: {} as Record<string, any>
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -91,14 +98,20 @@ export default function BusinessFormsPage() {
 
   async function fetchMetadata() {
     try {
-      const [tRes, sRes] = await Promise.all([
+      const [tRes, sRes, bRes, trRes, tmplRes, vRes] = await Promise.all([
         fetch('/api/jana/types'),
         fetch('/api/jana/sections'),
+        fetch('/api/jana/businesses'),
+        fetch('/api/jana/tiers'),
+        fetch('/api/jana/templates'),
+        fetch('/api/jana/vendors'),
       ]);
       if (tRes.ok) setTypes(await tRes.json());
       if (sRes.ok) setSections(await sRes.json());
-      const bRes = await fetch('/api/jana/businesses');
       if (bRes.ok) setBusinesses(await bRes.json());
+      if (trRes.ok) setTiers(await trRes.json());
+      if (tmplRes.ok) setTemplates(await tmplRes.json());
+      if (vRes.ok) setVendors(await vRes.json());
     } catch (e) {
       console.error('Error fetching metadata:', e);
     }
@@ -453,12 +466,20 @@ export default function BusinessFormsPage() {
           phone: newBiz.phone,
           description: newBiz.description,
           logo_url: newBiz.logo_url,
+          subscription_tier: newBiz.subscription_tier,
+          template_id: newBiz.template_id,
+          vendor_id: newBiz.vendor_id,
+          status: newBiz.status,
           custom_data: newBiz.custom_data
         })
       });
 
       if (res.ok) {
-        notify('🎉 Registration submitted to intake queue!', 'success');
+        if (newBiz.status === 'active') {
+          notify('✨ Business registered and published live!', 'success');
+        } else {
+          notify('🎉 Registration submitted to intake queue!', 'success');
+        }
         // Reset form
         setNewBiz({
           name: '',
@@ -468,6 +489,10 @@ export default function BusinessFormsPage() {
           phone: '',
           description: '',
           logo_url: '',
+          subscription_tier: 'free',
+          template_id: '',
+          vendor_id: '',
+          status: 'active',
           custom_data: {}
         });
         setNewBizFields([]);
@@ -567,6 +592,8 @@ export default function BusinessFormsPage() {
         body: JSON.stringify({
           id: bizId,
           status: 'active',
+          subscription_tier: reviewBiz?.subscription_tier || 'free',
+          template_id: reviewBiz?.template_id || undefined,
           custom_data: targetCustomData
         })
       });
@@ -1229,6 +1256,73 @@ export default function BusinessFormsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Subscription Tier */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Subscription Tier</label>
+                      <select
+                        className="form-control"
+                        value={newBiz.subscription_tier}
+                        onChange={e => setNewBiz({ ...newBiz, subscription_tier: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem' }}
+                      >
+                        {tiers.length > 0 ? (
+                          tiers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+                        ) : (
+                          <>
+                            <option value="free">Free</option>
+                            <option value="standard">Standard</option>
+                            <option value="premium">Premium</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Minisite Template */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Minisite Template</label>
+                      <select
+                        className="form-control"
+                        value={newBiz.template_id}
+                        onChange={e => setNewBiz({ ...newBiz, template_id: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem' }}
+                      >
+                        <option value="">-- Auto-Default Template --</option>
+                        {templates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name} {!t.type_id ? '🌐 Universal' : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Vendor Assignment */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Assign Vendor (Optional)</label>
+                      <select
+                        className="form-control"
+                        value={newBiz.vendor_id}
+                        onChange={e => setNewBiz({ ...newBiz, vendor_id: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem' }}
+                      >
+                        <option value="">-- Keep Unclaimed (Anonymous) --</option>
+                        {vendors.map(v => (
+                          <option key={v.id} value={v.id}>{v.display_name || v.email} ({v.email})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Publication Status Choice */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Publication Workflow</label>
+                      <select
+                        className="form-control"
+                        value={newBiz.status}
+                        onChange={e => setNewBiz({ ...newBiz, status: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 700 }}
+                      >
+                        <option value="active">🟢 Active (Publish Live Minisite Immediately)</option>
+                        <option value="pending">🟡 Pending (Send to Intake Review Queue)</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
@@ -1456,8 +1550,39 @@ export default function BusinessFormsPage() {
               </div>
             )}
 
+            {/* Tier & Template Assignment upon Approval */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1rem', marginTop: '1rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+                <i className="fas fa-shield-halved" style={{ color: '#D4AF37', marginRight: '0.35rem' }} />
+                Governance & Minisite Assignment
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>SUBSCRIPTION TIER</label>
+                  <select
+                    value={reviewBiz.subscription_tier || 'free'}
+                    onChange={e => setReviewBiz({ ...reviewBiz, subscription_tier: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  >
+                    {tiers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>MINISITE TEMPLATE</label>
+                  <select
+                    value={reviewBiz.template_id || ''}
+                    onChange={e => setReviewBiz({ ...reviewBiz, template_id: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  >
+                    <option value="">-- Auto-Default Template --</option>
+                    {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
             {/* Approval Controls */}
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <button
                   onClick={handleSaveReviewDraft}

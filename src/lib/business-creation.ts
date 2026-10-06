@@ -52,6 +52,11 @@ export interface CreateBusinessInput {
   subscription_tier?: string;
   vendor_id?: string | null;
   template_id?: string | null;
+  email?: string;
+  phone?: string;
+  description?: string;
+  logo_url?: string;
+  cover_image?: string;
   custom_data?: Record<string, any>;
   status?: string;
   is_standalone?: boolean;
@@ -69,6 +74,11 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     subscription_tier: subscriptionTier = 'free',
     vendor_id: vendorId = null,
     template_id: templateId = null,
+    email,
+    phone,
+    description,
+    logo_url: logoUrl,
+    cover_image: coverImage,
     custom_data: customData = {},
     status = 'active',
     is_standalone: isStandalone = false,
@@ -138,8 +148,55 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     ) as any;
     templateId = tier?.default_template_id || null;
   }
+  // Graceful template fallback — never throw or block business creation
   if (!templateId && !isStandalone) {
-    throw new Error('No minisite template could be resolved. Assign a default template to the parent business type or subscription tier.');
+    const fallbackTmpl = await queryOne(
+      'SELECT id FROM minisite_templates WHERE active = 1 ORDER BY is_default DESC, created_at ASC LIMIT 1'
+    ) as any;
+    if (fallbackTmpl?.id) {
+      templateId = fallbackTmpl.id;
+    } else {
+      isStandalone = true;
+    }
+  }
+
+  // Canonicalize direct contact/branding into custom_data
+  const mergedCustomData = { ...(customData || {}) };
+  const effectiveEmail = email || mergedCustomData.basic?.email || mergedCustomData.basic?.email_address;
+  const effectivePhone = phone || mergedCustomData.basic?.phone || mergedCustomData.basic?.phone_number;
+  const effectiveDesc = description || mergedCustomData.basic?.description;
+  const effectiveLogo = logoUrl || mergedCustomData.business_logo || mergedCustomData.logo || mergedCustomData.basic?.business_logo || mergedCustomData.basic?.logo;
+  const effectiveCover = coverImage || mergedCustomData.cover_image || mergedCustomData.basic?.cover_image;
+
+  if (!mergedCustomData.basic) mergedCustomData.basic = {};
+  if (!mergedCustomData.sec_1_identity) mergedCustomData.sec_1_identity = {};
+  if (!mergedCustomData.business_info) mergedCustomData.business_info = {};
+
+  if (effectiveEmail) {
+    mergedCustomData.basic.email = effectiveEmail;
+    mergedCustomData.basic.email_address = effectiveEmail;
+  }
+  if (effectivePhone) {
+    mergedCustomData.basic.phone = effectivePhone;
+    mergedCustomData.basic.phone_number = effectivePhone;
+  }
+  if (effectiveDesc) {
+    mergedCustomData.basic.description = effectiveDesc;
+  }
+  if (effectiveLogo) {
+    mergedCustomData.business_logo = effectiveLogo;
+    mergedCustomData.logo = effectiveLogo;
+    mergedCustomData.logo_url = effectiveLogo;
+    mergedCustomData.basic.business_logo = effectiveLogo;
+    mergedCustomData.basic.logo = effectiveLogo;
+    mergedCustomData.sec_1_identity.business_logo = effectiveLogo;
+    mergedCustomData.business_info.business_logo = effectiveLogo;
+  }
+  if (effectiveCover) {
+    mergedCustomData.cover_image = effectiveCover;
+    mergedCustomData.basic.cover_image = effectiveCover;
+    mergedCustomData.sec_1_identity.cover_image = effectiveCover;
+    mergedCustomData.business_info.cover_image = effectiveCover;
   }
 
   const baseSlug = buildBusinessSlug(canonicalName);

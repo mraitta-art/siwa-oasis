@@ -32,7 +32,6 @@ export default function BusinessRegistryPage() {
   const [vendors, setVendors] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
-  
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newBiz, setNewBiz] = useState({
     name: '',
@@ -40,6 +39,11 @@ export default function BusinessRegistryPage() {
     subscription_tier: 'free',
     vendor_id: '',
     template_id: '',
+    phone: '',
+    email: '',
+    description: '',
+    logo_url: '',
+    status: 'active',
     custom_data: {} as Record<string, any>
   });
   
@@ -213,10 +217,15 @@ export default function BusinessRegistryPage() {
       });
       if (res.ok) {
         const newBusiness = await res.json();
-        notify(`Business "${newBiz.name}" registered successfully! Redirecting to Unified Orchestrator...`, 'success');
-        setShowWizard(false);
-        // Seamlessly open the Unified Orchestrator for the new business entity
-        window.location.href = `/jana/businesses/${newBusiness.id}/orchestrate`;
+        if (newBiz.status === 'pending') {
+          notify(`Business "${newBiz.name}" saved to Pending Intake Queue!`, 'success');
+          setShowWizard(false);
+          loadBusinesses();
+        } else {
+          notify(`Business "${newBiz.name}" registered and activated live! Redirecting to Unified Orchestrator...`, 'success');
+          setShowWizard(false);
+          window.location.href = `/jana/businesses/${newBusiness.id}/orchestrate`;
+        }
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to register business');
@@ -376,20 +385,53 @@ export default function BusinessRegistryPage() {
                 ))}
               </select>
             </div>
+            {/* Phone */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>PHONE / WHATSAPP</label>
+              <input className="form-control" placeholder="e.g. +20 100 123 4567"
+                value={newBiz.phone} onChange={e => setNewBiz({...newBiz, phone: e.target.value})} />
+            </div>
+            {/* Email */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>CONTACT EMAIL</label>
+              <input className="form-control" placeholder="e.g. info@sanctuary.com"
+                value={newBiz.email} onChange={e => setNewBiz({...newBiz, email: e.target.value})} />
+            </div>
+            {/* Logo URL */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>LOGO IMAGE URL</label>
+              <input className="form-control" placeholder="https://..."
+                value={newBiz.logo_url} onChange={e => setNewBiz({...newBiz, logo_url: e.target.value})} />
+            </div>
+            {/* Status (Live vs Pending) */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>INITIAL PUBLICATION STATUS</label>
+              <select className="form-control" value={newBiz.status}
+                onChange={e => setNewBiz({...newBiz, status: e.target.value})}>
+                <option value="active">🟢 Active (Live Minisite Immediately)</option>
+                <option value="pending">🟡 Pending (Intake & Review Queue)</option>
+              </select>
+            </div>
+          </div>
+          {/* Description */}
+          <div style={{ marginTop: '0.75rem' }}>
+            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BRIEF PROFILE / OVERVIEW</label>
+            <textarea className="form-control" rows={2} placeholder="Short overview of the oasis establishment..."
+              value={newBiz.description} onChange={e => setNewBiz({...newBiz, description: e.target.value})} />
           </div>
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {(() => {
               const selectedTier = tiers.find((t: any) => t.id === newBiz.subscription_tier);
               const tierHasDefault = selectedTier?.default_template_id;
-              const canSubmit = !isSyncing && newBiz.name && newBiz.type_id && (newBiz.template_id || tierHasDefault);
+              const canSubmit = !isSyncing && newBiz.name && newBiz.type_id;
               return (
                 <>
                   <button className="btn btn-primary" onClick={submitRegistration} disabled={!canSubmit}>
-                    {isSyncing ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-save"></i> REGISTER &amp; PUBLISH</>}
+                    {isSyncing ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-save"></i> {newBiz.status === 'active' ? 'REGISTER & PUBLISH LIVE' : 'SAVE TO INTAKE QUEUE'}</>}
                   </button>
-                  {!newBiz.template_id && newBiz.type_id && !tierHasDefault && (
-                    <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>
-                      ⚠️ A template must be assigned, or set a default template on the tier
+                  {!newBiz.name && (
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      Enter a trade name and typology to proceed
                     </span>
                   )}
                 </>

@@ -67,47 +67,42 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { business_name, business_type, email, phone, description, custom_data, logo_url } = body;
+    const {
+      business_name,
+      business_type,
+      name,
+      type_id,
+      email,
+      phone,
+      description,
+      custom_data,
+      logo_url,
+      subscription_tier = 'free',
+      template_id,
+      vendor_id,
+      status = 'pending',
+    } = body;
 
-    if (!business_name || !business_type) {
+    const finalName = business_name || name;
+    const finalType = business_type || type_id;
+
+    if (!finalName || !finalType) {
       return Response.json({ error: 'Name and Type are required' }, { status: 400 });
     }
 
-    const baseCustomData = custom_data ? { ...custom_data } : {};
-    if (!baseCustomData.basic) baseCustomData.basic = {};
-    if (!baseCustomData.sec_1_identity) baseCustomData.sec_1_identity = {};
-    if (!baseCustomData.business_info) baseCustomData.business_info = {};
-
-    const finalLogo = logo_url || baseCustomData.basic.business_logo || baseCustomData.basic.logo || baseCustomData.sec_1_identity.business_logo || baseCustomData.sec_1_identity.logo || baseCustomData.business_info.business_logo || baseCustomData.business_info.logo || baseCustomData.business_logo || baseCustomData.logo || '';
-
-    if (finalLogo) {
-      baseCustomData.business_logo = finalLogo;
-      baseCustomData.logo = finalLogo;
-      baseCustomData.logo_url = finalLogo;
-      baseCustomData.basic.business_logo = finalLogo;
-      baseCustomData.basic.logo = finalLogo;
-      baseCustomData.basic.logo_url = finalLogo;
-      baseCustomData.basic.display_name = business_name;
-      baseCustomData.business_info.business_logo = finalLogo;
-      baseCustomData.business_info.logo = finalLogo;
-      baseCustomData.business_info.logo_url = finalLogo;
-      baseCustomData.sec_1_identity.business_logo = finalLogo;
-      baseCustomData.sec_1_identity.logo = finalLogo;
-      baseCustomData.sec_1_identity.logo_url = finalLogo;
-    }
-
-    baseCustomData.basic.display_name = business_name;
-    if (email) baseCustomData.basic.email_address = email;
-    if (phone) baseCustomData.basic.phone_number = phone;
-    if (description) baseCustomData.basic.description = description;
-
     const created = await createBusinessEntity({
-      name: business_name,
-      type_id: business_type,
-      custom_data: baseCustomData,
-      status: 'pending',
-      is_standalone: true,
-      source: 'public_business_submission',
+      name: finalName,
+      type_id: finalType,
+      subscription_tier,
+      template_id,
+      vendor_id,
+      email,
+      phone,
+      description,
+      logo_url,
+      custom_data: custom_data || {},
+      status: status || 'pending',
+      source: 'business_forms_intake',
     });
 
     return Response.json({
@@ -160,6 +155,10 @@ export async function PATCH(req: Request) {
 
     const sets: string[] = ['status = ?'];
     const params: any[] = [status];
+
+    if (status === 'active') {
+      sets.push('published = 1');
+    }
 
     if (template_id !== undefined) {
       sets.push('template_id = ?');
