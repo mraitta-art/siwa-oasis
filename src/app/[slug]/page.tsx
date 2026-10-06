@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     if (!biz) return { title: 'Business Not Found - SiWiFy.com' };
     if (isId && biz.slug) return { title: `Redirecting to ${biz.name || 'Business'}...` };
 
-    // Robust JSON Parsing & Normalization
+    // Normalize JSON
     biz.custom_data = normalizeCustomData(biz.custom_data);
     try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
     try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
@@ -67,25 +67,146 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const data = biz.custom_data || {};
     const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
 
-    const description = identity.description || identity.section_blog
-      ? (identity.description || identity.section_blog).substring(0, 160).replace(/<[^>]*>/g, '')
-      : `Discover the unique ${biz.name} experience in Siwa Oasis.`;
+    // ── Rich description ──────────────────────────────────────────────
+    const rawDesc = identity.description || identity.section_blog || identity.mini_blog ||
+      data.sec_2_ambience?.section_blog || data.sec_2_ambience?.description || '';
+    const cleanDesc = rawDesc
+      ? rawDesc.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 180)
+      : `Discover the authentic ${biz.name} experience in the heart of Siwa Oasis, Egypt.`;
 
-    const logoUrl = identity.business_logo || identity.logo || data.business_info?.business_logo || data.business_info?.logo;
-    const ogImage = logoUrl || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62';
+    // ── Canonical vanity URL with UTM for social attribution ──────────
+    const canonicalUrl = `https://siwify.com/${biz.slug || slug}`;
+    const instagramUtmUrl = `${canonicalUrl}?utm_source=instagram&utm_medium=bio&utm_campaign=minisite`;
+    const tiktokUtmUrl   = `${canonicalUrl}?utm_source=tiktok&utm_medium=bio&utm_campaign=minisite`;
+
+    // ── Hero image resolution (logo → gallery hero → first gallery → fallback) ──
+    const logo = identity.business_logo || identity.logo || identity.logo_url ||
+      data.business_info?.business_logo || data.business_info?.logo ||
+      data.basic?.business_logo || data.basic?.logo;
+
+    // Find a hero gallery image from custom_data for richer OG preview
+    const heroGalleryImg = (() => {
+      for (const secKey of Object.keys(data)) {
+        const sec = data[secKey];
+        if (!sec || typeof sec !== 'object') continue;
+        const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
+        const arr = Array.isArray(gallery) ? gallery : [];
+        for (const item of arr) {
+          const url = typeof item === 'object' ? item.url : item;
+          if (url && typeof url === 'string' && url.startsWith('http') && !url.match(/\.(mp4|webm|mov)$/i)) {
+            return url;
+          }
+        }
+      }
+      return null;
+    })();
+
+    // Find first hero video for og:video (Instagram & Telegram render it)
+    const heroVideo = (() => {
+      for (const secKey of Object.keys(data)) {
+        const sec = data[secKey];
+        if (!sec || typeof sec !== 'object') continue;
+        const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
+        const arr = Array.isArray(gallery) ? gallery : [];
+        for (const item of arr) {
+          const url = typeof item === 'object' ? item.url : item;
+          if (url && typeof url === 'string' && url.match(/\.(mp4|webm|mov)$/i)) return url;
+        }
+      }
+      return null;
+    })();
+
+    // Priority: hero gallery photo > logo > fallback landscape
+    const ogImageUrl = heroGalleryImg || logo || 'https://images.unsplash.com/photo-1596874244558-38a67f8af60e?w=1200&q=80';
+
+    // ── WhatsApp phone for direct-booking link ────────────────────────
+    const whatsappNumber = (identity.whatsapp || identity.whatsapp_number || identity.phone || biz.vendor_phone || '')
+      .replace(/[^0-9]/g, '');
+    const whatsappBookingMsg = encodeURIComponent(
+      `Hello ${biz.name}! I found your profile on SiWiFy.com and I'd like to make a direct inquiry.`
+    );
+    const whatsappLink = whatsappNumber
+      ? `https://wa.me/${whatsappNumber}?text=${whatsappBookingMsg}`
+      : null;
+
+    // ── Category / business type label ────────────────────────────────
+    const categoryLabel = identity.category || identity.type || data.basic?.category ||
+      biz.type_name || 'Siwa Oasis Business';
+
+    // ── Keywords ──────────────────────────────────────────────────────
+    const keywords = [
+      biz.name,
+      'Siwa Oasis',
+      categoryLabel,
+      'Egypt',
+      'SiWiFy',
+      identity.instagram_handle ? identity.instagram_handle.replace('@', '') : null,
+      'Direct WhatsApp Booking',
+      'Siwa Desert Safari',
+      'Siwa Accommodation',
+    ].filter(Boolean).join(', ');
+
+    // ── Build metadata object ─────────────────────────────────────────
+    const titleFull = `${biz.name} — ${categoryLabel} · Siwa Oasis`;
 
     return {
-      title: `${biz.name} | Siwa Oasis Official Registry`,
-      description: description,
+      title: titleFull,
+      description: cleanDesc,
+      keywords,
+      metadataBase: new URL('https://siwify.com'),
+      alternates: {
+        canonical: canonicalUrl,
+      },
+
+      // ── Open Graph (Facebook, WhatsApp, Telegram, LinkedIn) ────────
       openGraph: {
-        title: biz.name,
-        description: description,
+        siteName: 'SiWiFy.com',
+        title: `${biz.name} | ${categoryLabel} — Siwa Oasis`,
+        description: cleanDesc + (whatsappLink ? ' · Book directly on WhatsApp.' : ''),
         type: 'website',
-        url: `https://siwify.com/${slug}`,
-        images: [{ url: ogImage, width: 1200, height: 630 }]
-      }
+        locale: 'en_US',
+        url: instagramUtmUrl,
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: `${biz.name} — ${categoryLabel} in Siwa Oasis, Egypt`,
+            type: ogImageUrl.includes('cloudinary') ? 'image/jpeg' : undefined,
+          }
+        ],
+        ...(heroVideo ? { videos: [{ url: heroVideo, width: 1280, height: 720, type: 'video/mp4' }] } : {}),
+      },
+
+      // ── Twitter / X Cards ──────────────────────────────────────────
+      twitter: {
+        card: heroVideo ? 'player' : 'summary_large_image',
+        title: `${biz.name} | ${categoryLabel} — Siwa Oasis`,
+        description: cleanDesc,
+        images: [ogImageUrl],
+        ...(heroVideo ? { players: [{ playerUrl: heroVideo, streamUrl: heroVideo, width: 1280, height: 720 }] } : {}),
+        site: '@SiWiFyOasis',
+        creator: identity.twitter_handle ? `@${identity.twitter_handle.replace('@', '')}` : '@SiWiFyOasis',
+      },
+
+      // ── robots / crawlers ──────────────────────────────────────────
+      robots: {
+        index: biz.is_published !== 0,
+        follow: true,
+        googleBot: { index: biz.is_published !== 0, follow: true },
+      },
+
+      // ── Additional link-in-bio UTM variants (stored as other) ──────
+      other: {
+        'og:updated_time': new Date().toISOString(),
+        ...(whatsappLink ? { 'og:see_also': whatsappLink } : {}),
+        // TikTok bio link variant
+        'tiktok:url': tiktokUtmUrl,
+        // Schema.org microdata helpers for Google rich results
+        'application-name': 'SiWiFy.com',
+      },
     };
-  } catch (e) {
+  } catch {
     return { title: 'SiWiFy.com Minisite' };
   }
 }

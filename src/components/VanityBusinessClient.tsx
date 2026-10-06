@@ -12,6 +12,7 @@ import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteLocationMap from '@/components/MinisiteLocationMap';
 import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
 import MinisiteContributions from '@/components/MinisiteContributions';
+import SocialStoryCardGenerator from '@/components/SocialStoryCardGenerator';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 
@@ -1539,6 +1540,41 @@ export default function VanityBusinessClient({
             </div>
           </aside>
         </div>
+      </div>
+
+      {/* 🎨 SOCIAL STORY CARD GENERATOR — Grow Your Social Media Bio Traffic */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem 3rem' }}>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>
+            📲 GROW YOUR SOCIAL MEDIA REACH
+          </div>
+          <h2 style={{ margin: '0.25rem 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
+            Create a Branded Story Card for Your Channels
+          </h2>
+        </div>
+        <SocialStoryCardGenerator
+          businessName={biz.name}
+          businessSlug={slug}
+          businessLogo={dynamicLogo}
+          heroImage={(() => {
+            for (const secKey of Object.keys(data)) {
+              const sec = data[secKey];
+              if (!sec || typeof sec !== 'object') continue;
+              const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
+              const arr = Array.isArray(gallery) ? gallery : [];
+              for (const item of arr) {
+                const url = typeof item === 'object' ? (item as any).url : item;
+                if (url && typeof url === 'string' && url.startsWith('http') && !url.match(/\.(mp4|webm|mov)$/i)) return url;
+              }
+            }
+            return undefined;
+          })()}
+          categoryLabel={biz.type_name || identity.category || 'Siwa Oasis'}
+          tagline={identity.tagline || identity.slogan || ''}
+          whatsappNumber={dynamicWhatsapp}
+          primaryColor="#D4AF37"
+          platformName={platformName}
+        />
       </div>
 
       {/* FOOTER */}
