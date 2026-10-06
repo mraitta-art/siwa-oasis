@@ -18,6 +18,7 @@ interface BusinessItem {
   vanityUrl: string;
   socialToolkitUrl: string;
   claimUrl: string;
+  mobileDashboardUrl: string;
 }
 
 interface Stats {
@@ -25,13 +26,14 @@ interface Stats {
   withWhatsapp: number;
   missingWhatsapp: number;
   claimed: number;
+  hasMinisite: number;
 }
 
 export default function WhatsAppOutreachPage() {
   const [businesses, setBusinesses] = useState<BusinessItem[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, withWhatsapp: 0, missingWhatsapp: 0, claimed: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, withWhatsapp: 0, missingWhatsapp: 0, claimed: 0, hasMinisite: 0 });
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'ready' | 'missing' | 'unclaimed'>('all');
+  const [filter, setFilter] = useState<'all' | 'ready' | 'missing' | 'unclaimed' | 'has_minisite'>('all');
   const [search, setSearch] = useState('');
   const [msgLang, setMsgLang] = useState<'ar' | 'en'>('ar');
   
@@ -63,10 +65,10 @@ export default function WhatsAppOutreachPage() {
 
   function getMessageText(biz: BusinessItem, lang: 'ar' | 'en'): string {
     if (lang === 'ar') {
-      return `مرحباً ${biz.name}! 🌴\nيسرنا إبلاغكم بإطلاق تطبيقكم الحصري المجاني لإدارة ونمو نشاطكم السياحي في سيوة على منصة SiWiFy:\n\n📲 1. تطبيق إدارة السوشيال ميديا وريلز الفيديو المجاني:\n${biz.socialToolkitUrl}\n(يمكنكم تثبيته مباشرة على الموبايل أو سطح المكتب بنقرة واحدة)\n\n🌐 2. موقعكم المصغر الرسمي للحجز المباشر بدون عمولة (0%):\n${biz.vanityUrl}\n\n🔑 3. لتفعيل وتأكيد حسابكم كشريك رسمي مجاناً:\n${biz.claimUrl}\n\nنتشرف بوجودكم معنا لتعزيز السياحة والضيافة في واحة سيوة ✨`;
+      return `مرحباً ${biz.name}! 🌴\nيسرنا إبلاغكم بإطلاق تطبيقكم الحصري المجاني لإدارة ونمو نشاطكم السياحي في سيوة على منصة SiWiFy:\n\n📲 1. تطبيق إدارة السوشيال ميديا وريلز الفيديو المجاني:\n${biz.socialToolkitUrl}\n(يمكنكم تثبيته مباشرة على الموبايل أو سطح المكتب بنقرة واحدة)\n\n🌐 2. موقعكم المصغر الرسمي للحجز المباشر بدون عمولة (0%):\n${biz.vanityUrl}\n\n📊 3. لوحة تحكم موبايل حصرية لإدارة موقعكم:\n${biz.mobileDashboardUrl}\n\n🔑 4. لتفعيل وتأكيد حسابكم كشريك رسمي مجاناً:\n${biz.claimUrl}\n\nنتشرف بوجودكم معنا لتعزيز السياحة والضيافة في واحة سيوة ✨`;
     }
 
-    return `Hello ${biz.name}! 🌴\nWe are excited to share your free exclusive growth & social media app on SiWiFy.com:\n\n📲 1. Free Social Media & Video Reels App:\n${biz.socialToolkitUrl}\n(Install directly on mobile or desktop in 1-click)\n\n🌐 2. Your Official Live Minisite (0% Commission Direct Bookings):\n${biz.vanityUrl}\n\n🔑 3. Activate and claim your official partner account for free:\n${biz.claimUrl}\n\nWe look forward to welcoming your guests in Siwa Oasis! ✨`;
+    return `Hello ${biz.name}! 🌴\nWe are excited to share your free exclusive growth & social media app on SiWiFy.com:\n\n📲 1. Free Social Media & Video Reels App:\n${biz.socialToolkitUrl}\n(Install directly on mobile or desktop in 1-click)\n\n🌐 2. Your Official Live Minisite (0% Commission Direct Bookings):\n${biz.vanityUrl}\n\n📊 3. Your Private Mobile Dashboard — manage your minisite from your phone:\n${biz.mobileDashboardUrl}\n\n🔑 4. Activate and claim your official partner account for free:\n${biz.claimUrl}\n\nWe look forward to welcoming your guests in Siwa Oasis! ✨`;
   }
 
   async function handleSaveContact(bizId: string) {
@@ -128,6 +130,7 @@ export default function WhatsAppOutreachPage() {
     if (filter === 'ready' && !b.has_whatsapp) return false;
     if (filter === 'missing' && b.has_whatsapp) return false;
     if (filter === 'unclaimed' && b.is_claimed) return false;
+    if (filter === 'has_minisite' && !(b as any).has_minisite) return false;
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -205,6 +208,12 @@ export default function WhatsAppOutreachPage() {
           <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#7e22ce', margin: '0.2rem 0' }}>{stats.claimed}</div>
           <div style={{ fontSize: '0.75rem', color: '#9333ea' }}>Fully verified partner portals</div>
         </div>
+
+        <div style={{ background: '#f0f9ff', borderRadius: '18px', padding: '1.25rem', border: '1px solid #bae6fd', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#075985', letterSpacing: '1px' }}>HAS LIVE MINISITE</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0284c7', margin: '0.2rem 0' }}>{stats.hasMinisite}</div>
+          <div style={{ fontSize: '0.75rem', color: '#0369a1' }}>Ready to receive dashboard link</div>
+        </div>
       </div>
 
       {/* FILTER & SEARCH BAR */}
@@ -212,6 +221,7 @@ export default function WhatsAppOutreachPage() {
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: `All (${businesses.length})` },
+            { id: 'has_minisite', label: `🌐 Has Minisite (${stats.hasMinisite})` },
             { id: 'ready', label: `Ready WhatsApp (${stats.withWhatsapp})` },
             { id: 'missing', label: `Needs WhatsApp (${stats.missingWhatsapp})` },
             { id: 'unclaimed', label: `Unclaimed (${stats.total - stats.claimed})` },
@@ -296,6 +306,15 @@ export default function WhatsAppOutreachPage() {
                         Unclaimed
                       </span>
                     )}
+                    {(biz as any).has_minisite ? (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: '50px', background: '#e0f2fe', color: '#0369a1' }}>
+                        🌐 Minisite Live
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: '50px', background: '#f1f5f9', color: '#94a3b8' }}>
+                        No Minisite
+                      </span>
+                    )}
                   </div>
 
                   {/* QUICK LINKS */}
@@ -309,6 +328,15 @@ export default function WhatsAppOutreachPage() {
                     <Link href={`/vendor/claim?slug=${biz.slug}`} target="_blank" style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'none' }}>
                       🔑 Claim Link
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.clipboard) navigator.clipboard.writeText(biz.mobileDashboardUrl);
+                      }}
+                      style={{ background: 'none', border: 0, color: '#0f172a', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      📊 Copy Dashboard Link
+                    </button>
                   </div>
                 </div>
 

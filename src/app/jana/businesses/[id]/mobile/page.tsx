@@ -36,6 +36,16 @@ export default function DynamicMobileVendorDashboard() {
         const biz = bData.business || bData;
         setBusiness(biz || null);
 
+        // Load minisite service status
+        try {
+          const mRes = await fetch(`/api/minisite-services/${id}`);
+          if (mRes.ok) {
+            const mData = await mRes.json();
+            setMinisiteStatus(mData.minisiteStatus || 'inactive');
+          }
+        } catch {}
+
+
         // Sections from the vendor API (type-filtered) take priority
         if (Array.isArray(bData.sections) && bData.sections.length > 0) {
           setSections(bData.sections);
@@ -91,9 +101,93 @@ export default function DynamicMobileVendorDashboard() {
   const completion = Math.round((chapters.filter(c => c.progress === 100).length / chapters.length) * 100) || 0;
   const leadsCount = 3;
 
+  const [minisiteStatus, setMinisiteStatus] = useState<'active'|'inactive'|'pending'|null>(null);
+  const [dashboardLinkCopied, setDashboardLinkCopied] = useState(false);
+
+  function copyDashboardLink() {
+    const link = `${window.location.origin}/jana/businesses/${id}/mobile`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link);
+      setDashboardLinkCopied(true);
+      setTimeout(() => setDashboardLinkCopied(false), 2500);
+    }
+  }
+
+
   return (
     <div style={{ background: '#0f172a', minHeight: '100vh', padding: '1.5rem', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
       
+
+      {/* 🟢 MINISITE LIVE STATUS BANNER */}
+      {minisiteStatus && (
+        <div style={{
+          marginBottom: '1.5rem',
+          padding: '1rem 1.25rem',
+          borderRadius: '20px',
+          background: minisiteStatus === 'active'
+            ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))'
+            : 'rgba(212,175,55,0.08)',
+          border: `1px solid ${minisiteStatus === 'active' ? 'rgba(34,197,94,0.4)' : 'rgba(212,175,55,0.3)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: minisiteStatus === 'active' ? '#22c55e' : '#D4AF37',
+              boxShadow: minisiteStatus === 'active' ? '0 0 0 3px rgba(34,197,94,0.25)' : 'none',
+              animation: minisiteStatus === 'active' ? 'pulse 2s infinite' : 'none'
+            }} />
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: minisiteStatus === 'active' ? '#22c55e' : '#D4AF37', letterSpacing: '1.5px' }}>
+                {minisiteStatus === 'active' ? 'MINISITE LIVE & ACCEPTING BOOKINGS' : 'MINISITE PENDING ACTIVATION'}
+              </div>
+              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: '2px' }}>
+                {minisiteStatus === 'active'
+                  ? `siwify.com/${business?.slug || ''}`
+                  : 'Contact SiWiFy to activate your minisite'}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {minisiteStatus === 'active' && (
+              <a
+                href={`/${business?.slug || ''}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '0.4rem 0.85rem', borderRadius: '10px',
+                  background: '#22c55e', color: '#0f172a',
+                  fontSize: '0.65rem', fontWeight: 900, textDecoration: 'none',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                <i className="fas fa-external-link-alt" /> VIEW LIVE SITE
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={copyDashboardLink}
+              style={{
+                padding: '0.4rem 0.85rem', borderRadius: '10px',
+                background: dashboardLinkCopied ? '#22c55e' : 'rgba(255,255,255,0.08)',
+                color: dashboardLinkCopied ? '#0f172a' : 'rgba(255,255,255,0.7)',
+                fontSize: '0.65rem', fontWeight: 900, border: 'none', cursor: 'pointer',
+                letterSpacing: '0.5px'
+              }}
+            >
+              <i className="fas fa-share-alt" /> {dashboardLinkCopied ? 'COPIED!' : 'SHARE DASHBOARD'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,0.25); }
+          50% { box-shadow: 0 0 0 6px rgba(34,197,94,0.1); }
+        }
+      `}</style>
+
       {/* 🔒 PRIVACY LOCK HEADER */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div>

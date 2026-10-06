@@ -31,26 +31,42 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
+    const { searchParams } = new URL(request.url);
+    const origin = searchParams.get('origin') || 'https://siwify.com';
+
     const businesses = await query<any>(`
       SELECT b.id, b.name, b.slug, b.subscription_tier, b.published, b.is_claimed, b.custom_data, b.created_at,
-             bt.name as type_name, bt.icon as type_icon
+             bt.name as type_name, bt.icon as type_icon,
+             wc.value as minisite_config
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
+      LEFT JOIN website_configs wc ON wc.key = CONCAT('minisite_layout_', b.slug) AND wc.type = 'minisite_layout'
       ORDER BY b.created_at DESC
     `);
+
+    // Also fetch minisite service controls (active/inactive per business)
+    const serviceControls = await query<any>(`
+      SELECT business_id, is_active FROM vendor_service_controls WHERE service_type = 'minisite'
+    `).catch(() => []) as any[];
+    const serviceMap: Record<string, boolean> = {};
+    for (const sc of serviceControls) {
+      serviceMap[sc.business_id] = !!sc.is_active;
+    }
 
     const list = (businesses || []).map((biz) => {
       let customData = biz.custom_data;
       if (typeof customData === 'string') {
-        try {
-          customData = JSON.parse(customData);
-        } catch {
-          customData = {};
-        }
+        try { customData = JSON.parse(customData); } catch { customData = {}; }
       }
 
       const contacts = extractContactFromCustomData(customData);
       const effectiveSlug = biz.slug || biz.id;
+
+      // Determine minisite readiness:
+      // A business "has minisite" if it has a builder layout (minisite_config) OR its minisite service is active
+      const hasBuilderLayout = !!biz.minisite_config;
+      const hasServiceActive = serviceMap[biz.id] !== undefined ? serviceMap[biz.id] : !!biz.published;
+      const hasMinisite = hasBuilderLayout || hasServiceActive;
 
       return {
         id: biz.id,
@@ -61,12 +77,15 @@ export async function GET(request: NextRequest) {
         subscription_tier: biz.subscription_tier || 'free',
         published: !!biz.published,
         is_claimed: !!biz.is_claimed,
+        has_minisite: hasMinisite,
+        minisite_status: hasBuilderLayout ? 'builder_layout' : (hasServiceActive ? 'active' : 'inactive'),
         whatsapp: contacts.whatsapp,
         phone: contacts.phone,
         has_whatsapp: !!(contacts.whatsapp || contacts.phone),
-        vanityUrl: `https://siwify.com/${effectiveSlug}`,
-        socialToolkitUrl: `https://siwify.com/vendor/social-toolkit?slug=${effectiveSlug}`,
-        claimUrl: `https://siwify.com/vendor/claim?slug=${effectiveSlug}`,
+        vanityUrl: `${origin}/${effectiveSlug}`,
+        socialToolkitUrl: `${origin}/vendor/social-toolkit?slug=${effectiveSlug}`,
+        claimUrl: `${origin}/vendor/claim?slug=${effectiveSlug}`,
+        mobileDashboardUrl: `${origin}/jana/businesses/${biz.id}/mobile`,
       };
     });
 
@@ -74,6 +93,7 @@ export async function GET(request: NextRequest) {
     const withWhatsappCount = list.filter((b) => b.has_whatsapp).length;
     const missingWhatsappCount = totalCount - withWhatsappCount;
     const claimedCount = list.filter((b) => b.is_claimed).length;
+    const hasMinisite = list.filter((b) => b.has_minisite).length;
 
     return NextResponse.json({
       stats: {
@@ -81,6 +101,7 @@ export async function GET(request: NextRequest) {
         withWhatsapp: withWhatsappCount,
         missingWhatsapp: missingWhatsappCount,
         claimed: claimedCount,
+        hasMinisite,
       },
       businesses: list,
     });
