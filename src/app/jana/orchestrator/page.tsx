@@ -404,7 +404,7 @@ function OrchestratorContent() {
           background: transparent;
           color: #0f172a;
           font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          padding: 2rem 1rem;
+          padding: clamp(1rem, 3vw, 2.5rem) clamp(0.75rem, 2vw, 1.5rem);
           position: relative;
           overflow: hidden;
         }
@@ -428,37 +428,38 @@ function OrchestratorContent() {
 
         .wizard-header {
           text-align: center;
-          margin-bottom: 3rem;
+          margin-bottom: clamp(1.5rem, 4vw, 3rem);
         }
         
         .sub-badge {
-          font-size: 0.7rem; font-weight: 900; color: #d97706; 
-          letter-spacing: 4px; margin-bottom: 0.75rem;
+          font-size: clamp(0.6rem, 1.5vw, 0.7rem); font-weight: 900; color: #d97706; 
+          letter-spacing: clamp(2px, 0.5vw, 4px); margin-bottom: 0.5rem;
           text-transform: uppercase;
         }
 
         .title {
-          font-size: 2.8rem; font-weight: 900; letter-spacing: -1px;
-          margin: 0; color: #0f172a;
+          font-size: clamp(1.75rem, 5vw, 2.8rem); font-weight: 900; letter-spacing: -1px;
+          margin: 0; color: #0f172a; line-height: 1.15;
         }
 
         .highlight { color: #d97706; }
 
         .subtitle {
-          color: #64748b; font-size: 1rem; max-width: 500px; 
-          margin: 1rem auto 0; line-height: 1.6; font-weight: 500;
+          color: #64748b; font-size: clamp(0.85rem, 2vw, 1rem); max-width: 500px; 
+          margin: 0.75rem auto 0; line-height: 1.5; font-weight: 500;
         }
 
         .progress-tracker {
-          display: flex; gap: 1.5rem; margin-bottom: 3rem;
+          display: flex; gap: clamp(0.4rem, 1.5vw, 1.5rem); margin-bottom: clamp(1.5rem, 3vw, 3rem);
+          overflow-x: auto; padding-bottom: 4px;
         }
 
-        .progress-step { flex: 1; }
+        .progress-step { flex: 1; min-width: 55px; }
 
         .progress-bar {
           height: 5px; border-radius: 4px;
           background: #e2e8f0;
-          margin-bottom: 0.75rem; transition: all 0.4s ease;
+          margin-bottom: 0.5rem; transition: all 0.4s ease;
         }
 
         .progress-bar.active {
@@ -467,15 +468,17 @@ function OrchestratorContent() {
         }
 
         .progress-label {
-          font-size: 0.65rem; font-weight: 800; letter-spacing: 1px;
+          font-size: clamp(0.52rem, 1.2vw, 0.65rem); font-weight: 800; letter-spacing: 0.5px;
           color: #94a3b8; transition: all 0.4s ease;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .progress-label.active-text { color: #d97706; font-weight: 900; }
         .progress-label.passed-text { color: #0f172a; font-weight: 800; }
 
         .glass-card {
-          padding: 3.5rem 3rem; border-radius: 24px;
+          padding: clamp(1.25rem, 4vw, 3.5rem) clamp(1rem, 3.5vw, 3rem);
+          border-radius: clamp(16px, 3vw, 24px);
           background: #ffffff;
           border: 1px solid #e2e8f0;
           box-shadow: 0 10px 30px rgba(0,0,0,0.04);
@@ -483,30 +486,32 @@ function OrchestratorContent() {
 
         .phase-header {
           display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 2.5rem;
+          margin-bottom: clamp(1.25rem, 3vw, 2.5rem);
+          flex-wrap: wrap; gap: 0.75rem;
         }
 
         .phase-header h2 {
-          font-size: 2rem; font-weight: 900; margin: 0; color: #0f172a;
+          font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 900; margin: 0; color: #0f172a;
           letter-spacing: -0.5px;
         }
 
         .btn-undo {
           background: #fffdf5; color: #d97706;
           border: 1px solid #fde68a; cursor: pointer;
-          font-weight: 900; font-size: 0.7rem; padding: 0.6rem 1.2rem;
+          font-weight: 900; font-size: 0.7rem; padding: 0.5rem 1rem;
           border-radius: 50px; transition: all 0.2s;
         }
         .btn-undo:hover { background: #fef3c7; }
 
         .grid-selection {
           display: grid; 
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fill, minmax(clamp(130px, 20vw, 220px), 1fr)); 
+          gap: clamp(0.75rem, 2vw, 1.5rem);
         }
 
         .selection-card {
-          padding: 2rem 1.25rem; border-radius: 20px;
+          padding: clamp(1.25rem, 2.5vw, 2rem) clamp(0.75rem, 1.5vw, 1.25rem);
+          border-radius: clamp(14px, 2vw, 20px);
           border: 1px solid #e2e8f0;
           background: #f8fafc;
           color: #0f172a; cursor: pointer; text-align: center;
@@ -528,26 +533,26 @@ function OrchestratorContent() {
         }
 
         .selection-card .icon {
-          font-size: 2rem; color: #d97706; 
-          margin-bottom: 1.25rem; display: block;
+          font-size: clamp(1.4rem, 3vw, 2rem); color: #d97706; 
+          margin-bottom: 0.85rem; display: block;
         }
 
         .selection-card.child .icon { color: #059669; }
 
-        .selection-card .name { font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: #0f172a; }
-        .selection-card .tag { font-size: 0.6rem; color: #64748b; font-weight: 900; letter-spacing: 1px; }
+        .selection-card .name { font-weight: 800; font-size: clamp(0.82rem, 1.5vw, 0.95rem); margin-bottom: 0.35rem; color: #0f172a; line-height: 1.2; }
+        .selection-card .tag { font-size: clamp(0.55rem, 1vw, 0.6rem); color: #64748b; font-weight: 900; letter-spacing: 0.5px; }
         .selection-card .tag.success { color: #059669; }
 
         .empty-state {
-          grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;
-          background: #f8fafc; border-radius: 24px;
+          grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem;
+          background: #f8fafc; border-radius: 20px;
           border: 1px dashed #cbd5e1;
         }
-        .empty-state i { font-size: 2.5rem; color: #94a3b8; margin-bottom: 1rem; }
-        .empty-state div { color: #64748b; font-weight: 600; font-size: 0.9rem; }
+        .empty-state i { font-size: 2rem; color: #94a3b8; margin-bottom: 0.75rem; }
+        .empty-state div { color: #64748b; font-weight: 600; font-size: 0.85rem; }
 
         .template-card {
-          border-radius: 20px; overflow: hidden;
+          border-radius: 18px; overflow: hidden;
           border: 1px solid #e2e8f0;
           background: #ffffff;
           cursor: pointer; transition: all 0.3s;
@@ -556,23 +561,23 @@ function OrchestratorContent() {
         .template-card.selected { border: 2px solid #d97706; box-shadow: 0 12px 30px rgba(217,119,6,0.15); transform: translateY(-4px); }
         
         .template-card .preview-window {
-          height: 150px; background: #f1f5f9; 
+          height: clamp(100px, 15vw, 150px); background: #f1f5f9; 
           display: flex; align-items: center; justify-content: center;
         }
-        .template-card .preview-window .icon { font-size: 2.5rem; opacity: 0.4; color: #0f172a; }
-        .template-card .info { padding: 1.25rem; background: #ffffff; color: #0f172a; }
-        .template-card .info .name { font-weight: 900; font-size: 0.9rem; margin-bottom: 0.25rem; color: #0f172a; }
-        .template-card .info .tag { font-size: 0.6rem; color: #d97706; font-weight: 900; letter-spacing: 1px; }
+        .template-card .preview-window .icon { font-size: 2rem; opacity: 0.4; color: #0f172a; }
+        .template-card .info { padding: 1rem; background: #ffffff; color: #0f172a; }
+        .template-card .info .name { font-weight: 900; font-size: 0.85rem; margin-bottom: 0.2rem; color: #0f172a; }
+        .template-card .info .tag { font-size: 0.58rem; color: #d97706; font-weight: 900; letter-spacing: 0.5px; }
 
-        .main-name-input { margin-bottom: 3.5rem; }
+        .main-name-input { margin-bottom: clamp(1.75rem, 4vw, 3.5rem); }
         .main-name-input label {
-          font-size: 0.75rem; font-weight: 900; color: #d97706; 
-          letter-spacing: 2px; display: block; margin-bottom: 0.75rem;
+          font-size: 0.72rem; font-weight: 900; color: #d97706; 
+          letter-spacing: 1.5px; display: block; margin-bottom: 0.5rem;
         }
         .main-name-input input {
           width: 100%; background: transparent; border: none;
           border-bottom: 2px solid #cbd5e1; color: #0f172a;
-          font-size: 2.5rem; font-weight: 900; padding: 0.75rem 0; outline: none;
+          font-size: clamp(1.35rem, 4vw, 2.5rem); font-weight: 900; padding: 0.5rem 0; outline: none;
           transition: all 0.3s;
         }
         .main-name-input input:focus { border-bottom-color: #d97706; }
@@ -580,43 +585,45 @@ function OrchestratorContent() {
 
         .dna-form-wrapper {
           background: #f8fafc;
-          padding: 2rem; border-radius: 20px;
+          padding: clamp(1rem, 2.5vw, 2rem); border-radius: 18px;
           border: 1px solid #e2e8f0;
         }
 
-        .success-content { text-align: center; padding: 2rem 0; }
+        .success-content { text-align: center; padding: 1.5rem 0; }
         .check-ring {
-          width: 90px; height: 90px; border-radius: 50%;
+          width: 80px; height: 80px; border-radius: 50%;
           background: linear-gradient(135deg, #10b981 0%, #059669 100%);
           color: #fff; display: flex; align-items: center; justify-content: center;
-          margin: 0 auto 2rem; font-size: 2.2rem;
+          margin: 0 auto 1.5rem; font-size: 2rem;
           box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
         }
-        .success-content h2 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 1rem; color: #0f172a; }
-        .success-content p { font-size: 1.05rem; color: #64748b; margin-bottom: 3rem; }
-        .success-content .actions { display: flex; gap: 1.25rem; justify-content: center; }
+        .success-content h2 { font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 0.75rem; color: #0f172a; }
+        .success-content p { font-size: clamp(0.85rem, 2vw, 1.05rem); color: #64748b; margin-bottom: 2rem; }
+        .success-content .actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
         .wizard-controls {
-          margin-top: 4rem; padding-top: 2rem;
+          margin-top: clamp(1.75rem, 4vw, 4rem); padding-top: clamp(1rem, 2.5vw, 2rem);
           border-top: 1px solid #e2e8f0;
           display: flex; justify-content: space-between; align-items: center;
+          gap: 1rem;
         }
 
         .btn-ghost {
           background: transparent; border: none; color: #64748b;
           font-weight: 800; font-size: 0.8rem; cursor: pointer;
-          letter-spacing: 1px; transition: color 0.2s;
+          letter-spacing: 1px; transition: color 0.2s; padding: 0.75rem 1.25rem;
         }
         .btn-ghost:hover:not(:disabled) { color: #0f172a; }
         .btn-ghost:disabled { opacity: 0.3; cursor: not-allowed; }
 
         .btn-premium { 
-          padding: 1.1rem 3rem; border-radius: 50px; 
+          padding: clamp(0.85rem, 2vw, 1.1rem) clamp(1.75rem, 4vw, 3rem); border-radius: 50px; 
           background: #0f172a; 
-          color: #ffffff; text-decoration: none; display: inline-block;
-          border: none; font-weight: 800; letter-spacing: 1px; cursor: pointer;
+          color: #ffffff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+          border: none; font-weight: 800; letter-spacing: 0.5px; cursor: pointer;
           box-shadow: 0 10px 25px rgba(15,23,42,0.15); 
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          font-size: clamp(0.78rem, 1.5vw, 0.88rem);
         }
         .btn-premium:hover:not(:disabled) { 
           transform: translateY(-2px); 
@@ -625,16 +632,36 @@ function OrchestratorContent() {
         }
         .btn-premium:disabled { background: #e2e8f0; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
-        .btn-premium.next-btn { display: flex; align-items: center; gap: 0.75rem; }
+        .btn-premium.next-btn { display: inline-flex; align-items: center; gap: 0.75rem; }
 
         .btn-outline { 
-          padding: 1.1rem 3rem; border-radius: 50px; 
-          background: #ffffff; color: #0f172a; text-decoration: none;
+          padding: clamp(0.85rem, 2vw, 1.1rem) clamp(1.75rem, 4vw, 3rem); border-radius: 50px; 
+          background: #ffffff; color: #0f172a; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
           border: 1px solid #cbd5e1; 
           font-weight: 800; cursor: pointer; transition: all 0.3s;
           box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+          font-size: clamp(0.78rem, 1.5vw, 0.88rem);
         }
         .btn-outline:hover { border-color: #0f172a; background: #f8fafc; }
+
+        /* MOBILE OPTIMIZATIONS (Laptop vs Phone Alignment) */
+        @media (max-width: 768px) {
+          .wizard-controls {
+            flex-direction: column-reverse;
+            gap: 0.75rem;
+          }
+          .wizard-controls .btn-premium,
+          .wizard-controls .btn-outline,
+          .wizard-controls .btn-ghost {
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+          }
+          .success-content .actions .btn-premium,
+          .success-content .actions .btn-outline {
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );

@@ -1,8 +1,7 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import WhatsAppFeatureStudioModal from '@/components/WhatsAppFeatureStudioModal';
+import WhatsAppTemplateManagerModal from '@/components/WhatsAppTemplateManagerModal';
 
 interface BusinessItem {
   id: string;
@@ -40,6 +39,9 @@ export default function WhatsAppOutreachPage() {
   
   // Showcase modal state
   const [showcaseBiz, setShowcaseBiz] = useState<{ id: string; name: string } | null>(null);
+
+  // Template Governance Manager state
+  const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
   // Editing contact
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -159,31 +161,56 @@ export default function WhatsAppOutreachPage() {
           </p>
         </div>
 
-        {/* MESSAGE LANGUAGE PICKER */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', padding: '0 0.5rem' }}>Message Language:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* TEMPLATE GOVERNANCE BUTTON */}
           <button
             type="button"
-            onClick={() => setMsgLang('ar')}
+            onClick={() => setIsTemplateManagerOpen(true)}
             style={{
-              padding: '0.45rem 0.9rem', borderRadius: '8px', border: 0, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
-              background: msgLang === 'ar' ? '#0f172a' : 'transparent',
-              color: msgLang === 'ar' ? '#fff' : '#64748b',
+              padding: '0.6rem 1.15rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+              color: '#D4AF37',
+              border: '1px solid rgba(212,175,55,0.3)',
+              fontWeight: 900,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
           >
-            🇸🇦 العربية
+            <span>⚙️</span>
+            <span>Templates &amp; Delivery Rules</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setMsgLang('en')}
-            style={{
-              padding: '0.45rem 0.9rem', borderRadius: '8px', border: 0, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
-              background: msgLang === 'en' ? '#0f172a' : 'transparent',
-              color: msgLang === 'en' ? '#fff' : '#64748b',
-            }}
-          >
-            🇬🇧 English
-          </button>
+
+          {/* MESSAGE LANGUAGE PICKER */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', padding: '0 0.5rem' }}>Message Language:</span>
+            <button
+              type="button"
+              onClick={() => setMsgLang('ar')}
+              style={{
+                padding: '0.45rem 0.9rem', borderRadius: '8px', border: 0, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
+                background: msgLang === 'ar' ? '#0f172a' : 'transparent',
+                color: msgLang === 'ar' ? '#fff' : '#64748b',
+              }}
+            >
+              🇸🇦 العربية
+            </button>
+            <button
+              type="button"
+              onClick={() => setMsgLang('en')}
+              style={{
+                padding: '0.45rem 0.9rem', borderRadius: '8px', border: 0, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
+                background: msgLang === 'en' ? '#0f172a' : 'transparent',
+                color: msgLang === 'en' ? '#fff' : '#64748b',
+              }}
+            >
+              🇬🇧 English
+            </button>
+          </div>
         </div>
       </div>
 
@@ -526,6 +553,15 @@ export default function WhatsAppOutreachPage() {
           onClose={() => setShowcaseBiz(null)}
         />
       )}
+
+      {/* WHATSAPP TEMPLATE & AUDIENCE DELIVERY RULES GOVERNANCE MODAL */}
+      <WhatsAppTemplateManagerModal
+        isOpen={isTemplateManagerOpen}
+        onClose={() => setIsTemplateManagerOpen(false)}
+        onSaved={() => {
+          loadData();
+        }}
+      />
     </div>
   );
 }
