@@ -36,13 +36,13 @@ export async function GET(request: NextRequest) {
       } else {
         // Verify the requested business belongs to this vendor
         const ownership = await queryOne(
-          'SELECT id FROM businesses WHERE id = ? AND vendor_id = ?',
-          [requestedId, user.id]
+          'SELECT id FROM businesses WHERE (id = ? OR slug = ?) AND vendor_id = ?',
+          [requestedId, requestedId, user.id]
         ) as any;
         if (!ownership) {
           return NextResponse.json({ error: 'Business not found or access denied' }, { status: 403 });
         }
-        businessId = requestedId;
+        businessId = ownership.id;
       }
     } else {
       // Fall back to vendor's linked business
@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN business_types bt ON b.type_id = bt.id
       LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
       LEFT JOIN profiles p ON b.vendor_id = p.id
-      WHERE b.id = ?
-    `, [businessId]) as any;
+      WHERE b.id = ? OR b.slug = ?
+    `, [businessId, businessId]) as any;
 
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });

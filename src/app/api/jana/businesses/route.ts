@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
         LEFT JOIN business_types bt ON b.type_id = bt.id
          LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
         LEFT JOIN profiles p ON b.vendor_id = p.id
-        WHERE b.id = ?
-      `, [id]);
+        WHERE b.id = ? OR b.slug = ?
+      `, [id, id]);
       
       if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
       

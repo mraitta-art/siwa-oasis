@@ -140,11 +140,17 @@ function OrchestratorContent() {
       });
       if (bizRes.ok) {
         const created = await bizRes.json();
+        const bizId = created?.id || created?.slug || '';
         localStorage.removeItem(STORAGE_KEY);
-        updateState({ step: 'DEPLOYMENT', createdBizId: created.id });
+        updateState({ step: 'DEPLOYMENT', createdBizId: bizId });
         notify('Entity Synthesized Successfully', 'success');
+      } else {
+        const errJson = await bizRes.json().catch(() => ({}));
+        notify(errJson?.error || 'Orchestration Failed', 'error');
       }
-    } catch (err) { notify('Orchestration Failed', 'error'); }
+    } catch (err: any) {
+      notify(err?.message || 'Orchestration Failed', 'error');
+    }
     setLoading(false);
   };
 

@@ -49,7 +49,7 @@ export default function BusinessOrchestrator() {
   // ── Load business data ─────────────────────────────────────────────
   useEffect(() => {
     async function loadData() {
-      const isPlaceholderId = !businessId || /\{?business[_-]?id\}?/i.test(businessId);
+      const isPlaceholderId = !businessId || /\{?business[_-]?id\}?/i.test(businessId) || businessId === 'undefined' || businessId === 'null';
       if (isPlaceholderId) {
         setBiz(null);
         setLoading(false);
@@ -57,9 +57,31 @@ export default function BusinessOrchestrator() {
       }
 
       try {
-        const bizRes = await fetch(`/api/jana/businesses?id=${businessId}`);
-        const bizData = await bizRes.json();
-        if (bizData.error) throw new Error(bizData.error);
+        let bizData: any = null;
+        const bizRes = await fetch(`/api/jana/businesses?id=${encodeURIComponent(businessId)}`);
+        if (bizRes.status === 401 || bizRes.status === 403) {
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+        if (bizRes.ok) {
+          const resData = await bizRes.json();
+          if (!resData.error) bizData = resData;
+        }
+
+        // Resilient fallback: Try vendor-scoped API if jana API didn't resolve
+        if (!bizData || bizData.error) {
+          const vendorRes = await fetch(`/api/vendor/business?id=${encodeURIComponent(businessId)}&sections=1`);
+          if (vendorRes.ok) {
+            const vData = await vendorRes.json();
+            if (vData && !vData.error) {
+              bizData = vData.business || vData;
+            }
+          }
+        }
+
+        if (!bizData || bizData.error) {
+          throw new Error(bizData?.error || 'Business entity not found in registry');
+        }
 
         const secRes = await fetch(bizData.type_id ? `/api/jana/sections?type=${bizData.type_id}` : '/api/jana/sections');
         const rawSections = await secRes.json();
@@ -234,7 +256,80 @@ export default function BusinessOrchestrator() {
   // ── Derived values ─────────────────────────────────────────────────
 
   if (loading) return <div className="loader-screen">ORCHESTRATING DNA...</div>;
-  if (!biz) return <div className="loader-screen" style={{ color: '#ef4444' }}>BUSINESS ENTITY NOT FOUND</div>;
+  if (!biz) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#0f172a',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        textAlign: 'center',
+        color: '#fff',
+        fontFamily: "'Inter', sans-serif"
+      }}>
+        <div style={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '2px solid rgba(239, 68, 68, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '2rem',
+          marginBottom: '1.5rem',
+          color: '#ef4444'
+        }}>
+          <i className="fas fa-building-circle-exclamation" />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.75rem', color: '#fff' }}>
+          Business Record Not Found
+        </h2>
+        <p style={{ maxWidth: 480, color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+          The requested business identifier <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '6px', color: '#D4AF37' }}>{String(businessId)}</code> could not be found or you may need to sign in with an authorized account.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Link
+            href="/jana/businesses"
+            style={{
+              padding: '0.8rem 1.6rem',
+              borderRadius: '12px',
+              background: '#D4AF37',
+              color: '#0f172a',
+              fontWeight: 900,
+              fontSize: '0.85rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <i className="fas fa-list" /> View All Businesses
+          </Link>
+          <Link
+            href="/jana/orchestrator"
+            style={{
+              padding: '0.8rem 1.6rem',
+              borderRadius: '12px',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#fff',
+              fontWeight: 900,
+              fontSize: '0.85rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <i className="fas fa-magic" /> Launch Wizard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const hiddenSections = sections
     .filter((s) => isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], []))
