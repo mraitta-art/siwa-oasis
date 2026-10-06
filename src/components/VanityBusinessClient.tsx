@@ -885,10 +885,10 @@ export default function VanityBusinessClient({
                     </div>
                   ) : (
                   <div>
-                    {/* CAROUSEL IMAGES (Top placement) */}
+                    {/* CAROUSEL IMAGES (Top placement - Responsive Carousel Cards) */}
                     {carouselImages.length > 0 && (
                       <div style={{ marginBottom: '2.5rem', borderRadius: '24px', overflow: 'hidden', border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '1rem', padding: '1rem', background: '#f8fafc' }}>
+                        <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '1.25rem', padding: '1.25rem', background: '#f8fafc', WebkitOverflowScrolling: 'touch' }}>
                           {carouselImages.map((item: any, idx: number) => {
                             const url = typeof item === 'object' ? item.url : item;
                             const caption = typeof item === 'object'
@@ -905,15 +905,18 @@ export default function VanityBusinessClient({
                               <div
                                 key={idx}
                                 style={{
-                                  flex: '0 0 85%',
-                                  minWidth: '280px',
+                                  flex: carouselImages.length === 1 ? '1 1 100%' : '0 0 clamp(280px, 46%, 460px)',
+                                  minWidth: '260px',
+                                  maxWidth: carouselImages.length === 1 ? '100%' : '520px',
                                   scrollSnapAlign: 'start',
                                   borderRadius: '16px',
                                   overflow: 'hidden',
-                                  background: '#000',
-                                  height: '340px',
+                                  background: '#090e17',
+                                  height: 'clamp(240px, 32vw, 360px)',
                                   position: 'relative',
-                                  cursor: targetSection ? 'pointer' : 'default'
+                                  cursor: targetSection ? 'pointer' : 'default',
+                                  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                  transition: 'transform 0.2s ease'
                                 }}
                                 onClick={() => {
                                   if (targetSection) {
@@ -927,9 +930,9 @@ export default function VanityBusinessClient({
                                 }}
                               >
                                 {isVideo ? (
-                                  <video src={url} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <video src={url} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
                                 ) : (
-                                  <img src={url} alt={caption || title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img src={url} alt={caption || title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
                                 )}
                                 {/* Rich Slide Overlay */}
                                 {(() => {
@@ -1360,27 +1363,49 @@ export default function VanityBusinessClient({
                     {/* BODY IMAGES (In-line / Bottom grid placement) */}
                     {bodyImages.length > 0 && (
                       <div style={{ marginTop: '2.5rem' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', 
+                          gap: '1.5rem' 
+                        }}>
                           {bodyImages.map((item: any, i: number) => {
                             const mediaUrl = typeof item === 'object' ? item.url : item;
                             const caption = typeof item === 'object' ? item.caption : '';
                             const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.mov') || mediaUrl.includes('/video/upload/'));
-                            
+                            const isWide = caption && caption.length > 200;
+
                             return (
                               <div key={i} style={{ 
                                 borderRadius: '20px', overflow: 'hidden', background: '#fff', 
                                 border: '1px solid #f1f5f9', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.03)',
-                                gridColumn: caption?.length > 200 ? '1 / -1' : 'auto'
+                                gridColumn: isWide ? '1 / -1' : 'auto',
+                                display: 'flex',
+                                flexDirection: 'column'
                               }}>
-                                <div style={{ height: '240px', overflow: 'hidden', position: 'relative', background: '#000' }}>
+                                <div style={{ 
+                                  width: '100%',
+                                  height: isWide ? 'clamp(260px, 36vw, 420px)' : 'clamp(200px, 24vw, 290px)', 
+                                  overflow: 'hidden', 
+                                  position: 'relative', 
+                                  background: '#090e17' 
+                                }}>
                                   {isVideo ? (
-                                    <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <video src={mediaUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
                                   ) : (
-                                    <img src={mediaUrl} alt={caption || `${section.name} image ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img 
+                                      src={mediaUrl} 
+                                      alt={caption || `${section.name} image ${i + 1}`} 
+                                      style={{ 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        objectFit: 'cover',
+                                        objectPosition: 'center'
+                                      }} 
+                                    />
                                   )}
                                 </div>
                                 {caption && (
-                                  <div style={{ padding: '1.5rem', fontSize: '0.95rem', color: '#475569', lineHeight: 1.7, fontWeight: 500, borderTop: '1px solid #f8fafc' }}>
+                                  <div style={{ padding: '1.25rem 1.5rem', fontSize: '0.92rem', color: '#475569', lineHeight: 1.7, fontWeight: 500, borderTop: '1px solid #f8fafc', flex: 1 }}>
                                     {caption}
                                   </div>
                                 )}
