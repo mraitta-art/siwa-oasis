@@ -9,6 +9,9 @@ import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
+import MinisiteLocationMap from '@/components/MinisiteLocationMap';
+import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
+import MinisiteContributions from '@/components/MinisiteContributions';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 
@@ -369,6 +372,12 @@ export default function VanityBusinessClient({
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem', direction: isRTL ? 'rtl' : 'ltr' }}>
+      <MinisiteClaimBanner
+        businessId={biz.id}
+        businessName={biz.name}
+        slug={slug}
+        initialClaimed={Boolean(biz.custom_data?.claim_record)}
+      />
       {serializedTemplateComponents.length > 0 && (
         <div data-minisite-template={templatePlan?.templateId}>
           {serializedTemplateComponents.map(component => (
@@ -1383,6 +1392,32 @@ export default function VanityBusinessClient({
                 ) : null}
               </div>
             )}
+
+            {/* 📍 INTERACTIVE GOOGLE SATELLITE/ROAD MAP & STATIONARY ACCESS */}
+            <div style={{ marginTop: '3.5rem' }}>
+              <MinisiteLocationMap
+                businessName={biz.name}
+                address={dynamicAddress}
+                latitude={data.latitude || data.lat || data.basic?.latitude || data.sec_1_identity?.latitude}
+                longitude={data.longitude || data.lng || data.basic?.longitude || data.sec_1_identity?.longitude}
+                googleMapsUrl={data.google_maps_url || data.basic?.google_maps_url || data.sec_1_identity?.google_maps_url}
+                businessType={biz.type_name || biz.type_id}
+                accessibilityNotes={data.accessibility || data.route_notes || data.basic?.accessibility}
+                stationHubName={data.station_name || data.hub_name}
+                stationaryUnitCode={data.unit_code || data.stationary_unit || data.bungalow_number}
+                primaryColor="#D4AF37"
+              />
+            </div>
+
+            {/* 💬 SIWIFY CROWDSOURCED COMMUNITY CONTRIBUTIONS & VERIFIED REVIEWS */}
+            <div style={{ marginTop: '2rem' }}>
+              <MinisiteContributions
+                businessId={biz.id}
+                businessName={biz.name}
+                slug={slug}
+                primaryColor="#D4AF37"
+              />
+            </div>
           </main>
           <aside>
             <div style={{ position: 'sticky', top: '100px' }}>
