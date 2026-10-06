@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
 import { queryOne, execute } from '@/lib/db';
 import {
@@ -146,6 +147,12 @@ export async function POST(request: NextRequest) {
 
     await saveMinisiteLayout(business.slug || slug, layoutPayload, admin.id);
     invalidateCache.websiteSettings();
+    try {
+      revalidatePath(`/${business.slug || slug}`);
+      revalidatePath('/[slug]', 'page');
+    } catch (e) {
+      console.warn('[revalidatePath warning]', e);
+    }
 
     return NextResponse.json({
       success: true,
@@ -171,6 +178,12 @@ export async function DELETE(request: NextRequest) {
 
     await deleteMinisiteLayout(slug);
     invalidateCache.websiteSettings();
+    try {
+      revalidatePath(`/${slug}`);
+      revalidatePath('/[slug]', 'page');
+    } catch (e) {
+      console.warn('[revalidatePath warning]', e);
+    }
 
     return NextResponse.json({
       success: true,
