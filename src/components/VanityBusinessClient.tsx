@@ -752,7 +752,7 @@ export default function VanityBusinessClient({
                   const isTenScale = numVal > 5;
                   const stars = Math.round(isTenScale ? numVal / 2 : numVal);
                   return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', maxWidth: '100%' }}>
                       <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
                         {numVal}{isTenScale ? '/10' : '/5'}
                       </span>
@@ -771,17 +771,17 @@ export default function VanityBusinessClient({
                 }
                 // boolean → badge
                 if (fieldType === 'boolean') {
-                  return <span style={{ padding: '0.2rem 0.7rem', borderRadius: '20px', background: val ? '#dcfce7' : '#fee2e2', color: val ? '#15803d' : '#b91c1c', fontWeight: 800, fontSize: '0.75rem' }}>{val ? '✓ Yes' : '✗ No'}</span>;
+                  return <span style={{ padding: '0.2rem 0.7rem', borderRadius: '20px', background: val ? '#dcfce7' : '#fee2e2', color: val ? '#15803d' : '#b91c1c', fontWeight: 800, fontSize: '0.75rem', display: 'inline-block', maxWidth: '100%' }}>{val ? '✓ Yes' : '✗ No'}</span>;
                 }
                 // tags / multiselect / array → colored tag badges
                 if (fieldType === 'tags' || fieldType === 'multiselect' || Array.isArray(val)) {
                   const tags = Array.isArray(val) ? val : (typeof val === 'string' ? val.split(',') : []);
                   return (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '100%' }}>
                       {tags.map((tag: any, i: number) => {
                         const str = typeof tag === 'object' ? JSON.stringify(tag) : String(tag).trim();
                         return (
-                          <span key={i} style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', background: '#f1f5f9', color: '#1e293b', fontWeight: 700, fontSize: '0.78rem', border: '1px solid #e2e8f0' }}>
+                          <span key={i} style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', background: '#f1f5f9', color: '#1e293b', fontWeight: 700, fontSize: '0.78rem', border: '1px solid #e2e8f0', wordBreak: 'break-word', overflowWrap: 'break-word', maxWidth: '100%' }}>
                             {str}
                           </span>
                         );
@@ -795,7 +795,7 @@ export default function VanityBusinessClient({
                     return (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '0.75rem', width: '100%' }}>
                         {val.map((rm: any, i: number) => (
-                          <div key={i} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                          <div key={i} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', minWidth: 0, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                             <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.9rem', marginBottom: '0.3rem' }}>{rm.name}</div>
                             <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '0.2rem' }}>🛏️ {rm.beds}</div>
                             {rm.features && <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{rm.features}</div>}
@@ -806,10 +806,10 @@ export default function VanityBusinessClient({
                   }
                   if (key === 'review_highlights' && Array.isArray(val)) {
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: 0 }}>
                         {val.map((rev: any, i: number) => (
-                          <div key={i} style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '12px', border: '1.5px solid #f1f5f9', fontStyle: 'italic', color: '#334155', fontSize: '0.88rem', lineHeight: 1.6 }}>
-                            "{rev.text}"
+                          <div key={i} style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '12px', border: '1.5px solid #f1f5f9', fontStyle: 'italic', color: '#334155', fontSize: '0.88rem', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                            &quot;{rev.text}&quot;
                             <div style={{ fontStyle: 'normal', fontWeight: 800, color: '#D4AF37', fontSize: '0.75rem', marginTop: '0.4rem', textAlign: 'right' }}>
                               — {rev.author} ({rev.country})
                             </div>
@@ -818,35 +818,36 @@ export default function VanityBusinessClient({
                       </div>
                     );
                   }
-                  return <pre style={{ fontSize: '0.75rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', overflowX: 'auto' }}>{JSON.stringify(val, null, 2)}</pre>;
+                  // fallback for unknown JSON objects — scrollable pre, constrained
+                  return <pre style={{ fontSize: '0.75rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', overflowX: 'auto', maxWidth: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(val, null, 2)}</pre>;
                 }
                 // select → pill badge
                 if (fieldType === 'select') {
-                  return <span style={{ padding: '0.25rem 0.8rem', borderRadius: '20px', background: '#f0f9ff', color: '#0369a1', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #bae6fd' }}>{String(val)}</span>;
+                  return <span style={{ padding: '0.25rem 0.8rem', borderRadius: '20px', background: '#f0f9ff', color: '#0369a1', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #bae6fd', display: 'inline-block', maxWidth: '100%', wordBreak: 'break-word' }}>{String(val)}</span>;
                 }
                 // url → link
                 if (fieldType === 'url' && String(val).startsWith('http')) {
                   return (
-                    <a href={String(val)} target="_blank" rel="noopener noreferrer" style={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <i className="fas fa-external-link-alt" style={{ fontSize: '0.7rem' }} /> {String(val).replace(/^https?:\/\/(www\.)?/, '').slice(0, 35)}...
+                    <a href={String(val)} target="_blank" rel="noopener noreferrer" style={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', maxWidth: '100%', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
+                      <i className="fas fa-external-link-alt" style={{ fontSize: '0.7rem', flexShrink: 0 }} /> {String(val).replace(/^https?:\/\/(www\.)?/, '').slice(0, 35)}...
                     </a>
                   );
                 }
                 // youtube → thumbnail link
                 if (fieldType === 'youtube') {
                   const ytId = String(val).match(/(?:youtu.be\/|v=)([^&?/]+)/)?.[1];
-                  return ytId ? <a href={String(val)} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#dc2626', fontWeight: 700, textDecoration: 'none' }}><i className="fab fa-youtube" /> Watch on YouTube</a> : <span style={{ fontSize: '0.85rem' }}>{String(val)}</span>;
+                  return ytId ? <a href={String(val)} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#dc2626', fontWeight: 700, textDecoration: 'none', maxWidth: '100%' }}><i className="fab fa-youtube" /> Watch on YouTube</a> : <span style={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>{String(val)}</span>;
                 }
                 // action_button → CTA button
                 if (fieldType === 'action_button') {
-                  return <a href={String(val)} target="_blank" rel="noopener" style={{ display: 'inline-block', padding: '0.5rem 1.25rem', background: '#D4AF37', color: '#fff', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none' }}>Book Now →</a>;
+                  return <a href={String(val)} target="_blank" rel="noopener" style={{ display: 'inline-block', padding: '0.5rem 1.25rem', background: '#D4AF37', color: '#fff', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', maxWidth: '100%', wordBreak: 'break-word' }}>Book Now →</a>;
                 }
                 // rich_text → safe HTML
                 if (fieldType === 'rich_text') {
-                  return <div dangerouslySetInnerHTML={{ __html: prepareRichContent(val) }} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.7 }} />;
+                  return <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(val) }} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.7, maxWidth: '100%', minWidth: 0, wordBreak: 'break-word', overflowWrap: 'break-word', overflow: 'hidden' }} />;
                 }
-                // default → text
-                return <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>{String(val)}</span>;
+                // default → text, always wrapped and constrained
+                return <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', wordBreak: 'break-word', overflowWrap: 'break-word', display: 'block', maxWidth: '100%' }}>{String(val)}</span>;
               };
 
               const isLocked = lockedSections.includes(section.id);
@@ -1085,8 +1086,8 @@ export default function VanityBusinessClient({
                             const isValueMasked = maskedFields.includes(key) || maskedFields.includes(`${section.id}.${key}`);
                             if (isValueMasked) {
                               return (
-                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', minWidth: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
+                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
                                   <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                     <i className="fas fa-lock" style={{ color: '#D4AF37', fontSize: '0.8rem' }} />
                                     <span>Private / Available on request</span>
@@ -1106,8 +1107,8 @@ export default function VanityBusinessClient({
 
                             if (isGated) {
                               return (
-                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
-                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden', minWidth: 0, boxSizing: 'border-box' }}>
+                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
                                   <div style={{ filter: 'blur(5px)', userSelect: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>$150 / Night</div>
                                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem' }}>
                                     <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -1133,9 +1134,9 @@ export default function VanityBusinessClient({
                             const isFullWidth = ['room_types', 'review_highlights', 'facilities_list', 'safety_features', 'activities', 'tours', 'dietary_options', 'description', 'pool_features', 'spa_services'].includes(key);
 
                             return (
-                              <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{rendered}</div>
+                              <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', gridColumn: isFullWidth ? '1 / -1' : 'auto', minWidth: 0, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', minWidth: 0, maxWidth: '100%', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{rendered}</div>
                               </div>
                             );
                           });
