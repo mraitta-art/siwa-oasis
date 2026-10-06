@@ -21,6 +21,13 @@ interface BlogPost {
   views: number;
   reading_time: number;
   tags: Array<{id: number; name: string; slug: string}>;
+  target_type?: 'mainsite' | 'business_minisite' | 'business_section' | 'template_typology' | 'landing_page';
+  target_business_id?: string;
+  target_business_name?: string;
+  target_business_slug?: string;
+  target_section_id?: string;
+  target_template_id?: string;
+  target_page_slug?: string;
 }
 
 interface Category {
@@ -730,6 +737,28 @@ export default function BlogAdminPage() {
                           }}>
                             {post.status}
                           </span>
+
+                          {/* Target Distribution Badge */}
+                          <span style={{
+                            padding: '0.3rem 0.8rem',
+                            background: post.target_type === 'business_section' ? '#fdf2f8' : post.target_type === 'business_minisite' ? '#f0fdf4' : post.target_type === 'template_typology' ? '#faf5ff' : post.target_type === 'landing_page' ? '#fff7ed' : '#f1f5f9',
+                            color: post.target_type === 'business_section' ? '#9d174d' : post.target_type === 'business_minisite' ? '#15803d' : post.target_type === 'template_typology' ? '#7e22ce' : post.target_type === 'landing_page' ? '#c2410c' : '#475569',
+                            border: '1px solid currentColor',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: 800
+                          }}>
+                            {post.target_type === 'business_section'
+                              ? `📑 Section: ${post.target_business_name || post.target_business_id || 'Business'} > ${post.target_section_id || ''}`
+                              : post.target_type === 'business_minisite'
+                              ? `🏢 Minisite: ${post.target_business_name || post.target_business_id || 'Business'}`
+                              : post.target_type === 'template_typology'
+                              ? `🎨 Template: ${post.target_template_id}`
+                              : post.target_type === 'landing_page'
+                              ? `🧭 Page: ${post.target_page_slug}`
+                              : '🌐 Main Portal'}
+                          </span>
+
                           {post.category_name && (
                             <span style={{
                               padding: '0.3rem 0.8rem',
