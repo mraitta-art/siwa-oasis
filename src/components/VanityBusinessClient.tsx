@@ -13,6 +13,7 @@ import MinisiteLocationMap from '@/components/MinisiteLocationMap';
 import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
 import MinisiteContributions from '@/components/MinisiteContributions';
 import SocialStoryCardGenerator from '@/components/SocialStoryCardGenerator';
+import SocialVideoImporter from '@/components/SocialVideoImporter';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 
@@ -150,6 +151,32 @@ export default function VanityBusinessClient({
   const [isRTL, setIsRTL] = useState(false);
   const [isAdminToolsOpen, setIsAdminToolsOpen] = useState(false);
   const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
+  const [utmSource, setUtmSource] = useState<string | null>(null);
+
+  // UTM social attribution — read source from URL on mount and show toast
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const src = params.get('utm_source');
+      const medium = params.get('utm_medium');
+      if (src) {
+        setUtmSource(src);
+        // Fire lightweight analytics ping (non-blocking)
+        fetch('/api/siwify/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: initialData?.id,
+            slug,
+            utm_source: src,
+            utm_medium: medium || 'bio',
+            utm_campaign: params.get('utm_campaign') || 'minisite',
+            referrer: document.referrer || '',
+          }),
+        }).catch(() => {});
+      }
+    } catch { /* ignore */ }
+  }, [slug, initialData?.id]);
 
   // Fetch live marketplace packages, tours, and discounts for this business
   useEffect(() => {
@@ -1542,39 +1569,66 @@ export default function VanityBusinessClient({
         </div>
       </div>
 
-      {/* 🎨 SOCIAL STORY CARD GENERATOR — Grow Your Social Media Bio Traffic */}
+      {/* 📲 SOCIAL MEDIA TOOLKIT — Video Import + Story Card Generator + UTM Traffic Source */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem 3rem' }}>
-        <div style={{ marginBottom: '1.25rem' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>
-            📲 GROW YOUR SOCIAL MEDIA REACH
+        {/* Header */}
+        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px' }}>
+              📲 SOCIAL MEDIA TOOLKIT
+            </div>
+            <h2 style={{ margin: '0.25rem 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
+              Grow Your Reach Across All Platforms
+            </h2>
           </div>
-          <h2 style={{ margin: '0.25rem 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
-            Create a Branded Story Card for Your Channels
-          </h2>
+          {/* UTM Traffic Source Badge */}
+          {utmSource && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.4rem 1rem', borderRadius: '50px',
+              background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)',
+              fontSize: '0.78rem', fontWeight: 800, color: '#92400e'
+            }}>
+              <span>
+                {utmSource === 'instagram' ? '📸' : utmSource === 'tiktok' ? '🎵' : utmSource === 'facebook' ? '📘' : utmSource === 'twitter' ? '🐦' : '🔗'}
+              </span>
+              <span>Visitor from {utmSource.charAt(0).toUpperCase() + utmSource.slice(1)}</span>
+            </div>
+          )}
         </div>
-        <SocialStoryCardGenerator
-          businessName={biz.name}
-          businessSlug={slug}
-          businessLogo={dynamicLogo}
-          heroImage={(() => {
-            for (const secKey of Object.keys(data)) {
-              const sec = data[secKey];
-              if (!sec || typeof sec !== 'object') continue;
-              const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
-              const arr = Array.isArray(gallery) ? gallery : [];
-              for (const item of arr) {
-                const url = typeof item === 'object' ? (item as any).url : item;
-                if (url && typeof url === 'string' && url.startsWith('http') && !url.match(/\.(mp4|webm|mov)$/i)) return url;
+
+        {/* Two-column responsive grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+          {/* Video Importer */}
+          <SocialVideoImporter
+            businessId={biz.id}
+            primaryColor="#D4AF37"
+          />
+          {/* Story Card Generator */}
+          <SocialStoryCardGenerator
+            businessName={biz.name}
+            businessSlug={slug}
+            businessLogo={dynamicLogo}
+            heroImage={(() => {
+              for (const secKey of Object.keys(data)) {
+                const sec = data[secKey];
+                if (!sec || typeof sec !== 'object') continue;
+                const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
+                const arr = Array.isArray(gallery) ? gallery : [];
+                for (const item of arr) {
+                  const url = typeof item === 'object' ? (item as any).url : item;
+                  if (url && typeof url === 'string' && url.startsWith('http') && !url.match(/\.(mp4|webm|mov)$/i)) return url;
+                }
               }
-            }
-            return undefined;
-          })()}
-          categoryLabel={biz.type_name || identity.category || 'Siwa Oasis'}
-          tagline={identity.tagline || identity.slogan || ''}
-          whatsappNumber={dynamicWhatsapp}
-          primaryColor="#D4AF37"
-          platformName={platformName}
-        />
+              return undefined;
+            })()}
+            categoryLabel={biz.type_name || identity.category || 'Siwa Oasis'}
+            tagline={identity.tagline || identity.slogan || ''}
+            whatsappNumber={dynamicWhatsapp}
+            primaryColor="#D4AF37"
+            platformName={platformName}
+          />
+        </div>
       </div>
 
       {/* FOOTER */}
