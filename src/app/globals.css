@@ -2,6 +2,13 @@
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 @import "tailwindcss";
 
+/* Global overflow guard — prevents any child from causing horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* Every homepage module gets a stable responsive boundary. Component-specific
    renderers can remain focused on content while the shell prevents overflow. */
 .component-responsive-shell {
@@ -535,10 +542,32 @@ p, span, li, td, th, small, .body-copy {
 }
 
 /* ---- Layout ---- */
-.container { max-width: 1720px; margin: 0 auto; padding: 2rem; }
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+.container { 
+  max-width: 1240px; 
+  margin: 0 auto; 
+  padding: clamp(1rem, 3vw, 2rem); 
+  width: 100%;
+  box-sizing: border-box;
+}
+.container-wide { 
+  max-width: 1440px; 
+  margin: 0 auto; 
+  padding: clamp(1rem, 3vw, 2rem); 
+  width: 100%;
+  box-sizing: border-box;
+}
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem; }
+
+@media (max-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .grid-4 { grid-template-columns: 1fr; }
+}
 
 /* ---- Premium Workspace Utilities ---- */
 .glass-sidebar {
@@ -1246,14 +1275,29 @@ tr:hover td { background: #f9fafb; }
 
 .minisite-layout {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 4rem;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.minisite-layout > main {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.minisite-layout > aside {
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 1024px) {
   .minisite-layout {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
   }
 }
 

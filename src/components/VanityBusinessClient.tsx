@@ -498,7 +498,7 @@ export default function VanityBusinessClient({
       />
 
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
-        <div className="container minisite-nav-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1200px', padding: '0 1.5rem' }}>
+        <div className="container minisite-nav-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1240px', padding: '0 clamp(1rem, 3vw, 2rem)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
               {(biz?.name || '').toUpperCase()}
@@ -687,7 +687,7 @@ export default function VanityBusinessClient({
         </div>
       </nav>
 
-      <div className="container" style={{ maxWidth: '1200px', padding: '4rem 1.5rem' }}>
+      <div className="container" style={{ maxWidth: '1240px', padding: 'clamp(2rem, 5vh, 4rem) clamp(1rem, 3vw, 2rem)' }}>
         <div className="minisite-layout">
           <main>
             {activeSections.filter(s => s.id === activeTab).map(section => {
@@ -793,7 +793,7 @@ export default function VanityBusinessClient({
                 if (fieldType === 'json' || (typeof val === 'object' && val !== null)) {
                   if (key === 'room_types' && Array.isArray(val)) {
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem', width: '100%' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '0.75rem', width: '100%' }}>
                         {val.map((rm: any, i: number) => (
                           <div key={i} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
                             <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.9rem', marginBottom: '0.3rem' }}>{rm.name}</div>
@@ -1185,7 +1185,7 @@ export default function VanityBusinessClient({
                             </div>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.5rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
                             {sectionItems.map((item: any) => {
                               const title = minisiteLang === 'ar' && item.title_ar ? item.title_ar : item.title;
                               const desc = minisiteLang === 'ar' && item.description_ar ? item.description_ar : item.description;
@@ -1213,7 +1213,7 @@ export default function VanityBusinessClient({
                                   }}
                                 >
                                   {/* Image Header */}
-                                  <div style={{ height: '180px', position: 'relative', background: '#090e17' }}>
+                                  <div style={{ height: 'clamp(160px, 22vw, 220px)', position: 'relative', background: '#090e17' }}>
                                     <img src={coverImg} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     
                                     {/* Type Badge */}
@@ -1310,7 +1310,7 @@ export default function VanityBusinessClient({
                           </Link>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
                           {section.tourProducts.map((tour: any) => {
                             const highlights = (() => {
                               try {
@@ -1322,7 +1322,7 @@ export default function VanityBusinessClient({
 
                             return (
                               <div key={tour.id} style={{ background: '#fff', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s' }}>
-                                <div style={{ height: '190px', position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
+                                <div style={{ height: 'clamp(160px, 22vw, 220px)', position: 'relative', background: '#0f172a', overflow: 'hidden' }}>
                                   <img src={tour.image_url || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62'} alt={tour.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', color: '#fbbf24', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 900, border: '1px solid rgba(251,191,36,0.3)' }}>
                                     ⏱️ {tour.duration_days} Days / {tour.duration_hours || 8}h
@@ -1628,7 +1628,7 @@ export default function VanityBusinessClient({
         </div>
 
         {/* Two-column responsive grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.25rem' }}>
           {/* Video Importer */}
           <SocialVideoImporter
             businessId={biz.id}
