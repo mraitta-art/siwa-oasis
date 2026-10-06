@@ -115,6 +115,7 @@ const NAV_GROUPS = [
       { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
       { name: 'Dispatch Engine', path: '/jana/dispatch', icon: 'fa-paper-plane' },
+      { name: 'WhatsApp Outreach & Reactivation', path: '/jana/whatsapp-outreach', icon: 'fa-paper-plane', badge: 'OUTREACH' },
       { name: '✦ Journey Requests', path: '/jana/requests', icon: 'fa-compass', badge: 'LIVE' },
     ]
   },
