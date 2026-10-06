@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -12,7 +12,26 @@ import {
   MinisiteLayoutComponent,
 } from '@/lib/minisite-governance-client';
 
+export const dynamic = 'force-dynamic';
+
 export default function MinisiteBuilderStudio() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}>
+            <i className="fas fa-circle-notch fa-spin fa-2x" style={{ color: '#D4AF37', marginBottom: '1rem' }} />
+            <div>Loading Minisite Builder Studio...</div>
+          </div>
+        </div>
+      }
+    >
+      <MinisiteBuilderStudioContent />
+    </Suspense>
+  );
+}
+
+function MinisiteBuilderStudioContent() {
   const searchParams = useSearchParams();
   const initialSlug = searchParams.get('slug') || '';
 
