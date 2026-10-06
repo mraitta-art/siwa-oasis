@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import SocialVideoImporter from '@/components/SocialVideoImporter';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -307,7 +308,7 @@ const CSS = `
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function VendorMediaPage() {
-  const [activeTab, setActiveTab] = useState<'photos' | 'videos' | 'upload'>('photos');
+  const [activeTab, setActiveTab] = useState<'photos' | 'videos' | 'carousel' | 'upload'>('photos');
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState('');
   const [filterSection, setFilterSection] = useState('all');
@@ -315,6 +316,12 @@ export default function VendorMediaPage() {
   const [uploadQueue, setUploadQueue] = useState<UploadFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [slug, setSlug] = useState('');
+  const [businessId, setBusinessId] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
+  const [loadingSlides, setLoadingSlides] = useState(false);
+  const [agreedBio, setAgreedBio] = useState(false);
+  const [bioLinkCopied, setBioLinkCopied] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [editingCaption, setEditingCaption] = useState<Record<string, string>>({});
@@ -334,8 +341,87 @@ export default function VendorMediaPage() {
     try {
       const r = await fetch('/api/vendor/story');
       const d = await r.json();
-      if (d?.business) setSlug(d.business.slug || d.business.id || '');
+      if (d?.business) {
+        const bId = d.business.id || '';
+        const bSlug = d.business.slug || bId;
+        setSlug(bSlug);
+        setBusinessId(bId);
+        setBusinessName(d.business.name || '');
+        setAgreedBio(!!d.business.custom_data?.claim_record);
+        if (bId) {
+          loadCarouselSlides(bId);
+        }
+      }
     } catch (_) {}
+  }
+
+  async function loadCarouselSlides(bId: string) {
+    if (!bId) return;
+    setLoadingSlides(true);
+    try {
+      const siteId = `biz_${bId}_hero`;
+      const res = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCarouselSlides(data.slides || []);
+      }
+    } catch (_) {}
+    setLoadingSlides(false);
+  }
+
+  async function deleteCarouselSlide(slideId: string) {
+    if (!confirm('Remove this slide from your hero carousel?')) return;
+    const updated = carouselSlides.filter(s => s.id !== slideId).map((s, idx) => ({ ...s, displayOrder: idx }));
+    setCarouselSlides(updated);
+    try {
+      const siteId = `biz_${businessId}_hero`;
+      await fetch('/api/jana/hero-carousel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slides: updated, siteId }),
+      });
+      toast('success', 'Slide removed from carousel');
+    } catch (_) {
+      toast('error', 'Failed to remove slide');
+    }
+  }
+
+  async function moveCarouselSlide(index: number, dir: 'up' | 'down') {
+    if (dir === 'up' && index === 0) return;
+    if (dir === 'down' && index === carouselSlides.length - 1) return;
+    const next = [...carouselSlides];
+    const target = dir === 'up' ? index - 1 : index + 1;
+    [next[index], next[target]] = [next[target], next[index]];
+    const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
+    setCarouselSlides(reordered);
+    try {
+      const siteId = `biz_${businessId}_hero`;
+      await fetch('/api/jana/hero-carousel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slides: reordered, siteId }),
+      });
+    } catch (_) {}
+  }
+
+  async function handleAcceptBioAgreement() {
+    try {
+      const res = await fetch('/api/jana/businesses/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          slug,
+          agreedToBioLink: true,
+        }),
+      });
+      if (res.ok) {
+        setAgreedBio(true);
+        toast('success', '🎉 Verified Partner status active! Thank you for placing your link in your bio.');
+      }
+    } catch (_) {
+      toast('error', 'Failed to save agreement');
+    }
   }
 
   async function loadSections() {
@@ -618,6 +704,9 @@ export default function VendorMediaPage() {
           <button className={`vm-tab${activeTab === 'videos' ? ' active' : ''}`} onClick={() => setActiveTab('videos')}>
             🎬 Videos ({videos.length})
           </button>
+          <button className={`vm-tab${activeTab === 'carousel' ? ' active' : ''}`} onClick={() => setActiveTab('carousel')}>
+            🎡 Hero Carousel & Social Reels ({carouselSlides.length})
+          </button>
           <button className={`vm-tab${activeTab === 'upload' ? ' active' : ''}`} onClick={() => setActiveTab('upload')}>
             ⬆ Upload {uploadQueue.length > 0 ? `(${uploadQueue.filter(u => u.status === 'uploading').length} uploading)` : ''}
           </button>
@@ -717,6 +806,233 @@ export default function VendorMediaPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Tab: Carousel & Social Reels ── */}
+        {activeTab === 'carousel' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Bio Link Agreement Banner (1-Click Accept) */}
+            <div style={{
+              background: agreedBio ? '#f0fdf4' : '#fffdf5',
+              border: `1.5px solid ${agreedBio ? '#86efac' : '#fde68a'}`,
+              borderRadius: '20px', padding: '1.5rem',
+              display: 'flex', flexDirection: 'column', gap: '1rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: agreedBio ? '#dcfce7' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                    {agreedBio ? '✅' : '🚀'}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+                      {agreedBio ? 'Official Verified Partner · Bio Link Active' : 'Lock In 0% Commission Direct Bookings'}
+                    </h3>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                      {agreedBio
+                        ? `Your official minisite link is verified for your TikTok, Instagram, and Facebook bios.`
+                        : `Place your official link in your social media bio so travelers book directly via WhatsApp with zero fees.`}
+                    </p>
+                  </div>
+                </div>
+
+                {!agreedBio ? (
+                  <button
+                    onClick={handleAcceptBioAgreement}
+                    style={{
+                      background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+                      color: '#1a1000', border: 'none', padding: '0.75rem 1.4rem',
+                      borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem',
+                      cursor: 'pointer', boxShadow: '0 4px 12px rgba(212,175,55,0.3)',
+                    }}
+                  >
+                    ⚡ 1-Click Accept & Activate VIP
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: '50px', background: '#dcfce7', color: '#15803d' }}>
+                    ★ VIP 30-Day Pass Active
+                  </span>
+                )}
+              </div>
+
+              {/* Copyable Bio Link Bar */}
+              <div style={{
+                background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0',
+                padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>Your Bio Link:</span>
+                  <code style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+                    https://siwify.com/{slug || businessId}
+                  </code>
+                </div>
+                <button
+                  onClick={() => {
+                    if (navigator.clipboard) {
+                      navigator.clipboard.writeText(`https://siwify.com/${slug || businessId}`);
+                      setBioLinkCopied(true);
+                      setTimeout(() => setBioLinkCopied(false), 2500);
+                    }
+                  }}
+                  style={{
+                    padding: '0.4rem 0.9rem', borderRadius: '8px',
+                    background: bioLinkCopied ? '#15803d' : '#0f172a',
+                    color: '#ffffff', border: 'none', fontSize: '0.75rem', fontWeight: 800,
+                    cursor: 'pointer', transition: 'all 0.2s',
+                  }}
+                >
+                  {bioLinkCopied ? '✓ Copied!' : 'Copy Link'}
+                </button>
+              </div>
+            </div>
+
+            {/* Social Video Importer Widget */}
+            <SocialVideoImporter
+              businessId={businessId}
+              businessSlug={slug}
+              businessName={businessName}
+              onImported={() => loadCarouselSlides(businessId)}
+              primaryColor="#D4AF37"
+            />
+
+            {/* Current Carousel Slides List */}
+            <div style={{
+              background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0',
+              padding: '1.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+                    🎡 Active Hero Carousel Slides ({carouselSlides.length})
+                  </h3>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                    These slides cycle on the top hero banner of your official minisite page.
+                  </p>
+                </div>
+                {slug && (
+                  <Link
+                    href={`/${slug}`}
+                    target="_blank"
+                    style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span>Live Preview</span>
+                    <span>↗</span>
+                  </Link>
+                )}
+              </div>
+
+              {loadingSlides ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  Loading your carousel slides...
+                </div>
+              ) : carouselSlides.length === 0 ? (
+                <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', background: '#f8fafc', borderRadius: '14px', border: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎬</div>
+                  <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                    No Custom Carousel Slides Yet
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', maxWidth: 360, marginInline: 'auto' }}>
+                    Paste a TikTok, Instagram Reel, or YouTube link above to add your first video slide to your hero banner!
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {carouselSlides.map((slide, idx) => (
+                    <div
+                      key={slide.id || idx}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.85rem',
+                        padding: '0.85rem 1rem', background: '#f8fafc',
+                        borderRadius: '12px', border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      {/* Order buttons */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                        <button
+                          onClick={() => moveCarouselSlide(idx, 'up')}
+                          disabled={idx === 0}
+                          style={{
+                            background: 'none', border: 'none', color: idx === 0 ? '#cbd5e1' : '#64748b',
+                            cursor: idx === 0 ? 'default' : 'pointer', fontSize: '0.75rem', fontWeight: 900,
+                          }}
+                        >
+                          ▲
+                        </button>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37' }}>{idx + 1}</span>
+                        <button
+                          onClick={() => moveCarouselSlide(idx, 'down')}
+                          disabled={idx === carouselSlides.length - 1}
+                          style={{
+                            background: 'none', border: 'none', color: idx === carouselSlides.length - 1 ? '#cbd5e1' : '#64748b',
+                            cursor: idx === carouselSlides.length - 1 ? 'default' : 'pointer', fontSize: '0.75rem', fontWeight: 900,
+                          }}
+                        >
+                          ▼
+                        </button>
+                      </div>
+
+                      {/* Thumbnail */}
+                      <div style={{ width: 68, height: 48, borderRadius: '8px', overflow: 'hidden', background: '#0f172a', flexShrink: 0 }}>
+                        {slide.mediaUrl ? (
+                          slide.type === 'video' ? (
+                            <video src={slide.mediaUrl} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <img src={slide.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          )
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem' }}>
+                            🎬
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Slide Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '2px' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {slide.title || 'Untitled Slide'}
+                          </span>
+                          {slide._platform && (
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: '50px', background: '#dbeafe', color: '#1e40af' }}>
+                              {slide._platform.toUpperCase()}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: '50px', background: '#f1f5f9', color: '#64748b' }}>
+                            {slide.type?.toUpperCase()}
+                          </span>
+                        </div>
+                        {slide.subtitle && (
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {slide.subtitle}
+                          </div>
+                        )}
+                        {slide.ctaText && (
+                          <div style={{ fontSize: '0.68rem', color: '#D4AF37', fontWeight: 700, marginTop: '2px' }}>
+                            CTA: {slide.ctaText} → {slide.ctaLink}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => deleteCarouselSlide(slide.id)}
+                        style={{
+                          background: 'none', border: 'none', color: '#ef4444',
+                          cursor: 'pointer', fontSize: '1.1rem', padding: '0.4rem',
+                          borderRadius: '6px',
+                        }}
+                        title="Remove slide"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 

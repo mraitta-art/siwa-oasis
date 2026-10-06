@@ -1602,6 +1602,8 @@ export default function VanityBusinessClient({
           {/* Video Importer */}
           <SocialVideoImporter
             businessId={biz.id}
+            businessSlug={slug}
+            businessName={biz.name}
             primaryColor="#D4AF37"
           />
           {/* Story Card Generator */}
