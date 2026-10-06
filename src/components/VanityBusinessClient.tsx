@@ -326,9 +326,9 @@ export default function VanityBusinessClient({
   const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}${whatsappMsgQuery}`;
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
-  const dynamicLogo = identity.business_logo || identity.cover_image || identity.logo || data.business_logo || data.logo || undefined;
-  const logoSize = identity.logo_size || data.logo_size || data.basic?.logo_size || 'lg';
-  const logoPosition = identity.logo_position || data.logo_position || data.basic?.logo_position || 'left';
+  const dynamicLogo = identity.business_logo || identity.logo || identity.logo_url || data.business_logo || data.logo || data.logo_url || data.basic?.business_logo || data.basic?.logo || data.basic?.logo_url || biz.logo_url || undefined;
+  const logoSize = identity.logo_size || data.logo_size || data.basic?.logo_size || biz.custom_data?.logo_size || 'lg';
+  const logoPosition = identity.logo_position || data.logo_position || data.basic?.logo_position || biz.custom_data?.logo_position || 'left';
   const dynamicInstagram = identity.instagram_handle || data.instagram_handle || '';
   const dynamicFacebook = identity.facebook_link || data.facebook_link || '';
   const dynamicTiktok = identity.tiktok_handle || data.tiktok_handle || '';
@@ -950,9 +950,9 @@ export default function VanityBusinessClient({
                       if (dbBlog && !(minisiteLang === 'ar' && secData?.section_blog_ar)) {
                         const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields, biz.custom_data);
                         return (
-                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{dbBlog.title}</h3>
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dbBlog.title}</h3>
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
                           </div>
                         );
                       }
@@ -962,9 +962,9 @@ export default function VanityBusinessClient({
                         const blogTitleDisplay = secData?.section_blog_title_ar || '';
                         const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
                         return (
-                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right' }}>
-                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9 }} />
+                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', direction: 'rtl', textAlign: 'right', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{blogTitleDisplay}</h3>}
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.9, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
                           </div>
                         );
                       }
@@ -974,9 +974,9 @@ export default function VanityBusinessClient({
                         const blogTitleDisplay = secData?.section_blog_title || '';
                         const interpolated = interpolateFieldTokens(rawBlog, secData, section.fields, biz.custom_data);
                         return (
-                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
-                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{blogTitleDisplay}</h3>}
-                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8 }} />
+                          <div style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                            {blogTitleDisplay && <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{blogTitleDisplay}</h3>}
+                            <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
                           </div>
                         );
                       }

@@ -285,18 +285,18 @@ export default function AutomatedMinisiteHero({
   const primaryColor = settings.primaryColor || (settings as any).primary_color || '#D4AF37';
 
   // Dynamic Logo Scale & Position Controls
-  const rawSize = logoSize || customData?.basic?.logo_size || customData?.logo_size;
-  const rawPos = logoPosition || customData?.basic?.logo_position || customData?.logo_position || 'left';
+  const rawSize = logoSize || customData?.basic?.logo_size || customData?.logo_size || customData?.sec_1_identity?.logo_size;
+  const rawPos = logoPosition || customData?.basic?.logo_position || customData?.logo_position || customData?.sec_1_identity?.logo_position || 'left';
 
   const logoHeight = (() => {
     if (!rawSize) return '75px';
-    if (typeof rawSize === 'string' && (rawSize.endsWith('px') || rawSize.endsWith('rem') || rawSize.endsWith('%'))) return rawSize;
+    if (typeof rawSize === 'string' && (rawSize.endsWith('px') || rawSize.endsWith('rem') || rawSize.endsWith('%') || rawSize.startsWith('clamp'))) return rawSize;
     switch (String(rawSize).toLowerCase()) {
-      case 'sm': case 'small': return '48px';
-      case 'md': case 'medium': return '75px';
-      case 'lg': case 'large': return '115px';
-      case 'xl': case 'xlarge': return '155px';
-      case 'enlarge': case 'xxl': case 'max': return '195px';
+      case 'sm': case 'small': return 'clamp(36px, 6vw, 48px)';
+      case 'md': case 'medium': return 'clamp(54px, 9vw, 75px)';
+      case 'lg': case 'large': return 'clamp(80px, 14vw, 115px)';
+      case 'xl': case 'xlarge': return 'clamp(110px, 18vw, 155px)';
+      case 'enlarge': case 'xxl': case 'max': return 'clamp(140px, 22vw, 195px)';
       default: return `${rawSize}px`;
     }
   })();
@@ -311,33 +311,38 @@ export default function AutomatedMinisiteHero({
       {showPlatformAnchor && (
         <Link href="/" style={{
           position: 'absolute',
-          top: '2rem',
-          left: isLeftLogo ? 'auto' : '2rem',
-          right: isLeftLogo ? '2rem' : 'auto',
+          top: 'clamp(0.75rem, 2vw, 2rem)',
+          left: isLeftLogo ? 'auto' : 'clamp(0.75rem, 3vw, 2rem)',
+          right: isLeftLogo ? 'clamp(0.75rem, 3vw, 2rem)' : 'auto',
           zIndex: 2000,
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
+          gap: '0.5rem',
           textDecoration: 'none',
           background: 'rgba(15, 23, 42, 0.45)',
           backdropFilter: 'blur(12px)',
-          padding: '0.5rem 1.25rem',
+          padding: '0.4rem 1rem',
           borderRadius: '50px',
           border: '1px solid rgba(255,255,255,0.15)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-          transition: 'all 0.3s'
+          transition: 'all 0.3s',
+          maxWidth: 'min(45vw, 220px)',
+          overflow: 'hidden'
         }}>
           {brandLogo ? (
-            <img src={brandLogo} alt={brandName} style={{ height: '22px', objectFit: 'contain' }} />
+            <img src={brandLogo} alt={brandName} style={{ height: '20px', objectFit: 'contain', flexShrink: 0 }} />
           ) : (
-            <i className="fas fa-sun" style={{ color: primaryColor, fontSize: '1.2rem' }}></i>
+            <i className="fas fa-sun" style={{ color: primaryColor, fontSize: '1rem', flexShrink: 0 }}></i>
           )}
           <span style={{ 
             color: '#fff', 
             fontWeight: 900, 
-            fontSize: '0.8rem', 
-            letterSpacing: '2px',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+            fontSize: '0.75rem', 
+            letterSpacing: '1.5px',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}>{brandName}</span>
         </Link>
       )}
@@ -345,13 +350,16 @@ export default function AutomatedMinisiteHero({
       {/* MODERN BUSINESS LOGO OVERLAY (Left, Right, or Center Banner) */}
       <div style={{
         position: 'absolute',
-        top: '2rem',
-        left: isLeftLogo ? '2rem' : (isCenterLogo ? '50%' : 'auto'),
-        right: !isLeftLogo && !isCenterLogo ? '2rem' : 'auto',
+        top: 'clamp(0.75rem, 2vw, 2rem)',
+        left: isLeftLogo ? 'clamp(0.75rem, 3vw, 2rem)' : (isCenterLogo ? '50%' : 'auto'),
+        right: !isLeftLogo && !isCenterLogo ? 'clamp(0.75rem, 3vw, 2rem)' : 'auto',
         transform: isCenterLogo ? 'translateX(-50%)' : 'none',
+        maxWidth: isCenterLogo ? 'min(90vw, 420px)' : 'min(50vw, 360px)',
         zIndex: 1500,
         pointerEvents: 'none',
-        transition: 'all 0.3s ease'
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        justifyContent: isLeftLogo ? 'flex-start' : (isCenterLogo ? 'center' : 'flex-end'),
       }}>
         {businessLogo ? (
           <img 
@@ -359,8 +367,8 @@ export default function AutomatedMinisiteHero({
             alt={businessName} 
             style={{ 
               height: logoHeight, 
-              maxHeight: '230px',
-              maxWidth: '360px',
+              maxHeight: 'min(230px, 25vh)',
+              maxWidth: '100%',
               filter: 'drop-shadow(0 6px 20px rgba(0,0,0,0.45))', 
               objectFit: 'contain',
               borderRadius: '12px'
@@ -370,11 +378,15 @@ export default function AutomatedMinisiteHero({
           <div style={{
             color: '#fff',
             fontWeight: 900,
-            fontSize: '1.25rem',
-            letterSpacing: '4px',
+            fontSize: 'clamp(0.9rem, 2.5vw, 1.25rem)',
+            letterSpacing: 'clamp(1px, 0.5vw, 4px)',
             textShadow: '0 2px 10px rgba(0,0,0,0.5)',
             borderLeft: `3px solid ${primaryColor}`,
-            paddingLeft: '1rem'
+            paddingLeft: '0.75rem',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}>
             {(businessName || '').toUpperCase()}
           </div>
