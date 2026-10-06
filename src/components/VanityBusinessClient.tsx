@@ -962,14 +962,47 @@ export default function VanityBusinessClient({
                             });
                           }
 
+                          const hiddenFields: string[] = [
+                            ...(Array.isArray(biz.custom_data?.hidden_fields) ? biz.custom_data.hidden_fields : []),
+                            ...(Array.isArray(biz.custom_data?.basic?.hidden_fields) ? biz.custom_data.basic.hidden_fields : []),
+                            ...(Array.isArray(secData?.hidden_fields) ? secData.hidden_fields : []),
+                          ].map(String);
+
+                          const maskedFields: string[] = [
+                            ...(Array.isArray(biz.custom_data?.masked_fields) ? biz.custom_data.masked_fields : []),
+                            ...(Array.isArray(biz.custom_data?.hidden_values) ? biz.custom_data.hidden_values : []),
+                            ...(Array.isArray(biz.custom_data?.basic?.masked_fields) ? biz.custom_data.basic.masked_fields : []),
+                            ...(Array.isArray(secData?.masked_fields) ? secData.masked_fields : []),
+                            ...(Array.isArray(secData?.hidden_values) ? secData.hidden_values : []),
+                          ].map(String);
+
                           return fieldEntries.map(({ key, val, matchedField }, index) => {
-                            if (['_media', 'media', 'section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'basic', 'about', 'section_title'].includes(key)) return null;
+                            if (['_media', 'media', 'section_news', 'section_gallery', 'section_blog', 'mini_blog', 'feature_on_main', 'youtube_story', 'description', 'section_labels', 'hidden_sections', 'hidden_fields', 'masked_fields', 'hidden_values', 'basic', 'about', 'section_title'].includes(key)) return null;
+
+                            // 1. Hide entire field (both label and value)
+                            if (hiddenFields.includes(key) || hiddenFields.includes(`${section.id}.${key}`)) {
+                              return null;
+                            }
 
                             const isPublic = matchedField ? (matchedField.acl?.read ? matchedField.acl.read.includes('public') : true) : true;
                             if (!isPublic) return null;
 
                             const displayName = matchedField ? matchedField.label.toUpperCase() : (key || '').replace(/_/g, ' ').toUpperCase();
                             const uniqueKey = `${section.id || 'section'}-${key || 'field'}-${index}`;
+
+                            // 2. Hide / mask value only (keep label, mask content)
+                            const isValueMasked = maskedFields.includes(key) || maskedFields.includes(`${section.id}.${key}`);
+                            if (isValueMasked) {
+                              return (
+                                <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem' }}>{displayName}</div>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <i className="fas fa-lock" style={{ color: '#D4AF37', fontSize: '0.8rem' }} />
+                                    <span>Private / Available on request</span>
+                                  </div>
+                                </div>
+                              );
+                            }
 
                             let finalVal = val;
                             const isPriceField = key.includes('price');
