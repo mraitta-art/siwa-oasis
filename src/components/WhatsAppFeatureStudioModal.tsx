@@ -9,6 +9,8 @@ interface WhatsAppFeatureStudioModalProps {
   onClose: () => void;
 }
 
+type MessageMode = 'smart_pitch' | 'client_showcase' | 'claim_link';
+
 export default function WhatsAppFeatureStudioModal({
   businessId,
   businessName = 'Business',
@@ -18,7 +20,7 @@ export default function WhatsAppFeatureStudioModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [targetAudience, setTargetAudience] = useState<'client' | 'vendor'>('client');
+  const [messageMode, setMessageMode] = useState<MessageMode>('smart_pitch');
   const [copied, setCopied] = useState(false);
 
   // Form State
@@ -33,6 +35,10 @@ export default function WhatsAppFeatureStudioModal({
   const [customNoteEn, setCustomNoteEn] = useState('');
   const [syncToMinisite, setSyncToMinisite] = useState(true);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  // Editable message override
+  const [customMessageOverride, setCustomMessageOverride] = useState('');
+  const [isEditingMessage, setIsEditingMessage] = useState(false);
 
   useEffect(() => {
     if (isOpen && businessId) {
@@ -54,6 +60,8 @@ export default function WhatsAppFeatureStudioModal({
         setFeaturesEn(d.selectedFeaturesEn || []);
         setCustomNoteAr(d.customNoteAr || '');
         setCustomNoteEn(d.customNoteEn || '');
+        setCustomMessageOverride('');
+        setIsEditingMessage(false);
       }
     } catch (e) {
       console.error(e);
@@ -145,28 +153,37 @@ export default function WhatsAppFeatureStudioModal({
     }
   }
 
-  // Generate WhatsApp text payload
+  // Generate dynamic WhatsApp text based on selected Mode
   function generateWhatsAppMessage(): string {
+    if (isEditingMessage && customMessageOverride) {
+      return customMessageOverride;
+    }
+
     const bName = data?.name || businessName;
     const isAr = lang === 'ar';
     const minisite = data?.minisiteUrl || `https://siwify.com/${data?.slug || ''}`;
     const selectedList = isAr ? featuresAr : featuresEn;
     const note = isAr ? customNoteAr : customNoteEn;
 
-    if (targetAudience === 'client') {
-      // Message directed to a tourist / client looking for this service (e.g. Tuk-Tuk, Safari, Stay)
+    if (messageMode === 'smart_pitch') {
+      // SMART ONBOARDING PITCH (Parent/Child specifications + Free tools + How/Why upgrade)
+      return isAr ? (data?.smartWelcomePitchAr || '') : (data?.smartWelcomePitchEn || '');
+    }
+
+    if (messageMode === 'client_showcase') {
+      // TOURIST / CLIENT SHOWCASE
       if (isAr) {
         return `🌴 مرحباً بك في واحة سيوة! ✨\n\nنقدم لك خدمة موثوقة ومباشرة مع: *${bName}*\n\n📸 *معرض الصور والمركبة / الخدمة:*\n${personalPhoto ? `👤 صورة السائق/المقدم: ${personalPhoto}\n` : ''}${servicePhoto1 ? `🛺 صورة المركبة/الخدمة (1): ${servicePhoto1}\n` : ''}${servicePhoto2 ? `📸 صورة المركبة/الخدمة (2): ${servicePhoto2}\n` : ''}\n✨ *المميزات والخدمات المشمولة:*\n${selectedList.map((f) => `• ${f}`).join('\n')}\n${note ? `\n📝 *ملاحظة:* ${note}\n` : ''}\n🌐 *للتفاصيل والحجز المباشر بدون عمولة (0%):*\n${minisite}\n\nنتمنى لكم إقامة وتجربة لا تُنسى في سيوة! 🌿`;
       } else {
         return `🌴 Welcome to Siwa Oasis! ✨\n\nHere is verified direct service details for: *${bName}*\n\n📸 *Photos & Showcase:*\n${personalPhoto ? `👤 Driver/Host Photo: ${personalPhoto}\n` : ''}${servicePhoto1 ? `🛺 Vehicle/Service Photo (1): ${servicePhoto1}\n` : ''}${servicePhoto2 ? `📸 Vehicle/Service Photo (2): ${servicePhoto2}\n` : ''}\n✨ *Highlights & Inclusions:*\n${selectedList.map((f) => `• ${f}`).join('\n')}\n${note ? `\n📝 *Note:* ${note}\n` : ''}\n🌐 *Direct Minisite & 0% Commission Booking:*\n${minisite}\n\nHave a magical journey in Siwa Oasis! 🌿`;
       }
+    }
+
+    // CLAIM LINK REMINDER
+    if (isAr) {
+      return `مرحباً ${bName}! 🌴\nيسرنا تذكيركم بتأكيد حسابكم كشريك رسمي على منصة SiWiFy:\n\n🔑 رابط التفعيل المباشر:\n${data?.claimUrl || ''}\n\n🌐 موقعكم المصغر الحالي:\n${minisite}\n\nبإمكانكم البدء باستقبال الحجوزات فوراً ✨`;
     } else {
-      // Message directed to the vendor / driver
-      if (isAr) {
-        return `مرحباً ${bName}! 🌴\nيسرنا إبلاغك بتحديث وتجهيز بطاقة نشاطك السياحي على منصة SiWiFy:\n\n✨ المميزات المفعلة في ملفك:\n${selectedList.map((f) => `• ${f}`).join('\n')}\n\n🌐 موقعك المصغر المباشر:\n${minisite}\n\nيمكنك مشاركة هذا الرابط مع ضيوفك للحجز الفوري بدون عمولة ✨`;
-      } else {
-        return `Hello ${bName}! 🌴\nYour official verified service card on SiWiFy.com has been customized:\n\n✨ Active Features:\n${selectedList.map((f) => `• ${f}`).join('\n')}\n\n🌐 Your Direct Minisite:\n${minisite}\n\nShare this link with your guests for 0% commission direct bookings ✨`;
-      }
+      return `Hello ${bName}! 🌴\nThis is a reminder to claim your official verified business profile on SiWiFy.com:\n\n🔑 Instant Claim & Activation Link:\n${data?.claimUrl || ''}\n\n🌐 Your Live Minisite:\n${minisite}\n\nStart accepting direct zero-commission bookings today ✨`;
     }
   }
 
@@ -199,12 +216,12 @@ export default function WhatsAppFeatureStudioModal({
         position: 'fixed',
         inset: 0,
         zIndex: 99999,
-        background: 'rgba(15, 23, 42, 0.8)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(15, 23, 42, 0.85)',
+        backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1.25rem',
+        padding: '1rem',
         fontFamily: "'Inter', sans-serif",
       }}
     >
@@ -213,14 +230,14 @@ export default function WhatsAppFeatureStudioModal({
           background: '#0f172a',
           color: '#fff',
           width: '100%',
-          maxWidth: '960px',
-          maxHeight: '92vh',
+          maxWidth: '1080px',
+          maxHeight: '94vh',
           borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.12)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)',
         }}
       >
         {/* MODAL HEADER */}
@@ -231,29 +248,38 @@ export default function WhatsAppFeatureStudioModal({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: 'linear-gradient(135deg, rgba(212,175,55,0.1), transparent)',
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.15), rgba(99,102,241,0.08))',
+            flexWrap: 'wrap',
+            gap: '1rem',
           }}
         >
           <div>
-            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>
-              WHATSAPP CLIENT FEATURE STUDIO &amp; PHOTO DISPATCH
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>
+                SMART PARENT/CHILD WHATSAPP ONBOARDING &amp; SHOWCASE STUDIO
+              </span>
+              {data && (
+                <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '2px 10px', borderRadius: '50px', background: 'rgba(212,175,55,0.2)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.4)' }}>
+                  🏷️ {data.parent_type_name} ➔ {data.type_name}
+                </span>
+              )}
             </div>
-            <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#fff' }}>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#fff' }}>
               {data?.name || businessName}
             </h2>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {/* Lang switcher */}
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '3px' }}>
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '3px' }}>
               <button
                 type="button"
-                onClick={() => setLang('ar')}
+                onClick={() => { setLang('ar'); setIsEditingMessage(false); }}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '5px 12px',
+                  borderRadius: '9px',
                   border: 0,
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: 900,
                   cursor: 'pointer',
                   background: lang === 'ar' ? '#D4AF37' : 'transparent',
@@ -264,12 +290,12 @@ export default function WhatsAppFeatureStudioModal({
               </button>
               <button
                 type="button"
-                onClick={() => setLang('en')}
+                onClick={() => { setLang('en'); setIsEditingMessage(false); }}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '5px 12px',
+                  borderRadius: '9px',
                   border: 0,
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: 900,
                   cursor: 'pointer',
                   background: lang === 'en' ? '#D4AF37' : 'transparent',
@@ -286,19 +312,62 @@ export default function WhatsAppFeatureStudioModal({
                 background: 'rgba(255,255,255,0.08)',
                 border: 0,
                 color: '#fff',
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
                 borderRadius: '50%',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1rem',
+                fontSize: '1.1rem',
               }}
             >
               ✕
             </button>
           </div>
+        </div>
+
+        {/* TEMPLATE MODE SELECTOR BAR */}
+        <div
+          style={{
+            padding: '0.75rem 1.75rem',
+            background: 'rgba(0,0,0,0.25)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex',
+            gap: '0.5rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          {[
+            { id: 'smart_pitch', label: '🎁 1. Smart Free Value Pitch & Upgrade ROI', desc: 'Explains free tools, category specs & why/how to upgrade' },
+            { id: 'client_showcase', label: '🛺 2. Tourist / Client Showcase Dispatch', desc: 'Driver photo, vehicle photos, feature pills & booking link' },
+            { id: 'claim_link', label: '🔑 3. Account Claim & Activation Reminder', desc: 'Direct claim & ownership verification link' },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => {
+                setMessageMode(mode.id as MessageMode);
+                setIsEditingMessage(false);
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '12px',
+                border: '1.5px solid',
+                borderColor: messageMode === mode.id ? '#D4AF37' : 'rgba(255,255,255,0.08)',
+                background: messageMode === mode.id ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.02)',
+                color: messageMode === mode.id ? '#D4AF37' : '#94a3b8',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              {mode.label}
+            </button>
+          ))}
         </div>
 
         {/* MODAL BODY */}
@@ -308,26 +377,29 @@ export default function WhatsAppFeatureStudioModal({
             overflowY: 'auto',
             flex: 1,
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
             gap: '1.75rem',
           }}
         >
           {loading ? (
             <div style={{ padding: '4rem', textAlign: 'center', color: '#D4AF37', gridColumn: '1 / -1' }}>
-              ⏳ Loading business assets and presets...
+              ⏳ Loading business assets and category hierarchy...
             </div>
           ) : (
             <>
               {/* LEFT COLUMN: PHOTOS & ASSETS MANAGER */}
               <div>
-                <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px', marginBottom: '1rem' }}>
-                  📸 1. PHOTOS &amp; ASSETS (DRIVERS / TUK-TUK / FLEET)
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>
+                    📸 PHOTOS &amp; ASSETS (DRIVERS / FLEET / VENUE)
+                  </h3>
+                  <span style={{ fontSize: '0.65rem', color: '#64748b' }}>Upload or link</span>
+                </div>
 
                 {/* Personal / Driver Photo */}
-                <div style={{ marginBottom: '1.25rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ marginBottom: '1.15rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>👤 Personal / Driver Photo:</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>👤 Personal Photo / Driver Headshot:</span>
                     {personalPhoto && (
                       <button onClick={() => setPersonalPhoto('')} style={{ background: 'none', border: 0, color: '#ef4444', fontSize: '0.65rem', cursor: 'pointer' }}>Remove</button>
                     )}
@@ -352,8 +424,8 @@ export default function WhatsAppFeatureStudioModal({
                   </div>
                 </div>
 
-                {/* Service Photo 1 (Tuk-Tuk Exterior) */}
-                <div style={{ marginBottom: '1.25rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Service Photo 1 (Tuk-Tuk / Vehicle Exterior) */}
+                <div style={{ marginBottom: '1.15rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>🛺 Vehicle / Service Photo 1 (e.g. Tuk-Tuk Exterior):</span>
                     {servicePhoto1 && (
@@ -381,7 +453,7 @@ export default function WhatsAppFeatureStudioModal({
                 </div>
 
                 {/* Service Photo 2 (Tuk-Tuk Interior / Backdrop) */}
-                <div style={{ marginBottom: '1.25rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ marginBottom: '1.15rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>📸 Vehicle / Service Photo 2 (e.g. Interior / Sunset):</span>
                     {servicePhoto2 && (
@@ -409,25 +481,28 @@ export default function WhatsAppFeatureStudioModal({
                 </div>
 
                 {/* Minisite Sync Checkbox */}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.78rem', color: '#D4AF37', cursor: 'pointer', background: 'rgba(212,175,55,0.06)', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.2)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.75rem', color: '#D4AF37', cursor: 'pointer', background: 'rgba(212,175,55,0.06)', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.2)' }}>
                   <input
                     type="checkbox"
                     checked={syncToMinisite}
                     onChange={(e) => setSyncToMinisite(e.target.checked)}
                     style={{ accentColor: '#D4AF37', width: 16, height: 16 }}
                   />
-                  <span>🔄 Automatically sync photos &amp; highlights to live Minisite gallery</span>
+                  <span>🔄 Auto-sync photos &amp; highlights to live Minisite gallery</span>
                 </label>
               </div>
 
-              {/* RIGHT COLUMN: FEATURE SELECTOR & MESSAGE PREVIEW */}
+              {/* RIGHT COLUMN: FEATURE SELECTOR & LIVE MESSAGE GENERATOR */}
               <div>
-                <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px', marginBottom: '1rem' }}>
-                  ✨ 2. SELECT FEATURES TO SEND TO CLIENT
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1px' }}>
+                    ✨ 2. HIGHLIGHTS FOR ({data?.type_name?.toUpperCase() || 'BUSINESS'})
+                  </h3>
+                  <span style={{ fontSize: '0.65rem', color: '#64748b' }}>Toggle to include</span>
+                </div>
 
                 {/* Presets Checklist */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.85rem', maxHeight: '180px', overflowY: 'auto' }}>
                   {presets.map((preset: string, idx: number) => {
                     const isChecked = currentFeatures.includes(preset);
                     return (
@@ -435,17 +510,17 @@ export default function WhatsAppFeatureStudioModal({
                         key={idx}
                         onClick={() => toggleFeature(preset, lang)}
                         style={{
-                          padding: '0.65rem 0.9rem',
-                          borderRadius: '12px',
+                          padding: '0.55rem 0.85rem',
+                          borderRadius: '10px',
                           background: isChecked ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.02)',
                           border: `1px solid ${isChecked ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.06)'}`,
                           color: isChecked ? '#86efac' : '#94a3b8',
-                          fontSize: '0.78rem',
+                          fontSize: '0.75rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.6rem',
+                          gap: '0.5rem',
                           transition: 'all 0.2s',
                         }}
                       >
@@ -457,7 +532,7 @@ export default function WhatsAppFeatureStudioModal({
                 </div>
 
                 {/* Add Custom Feature */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
                   <input
                     type="text"
                     value={customFeatureInput}
@@ -475,53 +550,65 @@ export default function WhatsAppFeatureStudioModal({
                   </button>
                 </div>
 
-                {/* AUDIENCE SELECTOR & PREVIEW */}
+                {/* LIVE MESSAGE PREVIEW / EDITOR */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37' }}>📱 MESSAGE PREVIEW</span>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setTargetAudience('client')}
-                      style={{
-                        padding: '3px 8px', borderRadius: '6px', border: 0, fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer',
-                        background: targetAudience === 'client' ? '#2563eb' : 'rgba(255,255,255,0.06)',
-                        color: '#fff',
-                      }}
-                    >
-                      For Tourist / Client
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTargetAudience('vendor')}
-                      style={{
-                        padding: '3px 8px', borderRadius: '6px', border: 0, fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer',
-                        background: targetAudience === 'vendor' ? '#2563eb' : 'rgba(255,255,255,0.06)',
-                        color: '#fff',
-                      }}
-                    >
-                      For Vendor / Driver
-                    </button>
-                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D4AF37' }}>
+                    📱 WHATSAPP MESSAGE PAYLOAD
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isEditingMessage) {
+                        setCustomMessageOverride(generateWhatsAppMessage());
+                      }
+                      setIsEditingMessage(!isEditingMessage);
+                    }}
+                    style={{
+                      background: 'none', border: 0, color: '#38bdf8', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline',
+                    }}
+                  >
+                    {isEditingMessage ? '↺ Reset to Auto-Generated' : '✏️ Custom Edit Text'}
+                  </button>
                 </div>
 
-                {/* Live Message Box */}
-                <pre
-                  style={{
-                    background: '#020617',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '14px',
-                    padding: '1rem',
-                    fontSize: '0.72rem',
-                    color: '#cbd5e1',
-                    whiteSpace: 'pre-wrap',
-                    lineHeight: 1.5,
-                    maxHeight: '160px',
-                    overflowY: 'auto',
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                >
-                  {generateWhatsAppMessage()}
-                </pre>
+                {isEditingMessage ? (
+                  <textarea
+                    value={customMessageOverride}
+                    onChange={(e) => setCustomMessageOverride(e.target.value)}
+                    rows={8}
+                    style={{
+                      width: '100%',
+                      background: '#020617',
+                      border: '1px solid #38bdf8',
+                      borderRadius: '14px',
+                      padding: '1rem',
+                      fontSize: '0.72rem',
+                      color: '#cbd5e1',
+                      lineHeight: 1.5,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  />
+                ) : (
+                  <pre
+                    style={{
+                      background: '#020617',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '14px',
+                      padding: '1rem',
+                      fontSize: '0.72rem',
+                      color: '#cbd5e1',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.5,
+                      maxHeight: '190px',
+                      overflowY: 'auto',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {generateWhatsAppMessage()}
+                  </pre>
+                )}
               </div>
             </>
           )}
@@ -537,7 +624,7 @@ export default function WhatsAppFeatureStudioModal({
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: '1rem',
-            background: 'rgba(0,0,0,0.2)',
+            background: 'rgba(0,0,0,0.25)',
           }}
         >
           <button
