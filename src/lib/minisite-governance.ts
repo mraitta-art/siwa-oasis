@@ -17,7 +17,18 @@ export type MinisiteComponentType =
   | 'auctions_feed';
 
 export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> = {
-  free: ['vendor_hero', 'vendor_gallery', 'text_section', 'cta_section'],
+  // Free: all standard components — admin builds the layout, vendors don't touch this
+  free: [
+    'vendor_hero',
+    'vendor_gallery',
+    'vendor_services',
+    'vendor_blog',
+    'vendor_packages',
+    'text_section',
+    'cta_section',
+    'faq',
+    'testimonials',
+  ],
   standard: [
     'vendor_hero',
     'vendor_gallery',
@@ -29,6 +40,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
     'faq',
     'testimonials',
   ],
+  // Premium: standard + private per-vendor carousel
   premium: [
     'vendor_hero',
     'vendor_gallery',
@@ -41,6 +53,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
     'faq',
     'testimonials',
   ],
+  // Admin: everything including auctions feed
   admin: [
     'vendor_hero',
     'vendor_gallery',
@@ -93,35 +106,35 @@ export const COMPONENT_META: Record<
     icon: 'fa-concierge-bell',
     description: 'Curated list of amenities, features, or core service offerings.',
     vendorScoped: true,
-    tier: 'standard',
+    tier: 'free',
   },
   vendor_packages: {
     label: 'Packages & Catalog',
     icon: 'fa-box-open',
     description: 'Bookable tours, packages, or product catalog showcase.',
     vendorScoped: true,
-    tier: 'standard',
+    tier: 'free',
   },
   vendor_blog: {
     label: 'Stories & Insights',
     icon: 'fa-newspaper',
     description: 'Published articles, updates, and desert guides by this vendor.',
     vendorScoped: true,
-    tier: 'standard',
+    tier: 'free',
   },
   faq: {
     label: 'Accordion FAQ',
     icon: 'fa-circle-question',
     description: 'Frequently asked questions with expandable answers.',
     vendorScoped: false,
-    tier: 'standard',
+    tier: 'free',
   },
   testimonials: {
     label: 'Endorsements & Reviews',
     icon: 'fa-quote-left',
     description: 'Client reviews, trust quotes, and guest experiences.',
     vendorScoped: false,
-    tier: 'standard',
+    tier: 'free',
   },
   vendor_carousel: {
     label: 'Private Hero Carousel',
@@ -141,6 +154,8 @@ export const COMPONENT_META: Record<
 
 export function getBusinessTier(business: any): MinisiteTier {
   if (!business) return 'free';
+
+  // Admin / master businesses get full access
   if (business.is_master || business.is_admin_business) return 'admin';
 
   const tierCode = String(
@@ -151,12 +166,39 @@ export function getBusinessTier(business: any): MinisiteTier {
       ''
   ).toLowerCase();
 
-  if (tierCode.includes('premium') || tierCode.includes('pro') || tierCode.includes('vip') || tierCode.includes('gold')) {
+  // Admin-level overrides
+  if (tierCode.includes('admin') || tierCode.includes('master')) return 'admin';
+
+  // Premium tier codes — vip, gold, pro, premium, plus
+  if (
+    tierCode.includes('premium') ||
+    tierCode.includes('pro') ||
+    tierCode.includes('vip') ||
+    tierCode.includes('gold') ||
+    tierCode.includes('elite') ||
+    tierCode.includes('enterprise')
+  ) {
     return 'premium';
   }
-  if (tierCode.includes('standard') || tierCode.includes('silver') || tierCode.includes('plus')) {
+
+  // Standard tier codes
+  if (
+    tierCode.includes('standard') ||
+    tierCode.includes('silver') ||
+    tierCode.includes('plus') ||
+    tierCode.includes('basic') ||
+    tierCode.includes('starter') ||
+    tierCode.includes('essential')
+  ) {
     return 'standard';
   }
+
+  // If the business is claimed, trusted, or published — treat as standard minimum
+  // so the admin can build a full layout for them
+  if (business.is_claimed || business.is_trusted || business.published || business.active) {
+    return 'standard';
+  }
+
   return 'free';
 }
 
