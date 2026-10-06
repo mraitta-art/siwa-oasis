@@ -22,12 +22,41 @@ const NAV_GROUPS = [
     title: 'Business Setup',
     items: [
       { name: 'Intake & Business Studio', href: '/vendor', faIcon: 'fa-briefcase' },
+      { name: 'Content & Sections', href: '/vendor/sections', faIcon: 'fa-layer-group' },
+    ],
+  },
+  {
+    title: 'Media & Social Growth',
+    items: [
+      { name: 'Hero Carousel & Reels', href: '/vendor/media', faIcon: 'fa-images', badge: 'NEW' },
+      { name: 'Minisite & Bio Link', href: '/vendor/minisite', faIcon: 'fa-globe', badge: 'LIVE' },
+      { name: 'Templates & Themes', href: '/vendor/templates', faIcon: 'fa-palette' },
+    ],
+  },
+  {
+    title: 'Sales & Journeys',
+    items: [
+      { name: 'Journey Requests', href: '/vendor/journey-requests', faIcon: 'fa-route', badge: 'REQ' },
+      { name: 'Packages & Catalog', href: '/vendor/packages', faIcon: 'fa-box-open' },
+      { name: 'Package Studio', href: '/vendor/package-studio', faIcon: 'fa-wand-magic-sparkles', badge: 'PRO' },
+    ],
+  },
+  {
+    title: 'Account & Performance',
+    items: [
+      { name: 'Visitor Analytics', href: '/vendor/analytics', faIcon: 'fa-chart-line' },
+      { name: 'Plan & Services', href: '/vendor/services', faIcon: 'fa-shield-halved' },
+      { name: 'Verification & Trust', href: '/vendor/verification', faIcon: 'fa-user-check' },
     ],
   },
 ];
 
 const MOBILE_TABS = [
-  { name: 'Intake', href: '/vendor', faIcon: 'fa-briefcase' },
+  { name: 'Studio', href: '/vendor', faIcon: 'fa-briefcase' },
+  { name: 'Carousel', href: '/vendor/media', faIcon: 'fa-images' },
+  { name: 'Minisite', href: '/vendor/minisite', faIcon: 'fa-globe' },
+  { name: 'Requests', href: '/vendor/journey-requests', faIcon: 'fa-route' },
+  { name: 'Packages', href: '/vendor/packages', faIcon: 'fa-box-open' },
 ];
 
 /* ─── CSS injected once ───────────────────────────────────── */

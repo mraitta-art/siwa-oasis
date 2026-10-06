@@ -143,6 +143,7 @@ const NAV_GROUPS = [
         name: 'Minisite Builder & Studio',
         path: '/jana/minisite-builder',
         icon: 'fa-store',
+        badge: 'NEW',
         children: [
           { name: 'Minisite Builder Hub', path: '/jana/minisite-builder', icon: 'fa-store' },
           { name: 'Typology Templates', path: '/jana/page-builder/templates', icon: 'fa-layer-group' },
