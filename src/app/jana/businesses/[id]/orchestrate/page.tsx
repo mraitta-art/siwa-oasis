@@ -663,7 +663,7 @@ export default function BusinessOrchestrator() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@300;500;900&display=swap');
 
         .orchestrator-page {

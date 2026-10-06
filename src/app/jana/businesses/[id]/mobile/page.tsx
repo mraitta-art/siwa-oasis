@@ -13,19 +13,39 @@ export default function DynamicMobileVendorDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Use vendor-scoped API so vendors don't need admin session.
+        // Passing ?id= allows admin to also view any business; the API
+        // checks ownership for non-admin users.
         const [bRes, sRes] = await Promise.all([
-          fetch(`/api/jana/businesses?id=${id}`),
+          fetch(`/api/vendor/business?id=${id}&sections=1`),
           fetch('/api/jana/sections')
         ]);
+
+        if (!bRes.ok) {
+          const err = await bRes.json().catch(() => ({}));
+          console.error('Business fetch error:', err);
+          setBusiness(null);
+          setLoading(false);
+          return;
+        }
+
         const bData = await bRes.json();
-        const sData = await sRes.json();
-        
-        // Find the specific business
-        const biz = Array.isArray(bData) ? bData.find((b: any) => b.id === id) : bData;
-        setBusiness(biz);
-        setSections(sData);
+
+        // /api/vendor/business?sections=1 returns { business, sections }
+        // but also supports plain business object for backward compat
+        const biz = bData.business || bData;
+        setBusiness(biz || null);
+
+        // Sections from the vendor API (type-filtered) take priority
+        if (Array.isArray(bData.sections) && bData.sections.length > 0) {
+          setSections(bData.sections);
+        } else {
+          const sData = sRes.ok ? await sRes.json() : [];
+          setSections(Array.isArray(sData) ? sData : []);
+        }
       } catch (e) {
         console.error("Dashboard Load Failed", e);
+        setBusiness(null);
       } finally {
         setLoading(false);
       }
@@ -97,7 +117,7 @@ export default function DynamicMobileVendorDashboard() {
       {/* 🧬 CORE DNA ORCHESTRATOR (Edit Info) */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1rem' }}>IDENTITY GOVERNANCE</div>
-        <Link href={`/jana/businesses/${id}/orchestrate`} style={{ textDecoration: 'none' }}>
+        <Link href={`/vendor/profile`} style={{ textDecoration: 'none' }}>
           <div style={{ 
             background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '24px', 
             border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
@@ -165,7 +185,7 @@ export default function DynamicMobileVendorDashboard() {
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {chapters.map(chapter => (
-            <Link key={chapter.id} href={`/jana/businesses/${id}/orchestrate`} style={{ textDecoration: 'none' }}>
+            <Link key={chapter.id} href={`/vendor/profile?section=${chapter.id}`} style={{ textDecoration: 'none' }}>
               <div style={{ 
                 background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '22px', 
                 border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: '1.25rem',
