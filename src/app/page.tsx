@@ -1,9 +1,24 @@
-'use client';
-export const dynamic = 'force-dynamic';
+/**
+ * Homepage — Server Component (SSR + ISR)
+ *
+ * Converted from 'use client' + useEffect to a server component so data is
+ * fetched at render time on the server. Users see content immediately on
+ * first byte instead of waiting for a client-side fetch waterfall.
+ *
+ * Caching: revalidate = 30 seconds (ISR). After the first request, Vercel
+ * serves the cached HTML until it expires, then regenerates in the background.
+ * Admin publishes trigger cache invalidation via the existing invalidateCache hook.
+ */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import { getWebsiteTemplate } from '@/lib/cache';
+
+// ISR: serve cached page for 30 seconds, then regenerate in background
+export const revalidate = 30;
+// Remove force-dynamic so Next.js can cache the page output
+export const dynamic = 'auto';
 
 interface LayoutSection {
   id: string;
@@ -100,48 +115,27 @@ function dedupeSections(sections: LayoutSection[]): LayoutSection[] {
   });
 }
 
-export default function Home() {
-  const [layout, setLayout] = useState<LayoutSection[]>([]);
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
-  const [builderLoaded, setBuilderLoaded] = useState(false);
-  const [hasBuilderConfig, setHasBuilderConfig] = useState<boolean | null>(null);
+/**
+ * Server Component — data is fetched during SSR, no client waterfall.
+ */
+export default async function Home() {
+  // Fetch from the cached layer (in-memory TTL cache + React cache deduplication)
+  const config = await getWebsiteTemplate('main');
 
-  useEffect(() => {
-    async function init() {
-      try {
-        const res = await fetch('/api/jana/website?id=website_main');
-        if (!res.ok) {
-          setHasBuilderConfig(false);
-          return;
-        }
+  const settings: SiteSettings | null = config?.site_settings || null;
 
-        const data = await res.json();
-        const config = Array.isArray(data) ? data[0] : data;
+  const hasSavedLayout = Boolean(config) &&
+    ['header_components', 'body_components', 'footer_components'].some(
+      key => Array.isArray((config as any)?.[key])
+    );
 
-        const allComponents: LayoutSection[] = dedupeSections([
-          ...(config?.header_components || []),
-          ...(config?.body_components || []),
-          ...(config?.footer_components || [])
-        ]);
-
-        const hasSavedLayout = Boolean(config) && ['header_components', 'body_components', 'footer_components'].some(key => Array.isArray(config[key]));
-        if (hasSavedLayout) {
-          // The admin builder is authoritative, including an intentionally empty layout.
-          setLayout(allComponents);
-          setHasBuilderConfig(true);
-          if (config.site_settings) setSettings(config.site_settings);
-        } else {
-          setHasBuilderConfig(false);
-        }
-      } catch (e) {
-        console.error('Homepage init fail:', e);
-        setHasBuilderConfig(false);
-      } finally {
-        setBuilderLoaded(true);
-      }
-    }
-    init();
-  }, []);
+  const layout: LayoutSection[] = hasSavedLayout
+    ? dedupeSections([
+        ...(config?.header_components || []),
+        ...(config?.body_components || []),
+        ...(config?.footer_components || []),
+      ])
+    : [];
 
   const themeCSS = buildThemeCSS(settings);
   const primary  = settings?.primary_color || '#FFB700';
@@ -149,16 +143,16 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      
+
       {/* Dynamic theme injection — overrides :root CSS variables */}
       <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
 
       {/* 🏛️ ELITE NAVIGATION */}
-      <nav style={{ 
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, 
-        padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)', 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        background: `linear-gradient(to bottom, ${navBg}dd, transparent)` 
+      <nav style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
+        padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        background: `linear-gradient(to bottom, ${navBg}dd, transparent)`
       }}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {settings?.logo_url ? (
@@ -172,26 +166,20 @@ export default function Home() {
         </Link>
       </nav>
 
-      {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING */}
-      {builderLoaded ? (
-        hasBuilderConfig ? (
-          <DynamicHomepageRenderer layout={layout} settings={settings} pageId="main" />
-        ) : (
-          <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
-            <div style={{ maxWidth: '720px' }}>
-              <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#D4AF37', fontWeight: 900 }}>Homepage Builder Required</h1>
-              <p style={{ color: '#eee', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2rem' }}>
-                This homepage is controlled by the admin builder. Create or publish a <code style={{ background: 'rgba(255,255,255,0.08)', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>website_main</code> configuration in the portal architect to display content here.
-              </p>
-              <Link href="/jana/website?page=homepage" style={{ display: 'inline-block', padding: '1rem 2rem', background: '#D4AF37', color: '#000', borderRadius: '999px', fontWeight: 900, textDecoration: 'none' }}>
-                Open Homepage Builder
-              </Link>
-            </div>
-          </div>
-        )
+      {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING — SSR data passed as props */}
+      {hasSavedLayout ? (
+        <DynamicHomepageRenderer layout={layout} settings={settings} pageId="main" />
       ) : (
         <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
-          <div style={{ color: '#fff', fontWeight: 900, letterSpacing: '4px', fontSize: '0.8rem' }}>LOADING BUILDER CONTENT…</div>
+          <div style={{ maxWidth: '720px' }}>
+            <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#D4AF37', fontWeight: 900 }}>Homepage Builder Required</h1>
+            <p style={{ color: '#eee', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2rem' }}>
+              This homepage is controlled by the admin builder. Create or publish a <code style={{ background: 'rgba(255,255,255,0.08)', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>website_main</code> configuration in the portal architect to display content here.
+            </p>
+            <Link href="/jana/website?page=homepage" style={{ display: 'inline-block', padding: '1rem 2rem', background: '#D4AF37', color: '#000', borderRadius: '999px', fontWeight: 900, textDecoration: 'none' }}>
+              Open Homepage Builder
+            </Link>
+          </div>
         </div>
       )}
 
@@ -213,7 +201,7 @@ export default function Home() {
                )}
                <p style={{ color: 'rgba(247,231,208,0.72)', fontSize: '0.85rem', maxWidth: '300px', lineHeight: 1.8 }}>{settings?.footer_tagline || 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.'}</p>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>EXPLORE</span>
                <Link href="/search/vibe" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
@@ -221,7 +209,7 @@ export default function Home() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>PARTNERS & GOVERNANCE</span>
+               <span style={{ fontSize: '0.65rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.5rem' }}>PARTNERS &amp; GOVERNANCE</span>
                <Link href="/login" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Vendor Portal</Link>
                <Link href="/signup" style={{ textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', color: primary }}>Become a Partner (Free Minisite)</Link>
                <Link href="/investment-opportunities" style={{ color: 'rgba(247,231,208,0.78)', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>

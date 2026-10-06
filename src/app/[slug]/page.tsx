@@ -10,7 +10,11 @@ import { getBusinessSlugCandidates } from '@/lib/public-url';
 
 import { getCurrentUser } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
+// ISR: cache minisite pages for 60 seconds, then regenerate in background.
+// Business data changes infrequently — this eliminates repeated TiDB round-trips
+// for every visitor while keeping content reasonably fresh.
+export const revalidate = 60;
+export const dynamic = 'auto';
 
 /**
  * SERVER-SIDE SEO ENGINE & REDIRECT HANDLER
@@ -100,47 +104,52 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
   const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
   
   try {
+    // Run site-settings and business lookup in PARALLEL — they are independent.
+    const lookupCandidates = isId ? [] : [...new Set(getBusinessSlugCandidates(slug))];
+    const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
+    const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
+    const bizParams = isId ? [slug] : [...lookupCandidates, ...lookupCandidates, slug, ...lookupCandidates];
+
+    const [siteConfigRows, bizRows] = await Promise.all([
+      // Global platform settings (needed for platform name, branding)
+      safeQuery<any>("SELECT config FROM website_configs WHERE type = 'website_main' LIMIT 1").catch(() => [] as any[]),
+      // Business record lookup
+      isId
+        ? safeQuery<any>(
+            `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
+             FROM businesses b
+             LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+             LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+             WHERE b.id = ?`,
+            [slug]
+          )
+        : safeQuery<any>(
+            `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
+             FROM businesses b
+             LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
+             LEFT JOIN minisite_templates mt ON b.template_id = mt.id
+             WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
+            bizParams
+          ),
+    ]);
+
     let siteSettings: any = null;
     try {
-      const [mainCfg] = await safeQuery<any>("SELECT config FROM website_configs WHERE type = 'website_main' LIMIT 1");
-      if (mainCfg) {
-        const parsed = typeof mainCfg.config === 'string' ? JSON.parse(mainCfg.config) : mainCfg.config;
+      if (siteConfigRows?.[0]) {
+        const parsed = typeof siteConfigRows[0].config === 'string' ? JSON.parse(siteConfigRows[0].config) : siteConfigRows[0].config;
         siteSettings = parsed?.site_settings || null;
       }
     } catch {}
 
     const platformName = siteSettings?.site_name || 'SiWiFy.com';
-    let biz: any = null;
+    let biz: any = bizRows?.[0] ?? null;
 
-    if (isId) {
-      // It's a UUID — fetch by ID and redirect to slug
-      const [bizById] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
-         FROM businesses b
-         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.id = ?`,
-        [slug]
-      );
-      if (bizById?.slug) redirect(`/${bizById.slug}`);
-    } else {
-      const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
-      const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
-      const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
-      const params = [...lookupCandidates, ...lookupCandidates];
+    // UUID redirect — redirect to the canonical slug URL
+    if (isId && biz?.slug) redirect(`/${biz.slug}`);
 
-      const [row] = await safeQuery<any>(
-        `SELECT b.*, t.features as tier_features, mt.settings as template_features, mt.components as template_components
-         FROM businesses b
-         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
-        [...params, slug, ...lookupCandidates]
-      );
-      biz = row ?? null;
-      if (biz?.slug && biz.slug !== slug) {
-        redirect(`/${biz.slug}`);
-      }
+    // Canonical slug redirect — redirect if slug differs from stored slug
+    if (!isId && biz?.slug && biz.slug !== slug) {
+      redirect(`/${biz.slug}`);
     }
 
     // Service controls are optional until the local service migration is applied.
@@ -226,15 +235,24 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
       );
     }
 
-    // Fetch sections directly from DB by traversing the typology hierarchy
+    // Fetch the entire business_type ancestor chain in a SINGLE query, then traverse in memory.
+    // Previously this was a sequential while-loop doing one DB round-trip per parent level
+    // (~3-5 queries × ~400ms each from Egypt to TiDB Cloud EU = 1.2-2s wasted).
+    const allTypeRows = await safeQuery<any>(
+      'SELECT id, name, parent_id, sections, own_sections FROM business_types',
+      []
+    );
+    const typeMap = new Map<string, any>(allTypeRows.map((t: any) => [t.id, t]));
+
     let currentTypeId: string | null = biz.type_id;
     const collectedSectionIds = new Set<string>();
     let primaryTypeName = '';
+    const visited = new Set<string>();
 
-    while (currentTypeId) {
-      const typeRows = await safeQuery<any>('SELECT id, name, parent_id, sections, own_sections FROM business_types WHERE id = ?', [currentTypeId]);
-      if (typeRows && typeRows.length > 0) {
-        const t = typeRows[0];
+    while (currentTypeId && !visited.has(currentTypeId)) {
+      visited.add(currentTypeId);
+      const t = typeMap.get(currentTypeId);
+      if (t) {
         if (!primaryTypeName) primaryTypeName = t.name || '';
         const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections || '[]') : t.sections || [];
         const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections || '[]') : t.own_sections || [];
@@ -250,56 +268,61 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
 
     // If the business has no assigned section IDs, restore the canonical public set.
-    // This prevents a partially-migrated or stale business record from collapsing to an empty minisite.
     if (sectionIds.length === 0) {
       sectionIds = getMinisiteSectionIds(biz.type_id, []);
     }
 
     // If the canonical fallback still yields nothing, include all active universal sections.
     if (sectionIds.length === 0) {
-      const universalRows = await safeQuery<any>('SELECT id FROM sections WHERE is_universal = 1 AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC');
-      sectionIds = (universalRows || []).map((r: any) => r.id);
+      sectionIds = allTypeRows
+        .filter((r: any) => r.is_universal === 1 || r.is_universal === true)
+        .map((r: any) => r.id);
+      // If still empty, fall back to DB universal sections query
+      if (sectionIds.length === 0) {
+        const universalRows = await safeQuery<any>('SELECT id FROM sections WHERE is_universal = 1 AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC');
+        sectionIds = (universalRows || []).map((r: any) => r.id);
+      }
     }
 
     let sections: any[] = [];
     if (sectionIds.length > 0) {
       const placeholders = sectionIds.map(() => '?').join(',');
-      const rows = await safeQuery<any>(
-        `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
-        sectionIds
-      );
-        
+
+      // Run all independent DB queries in PARALLEL — eliminates sequential await waterfall.
+      // Previously ~4 sequential round-trips × ~400ms = ~1.6s. Now all run concurrently = ~400ms total.
+      const [rows, fieldDefs, galleryItems, blogPosts, tourProductsResult] = await Promise.all([
+        safeQuery<any>(
+          `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
+          sectionIds
+        ),
         // Fetch field metadata definitions to display user-friendly labels on minisite
-        const fieldDefs = await safeQuery<any>(
+        safeQuery<any>(
           `SELECT name, label, section_id, field_type, options, acl, required_feature FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
           [biz.type_id]
-        );
-
+        ),
         // Fetch approved vendor gallery items
-        const galleryItems = await safeQuery<any>(
-          `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
-           FROM vendor_gallery 
+        safeQuery<any>(
+          `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status
+           FROM vendor_gallery
            WHERE business_id = ? AND approval_status = 'approved' AND show_on_minisite = 1`,
           [biz.id]
-        );
-
+        ),
         // Fetch published section blog posts
-        const blogPosts = await safeQuery<any>(
-          `SELECT id, title, content, excerpt, section_id, show_on_main, show_on_minisite, status 
-           FROM section_blogs 
-           WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1 
+        safeQuery<any>(
+          `SELECT id, title, content, excerpt, section_id, show_on_main, show_on_minisite, status
+           FROM section_blogs
+           WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1
            ORDER BY published_at DESC`,
           [biz.id]
-        );
-
+        ),
         // Fetch active tour products / packages for travel operators & marketplace catalog
-        let tourProducts: any[] = [];
-        try {
-          tourProducts = await safeQuery<any>(
-            `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
-            [biz.id]
-          );
-        } catch {}
+        safeQuery<any>(
+          `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
+          [biz.id]
+        ).catch(() => [] as any[]),
+      ]);
+
+      const tourProducts: any[] = tourProductsResult || [];
 
         sections = rows.map((s: any) => {
           const sFields = fieldDefs.filter((f: any) => f.section_id === s.id).map((f: any) => ({
