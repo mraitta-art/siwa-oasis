@@ -488,7 +488,8 @@ export default function MultiPageSiteBuilder() {
       </div>
 
       {/* ═══════════════════════ 3-COLUMN BODY ═══════════════════════════ */}
-      <div style={{ display:'grid', gridTemplateColumns:'240px 272px 1fr', flex:1, overflow:'hidden', minHeight:0 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'240px 272px minmax(500px, 1fr)', flex:1, overflowX:'auto', overflowY:'hidden', minHeight:0, minWidth:0 }}>
+
 
         {/* ─── COL 1 · Pages / Templates List ──────────────────────────── */}
         <div style={{ background:'#0d1526', borderRight:'1px solid rgba(255,255,255,0.05)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -620,8 +621,9 @@ export default function MultiPageSiteBuilder() {
         </div>
 
         {/* ─── COL 3 · Canvas ──────────────────────────────────────────── */}
-        <div style={{ padding:'1.25rem 1.5rem', overflowY:'auto', background:'#f8fafc' }}>
-          <div style={{ maxWidth:820, margin:'0 auto' }}>
+        <div style={{ padding:'1.25rem 1.5rem', overflowY:'auto', overflowX:'auto', background:'#f8fafc', minWidth:0 }}>
+          <div style={{ maxWidth:820, margin:'0 auto', minWidth:'340px' }}>
+
 
             {/* Zone tabs + summary */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.25rem' }}>

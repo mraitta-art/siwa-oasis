@@ -125,18 +125,28 @@ export default async function Home() {
 
   const settings: SiteSettings | null = config?.site_settings || null;
 
-  const hasSavedLayout = Boolean(config) &&
-    ['header_components', 'body_components', 'footer_components'].some(
-      key => Array.isArray((config as any)?.[key])
-    );
+  const DEFAULT_MAIN_LAYOUT: LayoutSection[] = [
+    { id: 'h1', type: 'hero_carousel',        zone: 'body', props: { carousel_id: 'discovery' } },
+    { id: 'h2', type: 'services_hub',          zone: 'body', props: {} },
+    { id: 'h3', type: 'experience_categories', zone: 'body', props: {} },
+    { id: 'h4', type: 'search_bar',            zone: 'body', props: {} },
+    { id: 'h5', type: 'smart_journey_planner', zone: 'body', props: {} },
+    { id: 'h6', type: 'ecosystem_map',         zone: 'body', props: {} },
+    { id: 'h7', type: 'local_products',        zone: 'body', props: {} },
+    { id: 'h8', type: 'storytelling_section',  zone: 'body', props: {} },
+    { id: 'h9', type: 'partner_cta',           zone: 'body', props: {} },
+  ];
 
-  const layout: LayoutSection[] = hasSavedLayout
-    ? dedupeSections([
-        ...(config?.header_components || []),
-        ...(config?.body_components || []),
-        ...(config?.footer_components || []),
-      ])
-    : [];
+  const rawSaved = [
+    ...(config?.header_components || []),
+    ...(config?.body_components || []),
+    ...(config?.footer_components || []),
+  ];
+
+  const layout: LayoutSection[] = rawSaved.length > 0 
+    ? dedupeSections(rawSaved) 
+    : DEFAULT_MAIN_LAYOUT;
+
 
   const themeCSS = buildThemeCSS(settings);
   const primary  = settings?.primary_color || '#FFB700';
@@ -168,9 +178,10 @@ export default async function Home() {
       </nav>
 
       {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING — SSR data passed as props */}
-      {hasSavedLayout ? (
+      {layout.length > 0 ? (
         <DynamicHomepageRenderer layout={layout} settings={settings} pageId="main" />
       ) : (
+
         <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
           <div style={{ maxWidth: '720px' }}>
             <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#D4AF37', fontWeight: 900 }}>Homepage Builder Required</h1>
