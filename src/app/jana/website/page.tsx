@@ -259,7 +259,9 @@ export default function MultiPageSiteBuilder() {
             site_settings: siteSettings,
           }),
         });
-        if (!res.ok) throw new Error('Failed');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to save');
+
         setPages(prev => prev.map(p => p.slug === currentPage ? { ...p, saved: true } : p));
         if (!pages.find(p => p.slug === currentPage)) setPages(prev => [...prev, { slug: currentPage, saved: true, type: 'page' }]);
         notify(`🚀 ${currentPage.toUpperCase()} published!`);
@@ -269,12 +271,17 @@ export default function MultiPageSiteBuilder() {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: currentPage, name: templateMeta.name, type_id: templateMeta.type_id || null, level: templateMeta.level, layout: slots.map(toComp), features: {} }),
         });
-        if (!res.ok) throw new Error('Failed');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to save');
         notify(`🛡️ Blueprint secured!`);
       }
-    } catch { notify('❌ Save failed.', 'error'); }
+    } catch (err: any) { 
+      console.error('[Save error]', err);
+      notify(`❌ ${err.message || 'Save failed.'}`, 'error'); 
+    }
     setSaving(false);
   };
+
 
   // ── Create page/template ─────────────────────────────────────────────────
   const createItem = () => {
