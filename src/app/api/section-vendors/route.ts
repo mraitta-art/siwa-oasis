@@ -29,163 +29,157 @@ export async function GET(request: NextRequest) {
 
     switch (sectionId) {
 
-      // Programs & Packages — tour_products (is_active = 1)
+      // Programs & Packages — tour_products (is_active = 1) or experience_packages
       case 'sec_5_experiences': {
-        vendors = await query<any>(
-          `SELECT
-             b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-             b.vendor_whatsapp, b.vendor_phone,
-             bt.name AS type_name,
-             COUNT(tp.id) AS item_count,
-             MAX(tp.image_url) AS section_image,
-             MIN(tp.price) AS min_price,
-             MAX(tp.price) AS max_price
-           FROM businesses b
-           LEFT JOIN business_types bt ON b.type_id = bt.id
-           INNER JOIN tour_products tp
-             ON tp.vendor_business_id = b.id AND tp.is_active = 1
-           WHERE b.slug IS NOT NULL ${searchWhere}
-           GROUP BY b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-                    b.vendor_whatsapp, b.vendor_phone, bt.name
-           ORDER BY b.is_trusted DESC, item_count DESC
-           LIMIT ?`,
-          [...searchArgs, limit]
-        ).catch(() => []);
+        try {
+          const rawBiz = await query<any>(
+            `SELECT b.*, bt.name AS type_name FROM businesses b
+             LEFT JOIN business_types bt ON b.type_id = bt.id
+             WHERE b.slug IS NOT NULL ${searchWhere}
+             ORDER BY b.is_trusted DESC, b.name ASC
+             LIMIT ?`,
+            [...searchArgs, limit]
+          );
+
+          const productRows = await query<any>(
+            `SELECT vendor_business_id, image_url, price FROM tour_products WHERE is_active = 1`
+          ).catch(() => []);
+
+          const expRows = await query<any>(
+            `SELECT id, name, pricing, cover_image, business_ids FROM experience_packages WHERE active = 1`
+          ).catch(() => []);
+
+          vendors = (rawBiz || []).map((b: any) => {
+            const bizProducts = (productRows || []).filter((p: any) => String(p.vendor_business_id) === String(b.id));
+            const bizExps = (expRows || []).filter((e: any) => {
+              try {
+                const bids = typeof e.business_ids === 'string' ? JSON.parse(e.business_ids) : e.business_ids;
+                return Array.isArray(bids) && bids.map(String).includes(String(b.id));
+              } catch { return false; }
+            });
+
+            const totalItems = bizProducts.length + bizExps.length;
+            const parsedCustom = typeof b.custom_data === 'string' ? JSON.parse(b.custom_data) : (b.custom_data || {});
+            const identity = { ...(parsedCustom.basic || {}), ...(parsedCustom.sec_1_identity || {}), ...(parsedCustom.business_info || {}) };
+
+            const prices = bizProducts.map((p: any) => Number(p.price)).filter((n: number) => !isNaN(n) && n > 0);
+            const minP = prices.length > 0 ? Math.min(...prices) : null;
+            const maxP = prices.length > 0 ? Math.max(...prices) : null;
+
+            return {
+              id: b.id,
+              name: b.name,
+              slug: b.slug,
+              logo_url: identity.business_logo || identity.logo || b.logo_url || null,
+              cover_image: identity.cover_image || b.cover_image || null,
+              is_trusted: b.is_trusted || false,
+              type_name: b.type_name,
+              vendor_whatsapp: identity.whatsapp || b.vendor_whatsapp || b.phone || null,
+              vendor_phone: identity.phone || b.vendor_phone || b.phone || null,
+              item_count: totalItems,
+              section_image: bizProducts[0]?.image_url || bizExps[0]?.cover_image || null,
+              min_price: minP,
+              max_price: maxP,
+              max_discount: null,
+            };
+          });
+        } catch (e) {
+          console.error('[sec_5_experiences fallback error]', e);
+          vendors = [];
+        }
         break;
       }
 
-      // Special Offers & Deals — tour_products with discount_percent > 0 or featured
+      // Special Offers & Deals
       case 'sec_8_connector': {
-        vendors = await query<any>(
-          `SELECT
-             b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-             b.vendor_whatsapp, b.vendor_phone,
-             bt.name AS type_name,
-             COUNT(tp.id) AS item_count,
-             MAX(tp.discount_percent) AS max_discount,
-             MAX(tp.image_url) AS section_image,
-             MIN(tp.price) AS min_price,
-             NULL AS max_price
-           FROM businesses b
-           LEFT JOIN business_types bt ON b.type_id = bt.id
-           INNER JOIN tour_products tp
-             ON tp.vendor_business_id = b.id
-             AND tp.is_active = 1
-             AND (tp.discount_percent > 0 OR tp.is_featured = 1)
-           WHERE b.slug IS NOT NULL ${searchWhere}
-           GROUP BY b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-                    b.vendor_whatsapp, b.vendor_phone, bt.name
-           ORDER BY max_discount DESC, item_count DESC
-           LIMIT ?`,
-          [...searchArgs, limit]
-        ).catch(() => []);
+        try {
+          const rawBiz = await query<any>(
+            `SELECT b.*, bt.name AS type_name FROM businesses b
+             LEFT JOIN business_types bt ON b.type_id = bt.id
+             WHERE b.slug IS NOT NULL ${searchWhere}
+             ORDER BY b.is_trusted DESC, b.name ASC
+             LIMIT ?`,
+            [...searchArgs, limit]
+          );
+
+          const offerRows = await query<any>(
+            `SELECT vendor_business_id, image_url, price, discount_percent FROM tour_products 
+             WHERE is_active = 1 AND (discount_percent > 0 OR is_featured = 1)`
+          ).catch(() => []);
+
+          vendors = (rawBiz || []).map((b: any) => {
+            const bizOffers = (offerRows || []).filter((o: any) => String(o.vendor_business_id) === String(b.id));
+            const parsedCustom = typeof b.custom_data === 'string' ? JSON.parse(b.custom_data) : (b.custom_data || {});
+            const identity = { ...(parsedCustom.basic || {}), ...(parsedCustom.sec_1_identity || {}), ...(parsedCustom.business_info || {}) };
+
+            const discounts = bizOffers.map((o: any) => Number(o.discount_percent)).filter((d: number) => !isNaN(d) && d > 0);
+            const maxD = discounts.length > 0 ? Math.max(...discounts) : null;
+
+            return {
+              id: b.id,
+              name: b.name,
+              slug: b.slug,
+              logo_url: identity.business_logo || identity.logo || b.logo_url || null,
+              cover_image: identity.cover_image || b.cover_image || null,
+              is_trusted: b.is_trusted || false,
+              type_name: b.type_name,
+              vendor_whatsapp: identity.whatsapp || b.vendor_whatsapp || b.phone || null,
+              vendor_phone: identity.phone || b.vendor_phone || b.phone || null,
+              item_count: bizOffers.length,
+              section_image: bizOffers[0]?.image_url || null,
+              min_price: bizOffers[0]?.price || null,
+              max_price: null,
+              max_discount: maxD,
+            };
+          });
+        } catch (e) {
+          console.error('[sec_8_connector fallback error]', e);
+          vendors = [];
+        }
         break;
       }
 
-      // Marketplace & Local Products — marketplace_items (approved)
-      case 'sec_9_marketplace_catalog': {
-        vendors = await query<any>(
-          `SELECT
-             b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-             b.vendor_whatsapp, b.vendor_phone,
-             bt.name AS type_name,
-             COUNT(mi.id) AS item_count,
-             MAX(mi.image_url) AS section_image,
-             MIN(mi.price) AS min_price,
-             NULL AS max_price,
-             NULL AS max_discount
-           FROM businesses b
-           LEFT JOIN business_types bt ON b.type_id = bt.id
-           INNER JOIN marketplace_items mi
-             ON mi.business_id = b.id AND mi.status = 'approved'
-           WHERE b.slug IS NOT NULL ${searchWhere}
-           GROUP BY b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-                    b.vendor_whatsapp, b.vendor_phone, bt.name
-           ORDER BY b.is_trusted DESC, item_count DESC
-           LIMIT ?`,
-          [...searchArgs, limit]
-        ).catch(() => []);
-        break;
-      }
-
-      // Vibe / Ambience / Facilities / Gastronomy — vendor_gallery by section_id
-      case 'sec_2_ambience':
-      case 'sec_3_facilities':
-      case 'sec_4_gastronomy': {
-        vendors = await query<any>(
-          `SELECT
-             b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-             b.vendor_whatsapp, b.vendor_phone,
-             bt.name AS type_name,
-             COUNT(vg.id) AS item_count,
-             MAX(vg.url) AS section_image,
-             NULL AS min_price, NULL AS max_price, NULL AS max_discount
-           FROM businesses b
-           LEFT JOIN business_types bt ON b.type_id = bt.id
-           LEFT JOIN vendor_gallery vg
-             ON vg.business_id = b.id
-             AND vg.approval_status = 'approved'
-             AND vg.show_on_minisite = 1
-             AND vg.section_id = ?
-           WHERE b.slug IS NOT NULL ${searchWhere}
-           GROUP BY b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-                    b.vendor_whatsapp, b.vendor_phone, bt.name
-           HAVING item_count > 0
-           ORDER BY b.is_trusted DESC, item_count DESC
-           LIMIT ?`,
-          [sectionId, ...searchArgs, limit]
-        ).catch(() => []);
-        break;
-      }
-
-      // Investment & Partnerships — businesses with investment custom_data
-      case 'sec_7_investment': {
-        vendors = await query<any>(
-          `SELECT
-             b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-             b.vendor_whatsapp, b.vendor_phone,
-             bt.name AS type_name,
-             0 AS item_count,
-             b.cover_image AS section_image,
-             NULL AS min_price, NULL AS max_price, NULL AS max_discount
-           FROM businesses b
-           LEFT JOIN business_types bt ON b.type_id = bt.id
-           WHERE b.slug IS NOT NULL
-             AND (
-               JSON_EXTRACT(b.custom_data, '$.sec_7_investment') IS NOT NULL
-               OR JSON_EXTRACT(b.custom_data, '$.investment') IS NOT NULL
-             )
-             ${searchWhere}
-           ORDER BY b.is_trusted DESC, b.name ASC
-           LIMIT ?`,
-          [...searchArgs, limit]
-        ).catch(() => []);
-        break;
-      }
-
-      // Operations & Structure / Trust & Reviews — all active businesses
-      case 'sec_6_guardian':
-      case 'sec_10_testimonials_faqs':
-      case 'sec_1_identity':
+      // Default & other sections: Vibe, Facilities, Dining, Services, etc.
       default: {
-        vendors = await query<any>(
-          `SELECT
-             b.id, b.name, b.slug, b.logo_url, b.cover_image, b.is_trusted,
-             b.vendor_whatsapp, b.vendor_phone,
-             bt.name AS type_name,
-             0 AS item_count,
-             b.cover_image AS section_image,
-             NULL AS min_price, NULL AS max_price, NULL AS max_discount
-           FROM businesses b
-           LEFT JOIN business_types bt ON b.type_id = bt.id
-           WHERE b.slug IS NOT NULL ${searchWhere}
-           ORDER BY b.is_trusted DESC, b.name ASC
-           LIMIT ?`,
-          [...searchArgs, limit]
-        ).catch(() => []);
+        try {
+          const rawBiz = await query<any>(
+            `SELECT b.*, bt.name AS type_name FROM businesses b
+             LEFT JOIN business_types bt ON b.type_id = bt.id
+             WHERE b.slug IS NOT NULL ${searchWhere}
+             ORDER BY b.is_trusted DESC, b.name ASC
+             LIMIT ?`,
+            [...searchArgs, limit]
+          );
+
+          vendors = (rawBiz || []).map((b: any) => {
+            const parsedCustom = typeof b.custom_data === 'string' ? JSON.parse(b.custom_data) : (b.custom_data || {});
+            const identity = { ...(parsedCustom.basic || {}), ...(parsedCustom.sec_1_identity || {}), ...(parsedCustom.business_info || {}) };
+
+            return {
+              id: b.id,
+              name: b.name,
+              slug: b.slug,
+              logo_url: identity.business_logo || identity.logo || b.logo_url || null,
+              cover_image: identity.cover_image || b.cover_image || null,
+              is_trusted: b.is_trusted || false,
+              type_name: b.type_name,
+              vendor_whatsapp: identity.whatsapp || b.vendor_whatsapp || b.phone || null,
+              vendor_phone: identity.phone || b.vendor_phone || b.phone || null,
+              item_count: 0,
+              section_image: identity.cover_image || b.cover_image || null,
+              min_price: null,
+              max_price: null,
+              max_discount: null,
+            };
+          });
+        } catch (e) {
+          console.error('[section-vendors default error]', e);
+          vendors = [];
+        }
         break;
       }
     }
+
 
     return NextResponse.json({
       vendors: vendors || [],
