@@ -71,13 +71,26 @@ export default function SectionMainSiteBridgeHub({
         : sectionMainSiteLabel
       : sectionName);
 
-  const subtitle =
-    customSubtitle ||
-    (context === 'main_site'
+  const defaultSubtitle =
+    sectionId === 'sec_8_connector'
+      ? context === 'main_site'
+        ? business
+          ? `Direct promotional deals, seasonal savings, and 0% commission direct rates from ${business.name}.`
+          : `Verified promotional deals, seasonal savings, and exclusive direct discounts across Siwa Oasis.`
+        : `Exclusive direct reservation offers & discounts from ${business?.name || 'this provider'} with instant confirmation.`
+      : sectionId === 'sec_5_experiences'
+      ? context === 'main_site'
+        ? business
+          ? `Complete travel packages, multi-day itineraries, and desert tours curated by ${business.name}.`
+          : `All-inclusive journeys, desert safari itineraries, and guided experience packages across Siwa Oasis.`
+        : `Handcrafted tour packages, safari expeditions, and curated itineraries by ${business?.name || 'this provider'}.`
+      : context === 'main_site'
       ? business
         ? `Direct from ${business.name} with 0% platform commission & instant WhatsApp confirmation.`
         : `Verified offerings curated across Siwa Oasis businesses with direct booking rates.`
-      : `Part of our official SiwaToday ${sectionMainSiteLabel} presence.`);
+      : `Part of our official SiwaToday ${sectionMainSiteLabel} presence.`;
+
+  const subtitle = customSubtitle || defaultSubtitle;
 
   const mainSiteUrl = sectionMeta?.mainSiteUrl || '/';
   const minisiteUrl = business ? `/${business.slug}#${sectionId}` : null;

@@ -238,10 +238,19 @@ export default function VanityBusinessClient({
   useEffect(() => {
     if (sections && sections.length > 0) {
       const sectionAliases: Record<string, string> = {
-        'packages': 'sec_9_marketplace_catalog',
-        'catalog': 'sec_9_marketplace_catalog',
+        'packages': 'sec_5_experiences',
+        'package': 'sec_5_experiences',
+        'programs': 'sec_5_experiences',
         'tours': 'sec_5_experiences',
         'experiences': 'sec_5_experiences',
+        'offers': 'sec_8_connector',
+        'offer': 'sec_8_connector',
+        'deals': 'sec_8_connector',
+        'deal': 'sec_8_connector',
+        'discounts': 'sec_8_connector',
+        'promotions': 'sec_8_connector',
+        'catalog': 'sec_9_marketplace_catalog',
+        'marketplace': 'sec_9_marketplace_catalog',
         'overview': 'sec_1_identity',
         'vibe': 'sec_2_ambience'
       };
@@ -268,10 +277,19 @@ export default function VanityBusinessClient({
     // Listen for hash changes (for carousel jumps)
     const handleHash = () => {
       const sectionAliases: Record<string, string> = {
-        'packages': 'sec_9_marketplace_catalog',
-        'catalog': 'sec_9_marketplace_catalog',
+        'packages': 'sec_5_experiences',
+        'package': 'sec_5_experiences',
+        'programs': 'sec_5_experiences',
         'tours': 'sec_5_experiences',
         'experiences': 'sec_5_experiences',
+        'offers': 'sec_8_connector',
+        'offer': 'sec_8_connector',
+        'deals': 'sec_8_connector',
+        'deal': 'sec_8_connector',
+        'discounts': 'sec_8_connector',
+        'promotions': 'sec_8_connector',
+        'catalog': 'sec_9_marketplace_catalog',
+        'marketplace': 'sec_9_marketplace_catalog',
         'overview': 'sec_1_identity',
         'vibe': 'sec_2_ambience'
       };
@@ -476,10 +494,19 @@ export default function VanityBusinessClient({
         settings={liveSettings || siteSettings || {}}
         onSectionNavigate={(sectionId) => {
           const sectionAliases: Record<string, string> = {
-            'packages': 'sec_9_marketplace_catalog',
-            'catalog': 'sec_9_marketplace_catalog',
+            'packages': 'sec_5_experiences',
+            'package': 'sec_5_experiences',
+            'programs': 'sec_5_experiences',
             'tours': 'sec_5_experiences',
             'experiences': 'sec_5_experiences',
+            'offers': 'sec_8_connector',
+            'offer': 'sec_8_connector',
+            'deals': 'sec_8_connector',
+            'deal': 'sec_8_connector',
+            'discounts': 'sec_8_connector',
+            'promotions': 'sec_8_connector',
+            'catalog': 'sec_9_marketplace_catalog',
+            'marketplace': 'sec_9_marketplace_catalog',
             'overview': 'sec_1_identity',
             'vibe': 'sec_2_ambience'
           };
@@ -1305,12 +1332,11 @@ export default function VanityBusinessClient({
                                   </a>
                                 )}
 
-                                {activeSections.some(s => s.id === 'sec_9_marketplace_catalog' || s.id === 'sec_5_experiences') && (
+                                {activeSections.some(s => s.id === 'sec_5_experiences') && (
                                   <button
                                     onClick={() => {
-                                      const target = activeSections.some(s => s.id === 'sec_9_marketplace_catalog') ? 'sec_9_marketplace_catalog' : 'sec_5_experiences';
-                                      try { window.history.pushState(null, '', `/${slug}/${target}`); } catch {}
-                                      setActiveTab(target);
+                                      try { window.history.pushState(null, '', `/${slug}/sec_5_experiences`); } catch {}
+                                      setActiveTab('sec_5_experiences');
                                       const navEl = document.querySelector('nav');
                                       if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }}
@@ -1320,16 +1346,43 @@ export default function VanityBusinessClient({
                                       gap: '0.5rem',
                                       padding: '0.85rem 1.3rem',
                                       borderRadius: '14px',
-                                      background: 'rgba(255,255,255,0.08)',
-                                      border: '1px solid rgba(255,255,255,0.2)',
-                                      color: '#fff',
+                                      background: 'rgba(22,163,74,0.12)',
+                                      border: '1px solid rgba(22,163,74,0.3)',
+                                      color: '#86efac',
                                       fontWeight: 800,
                                       fontSize: '0.82rem',
                                       cursor: 'pointer',
                                     }}
                                   >
-                                    <i className="fas fa-list-ul" style={{ color: '#D4AF37' }} />
-                                    <span>{isArabic ? 'استعراض باقات الأسعار' : 'View Price Packages →'}</span>
+                                    <i className="fas fa-box-open" style={{ color: '#22c55e' }} />
+                                    <span>{isArabic ? 'استعراض باقات الرحلات →' : 'View Packages & Tours →'}</span>
+                                  </button>
+                                )}
+
+                                {activeSections.some(s => s.id === 'sec_8_connector') && (
+                                  <button
+                                    onClick={() => {
+                                      try { window.history.pushState(null, '', `/${slug}/sec_8_connector`); } catch {}
+                                      setActiveTab('sec_8_connector');
+                                      const navEl = document.querySelector('nav');
+                                      if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      padding: '0.85rem 1.3rem',
+                                      borderRadius: '14px',
+                                      background: 'rgba(220,38,38,0.12)',
+                                      border: '1px solid rgba(220,38,38,0.3)',
+                                      color: '#fca5a5',
+                                      fontWeight: 800,
+                                      fontSize: '0.82rem',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    <i className="fas fa-tags" style={{ color: '#ef4444' }} />
+                                    <span>{isArabic ? 'العروض والخصومات المباشرة →' : 'Direct Offers & Deals →'}</span>
                                   </button>
                                 )}
                               </div>

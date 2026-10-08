@@ -399,9 +399,9 @@ export default function MinisiteBuilderRenderer({
       // ──────────────────────────────────────────────
       case 'vendor_packages': {
         const isArabic = ((siteSettings as any)?.lang === 'ar' || (typeof window !== 'undefined' && document.documentElement.dir === 'rtl'));
-        const defaultTitle = isArabic ? 'الباقات والعروض الحصرية' : 'Curated Packages & Exclusive Offers';
+        const defaultTitle = isArabic ? 'باقات وتجارب الرحلات' : 'Curated Packages & Itineraries';
         const title = props.title || defaultTitle;
-        const subtitle = props.subtitle || (isArabic ? 'عروض وباقات مخصصة بأفضل الأسعار مع حجز مباشر عبر الواتساب' : 'Special promotional rates & turnkey experiences with direct WhatsApp booking');
+        const subtitle = props.subtitle || (isArabic ? 'باقات سياحية ورحلات مخصصة مع إمكانية الحجز المباشر' : 'Turnkey travel packages, desert safaris, and curated journeys');
         const packages =
           mode === 'untied'
             ? Array.isArray(props.packages)
@@ -433,6 +433,7 @@ export default function MinisiteBuilderRenderer({
 
         return (
           <section
+            id="sec_5_experiences"
             key={comp.id}
             style={{
               padding: 'clamp(3rem, 6vw, 5rem) 1.5rem',
@@ -458,7 +459,7 @@ export default function MinisiteBuilderRenderer({
                   marginBottom: '0.6rem',
                 }}
               >
-                <i className="fas fa-tags" /> {isArabic ? 'عروض وخصومات مميزة' : 'PACKAGES & PROMOTIONS'}
+                <i className="fas fa-box-open" /> {isArabic ? 'باقات وبرامج وتجارب سياحية' : 'PACKAGES & ITINERARIES'}
               </div>
               <h2
                 style={{
@@ -836,6 +837,7 @@ export default function MinisiteBuilderRenderer({
 
         return (
           <section
+            id="sec_8_connector"
             key={comp.id}
             style={{
               padding: 'clamp(3rem, 6vw, 4.5rem) 1.5rem',

@@ -128,13 +128,13 @@ export const COMPONENT_META: Record<
     canonicalSections: ['sec_1_identity', 'sec_2_ambience', 'sec_3_facilities', 'sec_4_gastronomy', 'sec_6_guardian', 'sec_7_investment', 'sec_8_connector', 'sec_9_marketplace_catalog', 'sec_10_testimonials_faqs'],
   },
   cta_section: {
-    label: 'Direct Action Callout',
+    label: 'Direct Action & Deals Banner',
     icon: 'fa-bullhorn',
-    description: 'Conversion banner with custom button, call or booking redirect.',
+    description: 'Special promotional offers, discounts, or direct WhatsApp booking action.',
     vendorScoped: false,
     tier: 'free',
-    mainSitePages: ['*'],
-    canonicalSections: ['sec_1_identity', 'sec_4_gastronomy', 'sec_5_experiences', 'sec_7_investment', 'sec_8_connector', 'sec_9_marketplace_catalog', 'sec_10_testimonials_faqs'],
+    mainSitePages: ['/offers', '*'],
+    canonicalSections: ['sec_8_connector', 'sec_1_identity'],
   },
   vendor_services: {
     label: 'Service & Amenity Cards',
@@ -146,13 +146,13 @@ export const COMPONENT_META: Record<
     canonicalSections: ['sec_3_facilities', 'sec_4_gastronomy'],
   },
   vendor_packages: {
-    label: 'Packages & Catalog',
+    label: 'Packages & Itineraries',
     icon: 'fa-box-open',
-    description: 'Bookable tours, packages, or product catalog showcase.',
+    description: 'Bookable tour packages, desert safaris, and multi-day travel itineraries.',
     vendorScoped: true,
     tier: 'free',
-    mainSitePages: ['/packages', '/offers'],
-    canonicalSections: ['sec_5_experiences', 'sec_8_connector', 'sec_9_marketplace_catalog'],
+    mainSitePages: ['/packages'],
+    canonicalSections: ['sec_5_experiences'],
   },
 
   vendor_blog: {

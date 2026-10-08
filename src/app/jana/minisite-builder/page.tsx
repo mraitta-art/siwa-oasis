@@ -1259,8 +1259,10 @@ function MinisiteBuilderStudioContent() {
                           <i className="fas fa-database" style={{ color: '#10b981' }} />
                           <span>Storage:</span>
                           <code style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 700 }}>
-                            {secId === 'sec_5_experiences' || secId === 'sec_8_connector'
-                              ? 'tour_products'
+                            {secId === 'sec_5_experiences'
+                              ? 'tour_products (Active Packages)'
+                              : secId === 'sec_8_connector'
+                              ? 'tour_products (Discounts & Deals)'
                               : secId === 'sec_9_marketplace_catalog'
                               ? 'marketplace_items'
                               : secId === 'sec_2_ambience' || secId === 'sec_3_facilities' || secId === 'sec_4_gastronomy'

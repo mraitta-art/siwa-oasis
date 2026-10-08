@@ -296,12 +296,12 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
   // ── sec_8_connector ────────────────────────────────────────────────────────
   sec_8_connector: {
     sectionId: 'sec_8_connector',
-    label: 'Offers, Packages & Discounts',
-    builderComponents: ['vendor_packages', 'cta_section', 'text_section'],
+    label: 'Special Offers & Deals',
+    builderComponents: ['cta_section', 'text_section'],
     primarySource: {
       table: 'tour_products',
       businessIdColumn: 'vendor_business_id',
-      extraWhere: "is_active = 1 AND (is_featured = 1 OR discount_percent > 0)",
+      extraWhere: "is_active = 1 AND (discount_percent > 0 OR is_featured = 1)",
       orderBy: 'discount_percent DESC, is_featured DESC',
       selectColumns: 'id, title, description, price, currency, discount_percent, image_url, booking_url',
     },
@@ -314,12 +314,12 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
       },
     ],
     apiEndpoints: [
-      { path: '/api/vendor/packages', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Offers & discounted packages' },
-      { path: '/api/jana/marketplace', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Marketplace items' },
+      { path: '/api/vendor/packages', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Promotional offers & discounted rates' },
+      { path: '/api/jana/marketplace', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Marketplace promotional items' },
     ],
     mainSiteMirror: {
       url: '/offers',
-      label: 'Offers & Discounts',
+      label: 'Special Offers & Deals',
       icon: 'fa-tags',
       color: '#dc2626',
     },
