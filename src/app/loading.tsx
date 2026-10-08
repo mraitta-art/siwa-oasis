@@ -83,22 +83,21 @@ export default function RootLoading() {
           <rect width="512" height="512" rx="128" fill="url(#loadBg)" />
           <rect width="500" height="500" x="6" y="6" rx="122" fill="none" stroke="url(#loadGold)" strokeWidth="10" opacity="0.7" />
 
-          {/* Desert Sun */}
-          <circle cx="340" cy="180" r="64" fill="url(#loadSun)" opacity="0.95" />
-
-          {/* S Wave (Dunes) */}
-          <path
-            d="M 330 145 C 240 125 160 170 160 230 C 160 280 215 302 275 318 C 335 334 360 355 360 395 C 360 455 270 480 180 455"
-            fill="none"
-            stroke="url(#loadGold)"
-            strokeWidth="54"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Sparkle */}
-          <polygon points="340,115 347,135 368,140 347,146 340,166 333,146 312,140 333,135" fill="#FFFBEB" />
         </svg>
+        <i
+          className="fas fa-sun"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#D4AF37',
+            fontSize: '3.25rem',
+            filter: 'drop-shadow(0 0 16px rgba(212, 175, 55, 0.55))',
+          }}
+        />
       </div>
 
       {/* Brand Typography */}

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 interface PaletteItem {
@@ -46,6 +46,13 @@ interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?:
 interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
+const DEFAULT_SITE_SETTINGS = {
+  site_name: 'Siwa Today', primary_color: '#D4AF37',
+  tagline: 'Experience the magic of the oasis.',
+  show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
+  logo_url: '', show_watermark: true, logo_height: 40,
+};
+
 export default function MultiPageSiteBuilder() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
   const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
@@ -56,11 +63,21 @@ export default function MultiPageSiteBuilder() {
   const [slots, setSlots]               = useState<Slot[]>([]);
   const [activeZone, setActiveZone]     = useState<Zone>('body');
   const [saving, setSaving]             = useState(false);
+  const [pageLoading, setPageLoading]   = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [dynamicComponents, setDynamic] = useState<PaletteItem[]>([]);
   const [searchEngines, setSearchEngines] = useState<any[]>([]);
   const [tiers, setTiers]               = useState<any[]>([]);
   const [toast, setToast]               = useState<{ msg: string; type: 'success'|'error'|'info' }|null>(null);
+  const [isCompact, setIsCompact]       = useState(false);
+  const [compactPanel, setCompactPanel] = useState<'pages' | 'blocks' | 'canvas'>('canvas');
+
+  useEffect(() => {
+    const updateCompactLayout = () => setIsCompact(window.innerWidth < 1200);
+    updateCompactLayout();
+    window.addEventListener('resize', updateCompactLayout);
+    return () => window.removeEventListener('resize', updateCompactLayout);
+  }, []);
 
   // Modals
   const [showNewModal, setShowNewModal]       = useState(false);
@@ -78,24 +95,13 @@ export default function MultiPageSiteBuilder() {
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
 
   // Site settings
-  const [siteSettings, setSiteSettings] = useState({
-    site_name: 'Siwa Today', primary_color: '#D4AF37',
-    tagline: 'Experience the magic of the oasis.',
-    show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
-    logo_url: '', show_watermark: true, logo_height: 40,
-  });
+  const [siteSettings, setSiteSettings] = useState(DEFAULT_SITE_SETTINGS);
+  const pageLoadRequestRef = useRef(0);
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
   };
-
-  // Ctrl+S to save
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, []);
 
   // Initial data fetch
   useEffect(() => {
@@ -168,12 +174,20 @@ export default function MultiPageSiteBuilder() {
 
   // Load layout when page/template changes
   useEffect(() => {
+    const requestId = ++pageLoadRequestRef.current;
     if (mode === 'PAGES') {
+      setPageLoading(true);
+      setSlots([]);
+      setSiteSettings(DEFAULT_SITE_SETTINGS);
       const currentPageData = pages.find(p => p.slug === currentPage);
       const pageType = currentPageData?.type || 'page';
       const pageId = pageType === 'search' ? `website_search_${currentPage}` : `website_${currentPage}`;
       
-      fetch(`/api/jana/website?id=${pageId}`).then(r => r.json()).then(data => {
+      fetch(`/api/jana/website?id=${pageId}`).then(async response => {
+        if (!response.ok) throw new Error('Failed to load page configuration');
+        return response.json();
+      }).then(data => {
+        if (requestId !== pageLoadRequestRef.current) return;
         const t = data[0];
         if (!t) {
           // No config in DB at all — show defaults for main, empty for others
@@ -191,8 +205,15 @@ export default function MultiPageSiteBuilder() {
         // If the saved config has zero blocks AND we are on main, re-seed defaults
         // so the admin always has content to work with instead of a blank canvas.
         setSlots(allLoaded.length === 0 && currentPage === 'main' ? DEFAULT_MAIN_SLOTS : allLoaded);
-      }).catch(() => setSlots([]));
+      }).catch(error => {
+        if (requestId !== pageLoadRequestRef.current) return;
+        setSlots([]);
+        notify(error.message || 'Failed to load page configuration', 'error');
+      }).finally(() => {
+        if (requestId === pageLoadRequestRef.current) setPageLoading(false);
+      });
     } else {
+      setPageLoading(false);
       const tmpl = templates.find(t => t.id === currentPage);
       if (!tmpl) return setSlots([]);
       setTemplateMeta({ name: tmpl.name || '', type_id: tmpl.type_id || '', level: tmpl.level || 'basic' });
@@ -217,10 +238,12 @@ export default function MultiPageSiteBuilder() {
       // Allow re-adding with a unique ID for power users
       const count = slots.filter(s => s.key === item.key && s.zone === item.zone).length;
       setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: `${item.name} #${count + 1}` }]);
+      if (isCompact) setCompactPanel('canvas');
       notify(`✅ ${item.name} #${count + 1} added`);
       return;
     }
     setSlots(prev => [...prev, { id: `${item.key}_${Date.now()}`, key: item.key, zone: item.zone as Zone, label: item.name }]);
+    if (isCompact) setCompactPanel('canvas');
     notify(`✅ ${item.name} added`);
   };
   const removeSlot = (id: string) => setSlots(prev => prev.filter(s => s.id !== id));
@@ -242,6 +265,7 @@ export default function MultiPageSiteBuilder() {
 
   // ── Save ────────────────────────────────────────────────────────────────────
   const save = async () => {
+    if (pageLoading || saving) return;
     setSaving(true);
     try {
       const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id, ...(s.props || {}) } });
@@ -283,6 +307,12 @@ export default function MultiPageSiteBuilder() {
     setSaving(false);
   };
 
+  // Ctrl+S to save
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [save]);
 
   // ── Create page/template ─────────────────────────────────────────────────
   const createItem = () => {
@@ -377,13 +407,13 @@ export default function MultiPageSiteBuilder() {
     <div style={{ height: '100vh', background: '#0a0f1e', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', -apple-system, sans-serif", overflow: 'hidden' }}>
 
       {/* ═══════════════════════ TOP BAR ══════════════════════════════════ */}
-      <div style={{ background: 'linear-gradient(90deg,#020617,#0f172a)', color: '#fff', padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(212,175,55,0.12)', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', flexShrink: 0, zIndex: 100 }}>
+      <div style={{ background: 'linear-gradient(90deg,#020617,#0f172a)', color: '#fff', padding: isCompact ? '0 0.5rem' : '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: isCompact ? '0.35rem' : '1rem', borderBottom: '1px solid rgba(212,175,55,0.12)', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', flexShrink: 0, zIndex: 100 }}>
 
         {/* Left: brand + mode */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isCompact ? '0.4rem' : '1.25rem', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#D4AF37,#F5E6AD)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#1a1a2e', fontSize: '0.9rem', boxShadow: '0 0 18px rgba(212,175,55,0.4)' }}>S</div>
-            <div>
+            <div style={{ width: isCompact ? 30 : 34, height: isCompact ? 30 : 34, background: 'linear-gradient(135deg,#D4AF37,#F5E6AD)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#1a1a2e', fontSize: '0.9rem', boxShadow: '0 0 18px rgba(212,175,55,0.4)', flexShrink: 0 }}>S</div>
+            <div style={{ display: isCompact ? 'none' : 'block' }}>
               <div style={{ fontWeight: 900, fontSize: '0.8rem', letterSpacing: '-0.2px' }}>
                 {mode === 'TEMPLATES' ? 'MINISITE GOVERNANCE' : 'PORTAL ARCHITECT'}
               </div>
@@ -393,18 +423,18 @@ export default function MultiPageSiteBuilder() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '9px', border: '1px solid rgba(255,255,255,0.07)', gap: '2px' }}>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '9px', border: '1px solid rgba(255,255,255,0.07)', gap: '2px', flexShrink: 0 }}>
             {([['PAGES','🌐 MAIN PORTAL','#D4AF37','#1a1a2e'],['TEMPLATES','🛡️ BLUEPRINTS','#10b981','#fff']] as const).map(([m,label,bg,fg]) => (
-              <button key={m} onClick={() => switchMode(m as Mode)} style={{ padding: '0.35rem 1.1rem', border: 'none', borderRadius: '6px', background: mode === m ? bg : 'transparent', fontSize: '0.65rem', fontWeight: 900, color: mode === m ? fg : 'rgba(255,255,255,0.35)', cursor: 'pointer', transition: 'all 0.2s' }}>
-                {label}
+              <button key={m} onClick={() => switchMode(m as Mode)} style={{ padding: isCompact ? '0.35rem 0.45rem' : '0.35rem 1.1rem', border: 'none', borderRadius: '6px', background: mode === m ? bg : 'transparent', fontSize: isCompact ? '0.55rem' : '0.65rem', fontWeight: 900, color: mode === m ? fg : 'rgba(255,255,255,0.35)', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                {isCompact ? (m === 'PAGES' ? 'PORTAL' : 'BLUEPRINTS') : label}
               </button>
             ))}
           </div>
         </div>
 
         {/* Right: status + actions */}
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.35rem 0.85rem', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', gap: isCompact ? '0.35rem' : '0.6rem', alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: isCompact ? 'none' : 'flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.35rem 0.85rem', borderRadius: '8px' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: currentDraft ? '#f59e0b' : '#10b981', display: 'inline-block', boxShadow: `0 0 6px ${currentDraft ? '#f59e0b' : '#10b981'}` }} />
             <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
               {mode === 'PAGES' ? currentPage : (templates.find((t:any)=>t.id===currentPage)?.name || '—')}
@@ -412,25 +442,44 @@ export default function MultiPageSiteBuilder() {
             {currentDraft && <span style={{ fontSize: '0.5rem', background: '#f59e0b', color: '#1a1a2e', padding: '1px 5px', borderRadius: 4, fontWeight: 900 }}>DRAFT</span>}
           </div>
 
-          <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />
+          {!isCompact && <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />}
 
           {mode === 'PAGES' && (
-            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer"
-              style={{ padding: '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
-              👁 Preview
+            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer" aria-label="Preview page" title="Preview page"
+              style={{ padding: isCompact ? '0.4rem 0.5rem' : '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.9)', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: isCompact ? 34 : undefined, minHeight: 34 }}>
+              {isCompact ? '👁' : '👁 Preview'}
             </a>
           )}
 
-          <button onClick={save} disabled={saving}
-            style={{ padding: '0.42rem 1.4rem', background: mode==='TEMPLATES' ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#D4AF37,#F59E0B)', border: 'none', borderRadius: 8, color: mode==='TEMPLATES' ? '#fff' : '#1a1a2e', fontWeight: 900, fontSize: '0.75rem', cursor: saving ? 'wait' : 'pointer', boxShadow: mode==='TEMPLATES' ? '0 0 18px rgba(16,185,129,0.25)' : '0 0 18px rgba(212,175,55,0.25)', transition: 'all 0.2s' }}>
-            {saving ? '⏳ Saving…' : mode === 'TEMPLATES' ? '🔒 SECURE' : '🚀 PUBLISH'}
+          <button onClick={save} disabled={saving || pageLoading} aria-label={pageLoading ? 'Loading page' : saving ? 'Saving changes' : mode === 'TEMPLATES' ? 'Secure template' : 'Save and publish page'} title={pageLoading ? 'Loading page configuration' : mode === 'TEMPLATES' ? 'Save blueprint' : 'Save and publish page'}
+            style={{ padding: isCompact ? '0.42rem 0.6rem' : '0.42rem 1.4rem', background: mode==='TEMPLATES' ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#D4AF37,#F59E0B)', border: 'none', borderRadius: 8, color: mode==='TEMPLATES' ? '#fff' : '#1a1a2e', fontWeight: 900, fontSize: isCompact ? '0.63rem' : '0.75rem', cursor: saving || pageLoading ? 'wait' : 'pointer', boxShadow: mode==='TEMPLATES' ? '0 0 18px rgba(16,185,129,0.25)' : '0 0 18px rgba(212,175,55,0.25)', transition: 'all 0.2s', whiteSpace: 'nowrap', minHeight: 34 }}>
+            {saving ? '⏳' : pageLoading ? '…' : mode === 'TEMPLATES' ? (isCompact ? '🔒' : '🔒 SECURE') : (isCompact ? 'SAVE' : '🚀 PUBLISH')}
           </button>
-          <span style={{ fontSize: '0.52rem', color: 'rgba(255,255,255,0.2)', userSelect: 'none' }}>Ctrl+S</span>
+          {!isCompact && <span style={{ fontSize: '0.52rem', color: 'rgba(255,255,255,0.2)', userSelect: 'none' }}>Ctrl+S</span>}
         </div>
       </div>
 
+      {isCompact && (
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0.45rem 0.6rem', background:'#0d1526', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
+          <label htmlFor="compact-page-picker" style={{ color:'#94a3b8', fontSize:'0.62rem', fontWeight:900, whiteSpace:'nowrap' }}>
+            {mode === 'PAGES' ? 'EDIT PAGE' : 'EDIT BLUEPRINT'}
+          </label>
+          <select
+            id="compact-page-picker"
+            aria-label={mode === 'PAGES' ? 'Select page to edit' : 'Select blueprint to edit'}
+            value={currentPage}
+            onChange={e => setCurrentPage(e.target.value)}
+            style={{ flex:1, minWidth:0, height:38, padding:'0 0.65rem', border:'1px solid rgba(212,175,55,0.35)', borderRadius:7, background:'#111c30', color:'#f8fafc', fontSize:'0.75rem', fontWeight:700 }}
+          >
+            {mode === 'PAGES'
+              ? pages.map(page => <option key={page.slug} value={page.slug}>{page.slug === 'main' ? 'Home' : page.slug} {page.saved ? '· Live' : '· Draft'}</option>)
+              : templates.map((template: any) => <option key={template.id} value={template.id}>{template.name || template.id}</option>)}
+          </select>
+        </div>
+      )}
+
       {/* ═══════════════════════ SETTINGS BAR ════════════════════════════ */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '0 1.5rem', height: 46, overflowX: 'auto', flexShrink: 0 }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: isCompact ? 'stretch' : 'center', flexWrap: isCompact ? 'wrap' : 'nowrap', gap: isCompact ? '0.55rem 0.8rem' : '1.25rem', padding: isCompact ? '0.65rem 0.75rem' : '0 1.5rem', height: isCompact ? 'auto' : 46, minHeight: 46, overflowX: isCompact ? 'visible' : 'auto', flexShrink: 0 }}>
         {mode === 'PAGES' ? (
           <>
             <div style={{ fontSize: '0.5rem', fontWeight: 900, color: '#cbd5e1', letterSpacing: '2px', whiteSpace: 'nowrap' }}>PAGE CONFIG</div>
@@ -489,11 +538,30 @@ export default function MultiPageSiteBuilder() {
       </div>
 
       {/* ═══════════════════════ 3-COLUMN BODY ═══════════════════════════ */}
-      <div style={{ display:'grid', gridTemplateColumns:'240px 272px minmax(500px, 1fr)', flex:1, overflowX:'auto', overflowY:'hidden', minHeight:0, minWidth:0 }}>
+      {isCompact && (
+        <div role="group" aria-label="Site Builder panels" style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6, padding:'0.5rem', background:'#0d1526', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
+          {([
+            ['pages', 'Pages'],
+            ['blocks', 'Blocks'],
+            ['canvas', 'Canvas'],
+          ] as const).map(([panel, label]) => (
+            <button
+              key={panel}
+              type="button"
+              aria-pressed={compactPanel === panel}
+              onClick={() => setCompactPanel(panel)}
+              style={{ minHeight:40, border:`1px solid ${compactPanel === panel ? '#D4AF37' : 'rgba(255,255,255,0.1)'}`, borderRadius:8, background:compactPanel === panel ? 'rgba(212,175,55,0.16)' : 'rgba(255,255,255,0.04)', color:compactPanel === panel ? '#F4E4A7' : '#94a3b8', fontSize:'0.72rem', fontWeight:900, cursor:'pointer' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{ display:'grid', gridTemplateColumns:isCompact ? 'minmax(0, 1fr)' : '240px 272px minmax(500px, 1fr)', flex:1, overflowX:isCompact ? 'hidden' : 'auto', overflowY:'hidden', minHeight:0, minWidth:0 }}>
 
 
         {/* ─── COL 1 · Pages / Templates List ──────────────────────────── */}
-        <div style={{ background:'#0d1526', borderRight:'1px solid rgba(255,255,255,0.05)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ background:'#0d1526', borderRight:'1px solid rgba(255,255,255,0.05)', display:isCompact && compactPanel !== 'pages' ? 'none' : 'flex', flexDirection:'column', overflow:'hidden', minWidth:0 }}>
 
           {/* Panel header */}
           <div style={{ padding:'0.85rem 0.85rem 0.7rem', borderBottom:'1px solid rgba(255,255,255,0.05)', flexShrink:0 }}>
@@ -587,7 +655,7 @@ export default function MultiPageSiteBuilder() {
         </div>
 
         {/* ─── COL 2 · Component Palette ───────────────────────────────── */}
-        <div style={{ background:'#fff', borderRight:'1px solid #f1f5f9', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ background:'#fff', borderRight:'1px solid #f1f5f9', display:isCompact && compactPanel !== 'blocks' ? 'none' : 'flex', flexDirection:'column', overflow:'hidden', minWidth:0 }}>
           <div style={{ padding:'0.65rem', borderBottom:'1px solid #f1f5f9', display:'flex', gap:'4px', flexShrink:0 }}>
             {(['header','body','footer'] as Zone[]).map(z => (
               <button key={z} onClick={()=>setActiveZone(z)}
@@ -622,8 +690,8 @@ export default function MultiPageSiteBuilder() {
         </div>
 
         {/* ─── COL 3 · Canvas ──────────────────────────────────────────── */}
-        <div style={{ padding:'1.25rem 1.5rem', overflowY:'auto', overflowX:'auto', background:'#f8fafc', minWidth:0 }}>
-          <div style={{ maxWidth:820, margin:'0 auto', minWidth:'340px' }}>
+        <div style={{ padding:isCompact ? '0.85rem' : '1.25rem 1.5rem', overflowY:'auto', overflowX:isCompact ? 'hidden' : 'auto', background:'#f8fafc', minWidth:0, display:isCompact && compactPanel !== 'canvas' ? 'none' : 'block' }}>
+          <div style={{ maxWidth:820, margin:'0 auto', minWidth:isCompact ? 0 : '340px' }}>
 
 
             {/* Zone tabs + summary */}
@@ -821,13 +889,13 @@ export default function MultiPageSiteBuilder() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position:'fixed', bottom:'1.75rem', left:'50%', transform:'translateX(-50%)', background:toast.type==='error'?'#ef4444':toast.type==='info'?'#1e293b':'#0f172a', color:'#fff', padding:'0.8rem 1.75rem', borderRadius:14, fontWeight:800, fontSize:'0.8rem', zIndex:9999, boxShadow:'0 20px 40px rgba(0,0,0,0.4)', display:'flex', alignItems:'center', gap:'0.65rem', borderLeft:`3px solid ${toast.type==='error'?'#fca5a5':toast.type==='info'?'#D4AF37':'#10b981'}`, animation:'slideUp 0.35s cubic-bezier(0.4,0,0.2,1)', whiteSpace:'nowrap' }}>
+        <div style={{ position:'fixed', bottom:'1.75rem', left:'50%', transform:'translateX(-50%)', background:toast.type==='error'?'#ef4444':toast.type==='info'?'#1e293b':'#0f172a', color:'#fff', padding:'0.8rem 1.75rem', borderRadius:14, fontWeight:800, fontSize:'0.8rem', zIndex:9999, boxShadow:'0 20px 40px rgba(0,0,0,0.4)', display:'flex', alignItems:'center', gap:'0.65rem', borderLeft:`3px solid ${toast.type==='error'?'#fca5a5':toast.type==='info'?'#D4AF37':'#10b981'}`, animation:'websiteBuilderToastSlideUp 0.35s cubic-bezier(0.4,0,0.2,1)', whiteSpace:'nowrap' }}>
           {toast.msg}
         </div>
       )}
 
       <style jsx global>{`
-        @keyframes slideUp { from{transform:translate(-50%,100%);opacity:0} to{transform:translate(-50%,0);opacity:1} }
+        @keyframes websiteBuilderToastSlideUp { from{transform:translate(-50%,100%);opacity:0} to{transform:translate(-50%,0);opacity:1} }
         @keyframes fadeIn  { from{opacity:0;transform:scale(0.97)} to{opacity:1;transform:scale(1)} }
         *{box-sizing:border-box} body{margin:0}
         ::-webkit-scrollbar{width:4px;height:4px}

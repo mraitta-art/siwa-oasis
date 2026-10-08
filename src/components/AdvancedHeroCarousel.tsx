@@ -109,6 +109,7 @@ export default function AdvancedHeroCarousel({
           const effectiveIsDynamic = isDynamic && carouselName !== 'discovery';
           if (effectiveIsDynamic) {
             const params = new URLSearchParams();
+            params.set('siteId', carouselName);
             params.set('investment', includeDynamicOptions.investment !== false ? 'true' : 'false');
             params.set('registration', includeDynamicOptions.registration !== false ? 'true' : 'false');
             url = `/api/jana/hero-carousel-dynamic?${params.toString()}`;

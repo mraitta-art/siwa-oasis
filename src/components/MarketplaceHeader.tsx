@@ -11,7 +11,6 @@ export interface NavLink {
 
 interface MarketplaceHeaderProps {
   title?: string;
-  adminPath?: string;
   activePath?: string;
   navLinks?: NavLink[];
   accentColor?: string;
@@ -31,7 +30,6 @@ export const CANONICAL_NAV_LINKS: NavLink[] = [
 
 export default function MarketplaceHeader({
   title = 'SiWiFy',
-  adminPath = '/jana',
   activePath,
   navLinks = CANONICAL_NAV_LINKS,
   accentColor = '#D4AF37',
@@ -138,30 +136,6 @@ export default function MarketplaceHeader({
 
         {/* Right Action buttons & Mobile Hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          {adminPath && (
-            <Link
-              href={adminPath}
-              style={{
-                textDecoration: 'none',
-                fontSize: '0.72rem',
-                fontWeight: 900,
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                padding: '0.45rem 0.9rem',
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: accentColor,
-                border: `1px solid ${accentColor}40`,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-              }}
-            >
-              <i className="fas fa-screwdriver-wrench" />
-              <span>Admin</span>
-            </Link>
-          )}
-
           {/* Mobile menu toggle button */}
           <button
             type="button"

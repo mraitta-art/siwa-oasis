@@ -26,6 +26,7 @@ interface Slide {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const siteId = searchParams.get('siteId') || 'main';
     const includeBusinesses = searchParams.get('businesses') !== 'false';
     const includeJourneys = searchParams.get('journeys') !== 'false';
     const includeInvestment = searchParams.get('investment') !== 'false';
@@ -263,10 +264,12 @@ export async function GET(request: NextRequest) {
     // Load saved configuration and deleted ID track list
     let savedSlides: Slide[] = [];
     let deletedDynamicIds: string[] = [];
-    let sourceType = 'hero_carousel_main';
+    let sourceType = `hero_carousel_${siteId}`;
 
     async function loadSavedCarouselConfig() {
-      const fallbackTypes = ['hero_carousel_main', 'hero_carousel_discovery'];
+      const fallbackTypes = siteId === 'main' || siteId === 'discovery'
+        ? ['hero_carousel_main', 'hero_carousel_discovery']
+        : [`hero_carousel_${siteId}`];
       for (const type of fallbackTypes) {
         try {
           const savedConfig = await safeQuery(

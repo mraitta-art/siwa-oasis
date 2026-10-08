@@ -1,8 +1,9 @@
 'use client';
 
-import React, { Suspense, useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useLang } from '@/context/LangContext';
 import CarouselSocialMediaModal, { SocialImportedSlide } from '@/components/CarouselSocialMediaModal';
 
 interface CarouselSlide {
@@ -354,9 +355,13 @@ const DEFAULT_STARTER_SLIDES: Record<string, Array<Omit<CarouselSlide, 'id' | 'd
 
 function HeroCarouselManagerContent() {
   const searchParams = useSearchParams();
+  const { lang } = useLang();
+  const isArabic = lang === 'ar';
+  const t = (english: string, arabic: string) => isArabic ? arabic : english;
   const [businesses, setBusinesses] = useState<{ id: string; name: string; slug?: string; type_id?: string }[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string; slug?: string; type_id?: string } | null>(null);
-  const [dynamicMainPages, setDynamicMainPages] = useState<{ slug: string; title: string }[]>([]);
+  const [dynamicMainPages, setDynamicMainPages] = useState<{ slug: string; title: string; label: string; siteId: string; url: string }[]>([]);
+  const [loadingMainPages, setLoadingMainPages] = useState(true);
   const [businessSections, setBusinessSections] = useState<DynamicBusinessSection[]>([]);
   const [loadingBusinessSections, setLoadingBusinessSections] = useState(false);
 
@@ -395,6 +400,42 @@ function HeroCarouselManagerContent() {
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [availableSections, setAvailableSections] = useState<{id:string;name:string}[]>([]);
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const slideLoadRequestRef = useRef(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBuilderPages() {
+      try {
+        const response = await fetch('/api/jana/website/list');
+        const records = response.ok ? await response.json() : [];
+        const pages = (Array.isArray(records) ? records : []).flatMap((record: { type?: string; slug?: string; isSearch?: boolean; siteId?: string; title?: string; publicPath?: string | null }) => {
+          const type = record.type || '';
+          if (!type.startsWith('website_')) return [];
+
+          const isSearch = record.isSearch ?? type.startsWith('website_search_');
+          const slug = record.slug || type.replace(/^website_search_/, '').replace(/^website_/, '');
+          if (!slug) return [];
+
+          const siteId = record.siteId || (slug === 'main' ? 'discovery' : `${slug}_hero`);
+          const preset = MAIN_PAGE_PRESETS.find(item => item.id === siteId || item.id === `${slug}_hero`);
+          const title = record.title || preset?.label.replace(/^[^\s]+\s/, '') || slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+          const label = preset?.label || `${isSearch ? '🔍' : '🌐'} ${title}`;
+          const url = record.publicPath || preset?.url || (isSearch ? `/search/${slug}` : slug === 'main' ? '/' : `/p/${slug}`);
+          return [{ slug, title, label, siteId, url }];
+        });
+
+        if (!cancelled) setDynamicMainPages(pages);
+      } catch {
+        if (!cancelled) setDynamicMainPages([]);
+      } finally {
+        if (!cancelled) setLoadingMainPages(false);
+      }
+    }
+
+    loadBuilderPages();
+    return () => { cancelled = true; };
+  }, []);
 
   // Dynamically load real business sections, custom labels, and controls for the selected business
   useEffect(() => {
@@ -475,6 +516,22 @@ function HeroCarouselManagerContent() {
     return tabs;
   }, [businessSections]);
 
+  const mainPageChoices: { id: string; label: string; url: string }[] = dynamicMainPages.map(page => ({
+    id: page.siteId,
+    label: page.label,
+    url: page.url,
+  }));
+  if (mainPagePreset && !mainPageChoices.some(page => page.id === mainPagePreset)) {
+    const preset = MAIN_PAGE_PRESETS.find(page => page.id === mainPagePreset);
+    const slug = mainPagePreset.replace(/^page_/, '').replace(/_hero$/, '');
+    mainPageChoices.push(preset || {
+      id: mainPagePreset,
+      label: mainPagePreset === 'discovery' ? '🏠 Homepage' : `📍 ${slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase())}`,
+      url: mainPagePreset === 'discovery' || mainPagePreset === 'main_hero' ? '/' : mainPagePreset.startsWith('page_') ? `/p/${slug}` : `/${slug}`,
+    });
+  }
+  if (mainPageChoices.length === 0) mainPageChoices.push(MAIN_PAGE_PRESETS[0]);
+
   const getCarouselTarget = () => {
     if (targetScope === 'minisite') {
       const biz = businesses.find(b => b.id === businessId);
@@ -524,6 +581,16 @@ function HeroCarouselManagerContent() {
         siteId: `page_${slugKey}`,
         url: cleanPath,
         title: `Main Website Custom Page (${cleanPath})`,
+        scopeLabel: '🏠 Main Website Page',
+      };
+    }
+
+    const builderPage = dynamicMainPages.find(page => page.siteId === mainPagePreset);
+    if (builderPage) {
+      return {
+        siteId: builderPage.siteId,
+        url: builderPage.url,
+        title: `Main Website: ${builderPage.title}`,
         scopeLabel: '🏠 Main Website Page',
       };
     }
@@ -629,10 +696,16 @@ function HeroCarouselManagerContent() {
     setSelectedBusiness(businesses.find(business => business.id === businessId) || null);
   }, [businesses, businessId]);
 
-  const loadAllSlides = useCallback(async () => {
+  const loadAllSlides = useCallback(async (clearCurrent = false) => {
+    const requestId = ++slideLoadRequestRef.current;
     setLoading(true);
+    if (clearCurrent) {
+      setAllSlides([]);
+      setDeletedDynamicIds([]);
+    }
     try {
       const res = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
+      if (requestId !== slideLoadRequestRef.current) return;
       if (res.ok) {
         const data = await res.json();
         const fetched: CarouselSlide[] = (data.slides || []).map((s: any, i: number) => ({
@@ -649,15 +722,17 @@ function HeroCarouselManagerContent() {
         }));
         setAllSlides(fetched);
         setDeletedDynamicIds(data.deletedDynamicIds || []);
+      } else {
+        showMsg('error', 'Failed to load slides');
       }
     } catch (err) {
-      showMsg('error', 'Failed to load slides');
+      if (requestId === slideLoadRequestRef.current) showMsg('error', 'Failed to load slides');
     } finally {
-      setLoading(false);
+      if (requestId === slideLoadRequestRef.current) setLoading(false);
     }
   }, [siteId]);
 
-  useEffect(() => { loadAllSlides(); }, [loadAllSlides]);
+  useEffect(() => { loadAllSlides(true); }, [loadAllSlides]);
 
   // Save the FULL carousel config (all slides the admin sees), along with deletedDynamicIds
   const saveSlideConfig = async (slides: CarouselSlide[], deletedIds: string[] = deletedDynamicIds) => {
@@ -1008,20 +1083,20 @@ function HeroCarouselManagerContent() {
   const ytPreviewId = formData.type === 'youtube' ? extractYouTubeId(formData.mediaUrl || '') : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', padding: '1rem 0', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <div dir={isArabic ? 'rtl' : 'ltr'} style={{ minHeight: '100vh', background: 'transparent', padding: '1rem 0', fontFamily: isArabic ? "'Cairo', 'Segoe UI', sans-serif" : 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
         {/* Header */}
         <div className="carousel-header-row" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <Link href="/jana" style={{ color: '#d97706', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px' }}>
-              ← ADMIN DASHBOARD
+              {t('← ADMIN DASHBOARD', '← لوحة الإدارة')}
             </Link>
             <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0f172a', margin: '0.35rem 0 0', letterSpacing: '-0.5px' }}>
-              🎬 Hero Carousel Manager
+              🎬 {t('Hero Carousel Manager', 'إدارة العرض الدوّار الرئيسي')}
             </h1>
             <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-              Targeting: <strong style={{ color: '#d97706' }}>{currentTarget.title}</strong> (`{siteId}`)
+              {t('Targeting:', 'الوجهة:')} <strong style={{ color: '#d97706' }}>{currentTarget.title}</strong> (`{siteId}`)
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -1031,7 +1106,7 @@ function HeroCarouselManagerContent() {
               rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', color: '#0f172a', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 800, transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
             >
-              <i className="fas fa-external-link-alt" style={{ color: '#d97706' }} /> Open Target Page: {previewHref}
+              <i className="fas fa-external-link-alt" style={{ color: '#d97706' }} /> {t('Open Target Page:', 'فتح الصفحة المستهدفة:')} {previewHref}
             </a>
             <button
               type="button"
@@ -1052,17 +1127,17 @@ function HeroCarouselManagerContent() {
                 transition: 'transform 0.15s ease',
               }}
             >
-              <i className="fas fa-photo-video" /> 📲 Import from Social Media
+              <i className="fas fa-photo-video" /> 📲 {t('Import from Social Media', 'استيراد من وسائل التواصل')}
             </button>
             <div style={{ position: 'relative' }}>
               <button style={{ background: '#d97706', color: '#ffffff', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(217,119,6,0.2)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <i className="fas fa-upload" /> {saving ? 'Uploading...' : 'Quick Upload from Device'}
+                <i className="fas fa-upload" /> {saving ? t('Uploading...', 'جارٍ الرفع...') : t('Quick Upload from Device', 'رفع سريع من الجهاز')}
               </button>
-              <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+              <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} disabled={saving || loading} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: saving || loading ? 'not-allowed' : 'pointer' }} />
             </div>
             {!showForm && (
               <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(15,23,42,0.15)' }}>
-                + Add Custom Slide
+                + {t('Add Custom Slide', 'إضافة شريحة مخصصة')}
               </button>
             )}
           </div>
@@ -1074,10 +1149,10 @@ function HeroCarouselManagerContent() {
           {/* Header Row & Target Destination Link */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a', fontWeight: 900, fontSize: '0.9rem', letterSpacing: '0.5px' }}>
-              <i className="fas fa-crosshairs" style={{ color: '#d97706' }} /> DYNAMIC CAROUSEL TARGET SELECTOR
+              <i className="fas fa-crosshairs" style={{ color: '#d97706' }} /> {t('DYNAMIC CAROUSEL TARGET SELECTOR', 'اختيار وجهة العرض الدوّار')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#64748b' }}>
-              <span>Live Destination:</span>
+              <span>{t('Live Destination:', 'الوجهة المباشرة:')}</span>
               <a href={previewHref} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 800, textDecoration: 'underline' }}>
                 https://siwify.com{previewHref}
               </a>
@@ -1087,9 +1162,9 @@ function HeroCarouselManagerContent() {
           {/* Scope Mode Selector Tabs */}
           <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '6px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             {[
-              { id: 'main', label: '🏠 Main Website Pages', icon: 'fa-globe' },
-              { id: 'minisite', label: '🏢 Vendor Business Minisites & Tabs', icon: 'fa-store' },
-              { id: 'readymade', label: '🚀 Dynamic Ready-Made & Exclusive Pages', icon: 'fa-bolt' },
+              { id: 'main', label: t('🏠 Main Website Pages', '🏠 صفحات الموقع الرئيسي'), icon: 'fa-globe' },
+              { id: 'minisite', label: t('🏢 Vendor Business Minisites & Tabs', '🏢 مواقع الأنشطة وتبويباتها'), icon: 'fa-store' },
+              { id: 'readymade', label: t('🚀 Dynamic Ready-Made & Exclusive Pages', '🚀 صفحات جاهزة وحصرية'), icon: 'fa-bolt' },
             ].map(tab => {
               const isActive = targetScope === tab.id;
               return (
@@ -1128,76 +1203,46 @@ function HeroCarouselManagerContent() {
           {targetScope === 'main' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>
-                Select Main Website Target Page:
+                {t('Select Main Website Target Page:', 'اختر صفحة من الموقع الرئيسي:')}
               </div>
 
-              {/* Main Presets */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {MAIN_PAGE_PRESETS.map(preset => {
-                  const isActive = !customMainPath && mainPagePreset === preset.id;
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => {
-                        setCustomMainPath('');
-                        setMainPagePreset(preset.id);
-                        setShowForm(false);
-                        setEditingId(null);
-                      }}
-                      style={{
-                        padding: '0.5rem 0.85rem',
-                        borderRadius: '8px',
-                        border: '1px solid',
-                        borderColor: isActive ? '#d97706' : '#cbd5e1',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        background: isActive ? '#fffdf5' : '#ffffff',
-                        color: isActive ? '#d97706' : '#334155',
-                        boxShadow: isActive ? '0 2px 6px rgba(217,119,6,0.12)' : 'none',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {preset.label}
-                    </button>
-                  );
-                })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', padding: '0.75rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '9px' }}>
+                <label htmlFor="main-builder-page-picker" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  {t('Pages from Main Builder', 'صفحات منشئ الموقع الرئيسي')}
+                </label>
+                <select
+                  id="main-builder-page-picker"
+                  aria-label={t('Select a page created in Main Builder', 'اختر صفحة من منشئ الموقع الرئيسي')}
+                  value={mainPageChoices.some(page => page.id === mainPagePreset) ? mainPagePreset : ''}
+                  disabled={loadingMainPages && dynamicMainPages.length === 0}
+                  onChange={e => {
+                    setCustomMainPath('');
+                    setMainPagePreset(e.target.value || 'discovery');
+                  }}
+                  style={{ flex: 1, minWidth: '220px', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
+                >
+                  <option value="">
+                    {loadingMainPages ? t('Loading saved pages…', 'جارٍ تحميل الصفحات المحفوظة…') : dynamicMainPages.length ? t('Select a saved page…', 'اختر صفحة محفوظة…') : t('No saved Main Builder pages', 'لا توجد صفحات محفوظة')}
+                  </option>
+                  {mainPageChoices.map(page => (
+                    <option key={page.id} value={page.id}>{page.label} ({page.url})</option>
+                  ))}
+                </select>
               </div>
 
-              {/* Dynamic Pages / Custom Main Path */}
+              {/* Custom Main Path */}
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                {dynamicMainPages.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
-                    <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ Dynamic Page:</span>
-                    <select
-                      value={mainPagePreset}
-                      onChange={e => {
-                        setCustomMainPath('');
-                        setMainPagePreset(e.target.value);
-                      }}
-                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
-                    >
-                      <option value="discovery">-- Select Orchestrator Page --</option>
-                      {dynamicMainPages.map(dp => (
-                        <option key={dp.slug} value={`page_${dp.slug}`}>
-                          {dp.title} (`/${dp.slug}`)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
-                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Main Route:</span>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ {t('Custom Main Route:', 'مسار مخصص:')}</span>
                   <input
                     type="text"
-                    placeholder="e.g. /events or /exclusive-deals"
+                    placeholder={t('e.g. /events or /exclusive-deals', 'مثال: /events أو /exclusive-deals')}
                     value={customMainPath}
                     onChange={e => setCustomMainPath(e.target.value)}
                     style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                   />
                   {customMainPath && (
-                    <button onClick={() => setCustomMainPath('')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                    <button onClick={() => setCustomMainPath('')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>{t('Clear', 'مسح')}</button>
                   )}
                 </div>
               </div>
@@ -1208,7 +1253,7 @@ function HeroCarouselManagerContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               {/* Business Selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <span style={{ color: '#0f172a', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}>1. Select Minisite Business:</span>
+                <span style={{ color: '#0f172a', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}>{t('1. Select Minisite Business:', '١. اختر نشاط الموقع المصغر:')}</span>
                 <select
                   value={businessId}
                   onChange={e => {
@@ -1220,7 +1265,7 @@ function HeroCarouselManagerContent() {
                   }}
                   style={{ flex: 1, minWidth: '260px', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: businessId ? '#fffdf5' : '#ffffff', color: businessId ? '#d97706' : '#0f172a', fontWeight: 800, outline: 'none' }}
                 >
-                  <option value="">-- Choose Vendor Minisite Business --</option>
+                  <option value="">{t('-- Choose Vendor Minisite Business --', '-- اختر نشاطًا --')}</option>
                   {businesses.map(b => (
                     <option key={b.id} value={b.id}>
                       🏢 {b.name} ({b.slug ? `/${b.slug}` : `/business/${b.id}`})
@@ -1233,11 +1278,11 @@ function HeroCarouselManagerContent() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>
-                    2. Select Minisite Hero or Dynamic Section:
+                    {t('2. Select Minisite Hero or Dynamic Section:', '٢. اختر واجهة الموقع أو القسم:')}
                   </span>
                   {loadingBusinessSections && (
                     <span style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 700 }}>
-                      <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.35rem' }} /> Loading business sections...
+                      <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.35rem' }} /> {t('Loading business sections...', 'جارٍ تحميل الأقسام...')}
                     </span>
                   )}
                 </div>
@@ -1277,10 +1322,10 @@ function HeroCarouselManagerContent() {
 
                 {minisiteTab === 'custom' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', maxWidth: '380px' }}>
-                    <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>Custom Tab Key:</span>
+                    <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800 }}>{t('Custom Tab Key:', 'مفتاح التبويب المخصص:')}</span>
                     <input
                       type="text"
-                      placeholder="e.g. booking or menu"
+                      placeholder={t('e.g. booking or menu', 'مثال: booking أو menu')}
                       value={customMinisiteTab}
                       onChange={e => setCustomMinisiteTab(e.target.value)}
                       style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
@@ -1294,12 +1339,12 @@ function HeroCarouselManagerContent() {
           {targetScope === 'readymade' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>
-                Select Exclusive Dynamic Page / Standalone Landing:
+                {t('Select Exclusive Dynamic Page / Standalone Landing:', 'اختر صفحة حصرية أو صفحة هبوط مستقلة:')}
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '240px' }}>
-                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🚀 Preset Page:</span>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>🚀 {t('Preset Page:', 'صفحة جاهزة:')}</span>
                   <select
                     value={readyMadeId}
                     onChange={e => {
@@ -1315,16 +1360,16 @@ function HeroCarouselManagerContent() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
-                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ Custom Page Route:</span>
+                  <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>✏️ {t('Custom Page Route:', 'مسار صفحة مخصص:')}</span>
                   <input
                     type="text"
-                    placeholder="e.g. /p/vip-landing or /custom-hero"
+                    placeholder={t('e.g. /p/vip-landing or /custom-hero', 'مثال: /p/vip-landing أو /custom-hero')}
                     value={customReadyMadePath}
                     onChange={e => setCustomReadyMadePath(e.target.value)}
                     style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', outline: 'none' }}
                   />
                   {customReadyMadePath && (
-                    <button onClick={() => setCustomReadyMadePath('')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                    <button onClick={() => setCustomReadyMadePath('')} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>{t('Clear', 'مسح')}</button>
                   )}
                 </div>
               </div>
@@ -1336,7 +1381,7 @@ function HeroCarouselManagerContent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.82rem', flexWrap: 'wrap' }}>
               <span style={{ color: '#d97706', fontWeight: 900 }}>{currentTarget.scopeLabel}:</span>
               <span style={{ color: '#0f172a', fontWeight: 800 }}>{currentTarget.title}</span>
-              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>DB Storage Key: <code style={{ color: '#0f172a', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>hero_carousel_{siteId}</code></span>
+              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>{t('DB Storage Key:', 'مفتاح التخزين:')} <code style={{ color: '#0f172a', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>hero_carousel_{siteId}</code></span>
             </div>
             <a
               href={previewHref}
@@ -1344,7 +1389,7 @@ function HeroCarouselManagerContent() {
               rel="noopener noreferrer"
               style={{ color: '#059669', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#ecfdf5', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #a7f3d0' }}
             >
-              <i className="fas fa-play" /> Live Preview: {previewHref}
+              <i className="fas fa-play" /> {t('Live Preview:', 'معاينة مباشرة:')} {previewHref}
             </a>
           </div>
 
@@ -1361,7 +1406,7 @@ function HeroCarouselManagerContent() {
         {showForm && (
           <div style={{ background: '#ffffff', borderRadius: '16px', padding: '2rem', marginBottom: '2rem', border: '1px solid #cbd5e1', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ color: '#0f172a', fontWeight: 900, margin: 0 }}>{editingId ? '✏️ Edit Slide' : '+ New Slide'}</h2>
+              <h2 style={{ color: '#0f172a', fontWeight: 900, margin: 0 }}>{editingId ? `✏️ ${t('Edit Slide', 'تعديل الشريحة')}` : `+ ${t('New Slide', 'شريحة جديدة')}`}</h2>
               <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.5rem' }}>✕</button>
             </div>
 
@@ -1369,7 +1414,7 @@ function HeroCarouselManagerContent() {
 
               {/* TYPE */}
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SLIDE TYPE</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>{t('SLIDE TYPE', 'نوع الشريحة')}</label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {(['image', 'youtube', 'video', 'embed', 'branded'] as const).map(t => (
                     <button key={t} onClick={() => setFormData(p => ({ ...p, type: t }))}
@@ -1385,23 +1430,23 @@ function HeroCarouselManagerContent() {
 
               {/* TITLE */}
               <div>
-                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TITLE *</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>{t('TITLE *', 'العنوان *')}</label>
                 <input value={formData.title || ''} onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
-                  placeholder="e.g. Discover Siwa Oasis"
+                  placeholder={t('e.g. Discover Siwa Oasis', 'مثال: اكتشف واحة سيوة')}
                   style={{ width: '100%', padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* SUBTITLE */}
               <div>
-                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>SUBTITLE</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>{t('SUBTITLE', 'العنوان الفرعي')}</label>
                 <input value={formData.subtitle || ''} onChange={e => setFormData(p => ({ ...p, subtitle: e.target.value }))}
-                  placeholder="Short description"
+                  placeholder={t('Short description', 'وصف مختصر')}
                   style={{ width: '100%', padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* CAPTION */}
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>CAPTION (Badge label shown above title)</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>{t('CAPTION (Badge label shown above title)', 'التسمية (تظهر فوق العنوان)')}</label>
                 <input value={formData.caption || ''} onChange={e => setFormData(p => ({ ...p, caption: e.target.value }))}
                   placeholder="e.g. FEATURED · SIWA OASIS"
                   style={{ width: '100%', padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }} />
@@ -1409,10 +1454,10 @@ function HeroCarouselManagerContent() {
 
               {/* TARGET SECTION (manual or picker) */}
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>TARGET SECTION (optional)</label>
+                <label style={{ display: 'block', color: '#475569', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', marginBottom: '0.5rem' }}>{t('TARGET SECTION (optional)', 'القسم المستهدف (اختياري)')}</label>
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                   <input value={formData.targetSectionId || ''} onChange={e => setFormData(p => ({ ...p, targetSectionId: e.target.value }))}
-                    placeholder="Enter element id (e.g. offers, gallery) or pick below"
+                    placeholder={t('Enter element id (e.g. offers, gallery) or pick below', 'أدخل معرّف القسم أو اختره أدناه')}
                     style={{ flex: 1, padding: '0.75rem', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', color: '#0f172a', outline: 'none' }} />
                   <button type="button" onClick={async () => {
                     // Load sections and open picker
@@ -1426,13 +1471,13 @@ function HeroCarouselManagerContent() {
                       }
                     } catch (e) { setAvailableSections([]); }
                     setShowSectionPicker(true);
-                  }} style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: '0.6rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>Select</button>
+                  }} style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: '0.6rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>{t('Select', 'اختيار')}</button>
                   {formData.targetSectionId && (
-                    <button onClick={() => setFormData(p => ({ ...p, targetSectionId: '' }))} style={{ background: 'transparent', border: '1px solid #cbd5e1', color: '#64748b', padding: '0.4rem 0.6rem', borderRadius: '8px', cursor: 'pointer' }}>Clear</button>
+                    <button onClick={() => setFormData(p => ({ ...p, targetSectionId: '' }))} style={{ background: 'transparent', border: '1px solid #cbd5e1', color: '#64748b', padding: '0.4rem 0.6rem', borderRadius: '8px', cursor: 'pointer' }}>{t('Clear', 'مسح')}</button>
                   )}
                 </div>
                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
-                  If set, clicking the slide CTA or navigating to this slide (via arrows) will scroll the visitor to the selected section on the homepage.
+                  {t('If set, clicking the slide CTA or navigating to this slide (via arrows) will scroll the visitor to the selected section on the homepage.', 'عند تحديده، ينقل زر الشريحة أو التنقل بالأسهم الزائر إلى القسم المختار في الصفحة الرئيسية.')}
                 </div>
               </div>
 
@@ -1654,7 +1699,7 @@ function HeroCarouselManagerContent() {
               </button>
               <button onClick={resetForm}
                 style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '0.9rem 1.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}>
-                Cancel
+                {t('Cancel', 'إلغاء')}
               </button>
             </div>
           </div>
@@ -1773,7 +1818,7 @@ function HeroCarouselManagerContent() {
                 >
                   <i className="fas fa-upload" /> {saving ? 'Uploading...' : 'Quick Upload from Device'}
                 </button>
-                <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} disabled={saving || loading} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: saving || loading ? 'not-allowed' : 'pointer' }} />
               </div>
               <button
                 onClick={handleGenerateStarterSlides}

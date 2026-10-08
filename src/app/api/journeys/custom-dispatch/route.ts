@@ -1,92 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
+import { getCurrentUser, requireAdmin, requireVendor } from '@/lib/auth';
+import { DEFAULT_JOURNEY_CUSTOMIZER, type JourneyCustomizerCatalog } from '@/lib/journey-customizer-catalog';
+import { ensureJourneyTables } from '@/lib/journey-request-store';
 import crypto from 'crypto';
 
-/**
- * AUTO-HEAL: Ensure journey_requests and journey_vendor_dispatches tables exist with unified schema
- */
-async function ensureJourneyTables() {
-  await execute(`
-    CREATE TABLE IF NOT EXISTS journey_requests (
-      id VARCHAR(100) PRIMARY KEY,
-      request_code VARCHAR(50) NOT NULL,
-      customer_name VARCHAR(255) NOT NULL,
-      customer_phone VARCHAR(50) NOT NULL,
-      customer_email VARCHAR(255) DEFAULT '',
-      duration_days INT DEFAULT 3,
-      travel_dates VARCHAR(100) DEFAULT '',
-      adults_count INT DEFAULT 2,
-      children_count INT DEFAULT 0,
-      selected_experiences JSON DEFAULT NULL,
-      accommodation_preference VARCHAR(100) DEFAULT 'ecolodge',
-      transport_preference VARCHAR(100) DEFAULT '4x4_land_cruiser',
-      meal_preference VARCHAR(100) DEFAULT 'traditional_siwan',
-      guide_language VARCHAR(50) DEFAULT 'english',
-      special_notes TEXT,
-      estimated_price DECIMAL(10,2) DEFAULT 0.00,
-      discount_amount DECIMAL(10,2) DEFAULT 0.00,
-      final_price DECIMAL(10,2) DEFAULT 0.00,
-      selected_business_ids JSON DEFAULT NULL,
-      status VARCHAR(50) DEFAULT 'open',
-      distribution_status VARCHAR(50) DEFAULT 'dispatched',
-      target_business_type_id VARCHAR(100) DEFAULT NULL,
-      target_vendor_id VARCHAR(100) DEFAULT NULL,
-      reveal_contact BOOLEAN DEFAULT 1,
-      request_type VARCHAR(50) DEFAULT 'journey',
-      budget VARCHAR(100) DEFAULT NULL,
-      duration VARCHAR(100) DEFAULT NULL,
-      group_size INT DEFAULT 2,
-      arrival_date VARCHAR(100) DEFAULT NULL,
-      special_requests TEXT DEFAULT NULL,
-      itinerary_name VARCHAR(255) DEFAULT NULL,
-      itinerary_summary TEXT DEFAULT NULL,
-      custom_details JSON DEFAULT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_code (request_code),
-      INDEX idx_phone (customer_phone),
-      INDEX idx_status (status),
-      INDEX idx_dist (distribution_status)
-    )
-  `);
-
-  // Ensure compatibility columns exist if table was previously created with older schema
-  const cols = [
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS distribution_status VARCHAR(50) DEFAULT 'dispatched'`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS target_business_type_id VARCHAR(100) DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS target_vendor_id VARCHAR(100) DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS reveal_contact BOOLEAN DEFAULT 1`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS request_type VARCHAR(50) DEFAULT 'journey'`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS budget VARCHAR(100) DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS duration VARCHAR(100) DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS group_size INT DEFAULT 2`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS arrival_date VARCHAR(100) DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS special_requests TEXT DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS itinerary_name VARCHAR(255) DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS itinerary_summary TEXT DEFAULT NULL`,
-    `ALTER TABLE journey_requests ADD COLUMN IF NOT EXISTS custom_details JSON DEFAULT NULL`,
-  ];
-  for (const alterSql of cols) {
-    try { await execute(alterSql); } catch {}
+async function loadJourneyCatalog(): Promise<{ catalog: JourneyCustomizerCatalog; revision: number }> {
+  let row: { catalog: unknown; revision: number } | null;
+  try {
+    row = await queryOne<{ catalog: unknown; revision: number }>(
+      'SELECT catalog, revision FROM journey_customizer_catalog WHERE config_key = ? LIMIT 1',
+      ['default']
+    );
+  } catch (error: any) {
+    if (error?.code !== 'ER_NO_SUCH_TABLE') throw error;
+    row = null;
   }
-
-  await execute(`
-    CREATE TABLE IF NOT EXISTS journey_vendor_dispatches (
-      id VARCHAR(100) PRIMARY KEY,
-      request_id VARCHAR(100) NOT NULL,
-      business_id VARCHAR(100) NOT NULL,
-      role VARCHAR(50) DEFAULT 'experience_provider',
-      vendor_status VARCHAR(50) DEFAULT 'pending',
-      quoted_price DECIMAL(10,2) DEFAULT NULL,
-      vendor_notes TEXT,
-      whatsapp_notified BOOLEAN DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_req (request_id),
-      INDEX idx_biz (business_id),
-      INDEX idx_vstatus (vendor_status)
-    )
-  `);
+  if (!row?.catalog) return { catalog: DEFAULT_JOURNEY_CUSTOMIZER, revision: 0 };
+  return {
+    catalog: typeof row.catalog === 'string' ? JSON.parse(row.catalog) : row.catalog as JourneyCustomizerCatalog,
+    revision: Number(row.revision) || 0,
+  };
 }
 
 /**
@@ -97,7 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     await ensureJourneyTables();
     const body = await req.json();
-
+    const { catalog, revision: catalogRevision } = await loadJourneyCatalog();
     const {
       customer_name,
       customer_phone,
@@ -106,99 +40,172 @@ export async function POST(req: NextRequest) {
       travel_dates = '',
       adults_count = 2,
       children_count = 0,
+      selected_experience_ids,
       selected_experiences = [],
-      accommodation_preference = 'ecolodge',
-      transport_preference = '4x4_land_cruiser',
-      meal_preference = 'Bedouin Lamb Under Sand (Mendhi)',
-      guide_language = 'english',
+      accommodation_id,
+      transport_id,
+      meal_id,
+      accommodation_preference,
+      transport_preference,
+      meal_preference,
+      interface_language = 'en',
+      guide_language = 'English',
       special_notes = '',
-      estimated_price = 0,
-      discount_amount = 0,
-      final_price = 0,
-      selected_business_ids = []
     } = body;
 
     if (!customer_name?.trim() || !customer_phone?.trim()) {
       return NextResponse.json({ error: 'Customer name and phone are required' }, { status: 400 });
     }
 
-    const id = crypto.randomUUID();
-    const requestCode = `SIW-${Math.floor(100000 + Math.random() * 900000)}`;
-    const totalGuests = (Number(adults_count) || 2) + (Number(children_count) || 0);
+    const interfaceLanguage = interface_language === 'ar' ? 'ar' : 'en';
+    const dayCount = Math.max(1, Math.min(30, Number.parseInt(String(duration_days), 10) || 3));
+    const adults = Math.max(1, Math.min(30, Number(adults_count) || 1));
+    const children = Math.max(0, Math.min(30, Number(children_count) || 0));
+    const totalGuests = adults + children;
+    const requestedExperienceIds: string[] = Array.isArray(selected_experience_ids)
+      ? selected_experience_ids.map(String)
+      : (Array.isArray(selected_experiences) ? selected_experiences.map((item: any) => String(item?.id || item)) : []);
+    const uniqueExperienceIds = [...new Set(requestedExperienceIds)];
+    const selectedExperienceItems = uniqueExperienceIds.map(itemId => catalog.experiences.find(item => item.id === itemId && item.is_visible));
 
-    const customDetails = {
-      selected_experiences,
-      accommodation_preference,
-      transport_preference,
-      meal_preference,
-      guide_language,
-      discount_amount,
-      estimated_price,
-      final_price
-    };
-
-    const expTitles = (selected_experiences as any[])
-      .map((e: any) => typeof e === 'object' ? (e.title || e.name || e.id) : e)
-      .join(', ');
-
-    const itinerarySummary = `Custom ${duration_days}-Day Siwa Journey: ${expTitles}. Stay: ${accommodation_preference}, Transport: ${transport_preference}, Meals: ${meal_preference}.`;
-
-    await execute(
-      `INSERT INTO journey_requests (
-        id, request_code, customer_name, customer_phone, customer_email,
-        duration_days, travel_dates, adults_count, children_count,
-        selected_experiences, accommodation_preference, transport_preference,
-        meal_preference, guide_language, special_notes, estimated_price,
-        discount_amount, final_price, selected_business_ids, status,
-        distribution_status, request_type, budget, duration, group_size,
-        arrival_date, special_requests, itinerary_name, itinerary_summary, custom_details
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 'dispatched', 'journey', ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        requestCode,
-        customer_name.trim(),
-        customer_phone.trim(),
-        customer_email.trim(),
-        Number(duration_days) || 3,
-        travel_dates,
-        Number(adults_count) || 2,
-        Number(children_count) || 0,
-        JSON.stringify(selected_experiences || []),
-        accommodation_preference,
-        transport_preference,
-        meal_preference,
-        guide_language,
-        special_notes,
-        Number(estimated_price) || 0,
-        Number(discount_amount) || 0,
-        Number(final_price) || 0,
-        JSON.stringify(selected_business_ids || []),
-        final_price > 0 ? `${final_price} EGP` : 'Custom Quote',
-        `${duration_days} Days`,
-        totalGuests,
-        travel_dates || 'Flexible',
-        special_notes || '',
-        `Siwa ${duration_days}-Day Custom Experience [${requestCode}]`,
-        itinerarySummary,
-        JSON.stringify(customDetails)
-      ]
-    );
-
-    // Collect businesses to dispatch to: either selected, or auto-match verified vendors
-    let targetBizIds = Array.isArray(selected_business_ids) ? [...selected_business_ids] : [];
-
-    if (targetBizIds.length === 0) {
-      // Auto-match up to 3 relevant verified businesses in Siwa
-      try {
-        const matchingBiz = await query(
-          `SELECT id FROM businesses WHERE active = 1 ORDER BY (subscription_tier = 'gold' OR subscription_tier = 'vip') DESC, created_at ASC LIMIT 3`
-        ) as any[];
-        targetBizIds = matchingBiz.map((b: any) => b.id);
-      } catch {}
+    if (selectedExperienceItems.some(item => !item)) {
+      return NextResponse.json({ error: 'One or more selected experiences are no longer available.' }, { status: 400 });
+    }
+    if (selectedExperienceItems.length === 0) {
+      return NextResponse.json({ error: 'Select at least one available experience.' }, { status: 400 });
     }
 
+    const resolveItem = <T extends { id: string; is_visible: boolean; vendor_business_ids: string[]; name_en?: string; name_ar?: string }>(items: T[], id: unknown, legacyName: unknown) => {
+      const key = typeof id === 'string' ? id : '';
+      if (key) return items.find(item => item.id === key && item.is_visible) || null;
+      const name = typeof legacyName === 'string' ? legacyName : '';
+      return items.find(item => item.is_visible && (item.name_en === name || item.name_ar === name)) || null;
+    };
+
+    const stayItem = resolveItem(catalog.accommodations, accommodation_id, accommodation_preference);
+    const transportItem = resolveItem(catalog.transports, transport_id, transport_preference);
+    const mealItem = resolveItem(catalog.meals, meal_id, meal_preference);
+    if ((accommodation_id && !stayItem) || (transport_id && !transportItem) || (meal_id && !mealItem)) {
+      return NextResponse.json({ error: 'One or more selected options are no longer available.' }, { status: 400 });
+    }
+
+    const experiencesSubtotal = selectedExperienceItems.reduce((sum, item) => sum + (
+      item ? item.base_price_egp * adults + item.base_price_egp * 0.5 * children : 0
+    ), 0);
+    const nights = Math.max(1, dayCount - 1);
+    const staySubtotal = stayItem ? stayItem.price_per_night * nights : 0;
+    const transportSubtotal = transportItem ? transportItem.rate_per_day * dayCount : 0;
+    const mealsSubtotal = mealItem ? mealItem.price_per_person * (adults + children * 0.5) * dayCount : 0;
+    const estimatedPrice = experiencesSubtotal + staySubtotal + transportSubtotal + mealsSubtotal;
+    const discountPercent = uniqueExperienceIds.length >= 3 ? Number(catalog.bundle_discount_percent) || 0 : 0;
+    const discountAmount = Math.round(estimatedPrice * discountPercent / 100);
+    const finalPrice = Math.max(0, estimatedPrice - discountAmount);
+    const localizedName = (item: { name_en?: string; name_ar?: string } | null) => item
+      ? (interfaceLanguage === 'ar' ? item.name_ar : item.name_en) || item.id
+      : 'None';
+
+    const experienceSnapshots = selectedExperienceItems.map(item => ({
+      ...item,
+      title: interfaceLanguage === 'ar' ? item!.title_ar : item!.title_en,
+      price: item!.base_price_egp,
+    }));
+    const optionSnapshot = (item: any, price: number) => item ? ({
+      id: item.id,
+      title_en: item.name_en,
+      title_ar: item.name_ar,
+      title: interfaceLanguage === 'ar' ? item.name_ar : item.name_en,
+      description_en: item.desc_en,
+      description_ar: item.desc_ar,
+      price,
+      vendor_business_ids: item.vendor_business_ids || [],
+    }) : null;
+
+    const catalogSnapshot = {
+      interface_language: interfaceLanguage,
+      catalog_revision: catalogRevision,
+      bundle_discount_percent: discountPercent,
+      experiences: experienceSnapshots,
+      accommodation: optionSnapshot(stayItem, stayItem?.price_per_night || 0),
+      transport: optionSnapshot(transportItem, transportItem?.rate_per_day || 0),
+      meal: optionSnapshot(mealItem, mealItem?.price_per_person || 0),
+    };
+    const selectedBusinessIds = [...new Set([
+      ...experienceSnapshots.flatMap(item => item!.vendor_business_ids || []),
+      ...(stayItem?.vendor_business_ids || []),
+      ...(transportItem?.vendor_business_ids || []),
+      ...(mealItem?.vendor_business_ids || []),
+    ])];
+    const activeBusinessIds = selectedBusinessIds.length
+      ? await query(`SELECT id FROM businesses WHERE active = 1 AND id IN (${selectedBusinessIds.map(() => '?').join(',')})`, selectedBusinessIds).then(rows => rows.map((row: any) => String(row.id))).catch(() => [])
+      : [];
+    const dispatchStatus = activeBusinessIds.length ? 'dispatched' : 'admin_review';
+
+    const requestCode = `SIW-${Math.floor(100000 + Math.random() * 900000)}`;
+    const expTitles = experienceSnapshots.map(item => item!.title).join(', ');
+    const stayTitle = localizedName(stayItem);
+    const transportTitle = localizedName(transportItem);
+    const mealTitle = localizedName(mealItem);
+    const itinerarySummary = `Custom ${dayCount}-Day Siwa Journey: ${expTitles}. Stay: ${stayTitle}, Transport: ${transportTitle}, Meals: ${mealTitle}.`;
+    const customDetails = {
+      catalog_snapshot: catalogSnapshot,
+      selected_experiences: experienceSnapshots,
+      accommodation_preference: stayTitle,
+      transport_preference: transportTitle,
+      meal_preference: mealTitle,
+      guide_language: guide_language || 'English',
+      interface_language: interfaceLanguage,
+      discount_percent: discountPercent,
+      discount_amount: discountAmount,
+      estimated_price: estimatedPrice,
+      final_price: finalPrice,
+    };
+
+    const idColumn = (await query<{ Type: string; Extra: string }>("SHOW COLUMNS FROM journey_requests LIKE 'id'"))[0];
+    const usesAutoIncrementId = Boolean(idColumn?.Extra?.toLowerCase().includes('auto_increment'));
+    const requestedId = usesAutoIncrementId ? null : crypto.randomUUID();
+    const requestRecord: Record<string, unknown> = {
+      request_code: requestCode,
+      customer_name: customer_name.trim(),
+      customer_phone: customer_phone.trim(),
+      customer_email: customer_email.trim(),
+      duration_days: dayCount,
+      travel_dates,
+      adults_count: adults,
+      children_count: children,
+      selected_experiences: JSON.stringify(experienceSnapshots),
+      accommodation_preference: stayTitle,
+      transport_preference: transportTitle,
+      meal_preference: mealTitle,
+      guide_language: guide_language || 'English',
+      interface_language: interfaceLanguage,
+      catalog_revision: catalogRevision,
+      special_notes,
+      estimated_price: estimatedPrice,
+      discount_amount: discountAmount,
+      final_price: finalPrice,
+      selected_business_ids: JSON.stringify(activeBusinessIds),
+      status: 'open',
+      distribution_status: dispatchStatus,
+      request_type: 'journey',
+      budget: finalPrice > 0 ? `${finalPrice} EGP` : 'Custom Quote',
+      duration: `${dayCount} Days`,
+      group_size: totalGuests,
+      arrival_date: travel_dates || 'Flexible',
+      special_requests: special_notes || '',
+      itinerary_name: `Siwa ${dayCount}-Day Custom Experience [${requestCode}]`,
+      itinerary_summary: itinerarySummary,
+      custom_details: JSON.stringify(customDetails),
+    };
+    if (requestedId) requestRecord.id = requestedId;
+    const columns = Object.keys(requestRecord);
+    const insertResult = await execute(
+      `INSERT INTO journey_requests (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+      Object.values(requestRecord)
+    );
+    const id = requestedId || String(insertResult.insertId);
+
     const dispatches: any[] = [];
-    for (const bizId of targetBizIds) {
+    for (const bizId of activeBusinessIds) {
       const dispatchId = crypto.randomUUID();
       try {
         await execute(
@@ -230,8 +237,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Build Formatted WhatsApp Dispatch Message for Visitor / Admin / Vendors
-    const experiencesList = (selected_experiences as any[])
-      .map((e: any) => typeof e === 'object' ? `• ${e.title || e.name}` : `• ${e}`)
+    const experiencesList = experienceSnapshots
+      .map(item => `• ${encodeURIComponent(item!.title || item!.id)}`)
       .join('%0A');
 
     const formattedWhatsAppSummary = 
@@ -239,17 +246,17 @@ export async function POST(req: NextRequest) {
       `----------------------------------------%0A` +
       `👤 *Traveler:* ${encodeURIComponent(customer_name)}%0A` +
       `📞 *Phone:* ${encodeURIComponent(customer_phone)}%0A` +
-      `⏱️ *Duration:* ${duration_days} Days / ${travel_dates ? encodeURIComponent(travel_dates) : 'Flexible Dates'}%0A` +
-      `👥 *Guests:* ${adults_count} Adults${children_count > 0 ? `, ${children_count} Children` : ''}%0A` +
-      `🛏️ *Stay Style:* ${encodeURIComponent(accommodation_preference)}%0A` +
-      `🚙 *Transport:* ${encodeURIComponent(transport_preference)}%0A` +
-      `🍽️ *Dining:* ${encodeURIComponent(meal_preference)}%0A` +
+      `⏱️ *Duration:* ${dayCount} Days / ${travel_dates ? encodeURIComponent(travel_dates) : 'Flexible Dates'}%0A` +
+      `👥 *Guests:* ${adults} Adults${children > 0 ? `, ${children} Children` : ''}%0A` +
+      `🛏️ *Stay Style:* ${encodeURIComponent(stayTitle)}%0A` +
+      `🚙 *Transport:* ${encodeURIComponent(transportTitle)}%0A` +
+      `🍽️ *Dining:* ${encodeURIComponent(mealTitle)}%0A` +
       `🗣️ *Guide Language:* ${encodeURIComponent(guide_language)}%0A` +
       `----------------------------------------%0A` +
       `🎯 *Selected Experiences:*%0A${experiencesList}%0A` +
       `----------------------------------------%0A` +
-      `💰 *Estimated Total:* ${final_price > 0 ? `${final_price} EGP` : 'Custom Quote'}` +
-      (discount_amount > 0 ? ` _(Saved ${discount_amount} EGP with 15% Bundle Discount!)_` : '') + `%0A` +
+      `💰 *Estimated Total:* ${finalPrice > 0 ? `${finalPrice} EGP` : 'Custom Quote'}` +
+      (discountAmount > 0 ? ` _(Saved ${discountAmount} EGP with ${discountPercent}% Bundle Discount!)_` : '') + `%0A` +
       (special_notes ? `📝 *Notes:* ${encodeURIComponent(special_notes)}%0A` : '') +
       `----------------------------------------%0A` +
       `👉 Track on SiWiFy Portal: https://siwify.com/visitor/journey-request/${id}`;
@@ -263,7 +270,8 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    const statusCode = e?.message?.includes('authenticated') || e?.message?.includes('Admin access') || e?.message?.includes('Vendor access') ? 403 : 500;
+    return NextResponse.json({ error: e.message }, { status: statusCode });
   }
 }
 
@@ -278,23 +286,48 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id');
     const phone = searchParams.get('phone');
     const status = searchParams.get('status');
-    const vendorBusinessId = searchParams.get('vendor_business_id');
+    const requestedBusinessId = searchParams.get('vendor_business_id');
+    let vendorBusinessId: string | null = null;
+    const sessionUser = await getCurrentUser();
+    const adminRoles = ['super_admin', 'content_admin', 'sales_manager', 'support_agent'];
+    const isAdmin = Boolean(sessionUser && adminRoles.includes(sessionUser.role));
+
+    if (requestedBusinessId) {
+      const user = await requireVendor();
+      if (user.role === 'vendor') {
+        if (!user.businessId || user.businessId !== requestedBusinessId) {
+          return NextResponse.json({ error: 'Vendor access denied' }, { status: 403 });
+        }
+        vendorBusinessId = user.businessId;
+      } else {
+        vendorBusinessId = requestedBusinessId;
+      }
+    } else if (!id) {
+      await requireAdmin();
+    }
 
     if (id) {
-      const request = await queryOne(
-        `SELECT jr.* FROM journey_requests jr WHERE jr.id = ? OR jr.request_code = ?`,
-        [id, id]
-      ) as any;
+      const request = vendorBusinessId
+        ? await queryOne(
+          `SELECT jr.* FROM journey_requests jr
+           INNER JOIN journey_vendor_dispatches jvd ON jvd.request_id = jr.id AND jvd.business_id = ?
+           WHERE jr.id = ? OR jr.request_code = ? LIMIT 1`,
+          [vendorBusinessId, id, id]
+        ) as any
+        : await queryOne(
+          `SELECT jr.* FROM journey_requests jr WHERE jr.id = ? OR jr.request_code = ?`,
+          [id, id]
+        ) as any;
 
       if (!request) return NextResponse.json({ error: 'Request not found' }, { status: 404 });
 
-      const dispatches = await query(
+      const dispatches = isAdmin || vendorBusinessId ? await query(
         `SELECT jvd.*, b.name as business_name, b.slug as business_slug
          FROM journey_vendor_dispatches jvd
          JOIN businesses b ON jvd.business_id = b.id
-         WHERE jvd.request_id = ?`,
-        [request.id]
-      );
+         WHERE jvd.request_id = ? ${vendorBusinessId ? 'AND jvd.business_id = ?' : ''}`,
+        vendorBusinessId ? [request.id, vendorBusinessId] : [request.id]
+      ) : [];
 
       // Also fetch any formal offers submitted by vendors
       let offers: any[] = [];
@@ -303,21 +336,34 @@ export async function GET(req: NextRequest) {
           `SELECT o.*, b.name as business_name, b.slug as business_slug
            FROM journey_offers o
            LEFT JOIN businesses b ON o.business_id = b.id
-           WHERE o.journey_id = ? ORDER BY o.created_at DESC`,
-          [request.id]
+           WHERE o.journey_id = ? ${vendorBusinessId ? 'AND o.business_id = ?' : isAdmin ? '' : `AND o.status = 'accepted'`} ORDER BY o.created_at DESC`,
+          vendorBusinessId ? [request.id, vendorBusinessId] : [request.id]
         ) as any[];
       } catch {}
 
-      return NextResponse.json({
+      const canSeeContact = isAdmin || (Boolean(vendorBusinessId) && Boolean(request.reveal_contact));
+      const safeRequest = canSeeContact ? request : {
         ...request,
+        customer_name: 'Marketplace Guest',
+        customer_email: null,
+        customer_phone: null,
+      };
+      return NextResponse.json({
+        ...safeRequest,
         selected_experiences: typeof request.selected_experiences === 'string' ? JSON.parse(request.selected_experiences) : request.selected_experiences || [],
+        custom_details: typeof request.custom_details === 'string' ? JSON.parse(request.custom_details) : request.custom_details || {},
         dispatches,
         offers
       });
     }
 
-    let sql = `SELECT * FROM journey_requests WHERE 1=1 `;
-    const params: any[] = [];
+    let sql = vendorBusinessId
+      ? `SELECT jr.*, jvd.business_id AS assigned_business_id, jvd.vendor_status AS vendor_status
+         FROM journey_requests jr
+         INNER JOIN journey_vendor_dispatches jvd ON jvd.request_id = jr.id
+         WHERE jvd.business_id = ? `
+      : `SELECT * FROM journey_requests WHERE 1=1 `;
+    const params: any[] = vendorBusinessId ? [vendorBusinessId] : [];
 
     if (phone) {
       sql += ` AND customer_phone = ? `;
@@ -327,20 +373,18 @@ export async function GET(req: NextRequest) {
       sql += ` AND status = ? `;
       params.push(status);
     }
-    if (vendorBusinessId) {
-      sql += ` AND id IN (SELECT request_id FROM journey_vendor_dispatches WHERE business_id = ?) `;
-      params.push(vendorBusinessId);
-    }
-
-    sql += ` ORDER BY created_at DESC LIMIT 100 `;
+    sql += vendorBusinessId ? ` ORDER BY jr.created_at DESC LIMIT 100 ` : ` ORDER BY created_at DESC LIMIT 100 `;
     const rows = await query(sql, params) as any[];
 
     return NextResponse.json(rows.map((r) => ({
       ...r,
-      selected_experiences: typeof r.selected_experiences === 'string' ? JSON.parse(r.selected_experiences) : r.selected_experiences || []
+      ...(vendorBusinessId && !r.reveal_contact ? { customer_name: 'Marketplace Guest', customer_email: null, customer_phone: null } : {}),
+      selected_experiences: typeof r.selected_experiences === 'string' ? JSON.parse(r.selected_experiences) : r.selected_experiences || [],
+      custom_details: typeof r.custom_details === 'string' ? JSON.parse(r.custom_details) : r.custom_details || {}
     })));
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    const statusCode = e?.message?.includes('authenticated') || e?.message?.includes('Admin access') || e?.message?.includes('Vendor access') ? 403 : 500;
+    return NextResponse.json({ error: e.message }, { status: statusCode });
   }
 }
 
@@ -354,25 +398,53 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { id, request_id, business_id, status, vendor_status, quoted_price, vendor_notes } = body;
 
-    // Vendor dispatch status update
-    if (request_id && business_id && vendor_status) {
-      await execute(
-        `UPDATE journey_vendor_dispatches 
-         SET vendor_status = ?, quoted_price = ?, vendor_notes = ? 
-         WHERE request_id = ? AND business_id = ?`,
-        [vendor_status, quoted_price ? Number(quoted_price) : null, vendor_notes || null, request_id, business_id]
+    if (request_id && vendor_status) {
+      const sessionUser = await getCurrentUser();
+      if (!sessionUser) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      const adminRoles = ['super_admin', 'content_admin', 'sales_manager', 'support_agent'];
+      const isAdmin = adminRoles.includes(sessionUser.role);
+      const effectiveBusinessId = isAdmin ? String(business_id || '') : String((await requireVendor()).businessId || '');
+      if (!effectiveBusinessId) return NextResponse.json({ error: 'Vendor business is required' }, { status: 400 });
+      if (!['pending', 'dispatched', 'accepted', 'declined', 'quoted'].includes(vendor_status)) {
+        return NextResponse.json({ error: 'Invalid vendor status' }, { status: 400 });
+      }
+
+      const requestRow = await queryOne('SELECT id FROM journey_requests WHERE id = ?', [request_id]);
+      if (!requestRow) return NextResponse.json({ error: 'Journey request not found' }, { status: 404 });
+      const existingDispatch = await queryOne(
+        'SELECT id FROM journey_vendor_dispatches WHERE request_id = ? AND business_id = ? LIMIT 1',
+        [request_id, effectiveBusinessId]
       );
+      if (!existingDispatch && !isAdmin) return NextResponse.json({ error: 'This request is not assigned to your business' }, { status: 403 });
+      if (!existingDispatch && isAdmin) {
+        await execute(
+          `INSERT INTO journey_vendor_dispatches (id, request_id, business_id, role, vendor_status)
+           VALUES (?, ?, ?, 'admin_assigned', ?)`,
+          [crypto.randomUUID(), request_id, effectiveBusinessId, vendor_status]
+        );
+      } else {
+        await execute(
+          `UPDATE journey_vendor_dispatches
+           SET vendor_status = ?, quoted_price = ?, vendor_notes = ?
+           WHERE request_id = ? AND business_id = ?`,
+          [vendor_status, quoted_price ? Number(quoted_price) : null, vendor_notes || null, request_id, effectiveBusinessId]
+        );
+      }
+
+      await execute(`UPDATE journey_requests SET distribution_status = 'dispatched' WHERE id = ? AND distribution_status = 'admin_review'`, [request_id]);
       return NextResponse.json({ success: true, message: `Vendor response recorded as ${vendor_status}` });
     }
 
-    // Master journey request status update
+    // Master journey request status is an admin-only action.
     if (id && status) {
+      await requireAdmin();
       await execute(`UPDATE journey_requests SET status = ? WHERE id = ?`, [status, id]);
       return NextResponse.json({ success: true, message: `Request status updated to ${status}` });
     }
 
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    const status = e?.message?.includes('authenticated') || e?.message?.includes('Admin access') || e?.message?.includes('Vendor access') ? 403 : 500;
+    return NextResponse.json({ error: e.message }, { status });
   }
 }

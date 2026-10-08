@@ -178,7 +178,7 @@ export default function DiscountsPage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fffdf8,_#f8fafc_45%,_#f1f5f9_100%)] text-slate-800">
-      <MarketplaceHeader title="Discounts" adminPath="/admin/discounts" activePath="/discounts" />
+      <MarketplaceHeader title="Discounts" activePath="/discounts" />
 
       {/* Operable Hero Carousel for Discounts */}
       <AdvancedHeroCarousel

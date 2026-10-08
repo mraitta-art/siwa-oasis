@@ -494,7 +494,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         marginLeft: isRTL || isMobile ? 0 : (sidebarCollapsed ? '60px' : '270px'),
         marginRight: isRTL && !isMobile ? (sidebarCollapsed ? '60px' : '270px') : 0,
         flex: 1,
-        transition: 'margin-left 0.3s ease',
+        transition: isMobile ? 'none' : 'margin-left 0.3s ease',
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
@@ -513,14 +513,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             {isMobile && (
               <button
                 onClick={() => setMobileOpen(true)}
+                type="button"
+                aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
+                title={mobileOpen ? 'Close navigation' : 'Open navigation'}
                 style={{
-                  background: 'none', border: '1px solid #e2e8f0', borderRadius: '8px',
+                  background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px',
                   color: '#1e293b', fontSize: '1.1rem', cursor: 'pointer',
-                  padding: '0.5rem 0.65rem', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0.45rem 0.65rem', flexShrink: 0, minHeight: 40,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem',
                 }}
               >
                 <i className="fas fa-bars"></i>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>Menu</span>
               </button>
             )}
             <div style={{ minWidth: 0 }}>

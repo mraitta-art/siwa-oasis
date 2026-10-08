@@ -17,7 +17,7 @@ interface TierFeatures {
 }
 
 interface Journey {
-  id: number;
+  id: string | number;
   customer_name: string;
   customer_email: string;
   vibe: string;
@@ -34,6 +34,9 @@ interface Journey {
   offer_count?: number;
   request_type: string;
   custom_details: any;
+  is_custom_dispatch?: boolean;
+  assigned_business_id?: string;
+  request_code?: string;
 }
 
 // ─── TYPES & CONFIG ────────────────────────────────────────────────────────
@@ -450,6 +453,22 @@ function JourneyCard({
         </p>
       )}
 
+      {journey.is_custom_dispatch && journey.custom_details?.catalog_snapshot && (
+        <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.8rem 1rem', marginBottom: '1.25rem' }}>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Requested options · English / العربية</div>
+          {(journey.custom_details.catalog_snapshot.experiences || []).map((item: any) => (
+            <div key={item.id} style={{ color: '#fff', fontSize: '0.75rem', lineHeight: 1.6 }}>
+              <span>{item.title_en}</span><span dir="rtl" lang="ar"> {' / '}{item.title_ar}</span>
+            </div>
+          ))}
+          {(['accommodation', 'transport', 'meal'] as const).map(key => {
+            const item = journey.custom_details.catalog_snapshot[key];
+            if (!item) return null;
+            return <div key={key} style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem', lineHeight: 1.6 }}>{item.title_en} / <span dir="rtl" lang="ar">{item.title_ar}</span></div>;
+          })}
+        </div>
+      )}
+
       {/* Special Requests */}
       {journey.special_requests && (
         <div style={{ background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.1)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.78rem', color: '#C2A478', lineHeight: 1.5 }}>
@@ -592,11 +611,27 @@ export default function VendorJourneyRequests() {
         if (merged.journey_view_requests) {
           // Use business_type to filter generic queries if applicable
           const bizType = storyData.business?.type_id || '';
-          const journeysRes = await fetch(`/api/journeys?status=open&limit=50&business_category=${bizType}&vendor_id=${storyData.business?.vendor_id || ''}`);
-          if (journeysRes.ok) {
-            const data = await journeysRes.json();
-            setJourneys(data.journeys || []);
-          }
+          const [journeysRes, customDispatchRes] = await Promise.all([
+            fetch(`/api/journeys?status=open&limit=50&business_category=${encodeURIComponent(bizType)}`),
+            fetch(`/api/journeys/custom-dispatch?vendor_business_id=${encodeURIComponent(storyData.business?.id || '')}&status=open`),
+          ]);
+          const regularData = journeysRes.ok ? await journeysRes.json() : { journeys: [] };
+          const customRequests = customDispatchRes.ok ? await customDispatchRes.json() : [];
+          const customJourneys = (Array.isArray(customRequests) ? customRequests : []).map((request: any) => ({
+            ...request,
+            is_custom_dispatch: true,
+            vibe: (request.selected_experiences || []).map((item: any) => item.title || item.title_en || item.id).join(', ') || 'Custom Journey',
+            duration: String(request.duration_days || 0),
+            budget: request.final_price ? `${request.final_price} EGP` : 'Custom quote',
+            group_size: (Number(request.adults_count) || 0) + (Number(request.children_count) || 0),
+            arrival_date: request.travel_dates || null,
+            special_requests: request.special_notes || '',
+            request_type: 'journey',
+            assigned_business_id: request.assigned_business_id,
+          }));
+          const regularJourneys = Array.isArray(regularData.journeys) ? regularData.journeys : [];
+          const customIds = new Set(customJourneys.map((journey: Journey) => String(journey.id)));
+          setJourneys([...regularJourneys.filter((journey: Journey) => !customIds.has(String(journey.id))), ...customJourneys]);
         }
       }
     } catch (e) {
@@ -612,7 +647,7 @@ export default function VendorJourneyRequests() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           request_id: String(j.id),
-          business_id: 'current',
+          business_id: j.is_custom_dispatch ? j.assigned_business_id : 'current',
           vendor_status: 'accepted'
         })
       });
@@ -634,7 +669,7 @@ export default function VendorJourneyRequests() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           request_id: String(j.id),
-          business_id: 'current',
+          business_id: j.is_custom_dispatch ? j.assigned_business_id : 'current',
           vendor_status: 'declined'
         })
       });
