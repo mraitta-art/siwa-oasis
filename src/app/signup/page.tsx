@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { VENDOR_AGREEMENT_SECTIONS, VENDOR_AGREEMENT_VERSION, type VendorAgreementLanguage } from '@/lib/vendor-agreement';
 
 /* ─────────────────────────────────────────────────────────────
    TYPES
@@ -22,6 +23,31 @@ interface Business {
   name: string;
   slug: string;
 }
+
+const ARABIC_TEXT: Record<string, string> = {
+  back: 'رجوع', signIn: 'تسجيل الدخول', account: 'الحساب', category: 'الفئة', business: 'النشاط التجاري', agreement: 'الاتفاقية',
+  createAccount: 'إنشاء حسابك', joinMarketplace: 'انضم إلى السوق الرقمي لواحة سيوة', fullName: 'الاسم الكامل', email: 'البريد الإلكتروني',
+  phone: 'رقم الهاتف', contacts: 'جهات الاتصال للمسؤولية', contactsHint: 'أضف جهة اتصال أساسية واحدة على الأقل للتحقق من النشاط واعتماد الطلبات.',
+  password: 'كلمة المرور', minPassword: '٨ أحرف على الأقل', confirmPassword: 'تأكيد كلمة المرور', repeatPassword: 'أعد إدخال كلمة المرور',
+  passwordsMatch: 'كلمتا المرور متطابقتان', continue: 'متابعة', chooseCategory: 'اختر فئة نشاطك', categoryHint: 'اختر الوصف الأقرب لنشاطك التجاري', industry: 'المجال', businessType: 'نوع النشاط',
+  noSubcategories: 'لا توجد فئات فرعية. اختر مجالاً أعلاه.', change: 'تغيير', yourBusiness: 'نشاطك التجاري', businessHint: 'اختر ملفاً غير مطالب به أو سجّل اسماً جديداً لنشاطك.',
+  selectExisting: 'اختيار ملف موجود', registerNew: 'تسجيل اسم جديد', firstVendor: 'كن أول بائع في هذه الفئة!', noListings: 'لا توجد ملفات غير مطالب بها حالياً. سجّل اسم نشاطك لتصبح المالك الأساسي لملفه.',
+  registerNewName: 'تسجيل اسم جديد', onlyUnclaimed: 'تظهر الملفات غير المطالب بها فقط. إذا لم تجد نشاطك، اختر تسجيل اسم جديد.',
+  savedInternationally: 'سيُحفظ الرقم بالصيغة الدولية:', alreadyAccount: 'لديك حساب بالفعل؟', signInHere: 'سجّل الدخول من هنا',
+  businessTradeName: 'الاسم التجاري للنشاط', publicVendorName: 'سيظهر هذا الاسم للزوار في واحة سيوة.',
+  vendor: 'البائع', phoneLabel: 'الهاتف', businessLabel: 'النشاط', categoryLabel: 'الفئة',
+  includedFree: 'تشمل الخطة المجانية رابطاً للموقع المصغر ورمز QR وقالباً أساسياً. يخضع النشر لمراجعة SiWiFy والتحقق من النشاط.',
+  reviewAgreement: 'راجع الاتفاقية قبل إرسال الطلب', agreementSub: 'اقرأ الشروط واختر اللغة المناسبة قبل الموافقة.',
+  agreementTitle: 'اتفاقية مشاركة البائعين في SiWiFy', fullAgreement: 'قراءة الاتفاقية كاملة',
+  agreementIntro: 'توضح الاتفاقية صلاحية تمثيل النشاط واستخدام المحتوى والنشر والمراجعة وحدود الخطة المجانية والتوصيات.',
+  acceptAgreement: 'راجعت اتفاقية مشاركة البائعين وأوافق على النسخة الحالية لهذا الطلب.',
+  optionalPromotion: 'اختياري: أسمح لـ SiWiFy باستخدام اسم نشاطي أو شعاره أو صوري أو قصته في مواد ترويجية خارج السوق. لا يلزم هذا الإذن للتسجيل ويمكنني سحبه بالتواصل مع SiWiFy.',
+  verificationNotice: 'بعد التسجيل يمكنك إرسال مستندات الهوية وإثبات ملكية النشاط للتحقق والحصول على شارة البائع الموثوق.',
+  applicationSubmit: 'إرسال طلب التسجيل', submitting: 'جارٍ إرسال الطلب...',
+  submitted: 'تم إرسال الطلب', pendingSub: 'وصل طلب تسجيل نشاطك. سيراجع فريق SiWiFy الطلب، وستتمكن من الدخول بعد الموافقة.',
+  registeredEmail: 'البريد المسجل', waitingReview: 'تم إنشاء الطلب وبانتظار المراجعة', adminNotified: 'تم إشعار الفريق للمراجعة', loginAfterApproval: 'يمكنك تسجيل الدخول بعد الموافقة على الحساب', home: 'العودة إلى الصفحة الرئيسية',
+  addContact: 'إضافة جهة اتصال أخرى', accountCreated: 'تم إنشاء الحساب',
+};
 
 const COUNTRY_CODES = [
   ['EG', 'Egypt', '+20'], ['AE', 'United Arab Emirates', '+971'], ['SA', 'Saudi Arabia', '+966'],
@@ -58,6 +84,31 @@ function getStrength(pw: string) {
 ───────────────────────────────────────────────────────────── */
 export default function VendorSignup() {
   const router = useRouter();
+  const [language, setLanguage] = useState<VendorAgreementLanguage>('en');
+  const isArabic = language === 'ar';
+  const t = (key: keyof typeof ARABIC_TEXT, english: string) => isArabic ? ARABIC_TEXT[key] : english;
+
+  useEffect(() => {
+    try {
+      const requested = new URLSearchParams(window.location.search).get('lang');
+      if (requested === 'ar' || requested === 'en') {
+        setLanguage(requested);
+        return;
+      }
+      const saved = localStorage.getItem('vendor_lang');
+      if (saved === 'ar' || saved === 'en') setLanguage(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+    try { localStorage.setItem('vendor_lang', language); } catch {}
+    return () => {
+      document.documentElement.lang = 'en';
+      document.documentElement.dir = 'ltr';
+    };
+  }, [language, isArabic]);
 
   /* ── step state ─────────────────────── */
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);   // 1=Account 2=Category 3=Business 4=Terms
@@ -96,6 +147,7 @@ export default function VendorSignup() {
   const [registrationStatus, setRegistrationStatus] = useState<'idle'|'pending'|'approved'>('idle');
   const [pendingBizName,     setPendingBizName]     = useState('');
   const [termsAccepted,      setTermsAccepted]      = useState(false);
+  const [promotionConsent,   setPromotionConsent]   = useState(false);
 
   /* ── load types once ─────────────────── */
   useEffect(() => {
@@ -222,6 +274,9 @@ export default function VendorSignup() {
           newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
           termsAccepted,
+          termsVersion: VENDOR_AGREEMENT_VERSION,
+          termsLanguage: language,
+          promotionConsent,
         }),
       });
       const data = await res.json();
@@ -266,7 +321,7 @@ export default function VendorSignup() {
   /* ── Pending approval screen ─── */
   if (registrationStatus === 'pending') {
     return (
-      <div className="signup-root">
+      <div className="signup-root" dir={isArabic ? 'rtl' : 'ltr'} lang={language}>
         <div className="signup-bg">
           <div className="bg-orb orb1" />
           <div className="bg-orb orb2" />
@@ -284,11 +339,11 @@ export default function VendorSignup() {
               <i className="fas fa-hourglass-half" style={{ color: '#f59e0b', animation: 'spin 3s linear infinite' }} />
             </div>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '0.75rem' }}>
-              Registration Submitted!
+              {t('submitted', 'Registration Submitted!')}
             </h1>
             <p style={{ color: '#94a3b8', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-              Your vendor request for <strong style={{ color: '#D4AF37' }}>{pendingBizName}</strong> has been received.
-              The admin will review and approve your account — you will be able to log in once approved.
+              {isArabic ? <>وصل طلب تسجيل <strong style={{ color: '#D4AF37' }}>{pendingBizName}</strong>.</> : <>Your vendor request for <strong style={{ color: '#D4AF37' }}>{pendingBizName}</strong> has been received.</>}
+              {' '}{t('pendingSub', 'The SiWiFy team will review it. You can log in after approval.')}
             </p>
             <div style={{
               background: '#1e293b', border: '1px solid #f59e0b44',
@@ -297,7 +352,7 @@ export default function VendorSignup() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
                 <i className="fas fa-envelope" style={{ color: '#f59e0b', fontSize: '0.85rem' }} />
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Registered email</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{t('registeredEmail', 'Registered email')}</span>
               </div>
               <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{email}</span>
             </div>
@@ -308,7 +363,7 @@ export default function VendorSignup() {
                 border: '1px solid #334155'
               }}>
                 <i className="fas fa-check-circle" style={{ color: '#22c55e', fontSize: '1rem' }} />
-                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Account created and waiting for review</span>
+                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>{t('waitingReview', 'Application received and waiting for review')}</span>
               </div>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
@@ -316,7 +371,7 @@ export default function VendorSignup() {
                 border: '1px solid #334155'
               }}>
                 <i className="fas fa-bell" style={{ color: '#f59e0b', fontSize: '1rem' }} />
-                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Admin notified — approval usually within 24 hours</span>
+                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>{t('adminNotified', 'The SiWiFy team has been notified')}</span>
               </div>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
@@ -324,7 +379,7 @@ export default function VendorSignup() {
                 border: '1px solid #334155'
               }}>
                 <i className="fas fa-unlock" style={{ color: '#60a5fa', fontSize: '1rem' }} />
-                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>You can log in once your account is approved</span>
+                <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>{t('loginAfterApproval', 'You can sign in once your account is approved')}</span>
               </div>
             </div>
             <Link href="/" style={{
@@ -332,7 +387,7 @@ export default function VendorSignup() {
               marginTop: '2rem', color: '#D4AF37', fontWeight: 600,
               textDecoration: 'none', fontSize: '0.95rem'
             }}>
-              <i className="fas fa-home" /> Return to Homepage
+              <i className="fas fa-home" /> {t('home', 'Return to Homepage')}
             </Link>
           </div>
         </div>
@@ -341,7 +396,7 @@ export default function VendorSignup() {
   }
 
   return (
-    <div className="signup-root">
+    <div className="signup-root" dir={isArabic ? 'rtl' : 'ltr'} lang={language}>
 
       {/* ── Animated background ── */}
       <div className="signup-bg">
@@ -355,15 +410,20 @@ export default function VendorSignup() {
         {/* ─── Header ─── */}
         <div className="signup-top">
           <Link href="/" className="back-btn">
-            <i className="fas fa-arrow-left" /> Back
+            <i className={`fas ${isArabic ? 'fa-arrow-right' : 'fa-arrow-left'}`} /> {t('back', 'Back')}
           </Link>
           <div className="brand">
             <i className="fas fa-sun brand-icon" />
             <span>SIWA OASIS</span>
           </div>
-          <Link href="/login" className="login-link">
-            Sign in <i className="fas fa-arrow-right" />
-          </Link>
+          <div className="signup-top-actions">
+            <button type="button" className="language-toggle" onClick={() => setLanguage(current => current === 'en' ? 'ar' : 'en')} aria-label={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}>
+              {isArabic ? 'EN' : 'عربي'}
+            </button>
+            <Link href="/login" className="login-link">
+              {t('signIn', 'Sign in')} <i className={`fas ${isArabic ? 'fa-arrow-left' : 'fa-arrow-right'}`} />
+            </Link>
+          </div>
         </div>
 
         {/* ─── Card ─── */}
@@ -380,7 +440,7 @@ export default function VendorSignup() {
                       : n}
                   </div>
                   <span className="prog-label">
-                    {n === 1 ? 'Account' : n === 2 ? 'Category' : n === 3 ? 'Business' : 'Agreement'}
+                    {n === 1 ? t('account', 'Account') : n === 2 ? t('category', 'Category') : n === 3 ? t('business', 'Business') : t('agreement', 'Agreement')}
                   </span>
                 </div>
                 {n < 4 && <div className={`prog-line ${step > n ? 'filled' : ''}`} />}
@@ -392,12 +452,12 @@ export default function VendorSignup() {
           {step === 1 && (
             <div className="form-step animate-in">
               <div className="step-header">
-                <h1 className="step-title">Create Your Account</h1>
-                <p className="step-sub">Join the digital marketplace of Siwa Oasis</p>
+                <h1 className="step-title">{t('createAccount', 'Create Your Account')}</h1>
+                <p className="step-sub">{t('joinMarketplace', 'Join the digital marketplace of Siwa Oasis')}</p>
               </div>
 
               <div className="field-group">
-                <label className="field-label">Full Name</label>
+                <label className="field-label">{t('fullName', 'Full Name')}</label>
                 <div className={`field-wrap ${fieldErr.displayName ? 'is-err' : ''}`}>
                   <i className="fas fa-user field-icon" />
                   <input
@@ -413,7 +473,7 @@ export default function VendorSignup() {
               </div>
 
               <div className="field-group">
-                <label className="field-label">Email Address</label>
+                <label className="field-label">{t('email', 'Email Address')}</label>
                 <div className={`field-wrap ${fieldErr.email ? 'is-err' : ''}`}>
                   <i className="fas fa-envelope field-icon" />
                   <input
@@ -430,7 +490,7 @@ export default function VendorSignup() {
               </div>
 
               <div className="field-group">
-                <label className="field-label">Phone Number</label>
+                <label className="field-label">{t('phone', 'Phone Number')}</label>
                 <div className={`phone-field ${fieldErr.phone ? 'is-err' : ''}`}>
                   <i className="fas fa-phone field-icon" />
                   <select
@@ -456,25 +516,25 @@ export default function VendorSignup() {
                   {phoneChecking && <i className="fas fa-circle-notch fa-spin" style={{ position: 'absolute', right: '0.8rem', color: '#94a3b8' }} />}
                 </div>
                 {fieldErr.phone && <span className="field-err">{fieldErr.phone}</span>}
-                <span className="field-hint">Saved internationally as {countryCode}{phone.replace(/\D/g, '') || '...'}</span>
+                <span className="field-hint">{t('savedInternationally', 'Saved internationally as')} {countryCode}{phone.replace(/\D/g, '') || '...'}</span>
               </div>
 
               <div className="field-group">
-                <label className="field-label">Responsibility Contacts</label>
-                <span className="field-hint">Add at least one primary contact who can be reached for business verification and approvals.</span>
+                <label className="field-label">{t('contacts', 'Responsibility Contacts')}</label>
+                <span className="field-hint">{t('contactsHint', 'Add at least one primary contact who can be reached for business verification and approvals.')}</span>
                 {registrationContacts.map((contact, index) => (
                   <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.6rem', marginTop: '0.6rem' }}>
                     <input
                       type="text"
                       className="field-input"
-                      placeholder={`Contact ${index + 1} name`}
+                      placeholder={isArabic ? `اسم جهة الاتصال ${index + 1}` : `Contact ${index + 1} name`}
                       value={contact.name}
                       onChange={e => setRegistrationContacts(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item))}
                     />
                     <input
                       type="tel"
                       className="field-input"
-                      placeholder={`Contact ${index + 1} phone`}
+                      placeholder={isArabic ? `هاتف جهة الاتصال ${index + 1}` : `Contact ${index + 1} phone`}
                       value={contact.phone}
                       onChange={e => setRegistrationContacts(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, phone: e.target.value } : item))}
                     />
@@ -486,19 +546,19 @@ export default function VendorSignup() {
                   style={{ marginTop: '0.6rem' }}
                   onClick={() => setRegistrationContacts(current => [...current, { name: '', phone: '' }])}
                 >
-                  <i className="fas fa-plus" /> Add another contact
+                  <i className="fas fa-plus" /> {t('addContact', 'Add another contact')}
                 </button>
                 {fieldErr.registrationContacts && <span className="field-err">{fieldErr.registrationContacts}</span>}
               </div>
 
               <div className="field-group">
-                <label className="field-label">Password</label>
+                <label className="field-label">{t('password', 'Password')}</label>
                 <div className={`field-wrap ${fieldErr.password ? 'is-err' : ''}`}>
                   <i className="fas fa-lock field-icon" />
                   <input
                     type={showPw ? 'text' : 'password'}
                     className="field-input"
-                    placeholder="Min. 8 characters"
+                    placeholder={t('minPassword', 'Min. 8 characters')}
                     value={password}
                     onChange={e => { setPassword(e.target.value); setFieldErr(p => ({...p, password: ''})); }}
                   />
@@ -534,13 +594,13 @@ export default function VendorSignup() {
 
               {/* Confirm Password */}
               <div className="field-group">
-                <label className="field-label">Confirm Password</label>
+                <label className="field-label">{t('confirmPassword', 'Confirm Password')}</label>
                 <div className={`field-wrap ${fieldErr.confirmPw ? 'is-err' : ''}`}>
                   <i className="fas fa-shield-alt field-icon" />
                   <input
                     type={showConfirmPw ? 'text' : 'password'}
                     className="field-input"
-                    placeholder="Repeat your password"
+                    placeholder={t('repeatPassword', 'Repeat your password')}
                     value={confirmPw}
                     onChange={e => { setConfirmPw(e.target.value); setFieldErr(p => ({...p, confirmPw: ''})); }}
                   />
@@ -556,13 +616,13 @@ export default function VendorSignup() {
                 {fieldErr.confirmPw && <span className="field-err">{fieldErr.confirmPw}</span>}
                 {confirmPw && password && confirmPw === password && (
                   <span className="field-hint" style={{ color: '#22c55e' }}>
-                    <i className="fas fa-check" /> Passwords match
+                    <i className="fas fa-check" /> {t('passwordsMatch', 'Passwords match')}
                   </span>
                 )}
               </div>
 
               <button type="button" className="btn-next" onClick={nextStep}>
-                Continue <i className="fas fa-arrow-right" />
+                {t('continue', 'Continue')} <i className={`fas ${isArabic ? 'fa-arrow-left' : 'fa-arrow-right'}`} />
               </button>
             </div>
           )}
@@ -571,8 +631,8 @@ export default function VendorSignup() {
           {step === 2 && (
             <div className="form-step animate-in">
               <div className="step-header">
-                <h1 className="step-title">Choose Your Category</h1>
-                <p className="step-sub">Select what best describes your business</p>
+                <h1 className="step-title">{t('chooseCategory', 'Choose Your Category')}</h1>
+                <p className="step-sub">{t('categoryHint', 'Select what best describes your business')}</p>
               </div>
 
               {error && <div className="form-error"><i className="fas fa-exclamation-circle" /> {error}</div>}
@@ -580,7 +640,7 @@ export default function VendorSignup() {
               {/* Parent categories (if any) */}
               {parents.length > 0 && (
                 <div className="field-group">
-                  <label className="field-label">Industry</label>
+                  <label className="field-label">{t('industry', 'Industry')}</label>
                   <div className="parent-grid">
                     {parents.map(p => (
                       <button
@@ -604,15 +664,15 @@ export default function VendorSignup() {
               {/* Child types */}
               <div className="field-group">
                 <label className="field-label">
-                  {parents.length > 0 ? 'Business Type' : 'Category'}
+                  {parents.length > 0 ? t('businessType', 'Business Type') : t('category', 'Category')}
                   {parentId && selectedParent && (
-                    <span className="filter-tag">in {selectedParent.name}</span>
+                    <span className="filter-tag">{isArabic ? `ضمن ${selectedParent.name}` : `in ${selectedParent.name}`}</span>
                   )}
                 </label>
 
                 {children.length === 0 && allTypes.length > 0 ? (
                   <div className="empty-notice">
-                    <i className="fas fa-info-circle" /> No subcategories found — select an industry above
+                    <i className="fas fa-info-circle" /> {t('noSubcategories', 'No subcategories found — select an industry above')}
                   </div>
                 ) : (
                   <div className="child-grid">
@@ -642,10 +702,10 @@ export default function VendorSignup() {
 
               <div className="btn-row">
                 <button type="button" className="btn-back" onClick={prevStep}>
-                  <i className="fas fa-arrow-left" /> Back
+                  <i className={`fas ${isArabic ? 'fa-arrow-right' : 'fa-arrow-left'}`} /> {t('back', 'Back')}
                 </button>
                 <button type="button" className="btn-next" onClick={nextStep} disabled={!childId}>
-                  Continue <i className="fas fa-arrow-right" />
+                  {t('continue', 'Continue')} <i className={`fas ${isArabic ? 'fa-arrow-left' : 'fa-arrow-right'}`} />
                 </button>
               </div>
             </div>
@@ -655,8 +715,8 @@ export default function VendorSignup() {
           {step === 3 && (
             <div className="form-step animate-in">
               <div className="step-header">
-                <h1 className="step-title">Your Business</h1>
-                <p className="step-sub">Claim an unclaimed listing or register your own business name</p>
+                <h1 className="step-title">{t('yourBusiness', 'Your Business')}</h1>
+                <p className="step-sub">{t('businessHint', 'Claim an unclaimed listing or register your own business name')}</p>
               </div>
 
               {/* Context pill */}
@@ -671,7 +731,7 @@ export default function VendorSignup() {
                     </>
                   )}
                   <button type="button" className="pill-change" onClick={() => setStep(2)}>
-                    Change <i className="fas fa-pen" />
+                    {t('change', 'Change')} <i className="fas fa-pen" />
                   </button>
                 </div>
               )}
@@ -683,14 +743,14 @@ export default function VendorSignup() {
                   className={`mode-tab ${registerMode === 'select' ? 'active' : ''}`}
                   onClick={() => { setRegisterMode('select'); setNewBusinessName(''); }}
                 >
-                  <i className="fas fa-list" /> Select Existing
+                  <i className="fas fa-list" /> {t('selectExisting', 'Select Existing')}
                 </button>
                 <button
                   type="button"
                   className={`mode-tab ${registerMode === 'new' ? 'active' : ''}`}
                   onClick={() => { setRegisterMode('new'); setBusinessId(''); }}
                 >
-                  <i className="fas fa-plus-circle" /> Register New Name
+                  <i className="fas fa-plus-circle" /> {t('registerNew', 'Register New Name')}
                 </button>
               </div>
 
@@ -705,22 +765,22 @@ export default function VendorSignup() {
                 ) : businesses.length === 0 ? (
                   <div className="no-biz-notice">
                     <i className="fas fa-store-slash" />
-                    <strong>Be the first vendor in this category!</strong>
-                    <p>No unclaimed listings in this category yet. Register your business name and become the sole owner of your profile.</p>
+                    <strong>{t('firstVendor', 'Be the first vendor in this category!')}</strong>
+                    <p>{t('noListings', 'No unclaimed listings in this category yet. Register your business name and become the sole owner of your profile.')}</p>
                     <button
                       type="button"
                       className="btn-next"
                       style={{ marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.6rem 1.4rem' }}
                       onClick={() => setRegisterMode('new')}
                     >
-                      <i className="fas fa-plus-circle" /> Register New Name
+                      <i className="fas fa-plus-circle" /> {t('registerNewName', 'Register New Name')}
                     </button>
                   </div>
                 ) : (
                   <>
                     <p className="field-hint" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <i className="fas fa-info-circle" style={{ color: '#94a3b8' }} />
-                      Only unclaimed listings are shown. If your business isn't listed, use "Register New Name".
+                      {t('onlyUnclaimed', 'Only unclaimed listings are shown. If your business is not listed, use Register New Name.')}
                     </p>
                     <div className="biz-list">
                       {businesses.map(biz => (
@@ -755,12 +815,11 @@ export default function VendorSignup() {
                   <div className="new-biz-info">
                     <i className="fas fa-info-circle" style={{ color: selectedChild?.icon_color || '#D4AF37' }} />
                     <p>
-                      Register your business name under <strong>{selectedChild?.name}</strong>.
-                      You will be the sole owner of this listing — only you can manage it from your vendor dashboard.
+                      {isArabic ? <>سجّل اسم نشاطك ضمن <strong>{selectedChild?.name}</strong>. ستكون المالك الأساسي لهذا الملف وستديره من لوحة البائع.</> : <>Register your business name under <strong>{selectedChild?.name}</strong>. You will be the sole owner of this listing and manage it from your vendor dashboard.</>}
                     </p>
                   </div>
                   <div className="field-group">
-                    <label className="field-label">Your Business / Trade Name</label>
+                    <label className="field-label">{t('businessTradeName', 'Your Business / Trade Name')}</label>
                     <div className={`field-wrap ${error && !newBusinessName ? 'is-err' : ''}`}>
                       <i className="fas fa-store field-icon" />
                       <input
@@ -772,7 +831,7 @@ export default function VendorSignup() {
                         autoFocus
                       />
                     </div>
-                    <span className="field-hint">This will be your public vendor name on Siwa Oasis</span>
+                    <span className="field-hint">{t('publicVendorName', 'This will be your public vendor name on Siwa Oasis.')}</span>
                   </div>
                 </div>
               )}
@@ -781,7 +840,7 @@ export default function VendorSignup() {
               {((registerMode === 'select' && businessId && selectedBiz) || (registerMode === 'new' && newBusinessName)) && (
                 <div className="summary-box">
                   <div className="summary-row">
-                    <span className="summary-key">Vendor</span>
+                    <span className="summary-key">{t('vendor', 'Vendor')}</span>
                     <span className="summary-val">{displayName}</span>
                   </div>
                   <div className="summary-row">
@@ -789,15 +848,15 @@ export default function VendorSignup() {
                     <span className="summary-val">{email}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-key">Phone</span>
+                    <span className="summary-key">{t('phoneLabel', 'Phone')}</span>
                     <span className="summary-val">{phone}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-key">Business</span>
+                    <span className="summary-key">{t('businessLabel', 'Business')}</span>
                     <span className="summary-val">{registerMode === 'new' ? newBusinessName : selectedBiz?.name}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-key">Category</span>
+                    <span className="summary-key">{t('categoryLabel', 'Category')}</span>
                     <span className="summary-val">{selectedChild?.name}</span>
                   </div>
                   {registerMode === 'new' && (
@@ -807,7 +866,7 @@ export default function VendorSignup() {
                     </div>
                   )}
                   <div style={{ marginTop: '0.8rem', padding: '0.75rem', borderRadius: '10px', background: '#ecfdf5', color: '#166534', fontSize: '0.75rem', fontWeight: 700 }}>
-                    Free services included: a minisite link generated from your registered business name, a printable QR code, and a Free template.
+                    {t('includedFree', 'Free services include a business minisite link, printable QR code, and starter template. Publication is subject to SiWiFy review and business verification.')}
                   </div>
                 </div>
               )}
@@ -815,7 +874,7 @@ export default function VendorSignup() {
               <form onSubmit={handleSubmit}>
                 <div className="btn-row">
                   <button type="button" className="btn-back" onClick={prevStep}>
-                    <i className="fas fa-arrow-left" /> Back
+                    <i className={`fas ${isArabic ? 'fa-arrow-right' : 'fa-arrow-left'}`} /> {t('back', 'Back')}
                   </button>
                   <button
                     type="button"
@@ -823,7 +882,7 @@ export default function VendorSignup() {
                     disabled={(registerMode === 'select' && !businessId) || (registerMode === 'new' && !newBusinessName.trim())}
                     onClick={() => setStep(4)}
                   >
-                    Continue <i className="fas fa-arrow-right" />
+                    {t('continue', 'Continue')} <i className={`fas ${isArabic ? 'fa-arrow-left' : 'fa-arrow-right'}`} />
                   </button>
                 </div>
               </form>
@@ -834,66 +893,78 @@ export default function VendorSignup() {
           {step === 4 && (
             <div className="form-step animate-in">
               <div className="step-header">
-                <h1 className="step-title">Vendor Agreement</h1>
-                <p className="step-sub">Read and accept before launching your studio</p>
+                <h1 className="step-title">{t('reviewAgreement', 'Review the participation agreement')}</h1>
+                <p className="step-sub">{t('agreementSub', 'Read the terms and choose your preferred language before accepting.')}</p>
               </div>
 
-              {/* Agreement Card */}
+              {/* Agreement review */}
               <div style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: 16, padding: '1.5rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(212,175,55,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <i className="fas fa-shield-halved" style={{ color: '#D4AF37', fontSize: '1rem' }} />
                   </div>
-                  <span style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.9rem' }}>Vendor Responsibility Agreement</span>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.9rem' }}>{t('agreementTitle', 'SiWiFy Vendor Participation Agreement')}</div>
+                    <div style={{ marginTop: '0.2rem', color: 'rgba(248,250,252,0.5)', fontSize: '0.68rem' }}>Version {VENDOR_AGREEMENT_VERSION}</div>
+                  </div>
                 </div>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {[
-                    'I am legally authorized to manage and represent this business listing.',
-                    'All content, photos, prices, and offers I publish are accurate and lawful.',
-                    'I accept full legal responsibility for any bookings, claims, or transactions made through my listing.',
-                    'I understand that misrepresentation or policy violations may result in immediate suspension.',
-                    'This listing will display without a Trusted badge until my identity is verified by the SiWiFy.com team.',
-                  ].map((clause, i) => (
-                    <li key={i} style={{ color: 'rgba(248,250,252,0.75)', fontSize: '0.82rem', lineHeight: 1.6 }}>
-                      {clause}
-                    </li>
+                <p style={{ margin: '0 0 0.9rem', color: 'rgba(248,250,252,0.68)', fontSize: '0.78rem', lineHeight: 1.65 }}>
+                  {t('agreementIntro', 'Review the complete terms before submitting. Your application remains unpublished until SiWiFy reviews it. The agreement explains listing/content rights, moderation, free-plan branding, and recommendation limits.')}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {VENDOR_AGREEMENT_SECTIONS.map(section => (
+                    <div key={section.title}>
+                      <div style={{ color: '#f1f5f9', fontSize: '0.76rem', fontWeight: 800 }}>{isArabic ? section.titleAr : section.title}</div>
+                      <p style={{ margin: '0.2rem 0 0', color: 'rgba(248,250,252,0.68)', fontSize: '0.73rem', lineHeight: 1.8, direction: isArabic ? 'rtl' : 'ltr' }}>{isArabic ? section.bodyAr : section.body}</p>
+                    </div>
                   ))}
-                </ul>
+                </div>
+                <Link href={`/vendor-agreement?lang=${language}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', marginTop: '1rem', color: '#f0c842', fontSize: '0.78rem', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                  {t('fullAgreement', 'Open the full agreement')}
+                </Link>
               </div>
+
+              {/* Required participation consent */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', marginBottom: '0.85rem' }}>
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={event => setTermsAccepted(event.target.checked)}
+                  required
+                  style={{ width: 20, height: 20, flexShrink: 0, marginTop: '0.1rem', accentColor: '#D4AF37' }}
+                />
+                <span style={{ color: 'rgba(248,250,252,0.85)', fontSize: '0.82rem', lineHeight: 1.6 }}>
+                  {t('acceptAgreement', 'I have reviewed and accept the Vendor Participation Agreement for this business application.')} <bdi dir="ltr">{VENDOR_AGREEMENT_VERSION}</bdi>
+                </span>
+              </label>
+
+              {/* Optional off-platform promotion permission */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+                <input
+                  type="checkbox"
+                  checked={promotionConsent}
+                  onChange={event => setPromotionConsent(event.target.checked)}
+                  style={{ width: 20, height: 20, flexShrink: 0, marginTop: '0.1rem', accentColor: '#D4AF37' }}
+                />
+                <span style={{ color: 'rgba(248,250,252,0.65)', fontSize: '0.78rem', lineHeight: 1.6 }}>
+                  {t('optionalPromotion', 'Optional: SiWiFy may feature my submitted business name, logo, photos, or story in SiWiFy-controlled promotional materials outside the marketplace. This is not required to register and can be withdrawn by contacting SiWiFy.')}
+                </span>
+              </label>
 
               {/* Trust Badge Notice */}
               <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, padding: '0.9rem 1.1rem', marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <i className="fas fa-circle-info" style={{ color: '#818cf8', marginTop: '0.1rem', flexShrink: 0 }} />
                 <span style={{ color: 'rgba(248,250,252,0.6)', fontSize: '0.78rem', lineHeight: 1.6 }}>
-                  After registration, you can upload your <strong style={{ color: '#a5b4fc' }}>National ID</strong> and <strong style={{ color: '#a5b4fc' }}>ownership proof</strong> from your dashboard to receive the <strong style={{ color: '#D4AF37' }}>✓ Trusted Vendor</strong> badge on your public minisite.
+                  {isArabic ? <>بعد التسجيل، يمكنك إرسال <strong style={{ color: '#a5b4fc' }}>الهوية الوطنية</strong> و<strong style={{ color: '#a5b4fc' }}>إثبات ملكية النشاط</strong> للتحقق والحصول على شارة <strong style={{ color: '#D4AF37' }}>البائع الموثوق</strong> في موقعك المصغر.</> : <>After registration, submit your <strong style={{ color: '#a5b4fc' }}>National ID</strong> and <strong style={{ color: '#a5b4fc' }}>proof of business ownership</strong> for verification and the <strong style={{ color: '#D4AF37' }}>Trusted Vendor</strong> badge on your minisite.</>}
                 </span>
               </div>
-
-              {/* Checkbox */}
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
-                <div
-                  onClick={() => setTermsAccepted(p => !p)}
-                  style={{
-                    width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: '0.1rem',
-                    border: termsAccepted ? '2px solid #D4AF37' : '2px solid rgba(255,255,255,0.2)',
-                    background: termsAccepted ? '#D4AF37' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.2s', cursor: 'pointer',
-                  }}
-                >
-                  {termsAccepted && <i className="fas fa-check" style={{ color: '#1a1000', fontSize: '0.7rem', fontWeight: 900 }} />}
-                </div>
-                <span style={{ color: 'rgba(248,250,252,0.8)', fontSize: '0.83rem', lineHeight: 1.6 }}>
-                  I have read and I accept the Vendor Responsibility Agreement. I understand this is a legally binding commitment.
-                </span>
-              </label>
 
               {error && <div className="form-error"><i className="fas fa-exclamation-circle" /> {error}</div>}
 
               <form onSubmit={handleSubmit}>
                 <div className="btn-row">
                   <button type="button" className="btn-back" onClick={() => setStep(3)}>
-                    <i className="fas fa-arrow-left" /> Back
+                    <i className={`fas ${isArabic ? 'fa-arrow-right' : 'fa-arrow-left'}`} /> {t('back', 'Back')}
                   </button>
                   <button
                     type="submit"
@@ -902,9 +973,9 @@ export default function VendorSignup() {
                     style={{ opacity: termsAccepted ? 1 : 0.5 }}
                   >
                     {loading ? (
-                      <><i className="fas fa-circle-notch fa-spin" /> Creating Studio...</>
+                      <><i className="fas fa-circle-notch fa-spin" /> {t('submitting', 'Submitting application...')}</>
                     ) : (
-                      <><i className="fas fa-rocket" /> Launch My Studio</>
+                      <><i className="fas fa-rocket" /> {t('applicationSubmit', 'Accept & submit application')}</>
                     )}
                   </button>
                 </div>
@@ -915,8 +986,8 @@ export default function VendorSignup() {
         </div>
 
         <p className="signup-footer">
-          Already have an account?&nbsp;
-          <Link href="/login">Sign in here</Link>
+          {t('alreadyAccount', 'Already have an account?')}&nbsp;
+          <Link href="/login">{t('signInHere', 'Sign in here')}</Link>
         </p>
       </div>
 

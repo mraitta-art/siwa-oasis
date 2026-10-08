@@ -13,6 +13,7 @@ export async function GET() {
     const rows = await query<any>(
       `SELECT p.id as profile_id, p.display_name, p.email, p.phone, p.verification_status, p.trust_rejection_note,
               p.id_doc_front_url, p.id_doc_back_url, p.ownership_doc_url, p.terms_accepted_at, p.terms_accepted_ip,
+              p.metadata,
               b.id as business_id, b.name as business_name, b.slug as business_slug
        FROM profiles p
        LEFT JOIN businesses b ON b.vendor_id = p.id
@@ -28,7 +29,22 @@ export async function GET() {
          END ASC, p.updated_at DESC`
     );
 
-    return NextResponse.json(rows);
+    return NextResponse.json(rows.map((row: any) => {
+      let metadata: any = {};
+      try {
+        metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata || {};
+      } catch {}
+      const acceptance = metadata?.vendor_agreement_acceptance || {};
+      const promotionConsent = metadata?.off_platform_promotion_consent || {};
+      const { metadata: _metadata, ...safeRow } = row;
+      return {
+        ...safeRow,
+        terms_accepted_version: acceptance.version || null,
+        terms_accepted_hash: acceptance.content_sha256 || null,
+        off_platform_promotion_consent: promotionConsent.accepted === true,
+        off_platform_promotion_consent_at: promotionConsent.recorded_at || null,
+      };
+    }));
   } catch (error: any) {
     console.error('[ADMIN VERIFICATION GET ERROR]', error);
     return NextResponse.json({ error: error.message || 'Unauthorized access' }, { status: 401 });

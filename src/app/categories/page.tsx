@@ -4,6 +4,8 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import CategorySearchPage from '@/components/CategorySearchPage';
+import { BRAND_ROUTE_BY_TYPE } from '@/lib/brand-sectors';
 
 interface BusinessType {
   id: string;
@@ -23,8 +25,17 @@ const CATEGORY_SLUG_MAP: Record<string, string> = {
   'restaurant': 'restaurants',
   'activities-tours': 'activities',
   'activity': 'activities',
+  'adventure': 'activities',
   'crafts-wellness': 'crafts-wellness',
   'production-trade': 'production-trade',
+  'agriculture_industry': 'production-trade',
+  'food': 'food-beverage',
+  'logistics': 'transportation',
+  'services_professional': 'services',
+  'crafts': 'crafts-wellness',
+  'wellness': 'crafts-wellness',
+  ...BRAND_ROUTE_BY_TYPE,
+  ...BRAND_ROUTE_BY_TYPE,
 };
 
 export default function CategoriesPage() {
@@ -33,6 +44,7 @@ export default function CategoriesPage() {
   const [businessCounts, setBusinessCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTypeId, setSelectedTypeId] = useState('');
 
   useEffect(() => {
     // 1. Check if an admin visual builder layout is configured for categories
@@ -58,6 +70,7 @@ export default function CategoriesPage() {
     ]).then(([typesData, businessesData]) => {
       const validTypes = Array.isArray(typesData) ? typesData : [];
       const validBiz = Array.isArray(businessesData) ? businessesData : [];
+      const requestedType = new URLSearchParams(window.location.search).get('type') || '';
       
       const counts: Record<string, number> = {};
       validBiz.forEach((b: any) => {
@@ -69,9 +82,24 @@ export default function CategoriesPage() {
 
       setTypes(validTypes);
       setBusinessCounts(counts);
+      setSelectedTypeId(validTypes.some((type: BusinessType) => type.id === requestedType) ? requestedType : '');
       setLoading(false);
     });
   }, []);
+
+  const selectedType = types.find(type => type.id === selectedTypeId);
+  if (selectedType) {
+    const parent = types.find(type => type.id === selectedType.parent_id);
+    return (
+      <CategorySearchPage
+        category={selectedType.id}
+        label={selectedType.name}
+        title={`${selectedType.name} in Siwa Oasis`}
+        description={selectedType.description || `Discover businesses, providers, offers, packages, and investment opportunities for ${selectedType.name}${parent ? ` within ${parent.name}` : ''}.`}
+        accent={selectedType.icon_color || parent?.icon_color || '#287a55'}
+      />
+    );
+  }
 
   // If a builder layout is saved in Site Builder, render dynamic layout
   if (builderConfig) {
@@ -154,8 +182,8 @@ export default function CategoriesPage() {
             {filteredParents.map(parent => {
               const children = types.filter(t => t.parent_id === parent.id);
               const parentCount = children.reduce((acc, c) => acc + (businessCounts[c.id] || 0), businessCounts[parent.id] || 0);
-              const routeSlug = CATEGORY_SLUG_MAP[parent.id] || parent.id.replace(/_/g, '-');
-              const targetUrl = `/${routeSlug}`;
+              const routeSlug = CATEGORY_SLUG_MAP[parent.id];
+              const targetUrl = routeSlug ? `/${routeSlug}` : `/categories?type=${encodeURIComponent(parent.id)}`;
 
               return (
                 <div
@@ -215,8 +243,9 @@ export default function CategoriesPage() {
                     {children.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1.5rem' }}>
                         {children.map(child => (
-                          <span
+                          <Link
                             key={child.id}
+                            href={routeSlug ? `/${routeSlug}?type=${encodeURIComponent(child.id)}` : `/categories?type=${encodeURIComponent(child.id)}`}
                             style={{
                               fontSize: '0.65rem',
                               fontWeight: 700,
@@ -228,7 +257,7 @@ export default function CategoriesPage() {
                             }}
                           >
                             {child.name} {businessCounts[child.id] ? `(${businessCounts[child.id]})` : ''}
-                          </span>
+                          </Link>
                         ))}
                       </div>
                     )}

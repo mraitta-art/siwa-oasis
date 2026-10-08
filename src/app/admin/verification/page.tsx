@@ -15,6 +15,10 @@ interface VerificationRequest {
   ownership_doc_url: string;
   terms_accepted_at: string | null;
   terms_accepted_ip: string | null;
+  terms_accepted_version: string | null;
+  terms_accepted_hash: string | null;
+  off_platform_promotion_consent: boolean;
+  off_platform_promotion_consent_at: string | null;
   business_id: string | null;
   business_name: string | null;
   business_slug: string | null;
@@ -198,7 +202,7 @@ export default function AdminVerificationPage() {
                         <div>🏪 Business: <strong className="text-slate-700">{r.business_name || 'N/A'}</strong></div>
                         {r.terms_accepted_at && (
                           <div className="text-[0.68rem] text-slate-400">
-                            ✍️ Responsibility Accepted: {formatDateTime(r.terms_accepted_at)} (IP: {r.terms_accepted_ip})
+                            ✍️ Agreement {r.terms_accepted_version || 'legacy'} accepted: {formatDateTime(r.terms_accepted_at)} (IP: {r.terms_accepted_ip})
                           </div>
                         )}
                       </div>
@@ -228,8 +232,10 @@ export default function AdminVerificationPage() {
                 {/* Terms of Acceptance audit */}
                 {selectedRequest.terms_accepted_at && (
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-semibold text-slate-500">
-                    <span className="text-emerald-600 font-bold block mb-1">✓ Responsibility Accepted</span>
-                    The vendor formally signed the legal responsibility agreement on {formatDateTime(selectedRequest.terms_accepted_at)} from IP address {selectedRequest.terms_accepted_ip}.
+                    <span className="text-emerald-600 font-bold block mb-1">✓ Agreement acceptance recorded</span>
+                    Version {selectedRequest.terms_accepted_version || 'legacy'} accepted on {formatDateTime(selectedRequest.terms_accepted_at)} from IP address {selectedRequest.terms_accepted_ip}.
+                    {selectedRequest.terms_accepted_hash && <span className="mt-1 block break-all font-mono text-[10px]">SHA-256: {selectedRequest.terms_accepted_hash}</span>}
+                    <span className="mt-2 block">Off-platform SiWiFy promotion permission: {selectedRequest.off_platform_promotion_consent ? 'Granted' : 'Not granted'}.</span>
                   </div>
                 )}
 

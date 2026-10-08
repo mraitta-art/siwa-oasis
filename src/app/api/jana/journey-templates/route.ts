@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query as safeQuery } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
+
+function authErrorStatus(error: any) {
+  const message = String(error?.message || '');
+  if (message === 'Not authenticated') return 401;
+  if (message.toLowerCase().includes('access required')) return 403;
+  return 500;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const visibleOnly = searchParams.get('visibleOnly') === 'true';
     const featuredOnly = searchParams.get('featuredOnly') === 'true';
+    if (!visibleOnly) await requireAdmin();
 
     let sql = 'SELECT * FROM journey_templates';
     const conditions = [];
@@ -34,15 +43,25 @@ export async function GET(request: NextRequest) {
       success_stories: typeof template.success_stories === 'string' ? JSON.parse(template.success_stories || '[]') : template.success_stories,
     }));
     
-    return NextResponse.json(parsedTemplates, { status: 200 });
-  } catch (error) {
+    const responseTemplates = visibleOnly
+      ? parsedTemplates.map((template: any) => {
+          const publicTemplate = { ...template };
+          delete publicTemplate.admin_notes;
+          delete publicTemplate.investment_partner_contact;
+          return publicTemplate;
+        })
+      : parsedTemplates;
+
+    return NextResponse.json(responseTemplates, { status: 200 });
+  } catch (error: any) {
     console.error('GET /api/jana/journey-templates:', error);
-    return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to fetch templates' }, { status: authErrorStatus(error) });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const {
       id,
@@ -157,14 +176,15 @@ export async function POST(request: NextRequest) {
     ]);
 
     return NextResponse.json({ success: true, id }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('POST /api/jana/journey-templates:', error);
-    return NextResponse.json({ error: 'Failed to create/update template' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to create/update template' }, { status: authErrorStatus(error) });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
     const { id, is_visible, is_featured, display_order } = body;
 
@@ -200,14 +220,15 @@ export async function PUT(request: NextRequest) {
     await safeQuery(sql, params);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('PUT /api/jana/journey-templates:', error);
-    return NextResponse.json({ error: 'Failed to update template' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to update template' }, { status: authErrorStatus(error) });
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -218,8 +239,8 @@ export async function DELETE(request: NextRequest) {
     await safeQuery('DELETE FROM journey_templates WHERE id = ?', [id]);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('DELETE /api/jana/journey-templates:', error);
-    return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to delete template' }, { status: authErrorStatus(error) });
   }
 }

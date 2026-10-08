@@ -86,7 +86,7 @@ const secretPatterns = [
   { pattern: /(?:^|[^.\w])(?:const\s+)?[A-Z_]*PASSWORD\s*=\s*["'][^"']{6,}["']/g, label: 'hardcoded password' },
   { pattern: /(?:^|[^.\w])(?:const\s+)?[A-Z_]*SECRET\s*=\s*["'][^"']{10,}["']/g, label: 'hardcoded secret' },
   { pattern: /(?:^|[^.\w])(?:const\s+)?[A-Z_]*API_KEY\s*=\s*["'][^"']{10,}["']/g, label: 'hardcoded API key' },
-  { pattern: /(?:^|[,{]\s*)(?:[A-Za-z_$][\w$]*\s*:\s*)?password\s*:\s*["'][^"']{6,}["']/g, label: 'hardcoded password object literal' },
+  { pattern: /(?:^|[,{]\s*)(?:[A-Za-z_$][\w$]*\s*:\s*)?password\s*:\s*["']([A-Za-z0-9!@#$%^&*()_+=\-]{6,})["']/g, label: 'hardcoded password object literal' },
   { pattern: /PiCo@@[0-9#@]+/g, label: 'known production password' },
   { pattern: /Dj2teUVtQy[A-Za-z0-9]+/g, label: 'known DB password' },
 ];

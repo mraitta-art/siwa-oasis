@@ -375,7 +375,7 @@ export default async function VanityBusinessPage({
 
     if (minisiteLayout && Array.isArray(minisiteLayout.components) && minisiteLayout.components.length > 0) {
       const user = await getCurrentUser().catch(() => null);
-      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'content_admin' || (user as any)?.is_admin === true;
+      const isAdmin = ['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(user?.role || '');
 
       let galleryItems: any[] = [];
       let blogPosts: any[] = [];

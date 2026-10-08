@@ -22,13 +22,11 @@ export interface BusinessContext {
 export interface MinisiteBuilderRendererProps {
   layout: MinisiteLayout;
   business: BusinessContext;
-  isAdmin?: boolean;
 }
 
 export default function MinisiteBuilderRenderer({
   layout,
   business,
-  isAdmin = false,
 }: MinisiteBuilderRendererProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -1139,23 +1137,6 @@ export default function MinisiteBuilderRenderer({
             >
               Oasis Registry
             </Link>
-            {isAdmin && (
-              <Link
-                href={`/jana/minisite-builder?slug=${business.slug}`}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  background: 'rgba(212, 175, 55, 0.2)',
-                  color: primaryColor,
-                  border: `1px solid ${primaryColor}50`,
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  textDecoration: 'none',
-                }}
-              >
-                <i className="fas fa-pen-ruler" /> Edit Minisite
-              </Link>
-            )}
           </div>
         </nav>
       )}

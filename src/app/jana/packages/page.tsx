@@ -16,7 +16,7 @@ export interface MarketplaceItem {
   title: string;
   title_ar: string;
   slug: string;
-  item_type: 'package' | 'program' | 'tour' | 'activity' | 'discount_offer' | 'room_bundle' | 'retreat';
+  item_type: 'package' | 'program' | 'tour' | 'activity' | 'discount_offer' | 'room_bundle' | 'retreat' | 'investment';
   category_id: string;
   description: string;
   description_ar: string;
@@ -42,6 +42,13 @@ export interface MarketplaceItem {
   booking_cta_url: string;
   target_scope?: 'platform' | 'parent_category' | 'child_typology' | 'multi_business';
   target_type_id?: string | null;
+  investment_type?: string;
+  investment_amount_min?: number | null;
+  investment_amount_max?: number | null;
+  expected_roi_percent?: number | null;
+  business_stage?: string;
+  target_investors?: number | null;
+  investment_highlights?: string;
   assignments?: Array<{
     id?: string;
     business_id: string;
@@ -317,7 +324,7 @@ function UnifiedMarketplaceCommandCenterInner() {
   function startNewItem(type: MarketplaceItem['item_type'] = 'package') {
     setEditingItem({
       business_id: mode === 'vendor_proxy' && selectedVendorId ? selectedVendorId : null,
-      section_id: type === 'tour' || type === 'activity' || type === 'program' ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
+      section_id: type === 'investment' ? 'sec_7_investment' : type === 'tour' || type === 'activity' || type === 'program' ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
       title: '',
       title_ar: '',
       item_type: type,
@@ -345,6 +352,13 @@ function UnifiedMarketplaceCommandCenterInner() {
       booking_cta_url: '',
       target_scope: 'platform',
       target_type_id: null,
+      investment_type: 'equity',
+      investment_amount_min: null,
+      investment_amount_max: null,
+      expected_roi_percent: null,
+      business_stage: '',
+      target_investors: null,
+      investment_highlights: '',
       assignments: []
     });
     setActiveTab('basics');
@@ -426,6 +440,12 @@ function UnifiedMarketplaceCommandCenterInner() {
             style={{ padding: '0.65rem 1.1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <i className="fas fa-tags" /> Add Special Offer / Discount
+          </button>
+          <button
+            onClick={() => startNewItem('investment')}
+            style={{ padding: '0.65rem 1.1rem', background: '#315b48', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <i className="fas fa-chart-line" /> Add Investment Opportunity
           </button>
         </div>
       </header>
@@ -511,6 +531,7 @@ function UnifiedMarketplaceCommandCenterInner() {
             <option value="discount_offer">🏷️ Special Offers &amp; Discounts</option>
             <option value="room_bundle">🛏️ Stay &amp; Room Packages</option>
             <option value="retreat">🧘 Wellness Retreats</option>
+            <option value="investment">📈 Investment Opportunities</option>
           </select>
 
           {/* Status Filter */}
@@ -835,6 +856,7 @@ function UnifiedMarketplaceCommandCenterInner() {
                         <option value="discount_offer">🏷️ Special Discount &amp; Promo Code</option>
                         <option value="room_bundle">🛏️ Stay &amp; Room Package</option>
                         <option value="retreat">🧘 Wellness &amp; Yoga Retreat</option>
+                        <option value="investment">📈 Investment Opportunity</option>
                       </select>
                     </div>
                   </div>
@@ -902,6 +924,52 @@ function UnifiedMarketplaceCommandCenterInner() {
               {/* TAB 2: PRICING & DISCOUNTS */}
               {activeTab === 'pricing_discounts' && (
                 <div style={{ display: 'grid', gap: '1rem' }}>
+                  {editingItem.item_type === 'investment' ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', background: '#f8fafc', border: '1px solid #dbe4dc', borderRadius: '10px', padding: '1rem' }}>
+                      <h4 style={{ gridColumn: '1 / -1', margin: 0, color: '#234b37', fontSize: '0.9rem', fontWeight: 900 }}>Investment Terms</h4>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        OPPORTUNITY TYPE
+                        <select value={editingItem.investment_type || 'equity'} onChange={event => setEditingItem(p => ({ ...p, investment_type: event.target.value }))} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                          <option value="equity">Equity</option>
+                          <option value="partnership">Partnership</option>
+                          <option value="franchise">Franchise</option>
+                          <option value="joint_venture">Joint venture</option>
+                          <option value="sponsorship">Sponsorship</option>
+                        </select>
+                      </label>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        MINIMUM INVESTMENT
+                        <input type="number" min="0" value={editingItem.investment_amount_min ?? ''} onChange={event => setEditingItem(p => ({ ...p, investment_amount_min: event.target.value ? Number(event.target.value) : null }))} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                      </label>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        MAXIMUM INVESTMENT
+                        <input type="number" min="0" value={editingItem.investment_amount_max ?? ''} onChange={event => setEditingItem(p => ({ ...p, investment_amount_max: event.target.value ? Number(event.target.value) : null }))} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                      </label>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        CURRENCY
+                        <select value={editingItem.currency || 'USD'} onChange={event => setEditingItem(p => ({ ...p, currency: event.target.value }))} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                          <option value="USD">USD</option><option value="EGP">EGP</option><option value="EUR">EUR</option>
+                        </select>
+                      </label>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        EXPECTED ROI (%)
+                        <input type="number" min="0" step="0.1" value={editingItem.expected_roi_percent ?? ''} onChange={event => setEditingItem(p => ({ ...p, expected_roi_percent: event.target.value ? Number(event.target.value) : null }))} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                      </label>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        BUSINESS STAGE
+                        <input value={editingItem.business_stage || ''} onChange={event => setEditingItem(p => ({ ...p, business_stage: event.target.value }))} placeholder="e.g. expansion" style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                      </label>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        TARGET INVESTORS
+                        <input type="number" min="0" value={editingItem.target_investors ?? ''} onChange={event => setEditingItem(p => ({ ...p, target_investors: event.target.value ? Number(event.target.value) : null }))} style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                      </label>
+                      <label style={{ gridColumn: '1 / -1', display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 850 }}>
+                        INVESTMENT HIGHLIGHTS
+                        <textarea value={editingItem.investment_highlights || ''} onChange={event => setEditingItem(p => ({ ...p, investment_highlights: event.target.value }))} rows={3} placeholder="Key assets, terms, or referral notes" style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical' }} />
+                      </label>
+                    </div>
+                  ) : (
+                    <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
@@ -1007,6 +1075,8 @@ function UnifiedMarketplaceCommandCenterInner() {
                       </div>
                     </div>
                   </div>
+                    </>
+                  )}
                 </div>
               )}
 

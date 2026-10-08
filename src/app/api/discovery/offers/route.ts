@@ -20,6 +20,29 @@ export async function GET(request: Request) {
     const typeFilter = searchParams.get('type') || '';
     const businessFilter = searchParams.get('business') || '';
     const featuredOnly = searchParams.get('featured') === 'true';
+    const requestedTypeIds = [...new Set(typeFilter.split(',').map(id => id.trim()).filter(Boolean))];
+    const businessTypeIds = new Set<string>();
+    const targetTypeIds = new Set<string>();
+
+    if (requestedTypeIds.length > 0) {
+      const typePlaceholders = requestedTypeIds.map(() => '?').join(',');
+      const types = await query(
+        `SELECT id, parent_id FROM business_types
+         WHERE id IN (${typePlaceholders}) OR parent_id IN (${typePlaceholders})`,
+        [...requestedTypeIds, ...requestedTypeIds]
+      ) as any[];
+      types.forEach(type => {
+        businessTypeIds.add(String(type.id));
+        targetTypeIds.add(String(type.id));
+        if (type.parent_id) targetTypeIds.add(String(type.parent_id));
+      });
+      if (businessTypeIds.size === 0) {
+        requestedTypeIds.forEach(typeId => {
+          businessTypeIds.add(typeId);
+          targetTypeIds.add(typeId);
+        });
+      }
+    }
 
     // Query active businesses
     let sql = `
@@ -44,15 +67,9 @@ export async function GET(request: Request) {
     const params: any[] = [];
 
     if (typeFilter) {
-      const types = await query(
-        'SELECT id FROM business_types WHERE id = ? OR parent_id = ?',
-        [typeFilter, typeFilter]
-      );
-      const typeIds = (types as any[]).map(t => t.id);
-      if (typeIds.length > 0) {
-        sql += ` AND b.type_id IN (${typeIds.map(() => '?').join(',')}) `;
-        params.push(...typeIds);
-      }
+      const typeIds = [...businessTypeIds];
+      sql += ` AND b.type_id IN (${typeIds.map(() => '?').join(',')}) `;
+      params.push(...typeIds);
     }
 
     if (businessFilter) {
@@ -70,6 +87,7 @@ export async function GET(request: Request) {
     ) as any[];
 
     const offers: any[] = [];
+    const marketplaceOffers: any[] = [];
 
     const canonicalProductParams: any[] = [];
     let canonicalProductSql = `
@@ -89,8 +107,9 @@ export async function GET(request: Request) {
       canonicalProductParams.push(businessFilter);
     }
     if (typeFilter) {
-      canonicalProductSql += ' AND (b.type_id = ? OR bt.parent_id = ?)';
-      canonicalProductParams.push(typeFilter, typeFilter);
+      const typeIds = [...businessTypeIds];
+      canonicalProductSql += ` AND b.type_id IN (${typeIds.map(() => '?').join(',')})`;
+      canonicalProductParams.push(...typeIds);
     }
     canonicalProductSql += ' ORDER BY tp.is_featured DESC, tp.updated_at DESC';
 
@@ -120,9 +139,10 @@ export async function GET(request: Request) {
       });
     });
 
-    const canonicalPromotions = await query(`
+        let canonicalPromotionSql = `
       SELECT promo.*, b.name AS business_name, b.slug AS business_slug,
-             bt.name AS type_name, tp.name AS product_name, tp.base_price_usd, tp.base_price_egp
+            b.type_id AS business_type_id, bt.name AS type_name,
+            tp.name AS product_name, tp.base_price_usd, tp.base_price_egp
       FROM tour_promotions promo
       LEFT JOIN businesses b ON b.id = promo.vendor_business_id
       LEFT JOIN business_types bt ON bt.id = b.type_id
@@ -130,7 +150,18 @@ export async function GET(request: Request) {
       WHERE promo.is_active = 1
         AND (promo.valid_from IS NULL OR promo.valid_from <= CURRENT_DATE())
         AND (promo.valid_until IS NULL OR promo.valid_until >= CURRENT_DATE())
-    `) as any[];
+    `;
+    const canonicalPromotionParams: any[] = [];
+    if (businessFilter) {
+      canonicalPromotionSql += ' AND promo.vendor_business_id = ?';
+      canonicalPromotionParams.push(businessFilter);
+    }
+    if (typeFilter) {
+      const typeIds = [...businessTypeIds];
+      canonicalPromotionSql += ` AND b.type_id IN (${typeIds.map(() => '?').join(',')})`;
+      canonicalPromotionParams.push(...typeIds);
+    }
+    const canonicalPromotions = await query(canonicalPromotionSql, canonicalPromotionParams) as any[];
     canonicalPromotions.forEach(promotion => {
       if (businessFilter && promotion.vendor_business_id !== businessFilter) return;
       if (featuredOnly) return;
@@ -154,6 +185,111 @@ export async function GET(request: Request) {
         promotion_id: promotion.id,
       });
     });
+
+    // Merge admin-created marketplace deals into the same visitor feed.
+    // These queries are read-only so discovery never triggers the admin API's schema setup.
+    try {
+      const marketplaceRows = await query<any>(`
+        SELECT m.*, b.name AS business_name, b.slug AS business_slug,
+               b.type_id AS business_type_id, bt.name AS business_type_name,
+               target_type.name AS target_type_name
+        FROM marketplace_items m
+        LEFT JOIN businesses b ON b.id = m.business_id
+        LEFT JOIN business_types bt ON bt.id = b.type_id
+        LEFT JOIN business_types target_type ON target_type.id = m.target_type_id
+        WHERE m.status = 'approved' AND m.publish_on_main_portal = 1
+          AND m.item_type <> 'investment'
+        ORDER BY m.is_featured DESC, m.updated_at DESC
+        LIMIT 500
+      `);
+
+      const marketplaceIds = marketplaceRows.map((item: any) => String(item.id));
+      const assignmentsByItem = new Map<string, any[]>();
+      if (marketplaceIds.length > 0) {
+        try {
+          const assignmentRows = await query<any>(`
+            SELECT pba.item_id, pba.business_role, b.id AS business_id,
+                   b.name AS business_name, b.slug AS business_slug,
+                   b.type_id AS business_type_id, bt.name AS business_type_name
+            FROM package_business_assignments pba
+            JOIN businesses b ON b.id = pba.business_id
+            LEFT JOIN business_types bt ON bt.id = b.type_id
+            WHERE pba.item_id IN (${marketplaceIds.map(() => '?').join(',')})
+              AND pba.vendor_acceptance_status IN ('accepted', 'approved')
+            ORDER BY pba.created_at ASC
+          `, marketplaceIds);
+          assignmentRows.forEach((assignment: any) => {
+            const key = String(assignment.item_id);
+            assignmentsByItem.set(key, [...(assignmentsByItem.get(key) || []), {
+              id: String(assignment.business_id),
+              name: assignment.business_name,
+              slug: assignment.business_slug,
+              type_id: assignment.business_type_id,
+              type_name: assignment.business_type_name,
+              role: assignment.business_role,
+            }]);
+          });
+        } catch {
+          // Items remain discoverable if the optional assignment table is unavailable.
+        }
+      }
+
+      marketplaceRows.forEach((item: any) => {
+        const providers = assignmentsByItem.get(String(item.id)) || [];
+        const ownerBusinessId = item.business_id ? String(item.business_id) : null;
+        if (businessFilter && ownerBusinessId !== businessFilter && !providers.some(provider => provider.id === businessFilter)) return;
+        if (featuredOnly && !item.is_featured) return;
+
+        const matchesType = !typeFilter
+          || item.target_scope === 'platform'
+          || targetTypeIds.has(String(item.target_type_id || ''))
+          || businessTypeIds.has(String(item.business_type_id || ''))
+          || providers.some(provider => businessTypeIds.has(String(provider.type_id || '')));
+        if (!matchesType) return;
+
+        const media = typeof item.media === 'string' ? JSON.parse(item.media || '[]') : item.media;
+        const firstImage = Array.isArray(media) ? media.find((entry: any) => entry?.url)?.url : null;
+        const discountPercent = Number(item.discount_percentage) || 0;
+        const ownerIsPlatform = !ownerBusinessId;
+        const itemType = item.item_type || 'package';
+
+        marketplaceOffers.push({
+          id: item.id,
+          business_id: ownerBusinessId || 'siwify-platform',
+          business_name: item.business_name || 'Siwify',
+          business_slug: item.business_slug || null,
+          business_type_id: item.business_type_id || null,
+          business_logo: null,
+          owner_type: ownerIsPlatform ? 'platform' : 'vendor',
+          type_name: item.business_type_name || item.target_type_name || null,
+          title: item.title,
+          type: itemType === 'discount_offer' ? 'discount' : itemType,
+          item_type: itemType,
+          price: item.price_amount || null,
+          original_price: item.original_price || null,
+          discount: discountPercent > 0 ? `${discountPercent}%` : item.coupon_code || null,
+          description: item.description || null,
+          inclusions: item.included_features || null,
+          link: item.business_slug ? `/p/${item.business_slug}` : '/offers',
+          image: firstImage,
+          is_featured: !!item.is_featured,
+          source: 'admin_marketplace',
+          target_scope: item.target_scope,
+          target_type_id: item.target_type_id || null,
+          target_type_name: item.target_type_name || null,
+          category_id: item.category_id || null,
+          providers: ownerBusinessId && providers.length === 0 ? [{
+            id: ownerBusinessId,
+            name: item.business_name,
+            slug: item.business_slug,
+            type_id: item.business_type_id,
+            type_name: item.business_type_name,
+          }] : providers,
+        });
+      });
+    } catch (error) {
+      console.warn('Admin marketplace items are unavailable in discovery:', error);
+    }
 
     function buildTypeSpecificOffer(typeOfferData: any, row: any, businessLogo: string | null) {
       if (!typeOfferData || typeof typeOfferData !== 'object' || Object.keys(typeOfferData).length === 0) return null;
@@ -575,8 +711,14 @@ export async function GET(request: Request) {
       });
     });
 
-    // Apply limits
-    const slicedOffers = offers.slice(0, limit);
+    // Interleave both sources so one large catalog cannot crowd out the other.
+    const mergedOffers: any[] = [];
+    for (let index = 0; index < Math.max(offers.length, marketplaceOffers.length); index++) {
+      if (marketplaceOffers[index]) mergedOffers.push(marketplaceOffers[index]);
+      if (offers[index]) mergedOffers.push(offers[index]);
+    }
+
+    const slicedOffers = mergedOffers.slice(0, limit);
 
     return NextResponse.json({ success: true, count: slicedOffers.length, offers: slicedOffers });
   } catch (error: any) {

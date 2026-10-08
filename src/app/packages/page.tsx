@@ -1,17 +1,15 @@
-import SectionAggregationPage from '@/components/SectionAggregationPage';
+import CommercialMarketplacePage from '@/components/CommercialMarketplacePage';
 
 export const dynamic = 'force-dynamic';
 
 export default function PackagesPage() {
   return (
-    <SectionAggregationPage
-      sectionId="sec_5_experiences"
+    <CommercialMarketplacePage
+      initialKind="package"
+      title="Packages & Journeys"
+      description="Explore packages, tours, journeys, and experiences from Siwify and local businesses. See which providers participate in each offer."
       pageConfigId="website_packages"
-      pageLabel="Packages & Journeys"
-      description="Explore curated multi-day safaris, desert itineraries, cultural programs, and bookable experiences from Siwa's best guides and lodges. 0% booking commission."
-      accentColor="#16a34a"
-      ctaLabel="View Packages"
-      showPartnerCta
+      accentColor="#287a55"
       topContent={
         <div style={{
           background: '#0f172a', borderBottom: '1px solid rgba(212,175,55,0.25)',

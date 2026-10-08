@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { getPublicAppUrl, normalizeBusinessSlug } from '@/lib/public-url';
 import { createBusinessEntity } from '@/lib/business-creation';
+import { getVendorAgreementText, VENDOR_AGREEMENT_VERSION, type VendorAgreementLanguage } from '@/lib/vendor-agreement';
 
 function slugify(text: string): string {
   return normalizeBusinessSlug(text);
@@ -70,7 +71,20 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, displayName, phone, registrationContacts, businessId, newBusinessName, businessType, termsAccepted } = await req.json();
+    const {
+      email,
+      password,
+      displayName,
+      phone,
+      registrationContacts,
+      businessId,
+      newBusinessName,
+      businessType,
+      termsAccepted,
+      termsVersion,
+      termsLanguage,
+      promotionConsent,
+    } = await req.json();
 
     const contacts = Array.isArray(registrationContacts) ? registrationContacts : [];
     const normalizedContacts = contacts.map((contact: any) => ({
@@ -91,14 +105,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Registration contact numbers must be different' }, { status: 400 });
     }
 
-    if (!termsAccepted) {
-      return NextResponse.json({ error: 'You must accept the Vendor Responsibility Agreement to register' }, { status: 400 });
+    const acceptedLanguage: VendorAgreementLanguage | null = termsLanguage === 'ar' || termsLanguage === 'en'
+      ? termsLanguage
+      : null;
+    if (termsAccepted !== true || termsVersion !== VENDOR_AGREEMENT_VERSION || !acceptedLanguage) {
+      return NextResponse.json({ error: 'Review and accept the current Vendor Participation Agreement before registering.' }, { status: 400 });
     }
 
     const acceptedAt = new Date();
+    const acceptedAtIso = acceptedAt.toISOString();
     const acceptedIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || req.headers.get('x-real-ip')
       || '0.0.0.0';
+    const agreementHash = createHash('sha256').update(getVendorAgreementText(acceptedLanguage), 'utf8').digest('hex');
+    const registrationMetadata = {
+      registration_contacts: normalizedContacts,
+      vendor_agreement_acceptance: {
+        version: VENDOR_AGREEMENT_VERSION,
+        language: acceptedLanguage,
+        content_sha256: agreementHash,
+        accepted_at: acceptedAtIso,
+        accepted_ip: acceptedIp,
+      },
+      off_platform_promotion_consent: {
+        accepted: promotionConsent === true,
+        recorded_at: promotionConsent === true ? acceptedAtIso : null,
+      },
+    };
 
     // 1. Check email uniqueness
     const existing = (await query('SELECT id FROM profiles WHERE email = ?', [email])) as any[];
@@ -144,7 +177,7 @@ export async function POST(req: NextRequest) {
         'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [userId, email, phone.trim(), hashedPw, 'vendor', displayName, targetBizId, 'free', isActive, approvalStatus, acceptedAt, acceptedIp]
       );
-      await execute('UPDATE profiles SET metadata = ? WHERE id = ?', [JSON.stringify({ registration_contacts: normalizedContacts }), userId]);
+      await execute('UPDATE profiles SET metadata = ? WHERE id = ?', [JSON.stringify(registrationMetadata), userId]);
       for (const [index, contact] of normalizedContacts.entries()) {
         await execute(
           `INSERT INTO investment_contact_verifications (id, business_id, slot_number, phone, contact_name)
@@ -219,10 +252,10 @@ export async function POST(req: NextRequest) {
 
     // 3. Create the vendor profile linked to this business
     await execute(
-      'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, email, phone.trim(), hashedPw, 'vendor', displayName, businessId, tier, isActive, approvalStatus]
+      'INSERT INTO profiles (id, email, phone, password_hash, role, display_name, business_id, subscription_tier, active, approval_status, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, email, phone.trim(), hashedPw, 'vendor', displayName, businessId, tier, isActive, approvalStatus, acceptedAt, acceptedIp]
     );
-    await execute('UPDATE profiles SET metadata = ? WHERE id = ?', [JSON.stringify({ registration_contacts: normalizedContacts }), userId]);
+    await execute('UPDATE profiles SET metadata = ? WHERE id = ?', [JSON.stringify(registrationMetadata), userId]);
     for (const [index, contact] of normalizedContacts.entries()) {
       await execute(
         `INSERT INTO investment_contact_verifications (id, business_id, slot_number, phone, contact_name)

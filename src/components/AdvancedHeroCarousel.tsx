@@ -287,8 +287,12 @@ export default function AdvancedHeroCarousel({
   return (
     <section
       style={{
-        height, position: 'relative', overflow: 'hidden', background: '#000',
-        fontFamily: slideFontFamily
+        height,
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#0f172a',
+        fontFamily: slideFontFamily,
+        borderRadius: '0',
       }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => { if (!isYouTubeSlide && !isEmbedSlide) setIsPaused(false); }}
@@ -313,34 +317,26 @@ export default function AdvancedHeroCarousel({
             />
             <div style={{
               position: 'absolute', inset: 0,
-              background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.3}), rgba(0,0,0,${overlayOpacity}))`
+              background: 'linear-gradient(180deg, rgba(15,23,42,0.38) 0%, rgba(15,23,42,0.25) 28%, rgba(15,23,42,0.7) 100%)'
             }} />
           </div>
         ))}
       </div>
 
-      {/* CLICKABLE SLIDE AREA */}
       {slide.ctaLink ? (
         <a 
           href={slide.ctaLink}
           onClick={(e) => {
             const link = slide.ctaLink || '';
-
-            // ── Section hash link (e.g. #sec_9_marketplace_catalog) ──
             if (link.startsWith('#')) {
               e.preventDefault();
-              const sectionId = link.slice(1); // strip leading '#'
-
-              // Tell parent to switch tab directly (avoids stale closure in hashchange)
+              const sectionId = link.slice(1);
               if (onSectionNavigate) {
                 onSectionNavigate(sectionId);
               }
-              // Also update URL hash for shareability
               window.location.hash = sectionId;
               return;
             }
-
-            // ── targetSectionId scroll (legacy DOM scroll) ──
             if (slide.targetSectionId) {
               e.preventDefault();
               e.stopPropagation();
@@ -350,7 +346,6 @@ export default function AdvancedHeroCarousel({
               }
               return;
             }
-            // otherwise allow normal navigation
           }}
           style={{
             position: 'relative', 
@@ -361,7 +356,7 @@ export default function AdvancedHeroCarousel({
             justifyContent: 'center',
             alignItems: slideAlign === 'center' ? 'center' : (slideAlign === 'left' ? 'flex-start' : 'flex-end'),
             textAlign: slideAlign, 
-            padding: 'clamp(5.5rem, 12vh, 8rem) clamp(1.5rem, 6vw, 5rem) clamp(2.5rem, 5vh, 4rem)', 
+            padding: 'clamp(4rem, 12vh, 7rem) clamp(1.25rem, 6vw, 4rem) clamp(2rem, 5vh, 3rem)', 
             color: '#fff',
             textDecoration: 'none',
             cursor: isEmbedSlide ? 'default' : 'pointer',
@@ -369,63 +364,66 @@ export default function AdvancedHeroCarousel({
           }}
         >
           <div style={{
-            maxWidth: '1000px',
+            maxWidth: '1100px',
             opacity: isTransitioning ? 0 : 1,
-            transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
-            transition: 'all 0.6s ease-out',
+            transform: isTransitioning ? 'translateY(18px)' : 'translateY(0)',
+            transition: 'all 0.5s ease-out',
             pointerEvents: isEmbedSlide ? 'auto' : 'inherit',
           }}>
             {slide.showCaption !== false && slide.caption && (
               <div style={{
-                display: 'inline-block', 
-                background: 'linear-gradient(135deg, #FFB700, #FF9500)',
-                color: '#000',
-                padding: '0.5rem 1.5rem', 
-                borderRadius: '50px', 
-                fontSize: '0.8rem', 
-                fontWeight: 800, 
-                letterSpacing: '2px', 
-                textTransform: 'uppercase', 
-                marginBottom: '1.5rem',
-                boxShadow: '0 4px 15px rgba(255, 183, 0, 0.3)'
+                display: 'inline-block',
+                background: 'rgba(255,255,255,0.12)',
+                color: '#f8fafc',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '999px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                marginBottom: '1rem',
+                border: '1px solid rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(8px)',
               }}>
                 {slide.caption}
               </div>
             )}
-            <h1 style={{ fontSize: slideTitleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: slideTitleColor, textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
+            <h1 style={{ fontSize: slideTitleSize, fontWeight: 800, margin: '0 0 1rem 0', lineHeight: 1.08, color: slideTitleColor, letterSpacing: '-0.05em' }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
               <p style={{ 
                 fontSize: slideSubtitleSize, 
                 opacity: 0.95, 
-                maxWidth: '900px', 
-                margin: slideAlign === 'center' ? '0 auto 3rem' : '0 0 3rem', 
-                lineHeight: 1.8,
+                maxWidth: '760px', 
+                margin: slideAlign === 'center' ? '0 auto 2rem' : '0 0 2rem', 
+                lineHeight: 1.5,
                 fontWeight: 400,
-                letterSpacing: '0.5px',
-                color: '#FFFFFF'
+                letterSpacing: '0.02em',
+                color: '#f8fafc'
               }}>
                 {slide.subtitle}
               </p>
             )}
             {slide.ctaText && (
               <div style={{ 
-                display: 'inline-block',
-                padding: '1rem 2.5rem', 
-                background: 'linear-gradient(135deg, rgba(255, 183, 0, 0.25), rgba(255, 149, 0, 0.25))',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.55rem',
+                padding: '0.8rem 1.5rem', 
+                background: 'rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(10px)',
-                border: '2px solid rgba(255, 183, 0, 0.6)',
-                borderRadius: '50px',
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                letterSpacing: '2px',
+                border: '1px solid rgba(255,255,255,0.24)',
+                borderRadius: '999px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                letterSpacing: '1.8px',
                 textTransform: 'uppercase',
-                color: '#FFB700',
-                transition: 'all 0.3s ease',
+                color: '#ffffff',
+                transition: 'all 0.2s ease',
                 cursor: 'pointer'
               }}>
-                {slide.ctaText} →
+                {slide.ctaText} <span aria-hidden="true">→</span>
               </div>
             )}
           </div>
@@ -441,69 +439,71 @@ export default function AdvancedHeroCarousel({
             justifyContent: 'center',
             alignItems: slideAlign === 'center' ? 'center' : (slideAlign === 'left' ? 'flex-start' : 'flex-end'),
             textAlign: slideAlign, 
-            padding: 'clamp(5.5rem, 12vh, 8rem) clamp(1.5rem, 6vw, 5rem) clamp(2.5rem, 5vh, 4rem)', 
+            padding: 'clamp(4rem, 12vh, 7rem) clamp(1.25rem, 6vw, 4rem) clamp(2rem, 5vh, 3rem)', 
             color: '#fff',
-            textDecoration: 'none',
             cursor: 'default'
           }}
         >
           <div style={{
-            maxWidth: '1000px',
+            maxWidth: '1100px',
             opacity: isTransitioning ? 0 : 1,
-            transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
-            transition: 'all 0.6s ease-out'
+            transform: isTransitioning ? 'translateY(18px)' : 'translateY(0)',
+            transition: 'all 0.5s ease-out'
           }}>
             {slide.showCaption !== false && slide.caption && (
               <div style={{
-                display: 'inline-block', 
-                background: 'linear-gradient(135deg, #FFB700, #FF9500)',
-                color: '#000',
-                padding: '0.5rem 1.5rem', 
-                borderRadius: '50px', 
-                fontSize: '0.8rem',
-                fontWeight: 800, 
-                letterSpacing: '2px', 
-                textTransform: 'uppercase', 
-                marginBottom: '1.5rem',
-                boxShadow: '0 4px 15px rgba(255, 183, 0, 0.3)'
+                display: 'inline-block',
+                background: 'rgba(255,255,255,0.12)',
+                color: '#f8fafc',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '999px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                marginBottom: '1rem',
+                border: '1px solid rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(8px)',
               }}>
                 {slide.caption}
               </div>
             )}
-            <h1 style={{ fontSize: slideTitleSize, fontWeight: 900, margin: '0 0 1.5rem 0', lineHeight: 1.1, color: slideTitleColor, textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>
+            <h1 style={{ fontSize: slideTitleSize, fontWeight: 800, margin: '0 0 1rem 0', lineHeight: 1.08, color: slideTitleColor, letterSpacing: '-0.05em' }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
               <p style={{ 
                 fontSize: slideSubtitleSize, 
                 opacity: 0.95, 
-                maxWidth: '900px', 
-                margin: slideAlign === 'center' ? '0 auto 3rem' : '0 0 3rem', 
-                lineHeight: 1.8,
+                maxWidth: '760px', 
+                margin: slideAlign === 'center' ? '0 auto 2rem' : '0 0 2rem', 
+                lineHeight: 1.5,
                 fontWeight: 400,
-                letterSpacing: '0.5px',
-                color: '#FFFFFF'
+                letterSpacing: '0.02em',
+                color: '#f8fafc'
               }}>
                 {slide.subtitle}
               </p>
             )}
             {slide.ctaText && (
               <div style={{ 
-                display: 'inline-block',
-                padding: '1rem 2.5rem', 
-                background: 'linear-gradient(135deg, rgba(255, 183, 0, 0.25), rgba(255, 149, 0, 0.25))',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.55rem',
+                padding: '0.8rem 1.5rem', 
+                background: 'rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(10px)',
-                border: '2px solid rgba(255, 183, 0, 0.6)',
-                borderRadius: '50px',
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                letterSpacing: '2px',
+                border: '1px solid rgba(255,255,255,0.24)',
+                borderRadius: '999px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                letterSpacing: '1.8px',
                 textTransform: 'uppercase',
-                color: '#FFB700',
-                transition: 'all 0.3s ease',
+                color: '#ffffff',
+                transition: 'all 0.2s ease',
                 cursor: 'pointer'
               }}>
-                {slide.ctaText} →
+                {slide.ctaText} <span aria-hidden="true">→</span>
               </div>
             )}
           </div>
@@ -512,46 +512,42 @@ export default function AdvancedHeroCarousel({
 
       {showArrows && validSlides.length > 1 && (
         <>
-          <button onClick={(e) => { e.stopPropagation(); goToPrev(true); }} style={{ position: 'absolute', left: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>‹</button>
-          <button onClick={(e) => { e.stopPropagation(); goToNext(true); }} style={{ position: 'absolute', right: '2rem', top: '50%', zIndex: 20, background: 'rgba(255, 183, 0, 0.2)', border: '2px solid rgba(255, 183, 0, 0.6)', color: '#FFB700', fontSize: '2rem', cursor: 'pointer', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', backdropFilter: 'blur(5px)' }}>›</button>
+          <button onClick={(e) => { e.stopPropagation(); goToPrev(true); }} style={{ position: 'absolute', left: '1rem', top: '50%', zIndex: 20, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', borderRadius: '999px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>‹</button>
+          <button onClick={(e) => { e.stopPropagation(); goToNext(true); }} style={{ position: 'absolute', right: '1rem', top: '50%', zIndex: 20, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', borderRadius: '999px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>›</button>
         </>
       )}
 
-      {/* ── BOTTOM CONTROLS ROW ── */}
       <div style={{
-        position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 30,
-        display: 'flex', gap: '0.6rem', alignItems: 'center'
+        position: 'absolute', bottom: '1rem', right: '1rem', zIndex: 30,
+        display: 'flex', gap: '0.5rem', alignItems: 'center'
       }}>
-
-        {/* PAUSE / PLAY button — always visible */}
         <button
           onClick={togglePause}
           style={{
-            background: isPaused ? 'rgba(212,175,55,0.35)' : 'rgba(255,255,255,0.12)',
-            border: `2px solid ${isPaused ? 'rgba(212,175,55,0.9)' : 'rgba(255,255,255,0.3)'}`,
-            color: isPaused ? '#FFB700' : '#fff',
-            borderRadius: '50%', cursor: 'pointer',
-            width: '46px', height: '46px',
+            background: isPaused ? 'rgba(255,255,255,0.12)' : 'rgba(15, 23, 42, 0.35)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            color: '#fff',
+            borderRadius: '999px', cursor: 'pointer',
+            width: '38px', height: '38px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(8px)', transition: 'all 0.25s ease',
-            fontSize: '0.9rem'
+            backdropFilter: 'blur(8px)',
+            fontSize: '0.78rem'
           }}
           title={isPaused ? 'Resume slideshow' : 'Pause slideshow'}
         >
           <i className={`fas ${isPaused ? 'fa-play' : 'fa-pause'}`}></i>
         </button>
 
-        {/* MUTE / UNMUTE — only for YouTube slides */}
         {slide.type === 'youtube' && (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMuted(!isMuted); }}
             style={{
-              background: 'rgba(32,178,170,0.3)', border: '2px solid rgba(0,206,209,0.6)',
-              color: '#00CED1', borderRadius: '50%', cursor: 'pointer',
-              width: '46px', height: '46px',
+              background: 'rgba(15,23,42,0.35)', border: '1px solid rgba(255,255,255,0.18)',
+              color: '#fff', borderRadius: '999px', cursor: 'pointer',
+              width: '38px', height: '38px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backdropFilter: 'blur(8px)', transition: 'all 0.3s ease',
-              fontSize: '0.85rem'
+              backdropFilter: 'blur(8px)',
+              fontSize: '0.76rem'
             }}
             title={isMuted ? 'Unmute video' : 'Mute video'}
           >

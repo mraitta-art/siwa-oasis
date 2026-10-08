@@ -90,6 +90,7 @@ const NAV_GROUPS = [
       { name: 'Vendor Approvals', path: '/jana/vendor-approvals', icon: 'fa-user-check', badge: 'PENDING' },
       { name: 'Plans & Tier Access', path: '/jana/tiers', icon: 'fa-shield-alt' },
       { name: 'Upgrade Requests', path: '/jana/upgrades', icon: 'fa-arrow-up-right-dots' },
+      { name: 'Journey & Commerce Center', path: '/jana/journey-commerce', icon: 'fa-route', badge: 'PRIVATE' },
       {
         name: 'Product & Offers',
         path: '/admin/packages',
@@ -98,6 +99,8 @@ const NAV_GROUPS = [
           { name: 'Package Setup & Management', path: '/admin/packages', icon: 'fa-boxes-stacked' },
           { name: 'Offer Setup & Categories', path: '/admin/offers', icon: 'fa-tags' },
           { name: 'Discount Controls', path: '/admin/discounts', icon: 'fa-percent' },
+          { name: 'Journey Templates', path: '/jana/journey-templates-manager', icon: 'fa-map-location-dot' },
+          { name: 'Journey Catalog & Requests', path: '/jana/requests', icon: 'fa-compass', badge: 'LIVE' },
           { name: 'Custom Visitor Packages', path: '/jana/tour-builder', icon: 'fa-route' },
           { name: 'Visitor Journey Builder', path: '/admin/journey-requests', icon: 'fa-user-route' },
         ]
@@ -116,7 +119,6 @@ const NAV_GROUPS = [
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
       { name: 'Dispatch Engine', path: '/jana/dispatch', icon: 'fa-paper-plane' },
       { name: 'WhatsApp Outreach & Reactivation', path: '/jana/whatsapp-outreach', icon: 'fa-paper-plane', badge: 'OUTREACH' },
-      { name: '✦ Journey Requests', path: '/jana/requests', icon: 'fa-compass', badge: 'LIVE' },
     ]
   },
   {
@@ -173,7 +175,6 @@ const NAV_GROUPS = [
           { name: 'Search & Compare', path: '/jana/search-compare', icon: 'fa-sliders' },
         ]
       },
-      { name: 'Journeys Manager', path: '/jana/journey-templates-manager', icon: 'fa-route' },
       { name: 'Responsive Preview', path: '/jana/mobile', icon: 'fa-mobile-alt' },
     ]
   },
@@ -294,6 +295,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Contextual guidance based on current page
   const getPageGuide = () => {
     if (pathname === '/jana') return { title: 'Dashboard', tip: 'Overview of your marketplace ecosystem.' };
+    if (pathname === '/jana/journey-commerce') return { title: 'Journey & Commerce Center', tip: 'Private workspace for visitor journeys, business products, approvals, and dispatch.' };
     // Foundation
     if (pathname.includes('/governance')) return { title: 'Blueprint Architect', tip: 'Guided blueprint flow: Identity, Modules, Fields, Governance.' };
     if (pathname.includes('/types')) return { title: 'Business Categories & Typologies', tip: 'Define parent categories and specialized child typologies. Assign sections to control what data each type collects.' };

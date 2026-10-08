@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
-import PageNotConfigured from '@/components/PageNotConfigured';
+import CategorySearchPage from '@/components/CategorySearchPage';
 
 function buildThemeCSS(settings: any): string {
   const bg = settings?.bg_color || '#FAF6F0';
@@ -52,7 +52,16 @@ export default function JourneysPage() {
   const hasLayout = cfg?.header_components?.length || cfg?.body_components?.length || cfg?.footer_components?.length;
 
   if (!cfg || !hasLayout) {
-    return <PageNotConfigured pageName="Journeys" pageId="journeys" />;
+    return (
+      <CategorySearchPage
+        category="journeys"
+        sectionId="sec_5_experiences"
+        label="Journeys & Experiences"
+        title="Journeys through Siwa Oasis"
+        description="Explore curated journeys, experiences, guides, transport, stays, and approved investment opportunities from Siwa businesses."
+        accent="#287a55"
+      />
+    );
   }
 
   const layout = [
@@ -65,6 +74,15 @@ export default function JourneysPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <style dangerouslySetInnerHTML={{ __html: buildThemeCSS(cfg.site_settings || {}) }} />
       <DynamicHomepageRenderer layout={layout} settings={cfg.site_settings || null} pageId="journeys" />
+      <CategorySearchPage
+        category="journeys"
+        sectionId="sec_5_experiences"
+        label="Journeys & Experiences"
+        title="Journeys through Siwa Oasis"
+        description="Find journey providers, supporting tours, stays, activities, transport, and investment opportunities."
+        accent="#287a55"
+        skipBuilderFetch
+      />
     </div>
   );
 }

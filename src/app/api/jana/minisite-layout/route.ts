@@ -21,8 +21,16 @@ import {
 } from '@/lib/minisite-layout';
 import { invalidateCache } from '@/lib/cache';
 
+function getErrorStatus(error: any) {
+  const message = String(error?.message || '');
+  if (message === 'Not authenticated') return 401;
+  if (message.toLowerCase().includes('access required')) return 403;
+  return 500;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
     const isGovernance = searchParams.get('governance') === '1';
 
@@ -273,7 +281,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[API minisite-layout GET] Error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: getErrorStatus(error) });
   }
 }
 
@@ -348,8 +356,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[API minisite-layout POST] Error:', error);
-    const status = error.message?.includes('admin') ? 403 : 500;
-    return NextResponse.json({ error: error.message || 'Server error' }, { status });
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: getErrorStatus(error) });
   }
 }
 
@@ -378,7 +385,6 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[API minisite-layout DELETE] Error:', error);
-    const status = error.message?.includes('admin') ? 403 : 500;
-    return NextResponse.json({ error: error.message || 'Server error' }, { status });
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: getErrorStatus(error) });
   }
 }

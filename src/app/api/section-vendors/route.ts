@@ -26,7 +26,32 @@ export async function GET(request: NextRequest) {
     // Typology / Category Parent-Child Filtering
     if (category) {
       const catLower = category.toLowerCase();
-      if (catLower.includes('craft') || catLower.includes('wellness') || catLower.includes('spa')) {
+      const categoryAliases: Record<string, string> = {
+        accommodations: 'accommodation',
+        restaurants: 'food',
+        restaurant: 'food',
+        food: 'food',
+        activities: 'adventure',
+        activity: 'adventure',
+        transportation: 'logistics',
+        transportations: 'logistics',
+        'production-trade': 'agriculture_industry',
+        services: 'services_professional',
+        journeys: 'adventure',
+      };
+      const typeId = categoryAliases[catLower] || catLower;
+      const requestedTypeIds = typeId.split(',').map(id => id.trim().toLowerCase()).filter(Boolean);
+      const typePlaceholders = requestedTypeIds.map(() => '?').join(',');
+      const typeRows = await query<any>(
+        `SELECT id FROM business_types
+         WHERE LOWER(id) IN (${typePlaceholders}) OR LOWER(parent_id) IN (${typePlaceholders})`,
+        [...requestedTypeIds, ...requestedTypeIds]
+      ).catch(() => []);
+
+      if (typeRows.length > 0) {
+        filterWhere += ` AND LOWER(bt.id) IN (${typeRows.map(() => '?').join(',')})`;
+        filterArgs.push(...typeRows.map((type: any) => String(type.id).toLowerCase()));
+      } else if (catLower.includes('craft') || catLower.includes('wellness') || catLower.includes('spa')) {
         filterWhere += ` AND (LOWER(bt.id) IN ('sand_bath', 'crafts', 'wellness', 'herb', 'dates', 'olive_oil', 'salt_lamp') OR LOWER(bt.name) LIKE '%wellness%' OR LOWER(bt.name) LIKE '%craft%' OR LOWER(bt.name) LIKE '%bath%' OR LOWER(bt.name) LIKE '%spa%')`;
       } else if (catLower.includes('accommodat') || catLower.includes('hotel') || catLower.includes('camp') || catLower.includes('lodge')) {
         filterWhere += ` AND (LOWER(bt.id) IN ('hotel', 'camps', 'siwa_retreat', 'lodge', 'resort') OR LOWER(bt.name) LIKE '%hotel%' OR LOWER(bt.name) LIKE '%camp%' OR LOWER(bt.name) LIKE '%retreat%' OR LOWER(bt.name) LIKE '%lodge%')`;

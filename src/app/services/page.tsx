@@ -1,18 +1,17 @@
 'use client';
 
 import { Suspense } from 'react';
-import SectionAggregationPage from '@/components/SectionAggregationPage';
+import CategorySearchPage from '@/components/CategorySearchPage';
 
 function ServicesAggregation() {
   return (
-    <SectionAggregationPage
+    <CategorySearchPage
+      category="services"
       sectionId="sec_6_guardian"
-      pageConfigId="website_services"
-      pageLabel="Services & Operations Hub"
-      description="Explore check-in policies, operating hours, licensing, management structures, and service offerings from every registered Siwa business — all in one place."
-      accentColor="#64748b"
-      ctaLabel="View Services"
-      showPartnerCta
+      label="Services & Operations"
+      title="Services across Siwa businesses"
+      description="Find operators and service providers for accommodation, dining, journeys, tours, transport, production, and local operations."
+      accent="#64748b"
     />
   );
 }

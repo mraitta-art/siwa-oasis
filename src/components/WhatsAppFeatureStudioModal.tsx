@@ -183,7 +183,7 @@ export default function WhatsAppFeatureStudioModal({
     if (isAr) {
       return `مرحباً ${bName}! 🌴\nيسرنا تذكيركم بتأكيد حسابكم كشريك رسمي على منصة SiWiFy:\n\n🔑 رابط التفعيل المباشر:\n${data?.claimUrl || ''}\n\n🌐 موقعكم المصغر الحالي:\n${minisite}\n\nبإمكانكم البدء باستقبال الحجوزات فوراً ✨`;
     } else {
-      return `Hello ${bName}! 🌴\nThis is a reminder to claim your official verified business profile on SiWiFy.com:\n\n🔑 Instant Claim & Activation Link:\n${data?.claimUrl || ''}\n\n🌐 Your Live Minisite:\n${minisite}\n\nStart accepting direct zero-commission bookings today ✨`;
+      return `Hello ${bName}! 🌴\nThis is a reminder to claim your official verified business profile on SiWiFy.com:\n\n� Instant Claim & Activation Link:\n${data?.claimUrl || ''}\n\n🌐 Your Live Minisite:\n${minisite}\n\nStart accepting direct zero-commission bookings today ✨`;
     }
   }
 

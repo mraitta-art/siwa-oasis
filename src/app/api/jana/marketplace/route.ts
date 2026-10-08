@@ -40,6 +40,13 @@ async function ensureMarketplaceTable() {
       booking_cta_url VARCHAR(255) DEFAULT '',
       target_scope VARCHAR(50) DEFAULT 'platform',
       target_type_id VARCHAR(100) DEFAULT NULL,
+      investment_type VARCHAR(40) DEFAULT 'equity',
+      investment_amount_min DECIMAL(12,2) DEFAULT NULL,
+      investment_amount_max DECIMAL(12,2) DEFAULT NULL,
+      expected_roi_percent DECIMAL(7,2) DEFAULT NULL,
+      business_stage VARCHAR(100) DEFAULT NULL,
+      target_investors INT DEFAULT NULL,
+      investment_highlights TEXT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_biz (business_id),
@@ -55,6 +62,21 @@ async function ensureMarketplaceTable() {
     await execute(`ALTER TABLE marketplace_items ADD COLUMN IF NOT EXISTS target_scope VARCHAR(50) DEFAULT 'platform'`);
     await execute(`ALTER TABLE marketplace_items ADD COLUMN IF NOT EXISTS target_type_id VARCHAR(100) DEFAULT NULL`);
   } catch {}
+
+  const investmentColumns = [
+    ['investment_type', "VARCHAR(40) DEFAULT 'equity'"],
+    ['investment_amount_min', 'DECIMAL(12,2) DEFAULT NULL'],
+    ['investment_amount_max', 'DECIMAL(12,2) DEFAULT NULL'],
+    ['expected_roi_percent', 'DECIMAL(7,2) DEFAULT NULL'],
+    ['business_stage', 'VARCHAR(100) DEFAULT NULL'],
+    ['target_investors', 'INT DEFAULT NULL'],
+    ['investment_highlights', 'TEXT NULL'],
+  ];
+  for (const [column, definition] of investmentColumns) {
+    try {
+      await execute(`ALTER TABLE marketplace_items ADD COLUMN ${column} ${definition}`);
+    } catch {}
+  }
 
   await execute(`
     CREATE TABLE IF NOT EXISTS package_business_assignments (
@@ -326,6 +348,13 @@ export async function POST(req: NextRequest) {
       booking_cta_url = '',
       target_scope = 'platform',
       target_type_id = null,
+      investment_type = 'equity',
+      investment_amount_min = null,
+      investment_amount_max = null,
+      expected_roi_percent = null,
+      business_stage = null,
+      target_investors = null,
+      investment_highlights = '',
       assignments = []
     } = body;
 
@@ -343,8 +372,9 @@ export async function POST(req: NextRequest) {
         original_price, discount_percentage, discount_type, coupon_code, pricing_unit,
         currency, itinerary, included_features, excluded_features, media, status,
         publish_on_minisite, publish_on_main_portal, is_featured, booking_cta_type, booking_cta_url,
-        target_scope, target_type_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        target_scope, target_type_id, investment_type, investment_amount_min, investment_amount_max,
+        expected_roi_percent, business_stage, target_investors, investment_highlights
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         id,
         business_id || null,
@@ -376,7 +406,14 @@ export async function POST(req: NextRequest) {
         booking_cta_type,
         booking_cta_url || '',
         target_scope,
-        target_type_id || null
+        target_type_id || null,
+        investment_type || 'equity',
+        investment_amount_min === '' ? null : investment_amount_min,
+        investment_amount_max === '' ? null : investment_amount_max,
+        expected_roi_percent === '' ? null : expected_roi_percent,
+        business_stage || null,
+        target_investors === '' ? null : target_investors,
+        investment_highlights || ''
       ]
     );
 
@@ -409,7 +446,7 @@ export async function PUT(req: NextRequest) {
       'business_id', 'section_id', 'title', 'title_ar', 'item_type', 'category_id',
       'description', 'description_ar', 'duration_type', 'discount_type',
       'coupon_code', 'pricing_unit', 'currency', 'status', 'booking_cta_type', 'booking_cta_url',
-      'target_scope', 'target_type_id'
+      'target_scope', 'target_type_id', 'investment_type', 'business_stage', 'investment_highlights'
     ];
 
     if (target_scope !== undefined) updates.target_scope = target_scope;
@@ -422,7 +459,10 @@ export async function PUT(req: NextRequest) {
       }
     });
 
-    const numFields = ['duration_value', 'price_amount', 'original_price', 'discount_percentage'];
+    const numFields = [
+      'duration_value', 'price_amount', 'original_price', 'discount_percentage',
+      'investment_amount_min', 'investment_amount_max', 'expected_roi_percent', 'target_investors'
+    ];
     numFields.forEach((field) => {
       if (updates[field] !== undefined) {
         sets.push(`${field} = ?`);

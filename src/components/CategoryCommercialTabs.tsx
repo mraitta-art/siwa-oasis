@@ -14,6 +14,8 @@ interface CommercialItem {
   discount?: string | null;
   validUntil?: string | null;
   code?: string | null;
+  ownerName: string;
+  providers: Array<{ id: string; name: string; slug?: string | null }>;
 }
 
 const CATEGORY_TYPES: Record<string, string> = {
@@ -51,6 +53,8 @@ export default function CategoryCommercialTabs({ category }: { category: string 
             kind: item.type === 'package' || item.type === 'experience_package' || item.source?.startsWith('package_') || item.source === 'experience_packages_db' ? 'package' : 'offer',
             businessName: item.business_name || 'Siwa business',
             businessSlug: item.business_slug || null,
+            ownerName: item.owner_type === 'platform' ? 'Siwify' : item.business_name || 'Siwa business',
+            providers: Array.isArray(item.providers) ? item.providers : (item.business_name && item.owner_type !== 'platform' ? [{ id: String(item.business_id || item.id), name: item.business_name, slug: item.business_slug || null }] : []),
             description: item.description || item.offer_description || null,
             price: item.price ? Number(item.price) : null,
             originalPrice: item.original_price ? Number(item.original_price) : null,
@@ -64,6 +68,8 @@ export default function CategoryCommercialTabs({ category }: { category: string 
             kind: 'discount',
             businessName: item.business_name || 'Siwa business',
             businessSlug: item.business_slug || null,
+            ownerName: item.owner_type === 'platform' ? 'Siwify' : item.business_name || 'Siwa business',
+            providers: Array.isArray(item.providers) ? item.providers : (item.business_name && item.owner_type !== 'platform' ? [{ id: String(item.business_id || item.id), name: item.business_name, slug: item.business_slug || null }] : []),
             description: item.description || item.discount_description || null,
             discount: item.discount_value ? `${item.discount_value}${item.discount_type === 'percent' ? '%' : ''}` : null,
             validUntil: item.valid_until || null,
@@ -142,8 +148,19 @@ export default function CategoryCommercialTabs({ category }: { category: string 
                 {(item.discount || item.price) && <strong style={{ color: '#166534', fontSize: '0.8rem' }}>{item.discount || `$${item.price}`}</strong>}
               </div>
               <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 900 }}>{item.title}</h3>
-              <div style={{ marginTop: '0.4rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 700 }}>{item.businessName}</div>
+              <div style={{ marginTop: '0.4rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 700 }}>Offered by {item.ownerName}</div>
               <p style={{ flex: 1, margin: '0.8rem 0', color: '#475569', fontSize: '0.8rem', lineHeight: 1.55 }}>{item.description || 'Available from this business.'}</p>
+              {item.providers.length > 0 && (
+                <div style={{ marginBottom: '0.75rem', color: '#52665a', fontSize: '0.7rem' }}>
+                  <strong style={{ display: 'block', marginBottom: '0.3rem' }}>Available at</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    {item.providers.slice(0, 3).map(provider => provider.slug ? (
+                      <a key={provider.id} href={`/p/${provider.slug}`} style={{ color: '#23553b' }}>{provider.name}</a>
+                    ) : <span key={provider.id}>{provider.name}</span>)}
+                    {item.providers.length > 3 && <span>+{item.providers.length - 3} more</span>}
+                  </div>
+                </div>
+              )}
               {item.validUntil && <div style={{ marginBottom: '0.75rem', color: '#64748b', fontSize: '0.68rem' }}>Valid until {new Date(item.validUntil).toLocaleDateString('en-US')}</div>}
               <a href={item.businessSlug ? `/p/${item.businessSlug}` : '/offers'} style={{ display: 'block', padding: '0.65rem 0.8rem', borderRadius: '10px', background: '#0f172a', color: '#fff', textAlign: 'center', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.8px', textTransform: 'uppercase' }}>View business</a>
             </article>

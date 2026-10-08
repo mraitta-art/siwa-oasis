@@ -182,7 +182,7 @@ function buildSmartWelcomePitch(params: {
 📊 ${mobileDashboardUrl}
 
 4️⃣ *تأكيد وتفعيل ملكية حسابك كشريك رسمي:*
-🔑 ${claimUrl}
+� ${claimUrl}
 
 ━━━━━━━━━━━━━━━━━━
 🚀 *لماذا وكيف ترقّي باقتك إلى (SiWiFy Premium)؟*

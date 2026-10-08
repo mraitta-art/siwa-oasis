@@ -8,20 +8,32 @@ import { query } from '@/lib/db';
  */
 export async function GET() {
   try {
-    const types = await query(
-      `SELECT id, name, icon, icon_color, description, is_parent, parent_id
-       FROM business_types
-       WHERE active = TRUE
-       ORDER BY is_parent DESC, sort_order ASC, name ASC`
-    );
+    let types: any[];
+    try {
+      types = await query(
+        `SELECT id, name, name_ar, icon, icon_color, description, description_ar, is_parent, parent_id
+         FROM business_types
+         WHERE active = TRUE
+         ORDER BY is_parent DESC, sort_order ASC, name ASC`
+      ) as any[];
+    } catch {
+      types = await query(
+        `SELECT id, name, icon, icon_color, description, is_parent, parent_id
+         FROM business_types
+         WHERE active = TRUE
+         ORDER BY is_parent DESC, sort_order ASC, name ASC`
+      ) as any[];
+    }
 
     // Parse JSON icon_color if needed and return clean shape
     const clean = (types as any[]).map((t) => ({
       id:          t.id,
       name:        t.name,
+      name_ar:     t.name_ar || null,
       icon:        t.icon        || 'fas fa-building',
       icon_color:  t.icon_color  || '#D4AF37',
       description: t.description || '',
+      description_ar: t.description_ar || null,
       is_parent:   !!t.is_parent,
       parent_id:   t.parent_id  || null,
     }));
