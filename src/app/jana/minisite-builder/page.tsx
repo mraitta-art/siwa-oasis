@@ -1085,139 +1085,171 @@ function MinisiteBuilderStudioContent() {
                   </div>
                 )}
 
-                {/* Contextual Bridge: Blog Post Studio */}
-                {selectedComp.type === 'vendor_blog' && (
-                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e40af', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <i className="fas fa-newspaper" style={{ color: '#2563eb' }} />
-                      {lang === 'ar' ? 'إدارة ونشر مقالات هذا النشاط' : 'Manage & Write Blog Posts'}
+                {/* ── CONTEXTUAL MANAGEMENT BRIDGES ── */}
+                {/* Each bridge links directly to THIS business's specific management section */}
+
+                {/* vendor_hero → Identity & Branding in business orchestrator */}
+                {selectedComp.type === 'vendor_hero' && businessInfo?.id && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fde68a', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#92400e', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+                      <i className="fas fa-fingerprint" style={{ marginRight: '6px', color: '#d97706' }} />
+                      MANAGE IDENTITY &amp; LOGO FOR THIS BUSINESS
                     </div>
-                    <p style={{ fontSize: '0.75rem', color: '#3b82f6', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
-                      {lang === 'ar'
-                        ? 'يمكنك كتابة مقال ونشره مباشرة ليكون مربوطاً بهذا النشاط وقسمه المحدد عبر محرر المقالات الموحد.'
-                        : 'Write and publish rich articles directly attached to this business and section via the unified blog editor.'}
+                    <p style={{ fontSize: '0.72rem', color: '#78350f', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      Edit the business name, logo, cover photo, tagline, and WhatsApp number — they auto-sync to this hero block in Replace mode.
                     </p>
-                    <Link
-                      href={`/jana/blog/editor?target_type=business_minisite&businessId=${businessInfo?.id || ''}&sectionId=sec_1_identity`}
-                      target="_blank"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.85rem',
-                        borderRadius: '8px',
-                        background: '#2563eb',
-                        color: '#fff',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <i className="fas fa-feather-pointed" />
-                      {lang === 'ar' ? 'فتح محرر المقالات' : 'Launch Blog Editor'}
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link href={`/jana/businesses/${businessInfo.id}/orchestrate?section=sec_1_identity`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#d97706', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-id-card" /> Edit Identity &amp; Logo
+                      </Link>
+                      <Link href={`/jana/businesses/${businessInfo.id}/orchestrate?tab=BRANDING`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#92400e', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-palette" /> Branding &amp; Nav
+                      </Link>
+                    </div>
                   </div>
                 )}
 
-                {/* Contextual Bridge: Reels / Video Sync */}
-                {selectedComp.type === 'vendor_carousel' && (
-                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#fdf2f8', border: '1px solid #fbcfe8', marginTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#9d174d', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <i className="fas fa-film" style={{ color: '#ec4899' }} />
-                      {lang === 'ar' ? 'مزامنة فيديوهات وريلز السوشيال' : 'Sync Reels & Videos'}
+                {/* vendor_gallery → Gallery management for this specific business */}
+                {selectedComp.type === 'vendor_gallery' && businessInfo?.id && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #D4AF37', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+                      <i className="fas fa-images" style={{ marginRight: '6px', color: '#D4AF37' }} />
+                      MANAGE GALLERY FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
                     </div>
-                    <p style={{ fontSize: '0.75rem', color: '#db2777', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
-                      {lang === 'ar'
-                        ? 'استورد فيديوهات إنستجرام وتيك توك وربطها بسلايدر الهيرو أو المعرض لهذا النشاط.'
-                        : 'Import Instagram and TikTok videos directly into this business carousel & gallery.'}
+                    {siteContext?.gallery?.length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                        {siteContext.gallery.slice(0, 6).map((img: any, i: number) => (
+                          <img key={i} src={img.url} alt={img.caption || ''} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '6px', border: '1px solid #e2e8f0' }} />
+                        ))}
+                        {siteContext.gallery.length > 6 && (
+                          <div style={{ width: 48, height: 48, borderRadius: '6px', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 900, color: '#64748b' }}>
+                            +{siteContext.gallery.length - 6}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      {siteContext?.gallery?.length > 0
+                        ? `${siteContext.gallery.length} approved photos found for this business. Upload more or manage approval below.`
+                        : 'No approved gallery photos yet for this business. Upload and approve photos below.'}
                     </p>
-                    <Link
-                      href={`/vendor/social-toolkit?slug=${selectedSlug}`}
-                      target="_blank"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.85rem',
-                        borderRadius: '8px',
-                        background: '#ec4899',
-                        color: '#fff',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <i className="fas fa-video" />
-                      {lang === 'ar' ? 'فتح أدوات السوشيال' : 'Launch Social Toolkit'}
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link href={`/jana/businesses/${businessInfo.id}/orchestrate?tab=CONTENT&section=sec_gallery`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#0f172a', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-cloud-arrow-up" /> Upload &amp; Approve Photos
+                      </Link>
+                      <Link href={`/jana/content?businessId=${businessInfo.id}`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#D4AF37', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-photo-film" /> Media Studio
+                      </Link>
+                    </div>
                   </div>
                 )}
 
-                {/* Contextual Bridge: Packages */}
-                {selectedComp.type === 'vendor_packages' && (
+                {/* vendor_services → Services / Amenities section in business content */}
+                {selectedComp.type === 'vendor_services' && businessInfo?.id && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#f0f9ff', border: '1px solid #bae6fd', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#075985', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+                      <i className="fas fa-concierge-bell" style={{ marginRight: '6px', color: '#0284c7' }} />
+                      MANAGE SERVICES FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
+                    </div>
+                    {siteContext?.services?.length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                        {siteContext.services.slice(0, 5).map((svc: string, i: number) => (
+                          <span key={i} style={{ padding: '3px 10px', borderRadius: '50px', background: '#e0f2fe', color: '#075985', fontSize: '0.68rem', fontWeight: 700 }}>{svc}</span>
+                        ))}
+                      </div>
+                    )}
+                    <p style={{ fontSize: '0.72rem', color: '#0369a1', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      {siteContext?.services?.length > 0
+                        ? `${siteContext.services.length} services/amenities found. Edit them in the CONTENT tab.`
+                        : 'No services defined yet. Add them via the business identity/amenities section below.'}
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link href={`/jana/businesses/${businessInfo.id}/orchestrate?tab=CONTENT&section=sec_1_identity`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#0284c7', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-list-check" /> Edit Services &amp; Amenities
+                      </Link>
+                      <Link href={`/jana/vendor-services?businessId=${businessInfo.id}`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#075985', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-concierge-bell" /> Vendor Services Manager
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* vendor_packages → Tour packages for this specific business */}
+                {selectedComp.type === 'vendor_packages' && businessInfo?.id && (
                   <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', marginTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#065f46', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <i className="fas fa-box-open" style={{ color: '#059669' }} />
-                      {lang === 'ar' ? 'باقات وتجارب الجولات' : 'Tour & Package Studio'}
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#065f46', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+                      <i className="fas fa-box-open" style={{ marginRight: '6px', color: '#059669' }} />
+                      PACKAGES FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
                     </div>
-                    <p style={{ fontSize: '0.75rem', color: '#047857', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
-                      {lang === 'ar'
-                        ? 'إدارة باقات التجارب السياحية والأسعار وخيارات الحجز.'
-                        : 'Manage tour packages, pricing tiers, and booking options.'}
+                    <p style={{ fontSize: '0.72rem', color: '#047857', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      {siteContext?.products?.length > 0
+                        ? `${siteContext.products.length} active packages/tours found for this business. In Replace mode they auto-display.`
+                        : 'No active packages yet for this business. Create them in the Commercial tab.'}
                     </p>
-                    <Link
-                      href="/vendor/packages"
-                      target="_blank"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.85rem',
-                        borderRadius: '8px',
-                        background: '#059669',
-                        color: '#fff',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <i className="fas fa-compass" />
-                      {lang === 'ar' ? 'فتح استوديو الباقات' : 'Open Package Studio'}
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link href={`/jana/businesses/${businessInfo.id}/orchestrate?tab=COMMERCIAL`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#059669', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-compass" /> Manage Packages &amp; Tours
+                      </Link>
+                      <Link href={`/admin/packages?businessId=${businessInfo.id}`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#065f46', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-plus" /> Create New Package
+                      </Link>
+                    </div>
                   </div>
                 )}
 
-                {/* Contextual Bridge: Gallery */}
-                {selectedComp.type === 'vendor_gallery' && (
-                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <i className="fas fa-images" style={{ color: '#D4AF37' }} />
-                      {lang === 'ar' ? 'معرض صور النشاط' : 'Business Gallery & Media'}
+                {/* vendor_blog → Blog content for this specific business */}
+                {selectedComp.type === 'vendor_blog' && businessInfo?.id && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#1e40af', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+                      <i className="fas fa-newspaper" style={{ marginRight: '6px', color: '#2563eb' }} />
+                      BLOG POSTS FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
                     </div>
-                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
-                      {lang === 'ar'
-                        ? 'رفع وإدارة الصور والفيديوهات في معرض النشاط.'
-                        : 'Upload and approve media items displayed in this gallery block.'}
+                    <p style={{ fontSize: '0.72rem', color: '#1d4ed8', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      {siteContext?.blogs?.length > 0
+                        ? `${siteContext.blogs.length} published posts found. In Replace mode they auto-display on the minisite.`
+                        : 'No published blog posts yet. Write and attach posts to this business below.'}
                     </p>
-                    <Link
-                      href={`/vendor/social-toolkit?slug=${selectedSlug}`}
-                      target="_blank"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.85rem',
-                        borderRadius: '8px',
-                        background: '#334155',
-                        color: '#fff',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <i className="fas fa-cloud-arrow-up" />
-                      {lang === 'ar' ? 'إدارة الوسائط' : 'Manage Media'}
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link href={`/jana/blog/editor?target_type=business_minisite&businessId=${businessInfo.id}&slug=${selectedSlug}`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#2563eb', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-feather-pointed" /> Write New Post
+                      </Link>
+                      <Link href={`/jana/businesses/${businessInfo.id}/orchestrate?tab=CONTENT`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#1e40af', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-list" /> View All Posts
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* vendor_carousel → Hero carousel management for this specific business */}
+                {selectedComp.type === 'vendor_carousel' && businessInfo?.id && (
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#fdf2f8', border: '1px solid #fbcfe8', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#9d174d', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+                      <i className="fas fa-film" style={{ marginRight: '6px', color: '#ec4899' }} />
+                      HERO CAROUSEL FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
+                    </div>
+                    <p style={{ fontSize: '0.72rem', color: '#db2777', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
+                      This carousel is isolated to <strong>minisite_{selectedSlug}_hero</strong>. Slides managed separately per business — no cross-business data mixing.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link href={`/jana/hero-carousel?carouselName=minisite_${selectedSlug}_hero`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#ec4899', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-images" /> Manage Carousel Slides
+                      </Link>
+                      <Link href={`/vendor/social-toolkit?slug=${selectedSlug}`} target="_blank"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#9d174d', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        <i className="fas fa-video" /> Sync Reels &amp; Videos
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
