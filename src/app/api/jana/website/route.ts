@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { execute, query } from '@/lib/db';
+
 import { requireAdmin } from '@/lib/auth';
 import { getWebsiteTemplate, invalidateCache } from '@/lib/cache';
 import { isSupportedComponent, validateComponentProps } from '@/lib/component-contracts';
@@ -58,9 +60,18 @@ export async function POST(request: NextRequest) {
     );
 
     invalidateCache.websiteSettings();
+    try {
+      const pageSlug = id.replace(/^website_search_/, '').replace(/^website_/, '');
+      revalidatePath('/');
+      revalidatePath(`/${pageSlug}`);
+      revalidatePath(`/search/${pageSlug}`);
+      revalidatePath(`/p/${pageSlug}`);
+    } catch {}
+
     return NextResponse.json({ id }, { status: 201 });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
+
 
 export async function PUT(request: NextRequest) {
   // Use POST logic for simplicity since it has ON DUPLICATE KEY
@@ -77,6 +88,14 @@ export async function DELETE(request: NextRequest) {
     if (id === 'website_main') return NextResponse.json({ error: 'Cannot delete the main page' }, { status: 400 });
     await execute('DELETE FROM website_configs WHERE type = ?', [id]);
     invalidateCache.websiteSettings();
+    try {
+      const pageSlug = id.replace(/^website_search_/, '').replace(/^website_/, '');
+      revalidatePath('/');
+      revalidatePath(`/${pageSlug}`);
+      revalidatePath(`/search/${pageSlug}`);
+      revalidatePath(`/p/${pageSlug}`);
+    } catch {}
     return NextResponse.json({ success: true });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
+
