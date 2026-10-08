@@ -13,6 +13,7 @@
 import React from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 import { getWebsiteTemplate } from '@/lib/cache';
 
 // ISR: serve cached page for 120 seconds, then regenerate in background
@@ -158,24 +159,12 @@ export default async function Home() {
       {/* Dynamic theme injection — overrides :root CSS variables */}
       <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
 
-      {/* 🏛️ ELITE NAVIGATION */}
-      <nav style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
-        padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: `linear-gradient(to bottom, ${navBg}dd, transparent)`
-      }}>
-        <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {settings?.logo_url ? (
-            <img src={settings.logo_url} alt={settings.site_name || 'SiWiFy.com'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
-          ) : (
-            <>
-              <i className="fas fa-sun" style={{ color: primary, fontSize: '1.5rem' }}></i>
-              <span style={{ color: primary }}>{settings?.site_name || 'SiWiFy.com'}</span>
-            </>
-          )}
-        </Link>
-      </nav>
+      {/* 🏛️ ELITE RESPONSIVE NAVIGATION */}
+      <MarketplaceHeader
+        title={settings?.site_name || 'SiWiFy'}
+        accentColor={primary}
+        activePath="/"
+      />
 
       {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING — SSR data passed as props */}
       {layout.length > 0 ? (

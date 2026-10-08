@@ -19,6 +19,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -415,6 +416,14 @@ export default function SectionAggregationPage({
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
       `}</style>
+
+      {/* ── Universal Responsive Platform Header ─────────────────────────── */}
+      {!skipBuilderFetch && (
+        <MarketplaceHeader
+          title={pageLabel}
+          accentColor={resolvedAccent}
+        />
+      )}
 
       {/* ── Hero Banner ─────────────────────────────────────────────────────── */}
       <section style={{

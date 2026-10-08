@@ -16,6 +16,7 @@
 import React, { useEffect, useState } from 'react';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import SectionAggregationPage from '@/components/SectionAggregationPage';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 interface CategorySearchPageProps {
   category: string;
@@ -116,6 +117,10 @@ export default function CategorySearchPage({
 
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+        <MarketplaceHeader
+          title={label}
+          accentColor={accent}
+        />
         <DynamicHomepageRenderer
           layout={resolvedLayout}
           settings={builderConfig?.site_settings || { primary_color: accent }}

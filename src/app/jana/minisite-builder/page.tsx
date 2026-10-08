@@ -152,6 +152,7 @@ function MinisiteBuilderStudioContent() {
   const [hubTab, setHubTab] = useState<'update' | 'create' | 'bridges'>('update');
   const [searchQuery, setSearchQuery] = useState('');
   const [isExistingLayout, setIsExistingLayout] = useState(false);
+  const [activeStudioTab, setActiveStudioTab] = useState<'palette' | 'canvas' | 'props'>('canvas');
 
   // Load business list and overview status
   const loadOverview = async () => {
@@ -1455,16 +1456,22 @@ function MinisiteBuilderStudioContent() {
   // ─────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: '1.5rem', fontFamily: "'Inter', sans-serif" }}>
-      {/* Studio Header Bar */}
+      {/* Studio Header Bar — Sticky and always visible */}
       <header
         style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 90,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '1.5rem',
-          paddingBottom: '1.25rem',
+          marginBottom: '1.25rem',
+          padding: '0.85rem 0',
           borderBottom: '1px solid #e2e8f0',
         }}
       >
@@ -1935,24 +1942,135 @@ function MinisiteBuilderStudioContent() {
 
       </section>
 
-      {/* Main Studio 3-Column Grid */}
+      {/* Mobile Studio Column Switcher */}
       <div
+        className="lg:hidden"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'clamp(260px, 24vw, 320px) 1fr clamp(280px, 26vw, 360px)',
-          gap: '1.5rem',
-          alignItems: 'start',
+          display: 'flex',
+          background: '#e2e8f0',
+          padding: '4px',
+          borderRadius: '12px',
+          marginBottom: '1.25rem',
+          gap: '4px',
         }}
       >
+        <button
+          type="button"
+          onClick={() => setActiveStudioTab('palette')}
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            borderRadius: '9px',
+            border: 'none',
+            background: activeStudioTab === 'palette' ? '#0f172a' : 'transparent',
+            color: activeStudioTab === 'palette' ? '#ffffff' : '#475569',
+            fontWeight: 800,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            boxShadow: activeStudioTab === 'palette' ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >
+          <i className="fas fa-layer-group" />
+          <span>Palette</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveStudioTab('canvas')}
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            borderRadius: '9px',
+            border: 'none',
+            background: activeStudioTab === 'canvas' ? '#0f172a' : 'transparent',
+            color: activeStudioTab === 'canvas' ? '#ffffff' : '#475569',
+            fontWeight: 800,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            boxShadow: activeStudioTab === 'canvas' ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >
+          <i className="fas fa-table-columns" />
+          <span>Canvas ({components.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveStudioTab('props')}
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            borderRadius: '9px',
+            border: 'none',
+            background: activeStudioTab === 'props' ? '#0f172a' : 'transparent',
+            color: activeStudioTab === 'props' ? '#ffffff' : '#475569',
+            fontWeight: 800,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            boxShadow: activeStudioTab === 'props' ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >
+          <i className="fas fa-sliders" />
+          <span>Properties</span>
+        </button>
+      </div>
+
+      {/* Main Studio 3-Column Grid — Responsive with CSS class and styles */}
+      <div
+        className="minisite-studio-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+          gap: '1.5rem',
+          alignItems: 'start',
+          minWidth: 0,
+          width: '100%',
+        }}
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            .minisite-studio-grid {
+              grid-template-columns: clamp(260px, 22vw, 300px) minmax(360px, 1fr) clamp(280px, 25vw, 360px) !important;
+            }
+            .minisite-col-palette, .minisite-col-canvas, .minisite-col-props {
+              display: block !important;
+            }
+          }
+          @media (max-width: 1023px) {
+            .minisite-col-palette {
+              display: ${activeStudioTab === 'palette' ? 'block' : 'none'} !important;
+            }
+            .minisite-col-canvas {
+              display: ${activeStudioTab === 'canvas' ? 'block' : 'none'} !important;
+            }
+            .minisite-col-props {
+              display: ${activeStudioTab === 'props' ? 'block' : 'none'} !important;
+            }
+          }
+        `}</style>
         {/* ── LEFT: COMPONENT PALETTE ────────────────── */}
         <aside
+          className="minisite-col-palette"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '16px',
             padding: '1.25rem',
             position: 'sticky',
-            top: '1rem',
+            top: '4.5rem',
+            zIndex: 10,
           }}
         >
           <div style={{ marginBottom: '1rem' }}>
@@ -2006,7 +2124,12 @@ function MinisiteBuilderStudioContent() {
 
                   {isAllowed ? (
                     <button
-                      onClick={() => handleAddComponent(type)}
+                      onClick={() => {
+                        handleAddComponent(type);
+                        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                          setActiveStudioTab('canvas');
+                        }
+                      }}
                       style={{
                         padding: '4px 10px',
                         borderRadius: '6px',
@@ -2033,12 +2156,15 @@ function MinisiteBuilderStudioContent() {
 
         {/* ── CENTER: CANVAS / REORDER LIST ─────────── */}
         <main
+          className="minisite-col-canvas"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '16px',
             padding: '1.25rem',
             minHeight: '520px',
+            minWidth: 0,
+            overflowX: 'auto',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -2094,7 +2220,12 @@ function MinisiteBuilderStudioContent() {
                 return (
                   <div
                     key={comp.id}
-                    onClick={() => setSelectedCompId(comp.id)}
+                    onClick={() => {
+                      setSelectedCompId(comp.id);
+                      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                        setActiveStudioTab('props');
+                      }
+                    }}
                     style={{
                       padding: '1rem 1.15rem',
                       borderRadius: '12px',
@@ -2201,13 +2332,17 @@ function MinisiteBuilderStudioContent() {
 
         {/* ── RIGHT: PROPERTY & THEME SETTINGS ─────── */}
         <aside
+          className="minisite-col-props"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '16px',
             padding: '1.25rem',
             position: 'sticky',
-            top: '1rem',
+            top: '4.5rem',
+            minWidth: 0,
+            overflowX: 'auto',
+            zIndex: 10,
           }}
         >
           {selectedComp ? (
