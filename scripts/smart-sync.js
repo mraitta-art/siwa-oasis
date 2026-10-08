@@ -42,9 +42,9 @@ const BIDIRECTIONAL = argv.includes('--bidirectional') || !argv.includes('--one-
 const PROD_DB = {
   host: process.env.PROD_DB_HOST || 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
   port: parseInt(process.env.PROD_DB_PORT || '4000'),
-  user: process.env.PROD_DB_USER || '3iv5fPeLo2ze3jn.root',
-  password: process.env.PROD_DB_PASSWORD || 'Dj2teUVtQyMYghF3',
-  database: process.env.PROD_DB_NAME || 'siwa_oasis',
+  user: process.env.PROD_DB_USER || process.env.DB_USER || 'root',
+  password: process.env.PROD_DB_PASSWORD || process.env.DB_PASSWORD || '',
+  database: process.env.PROD_DB_NAME || process.env.DB_NAME || 'siwa_oasis',
   ssl: { rejectUnauthorized: false }
 };
 

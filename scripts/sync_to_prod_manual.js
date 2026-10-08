@@ -4,11 +4,11 @@ console.log('🚀 PUSHING LOCAL CHANGES TO PRODUCTION DATABASE...');
 
 const prodEnv = {
   ...process.env,
-  DB_HOST: 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
-  DB_PORT: '4000',
-  DB_USER: '3iv5fPeLo2ze3jn.root',
-  DB_PASSWORD: 'Dj2teUVtQyMYghF3',
-  DB_NAME: 'siwa_oasis'
+  DB_HOST: process.env.PROD_DB_HOST || 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+  DB_PORT: process.env.PROD_DB_PORT || '4000',
+  DB_USER: process.env.PROD_DB_USER || process.env.DB_USER || 'root',
+  DB_PASSWORD: process.env.PROD_DB_PASSWORD || process.env.DB_PASSWORD || '',
+  DB_NAME: process.env.PROD_DB_NAME || process.env.DB_NAME || 'siwa_oasis'
 };
 
 const scriptsToRun = [

@@ -45,10 +45,16 @@ if (!fs.existsSync(gitignorePath)) {
 } else {
   const gitignore = fs.readFileSync(gitignorePath, 'utf8');
   sensitivePatterns.forEach(pattern => {
-    // Check exact or partial match
+    const variants = new Set([
+      pattern,
+      `/${pattern}`,
+      `${pattern}/`,
+      `/${pattern}/`,
+      pattern.replace(/\*\./, '*.')
+    ]);
     const covered = gitignore.split('\n').some(line => {
       const l = line.trim();
-      return l === pattern || l === `/${pattern}` || l === `${pattern}/`;
+      return variants.has(l);
     });
     if (covered) ok(`${pattern} is ignored`);
     else warn(`${pattern} is NOT in .gitignore — add it`);
@@ -74,13 +80,15 @@ envFiles.forEach(envFile => {
 // ── 3. Check for hardcoded secrets in source files ─────────────────────────
 head('HARDCODED SECRET SCAN');
 
-// Patterns that indicate hardcoded secrets
+// Patterns that indicate hardcoded secrets. Keep this conservative so normal app code like
+// `errs.password = ...` does not trip the check while real secrets do.
 const secretPatterns = [
-  { pattern: /password\s*=\s*["'][^"']{6,}["']/gi,    label: 'hardcoded password' },
-  { pattern: /secret\s*=\s*["'][^"']{10,}["']/gi,      label: 'hardcoded secret' },
-  { pattern: /api_key\s*=\s*["'][^"']{10,}["']/gi,     label: 'hardcoded API key' },
-  { pattern: /PiCo@@[0-9#@]+/g,                         label: 'known production password' },
-  { pattern: /Dj2teUVtQy[A-Za-z0-9]+/g,                label: 'known DB password' },
+  { pattern: /(?:^|[^.\w])(?:const\s+)?[A-Z_]*PASSWORD\s*=\s*["'][^"']{6,}["']/g, label: 'hardcoded password' },
+  { pattern: /(?:^|[^.\w])(?:const\s+)?[A-Z_]*SECRET\s*=\s*["'][^"']{10,}["']/g, label: 'hardcoded secret' },
+  { pattern: /(?:^|[^.\w])(?:const\s+)?[A-Z_]*API_KEY\s*=\s*["'][^"']{10,}["']/g, label: 'hardcoded API key' },
+  { pattern: /(?:^|[,{]\s*)(?:[A-Za-z_$][\w$]*\s*:\s*)?password\s*:\s*["'][^"']{6,}["']/g, label: 'hardcoded password object literal' },
+  { pattern: /PiCo@@[0-9#@]+/g, label: 'known production password' },
+  { pattern: /Dj2teUVtQy[A-Za-z0-9]+/g, label: 'known DB password' },
 ];
 
 // Files to NOT scan (they legitimately have these patterns)

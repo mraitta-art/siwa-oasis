@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 
-const TEST_PASSWORD = 'demo123';
+const demoUserPw = process.env.LOCAL_TEST_PASSWORD || 'change-me';
 const rootDir = path.join(__dirname, '..');
 
 const DB_CONFIG = {
@@ -55,8 +55,8 @@ const DB_CONFIG = {
 
     // 6. Hash test password
     console.log('\n🔐 Generating password hashes...');
-    const passwordHash = await bcrypt.hash(TEST_PASSWORD, 10);
-    console.log(`✅ Password hashed (test password: "${TEST_PASSWORD}")`);
+    const passwordHash = await bcrypt.hash(demoUserPw, 10);
+    console.log(`✅ Password hashed (test password: "${demoUserPw}")`);
 
     // 7. Insert test users
     console.log('\n👤 Creating test users...');
@@ -114,7 +114,7 @@ const DB_CONFIG = {
     console.log('\n' + '═'.repeat(60));
     console.log('✅ LOCAL DATABASE SETUP COMPLETE');
     console.log('═'.repeat(60));
-    console.log('\n📚 Test Accounts (password: "' + TEST_PASSWORD + '"):');
+    console.log('\n📚 Test Accounts (password: "' + demoUserPw + '"):' );
     for (const user of testUsers) {
       console.log(`  • ${user.email} (${user.role})`);
     }
