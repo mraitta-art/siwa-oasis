@@ -142,24 +142,47 @@ function MinisiteBuilderStudioContent() {
     admin: [],
   });
 
-  // Load business list
-  useEffect(() => {
-    fetch('/api/jana/businesses')
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        setBusinesses(list);
-        if (!selectedSlug && list.length > 0) {
-          setSelectedSlug(list[0].slug || list[0].id);
+  // Hub Overview State
+  const [overviewData, setOverviewData] = useState<{
+    existingLayouts: any[];
+    availableForBuilder: any[];
+    stats: { total: number; builderCount: number; sectionalCount: number };
+  } | null>(null);
+  const [hubTab, setHubTab] = useState<'update' | 'create'>('update');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isExistingLayout, setIsExistingLayout] = useState(false);
+
+  // Load business list and overview status
+  const loadOverview = async () => {
+    try {
+      const res = await fetch('/api/jana/minisite-layout?overview=1');
+      if (res.ok) {
+        const data = await res.json();
+        setOverviewData(data);
+        const combined = [...(data.existingLayouts || []), ...(data.availableForBuilder || [])];
+        setBusinesses(combined);
+        // Default to create tab if there are no existing builder layouts yet
+        if ((!data.existingLayouts || data.existingLayouts.length === 0) && (data.availableForBuilder?.length > 0)) {
+          setHubTab('create');
         }
-      })
-      .catch(() => setBusinesses([]))
-      .finally(() => setLoading(false));
+      }
+    } catch (err) {
+      console.error('Failed to load overview:', err);
+    } finally {
+      if (!initialSlug) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOverview();
   }, []);
 
   // Load layout and governance when selected business changes
   useEffect(() => {
-    if (!selectedSlug) return;
+    if (!selectedSlug) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setMessage(null);
 
@@ -175,11 +198,13 @@ function MinisiteBuilderStudioContent() {
         setAllowedComponents(data.allowedComponents || []);
 
         if (data.layout) {
+          setIsExistingLayout(true);
           setMode(data.layout.mode || 'replace');
           setComponents(data.layout.components || []);
           setSiteSettings(data.layout.site_settings || {});
         } else {
           // Default initial layout tailored to THIS business's data
+          setIsExistingLayout(false);
           setMode('replace');
           const ctx = data.siteContext;
           const bInfo = data.business;
@@ -305,22 +330,26 @@ function MinisiteBuilderStudioContent() {
   };
 
   // Delete layout & reset to section system
-  const handleDeleteLayout = async () => {
-    if (!selectedSlug) return;
+  const handleDeleteLayout = async (slugToDelete?: string) => {
+    const targetSlug = slugToDelete || selectedSlug;
+    if (!targetSlug) return;
     if (
       !confirm(
-        'Are you sure you want to delete this custom layout? The business minisite will immediately revert to the automatic section system.'
+        'Are you sure you want to delete this custom layout? The business minisite will immediately revert to the automatic free section system.'
       )
     )
       return;
 
     try {
-      const res = await fetch(`/api/jana/minisite-layout?slug=${selectedSlug}`, {
+      const res = await fetch(`/api/jana/minisite-layout?slug=${targetSlug}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete');
-      alert('Minisite reverted to default section architecture.');
-      window.location.reload();
+      alert('Minisite reverted to default free section architecture.');
+      await loadOverview();
+      if (selectedSlug === targetSlug) {
+        setSelectedSlug('');
+      }
     } catch (err: any) {
       alert(err.message);
     }
@@ -329,6 +358,834 @@ function MinisiteBuilderStudioContent() {
   const selectedComp = components.find((c) => c.id === selectedCompId);
   const liveUrl = businessInfo?.slug ? `/${businessInfo.slug}` : `/`;
 
+  // ─────────────────────────────────────────────────────────────
+  // ── HUB VIEW: Dispatch Hub when no target minisite is selected
+  // ─────────────────────────────────────────────────────────────
+  if (!selectedSlug) {
+    const existing = (overviewData?.existingLayouts || []).filter((b) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        b.name?.toLowerCase().includes(q) ||
+        b.slug?.toLowerCase().includes(q) ||
+        b.type_name?.toLowerCase().includes(q)
+      );
+    });
+
+    const available = (overviewData?.availableForBuilder || []).filter((b) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        b.name?.toLowerCase().includes(q) ||
+        b.slug?.toLowerCase().includes(q) ||
+        b.type_name?.toLowerCase().includes(q)
+      );
+    });
+
+    return (
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '1.5rem', fontFamily: "'Inter', sans-serif" }}>
+        {/* Hub Header */}
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginBottom: '2rem',
+            paddingBottom: '1.5rem',
+            borderBottom: '1px solid #e2e8f0',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  color: '#D4AF37',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                ADMIN GOVERNANCE STUDIO
+              </span>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  fontWeight: 800,
+                }}
+              >
+                DISPATCH HUB
+              </span>
+            </div>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
+              {lang === 'ar' ? 'منصة توجيه وإدارة مواقع الميني سايت' : 'Minisite Architecture & Dispatch Hub'}
+            </h1>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.88rem', color: '#64748b' }}>
+              {lang === 'ar'
+                ? 'حدد ما إذا كنت ترغب في تحديث موقع ميني سايت مبني بمكونات مخصصة، أو إنشاء وتفعيل موقع جديد من سجل الأنشطة المجاني.'
+                : 'Choose whether to update an active component-built minisite or create a new one from the free sectional registry.'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+              style={{
+                padding: '0.6rem 1rem',
+                borderRadius: '10px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#0f172a',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              🌐 {lang === 'en' ? '🇸🇦 عربي' : '🇬🇧 English'}
+            </button>
+            <button
+              onClick={handleOpenGovernance}
+              style={{
+                padding: '0.6rem 1.15rem',
+                borderRadius: '10px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#0f172a',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              <i className="fas fa-shield-halved" style={{ color: '#D4AF37' }} /> Tier Governance Rules
+            </button>
+          </div>
+        </header>
+
+        {/* Overview Statistics Cards */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '1.25rem',
+            marginBottom: '2rem',
+          }}
+        >
+          <div
+            style={{
+              padding: '1.5rem',
+              borderRadius: '18px',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              TOTAL REGISTERED ENTITIES
+            </div>
+            <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0f172a', marginTop: '0.4rem' }}>
+              {overviewData?.stats?.total ?? businesses.length}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.35rem' }}>
+              Available in the Oasis database
+            </div>
+          </div>
+
+          <div
+            onClick={() => setHubTab('update')}
+            style={{
+              padding: '1.5rem',
+              borderRadius: '18px',
+              background: hubTab === 'update' ? '#fffdf5' : '#ffffff',
+              border: `2px solid ${hubTab === 'update' ? '#D4AF37' : '#e2e8f0'}`,
+              cursor: 'pointer',
+              boxShadow: hubTab === 'update' ? '0 6px 20px rgba(212,175,55,0.15)' : '0 4px 12px rgba(0,0,0,0.02)',
+              transition: 'all 0.2s',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#d97706', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                ⚡ ACTIVE BUILDER MINISITES
+              </div>
+              <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '50px', background: '#fef3c7', color: '#b45309', fontWeight: 800 }}>
+                CUSTOM DESIGNED
+              </span>
+            </div>
+            <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#d97706', marginTop: '0.4rem' }}>
+              {overviewData?.stats?.builderCount ?? 0}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#78350f', marginTop: '0.35rem', fontWeight: 600 }}>
+              Custom component layouts published • Click to view &amp; update
+            </div>
+          </div>
+
+          <div
+            onClick={() => setHubTab('create')}
+            style={{
+              padding: '1.5rem',
+              borderRadius: '18px',
+              background: hubTab === 'create' ? '#f0fdf4' : '#ffffff',
+              border: `2px solid ${hubTab === 'create' ? '#16a34a' : '#e2e8f0'}`,
+              cursor: 'pointer',
+              boxShadow: hubTab === 'create' ? '0 6px 20px rgba(22,163,74,0.12)' : '0 4px 12px rgba(0,0,0,0.02)',
+              transition: 'all 0.2s',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#15803d', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                🛡️ FREE SECTIONAL MINISITES
+              </div>
+              <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '50px', background: '#dcfce7', color: '#166534', fontWeight: 800 }}>
+                STANDARD SYSTEM
+              </span>
+            </div>
+            <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#15803d', marginTop: '0.4rem' }}>
+              {overviewData?.stats?.sectionalCount ?? 0}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#166534', marginTop: '0.35rem', fontWeight: 600 }}>
+              Running free automatic sections • Click to upgrade to Builder
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Selection & Search Navigation Bar */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          {/* Main Action Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '4px', borderRadius: '12px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setHubTab('update')}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: hubTab === 'update' ? '#0f172a' : 'transparent',
+                color: hubTab === 'update' ? '#ffffff' : '#64748b',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: hubTab === 'update' ? '0 4px 12px rgba(15,23,42,0.15)' : 'none',
+                transition: 'all 0.2s',
+              }}
+            >
+              <i className="fas fa-rotate" style={{ color: hubTab === 'update' ? '#D4AF37' : '#94a3b8' }} />
+              {lang === 'ar' ? 'تحديث المواقع المخصصة الحالية' : 'Update Existing Builder Minisites'}
+              <span style={{ fontSize: '0.75rem', padding: '2px 7px', borderRadius: '50px', background: hubTab === 'update' ? 'rgba(255,255,255,0.2)' : '#e2e8f0', color: hubTab === 'update' ? '#fff' : '#64748b' }}>
+                {overviewData?.stats?.builderCount ?? 0}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setHubTab('create')}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: hubTab === 'create' ? '#0f172a' : 'transparent',
+                color: hubTab === 'create' ? '#ffffff' : '#64748b',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: hubTab === 'create' ? '0 4px 12px rgba(15,23,42,0.15)' : 'none',
+                transition: 'all 0.2s',
+              }}
+            >
+              <i className="fas fa-plus" style={{ color: hubTab === 'create' ? '#22c55e' : '#94a3b8' }} />
+              {lang === 'ar' ? 'إنشاء وتفعيل ميني سايت جديد' : 'Create New Builder Minisite'}
+              <span style={{ fontSize: '0.75rem', padding: '2px 7px', borderRadius: '50px', background: hubTab === 'create' ? 'rgba(255,255,255,0.2)' : '#e2e8f0', color: hubTab === 'create' ? '#fff' : '#64748b' }}>
+                {overviewData?.stats?.sectionalCount ?? 0}
+              </span>
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div style={{ position: 'relative', minWidth: '280px', flex: '1 1 300px', maxWidth: '480px' }}>
+            <i className="fas fa-search" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.85rem' }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={lang === 'ar' ? 'بحث عن نشاط بالاسم أو التصنيف...' : 'Filter entities by name, slug or typology...'}
+              style={{
+                width: '100%',
+                padding: '0.65rem 1rem 0.65rem 2.5rem',
+                borderRadius: '10px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: '#0f172a',
+                outline: 'none',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* TAB 1: UPDATE EXISTING BUILDER MINISITES */}
+        {hubTab === 'update' && (
+          <div>
+            {existing.length === 0 ? (
+              <div
+                style={{
+                  padding: '4rem 2rem',
+                  borderRadius: '20px',
+                  background: '#ffffff',
+                  border: '2px dashed #cbd5e1',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fffdf5', border: '2px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: '#d97706', fontSize: '1.5rem' }}>
+                  <i className="fas fa-wand-magic-sparkles" />
+                </div>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                  {searchQuery ? 'No matching builder minisites' : 'No custom builder minisites deployed yet'}
+                </h3>
+                <p style={{ margin: '0 0 1.5rem', fontSize: '0.88rem', color: '#64748b', maxWidth: 520, marginInline: 'auto' }}>
+                  {searchQuery
+                    ? 'Try adjusting your search query, or switch to the Create New tab to upgrade an entity.'
+                    : 'All registered businesses are currently safely operating on the Free Sectional system. Click below to choose an entity and design your first custom layout.'}
+                </p>
+                <button
+                  onClick={() => setHubTab('create')}
+                  style={{
+                    padding: '0.75rem 1.6rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(15,23,42,0.2)',
+                  }}
+                >
+                  <i className="fas fa-plus" style={{ marginRight: '6px', color: '#22c55e' }} />
+                  Create Your First Builder Minisite
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+                {existing.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      borderRadius: '18px',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      padding: '1.4rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                    }}
+                  >
+                    <div>
+                      {/* Top badges */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: item.layoutMode === 'untied' ? '#faf5ff' : '#eff6ff',
+                            color: item.layoutMode === 'untied' ? '#7e22ce' : '#1d4ed8',
+                            border: `1px solid ${item.layoutMode === 'untied' ? '#e9d5ff' : '#bfdbfe'}`,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.layoutMode === 'untied' ? 'Untied Mode' : 'Replace Mode (Auto-Synced)'}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: item.tier === 'premium' ? '#fdf4ff' : item.tier === 'standard' ? '#eff6ff' : '#fefce8',
+                            color: item.tier === 'premium' ? '#9333ea' : item.tier === 'standard' ? '#2563eb' : '#ca8a04',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.tier.toUpperCase()} TIER
+                        </span>
+                      </div>
+
+                      {/* Business identity */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '0.75rem' }}>
+                        {item.logo_url ? (
+                          <img
+                            src={item.logo_url}
+                            alt=""
+                            style={{ width: 44, height: 44, borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: '12px',
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#D4AF37',
+                              fontWeight: 900,
+                              fontSize: '1.1rem',
+                            }}
+                          >
+                            {item.name?.charAt(0) || 'B'}
+                          </div>
+                        )}
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+                            {item.name}
+                          </h3>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                            /{item.slug} • <span style={{ color: '#0f172a', fontWeight: 600 }}>{item.type_name}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Layout info metrics */}
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          borderRadius: '10px',
+                          padding: '0.65rem 0.85rem',
+                          marginBottom: '1rem',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '0.75rem',
+                          color: '#475569',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>
+                          <i className="fas fa-cubes" style={{ color: '#D4AF37', marginRight: '6px' }} />
+                          <strong>{item.componentsCount}</strong> Layout Blocks
+                        </span>
+                        {item.layoutUpdatedAt && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                            {new Date(item.layoutUpdatedAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                      <button
+                        onClick={() => setSelectedSlug(item.slug)}
+                        style={{
+                          flex: 1,
+                          padding: '0.6rem 0.9rem',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#0f172a',
+                          color: '#ffffff',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                        }}
+                      >
+                        <i className="fas fa-pen-to-square" style={{ color: '#D4AF37' }} />
+                        {lang === 'ar' ? 'تعديل وتحديث الموقع' : 'Edit & Update Layout'}
+                      </button>
+
+                      <a
+                        href={`/${item.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          padding: '0.6rem 0.8rem',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                        title="View Live Minisite"
+                      >
+                        <i className="fas fa-external-link-alt" />
+                      </a>
+
+                      <button
+                        onClick={() => handleDeleteLayout(item.slug)}
+                        style={{
+                          padding: '0.6rem 0.8rem',
+                          borderRadius: '8px',
+                          border: '1px solid #fecaca',
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                        title="Revert to Free Sectional Minisite"
+                      >
+                        <i className="fas fa-trash" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: CREATE / UPGRADE NEW MINISITE FROM SECTIONAL */}
+        {hubTab === 'create' && (
+          <div>
+            {/* Explanatory Policy Banner */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderRadius: '16px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '12px',
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2rem',
+                  flexShrink: 0,
+                }}
+              >
+                <i className="fas fa-shield-check" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#166534', marginBottom: '0.2rem' }}>
+                  {lang === 'ar' ? 'سجل مواقع الميني سايت المجانية (Sectional)' : 'Free Sectional Minisite Registry'}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#15803d', lineHeight: 1.5 }}>
+                  {lang === 'ar'
+                    ? 'جميع الأنشطة أدناه تعمل حالياً بالنظام الأوتوماتيكي المجاني. عند اختيار أي نشاط، سيتم فتح محرر المكونات مع تعبئة بيانات النشاط تلقائياً لتصميم ميني سايت مخصص.'
+                    : 'All entities below are currently running on the automatic Free Sectional system. Selecting any business launches the Builder Studio with its real database assets pre-filled.'}
+                </div>
+              </div>
+            </div>
+
+            {available.length === 0 ? (
+              <div
+                style={{
+                  padding: '3rem 2rem',
+                  borderRadius: '18px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center',
+                  color: '#64748b',
+                }}
+              >
+                <i className="fas fa-check-circle fa-2x" style={{ color: '#22c55e', marginBottom: '0.75rem' }} />
+                <h3 style={{ margin: '0 0 0.5rem', color: '#0f172a' }}>
+                  {searchQuery ? 'No matching entities found' : 'All entities have been customized!'}
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                  Switch to the "Update Existing Builder Minisites" tab to edit your deployed layouts.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                {available.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      borderRadius: '18px',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      padding: '1.4rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                    }}
+                  >
+                    <div>
+                      {/* Top tags */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: '#f0fdf4',
+                            color: '#15803d',
+                            border: '1px solid #bbf7d0',
+                            fontWeight: 800,
+                          }}
+                        >
+                          ✓ SECTIONAL (FREE)
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: item.tier === 'premium' ? '#fdf4ff' : item.tier === 'standard' ? '#eff6ff' : '#fefce8',
+                            color: item.tier === 'premium' ? '#9333ea' : item.tier === 'standard' ? '#2563eb' : '#ca8a04',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.tier.toUpperCase()} TIER
+                        </span>
+                      </div>
+
+                      {/* Business identity */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1rem' }}>
+                        {item.logo_url ? (
+                          <img
+                            src={item.logo_url}
+                            alt=""
+                            style={{ width: 44, height: 44, borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: '12px',
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#64748b',
+                              fontWeight: 900,
+                              fontSize: '1.1rem',
+                            }}
+                          >
+                            {item.name?.charAt(0) || 'B'}
+                          </div>
+                        )}
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+                            {item.name}
+                          </h3>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                            /{item.slug} • <span style={{ color: '#0f172a', fontWeight: 600 }}>{item.type_name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                      <button
+                        onClick={() => setSelectedSlug(item.slug)}
+                        style={{
+                          flex: 1,
+                          padding: '0.65rem 1rem',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#0f172a',
+                          color: '#ffffff',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 2px 8px rgba(15,23,42,0.15)',
+                        }}
+                      >
+                        <i className="fas fa-wand-magic-sparkles" style={{ color: '#D4AF37' }} />
+                        {lang === 'ar' ? 'إنشاء وتفعيل ميني سايت مخصص' : 'Create Builder Layout'}
+                      </button>
+
+                      <a
+                        href={`/${item.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          color: '#64748b',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                        title="Preview Sectional Minisite"
+                      >
+                        <i className="fas fa-eye" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Governance Matrix Modal */}
+        {showGovernanceModal && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              background: 'rgba(0,0,0,0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.5rem',
+            }}
+          >
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                width: '100%',
+                maxWidth: '850px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
+                  Component Tier Governance Matrix
+                </h2>
+                <button
+                  onClick={() => setShowGovernanceModal(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {(['free', 'standard', 'premium', 'admin'] as MinisiteTier[]).map((tier) => (
+                  <div key={tier} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase', color: '#0f172a' }}>
+                        {tier} Tier Rulebook
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+                        {governanceRules[tier]?.length || 0} allowed
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                      {Object.keys(COMPONENT_META).map((cKey) => {
+                        const type = cKey as MinisiteComponentType;
+                        const meta = COMPONENT_META[type];
+                        const isChecked = governanceRules[tier]?.includes(type);
+
+                        return (
+                          <label
+                            key={type}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.5rem 0.75rem',
+                              borderRadius: '8px',
+                              background: isChecked ? '#ffffff' : 'transparent',
+                              border: isChecked ? '1px solid #cbd5e1' : '1px solid transparent',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: isChecked ? '#0f172a' : '#94a3b8',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const current = governanceRules[tier] || [];
+                                const updated = e.target.checked
+                                  ? [...current, type]
+                                  : current.filter((x) => x !== type);
+                                setGovernanceRules({ ...governanceRules, [tier]: updated });
+                              }}
+                            />
+                            <i className={`fas ${meta.icon}`} style={{ color: isChecked ? '#D4AF37' : '#cbd5e1' }} />
+                            <span>{meta.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2rem' }}>
+                <button
+                  onClick={() => setShowGovernanceModal(false)}
+                  style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveGovernance}
+                  style={{ padding: '0.6rem 1.5rem', borderRadius: '10px', border: 'none', background: '#0f172a', color: '#fff', cursor: 'pointer', fontWeight: 800 }}
+                >
+                  Save Tier Matrix
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ── CANVAS STUDIO VIEW: Target Minisite is Selected
+  // ─────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: '1.5rem', fontFamily: "'Inter', sans-serif" }}>
       {/* Studio Header Bar */}
@@ -345,33 +1202,74 @@ function MinisiteBuilderStudioContent() {
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+            <button
+              onClick={() => {
+                setSelectedSlug('');
+                loadOverview();
+              }}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#0f172a',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <i className="fas fa-arrow-left" />
+              {lang === 'ar' ? 'العودة للمنصة الرئيسية' : 'All Minisites Hub'}
+            </button>
+
             <span
               style={{
-                fontSize: '0.72rem',
+                fontSize: '0.7rem',
                 fontWeight: 900,
                 color: '#D4AF37',
-                letterSpacing: '2px',
+                letterSpacing: '1.5px',
                 textTransform: 'uppercase',
               }}
             >
-              ADMIN GOVERNANCE STUDIO
+              BUILDER STUDIO
             </span>
-            <span
-              style={{
-                fontSize: '0.65rem',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                background: '#fef3c7',
-                color: '#b45309',
-                fontWeight: 800,
-              }}
-            >
-              ADMIN ONLY
-            </span>
+
+            {isExistingLayout ? (
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  border: '1px solid #bbf7d0',
+                  fontWeight: 900,
+                }}
+              >
+                ⚡ UPDATING ACTIVE LAYOUT
+              </span>
+            ) : (
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: '#fffdf5',
+                  color: '#d97706',
+                  border: '1px solid #fde68a',
+                  fontWeight: 900,
+                }}
+              >
+                ✨ CREATING NEW LAYOUT (UPGRADING FROM SECTIONAL)
+              </span>
+            )}
           </div>
           <h1 style={{ margin: '0.2rem 0', fontSize: '1.75rem', fontWeight: 900, color: '#0f172a' }}>
-            Minisite Architect & Builder
+            {businessInfo?.name || selectedSlug} Minisite Canvas
           </h1>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
             Regulate custom layout blocks, govern tier privileges, and toggle Replace vs. Untied mode.
@@ -837,7 +1735,7 @@ function MinisiteBuilderStudioContent() {
             </div>
             {components.length > 0 && (
               <button
-                onClick={handleDeleteLayout}
+                onClick={() => handleDeleteLayout()}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -985,13 +1883,35 @@ function MinisiteBuilderStudioContent() {
         >
           {selectedComp ? (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                  Block Properties
-                </h3>
-                <span style={{ fontSize: '0.72rem', color: '#D4AF37', fontWeight: 800 }}>
-                  {selectedComp.type}
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    Block Properties
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', color: '#D4AF37', fontWeight: 800 }}>
+                    {selectedComp.type}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleResetComponentToSiteDefaults(selectedComp)}
+                  title="Reset props to this business's current database values"
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <i className="fas fa-rotate" /> Reset to Site DB
+                </button>
               </div>
 
               {/* Form fields for selected component props */}

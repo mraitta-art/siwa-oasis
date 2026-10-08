@@ -35,6 +35,80 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const isOverview = searchParams.get('overview') === '1';
+    if (isOverview) {
+      // Parallel fetch of all businesses and all existing minisite layout records
+      const [allBiz, allConfigs] = await Promise.all([
+        query<any>(
+          `SELECT b.id, b.name, b.slug, b.type_id, b.subscription_tier, b.logo_url, b.cover_image, bt.name as type_name
+           FROM businesses b
+           LEFT JOIN business_types bt ON b.type_id = bt.id
+           ORDER BY b.name ASC`
+        ).catch(() => []),
+        query<any>(
+          `SELECT type, config FROM website_configs WHERE type LIKE 'minisite_layout_%'`
+        ).catch(() => []),
+      ]);
+
+      // Map existing layouts by slug
+      const layoutMap = new Map<string, { mode: string; updatedAt?: string; componentsCount: number }>();
+      for (const row of allConfigs || []) {
+        try {
+          const typeKey = String(row.type || '').toLowerCase();
+          const targetSlug = typeKey.replace(/^minisite_layout_/, '');
+          const cfg = typeof row.config === 'string' ? JSON.parse(row.config) : (row.config || {});
+          const components = Array.isArray(cfg.components) ? cfg.components : [];
+          layoutMap.set(targetSlug, {
+            mode: cfg.mode || 'replace',
+            updatedAt: cfg.updated_at || null,
+            componentsCount: components.length,
+          });
+        } catch {}
+      }
+
+      const existingLayouts: any[] = [];
+      const availableForBuilder: any[] = [];
+
+      for (const b of allBiz || []) {
+        const bSlug = (b.slug || b.id || '').toLowerCase();
+        const bId = String(b.id || '').toLowerCase();
+        const layoutInfo = layoutMap.get(bSlug) || layoutMap.get(bId);
+
+        const tier = getBusinessTier(b);
+        const item = {
+          id: b.id,
+          name: b.name,
+          slug: b.slug || b.id,
+          type_id: b.type_id,
+          type_name: b.type_name || 'Generic Typology',
+          subscription_tier: b.subscription_tier || 'free',
+          tier,
+          logo_url: b.logo_url || null,
+          cover_image: b.cover_image || null,
+          hasLayout: Boolean(layoutInfo && layoutInfo.componentsCount > 0),
+          layoutMode: layoutInfo?.mode || null,
+          layoutUpdatedAt: layoutInfo?.updatedAt || null,
+          componentsCount: layoutInfo?.componentsCount || 0,
+        };
+
+        if (item.hasLayout) {
+          existingLayouts.push(item);
+        } else {
+          availableForBuilder.push(item);
+        }
+      }
+
+      return NextResponse.json({
+        existingLayouts,
+        availableForBuilder,
+        stats: {
+          total: allBiz.length,
+          builderCount: existingLayouts.length,
+          sectionalCount: availableForBuilder.length,
+        },
+      });
+    }
+
     const slug = searchParams.get('slug');
     if (!slug) {
       return NextResponse.json({ error: 'Slug parameter is required' }, { status: 400 });
