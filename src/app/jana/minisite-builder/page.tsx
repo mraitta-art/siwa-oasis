@@ -1865,7 +1865,7 @@ function MinisiteBuilderStudioContent() {
                 boxShadow: mode === 'replace' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
               }}
             >
-              Replace Mode
+              🔗 Replace Mode
             </button>
             <button
               onClick={() => setMode('untied')}
@@ -1881,7 +1881,7 @@ function MinisiteBuilderStudioContent() {
                 boxShadow: mode === 'untied' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
               }}
             >
-              Untied Mode (Free Canvas)
+              🎨 Untied Mode (Free Canvas)
             </button>
           </div>
           <p style={{ margin: '0.3rem 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
@@ -1890,6 +1890,49 @@ function MinisiteBuilderStudioContent() {
               : 'Pure page builder. Components do not bind to vendor database records.'}
           </p>
         </div>
+
+        {/* Landing Page URL Banner */}
+        {businessInfo?.slug && (
+          <div
+            style={{
+              background: mode === 'replace' ? '#eff6ff' : '#faf5ff',
+              border: `1px solid ${mode === 'replace' ? '#bfdbfe' : '#e9d5ff'}`,
+              borderRadius: '10px',
+              padding: '0.65rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              fontSize: '0.78rem',
+              color: mode === 'replace' ? '#1e40af' : '#7e22ce',
+            }}
+          >
+            <span style={{ fontSize: '1rem' }}>🌐</span>
+            <div>
+              <strong>Custom Landing Page Builder</strong> — This layout{' '}
+              <strong>replaces</strong> the default sectional tabs at{' '}
+              <a
+                href={`/${businessInfo.slug}`}
+                target="_blank"
+                rel="noopener"
+                style={{ color: 'inherit', fontWeight: 800 }}
+              >
+                /{businessInfo.slug}
+              </a>
+              {mode === 'untied' && (
+                <span>
+                  {' '}with a <strong>fully custom</strong> admin-written page (no live vendor data).
+                </span>
+              )}
+              {mode === 'replace' && (
+                <span>
+                  {' '}and <strong>auto-syncs</strong> real vendor data (gallery, packages, reviews).
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+
       </section>
 
       {/* Main Studio 3-Column Grid */}

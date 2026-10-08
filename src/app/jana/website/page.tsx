@@ -188,8 +188,9 @@ export default function MultiPageSiteBuilder() {
           ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
         ];
 
-        // Config exists in DB — always respect it, even if empty (admin cleared the page)
-        setSlots(allLoaded);
+        // If the saved config has zero blocks AND we are on main, re-seed defaults
+        // so the admin always has content to work with instead of a blank canvas.
+        setSlots(allLoaded.length === 0 && currentPage === 'main' ? DEFAULT_MAIN_SLOTS : allLoaded);
       }).catch(() => setSlots([]));
     } else {
       const tmpl = templates.find(t => t.id === currentPage);
