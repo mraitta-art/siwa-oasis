@@ -214,8 +214,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 /**
  * VANITY URL MINISITE PAGE (Server Component)
  */
-export default async function VanityBusinessPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function VanityBusinessPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ view?: string; mode?: string }>;
+}) {
   const { slug } = await params;
+  const sParams = searchParams ? await searchParams : {};
+  const forceSectional = sParams?.view === 'sectional' || sParams?.mode === 'sectional';
   
   // Check if it's a UUID (36 chars with dashes)
   const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
@@ -363,7 +371,7 @@ export default async function VanityBusinessPage({ params }: { params: Promise<{
     // ── MINISITE BUILDER ENGINE (Custom Builder Layout) ─────────────────
     // If admin has configured a custom layout (or template) for this minisite,
     // render it directly via MinisiteBuilderRenderer with governed privileges.
-    const minisiteLayout = await fetchMinisiteLayout(biz.slug || slug);
+    const minisiteLayout = !forceSectional ? await fetchMinisiteLayout(biz.slug || slug) : null;
 
     if (minisiteLayout && Array.isArray(minisiteLayout.components) && minisiteLayout.components.length > 0) {
       const user = await getCurrentUser().catch(() => null);
