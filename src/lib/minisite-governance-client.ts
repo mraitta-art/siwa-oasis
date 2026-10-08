@@ -210,12 +210,149 @@ export const CANONICAL_SECTION_LABELS: Record<string, { label: string; emoji: st
   sec_1_identity:            { label: 'Identity & Overview',        emoji: '🏷️', color: '#2563eb', mainSiteUrl: '/' },
   sec_2_ambience:            { label: 'Vibe & Ambience',            emoji: '✨', color: '#f59e0b', mainSiteUrl: '/activities' },
   sec_3_facilities:          { label: 'Facilities & Amenities',     emoji: '🏢', color: '#0ea5e9', mainSiteUrl: '/accommodations' },
-  sec_4_gastronomy:          { label: 'Services & Gastronomy',      emoji: '🛠️', color: '#f97316', mainSiteUrl: '/restaurants' },
+  sec_4_gastronomy:          { label: 'Gastronomy & Dining',        emoji: '🍽️', color: '#f97316', mainSiteUrl: '/restaurants' },
   sec_5_experiences:         { label: 'Programs & Packages',        emoji: '🧭', color: '#16a34a', mainSiteUrl: '/packages' },
-  sec_6_guardian:            { label: 'Structure & Operations',     emoji: '⚙️', color: '#64748b', mainSiteUrl: '/services' },
+  sec_6_guardian:            { label: 'Operations & Structure',     emoji: '⚙️', color: '#64748b', mainSiteUrl: '/services' },
   sec_7_investment:          { label: 'Investment & Partnerships',  emoji: '📈', color: '#7c3aed', mainSiteUrl: '/investment-opportunities' },
   sec_8_connector:           { label: 'Special Offers & Deals',     emoji: '🏷️', color: '#dc2626', mainSiteUrl: '/offers' },
-  sec_9_marketplace_catalog: { label: 'Media & Marketplace',        emoji: '🛍️', color: '#0891b2', mainSiteUrl: '/activities' },
-  sec_10_testimonials_faqs:  { label: 'Contact, Policies & Trust',  emoji: '💬', color: '#059669', mainSiteUrl: '/be-a-partner' },
+  sec_9_marketplace_catalog: { label: 'Marketplace & Local Products', emoji: '🛍️', color: '#0891b2', mainSiteUrl: '/crafts-wellness' },
+  sec_10_testimonials_faqs:  { label: 'Trust, Reviews & FAQs',      emoji: '💬', color: '#059669', mainSiteUrl: '/be-a-partner' },
 };
+
+/**
+ * SECTION_NAV_ITEMS
+ * Ordered list used in the builder palette section navigator and the hub bridge matrix.
+ * Each entry includes all display properties plus the natural-language URL aliases
+ * accepted by this section's tab/hash navigation.
+ */
+export const SECTION_NAV_ITEMS: Array<{
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+  mainSiteUrl: string;
+  mainSiteLabel: string;
+  primaryTable: string;
+  aliases: string[];
+}> = [
+  {
+    id: 'sec_1_identity',
+    label: 'Identity & Overview',
+    emoji: '🏷️',
+    color: '#2563eb',
+    mainSiteUrl: '/',
+    mainSiteLabel: 'Homepage Directory',
+    primaryTable: 'businesses',
+    aliases: ['overview', 'identity', 'about', 'profile', 'info', 'basic'],
+  },
+  {
+    id: 'sec_2_ambience',
+    label: 'Vibe & Ambience',
+    emoji: '✨',
+    color: '#f59e0b',
+    mainSiteUrl: '/activities',
+    mainSiteLabel: 'Activities & Experiences',
+    primaryTable: 'vendor_gallery',
+    aliases: ['vibe', 'ambience', 'atmosphere', 'scenery', 'gallery', 'photos'],
+  },
+  {
+    id: 'sec_3_facilities',
+    label: 'Facilities & Amenities',
+    emoji: '🏢',
+    color: '#0ea5e9',
+    mainSiteUrl: '/accommodations',
+    mainSiteLabel: 'Accommodations & Amenities',
+    primaryTable: 'vendor_gallery',
+    aliases: ['facilities', 'amenities', 'rooms', 'lodging', 'stays', 'springs'],
+  },
+  {
+    id: 'sec_4_gastronomy',
+    label: 'Gastronomy & Dining',
+    emoji: '🍽️',
+    color: '#f97316',
+    mainSiteUrl: '/restaurants',
+    mainSiteLabel: 'Restaurants & Dining',
+    primaryTable: 'vendor_gallery',
+    aliases: ['dining', 'gastronomy', 'food', 'restaurant', 'kitchen', 'culinary', 'cafe'],
+  },
+  {
+    id: 'sec_5_experiences',
+    label: 'Programs & Packages',
+    emoji: '🧭',
+    color: '#16a34a',
+    mainSiteUrl: '/packages',
+    mainSiteLabel: 'Packages & Journeys',
+    primaryTable: 'tour_products',
+    aliases: ['packages', 'programs', 'tours', 'experiences', 'itineraries', 'safaris', 'journeys'],
+  },
+  {
+    id: 'sec_6_guardian',
+    label: 'Operations & Structure',
+    emoji: '⚙️',
+    color: '#64748b',
+    mainSiteUrl: '/services',
+    mainSiteLabel: 'Services Hub',
+    primaryTable: 'businesses',
+    aliases: ['operations', 'services', 'structure', 'management', 'guardian', 'hours'],
+  },
+  {
+    id: 'sec_7_investment',
+    label: 'Investment & Partnerships',
+    emoji: '📈',
+    color: '#7c3aed',
+    mainSiteUrl: '/investment-opportunities',
+    mainSiteLabel: 'Investment Opportunities',
+    primaryTable: 'businesses',
+    aliases: ['investment', 'investments', 'partnerships', 'commercial', 'auctions', 'b2b', 'ventures'],
+  },
+  {
+    id: 'sec_8_connector',
+    label: 'Special Offers & Deals',
+    emoji: '🏷️',
+    color: '#dc2626',
+    mainSiteUrl: '/offers',
+    mainSiteLabel: 'Special Offers & Deals',
+    primaryTable: 'tour_products',
+    aliases: ['offers', 'deals', 'discounts', 'promotions', 'promo', 'flash', 'special-offers'],
+  },
+  {
+    id: 'sec_9_marketplace_catalog',
+    label: 'Marketplace & Local Products',
+    emoji: '🛍️',
+    color: '#0891b2',
+    mainSiteUrl: '/crafts-wellness',
+    mainSiteLabel: 'Marketplace & Local Crafts',
+    primaryTable: 'marketplace_items',
+    aliases: ['catalog', 'marketplace', 'products', 'crafts', 'shop', 'store', 'wellness'],
+  },
+  {
+    id: 'sec_10_testimonials_faqs',
+    label: 'Trust, Reviews & FAQs',
+    emoji: '💬',
+    color: '#059669',
+    mainSiteUrl: '/be-a-partner',
+    mainSiteLabel: 'Trust & Policies Hub',
+    primaryTable: 'businesses',
+    aliases: ['reviews', 'testimonials', 'faqs', 'faq', 'trust', 'policies', 'contact', 'be-a-partner'],
+  },
+];
+
+/**
+ * Resolve a nav alias (hash fragment, URL segment, legacy name) to a canonical section ID.
+ * Client-safe, no server imports.
+ *
+ * @example resolveNavAlias('dining')        // → 'sec_4_gastronomy'
+ * @example resolveNavAlias('offers')        // → 'sec_8_connector'
+ * @example resolveNavAlias('sec_3_facilities') // → 'sec_3_facilities'
+ */
+export function resolveNavAlias(aliasOrId: string): string {
+  if (!aliasOrId) return aliasOrId;
+  const lower = aliasOrId.toLowerCase().trim();
+  for (const sec of SECTION_NAV_ITEMS) {
+    if (sec.id === lower) return sec.id;
+    if (sec.aliases.includes(lower)) return sec.id;
+  }
+  return aliasOrId;
+}
+
 

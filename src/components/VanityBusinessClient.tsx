@@ -19,6 +19,112 @@ import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
  * VANITY URL CLIENT COMPONENT
  * Handles the interactive minisite UI.
  */
+
+/**
+ * SECTION_NAV_ALIASES
+ * Single source of truth for all natural-language URL hash → canonical section ID mappings.
+ * All 10 canonical sections covered.  Zero duplication — used in three places below.
+ */
+const SECTION_NAV_ALIASES: Record<string, string> = {
+  // sec_1_identity — Business overview, profile, verified status
+  overview:        'sec_1_identity',
+  identity:        'sec_1_identity',
+  about:           'sec_1_identity',
+  profile:         'sec_1_identity',
+  info:            'sec_1_identity',
+  business_info:   'sec_1_identity',
+  basic:           'sec_1_identity',
+
+  // sec_2_ambience — Scenery, atmosphere, gallery, visual vibe
+  vibe:            'sec_2_ambience',
+  ambience:        'sec_2_ambience',
+  atmosphere:      'sec_2_ambience',
+  scenery:         'sec_2_ambience',
+  gallery:         'sec_2_ambience',
+  photos:          'sec_2_ambience',
+  media:           'sec_2_ambience',
+
+  // sec_3_facilities — Rooms, springs, pools, stays, amenities
+  facilities:      'sec_3_facilities',
+  amenities:       'sec_3_facilities',
+  rooms:           'sec_3_facilities',
+  lodging:         'sec_3_facilities',
+  accommodations:  'sec_3_facilities',
+  stays:           'sec_3_facilities',
+  springs:         'sec_3_facilities',
+
+  // sec_4_gastronomy — Food, dining, Bedouin kitchen, cafes
+  dining:          'sec_4_gastronomy',
+  gastronomy:      'sec_4_gastronomy',
+  food:            'sec_4_gastronomy',
+  restaurant:      'sec_4_gastronomy',
+  restaurants:     'sec_4_gastronomy',
+  kitchen:         'sec_4_gastronomy',
+  culinary:        'sec_4_gastronomy',
+  cafe:            'sec_4_gastronomy',
+  menu:            'sec_4_gastronomy',
+
+  // sec_5_experiences — Packages, multi-day tours, safaris, itineraries
+  packages:        'sec_5_experiences',
+  package:         'sec_5_experiences',
+  programs:        'sec_5_experiences',
+  tours:           'sec_5_experiences',
+  experiences:     'sec_5_experiences',
+  experience:      'sec_5_experiences',
+  itineraries:     'sec_5_experiences',
+  safaris:         'sec_5_experiences',
+  journeys:        'sec_5_experiences',
+
+  // sec_6_guardian — Check-in, licensing, management, operations
+  operations:      'sec_6_guardian',
+  services:        'sec_6_guardian',
+  structure:       'sec_6_guardian',
+  management:      'sec_6_guardian',
+  guardian:        'sec_6_guardian',
+  'check-in':      'sec_6_guardian',
+  hours:           'sec_6_guardian',
+
+  // sec_7_investment — B2B ventures, commercial land, auctions
+  investment:      'sec_7_investment',
+  investments:     'sec_7_investment',
+  partnerships:    'sec_7_investment',
+  commercial:      'sec_7_investment',
+  auctions:        'sec_7_investment',
+  'b2b':           'sec_7_investment',
+  ventures:        'sec_7_investment',
+
+  // sec_8_connector — Flash sales, seasonal markdowns, special offers
+  offers:          'sec_8_connector',
+  offer:           'sec_8_connector',
+  deals:           'sec_8_connector',
+  deal:            'sec_8_connector',
+  discounts:       'sec_8_connector',
+  discount:        'sec_8_connector',
+  promotions:      'sec_8_connector',
+  promo:           'sec_8_connector',
+  'special-offers':'sec_8_connector',
+  flash:           'sec_8_connector',
+
+  // sec_9_marketplace_catalog — Dates, olive oil, salt crafts, local products
+  catalog:         'sec_9_marketplace_catalog',
+  marketplace:     'sec_9_marketplace_catalog',
+  products:        'sec_9_marketplace_catalog',
+  crafts:          'sec_9_marketplace_catalog',
+  shop:            'sec_9_marketplace_catalog',
+  store:           'sec_9_marketplace_catalog',
+  wellness:        'sec_9_marketplace_catalog',
+
+  // sec_10_testimonials_faqs — Guest reviews, FAQs, policies
+  reviews:         'sec_10_testimonials_faqs',
+  review:          'sec_10_testimonials_faqs',
+  testimonials:    'sec_10_testimonials_faqs',
+  faqs:            'sec_10_testimonials_faqs',
+  faq:             'sec_10_testimonials_faqs',
+  trust:           'sec_10_testimonials_faqs',
+  policies:        'sec_10_testimonials_faqs',
+  contact:         'sec_10_testimonials_faqs',
+  'be-a-partner':  'sec_10_testimonials_faqs',
+};
 function formatInterpolatedValue(rawVal: any): string {
   if (Array.isArray(rawVal)) {
     return rawVal
@@ -237,23 +343,8 @@ export default function VanityBusinessClient({
   // Sync active tab when sections change or on mount
   useEffect(() => {
     if (sections && sections.length > 0) {
-      const sectionAliases: Record<string, string> = {
-        'packages': 'sec_5_experiences',
-        'package': 'sec_5_experiences',
-        'programs': 'sec_5_experiences',
-        'tours': 'sec_5_experiences',
-        'experiences': 'sec_5_experiences',
-        'offers': 'sec_8_connector',
-        'offer': 'sec_8_connector',
-        'deals': 'sec_8_connector',
-        'deal': 'sec_8_connector',
-        'discounts': 'sec_8_connector',
-        'promotions': 'sec_8_connector',
-        'catalog': 'sec_9_marketplace_catalog',
-        'marketplace': 'sec_9_marketplace_catalog',
-        'overview': 'sec_1_identity',
-        'vibe': 'sec_2_ambience'
-      };
+      const sectionAliases = SECTION_NAV_ALIASES;
+
       
       if (initialActiveTab) {
         const resolvedInitial = sectionAliases[initialActiveTab] || initialActiveTab;
@@ -276,25 +367,8 @@ export default function VanityBusinessClient({
 
     // Listen for hash changes (for carousel jumps)
     const handleHash = () => {
-      const sectionAliases: Record<string, string> = {
-        'packages': 'sec_5_experiences',
-        'package': 'sec_5_experiences',
-        'programs': 'sec_5_experiences',
-        'tours': 'sec_5_experiences',
-        'experiences': 'sec_5_experiences',
-        'offers': 'sec_8_connector',
-        'offer': 'sec_8_connector',
-        'deals': 'sec_8_connector',
-        'deal': 'sec_8_connector',
-        'discounts': 'sec_8_connector',
-        'promotions': 'sec_8_connector',
-        'catalog': 'sec_9_marketplace_catalog',
-        'marketplace': 'sec_9_marketplace_catalog',
-        'overview': 'sec_1_identity',
-        'vibe': 'sec_2_ambience'
-      };
       const rawH = window.location.hash.replace('#', '');
-      const h = sectionAliases[rawH] || rawH;
+      const h = SECTION_NAV_ALIASES[rawH] || rawH;
       if (sections.some(s => s.id === h)) setActiveTab(h);
     };
     window.addEventListener('hashchange', handleHash);
@@ -493,24 +567,7 @@ export default function VanityBusinessClient({
         }}
         settings={liveSettings || siteSettings || {}}
         onSectionNavigate={(sectionId) => {
-          const sectionAliases: Record<string, string> = {
-            'packages': 'sec_5_experiences',
-            'package': 'sec_5_experiences',
-            'programs': 'sec_5_experiences',
-            'tours': 'sec_5_experiences',
-            'experiences': 'sec_5_experiences',
-            'offers': 'sec_8_connector',
-            'offer': 'sec_8_connector',
-            'deals': 'sec_8_connector',
-            'deal': 'sec_8_connector',
-            'discounts': 'sec_8_connector',
-            'promotions': 'sec_8_connector',
-            'catalog': 'sec_9_marketplace_catalog',
-            'marketplace': 'sec_9_marketplace_catalog',
-            'overview': 'sec_1_identity',
-            'vibe': 'sec_2_ambience'
-          };
-          const target = sectionAliases[sectionId] || sectionId;
+          const target = SECTION_NAV_ALIASES[sectionId] || sectionId;
           try {
             window.history.pushState(null, '', `/${slug}/${target}`);
           } catch {}
@@ -519,6 +576,7 @@ export default function VanityBusinessClient({
           if (navEl) {
             navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
+
         }}
       />
 

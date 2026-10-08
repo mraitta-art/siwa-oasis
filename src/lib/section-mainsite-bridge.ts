@@ -16,6 +16,8 @@
  */
 
 import type { CanonicalSectionId } from './section-registry';
+import { LEGACY_SECTION_ALIASES } from './section-registry';
+
 import type { MinisiteComponentType } from './minisite-governance';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -187,7 +189,7 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
   // ── sec_4_gastronomy ───────────────────────────────────────────────────────
   sec_4_gastronomy: {
     sectionId: 'sec_4_gastronomy',
-    label: 'Services & Gastronomy',
+    label: 'Gastronomy & Dining',
     builderComponents: ['vendor_services', 'vendor_gallery', 'vendor_blog', 'text_section', 'cta_section'],
     primarySource: {
       table: 'vendor_gallery',
@@ -196,7 +198,7 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
       orderBy: 'display_order ASC',
     },
     apiEndpoints: [
-      { path: '/api/vendor/gallery', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Services gallery' },
+      { path: '/api/vendor/gallery', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Services & dining gallery' },
     ],
     mainSiteMirror: {
       url: '/restaurants',
@@ -247,7 +249,7 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
   // ── sec_6_guardian ─────────────────────────────────────────────────────────
   sec_6_guardian: {
     sectionId: 'sec_6_guardian',
-    label: 'Structure & Operations',
+    label: 'Operations & Structure',
     builderComponents: ['text_section', 'faq', 'vendor_blog'],
     primarySource: {
       table: 'businesses',
@@ -331,7 +333,7 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
   // ── sec_9_marketplace_catalog ──────────────────────────────────────────────
   sec_9_marketplace_catalog: {
     sectionId: 'sec_9_marketplace_catalog',
-    label: 'Media & Marketplace',
+    label: 'Marketplace & Local Products',
     builderComponents: ['vendor_gallery', 'vendor_packages', 'vendor_blog', 'text_section', 'cta_section'],
     primarySource: {
       table: 'marketplace_items',
@@ -353,8 +355,8 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
       { path: '/api/vendor/submit-item', businessParam: 'businessId', methods: ['GET', 'POST'], description: 'Vendor marketplace submission' },
     ],
     mainSiteMirror: {
-      url: '/activities',
-      label: 'Platform Marketplace',
+      url: '/crafts-wellness',
+      label: 'Marketplace & Local Crafts',
       icon: 'fa-store',
       color: '#0891b2',
     },
@@ -366,7 +368,7 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
   // ── sec_10_testimonials_faqs ───────────────────────────────────────────────
   sec_10_testimonials_faqs: {
     sectionId: 'sec_10_testimonials_faqs',
-    label: 'Contact, Policies & Trust',
+    label: 'Trust, Reviews & FAQs',
     builderComponents: ['testimonials', 'faq', 'cta_section', 'text_section'],
     primarySource: {
       table: 'businesses',
@@ -378,7 +380,7 @@ export const SECTION_BRIDGE: Record<CanonicalSectionId, SectionBridgeEntry> = {
     ],
     mainSiteMirror: {
       url: '/be-a-partner',
-      label: 'Contact & Trust Hub',
+      label: 'Trust & Policies Hub',
       icon: 'fa-comments',
       color: '#059669',
     },
@@ -454,4 +456,38 @@ export function getAllBridges(): SectionBridgeEntry[] {
  */
 export function isSectionShared(sectionId: string): boolean {
   return SECTION_BRIDGE[sectionId as CanonicalSectionId]?.isSharedDataSource ?? true;
+}
+
+/**
+ * Resolve a natural-language alias or legacy ID to the canonical section ID.
+ * Delegates to LEGACY_SECTION_ALIASES from section-registry.ts.
+ *
+ * @example resolveAlias('dining')  // → 'sec_4_gastronomy'
+ * @example resolveAlias('offers')  // → 'sec_8_connector'
+ */
+
+export function resolveAlias(aliasOrId: string): string {
+
+  if (!aliasOrId) return aliasOrId;
+  const lower = aliasOrId.toLowerCase().trim();
+  // Already a canonical ID?
+  if (SECTION_BRIDGE[lower as CanonicalSectionId]) return lower;
+  // Try alias lookup
+  return LEGACY_SECTION_ALIASES[lower] ?? aliasOrId;
+}
+
+/**
+ * True when the section is the "Special Offers & Deals" connector (sec_8_connector).
+ * Distinct from sec_5_experiences which is Packages & Journeys.
+ */
+export function isOffersSection(sectionId: string): boolean {
+  return resolveAlias(sectionId) === 'sec_8_connector';
+}
+
+/**
+ * True when the section is "Programs & Packages" (sec_5_experiences).
+ * Distinct from sec_8_connector which is Special Offers.
+ */
+export function isPackagesSection(sectionId: string): boolean {
+  return resolveAlias(sectionId) === 'sec_5_experiences';
 }
