@@ -752,6 +752,63 @@ export default function BusinessOrchestrator() {
                 <Link href={`/${biz.slug}`} target="_blank" className="btn btn-outline"><i className="fas fa-external-link-alt" /> Preview minisite</Link>
                 <span style={{ color: readinessComplete ? '#15803d' : '#b45309', fontWeight: 900, fontSize: '0.8rem' }}>{readinessComplete ? 'Business is ready for review.' : 'Complete the outstanding actions before publishing.'}</span>
               </div>
+
+              {/* ── Minisite Architecture Panel ── */}
+              <div style={{ marginTop: '3rem', borderTop: '1px solid #e2e8f0', paddingTop: '2rem', maxWidth: 760 }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1.25rem' }}>
+                  MINISITE ARCHITECTURE
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+
+                  {/* Current: Sectional FREE */}
+                  <div style={{ padding: '1.5rem', borderRadius: '16px', border: '2px solid #bbf7d0', background: '#f0fdf4', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <i className="fas fa-layer-group" style={{ color: '#15803d', fontSize: '1.1rem' }} />
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0f172a' }}>Sectional Minisite</div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 900, color: '#22c55e', letterSpacing: '1px' }}>✓ ACTIVE — FREE SYSTEM</div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
+                      This business uses the automatic section-based minisite. It is <strong>free forever</strong> and automatically inherits its structure from the <strong>{biz.type_name || 'business typology'}</strong>.
+                      Sections are fully editable through the CONTENT tab above.
+                    </p>
+                    <div style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 700, marginTop: '0.25rem' }}>
+                      <i className="fas fa-shield-check" style={{ marginRight: '6px' }} />
+                      No changes required — this minisite is live and free.
+                    </div>
+                  </div>
+
+                  {/* Optional upgrade: Builder Minisite */}
+                  <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed #d97706', background: '#fffdf5', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <i className="fas fa-wand-magic-sparkles" style={{ color: '#d97706', fontSize: '1.1rem' }} />
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0f172a' }}>Builder Minisite</div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 900, color: '#d97706', letterSpacing: '1px' }}>OPTIONAL — ADMIN STUDIO</div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
+                      Optionally upgrade this business to a <strong>component-built minisite</strong>. The admin designs it block by block in the Builder Studio. Once activated, it <em>replaces</em> the sectional view on the public URL.
+                    </p>
+                    <p style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 700, margin: 0 }}>
+                      <i className="fas fa-triangle-exclamation" style={{ marginRight: '6px' }} />
+                      Only activate if you want to override the sectional system for this specific business.
+                    </p>
+                    <Link
+                      href={`/jana/minisite-builder?slug=${biz.slug || businessId}`}
+                      className="btn btn-outline"
+                      style={{ marginTop: '0.5rem', borderColor: '#d97706', color: '#d97706', fontSize: '0.75rem' }}
+                    >
+                      <i className="fas fa-wand-magic-sparkles" style={{ marginRight: '6px' }} />
+                      Open Builder Studio for {biz.name}
+                    </Link>
+                  </div>
+
+                </div>
+              </div>
+
             </div>
           )}
 

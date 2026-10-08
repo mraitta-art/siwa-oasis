@@ -358,17 +358,92 @@ function OrchestratorContent() {
                   <i className="fas fa-check"></i>
                 </div>
                 <h2>Entity Registered &amp; Ready</h2>
-                <p>The business entity has been created in the database. Open the Unified Orchestrator to add logo, photos, carousel slides, and AI stories.</p>
-                
-                <div className="actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                   {state.createdBizId ? (
-                     <Link href={`/jana/businesses/${state.createdBizId}/orchestrate`} className="btn-premium">
-                       <i className="fas fa-wand-magic-sparkles" style={{ marginRight: '6px' }} /> OPEN IN UNIFIED ORCHESTRATOR &amp; EDIT
-                     </Link>
-                   ) : (
-                     <Link href="/jana/businesses" className="btn-premium">ENTER BUSINESS REGISTRY</Link>
-                   )}
-                   <Link href="/jana/businesses" className="btn-outline">VIEW ALL IN REGISTRY</Link>
+                <p>The business entity has been created in the database. Choose how to architect its public minisite below.</p>
+
+                {/* Minisite Architecture Choice — Only for NEW businesses */}
+                <div style={{ margin: '2rem auto', maxWidth: 720, textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#d97706', letterSpacing: '3px', marginBottom: '1.25rem', textAlign: 'center' }}>
+                    CHOOSE MINISITE ARCHITECTURE FOR THIS NEW ENTITY
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+
+                    {/* Option A: Sectional (legacy free system) */}
+                    <div style={{ padding: '1.75rem', borderRadius: '20px', border: '2px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <i className="fas fa-layer-group" style={{ color: '#64748b', fontSize: '1.1rem' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>Sectional Minisite</div>
+                          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#22c55e', letterSpacing: '1px' }}>FREE — DEFAULT SYSTEM</div>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+                        The standard section-based minisite. Sections are inherited from the business typology and automatically populated from the business data. <strong>All existing businesses use this — zero cost.</strong>
+                      </p>
+                      <ul style={{ fontSize: '0.75rem', color: '#475569', paddingLeft: '1.25rem', margin: 0, lineHeight: 2 }}>
+                        <li>Auto-generated from business typology</li>
+                        <li>Sections show: identity, gallery, services, blogs</li>
+                        <li>Fully functional from day one</li>
+                        <li>No builder access needed</li>
+                      </ul>
+                      {state.createdBizId ? (
+                        <Link
+                          href={`/jana/businesses/${state.createdBizId}/orchestrate`}
+                          className="btn-premium"
+                          style={{ textAlign: 'center', marginTop: '0.5rem' }}
+                        >
+                          <i className="fas fa-layer-group" style={{ marginRight: '6px' }} /> USE SECTIONAL (FREE)
+                        </Link>
+                      ) : (
+                        <Link href="/jana/businesses" className="btn-premium" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                          ENTER REGISTRY
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Option B: Builder Minisite */}
+                    <div style={{ padding: '1.75rem', borderRadius: '20px', border: '2px solid #d97706', background: '#fffdf5', display: 'flex', flexDirection: 'column', gap: '0.75rem', boxShadow: '0 8px 24px rgba(217,119,6,0.1)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(217,119,6,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <i className="fas fa-wand-magic-sparkles" style={{ color: '#d97706', fontSize: '1.1rem' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>Builder Minisite</div>
+                          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#d97706', letterSpacing: '1px' }}>NEW — COMPONENT STUDIO</div>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+                        Admin-designed page with drag-and-drop component blocks. Replaces or layers on top of the section system. Pre-fills from the business database. Governed by subscription tier.
+                      </p>
+                      <ul style={{ fontSize: '0.75rem', color: '#475569', paddingLeft: '1.25rem', margin: 0, lineHeight: 2 }}>
+                        <li>Component-based (hero, gallery, packages…)</li>
+                        <li>Site-specific content auto-pre-filled</li>
+                        <li>Replace or untied from sections system</li>
+                        <li>Admin-only studio access</li>
+                      </ul>
+                      {state.createdBizId ? (
+                        <Link
+                          href={`/jana/minisite-builder?slug=${state.createdBizId}`}
+                          className="btn-premium"
+                          style={{ background: '#d97706', textAlign: 'center', marginTop: '0.5rem' }}
+                        >
+                          <i className="fas fa-wand-magic-sparkles" style={{ marginRight: '6px' }} /> OPEN IN MINISITE BUILDER
+                        </Link>
+                      ) : null}
+                    </div>
+
+                  </div>
+
+                  <p style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', marginTop: '1.25rem', fontWeight: 600 }}>
+                    <i className="fas fa-info-circle" style={{ color: '#d97706', marginRight: '6px' }} />
+                    You can always switch later. Existing sectional minisites are never affected — builder is only activated when you explicitly open the Builder Studio for a business.
+                  </p>
+                </div>
+
+                <div style={{ marginTop: '1rem' }}>
+                  <Link href="/jana/businesses" className="btn-outline">VIEW ALL IN REGISTRY</Link>
                 </div>
              </div>
           )}

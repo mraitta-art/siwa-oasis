@@ -38,8 +38,85 @@ function MinisiteBuilderStudioContent() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string>(initialSlug);
   const [businessInfo, setBusinessInfo] = useState<any>(null);
+  const [siteContext, setSiteContext] = useState<any>(null);
   const [allowedComponents, setAllowedComponents] = useState<MinisiteComponentType[]>([]);
   const [lang, setLang] = useState<'en' | 'ar'>('en');
+
+  // Helper to generate site-specific default props for a component
+  const getSiteDefaultsForComp = (type: MinisiteComponentType, ctx: any, bInfo: any) => {
+    const bizName = ctx?.name || bInfo?.name || '';
+    const bizDesc = ctx?.description || ctx?.tagline || bInfo?.description || '';
+    const bizPhone = ctx?.phone || bInfo?.phone || '';
+    const bizCover = ctx?.cover_image || bInfo?.cover_image || '';
+    const bizLogo = ctx?.logo_url || bInfo?.logo_url || '';
+    const bizGallery = Array.isArray(ctx?.gallery) ? ctx.gallery : [];
+    const bizServices = Array.isArray(ctx?.services) ? ctx.services : [];
+    const bizProducts = Array.isArray(ctx?.products) ? ctx.products : [];
+
+    switch (type) {
+      case 'vendor_hero':
+        return {
+          title: bizName,
+          subtitle: bizDesc.substring(0, 180),
+          coverImage: bizCover,
+          logoUrl: bizLogo,
+          ctaText: bizPhone ? (lang === 'ar' ? 'تواصل عبر واتساب' : 'Direct WhatsApp') : (lang === 'ar' ? 'تواصل معنا' : 'Get in Touch'),
+          ctaLink: bizPhone ? `https://wa.me/${bizPhone.replace(/[^0-9]/g, '')}` : '#contact',
+        };
+      case 'vendor_gallery':
+        return {
+          title: lang === 'ar' ? `معرض صور ومساحات ${bizName}` : `${bizName} Visual Showcase`,
+          subtitle: lang === 'ar' ? 'لقطات أصيلة من قلب واحة سيوة الساحرة.' : 'Authentic moments and spaces captured from the oasis.',
+          images: bizGallery.slice(0, 8).map((g: any) => g.url),
+        };
+      case 'vendor_services':
+        return {
+          title: lang === 'ar' ? `خدمات ومميزات ${bizName}` : `${bizName} Services & Amenities`,
+          subtitle: lang === 'ar' ? 'ضيافة صحراوية أصيلة وتجارب متكاملة.' : 'Curated desert hospitality and tailored services.',
+          services: bizServices.length > 0 ? bizServices : ['Desert Hospitality', 'Custom Itineraries', 'Local Expertise'],
+        };
+      case 'vendor_packages':
+        return {
+          title: lang === 'ar' ? 'الباقات والعروض الحصرية' : 'Curated Packages & Offers',
+          subtitle: lang === 'ar' ? 'عروض وباقات خاصة مع حجز مباشر عبر الواتساب.' : 'Exclusive promotional rates with instant booking.',
+          packages: bizProducts.slice(0, 6),
+        };
+      case 'vendor_carousel':
+        return {
+          title: lang === 'ar' ? `جولة سينمائية في ${bizName}` : `Cinematic Tour of ${bizName}`,
+          subtitle: lang === 'ar' ? 'استكشف أجمل المشاهد والتفاصيل.' : 'Explore breathtaking highlights and spaces.',
+        };
+      case 'vendor_blog':
+        return {
+          title: lang === 'ar' ? 'أحدث القصص والمقالات' : 'Stories & Insights',
+          subtitle: lang === 'ar' ? 'دليل واحة سيوة وتجارب فريدة من نوعها.' : 'Insights, local guides, and stories from the oasis.',
+        };
+      case 'cta_section':
+        return {
+          title: lang === 'ar' ? `هل أنت مستعد لزيارة ${bizName}؟` : `Ready to Experience ${bizName}?`,
+          subtitle: lang === 'ar' ? 'فريقنا متاح على مدار الساعة للإجابة على استفساراتك وحجز تجربتك.' : 'Our team is ready to welcome you and plan your visit directly on WhatsApp.',
+          buttonText: lang === 'ar' ? 'ابدأ المحادثة الآن' : 'Inquire on WhatsApp',
+          buttonLink: bizPhone ? `https://wa.me/${bizPhone.replace(/[^0-9]/g, '')}` : '',
+        };
+      case 'text_section':
+        return {
+          title: lang === 'ar' ? `عن ${bizName}` : `About ${bizName}`,
+          content: bizDesc || (lang === 'ar' ? `مرحبًا بكم في ${bizName} في واحة سيوة.` : `Welcome to ${bizName} in the heart of Siwa Oasis.`),
+        };
+      case 'faq':
+        return {
+          title: lang === 'ar' ? 'الأسئلة الشائعة' : 'Frequently Asked Questions',
+          subtitle: lang === 'ar' ? 'إليك كل ما تحتاج لمعرفته قبل الحجز والزيارة.' : 'Everything you need to know prior to booking your visit.',
+        };
+      case 'testimonials':
+        return {
+          title: lang === 'ar' ? 'آراء الضيوف والزوار' : 'Guest Reviews & Experiences',
+          subtitle: lang === 'ar' ? 'تجارب حقيقية من ضيوفنا الكرام.' : 'Authentic reflections from travelers who experienced our hospitality.',
+        };
+      default:
+        return {};
+    }
+  };
 
   // Studio State
   const [mode, setMode] = useState<MinisiteMode>('replace');
@@ -94,6 +171,7 @@ function MinisiteBuilderStudioContent() {
           return;
         }
         setBusinessInfo(data.business);
+        setSiteContext(data.siteContext || null);
         setAllowedComponents(data.allowedComponents || []);
 
         if (data.layout) {
@@ -101,13 +179,15 @@ function MinisiteBuilderStudioContent() {
           setComponents(data.layout.components || []);
           setSiteSettings(data.layout.site_settings || {});
         } else {
-          // Default initial layout
+          // Default initial layout tailored to THIS business's data
           setMode('replace');
+          const ctx = data.siteContext;
+          const bInfo = data.business;
           setComponents([
-            { id: 'hero_1', type: 'vendor_hero', order: 0, props: {} },
-            { id: 'gallery_1', type: 'vendor_gallery', order: 1, props: {} },
-            { id: 'services_1', type: 'vendor_services', order: 2, props: {} },
-            { id: 'cta_1', type: 'cta_section', order: 3, props: {} },
+            { id: 'hero_1', type: 'vendor_hero', order: 0, props: getSiteDefaultsForComp('vendor_hero', ctx, bInfo) },
+            { id: 'gallery_1', type: 'vendor_gallery', order: 1, props: getSiteDefaultsForComp('vendor_gallery', ctx, bInfo) },
+            { id: 'services_1', type: 'vendor_services', order: 2, props: getSiteDefaultsForComp('vendor_services', ctx, bInfo) },
+            { id: 'cta_1', type: 'cta_section', order: 3, props: getSiteDefaultsForComp('cta_section', ctx, bInfo) },
           ]);
         }
       })
@@ -140,22 +220,33 @@ function MinisiteBuilderStudioContent() {
       if (selectedSlug) {
         const ref = await fetch(`/api/jana/minisite-layout?slug=${selectedSlug}`).then((r) => r.json());
         if (ref.allowedComponents) setAllowedComponents(ref.allowedComponents);
+        if (ref.siteContext) setSiteContext(ref.siteContext);
       }
     } catch (err: any) {
       alert(err.message || 'Error saving rules');
     }
   };
 
-  // Add Component to Canvas
+  // Add Component to Canvas with site-specific pre-populated properties
   const handleAddComponent = (type: MinisiteComponentType) => {
+    const siteDefaults = getSiteDefaultsForComp(type, siteContext, businessInfo);
     const newComp: MinisiteLayoutComponent = {
       id: `${type}_${Date.now()}`,
       type,
       order: components.length,
-      props: {},
+      props: siteDefaults,
     };
     setComponents([...components, newComp]);
     setSelectedCompId(newComp.id);
+  };
+
+  // Reset a specific component back to this site's current database defaults
+  const handleResetComponentToSiteDefaults = (comp: MinisiteLayoutComponent) => {
+    const siteDefaults = getSiteDefaultsForComp(comp.type, siteContext, businessInfo);
+    const updated = components.map((c) =>
+      c.id === comp.id ? { ...c, props: { ...siteDefaults } } : c
+    );
+    setComponents(updated);
   };
 
   // Move component up/down

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
-import { queryOne, execute } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import {
   COMPONENT_META,
   DEFAULT_TIER_RULES,
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Slug parameter is required' }, { status: 400 });
     }
 
-    // Lookup business
+    // Lookup business with all metadata
     const business = await queryOne<any>(
-      `SELECT b.id, b.name, b.slug, b.type_id, b.subscription_tier, b.is_master,
+      `SELECT b.*,
               bt.name as type_name
        FROM businesses b
        LEFT JOIN business_types bt ON b.type_id = bt.id
@@ -52,6 +52,16 @@ export async function GET(request: NextRequest) {
 
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    }
+
+    // Parse custom_data safely
+    let parsedCustomData: any = {};
+    try {
+      parsedCustomData = typeof business.custom_data === 'string'
+        ? JSON.parse(business.custom_data)
+        : (business.custom_data || {});
+    } catch {
+      parsedCustomData = {};
     }
 
     const tier: MinisiteTier = getBusinessTier(business);
@@ -70,6 +80,86 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Parallel fetch of site-specific database assets for this business
+    const [galleryRows, productRows, blogRows, expRows] = await Promise.all([
+      query<any>(
+        `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
+         FROM vendor_gallery 
+         WHERE business_id = ? AND approval_status = 'approved' AND show_on_minisite = 1
+         ORDER BY is_hero DESC, id DESC`,
+        [business.id]
+      ).catch(() => []),
+      query<any>(
+        `SELECT id, title, price, duration, image_url, category, description, is_featured, is_active
+         FROM tour_products 
+         WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1
+         ORDER BY is_featured DESC, created_at DESC`,
+        [business.id]
+      ).catch(() => []),
+      query<any>(
+        `SELECT id, title, content, excerpt, section_id, cover_image, published_at
+         FROM section_blogs 
+         WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1 
+         ORDER BY published_at DESC`,
+        [business.id]
+      ).catch(() => []),
+      query<any>(
+        `SELECT id, name, description, pricing, cover_image
+         FROM experience_packages 
+         WHERE active = 1 AND JSON_CONTAINS(CAST(business_ids AS JSON), JSON_QUOTE(?), '$') 
+         ORDER BY created_at DESC`,
+        [String(business.id)]
+      ).catch(() => []),
+    ]);
+
+    const normalizedExpPackages = (expRows || []).map((p: any) => {
+      const pr = typeof p.pricing === 'string' ? JSON.parse(p.pricing) : (p.pricing || {});
+      return {
+        id: p.id,
+        title: p.name,
+        description: p.description,
+        price: pr.package_price || pr.price || pr.base_price || 0,
+        category: pr.category || pr.vendor_category || 'package',
+        image_url: pr.cover_image || p.cover_image || null,
+        is_featured: pr.featured || false,
+      };
+    });
+
+    const combinedProducts = [...normalizedExpPackages, ...productRows];
+
+    // Extract structured services/amenities from custom_data
+    const vibe = parsedCustomData.vibe || parsedCustomData.sec_3_services || {};
+    const identity = {
+      ...(parsedCustomData.basic || {}),
+      ...(parsedCustomData.sec_1_identity || {}),
+      ...(parsedCustomData.business_info || {}),
+    };
+    const rawAmenities = vibe.amenities || identity.amenities || [];
+    let extractedServices: string[] = [];
+    if (Array.isArray(rawAmenities)) {
+      extractedServices = rawAmenities.map((a: any) =>
+        typeof a === 'object' ? a.name || a.label || JSON.stringify(a) : String(a)
+      );
+    } else if (typeof rawAmenities === 'string') {
+      extractedServices = rawAmenities.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    const siteContext = {
+      id: business.id,
+      name: business.name,
+      slug: business.slug,
+      phone: business.vendor_phone || identity.phone || identity.mobile || business.phone || '',
+      logo_url: identity.business_logo || identity.logo || business.logo_url || '',
+      cover_image: identity.cover_image || business.cover_image || '',
+      tagline: identity.tagline || business.tagline || '',
+      description: identity.description || business.description || '',
+      services: extractedServices,
+      gallery: galleryRows,
+      products: combinedProducts,
+      blogs: blogRows,
+      customData: parsedCustomData,
+    };
+
     return NextResponse.json({
       business: {
         id: business.id,
@@ -78,7 +168,12 @@ export async function GET(request: NextRequest) {
         type_id: business.type_id,
         type_name: business.type_name,
         tier,
+        phone: siteContext.phone,
+        logo_url: siteContext.logo_url,
+        cover_image: siteContext.cover_image,
+        description: siteContext.description,
       },
+      siteContext,
       layout,
       isFromTemplate,
       allowedComponents,
