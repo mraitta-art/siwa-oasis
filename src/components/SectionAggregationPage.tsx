@@ -76,7 +76,13 @@ interface SectionAggregationPageProps {
    * already handled the builder config check (e.g. CategorySearchPage).
    */
   skipBuilderFetch?: boolean;
+  /**
+   * Filter vendors strictly by category / typology (e.g. 'crafts-wellness', 'accommodation', 'restaurant')
+   * to guarantee children businesses strictly belong to their corresponding parent.
+   */
+  categoryFilter?: string;
 }
+
 
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -300,6 +306,7 @@ export default function SectionAggregationPage({
   showPartnerCta = true,
   topContent,
   skipBuilderFetch = false,
+  categoryFilter,
 }: SectionAggregationPageProps) {
 
   const [builderConfig, setBuilderConfig]   = useState<any>(null);
@@ -344,7 +351,8 @@ export default function SectionAggregationPage({
   // 2. Fetch aggregated vendor data
   const fetchVendors = useCallback((q: string) => {
     setVendorsLoading(true);
-    const url = `/api/section-vendors?section=${sectionId}${q ? `&search=${encodeURIComponent(q)}` : ''}`;
+    const catQuery = categoryFilter ? `&category=${encodeURIComponent(categoryFilter)}` : '';
+    const url = `/api/section-vendors?section=${sectionId}${catQuery}${q ? `&search=${encodeURIComponent(q)}` : ''}`;
     fetch(url)
       .then(r => r.ok ? r.json() : { vendors: [] })
       .then(data => {
@@ -355,7 +363,8 @@ export default function SectionAggregationPage({
       })
       .catch(() => setVendors([]))
       .finally(() => setVendorsLoading(false));
-  }, [sectionId]);
+  }, [sectionId, categoryFilter]);
+
 
   useEffect(() => { fetchVendors(''); }, [fetchVendors]);
   useEffect(() => { fetchVendors(debouncedSearch); }, [debouncedSearch, fetchVendors]);

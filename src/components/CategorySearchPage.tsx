@@ -131,6 +131,7 @@ export default function CategorySearchPage({
           ctaLabel={`Explore ${label}`}
           showPartnerCta
           skipBuilderFetch
+          categoryFilter={category}
         />
       </div>
     );
@@ -146,6 +147,8 @@ export default function CategorySearchPage({
       accentColor={accent}
       ctaLabel={`Explore ${label}`}
       showPartnerCta
+      categoryFilter={category}
     />
   );
 }
+

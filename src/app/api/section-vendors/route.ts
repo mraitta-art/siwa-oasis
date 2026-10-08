@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sectionId  = searchParams.get('section') || 'sec_1_identity';
+    const category   = (searchParams.get('category') || '').trim();
     const search     = (searchParams.get('search') || '').trim();
     const limit      = Math.min(parseInt(searchParams.get('limit') || '60', 10), 120);
 
@@ -19,11 +20,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid section ID' }, { status: 400 });
     }
 
+    let filterWhere = '';
+    const filterArgs: string[] = [];
+
+    // Typology / Category Parent-Child Filtering
+    if (category) {
+      const catLower = category.toLowerCase();
+      if (catLower.includes('craft') || catLower.includes('wellness') || catLower.includes('spa')) {
+        filterWhere += ` AND (LOWER(bt.id) IN ('sand_bath', 'crafts', 'wellness', 'herb', 'dates', 'olive_oil', 'salt_lamp') OR LOWER(bt.name) LIKE '%wellness%' OR LOWER(bt.name) LIKE '%craft%' OR LOWER(bt.name) LIKE '%bath%' OR LOWER(bt.name) LIKE '%spa%')`;
+      } else if (catLower.includes('accommodat') || catLower.includes('hotel') || catLower.includes('camp') || catLower.includes('lodge')) {
+        filterWhere += ` AND (LOWER(bt.id) IN ('hotel', 'camps', 'siwa_retreat', 'lodge', 'resort') OR LOWER(bt.name) LIKE '%hotel%' OR LOWER(bt.name) LIKE '%camp%' OR LOWER(bt.name) LIKE '%retreat%' OR LOWER(bt.name) LIKE '%lodge%')`;
+      } else if (catLower.includes('restaurant') || catLower.includes('food') || catLower.includes('dining') || catLower.includes('cafe')) {
+        filterWhere += ` AND (LOWER(bt.id) IN ('restaurant', 'cafe', 'kitchen', 'food') OR LOWER(bt.name) LIKE '%restaurant%' OR LOWER(bt.name) LIKE '%cafe%' OR LOWER(bt.name) LIKE '%dining%')`;
+      } else if (catLower.includes('tour') || catLower.includes('package') || catLower.includes('travel') || catLower.includes('safari')) {
+        filterWhere += ` AND (LOWER(bt.id) IN ('travel_agency', 'tour_operator', 'safari', 'guide') OR LOWER(bt.name) LIKE '%travel%' OR LOWER(bt.name) LIKE '%tour%' OR LOWER(bt.name) LIKE '%safari%')`;
+      } else {
+        filterWhere += ` AND (LOWER(bt.id) = ? OR LOWER(bt.name) LIKE ?)`;
+        filterArgs.push(catLower, `%${catLower}%`);
+      }
+    }
+
     const hasSearch   = search.length > 0;
-    const searchWhere = hasSearch ? `AND (b.name LIKE ? OR bt.name LIKE ?)` : '';
-    const searchArgs: string[] = hasSearch ? [`%${search}%`, `%${search}%`] : [];
+    const searchWhere = `${filterWhere} ${hasSearch ? `AND (b.name LIKE ? OR bt.name LIKE ?)` : ''}`;
+    const searchArgs: string[] = hasSearch ? [...filterArgs, `%${search}%`, `%${search}%`] : filterArgs;
 
     let vendors: any[] = [];
+
 
     // ─── Per-section aggregation SQL ─────────────────────────────────────────
 
