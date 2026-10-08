@@ -95,24 +95,48 @@ export default function MultiPageSiteBuilder() {
     const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  });
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
+    // Canonical 10 section pages always discoverable for admin
+    const CANONICAL_SYSTEM_PAGES: PageMeta[] = [
+
+
+      { slug: 'main', saved: true, type: 'page' },
+      { slug: 'activities', saved: false, type: 'page' },
+      { slug: 'accommodations', saved: false, type: 'page' },
+      { slug: 'restaurants', saved: false, type: 'page' },
+      { slug: 'packages', saved: false, type: 'page' },
+      { slug: 'services', saved: false, type: 'page' },
+      { slug: 'investment-opportunities', saved: false, type: 'page' },
+      { slug: 'offers', saved: false, type: 'page' },
+      { slug: 'crafts-wellness', saved: false, type: 'page' },
+      { slug: 'be-a-partner', saved: false, type: 'page' },
+    ];
+
+    // Initial data fetch
     fetch('/api/jana/website/list').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) {
-        setPages(data.map(p => {
-          const type_str = p.type || '';
-          if (type_str.startsWith('website_search_')) {
-            return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
-          } else {
-            return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
-          }
-        }));
-      }
-    }).catch(() => {});
+      const fetchedPages: PageMeta[] = Array.isArray(data) ? data.map(p => {
+        const type_str = p.type || '';
+        if (type_str.startsWith('website_search_')) {
+          return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
+        } else {
+          return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
+        }
+      }) : [];
+
+      // Merge canonical pages with DB saved states
+      const mergedMap = new Map<string, PageMeta>();
+      CANONICAL_SYSTEM_PAGES.forEach(cp => mergedMap.set(cp.slug, { ...cp }));
+      fetchedPages.forEach(fp => mergedMap.set(fp.slug, { ...fp, saved: true }));
+      setPages(Array.from(mergedMap.values()));
+    }).catch(() => {
+      setPages(CANONICAL_SYSTEM_PAGES);
+    });
 
     fetch('/api/jana/templates').then(r => r.json()).then(data => setTemplates(Array.isArray(data) ? data : [])).catch(() => {});
+
 
     fetch('/api/jana/component-library').then(r => r.json()).then(data => {
       setDynamic((Array.isArray(data) ? data : []).map(c => ({
@@ -508,13 +532,19 @@ export default function MultiPageSiteBuilder() {
                       </div>
                       {/* Quick actions */}
                       <div style={{ display:'flex', gap:'3px', flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-                        <a href={page.slug==='main'?'/':page.type==='search'?`/search/${page.slug}`:`/p/${page.slug}`} target="_blank" rel="noopener noreferrer" title="Preview"
+                        <a href={
+                          page.slug === 'main' ? '/' :
+                          page.type === 'search' ? `/search/${page.slug}` :
+                          ['activities','accommodations','restaurants','packages','services','investment-opportunities','offers','crafts-wellness','be-a-partner'].includes(page.slug) ? `/${page.slug}` :
+                          `/p/${page.slug}`
+                        } target="_blank" rel="noopener noreferrer" title="Preview"
                           style={iconBtn('#fff')}>👁</a>
-                        {page.slug !== 'main' && <>
+                        {page.slug !== 'main' && !['activities','accommodations','restaurants','packages','services','investment-opportunities','offers','crafts-wellness','be-a-partner'].includes(page.slug) && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
                           <button title="Delete" onClick={()=>{setDeleteTarget(page.slug);setShowDeleteModal(true);}} style={iconBtn('#ef4444','#ef444420','#ef444440')}>🗑</button>
                         </>}
                       </div>
+
                     </div>
                   );
                 })
