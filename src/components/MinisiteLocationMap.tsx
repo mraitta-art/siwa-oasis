@@ -48,8 +48,6 @@ export default function MinisiteLocationMap({
   stationaryUnitCode,
   primaryColor = '#D4AF37',
 }: LocationMapProps) {
-  const [mapMode, setMapMode] = useState<'roadmap' | 'satellite'>('roadmap');
-
   const lat = Number(latitude) || 29.2032;
   const lng = Number(longitude) || 25.5195;
   const hasCoordinates = Boolean(latitude && longitude);
@@ -62,9 +60,6 @@ export default function MinisiteLocationMap({
   const directGoogleMapsLink = googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${mapsSearchQuery}`;
   const directWazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
   const directAppleMapsLink = `https://maps.apple.com/?q=${mapsSearchQuery}&ll=${lat},${lng}`;
-
-  // Map Embed URL
-  const embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&t=${mapMode === 'satellite' ? 'k' : 'm'}&z=14&ie=UTF8&iwloc=&output=embed`;
 
   // Determine nearby landmarks
   const nearbyLandmarks = SIWA_LANDMARKS.map(lm => ({
@@ -122,78 +117,64 @@ export default function MinisiteLocationMap({
           </div>
         </div>
 
-        {/* MAP VIEW SWITCHER */}
-        <div style={{ display: 'flex', gap: '0.35rem', background: '#f8fafc', padding: '3px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <button
-            type="button"
-            onClick={() => setMapMode('roadmap')}
-            style={{
-              border: 0,
-              padding: '5px 12px',
-              borderRadius: '7px',
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: mapMode === 'roadmap' ? '#0f172a' : 'transparent',
-              color: mapMode === 'roadmap' ? '#fff' : '#64748b',
-              transition: 'all 0.2s'
-            }}
-          >
-            🗺️ Road
-          </button>
-          <button
-            type="button"
-            onClick={() => setMapMode('satellite')}
-            style={{
-              border: 0,
-              padding: '5px 12px',
-              borderRadius: '7px',
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: mapMode === 'satellite' ? '#0f172a' : 'transparent',
-              color: mapMode === 'satellite' ? '#fff' : '#64748b',
-              transition: 'all 0.2s'
-            }}
-          >
-            🛰️ Satellite
-          </button>
-        </div>
       </div>
 
-      {/* EMBEDDED MAP CONTAINER */}
-      <div style={{ position: 'relative', width: '100%', height: '320px', background: '#e2e8f0' }}>
-        <iframe
-          title={`Location of ${businessName}`}
-          src={embedUrl}
-          style={{ width: '100%', height: '100%', border: 0 }}
-          loading="lazy"
-          allowFullScreen
-        />
-
-        {/* STATIONARY UNIT / STATION BADGE */}
-        {(stationaryUnitCode || stationHubName) && (
-          <div style={{
-            position: 'absolute',
-            top: '12px',
-            left: '12px',
-            background: 'rgba(15, 23, 42, 0.92)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            padding: '6px 14px',
-            borderRadius: '50px',
-            border: `1px solid ${primaryColor}`,
-            fontSize: '0.75rem',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.35)'
-          }}>
-            <span style={{ color: primaryColor }}>📍</span>
-            <span>{stationaryUnitCode ? `Unit: ${stationaryUnitCode}` : stationHubName}</span>
+      {/* DIRECT GPS & ROUTE CARD (NO BLOCKED IFRAME) */}
+      <div
+        style={{
+          position: 'relative',
+          padding: '2rem 1.75rem',
+          background: 'linear-gradient(135deg, #090e17 0%, #1e293b 100%)',
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '4px 10px', borderRadius: '50px', background: 'rgba(212,175,55,0.15)', border: `1px solid rgba(212,175,55,0.3)`, color: '#D4AF37', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>
+              <i className="fas fa-location-crosshairs" /> Verified Oasis Coordinates
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc' }}>
+              {businessName}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+              {address || 'Siwa Oasis, Matrouh Governorate, Egypt'}
+            </div>
           </div>
-        )}
+
+          {(stationaryUnitCode || stationHubName) && (
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(10px)',
+                padding: '6px 14px',
+                borderRadius: '50px',
+                border: `1px solid ${primaryColor}`,
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: '#fff',
+              }}
+            >
+              <span style={{ color: primaryColor }}>📍</span>
+              <span>{stationaryUnitCode ? `Unit: ${stationaryUnitCode}` : stationHubName}</span>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem' }}>
+          <div style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <i className="fas fa-satellite" style={{ color: '#D4AF37' }} />
+            <span>GPS Pin: <strong>{lat.toFixed(4)}° N, {lng.toFixed(4)}° E</strong></span>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+            Direct GPS routing active • 1-click navigation links below
+          </div>
+        </div>
       </div>
 
       {/* ACTION & DETAILS BAR */}

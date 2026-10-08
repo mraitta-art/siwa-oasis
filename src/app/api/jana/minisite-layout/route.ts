@@ -37,18 +37,35 @@ export async function GET(request: NextRequest) {
 
     const isOverview = searchParams.get('overview') === '1';
     if (isOverview) {
-      // Parallel fetch of all businesses and all existing minisite layout records
-      const [allBiz, allConfigs] = await Promise.all([
-        query<any>(
-          `SELECT b.id, b.name, b.slug, b.type_id, b.subscription_tier, b.logo_url, b.cover_image, bt.name as type_name
+      let bizError: string | null = null;
+      let cfgError: string | null = null;
+      let allBiz: any[] = [];
+
+      try {
+        allBiz = await query<any>(
+          `SELECT b.*, bt.name as type_name
            FROM businesses b
            LEFT JOIN business_types bt ON b.type_id = bt.id
            ORDER BY b.name ASC`
-        ).catch(() => []),
-        query<any>(
-          `SELECT type, config FROM website_configs WHERE type LIKE 'minisite_layout_%'`
-        ).catch(() => []),
-      ]);
+        );
+      } catch (err1: any) {
+        try {
+          allBiz = await query<any>(
+            `SELECT * FROM businesses ORDER BY name ASC`
+          );
+          bizError = `Join failed, fallback succeeded: ${err1?.message || err1}`;
+        } catch (err2: any) {
+          bizError = `Primary: ${err1?.message || err1} | Fallback: ${err2?.message || err2}`;
+          allBiz = [];
+        }
+      }
+
+      const allConfigs = await query<any>(
+        `SELECT type, config FROM website_configs WHERE type LIKE 'minisite_layout_%'`
+      ).catch((err: any) => {
+        cfgError = err?.message || String(err);
+        return [];
+      });
 
       // Map existing layouts by slug
       const layoutMap = new Map<string, { mode: string; updatedAt?: string; componentsCount: number }>();
@@ -106,6 +123,7 @@ export async function GET(request: NextRequest) {
           builderCount: existingLayouts.length,
           sectionalCount: availableForBuilder.length,
         },
+        _debug: { bizError, cfgError },
       });
     }
 

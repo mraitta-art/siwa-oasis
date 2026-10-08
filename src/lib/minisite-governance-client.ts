@@ -102,7 +102,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
 
 export const COMPONENT_META: Record<
   MinisiteComponentType,
-  { label: string; icon: string; description: string; vendorScoped: boolean; tier: MinisiteTier }
+  { label: string; icon: string; description: string; vendorScoped: boolean; tier: MinisiteTier; mainSitePages: string[]; canonicalSections: string[] }
 > = {
   vendor_hero: {
     label: 'Brand Hero & Cover',
@@ -110,6 +110,8 @@ export const COMPONENT_META: Record<
     description: 'Header with logo, banner, rating, verified badge, and contact action.',
     vendorScoped: true,
     tier: 'free',
+    mainSitePages: ['/'],
+    canonicalSections: ['sec_1_identity'],
   },
   vendor_gallery: {
     label: 'Visual Media Gallery',
@@ -117,6 +119,8 @@ export const COMPONENT_META: Record<
     description: 'Responsive media grid showcasing vendor photographs and spaces.',
     vendorScoped: true,
     tier: 'free',
+    mainSitePages: ['/'],
+    canonicalSections: ['sec_1_identity', 'sec_2_ambience', 'sec_3_facilities', 'sec_4_gastronomy', 'sec_5_experiences', 'sec_9_marketplace_catalog'],
   },
   text_section: {
     label: 'Narrative & Rich Text',
@@ -124,6 +128,8 @@ export const COMPONENT_META: Record<
     description: 'Custom rich text, story block, or about paragraph.',
     vendorScoped: false,
     tier: 'free',
+    mainSitePages: ['*'],
+    canonicalSections: ['sec_1_identity', 'sec_2_ambience', 'sec_3_facilities', 'sec_4_gastronomy', 'sec_6_guardian', 'sec_7_investment', 'sec_8_connector', 'sec_9_marketplace_catalog', 'sec_10_testimonials_faqs'],
   },
   cta_section: {
     label: 'Direct Action Callout',
@@ -131,6 +137,8 @@ export const COMPONENT_META: Record<
     description: 'Conversion banner with custom button, call or booking redirect.',
     vendorScoped: false,
     tier: 'free',
+    mainSitePages: ['*'],
+    canonicalSections: ['sec_1_identity', 'sec_4_gastronomy', 'sec_5_experiences', 'sec_7_investment', 'sec_8_connector', 'sec_9_marketplace_catalog', 'sec_10_testimonials_faqs'],
   },
   vendor_services: {
     label: 'Service & Amenity Cards',
@@ -138,6 +146,8 @@ export const COMPONENT_META: Record<
     description: 'Curated list of amenities, features, or core service offerings.',
     vendorScoped: true,
     tier: 'free',
+    mainSitePages: ['/accommodations', '/services'],
+    canonicalSections: ['sec_3_facilities', 'sec_4_gastronomy'],
   },
   vendor_packages: {
     label: 'Packages & Catalog',
@@ -145,6 +155,8 @@ export const COMPONENT_META: Record<
     description: 'Bookable tours, packages, or product catalog showcase.',
     vendorScoped: true,
     tier: 'free',
+    mainSitePages: ['/packages', '/offers'],
+    canonicalSections: ['sec_5_experiences', 'sec_8_connector', 'sec_9_marketplace_catalog'],
   },
   vendor_blog: {
     label: 'Stories & Insights',
@@ -152,6 +164,8 @@ export const COMPONENT_META: Record<
     description: 'Published articles, updates, and desert guides by this vendor.',
     vendorScoped: true,
     tier: 'free',
+    mainSitePages: ['/blog'],
+    canonicalSections: ['sec_1_identity', 'sec_2_ambience', 'sec_4_gastronomy', 'sec_5_experiences', 'sec_6_guardian', 'sec_7_investment', 'sec_9_marketplace_catalog'],
   },
   faq: {
     label: 'Accordion FAQ',
@@ -159,6 +173,8 @@ export const COMPONENT_META: Record<
     description: 'Frequently asked questions with expandable answers.',
     vendorScoped: false,
     tier: 'free',
+    mainSitePages: ['*'],
+    canonicalSections: ['sec_6_guardian', 'sec_10_testimonials_faqs'],
   },
   testimonials: {
     label: 'Endorsements & Reviews',
@@ -166,6 +182,8 @@ export const COMPONENT_META: Record<
     description: 'Client reviews, trust quotes, and guest experiences.',
     vendorScoped: false,
     tier: 'free',
+    mainSitePages: ['*'],
+    canonicalSections: ['sec_10_testimonials_faqs'],
   },
   vendor_carousel: {
     label: 'Private Hero Carousel',
@@ -173,6 +191,8 @@ export const COMPONENT_META: Record<
     description: 'Cinematic sliding carousel isolated specifically to this vendor.',
     vendorScoped: true,
     tier: 'premium',
+    mainSitePages: ['*'],
+    canonicalSections: ['sec_2_ambience'],
   },
   auctions_feed: {
     label: 'Commercial Deals & Auction',
@@ -180,5 +200,22 @@ export const COMPONENT_META: Record<
     description: 'Platform commercial auction feeds or exclusive bids.',
     vendorScoped: false,
     tier: 'admin',
+    mainSitePages: ['/investment-opportunities', '/offers'],
+    canonicalSections: ['sec_7_investment'],
   },
 };
+
+/** Canonical section label map for bridge display */
+export const CANONICAL_SECTION_LABELS: Record<string, { label: string; emoji: string; color: string; mainSiteUrl: string }> = {
+  sec_1_identity:            { label: 'Identity & Overview',        emoji: '🏷️', color: '#2563eb', mainSiteUrl: '/' },
+  sec_2_ambience:            { label: 'Vibe & Ambience',            emoji: '✨', color: '#f59e0b', mainSiteUrl: '/activities' },
+  sec_3_facilities:          { label: 'Facilities & Amenities',     emoji: '🏢', color: '#0ea5e9', mainSiteUrl: '/accommodations' },
+  sec_4_gastronomy:          { label: 'Services & Gastronomy',      emoji: '🛠️', color: '#f97316', mainSiteUrl: '/restaurants' },
+  sec_5_experiences:         { label: 'Programs & Experiences',     emoji: '🧭', color: '#16a34a', mainSiteUrl: '/packages' },
+  sec_6_guardian:            { label: 'Structure & Operations',     emoji: '⚙️', color: '#64748b', mainSiteUrl: '/services' },
+  sec_7_investment:          { label: 'Investment & Partnerships',  emoji: '📈', color: '#7c3aed', mainSiteUrl: '/investment-opportunities' },
+  sec_8_connector:           { label: 'Offers, Packages & Discounts', emoji: '🏷️', color: '#dc2626', mainSiteUrl: '/offers' },
+  sec_9_marketplace_catalog: { label: 'Media & Marketplace',        emoji: '🛍️', color: '#0891b2', mainSiteUrl: '/activities' },
+  sec_10_testimonials_faqs:  { label: 'Contact, Policies & Trust',  emoji: '💬', color: '#059669', mainSiteUrl: '/be-a-partner' },
+};
+

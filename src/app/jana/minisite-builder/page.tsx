@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   COMPONENT_META,
+  CANONICAL_SECTION_LABELS,
   MinisiteComponentType,
   MinisiteMode,
   MinisiteTier,
@@ -148,7 +149,7 @@ function MinisiteBuilderStudioContent() {
     availableForBuilder: any[];
     stats: { total: number; builderCount: number; sectionalCount: number };
   } | null>(null);
-  const [hubTab, setHubTab] = useState<'update' | 'create'>('update');
+  const [hubTab, setHubTab] = useState<'update' | 'create' | 'bridges'>('update');
   const [searchQuery, setSearchQuery] = useState('');
   const [isExistingLayout, setIsExistingLayout] = useState(false);
 
@@ -156,12 +157,52 @@ function MinisiteBuilderStudioContent() {
   const loadOverview = async () => {
     try {
       const res = await fetch('/api/jana/minisite-layout?overview=1');
-      if (res.ok) {
-        const data = await res.json();
+      let data = res.ok ? await res.json() : null;
+      let existingList = data?.existingLayouts || [];
+      let availableList = data?.availableForBuilder || [];
+
+      // Fallback if overview query returned 0 businesses
+      if (existingList.length === 0 && availableList.length === 0) {
+        try {
+          const fbRes = await fetch('/api/jana/businesses');
+          if (fbRes.ok) {
+            const rawBizList = await fbRes.json();
+            if (Array.isArray(rawBizList) && rawBizList.length > 0) {
+              availableList = rawBizList.map((b: any) => ({
+                id: b.id,
+                name: b.name,
+                slug: b.slug || b.id,
+                type_id: b.type_id,
+                type_name: b.type_name || 'Generic Typology',
+                subscription_tier: b.subscription_tier || 'free',
+                tier: b.subscription_tier || 'free',
+                logo_url: b.logo_url || null,
+                cover_image: b.cover_image || null,
+                hasLayout: false,
+                layoutMode: null,
+                layoutUpdatedAt: null,
+                componentsCount: 0,
+              }));
+              data = {
+                existingLayouts: [],
+                availableForBuilder: availableList,
+                stats: {
+                  total: availableList.length,
+                  builderCount: 0,
+                  sectionalCount: availableList.length,
+                },
+              };
+            }
+          }
+        } catch (fbErr) {
+          console.warn('Fallback to /api/jana/businesses failed:', fbErr);
+        }
+      }
+
+      if (data) {
         setOverviewData(data);
-        const combined = [...(data.existingLayouts || []), ...(data.availableForBuilder || [])];
+        const combined = [...(data.existingLayouts || existingList), ...(data.availableForBuilder || availableList)];
         setBusinesses(combined);
-        // Default to create tab if there are no existing builder layouts yet
         if ((!data.existingLayouts || data.existingLayouts.length === 0) && (data.availableForBuilder?.length > 0)) {
           setHubTab('create');
         }
@@ -622,6 +663,31 @@ function MinisiteBuilderStudioContent() {
                 {overviewData?.stats?.sectionalCount ?? 0}
               </span>
             </button>
+
+            <button
+              onClick={() => setHubTab('bridges')}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: hubTab === 'bridges' ? '#0f172a' : 'transparent',
+                color: hubTab === 'bridges' ? '#ffffff' : '#64748b',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: hubTab === 'bridges' ? '0 4px 12px rgba(15,23,42,0.15)' : 'none',
+                transition: 'all 0.2s',
+              }}
+            >
+              <i className="fas fa-network-wired" style={{ color: hubTab === 'bridges' ? '#38bdf8' : '#94a3b8' }} />
+              {lang === 'ar' ? 'جسور الأقسام والموقع الرئيسي' : 'Section & Main-Site Bridges'}
+              <span style={{ fontSize: '0.75rem', padding: '2px 7px', borderRadius: '50px', background: hubTab === 'bridges' ? 'rgba(255,255,255,0.2)' : '#e2e8f0', color: hubTab === 'bridges' ? '#fff' : '#64748b' }}>
+                10
+              </span>
+            </button>
           </div>
 
           {/* Search Box */}
@@ -1067,6 +1133,205 @@ function MinisiteBuilderStudioContent() {
             )}
           </div>
         )}
+
+        {/* TAB 3: SECTION & MAIN-SITE BRIDGES ARCHITECTURE */}
+        {hubTab === 'bridges' && (
+          <div>
+            {/* Banner explaining the Section Mini-Hub Architecture */}
+            <div
+              style={{
+                padding: '1.5rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
+                color: '#ffffff',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1.25rem',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              }}
+            >
+              <div
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: '14px',
+                  background: 'rgba(212, 175, 55, 0.15)',
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                  color: '#D4AF37',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.6rem',
+                  flexShrink: 0,
+                }}
+              >
+                <i className="fas fa-network-wired" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
+                  <span style={{ fontSize: '0.72rem', background: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37', border: '1px solid rgba(212, 175, 55, 0.4)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                    CROSS-HUB ARCHITECTURE
+                  </span>
+                  <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                    <i className="fas fa-check-circle" style={{ marginRight: '4px' }} />
+                    Zero Data Duplication
+                  </span>
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#f8fafc' }}>
+                  {lang === 'ar' ? 'جسور الأقسام الموحدة: الميني سايت كبوابة مخصصة للموقع الرئيسي' : 'Sectional Mini-Hub to Main-Site Bridge Registry'}
+                </h3>
+                <p style={{ margin: '0.35rem 0 0', fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.5, maxWidth: '850px' }}>
+                  {lang === 'ar'
+                    ? 'كل قسم في الميني سايت هو بمثابة نافذة مخصصة (Mini Hub) تعكس نفس بيانات وقسم الموقع الرئيسي لنفس النشاط. على سبيل المثال، قسم الباقات في الميني سايت يقرأ من نفس جدول باقات الموقع الرئيسي، والتعديل يظهر في الاثنين معاً.'
+                    : 'Each business minisite section functions as a scoped Mini Hub to the corresponding main site section. Data is shared from the same single source of truth: tour packages, catalog items, and galleries seamlessly connect both domains.'}
+                </p>
+              </div>
+            </div>
+
+            {/* 10 Canonical Sections Bridge Matrix Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+              {Object.entries(CANONICAL_SECTION_LABELS).map(([secId, sec]) => {
+                const linkedComponents = Object.entries(COMPONENT_META).filter(([, comp]) =>
+                  comp.canonicalSections?.includes(secId)
+                );
+
+                return (
+                  <div
+                    key={secId}
+                    style={{
+                      borderRadius: '16px',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      padding: '1.35rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div>
+                      {/* Section Top Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <span style={{ fontSize: '1.5rem' }}>{sec.emoji}</span>
+                          <div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                              {sec.label}
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: sec.color, fontWeight: 800, background: `${sec.color}15`, padding: '1px 6px', borderRadius: '4px' }}>
+                              {secId}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Main Site Mirror Pill */}
+                        <a
+                          href={sec.mainSiteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            color: '#2563eb',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          title="Open Main Site Equivalent"
+                        >
+                          <i className="fas fa-globe" />
+                          <span>{sec.mainSiteUrl}</span>
+                          <i className="fas fa-external-link-alt" style={{ fontSize: '0.6rem' }} />
+                        </a>
+                      </div>
+
+                      {/* Bridge Summary */}
+                      <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.85rem', border: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <i className="fas fa-database" style={{ color: '#10b981' }} />
+                          <span>Storage:</span>
+                          <code style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 700 }}>
+                            {secId === 'sec_5_experiences' || secId === 'sec_8_connector'
+                              ? 'tour_products'
+                              : secId === 'sec_9_marketplace_catalog'
+                              ? 'marketplace_items'
+                              : secId === 'sec_2_ambience' || secId === 'sec_3_facilities' || secId === 'sec_4_gastronomy'
+                              ? 'vendor_gallery'
+                              : 'businesses'}
+                          </code>
+                          <span style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 800, fontSize: '0.68rem' }}>
+                            🟢 2-Way Synced
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Compatible Minisite Builder Components */}
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
+                          Compatible Builder Components:
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                          {linkedComponents.map(([compKey, compMeta]) => (
+                            <span
+                              key={compKey}
+                              style={{
+                                fontSize: '0.7rem',
+                                padding: '3px 7px',
+                                borderRadius: '6px',
+                                background: '#f1f5f9',
+                                color: '#334155',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <i className={`fas ${compMeta.icon}`} style={{ fontSize: '0.65rem', color: '#D4AF37' }} />
+                              {compMeta.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Action */}
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Canonical Section {secId.replace('sec_', '#')}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setHubTab('create');
+                        }}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          color: '#0f172a',
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Apply to Entities →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
 
         {/* Governance Matrix Modal */}
         {showGovernanceModal && (
@@ -1681,8 +1946,15 @@ function MinisiteBuilderStudioContent() {
                       <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
                         {meta.label}
                       </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'capitalize' }}>
-                        {meta.tier} Tier
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'capitalize' }}>
+                          {meta.tier} Tier
+                        </span>
+                        {meta.mainSitePages && meta.mainSitePages[0] && (
+                          <span style={{ fontSize: '0.62rem', background: '#eff6ff', color: '#2563eb', padding: '1px 4px', borderRadius: '4px', fontWeight: 700 }}>
+                            🌐 {meta.mainSitePages[0]}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1814,8 +2086,20 @@ function MinisiteBuilderStudioContent() {
                         <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
                           {meta.label}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                          Type: <code>{comp.type}</code>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '2px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                            Type: <code>{comp.type}</code>
+                          </span>
+                          {meta.mainSitePages && meta.mainSitePages[0] && (
+                            <span style={{ fontSize: '0.65rem', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <i className="fas fa-link" style={{ fontSize: '0.55rem' }} /> Mirrors {meta.mainSitePages[0]}
+                            </span>
+                          )}
+                          {meta.canonicalSections && meta.canonicalSections[0] && (
+                            <span style={{ fontSize: '0.65rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              {meta.canonicalSections[0]}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

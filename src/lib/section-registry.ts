@@ -32,17 +32,18 @@ export const LEGACY_SECTION_ALIASES: Record<string, CanonicalSectionId> = {
 };
 
 export const CANONICAL_SECTIONS = [
-  { id: 'sec_1_identity', name: 'Identity & Overview', label: 'Identity', emoji: '🏷️', color: '#2563eb', icon: 'fa-landmark', order: 1 },
-  { id: 'sec_2_ambience', name: 'Vibe & Experience', label: 'Vibe', emoji: '✨', color: '#f59e0b', icon: 'fa-sun', order: 2 },
-  { id: 'sec_3_facilities', name: 'Facilities & Amenities', label: 'Facilities', emoji: '🏢', color: '#0ea5e9', icon: 'fa-swimming-pool', order: 3 },
-  { id: 'sec_4_gastronomy', name: 'Services & Activities', label: 'Services', emoji: '🛠️', color: '#f97316', icon: 'fa-utensils', order: 4 },
-  { id: 'sec_5_experiences', name: 'Programs & Experiences', label: 'Experiences', emoji: '🧭', color: '#16a34a', icon: 'fa-hiking', order: 5 },
-  { id: 'sec_6_guardian', name: 'Structure & Operations', label: 'Operations', emoji: '⚙️', color: '#64748b', icon: 'fa-building', order: 6 },
-  { id: 'sec_7_investment', name: 'Investment & Partnerships', label: 'Investment', emoji: '📈', color: '#7c3aed', icon: 'fa-chart-line', order: 7 },
-  { id: 'sec_8_connector', name: 'Offers, Packages & Discounts', label: 'Offers', emoji: '🏷️', color: '#dc2626', icon: 'fa-tags', order: 8 },
-  { id: 'sec_9_marketplace_catalog', name: 'Media & Marketplace', label: 'Marketplace', emoji: '🛍️', color: '#0891b2', icon: 'fa-store', order: 9 },
-  { id: 'sec_10_testimonials_faqs', name: 'Contact, Policies & Trust', label: 'Trust', emoji: '💬', color: '#059669', icon: 'fa-comments', order: 10 },
+  { id: 'sec_1_identity', name: 'Identity & Overview', label: 'Identity', emoji: '🏷️', color: '#2563eb', icon: 'fa-landmark', order: 1, mainSiteUrl: '/', mainSiteLabel: 'Homepage Directory', primaryTable: 'businesses', componentType: 'vendor_hero', sharedHub: true },
+  { id: 'sec_2_ambience', name: 'Vibe & Experience', label: 'Vibe', emoji: '✨', color: '#f59e0b', icon: 'fa-sun', order: 2, mainSiteUrl: '/activities', mainSiteLabel: 'Activities & Ambience', primaryTable: 'vendor_gallery', componentType: 'vendor_gallery', sharedHub: true },
+  { id: 'sec_3_facilities', name: 'Facilities & Amenities', label: 'Facilities', emoji: '🏢', color: '#0ea5e9', icon: 'fa-swimming-pool', order: 3, mainSiteUrl: '/accommodations', mainSiteLabel: 'Accommodations & Facilities', primaryTable: 'vendor_gallery', componentType: 'vendor_services', sharedHub: true },
+  { id: 'sec_4_gastronomy', name: 'Services & Activities', label: 'Services', emoji: '🛠️', color: '#f97316', icon: 'fa-utensils', order: 4, mainSiteUrl: '/restaurants', mainSiteLabel: 'Restaurants & Dining', primaryTable: 'vendor_gallery', componentType: 'vendor_services', sharedHub: true },
+  { id: 'sec_5_experiences', name: 'Programs & Experiences', label: 'Experiences', emoji: '🧭', color: '#16a34a', icon: 'fa-hiking', order: 5, mainSiteUrl: '/packages', mainSiteLabel: 'Packages & Journeys', primaryTable: 'tour_products', componentType: 'vendor_packages', sharedHub: true },
+  { id: 'sec_6_guardian', name: 'Structure & Operations', label: 'Operations', emoji: '⚙️', color: '#64748b', icon: 'fa-building', order: 6, mainSiteUrl: '/services', mainSiteLabel: 'Services Hub', primaryTable: 'businesses', componentType: 'text_section', sharedHub: true },
+  { id: 'sec_7_investment', name: 'Investment & Partnerships', label: 'Investment', emoji: '📈', color: '#7c3aed', icon: 'fa-chart-line', order: 7, mainSiteUrl: '/investment-opportunities', mainSiteLabel: 'Investment Opportunities', primaryTable: 'businesses', componentType: 'text_section', sharedHub: true },
+  { id: 'sec_8_connector', name: 'Offers, Packages & Discounts', label: 'Offers', emoji: '🏷️', color: '#dc2626', icon: 'fa-tags', order: 8, mainSiteUrl: '/offers', mainSiteLabel: 'Offers & Discounts', primaryTable: 'tour_products', componentType: 'vendor_packages', sharedHub: true },
+  { id: 'sec_9_marketplace_catalog', name: 'Media & Marketplace', label: 'Marketplace', emoji: '🛍️', color: '#0891b2', icon: 'fa-store', order: 9, mainSiteUrl: '/activities', mainSiteLabel: 'Platform Marketplace', primaryTable: 'marketplace_items', componentType: 'vendor_packages', sharedHub: true },
+  { id: 'sec_10_testimonials_faqs', name: 'Contact, Policies & Trust', label: 'Trust', emoji: '💬', color: '#059669', icon: 'fa-comments', order: 10, mainSiteUrl: '/be-a-partner', mainSiteLabel: 'Trust & Policies', primaryTable: 'businesses', componentType: 'testimonials', sharedHub: true },
 ] as const;
+
 
 export const TRAVEL_AGENCY_CORE_SECTION_IDS = [
   'sec_1_identity',

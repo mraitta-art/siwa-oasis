@@ -892,10 +892,13 @@ export default function VanityBusinessClient({
                     (() => {
                       const maskedFields: string[] = (data as any)?.masked_fields || [];
                       const getMarketplaceWhatsAppUrl = (item: any) => {
-                        const itemTitle = item.title || 'Experience';
-                        const priceText = item.price ? ` ($${item.price})` : '';
-                        const text = encodeURIComponent(`Hello! I would like to book or inquire about: ${itemTitle}${priceText} from ${biz.name}.`);
-                        return `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${text}`;
+                        const itemTitle = item?.title || 'Experience';
+                        const priceText = item?.price ? ` ($${item.price})` : '';
+                        const isArabic = minisiteLang === 'ar';
+                        const text = isArabic
+                          ? `مرحباً ${biz.name}، أود الاستفسار والحجز المباشر لـ: ${itemTitle}${priceText}، وللحصول على خصم الحجز المباشر عبر منصة SiWiFy.`
+                          : `Hello ${biz.name}! I would like to book directly via SiWiFy for "${itemTitle}"${priceText} and claim your direct reservation discount.`;
+                        return `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${encodeURIComponent(text)}`;
                       };
                       const defaultBlockSequence = ['carousel', 'blog', 'fields', 'components', 'marketplace', 'tours', 'gallery'];
                       const activeBlockSequence: string[] = (() => {
@@ -1192,28 +1195,172 @@ export default function VanityBusinessClient({
                           if (!item.publish_on_minisite) return false;
                           if (item.section_id) return item.section_id === section.id;
                           return (
+                            section.id === 'sec_2_ambience' ||
                             section.id === 'sec_5_experiences' ||
                             section.id === 'sec_3_facilities' ||
                             section.id === 'sec_9_marketplace_catalog'
                           );
                         });
 
-                        if (sectionItems.length === 0) return null;
+                        const isArabic = minisiteLang === 'ar';
+
+                        if (sectionItems.length === 0) {
+                          // Render the Direct Reservation & Price Offers callout when no specific catalog items are mapped to this section
+                          const directDiscountMsg = isArabic
+                            ? `مرحباً ${biz.name}، أتواصل معكم مباشرة عبر SiWiFy للاستفسار عن أسعار الغرف والإقامة وتأكيد الحجز المباشر للحصول على خصم الحجز الفوري.`
+                            : `Hello ${biz.name}, I am contacting you directly via SiWiFy to check your latest reservation rates, room availability, and claim the direct booking discount.`;
+                          const directWaUrl = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${encodeURIComponent(directDiscountMsg)}`;
+
+                          return (
+                            <div
+                              id="booking-offers"
+                              key={`${section.id}_marketplace_direct_banner`}
+                              style={{
+                                marginTop: '3rem',
+                                marginBottom: '3rem',
+                                background: 'linear-gradient(135deg, #090e17 0%, #1e293b 100%)',
+                                borderRadius: '24px',
+                                padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                border: '1.5px solid rgba(212,175,55,0.4)',
+                                boxShadow: '0 20px 40px -15px rgba(0,0,0,0.25)',
+                                color: '#fff',
+                                position: 'relative',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <div style={{
+                                position: 'absolute',
+                                top: '-40px',
+                                right: '-40px',
+                                width: '180px',
+                                height: '180px',
+                                background: 'radial-gradient(circle, rgba(212,175,55,0.2) 0%, transparent 70%)',
+                                pointerEvents: 'none',
+                              }} />
+
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '4px 12px', borderRadius: '50px', background: 'rgba(212,175,55,0.18)', border: '1px solid rgba(212,175,55,0.4)', color: '#D4AF37', fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                  <i className="fas fa-tag" /> {isArabic ? 'ميزة الحجز المباشر المضمون' : 'Direct Booking Privilege'}
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: '50px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}>
+                                  ✓ {isArabic ? 'عمولة 0% · أفضل سعر مباشر' : '0% Commission · Best Direct Rate Guarantee'}
+                                </span>
+                              </div>
+
+                              <h3 style={{ margin: '0 0 0.5rem', fontSize: 'clamp(1.3rem, 2.5vw, 1.7rem)', fontWeight: 900, color: '#f8fafc' }}>
+                                {isArabic ? `احجز مباشرة مع ${biz.name} واحصل على أفضل الأسعار والخصومات` : `Direct Reservation & Rates with ${biz.name}`}
+                              </h3>
+                              <p style={{ margin: '0 0 1.75rem', fontSize: '0.92rem', color: '#cbd5e1', lineHeight: 1.6, maxWidth: '680px' }}>
+                                {isArabic
+                                  ? 'تواصل مباشرة مع المضيف لحجز إقامتك بدون وسيط. اتصل هاتفياً أو أرسل رسالة واتساب للحصول على عروض الأسعار المخفضة وتأكيد الحجز الفوري.'
+                                  : 'Skip third-party commission fees and unlock direct host discounts. Call directly or message on WhatsApp to check room rates and claim your direct booking price advantage.'}
+                              </p>
+
+                              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                {cleanWhatsapp && (
+                                  <a
+                                    href={directWaUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.6rem',
+                                      padding: '0.85rem 1.5rem',
+                                      borderRadius: '14px',
+                                      background: '#25D366',
+                                      color: '#fff',
+                                      fontWeight: 900,
+                                      fontSize: '0.88rem',
+                                      textDecoration: 'none',
+                                      boxShadow: '0 6px 20px rgba(37,211,102,0.35)',
+                                      transition: 'transform 0.2s',
+                                    }}
+                                  >
+                                    <i className="fab fa-whatsapp" style={{ fontSize: '1.2rem' }} />
+                                    <span>{isArabic ? 'حجز مباشر عبر واتساب (أفضل سعر)' : 'WhatsApp Direct Booking (Best Rate)'}</span>
+                                  </a>
+                                )}
+
+                                {cleanPhone && (
+                                  <a
+                                    href={`tel:${cleanPhone}`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.6rem',
+                                      padding: '0.85rem 1.5rem',
+                                      borderRadius: '14px',
+                                      background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+                                      color: '#1a1000',
+                                      fontWeight: 900,
+                                      fontSize: '0.88rem',
+                                      textDecoration: 'none',
+                                      boxShadow: '0 6px 20px rgba(212,175,55,0.3)',
+                                      transition: 'transform 0.2s',
+                                    }}
+                                  >
+                                    <i className="fas fa-phone-alt" style={{ fontSize: '0.95rem' }} />
+                                    <span>{isArabic ? `اتصل مباشرة: ${dynamicPhone}` : `Call Direct: ${dynamicPhone}`}</span>
+                                  </a>
+                                )}
+
+                                {activeSections.some(s => s.id === 'sec_9_marketplace_catalog' || s.id === 'sec_5_experiences') && (
+                                  <button
+                                    onClick={() => {
+                                      const target = activeSections.some(s => s.id === 'sec_9_marketplace_catalog') ? 'sec_9_marketplace_catalog' : 'sec_5_experiences';
+                                      try { window.history.pushState(null, '', `/${slug}/${target}`); } catch {}
+                                      setActiveTab(target);
+                                      const navEl = document.querySelector('nav');
+                                      if (navEl) navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      padding: '0.85rem 1.3rem',
+                                      borderRadius: '14px',
+                                      background: 'rgba(255,255,255,0.08)',
+                                      border: '1px solid rgba(255,255,255,0.2)',
+                                      color: '#fff',
+                                      fontWeight: 800,
+                                      fontSize: '0.82rem',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    <i className="fas fa-list-ul" style={{ color: '#D4AF37' }} />
+                                    <span>{isArabic ? 'استعراض باقات الأسعار' : 'View Price Packages →'}</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
 
                         return (
-                          <div key={`${section.id}_marketplace_block`} style={{ marginTop: '3rem', marginBottom: '3rem' }}>
+                          <div id="booking-offers" key={`${section.id}_marketplace_block`} style={{ marginTop: '3rem', marginBottom: '3rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                               <div>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', textTransform: 'uppercase' }}>
-                                  AVAILABLE PACKAGES & OFFERS
+                                  AVAILABLE PACKAGES & DIRECT OFFERS
                                 </div>
                                 <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
                                   Book Directly With {biz.name}
                                 </h3>
                               </div>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: '50px', background: 'rgba(212,175,55,0.12)', color: '#92400e', border: '1px solid rgba(212,175,55,0.3)' }}>
-                                0% Platform Fee · Direct WhatsApp
-                              </span>
+                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: '50px', background: 'rgba(212,175,55,0.12)', color: '#92400e', border: '1px solid rgba(212,175,55,0.3)' }}>
+                                  0% Platform Fee · Direct WhatsApp
+                                </span>
+                                {cleanPhone && (
+                                  <a
+                                    href={`tel:${cleanPhone}`}
+                                    style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: '50px', background: '#0f172a', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                  >
+                                    <i className="fas fa-phone-alt" style={{ color: '#D4AF37', fontSize: '0.7rem' }} /> Call Direct: {dynamicPhone}
+                                  </a>
+                                )}
+                              </div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: '1.5rem' }}>
@@ -1265,7 +1412,7 @@ export default function VanityBusinessClient({
                                         </div>
                                       )}
 
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.75rem' }}>
                                         <div>
                                           {hasDiscount && (
                                             <div style={{ fontSize: '0.72rem', color: '#94a3b8', textDecoration: 'line-through' }}>
@@ -1282,26 +1429,49 @@ export default function VanityBusinessClient({
                                           </div>
                                         </div>
 
-                                        <a
-                                          href={whatsappUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.4rem',
-                                            padding: '0.65rem 1.15rem',
-                                            borderRadius: '12px',
-                                            background: '#25D366',
-                                            color: '#fff',
-                                            fontWeight: 900,
-                                            fontSize: '0.8rem',
-                                            textDecoration: 'none',
-                                            boxShadow: '0 4px 12px rgba(37,211,102,0.25)',
-                                          }}
-                                        >
-                                          <i className="fab fa-whatsapp" /> Inquire
-                                        </a>
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                          {cleanPhone && (
+                                            <a
+                                              href={`tel:${cleanPhone}`}
+                                              style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.3rem',
+                                                padding: '0.65rem 0.85rem',
+                                                borderRadius: '12px',
+                                                background: '#f8fafc',
+                                                border: '1px solid #cbd5e1',
+                                                color: '#1e293b',
+                                                fontWeight: 800,
+                                                fontSize: '0.75rem',
+                                                textDecoration: 'none',
+                                              }}
+                                              title={`Call ${dynamicPhone}`}
+                                            >
+                                              <i className="fas fa-phone-alt" style={{ color: '#D4AF37' }} /> Call
+                                            </a>
+                                          )}
+                                          <a
+                                            href={whatsappUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '0.4rem',
+                                              padding: '0.65rem 1.15rem',
+                                              borderRadius: '12px',
+                                              background: '#25D366',
+                                              color: '#fff',
+                                              fontWeight: 900,
+                                              fontSize: '0.8rem',
+                                              textDecoration: 'none',
+                                              boxShadow: '0 4px 12px rgba(37,211,102,0.25)',
+                                            }}
+                                          >
+                                            <i className="fab fa-whatsapp" /> Book Direct
+                                          </a>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1628,18 +1798,77 @@ export default function VanityBusinessClient({
                     </div>
                   )}
 
-                  <a 
-                    href={`tel:${dynamicPhone.replace(/[^0-9+]/g, '')}`}
-                    className="btn btn-primary" 
-                    style={{ 
-                      width: '100%', padding: '1.2rem', borderRadius: '12px', 
-                      fontWeight: 900, background: '#1e293b', color: '#fff', 
-                      marginTop: '2.5rem', display: 'block', textAlign: 'center', 
-                      textDecoration: 'none' 
-                    }}
-                  >
-                    ENQUIRE DIRECTLY
-                  </a>
+                  <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '12px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <i className="fas fa-tag" style={{ color: '#D4AF37', fontSize: '0.9rem' }} />
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#92400e' }}>
+                        Best Direct Rate Guarantee · 0% Fee
+                      </div>
+                    </div>
+
+                    {cleanWhatsapp && (
+                      <a 
+                        href={`https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
+                          minisiteLang === 'ar'
+                            ? `مرحباً ${biz.name}، أتواصل معكم مباشرة عبر SiWiFy للاستفسار عن الحجز المباشر وأحدث الأسعار مع خصم الحجز الخاص.`
+                            : `Hello ${biz.name}, I am contacting you directly via SiWiFy to book and claim your direct reservation discount.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ 
+                          width: '100%', padding: '0.95rem', borderRadius: '12px', 
+                          fontWeight: 900, background: '#25D366', color: '#fff', 
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                          textAlign: 'center', textDecoration: 'none',
+                          fontSize: '0.82rem',
+                          boxShadow: '0 6px 16px rgba(37,211,102,0.25)' 
+                        }}
+                      >
+                        <i className="fab fa-whatsapp" style={{ fontSize: '1.1rem' }} />
+                        <span>WHATSAPP DIRECT BOOKING</span>
+                      </a>
+                    )}
+
+                    <a 
+                      href={`tel:${cleanPhone}`}
+                      className="btn btn-primary" 
+                      style={{ 
+                        width: '100%', padding: '0.95rem', borderRadius: '12px', 
+                        fontWeight: 900, background: '#1e293b', color: '#fff', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                        textAlign: 'center', textDecoration: 'none',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <i className="fas fa-phone-alt" style={{ color: '#D4AF37' }} />
+                      <span>CALL DIRECT: {dynamicPhone}</span>
+                    </a>
+
+                    <a
+                      href="#booking-offers"
+                      onClick={(e) => {
+                        const el = document.getElementById('booking-offers');
+                        if (el) {
+                          e.preventDefault();
+                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                      }}
+                      style={{
+                        padding: '0.6rem',
+                        textAlign: 'center',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        color: '#D4AF37',
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      <span>Check Direct Prices & Offers ↓</span>
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
