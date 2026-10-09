@@ -102,6 +102,33 @@ export type BlueprintSchema = {
   chapters: Partial<Record<Chapter, ChapterSchema>>;
 };
 
+export function mergeBlueprintSchemas(schemas: Array<BlueprintSchema | null | undefined>): BlueprintSchema {
+  const chapters: Partial<Record<Chapter, ChapterSchema>> = {};
+
+  for (const schema of schemas) {
+    for (const [chapterName, chapterSchema] of Object.entries(schema?.chapters || {})) {
+      if (!chapterSchema) continue;
+
+      const chapter = chapterName as Chapter;
+      const mergedChapter = chapters[chapter] || { layer1: [], layer2: [] };
+
+      for (const atomId of chapterSchema.layer1 || []) {
+        mergedChapter.layer2 = mergedChapter.layer2.filter(inheritedId => inheritedId !== atomId);
+        if (!mergedChapter.layer1.includes(atomId)) mergedChapter.layer1.push(atomId);
+      }
+
+      for (const atomId of chapterSchema.layer2 || []) {
+        mergedChapter.layer1 = mergedChapter.layer1.filter(inheritedId => inheritedId !== atomId);
+        if (!mergedChapter.layer2.includes(atomId)) mergedChapter.layer2.push(atomId);
+      }
+
+      chapters[chapter] = mergedChapter;
+    }
+  }
+
+  return { chapters };
+}
+
 // Seed atoms — pre-built from SIWA_DEFS amenities + standard fields
 export const DEFAULT_SEED_ATOMS: Omit<BlueprintAtom, 'created_at' | 'updated_at'>[] = [
   // IDENTITY

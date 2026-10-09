@@ -144,9 +144,19 @@ export default async function Home() {
     ...(config?.footer_components || []),
   ];
 
-  const layout: LayoutSection[] = rawSaved.length > 0 
-    ? dedupeSections(rawSaved) 
-    : DEFAULT_MAIN_LAYOUT;
+  const configuredLayout = rawSaved.length > 0 ? dedupeSections(rawSaved) : DEFAULT_MAIN_LAYOUT;
+  const marketplaceEntryTypes = new Set(['services_hub', 'experience_categories', 'search_bar', 'local_products']);
+  const presentTypes = new Set(configuredLayout.map(section => section.type));
+  const missingMarketplaceSections = DEFAULT_MAIN_LAYOUT.filter(section =>
+    marketplaceEntryTypes.has(section.type) && !presentTypes.has(section.type)
+  );
+  const heroIndex = configuredLayout.findIndex(section => section.type === 'hero_carousel');
+  const insertionIndex = heroIndex >= 0 ? heroIndex + 1 : 0;
+  const layout: LayoutSection[] = [
+    ...configuredLayout.slice(0, insertionIndex),
+    ...missingMarketplaceSections,
+    ...configuredLayout.slice(insertionIndex),
+  ];
 
 
   const themeCSS = buildThemeCSS(settings);

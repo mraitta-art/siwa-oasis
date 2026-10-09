@@ -6,6 +6,7 @@ import { useAdmin, AdminContext } from '@/context/AdminContext';
 import { LangContext } from '@/context/LangContext';
 import { compressImage } from '@/lib/compressImage';
 import RichBlogEditor from '@/components/RichBlogEditor';
+import { getSectionData } from '@/lib/section-registry';
 
 interface Field {
   id: string;
@@ -28,6 +29,7 @@ interface Field {
   business_type_id?: string;
   is_inherited?: boolean;
   section_origin?: string;
+  source_section_id?: string;
 }
 
 interface Section {
@@ -93,8 +95,13 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
     return availableTabs[0]?.id || '';
   };
 
+  const getFieldData = (field: Field, sectionId: string) => ({
+    ...getSectionData(data, field.source_section_id || sectionId),
+    ...getSectionData(data, sectionId),
+  });
+
   const isFieldFilled = (field: Field, sid: string) => {
-    const sectionData = data[sid] || {};
+    const sectionData = getFieldData(field, sid);
     const val = sectionData[field.name];
     if (val === undefined || val === null) return false;
     if (Array.isArray(val)) return val.length > 0;
@@ -165,7 +172,7 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
 
   // 2. Render Helper
   const renderField = (field: Field, sectionId: string) => {
-    const sectionData = data[sectionId] || {};
+    const sectionData = getFieldData(field, sectionId);
     const value = sectionData[field.name] || '';
 
     const isSelect = ['select', 'radio_group'].includes(field.field_type);

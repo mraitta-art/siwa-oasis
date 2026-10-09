@@ -18,14 +18,12 @@ interface MarketplaceHeaderProps {
 
 export const CANONICAL_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
-  { href: '/activities', label: 'Activities', icon: 'fa-person-hiking' },
-  { href: '/accommodations', label: 'Stays', icon: 'fa-hotel' },
-  { href: '/restaurants', label: 'Dining', icon: 'fa-utensils' },
-  { href: '/packages', label: 'Packages', icon: 'fa-box-open' },
-  { href: '/crafts-wellness', label: 'Crafts & Wellness', icon: 'fa-spa' },
-  { href: '/offers', label: 'Offers', icon: 'fa-tag' },
-  { href: '/customize-journey', label: 'Custom Journey', icon: 'fa-wand-magic-sparkles' },
-  { href: '/investment-opportunities', label: 'Investments', icon: 'fa-gem' },
+  { href: '/siwa-stay', label: 'Siwa Stay', icon: 'fa-hotel' },
+  { href: '/siwa-go', label: 'Siwa Go', icon: 'fa-compass' },
+  { href: '/siwa-retreats', label: 'Siwa Retreats', icon: 'fa-spa' },
+  { href: '/siwa-products', label: 'Siwa Products', icon: 'fa-store' },
+  { href: '/siwa-invest', label: 'Siwa Invest', icon: 'fa-chart-line' },
+  { href: '/siwa-society', label: 'Siwa Society', icon: 'fa-people-group' },
 ];
 
 export default function MarketplaceHeader({

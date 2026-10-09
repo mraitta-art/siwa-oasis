@@ -16,6 +16,7 @@ interface CommercialItem {
   code?: string | null;
   ownerName: string;
   providers: Array<{ id: string; name: string; slug?: string | null }>;
+  categorySpecs?: { values?: Record<string, unknown> };
 }
 
 const CATEGORY_TYPES: Record<string, string> = {
@@ -55,6 +56,7 @@ export default function CategoryCommercialTabs({ category }: { category: string 
             businessSlug: item.business_slug || null,
             ownerName: item.owner_type === 'platform' ? 'Siwify' : item.business_name || 'Siwa business',
             providers: Array.isArray(item.providers) ? item.providers : (item.business_name && item.owner_type !== 'platform' ? [{ id: String(item.business_id || item.id), name: item.business_name, slug: item.business_slug || null }] : []),
+            categorySpecs: item.category_specs || {},
             description: item.description || item.offer_description || null,
             price: item.price ? Number(item.price) : null,
             originalPrice: item.original_price ? Number(item.original_price) : null,
@@ -70,6 +72,7 @@ export default function CategoryCommercialTabs({ category }: { category: string 
             businessSlug: item.business_slug || null,
             ownerName: item.owner_type === 'platform' ? 'Siwify' : item.business_name || 'Siwa business',
             providers: Array.isArray(item.providers) ? item.providers : (item.business_name && item.owner_type !== 'platform' ? [{ id: String(item.business_id || item.id), name: item.business_name, slug: item.business_slug || null }] : []),
+            categorySpecs: {},
             description: item.description || item.discount_description || null,
             discount: item.discount_value ? `${item.discount_value}${item.discount_type === 'percent' ? '%' : ''}` : null,
             validUntil: item.valid_until || null,
@@ -150,6 +153,11 @@ export default function CategoryCommercialTabs({ category }: { category: string 
               <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 900 }}>{item.title}</h3>
               <div style={{ marginTop: '0.4rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 700 }}>Offered by {item.ownerName}</div>
               <p style={{ flex: 1, margin: '0.8rem 0', color: '#475569', fontSize: '0.8rem', lineHeight: 1.55 }}>{item.description || 'Available from this business.'}</p>
+              {item.categorySpecs?.values && Object.entries(item.categorySpecs.values).filter(([, value]) => value !== null && value !== undefined && value !== '').slice(0, 3).map(([key, value]) => (
+                <div key={key} style={{ marginBottom: '0.25rem', color: '#52665a', fontSize: '0.68rem' }}>
+                  <strong>{key.split(':').pop()?.replace(/[_-]/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                </div>
+              ))}
               {item.providers.length > 0 && (
                 <div style={{ marginBottom: '0.75rem', color: '#52665a', fontSize: '0.7rem' }}>
                   <strong style={{ display: 'block', marginBottom: '0.3rem' }}>Available at</strong>

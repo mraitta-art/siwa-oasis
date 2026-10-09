@@ -87,6 +87,9 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
   crafts: 'crafts-wellness',
   wellness: 'crafts-wellness',
   journeys: 'journeys',
+  'adventure,logistics': 'siwa-go',
+  'food,crafts,agriculture_industry,production_trade': 'siwa-products',
+  'arts_culture,education_research,events_entertainment,media_content,services_professional': 'siwa-society',
 };
 
 export default function CategorySearchPage({

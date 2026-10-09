@@ -17,6 +17,7 @@ async function ensureMarketplaceTable() {
       slug VARCHAR(255) NOT NULL,
       item_type VARCHAR(50) DEFAULT 'package',
       category_id VARCHAR(100) DEFAULT 'general',
+      category_specs JSON DEFAULT NULL,
       description TEXT,
       description_ar TEXT,
       duration_type VARCHAR(30) DEFAULT 'hours',
@@ -61,6 +62,10 @@ async function ensureMarketplaceTable() {
   try {
     await execute(`ALTER TABLE marketplace_items ADD COLUMN IF NOT EXISTS target_scope VARCHAR(50) DEFAULT 'platform'`);
     await execute(`ALTER TABLE marketplace_items ADD COLUMN IF NOT EXISTS target_type_id VARCHAR(100) DEFAULT NULL`);
+  } catch {}
+
+  try {
+    await execute('ALTER TABLE marketplace_items ADD COLUMN category_specs JSON DEFAULT NULL');
   } catch {}
 
   const investmentColumns = [
@@ -325,6 +330,7 @@ export async function POST(req: NextRequest) {
       title_ar = '',
       item_type = 'package',
       category_id = 'general',
+      category_specs = {},
       description = '',
       description_ar = '',
       duration_type = 'hours',
@@ -367,14 +373,14 @@ export async function POST(req: NextRequest) {
 
     await execute(
       `INSERT INTO marketplace_items (
-        id, business_id, section_id, title, title_ar, slug, item_type, category_id,
+        id, business_id, section_id, title, title_ar, slug, item_type, category_id, category_specs,
         description, description_ar, duration_type, duration_value, price_amount,
         original_price, discount_percentage, discount_type, coupon_code, pricing_unit,
         currency, itinerary, included_features, excluded_features, media, status,
         publish_on_minisite, publish_on_main_portal, is_featured, booking_cta_type, booking_cta_url,
         target_scope, target_type_id, investment_type, investment_amount_min, investment_amount_max,
         expected_roi_percent, business_stage, target_investors, investment_highlights
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         id,
         business_id || null,
@@ -384,6 +390,7 @@ export async function POST(req: NextRequest) {
         slug,
         item_type,
         category_id,
+        JSON.stringify(category_specs || {}),
         description,
         description_ar,
         duration_type,
@@ -478,7 +485,7 @@ export async function PUT(req: NextRequest) {
       }
     });
 
-    const jsonFields = ['itinerary', 'included_features', 'excluded_features', 'media'];
+    const jsonFields = ['itinerary', 'included_features', 'excluded_features', 'media', 'category_specs'];
     jsonFields.forEach((field) => {
       if (updates[field] !== undefined) {
         sets.push(`${field} = ?`);
@@ -579,6 +586,7 @@ export async function DELETE(req: NextRequest) {
 
 function parseItemJson(item: any) {
   if (!item) return item;
+  try { item.category_specs = typeof item.category_specs === 'string' ? JSON.parse(item.category_specs) : item.category_specs || {}; } catch { item.category_specs = {}; }
   try { item.itinerary = typeof item.itinerary === 'string' ? JSON.parse(item.itinerary) : item.itinerary || []; } catch {}
   try { item.included_features = typeof item.included_features === 'string' ? JSON.parse(item.included_features) : item.included_features || []; } catch {}
   try { item.excluded_features = typeof item.excluded_features === 'string' ? JSON.parse(item.excluded_features) : item.excluded_features || []; } catch {}

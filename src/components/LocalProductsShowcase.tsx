@@ -66,9 +66,33 @@ export default function LocalProductsShowcase({ products, title, subtitle }: Pro
     
     async function fetchProducts() {
       try {
-        const res = await fetch('/api/jana/homepage/pools?type=products');
-        if (res.ok) {
-          const data = await res.json();
+        const [poolResponse, productResponse, tradeResponse] = await Promise.all([
+          fetch('/api/jana/homepage/pools?type=products'),
+          fetch('/api/discovery/catalog?kind=product&limit=50'),
+          fetch('/api/discovery/catalog?kind=trade_product&limit=50'),
+        ]);
+        const catalogItems = await Promise.all([productResponse, tradeResponse].map(async response => {
+          if (!response.ok) return [];
+          const data = await response.json().catch(() => []);
+          return Array.isArray(data?.items) ? data.items : [];
+        }));
+        const catalogProducts: ProductItem[] = catalogItems.flat().map((item: any) => {
+          const media = Array.isArray(item.media) ? item.media : [];
+          return {
+            id: String(item.id),
+            name: item.title || 'Siwan Product',
+            category: item.category_id || item.business_type_name || 'Local product',
+            price: `${item.currency || 'EGP'} ${Number(item.price_amount || 0).toLocaleString()}`,
+            description: item.description || 'Authentic product from a Siwa business.',
+            imageUrl: media.find((entry: any) => entry?.url)?.url || '/images/siwa-default.jpg',
+            origin: item.business_name || 'Siwify marketplace',
+            story: item.category_specs?.values?.['sec_9_marketplace_catalog:product_story'] || '',
+            link: item.business_slug ? `/p/${item.business_slug}` : '/search/vibe?category=crafts',
+          };
+        });
+
+        if (poolResponse.ok) {
+          const data = await poolResponse.json();
           const list: ProductItem[] = [];
           data.forEach((biz: any) => {
             const market = biz.custom_data?.sec_9_marketplace_catalog || {};
@@ -105,13 +129,10 @@ export default function LocalProductsShowcase({ products, title, subtitle }: Pro
             }
           });
 
-          if (list.length > 0) {
-            setItems(list);
-          } else {
-            setItems(DEFAULT_PRODUCTS);
-          }
+          const combined = [...catalogProducts, ...list];
+          setItems(combined.length > 0 ? combined : DEFAULT_PRODUCTS);
         } else {
-          setItems(DEFAULT_PRODUCTS);
+          setItems(catalogProducts.length > 0 ? catalogProducts : DEFAULT_PRODUCTS);
         }
       } catch (e) {
         console.warn("Failed to load dynamic products, using fallback", e);

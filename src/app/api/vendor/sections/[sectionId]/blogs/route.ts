@@ -48,11 +48,15 @@ export async function POST(
       return Response.json({ error: 'No business linked to this account' }, { status: 404 });
     }
 
-    const { sectionId } = await params;
-    const { title, content, excerpt, show_on_main, show_on_minisite } = await request.json();
+    const { title, content, excerpt, show_on_main, show_on_minisite, cover_image_url } = await request.json();
 
     if (!title || !content) {
       return Response.json({ error: 'Title and content required' }, { status: 400 });
+    }
+
+    let finalContent = content;
+    if (cover_image_url && !content.includes(cover_image_url)) {
+      finalContent = `<figure class="story-cover-figure mb-6"><img src="${cover_image_url}" alt="${title}" class="w-full rounded-2xl shadow-md object-cover max-h-[420px]" /></figure>\n` + content;
     }
 
     const id = uuidv4();
@@ -98,7 +102,7 @@ export async function POST(
       user.id,
       title,
       slug,
-      content,
+      finalContent,
       excerpt || content.substring(0, 160),
       status,
       publishedAt,

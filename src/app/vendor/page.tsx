@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import VendorOfferingStoryStudioModal from '@/components/VendorOfferingStoryStudioModal';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface BusinessData {
@@ -426,6 +427,7 @@ export default function VendorDashboardPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [savingIntake, setSavingIntake] = useState(false);
   const [intakeMessage, setIntakeMessage] = useState('');
+  const [isStudioModalOpen, setIsStudioModalOpen] = useState(false);
 
   /* ── Fetch data ── */
   useEffect(() => {
@@ -697,7 +699,16 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="vd-hero-actions">
-                <Link href="/vendor/sections" className="vd-hero-btn-primary">
+                <button
+                  type="button"
+                  onClick={() => setIsStudioModalOpen(true)}
+                  className="vd-hero-btn-primary"
+                  style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #b45309 100%)', color: '#0f172a', border: 'none', cursor: 'pointer' }}
+                >
+                  <i className="fas fa-magic" />
+                  + Add Offering, Photos &amp; Story
+                </button>
+                <Link href="/vendor/sections" className="vd-hero-btn-ghost">
                   <i className="fas fa-pen" />
                   Edit Business Profile
                 </Link>
@@ -720,6 +731,61 @@ export default function VendorDashboardPage() {
               <div className="vd-hero-status-val" style={{ color: '#D4AF37' }}>{profilePct}%</div>
             </div>
           </div>
+        </div>
+
+        {/* ─── Visual Story & Multi-Section Offering Studio Banner ─── */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          border: '1px solid rgba(212,175,55,0.3)',
+          borderRadius: '22px',
+          padding: '1.25rem 1.6rem',
+          marginBottom: '1.5rem',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '14px', background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.35)', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+              <i className="fas fa-layer-group" />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Multi-Section Offerings &amp; Visual Storyteller
+              </div>
+              <h3 style={{ margin: '2px 0 4px', fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc' }}>
+                Publish Services, Upload Photos &amp; Write Free-Text Blog Stories
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.45, maxWidth: '620px' }}>
+                Select Transportation, Accommodation, Retreats, or Products. Upload multiple photos with preview, and once saved to the database, unlock storytelling narrative articles shared across your minisite and the main Siwa portal.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsStudioModalOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #D4AF37 0%, #f0c842 100%)',
+              color: '#0f172a',
+              padding: '0.7rem 1.4rem',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              fontWeight: 900,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 15px rgba(212,175,55,0.3)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <i className="fas fa-sparkles" />
+            Launch Offering &amp; Story Studio
+          </button>
         </div>
 
         {/* ─── Admin Notification & Category Blueprint Card ─── */}
@@ -1085,6 +1151,22 @@ export default function VendorDashboardPage() {
 
           </div>
         </div>
+
+        {/* ─── Modal Studio Component ─── */}
+        <VendorOfferingStoryStudioModal
+          isOpen={isStudioModalOpen}
+          onClose={() => setIsStudioModalOpen(false)}
+          businessId={story?.business?.id}
+          businessName={story?.business?.name}
+          businessSlug={story?.business?.slug}
+          onItemCreated={() => {
+            fetch('/api/vendor/story')
+              .then(r => r.json())
+              .then(data => { if (data?.business) setStory(data); })
+              .catch(() => {});
+          }}
+        />
+
       </div>
     </>
   );

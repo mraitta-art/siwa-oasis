@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import CategorySearchPage from '@/components/CategorySearchPage';
-import { BRAND_ROUTE_BY_TYPE } from '@/lib/brand-sectors';
+import { getBrandRouteForType } from '@/lib/brand-sectors';
 
 interface BusinessType {
   id: string;
@@ -16,27 +16,6 @@ interface BusinessType {
   parent_id?: string | null;
   description?: string;
 }
-
-const CATEGORY_SLUG_MAP: Record<string, string> = {
-  'accommodation': 'accommodations',
-  'transportation': 'transportation',
-  'food-beverage': 'food-beverage',
-  'food': 'food-beverage',
-  'restaurant': 'restaurants',
-  'activities-tours': 'activities',
-  'activity': 'activities',
-  'adventure': 'activities',
-  'crafts-wellness': 'crafts-wellness',
-  'production-trade': 'production-trade',
-  'agriculture_industry': 'production-trade',
-  'food': 'food-beverage',
-  'logistics': 'transportation',
-  'services_professional': 'services',
-  'crafts': 'crafts-wellness',
-  'wellness': 'crafts-wellness',
-  ...BRAND_ROUTE_BY_TYPE,
-  ...BRAND_ROUTE_BY_TYPE,
-};
 
 export default function CategoriesPage() {
   const [builderConfig, setBuilderConfig] = useState<any>(null);
@@ -182,8 +161,8 @@ export default function CategoriesPage() {
             {filteredParents.map(parent => {
               const children = types.filter(t => t.parent_id === parent.id);
               const parentCount = children.reduce((acc, c) => acc + (businessCounts[c.id] || 0), businessCounts[parent.id] || 0);
-              const routeSlug = CATEGORY_SLUG_MAP[parent.id];
-              const targetUrl = routeSlug ? `/${routeSlug}` : `/categories?type=${encodeURIComponent(parent.id)}`;
+              const routeSlug = getBrandRouteForType(parent.id, types);
+              const targetUrl = routeSlug ? `/${routeSlug}?type=${encodeURIComponent(parent.id)}` : `/categories?type=${encodeURIComponent(parent.id)}`;
 
               return (
                 <div
@@ -245,7 +224,7 @@ export default function CategoriesPage() {
                         {children.map(child => (
                           <Link
                             key={child.id}
-                            href={routeSlug ? `/${routeSlug}?type=${encodeURIComponent(child.id)}` : `/categories?type=${encodeURIComponent(child.id)}`}
+                            href={getBrandRouteForType(child.id, types) ? `/${getBrandRouteForType(child.id, types)}?type=${encodeURIComponent(child.id)}` : `/categories?type=${encodeURIComponent(child.id)}`}
                             style={{
                               fontSize: '0.65rem',
                               fontWeight: 700,

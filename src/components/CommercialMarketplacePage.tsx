@@ -14,6 +14,24 @@ interface Provider {
   type_name?: string | null;
 }
 
+interface ProgramActivity {
+  id?: string;
+  kind?: string;
+  title: string;
+  start_time?: string;
+  end_time?: string;
+  description?: string;
+  provider_name?: string;
+  provider_slug?: string;
+}
+
+interface ProgramDay {
+  day: number;
+  title: string;
+  description?: string;
+  activities?: ProgramActivity[];
+}
+
 interface CommercialItem {
   id: string;
   title: string;
@@ -31,6 +49,8 @@ interface CommercialItem {
   businessSlug: string | null;
   validUntil: string | null;
   source: string;
+  categorySpecs: { business_type_id?: string; values?: Record<string, unknown> };
+  itinerary: ProgramDay[];
 }
 
 interface BusinessType {
@@ -98,6 +118,8 @@ function mapOffer(item: any, index: number): CommercialItem {
     businessSlug: item.business_slug || null,
     validUntil: item.valid_until || null,
     source: String(item.source || 'vendor_offer'),
+    categorySpecs: item.category_specs && typeof item.category_specs === 'object' ? item.category_specs : {},
+    itinerary: Array.isArray(item.itinerary) ? item.itinerary : [],
   };
 }
 
@@ -125,6 +147,8 @@ function mapDiscount(item: any, index: number): CommercialItem {
     businessSlug: item.business_slug || null,
     validUntil: item.valid_until || null,
     source: String(item.source || 'vendor_discount'),
+    categorySpecs: {},
+    itinerary: [],
   };
 }
 
@@ -377,6 +401,41 @@ export default function CommercialMarketplacePage({
             <h2 id="detail-title">{selectedItem.title}</h2>
             {selectedItem.description && <p>{selectedItem.description}</p>}
             {selectedItem.discount && <p className="modal-discount">Discount: {selectedItem.discount}</p>}
+            {selectedItem.itinerary.length > 0 && (
+              <div className="program-itinerary">
+                <h3>Program schedule</h3>
+                {selectedItem.itinerary.map((day, dayIndex) => (
+                  <section key={`${day.day}-${dayIndex}`}>
+                    <h4>{day.title || `Day ${day.day || dayIndex + 1}`}</h4>
+                    {day.description && <p>{day.description}</p>}
+                    {(day.activities || []).map((activity, activityIndex) => (
+                      <article key={activity.id || `${dayIndex}-${activityIndex}`}>
+                        <div className="activity-heading">
+                          <span>{activity.kind?.replace(/_/g, ' ') || 'Activity'}</span>
+                          <strong>{activity.title}</strong>
+                          {(activity.start_time || activity.end_time) && <time>{activity.start_time || ''}{activity.end_time ? `–${activity.end_time}` : ''}</time>}
+                        </div>
+                        {activity.description && <p>{activity.description}</p>}
+                        {activity.provider_slug && <Link href={`/p/${activity.provider_slug}`}>Provider minisite: {activity.provider_name || 'View provider'}</Link>}
+                      </article>
+                    ))}
+                  </section>
+                ))}
+              </div>
+            )}
+            {Object.entries(selectedItem.categorySpecs.values || {}).filter(([, value]) => value !== null && value !== undefined && value !== '').length > 0 && (
+              <div className="specification-list">
+                <h3>Specifications</h3>
+                <dl>
+                  {Object.entries(selectedItem.categorySpecs.values || {}).filter(([, value]) => value !== null && value !== undefined && value !== '').map(([key, value]) => (
+                    <div key={key}>
+                      <dt>{key.split(':').pop()?.replace(/[_-]/g, ' ')}</dt>
+                      <dd>{Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
             {selectedItem.providers.length > 0 && (
               <div className="modal-providers">
                 <h3>Available at</h3>
@@ -441,11 +500,27 @@ export default function CommercialMarketplacePage({
         .detail-modal > p:not(.eyebrow) { color: #536359; font-size: 0.9rem; line-height: 1.65; }
         .modal-close { position: absolute; top: 0.7rem; right: 0.8rem; border: 0; background: transparent; color: #3e5146; font-size: 1.6rem; cursor: pointer; }
         .modal-discount { color: #a63f34 !important; font-weight: 800; }
+        .program-itinerary { display: grid; gap: 0.75rem; margin: 1.2rem 0; }
+        .program-itinerary h3 { margin: 0; color: #234b37; font-size: 0.92rem; }
+        .program-itinerary section { display: grid; gap: 0.45rem; border-top: 1px solid #e4ebe5; padding-top: 0.7rem; }
+        .program-itinerary h4 { margin: 0; font-size: 0.82rem; }
+        .program-itinerary section > p, .program-itinerary article > p { margin: 0; color: #607165; font-size: 0.75rem; }
+        .program-itinerary article { display: grid; gap: 0.3rem; border-left: 2px solid #9a6a24; padding: 0.45rem 0.65rem; background: #f7f8f5; }
+        .activity-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.45rem; font-size: 0.75rem; }
+        .activity-heading span { color: #91672e; text-transform: capitalize; font-size: 0.65rem; font-weight: 800; }
+        .activity-heading time { color: #66756b; margin-left: auto; font-size: 0.68rem; }
+        .program-itinerary article a { width: fit-content; color: #28543c; font-size: 0.7rem; font-weight: 800; }
         .modal-providers { margin-top: 1rem; border-top: 1px solid #e4ebe5; padding-top: 0.8rem; }
         .modal-providers h3 { margin: 0 0 0.55rem; color: #4f6357; font-size: 0.72rem; text-transform: uppercase; }
         .modal-providers div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #f0f3f0; padding: 0.55rem 0; color: #234b37; font-size: 0.85rem; }
         .modal-providers a { color: inherit; }
         .modal-providers span, .validity { color: #77867b; font-size: 0.75rem; }
+        .specification-list { margin-top: 1rem; border-top: 1px solid #e4ebe5; padding-top: 0.8rem; }
+        .specification-list h3 { margin: 0 0 0.55rem; color: #526459; font-size: 0.72rem; text-transform: uppercase; }
+        .specification-list dl { display: grid; gap: 0.4rem; margin: 0; }
+        .specification-list dl div { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.78rem; }
+        .specification-list dt { color: #77867b; }
+        .specification-list dd { margin: 0; color: #234b37; font-weight: 700; text-align: right; }
         .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
         @media (max-width: 700px) {
           .filter-row { grid-template-columns: 1fr; }

@@ -198,7 +198,7 @@ export async function GET(request: Request) {
         LEFT JOIN business_types bt ON bt.id = b.type_id
         LEFT JOIN business_types target_type ON target_type.id = m.target_type_id
         WHERE m.status = 'approved' AND m.publish_on_main_portal = 1
-          AND m.item_type <> 'investment'
+          AND m.item_type NOT IN ('investment', 'room', 'transport_service', 'menu_item', 'product', 'trade_product', 'factory_visit')
         ORDER BY m.is_featured DESC, m.updated_at DESC
         LIMIT 500
       `);
@@ -278,6 +278,14 @@ export async function GET(request: Request) {
           target_type_id: item.target_type_id || null,
           target_type_name: item.target_type_name || null,
           category_id: item.category_id || null,
+          category_specs: (() => {
+            try { return typeof item.category_specs === 'string' ? JSON.parse(item.category_specs) : item.category_specs || {}; }
+            catch { return {}; }
+          })(),
+          itinerary: (() => {
+            try { return typeof item.itinerary === 'string' ? JSON.parse(item.itinerary) : item.itinerary || []; }
+            catch { return []; }
+          })(),
           providers: ownerBusinessId && providers.length === 0 ? [{
             id: ownerBusinessId,
             name: item.business_name,

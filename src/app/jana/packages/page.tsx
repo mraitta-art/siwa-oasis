@@ -5,6 +5,30 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
 import RichBlogEditor from '@/components/RichBlogEditor';
+import { type MarketplaceItemType } from '@/lib/marketplace-item-types';
+
+type RetreatActivityKind = 'journey' | 'picnic' | 'tour' | 'meditation' | 'healing' | 'other';
+
+interface RetreatProgramActivity {
+  id: string;
+  kind: RetreatActivityKind;
+  title: string;
+  start_time?: string;
+  end_time?: string;
+  description?: string;
+  provider_business_id?: string;
+  provider_name?: string;
+  provider_slug?: string;
+}
+
+interface MarketplaceItineraryDay {
+  day: number;
+  title: string;
+  title_ar?: string;
+  description?: string;
+  description_ar?: string;
+  activities?: RetreatProgramActivity[];
+}
 
 export interface MarketplaceItem {
   id: string;
@@ -16,7 +40,7 @@ export interface MarketplaceItem {
   title: string;
   title_ar: string;
   slug: string;
-  item_type: 'package' | 'program' | 'tour' | 'activity' | 'discount_offer' | 'room_bundle' | 'retreat' | 'investment';
+  item_type: MarketplaceItemType;
   category_id: string;
   description: string;
   description_ar: string;
@@ -29,7 +53,7 @@ export interface MarketplaceItem {
   coupon_code: string;
   pricing_unit: 'per_person' | 'per_group' | 'per_room' | 'fixed';
   currency: string;
-  itinerary: Array<{ day: number; title: string; title_ar?: string; description?: string; description_ar?: string }>;
+  itinerary: MarketplaceItineraryDay[];
   included_features: string[];
   excluded_features: string[];
   media: Array<{ url: string; caption?: string; type?: 'image' | 'youtube' }>;
@@ -49,6 +73,7 @@ export interface MarketplaceItem {
   business_stage?: string;
   target_investors?: number | null;
   investment_highlights?: string;
+  category_specs?: { business_type_id?: string; values?: Record<string, any> };
   assignments?: Array<{
     id?: string;
     business_id: string;
@@ -64,6 +89,37 @@ export interface MarketplaceItem {
   }>;
   created_at?: string;
 }
+
+function normalizeFieldOptions(value: any): Array<{ value: string; label: string }> {
+  let options = value;
+  if (typeof options === 'string') {
+    try { options = JSON.parse(options); } catch { options = options.split(',').map((item: string) => item.trim()); }
+  }
+  if (!Array.isArray(options)) return [];
+  return options.map((option: any, index: number) => {
+    if (option && typeof option === 'object') {
+      const optionValue = option.value ?? option.id ?? option.key ?? option.label ?? index;
+      return { value: String(optionValue), label: String(option.label ?? option.name ?? optionValue) };
+    }
+    return { value: String(option), label: String(option) };
+  });
+}
+
+const PARENT_BY_MARKETPLACE_ITEM_TYPE: Partial<Record<MarketplaceItemType, string>> = {
+  room: 'accommodation',
+  room_bundle: 'accommodation',
+  transport_service: 'logistics',
+  retreat: 'wellness',
+  menu_item: 'food',
+  product: 'crafts',
+  trade_product: 'agriculture_industry',
+  factory_visit: 'agriculture_industry',
+  tour: 'adventure',
+  program: 'adventure',
+  activity: 'adventure',
+};
+
+const ITEMS_WITH_SELECTABLE_PARENT = new Set<MarketplaceItemType>(['package', 'discount_offer', 'investment']);
 
 function UnifiedMarketplaceCommandCenterInner() {
   const { notify } = useAdmin();
@@ -83,7 +139,13 @@ function UnifiedMarketplaceCommandCenterInner() {
 
   // Editing / Creation Modal
   const [editingItem, setEditingItem] = useState<Partial<MarketplaceItem> | null>(null);
-  const [activeTab, setActiveTab] = useState<'basics' | 'pricing_discounts' | 'itinerary' | 'media' | 'targeting_forwarding' | 'governance'>('basics');
+  const [activeTab, setActiveTab] = useState<'basics' | 'pricing_discounts' | 'category_specs' | 'itinerary' | 'media' | 'targeting_forwarding' | 'governance'>('basics');
+  const [selectedParentTypeId, setSelectedParentTypeId] = useState('');
+  const [businessSearch, setBusinessSearch] = useState('');
+  const [specificationTypeId, setSpecificationTypeId] = useState('');
+  const [specificationFields, setSpecificationFields] = useState<any[]>([]);
+  const [specificationsLoading, setSpecificationsLoading] = useState(false);
+  const [specificationsError, setSpecificationsError] = useState('');
   const [newInclusion, setNewInclusion] = useState('');
   const [newExclusion, setNewExclusion] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
@@ -113,8 +175,24 @@ function UnifiedMarketplaceCommandCenterInner() {
   }, [searchParams]);
 
   // Derived parent and child types
-  const parentTypes = useMemo(() => businessTypes.filter(t => t.is_parent || !t.parent_id), [businessTypes]);
-  const childTypes = useMemo(() => businessTypes.filter(t => !t.is_parent && t.parent_id), [businessTypes]);
+  const parentTypes = useMemo(() => businessTypes.filter(type => Boolean(Number(type.is_parent)) || !type.parent_id), [businessTypes]);
+  const childTypes = useMemo(() => businessTypes.filter(type => !Boolean(Number(type.is_parent)) && type.parent_id), [businessTypes]);
+  const selectedItemType = editingItem?.item_type || 'package';
+  const fixedParentTypeId = PARENT_BY_MARKETPLACE_ITEM_TYPE[selectedItemType];
+  const parentTypeId = fixedParentTypeId || selectedParentTypeId;
+  const selectableChildTypes = useMemo(
+    () => childTypes.filter(type => type.parent_id === parentTypeId),
+    [childTypes, parentTypeId]
+  );
+  const selectableBusinesses = useMemo(() => businesses.filter(business => {
+    const typeId = String(business.type_id || business.business_type_id || '');
+    const type = businessTypes.find(candidate => candidate.id === typeId);
+    const matchesCategory = !specificationTypeId
+      ? (!parentTypeId || typeId === parentTypeId || type?.parent_id === parentTypeId)
+      : typeId === specificationTypeId;
+    const matchesSearch = !businessSearch.trim() || String(business.name || '').toLowerCase().includes(businessSearch.trim().toLowerCase());
+    return (matchesCategory || String(business.id) === String(editingItem?.business_id || '')) && matchesSearch;
+  }), [businesses, businessTypes, businessSearch, editingItem?.business_id, parentTypeId, specificationTypeId]);
 
   const addPartnerToEditingItem = () => {
     if (!partnerToAdd.business_id) return;
@@ -168,6 +246,32 @@ function UnifiedMarketplaceCommandCenterInner() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!specificationTypeId) {
+      setSpecificationFields([]);
+      setSpecificationsError('');
+      return;
+    }
+    const controller = new AbortController();
+    setSpecificationsLoading(true);
+    setSpecificationsError('');
+    fetch(`/api/jana/forms?type=${encodeURIComponent(specificationTypeId)}&scope=catalog_spec`, { signal: controller.signal })
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load this type’s section fields.');
+        return data;
+      })
+      .then(data => setSpecificationFields(Array.isArray(data) ? data : []))
+      .catch(error => {
+        if (error?.name !== 'AbortError') {
+          setSpecificationFields([]);
+          setSpecificationsError(error?.message || 'Could not load this type’s section fields.');
+        }
+      })
+      .finally(() => setSpecificationsLoading(false));
+    return () => controller.abort();
+  }, [specificationTypeId]);
 
   async function loadData() {
     try {
@@ -321,17 +425,73 @@ function UnifiedMarketplaceCommandCenterInner() {
     }
   }
 
+  function updateCategorySpecification(field: any, value: any) {
+    const key = `${field.section_id || 'general'}:${field.name || field.id}`;
+    setEditingItem(current => current ? ({
+      ...current,
+      category_specs: {
+        ...(current.category_specs || {}),
+        business_type_id: specificationTypeId,
+        values: { ...(current.category_specs?.values || {}), [key]: value },
+      },
+    }) : null);
+  }
+
+  function addRetreatActivity(dayIndex: number) {
+    const activity: RetreatProgramActivity = {
+      id: globalThis.crypto?.randomUUID?.() || `activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      kind: 'tour',
+      title: '',
+      start_time: '',
+      end_time: '',
+      description: '',
+    };
+    setEditingItem(current => {
+      if (!current) return null;
+      const itinerary = [...(current.itinerary || [])];
+      const day = itinerary[dayIndex];
+      itinerary[dayIndex] = { ...day, activities: [...(day.activities || []), activity] };
+      return { ...current, itinerary };
+    });
+  }
+
+  function updateRetreatActivity(dayIndex: number, activityIndex: number, patch: Partial<RetreatProgramActivity>) {
+    setEditingItem(current => {
+      if (!current) return null;
+      const itinerary = [...(current.itinerary || [])];
+      const day = itinerary[dayIndex];
+      const activities = [...(day.activities || [])];
+      activities[activityIndex] = { ...activities[activityIndex], ...patch };
+      itinerary[dayIndex] = { ...day, activities };
+      return { ...current, itinerary };
+    });
+  }
+
+  function removeRetreatActivity(dayIndex: number, activityIndex: number) {
+    setEditingItem(current => {
+      if (!current) return null;
+      const itinerary = [...(current.itinerary || [])];
+      const day = itinerary[dayIndex];
+      itinerary[dayIndex] = { ...day, activities: (day.activities || []).filter((_, index) => index !== activityIndex) };
+      return { ...current, itinerary };
+    });
+  }
+
   function startNewItem(type: MarketplaceItem['item_type'] = 'package') {
+    setSpecificationTypeId('');
+    setSelectedParentTypeId(PARENT_BY_MARKETPLACE_ITEM_TYPE[type] || '');
+    setBusinessSearch('');
+    const experienceType = ['tour', 'program', 'activity', 'factory_visit', 'retreat'].includes(type);
     setEditingItem({
       business_id: mode === 'vendor_proxy' && selectedVendorId ? selectedVendorId : null,
-      section_id: type === 'investment' ? 'sec_7_investment' : type === 'tour' || type === 'activity' || type === 'program' ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
+      section_id: type === 'investment' ? 'sec_7_investment' : experienceType ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
       title: '',
       title_ar: '',
       item_type: type,
       category_id: 'general',
       description: '',
       description_ar: '',
-      duration_type: type === 'tour' || type === 'package' || type === 'program' ? 'full_day' : 'hours',
+      duration_type: experienceType || type === 'package' ? 'full_day' : 'hours',
       duration_value: 1,
       price_amount: 0,
       original_price: null,
@@ -359,9 +519,48 @@ function UnifiedMarketplaceCommandCenterInner() {
       business_stage: '',
       target_investors: null,
       investment_highlights: '',
+      category_specs: { business_type_id: '', values: {} },
       assignments: []
     });
     setActiveTab('basics');
+  }
+
+  function changeMarketplaceItemType(type: MarketplaceItemType) {
+    const fixedParent = PARENT_BY_MARKETPLACE_ITEM_TYPE[type] || '';
+    setSelectedParentTypeId(fixedParent);
+    setSpecificationTypeId('');
+    setBusinessSearch('');
+    setEditingItem(current => current ? ({
+      ...current,
+      item_type: type,
+      business_id: null,
+      target_type_id: null,
+      section_id: type === 'investment' ? 'sec_7_investment' : ['tour', 'program', 'activity', 'factory_visit', 'retreat'].includes(type) ? 'sec_5_experiences' : 'sec_9_marketplace_catalog',
+      category_specs: { business_type_id: '', values: {} },
+    }) : null);
+  }
+
+  function changeParentType(typeId: string) {
+    setSelectedParentTypeId(typeId);
+    setSpecificationTypeId('');
+    setBusinessSearch('');
+    setEditingItem(current => current ? ({
+      ...current,
+      business_id: null,
+      target_type_id: typeId || null,
+      category_specs: { business_type_id: '', values: {} },
+    }) : null);
+  }
+
+  function changeChildType(typeId: string) {
+    setSpecificationTypeId(typeId);
+    setBusinessSearch('');
+    setEditingItem(current => current ? ({
+      ...current,
+      business_id: null,
+      target_type_id: typeId || parentTypeId || null,
+      category_specs: { business_type_id: typeId, values: {} },
+    }) : null);
   }
 
   // ── Media Upload Helper ──────────────────────────────────────────────
@@ -422,6 +621,12 @@ function UnifiedMarketplaceCommandCenterInner() {
             style={{ padding: '0.65rem 1.1rem', background: '#D4AF37', color: '#1a1000', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }}
           >
             <i className="fas fa-plus-circle" /> Create New Package
+          </button>
+          <button
+            onClick={() => startNewItem('product')}
+            style={{ padding: '0.65rem 1.1rem', background: '#0f766e', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <i className="fas fa-box" /> Add Catalog Item
           </button>
           <button
             onClick={() => startNewItem('tour')}
@@ -531,6 +736,12 @@ function UnifiedMarketplaceCommandCenterInner() {
             <option value="discount_offer">🏷️ Special Offers &amp; Discounts</option>
             <option value="room_bundle">🛏️ Stay &amp; Room Packages</option>
             <option value="retreat">🧘 Wellness Retreats</option>
+            <option value="room">🛏️ Room or Unit</option>
+            <option value="transport_service">🚐 Transport Service</option>
+            <option value="menu_item">🍽️ Menu Item</option>
+            <option value="product">🛍️ Shop Product</option>
+            <option value="trade_product">🏭 Trade Product</option>
+            <option value="factory_visit">🏭 Factory Visit</option>
             <option value="investment">📈 Investment Opportunities</option>
           </select>
 
@@ -722,7 +933,15 @@ function UnifiedMarketplaceCommandCenterInner() {
                   {/* Actions Bar */}
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                     <button
-                      onClick={() => { setEditingItem(item); setActiveTab('basics'); }}
+                      onClick={() => {
+                        setEditingItem(item);
+                        const selectedTypeId = item.category_specs?.business_type_id || item.target_type_id || '';
+                        const selectedType = businessTypes.find(type => type.id === selectedTypeId);
+                        setSpecificationTypeId(selectedType?.parent_id ? selectedTypeId : '');
+                        setSelectedParentTypeId(selectedType?.parent_id || selectedTypeId || PARENT_BY_MARKETPLACE_ITEM_TYPE[item.item_type] || '');
+                        setBusinessSearch('');
+                        setActiveTab('basics');
+                      }}
                       style={{ flex: 1, padding: '0.55rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
                     >
                       <i className="fas fa-edit" /> Edit
@@ -793,9 +1012,10 @@ function UnifiedMarketplaceCommandCenterInner() {
                 ['basics', '1. Basics & Details'],
                 ['pricing_discounts', '2. Pricing & Discounts'],
                 ['itinerary', '3. Multi-Day Itinerary'],
-                ['media', '4. Media & Photos'],
-                ['targeting_forwarding', '5. 🎯 Targeting & Multi-Vendor'],
-                ['governance', '6. Governance & Booking']
+                ['category_specs', '4. Type Specifications'],
+                ['media', '5. Media & Photos'],
+                ['targeting_forwarding', '6. 🎯 Targeting & Multi-Vendor'],
+                ['governance', '7. Governance & Booking']
               ] as const).map(([tabKey, label]) => (
                 <button
                   key={tabKey}
@@ -823,42 +1043,67 @@ function UnifiedMarketplaceCommandCenterInner() {
               {/* TAB 1: BASICS */}
               {activeTab === 'basics' && (
                 <div style={{ display: 'grid', gap: '1rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
-                        ASSIGN TO BUSINESS (OR LEAVE BLANK FOR GLOBAL PLATFORM)
-                      </label>
-                      <select
-                        value={editingItem.business_id || ''}
-                        onChange={(e) => setEditingItem((p) => ({ ...p, business_id: e.target.value || null }))}
-                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700 }}
-                      >
-                        <option value="">🌐 Global Platform (SiWiFy Main Marketplace)</option>
-                        {businesses.map((b) => (
-                          <option key={b.id} value={b.id}>{b.name} ({b.type_name || 'Business'})</option>
-                        ))}
+                  <div style={{ display: 'grid', gap: '0.9rem', padding: '1rem', border: '1px solid #dbe4dc', borderRadius: '10px', background: '#f8fafc' }}>
+                    <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 900 }}>
+                      LISTING TYPE
+                      <select value={editingItem.item_type || 'package'} onChange={event => changeMarketplaceItemType(event.target.value as MarketplaceItemType)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontSize: '0.82rem', fontWeight: 700 }}>
+                        <option value="package">📦 Package or bundle</option>
+                        <option value="program">📅 Scheduled program</option>
+                        <option value="tour">🧭 Tour or itinerary</option>
+                        <option value="activity">🎯 Activity</option>
+                        <option value="discount_offer">🏷️ Offer or discount</option>
+                        <option value="room_bundle">🛏️ Room package</option>
+                        <option value="retreat">🧘 Retreat</option>
+                        <option value="room">🛏️ Room or unit</option>
+                        <option value="transport_service">🚐 Transport service</option>
+                        <option value="menu_item">🍽️ Menu item</option>
+                        <option value="product">🛍️ Shop product</option>
+                        <option value="trade_product">🏭 Trade product</option>
+                        <option value="factory_visit">🏭 Factory visit</option>
+                        <option value="investment">📈 Investment opportunity</option>
                       </select>
+                    </label>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.8rem' }}>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 900 }}>
+                        {fixedParentTypeId ? 'CATEGORY (FIXED BY LISTING TYPE)' : 'PARENT CATEGORY'}
+                        {fixedParentTypeId ? (
+                          <input readOnly value={parentTypes.find(type => type.id === fixedParentTypeId)?.name || fixedParentTypeId} style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#eef2f7', color: '#475569', boxSizing: 'border-box' }} />
+                        ) : (
+                          <select value={parentTypeId} onChange={event => changeParentType(event.target.value)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#17251d' }}>
+                            <option value="">Choose a parent category</option>
+                            {parentTypes.map(type => <option key={type.id} value={type.id}>{type.name_en || type.name}</option>)}
+                          </select>
+                        )}
+                      </label>
+
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 900 }}>
+                        CHILD BUSINESS TYPE
+                        <select value={specificationTypeId} disabled={!parentTypeId} onChange={event => changeChildType(event.target.value)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#17251d' }}>
+                          <option value="">Choose a child type</option>
+                          {selectableChildTypes.map(type => <option key={type.id} value={type.id}>{type.name_en || type.name}</option>)}
+                        </select>
+                      </label>
                     </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 900, color: '#475569', marginBottom: '0.3rem' }}>
-                        ITEM TYPE
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.8rem' }}>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 900 }}>
+                        SEARCH BUSINESSES IN THIS TYPE
+                        <input value={businessSearch} onChange={event => setBusinessSearch(event.target.value)} placeholder="Search business name…" style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', boxSizing: 'border-box' }} />
                       </label>
-                      <select
-                        value={editingItem.item_type || 'package'}
-                        onChange={(e) => setEditingItem((p) => ({ ...p, item_type: e.target.value as any }))}
-                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700 }}
-                      >
-                        <option value="package">📦 Multi-Day Package &amp; Bundle</option>
-                        <option value="program">📅 Program / Scheduled Experience</option>
-                        <option value="tour">🧭 Desert Tour / Safari / Itinerary</option>
-                        <option value="activity">🎯 Single Activity / Experience</option>
-                        <option value="discount_offer">🏷️ Special Discount &amp; Promo Code</option>
-                        <option value="room_bundle">🛏️ Stay &amp; Room Package</option>
-                        <option value="retreat">🧘 Wellness &amp; Yoga Retreat</option>
-                        <option value="investment">📈 Investment Opportunity</option>
-                      </select>
+                      <label style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.68rem', fontWeight: 900 }}>
+                        BUSINESS / LISTING OWNER
+                        <select value={editingItem.business_id || ''} onChange={event => setEditingItem(current => ({ ...current, business_id: event.target.value || null }))} disabled={!parentTypeId} style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#17251d' }}>
+                          <option value="">Siwify platform listing</option>
+                          {selectableBusinesses.map(business => <option key={business.id} value={business.id}>{business.name} ({business.type_name || 'Business'})</option>)}
+                        </select>
+                      </label>
                     </div>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.72rem', lineHeight: 1.5 }}>
+                      {ITEMS_WITH_SELECTABLE_PARENT.has(selectedItemType)
+                        ? 'Choose the parent, then child type and business. Packages can later include items from other businesses as components.'
+                        : 'The parent is fixed by this listing type. Choose its child business type, then search for the specific business.'}
+                    </p>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -918,6 +1163,115 @@ function UnifiedMarketplaceCommandCenterInner() {
                       />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'category_specs' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ maxWidth: 680 }}>
+                    <label style={{ display: 'grid', gap: '0.35rem', color: '#334155', fontSize: '0.7rem', fontWeight: 900 }}>
+                      BUSINESS TYPE SPECIFICATION SOURCE
+                      <select
+                        value={specificationTypeId}
+                        onChange={event => {
+                          const nextTypeId = event.target.value;
+                          setSpecificationTypeId(nextTypeId);
+                          setEditingItem(current => current ? ({
+                            ...current,
+                            category_specs: { business_type_id: nextTypeId, values: {} },
+                          }) : null);
+                        }}
+                        style={{ padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: 7, background: '#fff', color: '#17251d', fontSize: '0.85rem' }}
+                      >
+                        <option value="">Choose a parent or child business type</option>
+                        <optgroup label="Parent categories">
+                          {parentTypes.map(type => <option key={type.id} value={type.id}>{type.name_en || type.name}</option>)}
+                        </optgroup>
+                        <optgroup label="Child business types">
+                          {childTypes.map(type => <option key={type.id} value={type.id}>{type.name_en || type.name}</option>)}
+                        </optgroup>
+                      </select>
+                    </label>
+                    <p style={{ margin: '0.45rem 0 0', color: '#64748b', fontSize: '0.72rem', lineHeight: 1.5 }}>
+                      Fields load from this type’s inherited sections and form schema. Only public-readable fields are offered as listing specifications.
+                    </p>
+                  </div>
+
+                  {!specificationTypeId && <div style={{ padding: '1.25rem', border: '1px dashed #cbd5e1', borderRadius: 8, color: '#64748b', fontSize: '0.8rem' }}>Choose a type to load its sections and fields.</div>}
+                  {specificationsLoading && <div role="status" style={{ color: '#64748b', fontSize: '0.8rem' }}>Loading section fields…</div>}
+                  {specificationsError && <div role="alert" style={{ padding: '0.85rem', border: '1px solid #fecaca', borderRadius: 7, color: '#b91c1c', fontSize: '0.78rem' }}>{specificationsError}</div>}
+
+                  {(() => {
+                    const visibleFields = specificationFields.filter(field => {
+                      if (field.field_scope !== 'catalog_spec') return false;
+                      const appliesTo = Array.isArray(field.applies_to) ? field.applies_to : [];
+                      if (!appliesTo.includes(editingItem.item_type)) return false;
+                      if (field.show_on_public === false) return false;
+                      const readRoles = field.acl?.read;
+                      if (Array.isArray(readRoles) && !readRoles.includes('public')) return false;
+                      return !/password|secret|token|api[_-]?key|passport|identity[_ -]?document/i.test(`${field.name || ''} ${field.label || ''}`);
+                    });
+                    const sectionIds = [...new Set(visibleFields.map(field => field.section_id || 'general'))];
+                    if (specificationTypeId && !specificationsLoading && !specificationsError && visibleFields.length === 0) {
+                      return <div style={{ padding: '1.25rem', border: '1px dashed #cbd5e1', borderRadius: 8, color: '#64748b', fontSize: '0.8rem' }}>No public specification fields are configured for this type yet.</div>;
+                    }
+                    return sectionIds.map(sectionId => (
+                      <details key={sectionId} open style={{ border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', padding: '0.8rem 1rem' }}>
+                        <summary style={{ cursor: 'pointer', color: '#1e293b', fontSize: '0.78rem', fontWeight: 900 }}>
+                          {sectionId.replace(/[_-]/g, ' ')} · {visibleFields.filter(field => (field.section_id || 'general') === sectionId).length} fields
+                        </summary>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.85rem', marginTop: '0.9rem' }}>
+                          {visibleFields.filter(field => (field.section_id || 'general') === sectionId).map(field => {
+                            const fieldKey = `${field.section_id || 'general'}:${field.name || field.id}`;
+                            const fieldValue = editingItem.category_specs?.values?.[fieldKey] ?? field.default_value ?? '';
+                            const fieldType = String(field.field_type || 'text').toLowerCase();
+                            const fieldOptions = normalizeFieldOptions(field.options);
+                            const fieldLabel = `${field.label || field.name || 'Specification'}${field.required ? ' *' : ''}`;
+                            const inputStyle: React.CSSProperties = { width: '100%', padding: '0.62rem', border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', color: '#17251d', fontSize: '0.8rem', boxSizing: 'border-box' };
+
+                            if (['checkbox', 'boolean', 'toggle', 'switch'].includes(fieldType)) {
+                              return <label key={fieldKey} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', color: '#334155', fontSize: '0.78rem', fontWeight: 750 }}>
+                                <input type="checkbox" checked={Boolean(fieldValue)} onChange={event => updateCategorySpecification(field, event.target.checked)} />
+                                {fieldLabel}
+                              </label>;
+                            }
+
+                            if (['textarea', 'rich_text', 'multiline'].includes(fieldType)) {
+                              return <label key={fieldKey} style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.7rem', fontWeight: 850 }}>
+                                {fieldLabel}<textarea rows={3} value={String(fieldValue)} onChange={event => updateCategorySpecification(field, event.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
+                                {field.help_text && <span style={{ color: '#64748b', fontWeight: 500 }}>{field.help_text}</span>}
+                              </label>;
+                            }
+
+                            if (['select', 'dropdown', 'radio', 'enum'].includes(fieldType)) {
+                              return <label key={fieldKey} style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.7rem', fontWeight: 850 }}>
+                                {fieldLabel}<select value={String(fieldValue)} onChange={event => updateCategorySpecification(field, event.target.value)} style={inputStyle}>
+                                  <option value="">Select…</option>{fieldOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                </select>{field.help_text && <span style={{ color: '#64748b', fontWeight: 500 }}>{field.help_text}</span>}
+                              </label>;
+                            }
+
+                            if (['multiselect', 'multi_select', 'tags'].includes(fieldType)) {
+                              const selectedValues: string[] = Array.isArray(fieldValue) ? fieldValue.map(String) : [];
+                              return <fieldset key={fieldKey} style={{ display: 'grid', gap: '0.45rem', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.65rem' }}>
+                                <legend style={{ color: '#475569', fontSize: '0.7rem', fontWeight: 850 }}>{fieldLabel}</legend>
+                                {fieldOptions.map(option => <label key={option.value} style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', color: '#475569', fontSize: '0.75rem' }}>
+                                  <input type="checkbox" checked={selectedValues.includes(option.value)} onChange={event => updateCategorySpecification(field, event.target.checked ? [...selectedValues, option.value] : selectedValues.filter(value => value !== option.value))} />{option.label}
+                                </label>)}
+                              </fieldset>;
+                            }
+
+                            const numeric = ['number', 'integer', 'decimal', 'currency', 'price', 'range'].includes(fieldType);
+                            const inputType = ['date', 'time', 'email', 'url', 'tel'].includes(fieldType) ? fieldType : numeric ? 'number' : 'text';
+                            return <label key={fieldKey} style={{ display: 'grid', gap: '0.35rem', color: '#475569', fontSize: '0.7rem', fontWeight: 850 }}>
+                              {fieldLabel}<input type={inputType} value={String(fieldValue)} onChange={event => updateCategorySpecification(field, numeric && event.target.value !== '' ? Number(event.target.value) : event.target.value)} style={inputStyle} />
+                              {field.help_text && <span style={{ color: '#64748b', fontWeight: 500 }}>{field.help_text}</span>}
+                            </label>;
+                          })}
+                        </div>
+                      </details>
+                    ));
+                  })()}
                 </div>
               )}
 
@@ -1085,14 +1439,14 @@ function UnifiedMarketplaceCommandCenterInner() {
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>Day-by-Day Journey Itinerary</h4>
-                      <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>Add sequential milestones for tours and multi-day packages.</p>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>{editingItem.item_type === 'retreat' ? 'Retreat Program' : 'Day-by-Day Journey Itinerary'}</h4>
+                      <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>{editingItem.item_type === 'retreat' ? 'Add included activities to the retreat program. Optional minisite links reference providers; activities remain part of this retreat listing.' : 'Add sequential milestones for tours and multi-day packages.'}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setEditingItem((p) => ({
                         ...p,
-                        itinerary: [...(p?.itinerary || []), { day: (p?.itinerary?.length || 0) + 1, title: '', title_ar: '', description: '', description_ar: '' }]
+                        itinerary: [...(p?.itinerary || []), { day: (p?.itinerary?.length || 0) + 1, title: '', title_ar: '', description: '', description_ar: '', activities: [] }]
                       }))}
                       style={{ padding: '0.45rem 0.9rem', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
                     >
@@ -1138,6 +1492,50 @@ function UnifiedMarketplaceCommandCenterInner() {
                           style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem', textAlign: 'right' }}
                         />
                       </div>
+
+                      {editingItem.item_type === 'retreat' && (
+                        <div style={{ display: 'grid', gap: '0.65rem', marginTop: '0.35rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.85rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                            <strong style={{ color: '#334155', fontSize: '0.76rem' }}>Activities in this day</strong>
+                            <button type="button" onClick={() => addRetreatActivity(idx)} style={{ border: 0, borderRadius: '6px', padding: '0.42rem 0.7rem', background: '#315b48', color: '#fff', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}>Add activity</button>
+                          </div>
+                          {(step.activities || []).map((activity, activityIndex) => (
+                            <div key={activity.id || activityIndex} style={{ display: 'grid', gap: '0.55rem', padding: '0.75rem', border: '1px solid #dbe4dc', borderRadius: '8px', background: '#fff' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 0.7fr) minmax(200px, 1.3fr) auto', gap: '0.55rem', alignItems: 'center' }}>
+                                <select value={activity.kind || 'tour'} onChange={event => updateRetreatActivity(idx, activityIndex, { kind: event.target.value as RetreatActivityKind })} aria-label="Retreat activity type" style={{ minWidth: 0, padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}>
+                                  <option value="journey">Journey</option>
+                                  <option value="picnic">Picnic</option>
+                                  <option value="tour">Tour</option>
+                                  <option value="meditation">Meditation</option>
+                                  <option value="healing">Healing</option>
+                                  <option value="other">Other</option>
+                                </select>
+                                <input value={activity.title || ''} onChange={event => updateRetreatActivity(idx, activityIndex, { title: event.target.value })} placeholder="Activity title" aria-label="Retreat activity title" style={{ minWidth: 0, padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                                <button type="button" onClick={() => removeRetreatActivity(idx, activityIndex)} aria-label="Remove retreat activity" style={{ border: 0, background: 'transparent', color: '#b91c1c', padding: '0.45rem', cursor: 'pointer' }}><i className="fas fa-trash" /></button>
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.55rem' }}>
+                                <label style={{ display: 'grid', gap: '0.25rem', color: '#64748b', fontSize: '0.65rem', fontWeight: 800 }}>START TIME<input type="time" value={activity.start_time || ''} onChange={event => updateRetreatActivity(idx, activityIndex, { start_time: event.target.value })} style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} /></label>
+                                <label style={{ display: 'grid', gap: '0.25rem', color: '#64748b', fontSize: '0.65rem', fontWeight: 800 }}>END TIME<input type="time" value={activity.end_time || ''} onChange={event => updateRetreatActivity(idx, activityIndex, { end_time: event.target.value })} style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} /></label>
+                              </div>
+                              <textarea value={activity.description || ''} onChange={event => updateRetreatActivity(idx, activityIndex, { description: event.target.value })} placeholder="What happens during this activity?" rows={2} style={{ padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical' }} />
+                              <label style={{ display: 'grid', gap: '0.25rem', color: '#64748b', fontSize: '0.65rem', fontWeight: 800 }}>
+                                RELATED BUSINESS MINISITE (OPTIONAL)
+                                <select value={activity.provider_business_id || ''} onChange={event => {
+                                  const provider = businesses.find(business => String(business.id) === event.target.value);
+                                  updateRetreatActivity(idx, activityIndex, {
+                                    provider_business_id: provider?.id || '',
+                                    provider_name: provider?.name || '',
+                                    provider_slug: provider?.slug || '',
+                                  });
+                                }} style={{ padding: '0.55rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}>
+                                  <option value="">No minisite link</option>
+                                  {businesses.map(business => <option key={business.id} value={business.id}>{business.name} ({business.type_name || 'Business'})</option>)}
+                                </select>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1396,7 +1794,10 @@ function UnifiedMarketplaceCommandCenterInner() {
                       </label>
                       <select
                         value={editingItem.target_type_id || ''}
-                        onChange={(e) => setEditingItem(p => ({ ...p, target_type_id: e.target.value }))}
+                        onChange={(e) => {
+                          setEditingItem(p => ({ ...p, target_type_id: e.target.value }));
+                          setSpecificationTypeId(e.target.value);
+                        }}
                         style={{ width: '100%', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}
                       >
                         <option value="">-- Choose Parent Sector --</option>
@@ -1421,7 +1822,10 @@ function UnifiedMarketplaceCommandCenterInner() {
                       </label>
                       <select
                         value={editingItem.target_type_id || ''}
-                        onChange={(e) => setEditingItem(p => ({ ...p, target_type_id: e.target.value }))}
+                        onChange={(e) => {
+                          setEditingItem(p => ({ ...p, target_type_id: e.target.value }));
+                          setSpecificationTypeId(e.target.value);
+                        }}
                         style={{ width: '100%', padding: '0.7rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}
                       >
                         <option value="">-- Choose Sub-Typology --</option>

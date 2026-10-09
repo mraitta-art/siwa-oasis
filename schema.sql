@@ -91,6 +91,8 @@ CREATE TABLE form_fields (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   business_type_id VARCHAR(100) NOT NULL,
   section_id VARCHAR(100) NOT NULL,
+  field_scope VARCHAR(30) NOT NULL DEFAULT 'profile',
+  applies_to JSON DEFAULT NULL,
   name VARCHAR(100) NOT NULL,
   label VARCHAR(255) NOT NULL,
   field_type VARCHAR(50) NOT NULL,

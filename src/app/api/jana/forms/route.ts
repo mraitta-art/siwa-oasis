@@ -2,7 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { getFormFields, getBusinessTypeById, invalidateCache } from '@/lib/cache';
+import { mergeBlueprintSchemas, type BlueprintSchema } from '@/lib/governance/blueprint-core';
+import { getSectionLookupIds, resolveFormFieldSectionId, resolveSectionId } from '@/lib/section-registry';
+import { CATALOG_SPEC_ITEM_TYPE_IDS } from '@/lib/marketplace-item-types';
 import crypto from 'crypto';
+
+let formFieldScopeSupport: { value: boolean; checkedAt: number } | null = null;
+
+async function supportsFormFieldScope() {
+  if (formFieldScopeSupport && Date.now() - formFieldScopeSupport.checkedAt < 30000) {
+    return formFieldScopeSupport.value;
+  }
+
+  try {
+    const columns = await query(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'form_fields'
+         AND COLUMN_NAME IN ('field_scope', 'applies_to')`
+    ) as any[];
+    const available = columns.length === 2;
+    formFieldScopeSupport = { value: available, checkedAt: Date.now() };
+    return available;
+  } catch {
+    formFieldScopeSupport = { value: false, checkedAt: Date.now() };
+    return false;
+  }
+}
 
 async function ensureBusinessOverrideTable() {
   await execute(`CREATE TABLE IF NOT EXISTS business_form_overrides (
@@ -77,7 +102,13 @@ async function getBusinessForm(businessId: string) {
     });
   }
 
-  return Array.from(merged.values()).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  return Array.from(merged.values())
+    .map(field => ({
+      ...field,
+      source_section_id: field.section_id,
+      section_id: resolveFormFieldSectionId(String(field.source_id || field.business_type_id || ''), String(field.name || ''), String(field.section_id || 'basic')),
+    }))
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 }
 
 export async function GET(request: NextRequest) {
@@ -87,11 +118,20 @@ export async function GET(request: NextRequest) {
     const typeId = searchParams.get('type');
     const section = searchParams.get('section');
     const businessId = searchParams.get('business');
+    const requestedScope = searchParams.get('scope') || 'profile';
+    const fieldScope = ['profile', 'catalog_spec', 'all'].includes(requestedScope) ? requestedScope : 'profile';
+    const hasFieldScopeColumns = await supportsFormFieldScope();
+    let blueprintFields: any[] = [];
+
+    if (fieldScope === 'catalog_spec' && !hasFieldScopeColumns) {
+      return NextResponse.json({ error: 'Apply migration 039_form_field_applicability.sql before editing catalog specifications.' }, { status: 503 });
+    }
 
     if (businessId) {
       const fields = await getBusinessForm(businessId);
       if (!fields) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
-      return NextResponse.json(section ? fields.filter((field: any) => field.section_id === section) : fields);
+      const scopedFields = fields.filter((field: any) => fieldScope === 'all' || (field.field_scope || 'profile') === fieldScope);
+      return NextResponse.json(section ? scopedFields.filter((field: any) => resolveSectionId(String(field.section_id)) === resolveSectionId(section)) : scopedFields);
     }
 
     if (typeId) {
@@ -100,7 +140,6 @@ export async function GET(request: NextRequest) {
       
       // 1. Fetch the type and iteratively find all ancestors
       const typesToFetch = [];
-      let currentId = typeId;
 
       if (typeId === 'FACTORY') {
         // Factory is a flat registry of master blocks, skip inheritance
@@ -117,7 +156,7 @@ export async function GET(request: NextRequest) {
         })));
       }
 
-      if (typeId !== 'SECTION_TEMPLATE' && source !== 'database') {
+      if (typeId !== 'SECTION_TEMPLATE' && source !== 'database' && fieldScope !== 'catalog_spec') {
         // Find if we have a blueprint_schema configured in business_types
         let targetSchema: any = null;
         const parseSchema = (value: unknown) => {
@@ -133,15 +172,24 @@ export async function GET(request: NextRequest) {
           return null;
         };
 
-        const typeInfo = await queryOne('SELECT blueprint_schema, parent_id FROM business_types WHERE id = ?', [typeId]) as any;
-        if (typeInfo?.blueprint_schema) {
-          targetSchema = parseSchema(typeInfo.blueprint_schema);
-        } else if (typeInfo?.parent_id) {
-          const parentInfo = await queryOne('SELECT blueprint_schema FROM business_types WHERE id = ?', [typeInfo.parent_id]) as any;
-          if (parentInfo?.blueprint_schema) {
-            targetSchema = parseSchema(parentInfo.blueprint_schema);
-          }
+        const inheritedSchemas: BlueprintSchema[] = [];
+        const visitedTypeIds = new Set<string>();
+        let currentTypeId: string | null = typeId;
+
+        while (currentTypeId && !visitedTypeIds.has(currentTypeId)) {
+          visitedTypeIds.add(currentTypeId);
+          const currentType = await queryOne(
+            'SELECT id, parent_id, blueprint_schema FROM business_types WHERE id = ?',
+            [currentTypeId]
+          ) as any;
+          if (!currentType) break;
+
+          const currentSchema = parseSchema(currentType.blueprint_schema) as BlueprintSchema | null;
+          if (currentSchema) inheritedSchemas.unshift(currentSchema);
+          currentTypeId = currentType.parent_id || null;
         }
+
+        targetSchema = mergeBlueprintSchemas(inheritedSchemas);
 
         if (targetSchema && targetSchema.chapters) {
           const CHAPTER_TO_SECTION: Record<string, string> = {
@@ -151,7 +199,7 @@ export async function GET(request: NextRequest) {
             cuisine: 'sec_4_gastronomy',
             programs: 'sec_5_experiences',
             ecology: 'sec_6_guardian',
-            invest: 'investment-opportunity',
+            invest: 'sec_7_investment',
             offers: 'sec_8_connector',
           };
 
@@ -236,23 +284,19 @@ export async function GET(request: NextRequest) {
             });
           }
 
-          let fieldsList = Array.from(fieldMap.values()).map(f => {
+          blueprintFields = Array.from(fieldMap.values()).map(f => {
             const readRoles = Array.isArray(f.acl?.read) ? f.acl.read : ['public'];
             return {
               ...f,
+              field_scope: 'profile',
+              applies_to: [],
               show_on_public: readRoles.includes('public')
             };
           });
-          if (section) {
-            fieldsList = fieldsList.filter(f => f.section_id === section);
-          }
-          if (fieldsList.length > 0) {
-            return NextResponse.json(fieldsList);
-          }
         }
       }
 
-      let allSectionIds = new Set<string>();
+      const allSectionIds = new Set<string>();
       if (typeId !== 'SECTION_TEMPLATE') {
         let currentId: string | null = typeId;
         while (currentId) {
@@ -276,14 +320,14 @@ export async function GET(request: NextRequest) {
         });
       } else {
         if (section) {
-          allSectionIds.add(section);
+          allSectionIds.add(resolveSectionId(section));
         } else {
           const allSecs = await query('SELECT id FROM sections') as any[];
           allSecs.forEach(s => allSectionIds.add(s.id));
         }
       }
 
-      const sectionIdsArray = Array.from(allSectionIds);
+      const sectionIdsArray = [...new Set(Array.from(allSectionIds).map(sectionId => resolveSectionId(String(sectionId))))];
 
       // 2. Fetch fields
       const idsToFetch = ['SECTION_TEMPLATE', ...typesToFetch.map(t => t.id)];
@@ -296,16 +340,24 @@ export async function GET(request: NextRequest) {
       let sql = 'SELECT * FROM form_fields WHERE business_type_id IN (?)';
       const params: any[] = [idsToFetch];
       
-      if (section || typeId === 'SECTION_TEMPLATE') {
+      if (typeId === 'SECTION_TEMPLATE') {
         if (section) {
-          sql += ' AND section_id = ?';
-          params.push(section);
+          sql += ' AND section_id IN (?)';
+          params.push(getSectionLookupIds(section));
         }
+      } else if (section) {
+        sql += ' AND section_id IN (?)';
+        params.push([...new Set(sectionIdsArray.flatMap(getSectionLookupIds))]);
       } else if (sectionIdsArray.length > 0) {
         sql += ' AND section_id IN (?)';
-        params.push(sectionIdsArray);
+        params.push([...new Set(sectionIdsArray.flatMap(getSectionLookupIds))]);
       } else if (typeId !== 'SECTION_TEMPLATE') {
         return NextResponse.json([]);
+      }
+
+      if (fieldScope !== 'all' && hasFieldScopeColumns) {
+        sql += " AND COALESCE(field_scope, 'profile') = ?";
+        params.push(fieldScope);
       }
       
       sql += ` ORDER BY 
@@ -325,14 +377,21 @@ export async function GET(request: NextRequest) {
       // A. Add explicit fields from DB
       for (const f of allFields) {
         const versionType = f.version_type || 'latest';
-        const key = `${f.section_id}:${f.name}:${versionType}`;
-        explicitFieldNames.add(`${f.section_id}:${f.name}`);
+        const sourceSectionId = String(f.section_id);
+        const sectionId = resolveFormFieldSectionId(String(f.business_type_id || ''), String(f.name || ''), sourceSectionId);
+        if (section && sectionId !== resolveSectionId(section)) continue;
+        const key = `${sectionId}:${f.name}:${versionType}`;
+        explicitFieldNames.add(`${sectionId}:${f.name}`);
         const existing = fieldMap.get(key);
         const fieldPriority = sourcePriority.get(f.business_type_id) ?? Number.MAX_SAFE_INTEGER - 1;
         const existingPriority = existing ? (sourcePriority.get(existing.business_type_id) ?? Number.MAX_SAFE_INTEGER - 1) : Number.MAX_SAFE_INTEGER;
         if (existing && existingPriority <= fieldPriority) continue;
         fieldMap.set(key, {
           ...f,
+          section_id: sectionId,
+          source_section_id: sourceSectionId,
+          field_scope: f.field_scope || 'profile',
+          applies_to: parseJson(f.applies_to, []),
           version_type: versionType,
           source_level: f.business_type_id === typeId ? 'selected' : f.business_type_id === 'SECTION_TEMPLATE' ? 'universal' : 'parent',
           is_inherited: f.business_type_id !== typeId,
@@ -343,8 +402,22 @@ export async function GET(request: NextRequest) {
         });
       }
 
+      const blueprintFieldNames = new Set<string>();
+      for (const blueprintField of blueprintFields) {
+        const versionType = blueprintField.version_type || 'latest';
+        const nameKey = `${blueprintField.section_id}:${blueprintField.name}`;
+        blueprintFieldNames.add(nameKey);
+        if (explicitFieldNames.has(nameKey)) continue;
+
+        const key = `${nameKey}:${versionType}`;
+        if (!fieldMap.has(key)) {
+          fieldMap.set(key, { ...blueprintField, version_type: versionType });
+        }
+      }
+
       // B. AUTO-INJECT Structural Defaults (Mini-Blog & Gallery) only if NOT already in DB
-      const hasExplicitField = (sid: string, name: string) => explicitFieldNames.has(`${sid}:${name}`);
+      const hasExplicitField = (sid: string, name: string) =>
+        explicitFieldNames.has(`${sid}:${name}`) || blueprintFieldNames.has(`${sid}:${name}`);
       sectionIdsArray.forEach(sid => {
         const blogKey = `${sid}:section_blog`;
         if (!hasExplicitField(sid, 'section_blog')) {
@@ -419,7 +492,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const fieldsList = Array.from(fieldMap.values()).map(f => {
+      const fieldsList = Array.from(fieldMap.values()).filter(field => !section || field.section_id === resolveSectionId(section)).map(f => {
         const readRoles = Array.isArray(f.acl?.read) ? f.acl.read : ['public'];
         return {
           ...f,
@@ -453,6 +526,9 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin();
     const body = await request.json();
     if (body.business_id) {
+      if (body.field_scope === 'catalog_spec') {
+        return NextResponse.json({ error: 'Catalog specifications must be defined on a business type, not a business override.' }, { status: 400 });
+      }
       await ensureBusinessOverrideTable();
       const { business_id, source_field_id = null } = body;
       const payload = { ...body };
@@ -467,11 +543,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ id }, { status: 201 });
     }
     const { business_type_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, version_type } = body;
-    const section_id = body.section_id || 'basic';
+    const section_id = resolveSectionId(String(body.section_id || 'basic'));
+    const field_scope = body.field_scope === 'catalog_spec' ? 'catalog_spec' : 'profile';
+    const rawAppliesTo = parseJson(body.applies_to, []);
+    const applies_to = Array.isArray(rawAppliesTo)
+      ? [...new Set(rawAppliesTo.filter((item: unknown): item is string => typeof item === 'string' && CATALOG_SPEC_ITEM_TYPE_IDS.includes(item as any)))]
+      : [];
     const finalVersionType = version_type === 'initial' ? 'initial' : 'latest';
+    const hasFieldScopeColumns = await supportsFormFieldScope();
 
     if (!business_type_id || !name || !label || !field_type) {
       return NextResponse.json({ error: 'Missing required fields: business_type_id, name, label, field_type' }, { status: 400 });
+    }
+    if (field_scope === 'catalog_spec' && section_id !== 'sec_9_marketplace_catalog') {
+      return NextResponse.json({ error: 'Catalog specification fields must belong to the Marketplace & Local Products section.' }, { status: 400 });
+    }
+    if (field_scope === 'catalog_spec' && !hasFieldScopeColumns) {
+      return NextResponse.json({ error: 'Apply migration 039_form_field_applicability.sql before creating catalog specifications.' }, { status: 503 });
+    }
+    if (field_scope === 'catalog_spec' && applies_to.length === 0) {
+      return NextResponse.json({ error: 'Choose at least one listing kind for this catalog specification.' }, { status: 400 });
     }
 
     // Ensure the 'basic' section exists (self-healing)
@@ -496,7 +587,7 @@ export async function POST(request: NextRequest) {
     const finalOptions = options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null;
 
     // Resolve ACL based on show_on_public flag
-    let aclObj = acl ? (typeof acl === 'string' ? JSON.parse(acl) : acl) : { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] };
+    const aclObj = acl ? (typeof acl === 'string' ? JSON.parse(acl) : acl) : { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] };
     if (body.show_on_public !== undefined) {
       const show = !!body.show_on_public;
       if (!aclObj.read) aclObj.read = [];
@@ -515,18 +606,28 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      await execute(
-        `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin, version_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id, business_type_id, section_id, name, label, field_type,
-          required ? 1 : 0, vendor_editable ?? 1, searchable ? 1 : 0, help_text || null,
-          finalOptions, finalValidation, finalAcl,
-          default_value || null, finalSortOrder, required_feature || null,
-          body.section_origin || 'own', finalVersionType
-        ]
-      );
+      const commonParams = [
+        id, business_type_id, section_id, name, label, field_type,
+        required ? 1 : 0, vendor_editable ?? 1, searchable ? 1 : 0, help_text || null,
+        finalOptions, finalValidation, finalAcl,
+        default_value || null, finalSortOrder, required_feature || null,
+        body.section_origin || 'own'
+      ];
+      if (hasFieldScopeColumns) {
+        await execute(
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin, field_scope, applies_to, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [...commonParams, field_scope, field_scope === 'catalog_spec' ? JSON.stringify(applies_to) : null, finalVersionType]
+        );
+      } else {
+        await execute(
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [...commonParams, finalVersionType]
+        );
+      }
       console.log('[FORMS POST] Field created successfully');
+      invalidateCache.formFields();
     } catch (dbErr: any) {
       console.error('[FORMS POST DB ERROR]', dbErr);
       return NextResponse.json({ error: `Database Error: ${dbErr.message}` }, { status: 500 });
@@ -544,6 +645,9 @@ export async function PUT(request: NextRequest) {
     await requireAdmin();
     const body = await request.json();
     if (body.business_id) {
+      if (body.field_scope === 'catalog_spec') {
+        return NextResponse.json({ error: 'Catalog specifications must be defined on a business type, not a business override.' }, { status: 400 });
+      }
       await ensureBusinessOverrideTable();
       const { business_id, id, source_field_id = id } = body;
       const existingOverride = id ? await queryOne('SELECT * FROM business_form_overrides WHERE id = ? AND business_id = ?', [id, business_id]) as any : null;
@@ -566,39 +670,65 @@ export async function PUT(request: NextRequest) {
       );
       return NextResponse.json({ success: true, id: overrideId, override: true });
     }
-    const { id, label, required, vendor_editable, searchable, help_text, sort_order, options, section_id, is_hidden, acl, validation, field_type, required_feature, version_type } = body;
+    const { id, label, required, vendor_editable, searchable, help_text, sort_order, options, section_id, is_hidden, acl, validation, field_type, required_feature, version_type, field_scope, applies_to } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const currentField = await queryOne('SELECT * FROM form_fields WHERE id = ?', [id]) as any;
+    const hasFieldScopeColumns = await supportsFormFieldScope();
     const targetVersionType = version_type === 'initial' ? 'initial' : 'latest';
     const currentFieldVersionType = currentField?.version_type || 'latest';
+    const nextFieldScope = field_scope === undefined
+      ? currentField?.field_scope || 'profile'
+      : field_scope === 'catalog_spec' ? 'catalog_spec' : 'profile';
+    const nextSectionId = resolveSectionId(String(section_id || currentField?.section_id || 'basic'));
+    const rawNextAppliesTo = applies_to === undefined ? parseJson(currentField?.applies_to, []) : parseJson(applies_to, []);
+    const nextAppliesTo = Array.isArray(rawNextAppliesTo)
+      ? [...new Set(rawNextAppliesTo.filter((item: unknown): item is string => typeof item === 'string' && CATALOG_SPEC_ITEM_TYPE_IDS.includes(item as any)))]
+      : [];
+
+    if (nextFieldScope === 'catalog_spec' && nextSectionId !== 'sec_9_marketplace_catalog') {
+      return NextResponse.json({ error: 'Catalog specification fields must belong to the Marketplace & Local Products section.' }, { status: 400 });
+    }
+    if (nextFieldScope === 'catalog_spec' && !hasFieldScopeColumns) {
+      return NextResponse.json({ error: 'Apply migration 039_form_field_applicability.sql before editing catalog specifications.' }, { status: 503 });
+    }
+    if (nextFieldScope === 'catalog_spec' && nextAppliesTo.length === 0) {
+      return NextResponse.json({ error: 'Choose at least one listing kind for this catalog specification.' }, { status: 400 });
+    }
 
     // Editing an inherited child field creates a child-owned copy.
     if (currentField && body.business_type_id && currentField.business_type_id !== body.business_type_id) {
       const childFieldId = crypto.randomUUID();
-      await execute(
-        `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, section_origin, required_feature, version_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?)`,
-        [
-          childFieldId,
-          body.business_type_id,
-          section_id || currentField.section_id,
-          currentField.name,
-          label ?? currentField.label,
-          field_type ?? currentField.field_type,
-          required !== undefined ? (required ? 1 : 0) : currentField.required,
-          vendor_editable !== undefined ? (vendor_editable ? 1 : 0) : currentField.vendor_editable,
-          searchable !== undefined ? (searchable ? 1 : 0) : currentField.searchable,
-          help_text ?? currentField.help_text,
-          options !== undefined ? (typeof options === 'string' ? options : JSON.stringify(options)) : currentField.options,
-          validation !== undefined ? (typeof validation === 'string' ? validation : JSON.stringify(validation)) : currentField.validation,
-          acl !== undefined ? (typeof acl === 'string' ? acl : JSON.stringify(acl)) : currentField.acl,
-          currentField.default_value || null,
-          sort_order !== undefined ? sort_order : currentField.sort_order || 0,
-          required_feature ?? currentField.required_feature ?? null,
-          targetVersionType
-        ]
-      );
+      const childFieldParams = [
+        childFieldId,
+        body.business_type_id,
+        nextSectionId,
+        currentField.name,
+        label ?? currentField.label,
+        field_type ?? currentField.field_type,
+        required !== undefined ? (required ? 1 : 0) : currentField.required,
+        vendor_editable !== undefined ? (vendor_editable ? 1 : 0) : currentField.vendor_editable,
+        searchable !== undefined ? (searchable ? 1 : 0) : currentField.searchable,
+        help_text ?? currentField.help_text,
+        options !== undefined ? (typeof options === 'string' ? options : JSON.stringify(options)) : currentField.options,
+        validation !== undefined ? (typeof validation === 'string' ? validation : JSON.stringify(validation)) : currentField.validation,
+        acl !== undefined ? (typeof acl === 'string' ? acl : JSON.stringify(acl)) : currentField.acl,
+        currentField.default_value || null,
+        sort_order !== undefined ? sort_order : currentField.sort_order || 0,
+      ];
+      if (hasFieldScopeColumns) {
+        await execute(
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, section_origin, field_scope, applies_to, required_feature, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?, ?, ?)`,
+          [...childFieldParams, nextFieldScope, nextFieldScope === 'catalog_spec' ? JSON.stringify(nextAppliesTo) : null, required_feature ?? currentField.required_feature ?? null, targetVersionType]
+        );
+      } else {
+        await execute(
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, section_origin, required_feature, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?)`,
+          [...childFieldParams, required_feature ?? currentField.required_feature ?? null, targetVersionType]
+        );
+      }
       invalidateCache.formFields();
       return NextResponse.json({ success: true, id: childFieldId, override: true });
     }
@@ -617,17 +747,16 @@ export async function PUT(request: NextRequest) {
         ...body,
         id: siblingId,
         version_type: targetVersionType,
-        section_id: section_id || currentField.section_id,
+        section_id: nextSectionId,
         field_type: field_type || currentField.field_type,
         name: currentField.name,
         business_type_id: currentField.business_type_id,
         label: label || currentField.label,
+        field_scope: nextFieldScope,
+        applies_to: nextFieldScope === 'catalog_spec' ? nextAppliesTo : null,
       };
 
-      await execute(
-        `REPLACE INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature, version_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
+      const siblingParams = [
           fieldPayload.id,
           fieldPayload.business_type_id,
           fieldPayload.section_id,
@@ -645,8 +774,20 @@ export async function PUT(request: NextRequest) {
           fieldPayload.section_origin || currentField.section_origin || 'own',
           required_feature || currentField.required_feature || null,
           targetVersionType,
-        ]
-      );
+      ];
+      if (hasFieldScopeColumns) {
+        await execute(
+          `REPLACE INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, field_scope, applies_to, required_feature, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [...siblingParams.slice(0, 15), fieldPayload.field_scope || currentField.field_scope || 'profile', fieldPayload.field_scope === 'catalog_spec' ? JSON.stringify(fieldPayload.applies_to || []) : null, ...siblingParams.slice(15)]
+        );
+      } else {
+        await execute(
+          `REPLACE INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          siblingParams
+        );
+      }
 
       return NextResponse.json({ success: true, id: siblingId });
     }
@@ -683,7 +824,12 @@ export async function PUT(request: NextRequest) {
     if (help_text !== undefined) { updates.push('help_text=?'); params.push(help_text); }
     if (sort_order !== undefined) { updates.push('sort_order=?'); params.push(sort_order); }
     if (options !== undefined) { updates.push('options=?'); params.push(typeof options === 'string' ? options : JSON.stringify(options)); }
-    if (section_id !== undefined) { updates.push('section_id=?'); params.push(section_id); }
+    if (section_id !== undefined) { updates.push('section_id=?'); params.push(nextSectionId); }
+    if (field_scope !== undefined && hasFieldScopeColumns) { updates.push('field_scope=?'); params.push(nextFieldScope); }
+    if ((applies_to !== undefined || field_scope !== undefined) && hasFieldScopeColumns) {
+      updates.push('applies_to=?');
+      params.push(nextFieldScope === 'catalog_spec' ? JSON.stringify(nextAppliesTo) : null);
+    }
     if (finalAclString !== undefined) { updates.push('acl=?'); params.push(finalAclString); }
     else if (acl !== undefined) { updates.push('acl=?'); params.push(typeof acl === 'string' ? acl : JSON.stringify(acl)); }
     if (validation !== undefined) { updates.push('validation=?'); params.push(typeof validation === 'string' ? validation : JSON.stringify(validation)); }
@@ -698,27 +844,34 @@ export async function PUT(request: NextRequest) {
       if (result.affectedRows === 0 && id.startsWith('auto-')) {
         console.log(`[FORMS PUT] Virtual ID ${id} detected. Materializing...`);
         const name = body.name || id.split('-').pop(); // Extract name from auto-blog-sid
-        await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature, version_type)
-           VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'template', ?, ?)`,
-          [
-            id, 
-            section_id || 'basic', 
-            name, 
-            label || name, 
-            field_type || 'text',
-            required ? 1 : 0, 
-            vendor_editable ?? 1, 
-            searchable ? 1 : 0, 
-            help_text || null,
-            options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null,
-            JSON.stringify(validation || {}),
-            JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
-            sort_order || 0,
-            required_feature || null,
-            targetVersionType
-          ]
-        );
+        const virtualFieldParams = [
+          id,
+          nextSectionId,
+          name,
+          label || name,
+          field_type || 'text',
+          required ? 1 : 0,
+          vendor_editable ?? 1,
+          searchable ? 1 : 0,
+          help_text || null,
+          options ? (typeof options === 'string' ? options : JSON.stringify(options)) : null,
+          JSON.stringify(validation || {}),
+          JSON.stringify(acl || { read: ['super_admin','content_admin','vendor','public'], write: ['super_admin','content_admin','vendor'] }),
+          sort_order || 0,
+        ];
+        if (hasFieldScopeColumns) {
+          await execute(
+            `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, field_scope, applies_to, required_feature, version_type)
+             VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'template', 'profile', NULL, ?, ?)`,
+            [...virtualFieldParams, required_feature || null, targetVersionType]
+          );
+        } else {
+          await execute(
+            `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, sort_order, section_origin, required_feature, version_type)
+             VALUES (?, 'SECTION_TEMPLATE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'template', ?, ?)`,
+            [...virtualFieldParams, required_feature || null, targetVersionType]
+          );
+        }
       }
     }
 

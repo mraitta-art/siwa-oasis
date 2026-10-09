@@ -23,7 +23,7 @@ export const LEGACY_SECTION_ALIASES: Record<string, CanonicalSectionId> = {
   vibe: 'sec_2_ambience',
   ambience: 'sec_2_ambience',
   atmosphere: 'sec_2_ambience',
-  sec_6_geographic: 'sec_2_ambience',
+  sec_6_geographic: 'sec_1_identity',
   scenery: 'sec_2_ambience',
 
   sec_4_facilities: 'sec_3_facilities',
@@ -62,7 +62,7 @@ export const LEGACY_SECTION_ALIASES: Record<string, CanonicalSectionId> = {
   partnerships: 'sec_7_investment',
   commercial: 'sec_7_investment',
 
-  sec_5_connectivity: 'sec_8_connector',
+  sec_5_connectivity: 'sec_1_identity',
   sec_8_rates_offers: 'sec_8_connector',
   'offers-packages': 'sec_8_connector',
   'discounts-promotions': 'sec_8_connector',
@@ -124,6 +124,66 @@ export function resolveSectionId(id: string): string {
   return LEGACY_SECTION_ALIASES[id] || id;
 }
 
+export function getSectionLookupIds(id: string): string[] {
+  const canonicalId = resolveSectionId(id);
+  const aliases = Object.entries(LEGACY_SECTION_ALIASES)
+    .filter(([, targetId]) => targetId === canonicalId)
+    .map(([alias]) => alias);
+  return [...new Set([canonicalId, ...aliases])];
+}
+
+const FORM_FIELD_SECTION_OVERRIDES: Record<string, Record<string, string>> = {
+  logistics: {
+    vehicle_types: 'sec_3_facilities',
+    fleet_size: 'sec_3_facilities',
+    fleet_availability: 'sec_6_guardian',
+    journey_services: 'sec_5_experiences',
+    route_types: 'sec_5_experiences',
+    pickup_options: 'sec_5_experiences',
+    route_options: 'sec_5_experiences',
+    included_in_service: 'sec_5_experiences',
+  },
+  tuk_tuk: { local_route_services: 'sec_5_experiences' },
+  adventure: {
+    activity_types: 'sec_5_experiences',
+    route_and_duration: 'sec_5_experiences',
+    included_services: 'sec_5_experiences',
+  },
+  safari_4x4: { safari_route_options: 'sec_5_experiences' },
+  camel_trek: { trek_routes: 'sec_5_experiences' },
+  nature_tour: { wildlife_focus: 'sec_5_experiences' },
+  heritage_tour: { heritage_sites: 'sec_5_experiences' },
+  crafts: {
+    product_categories: 'sec_9_marketplace_catalog',
+    custom_order_services: 'sec_5_experiences',
+    product_quality: 'sec_9_marketplace_catalog',
+  },
+  embroidery: { textile_techniques: 'sec_9_marketplace_catalog' },
+  date_olive: { crop_varieties: 'sec_9_marketplace_catalog' },
+  artisan_shop: { artisan_materials: 'sec_9_marketplace_catalog' },
+  production_trade: {
+    product_categories: 'sec_9_marketplace_catalog',
+    production_services: 'sec_9_marketplace_catalog',
+    product_quality: 'sec_9_marketplace_catalog',
+  },
+  date_factory: { date_varieties: 'sec_9_marketplace_catalog' },
+  water_factory: { water_source: 'sec_9_marketplace_catalog' },
+  olive_processing_factory: { olive_product_types: 'sec_9_marketplace_catalog' },
+  food_manufacturing_factory: { food_product_lines: 'sec_9_marketplace_catalog' },
+  wellness: {
+    wellness_services: 'sec_5_experiences',
+    session_duration: 'sec_5_experiences',
+    practitioner_information: 'sec_5_experiences',
+  },
+  sand_bath: { sand_bath_protocol: 'sec_5_experiences' },
+  salt_therapy: { salt_therapy_protocol: 'sec_5_experiences' },
+  hot_spring: { water_temperature_and_minerals: 'sec_5_experiences' },
+};
+
+export function resolveFormFieldSectionId(typeId: string, fieldName: string, sectionId: string): string {
+  return FORM_FIELD_SECTION_OVERRIDES[typeId]?.[fieldName] || resolveSectionId(sectionId);
+}
+
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
@@ -153,7 +213,15 @@ function toStringArray(value: unknown): string[] {
 
 function collectSectionData(customData: Record<string, any> | undefined, sectionId: string): Record<string, any> {
   const normalizedId = resolveSectionId(sectionId);
+  const legacyIds = getSectionLookupIds(normalizedId).filter(id => id !== normalizedId);
+  const legacyCandidates = legacyIds.flatMap(id => [
+    customData?.[id],
+    customData?.basic?.[id],
+    customData?.sec_1_identity?.[id],
+    customData?.business_info?.[id],
+  ]);
   const candidates = [
+    ...legacyCandidates,
     customData?.[normalizedId],
     customData?.[sectionId],
     customData?.basic?.[normalizedId],
@@ -171,6 +239,10 @@ function collectSectionData(customData: Record<string, any> | undefined, section
     if (!candidate || typeof candidate !== 'object') return acc;
     return { ...acc, ...candidate };
   }, {});
+}
+
+export function getSectionData(customData: Record<string, any> | undefined, sectionId: string): Record<string, any> {
+  return collectSectionData(customData, sectionId);
 }
 
 function collectVisibilitySet(customData: Record<string, any> | undefined, key: 'visible_sections' | 'hidden_sections'): Set<string> {

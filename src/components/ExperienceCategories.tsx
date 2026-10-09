@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { BRAND_SECTORS, HOME_BRAND_SECTOR_SLUGS } from '@/lib/brand-sectors';
 
 export interface CategoryItem {
   id: string;
@@ -14,52 +15,20 @@ export interface CategoryItem {
   display_order: number;
 }
 
-const DEFAULT_CATEGORIES: CategoryItem[] = [
-  {
-    id: 'wellness',
-    title: 'WELLNESS & HEALING',
-    subtitle: 'Float in salt lakes, immerse in natural springs, and experience therapeutic desert sand baths.',
-    icon: 'fa-spa',
-    image_url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
-    color: '#10B981',
-    link: '/search/vibe?category=wellness',
+const DEFAULT_CATEGORIES: CategoryItem[] = HOME_BRAND_SECTOR_SLUGS.map((slug, index) => {
+  const sector = BRAND_SECTORS[slug];
+  return {
+    id: slug,
+    title: sector.label,
+    subtitle: sector.description,
+    icon: sector.icon,
+    image_url: sector.image_url,
+    color: sector.accent,
+    link: `/${slug}`,
     is_visible: true,
-    display_order: 1,
-  },
-  {
-    id: 'slow-food',
-    title: 'AGRICULTURE & SLOW FOOD',
-    subtitle: 'Taste organic date orchards, ancestral olive presses, and traditional Siwan gastronomy.',
-    icon: 'fa-seedling',
-    image_url: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=800',
-    color: '#f59e0b',
-    link: '/search/vibe?category=food',
-    is_visible: true,
-    display_order: 2,
-  },
-  {
-    id: 'crafts',
-    title: 'ARTISAN CRAFTS & TRADES',
-    subtitle: 'Explore rock salt lamps, hand-embroidered textiles, and clay pottery crafted across generations.',
-    icon: 'fa-store',
-    image_url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800',
-    color: '#ef4444',
-    link: '/search/vibe?category=crafts',
-    is_visible: true,
-    display_order: 3,
-  },
-  {
-    id: 'safaris',
-    title: 'ECO-SAFARIS & RETREATS',
-    subtitle: 'Nomadic camping in the Great Sand Sea, eco-lodges of Kershef, and spiritual stargazing.',
-    icon: 'fa-campground',
-    image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
-    color: '#8b5cf6',
-    link: '/search/vibe?category=adventure',
-    is_visible: true,
-    display_order: 4,
-  },
-];
+    display_order: index + 1,
+  };
+});
 
 interface Props {
   categories?: CategoryItem[];
@@ -72,14 +41,25 @@ export default function ExperienceCategories({ categories, title, subtitle }: Pr
   const [loading, setLoading] = useState(!categories);
 
   useEffect(() => {
-    if (categories) return; // Use passed-in categories if provided
+    const mergeBrandCategories = (additional: CategoryItem[]) => {
+      const brandIds = new Set(DEFAULT_CATEGORIES.map(category => category.id));
+      return [...DEFAULT_CATEGORIES, ...additional.filter(category => !brandIds.has(category.id))];
+    };
+
+    if (categories) {
+      setItems(mergeBrandCategories(categories));
+      setLoading(false);
+      return;
+    }
 
     async function fetchCategories() {
       try {
         const res = await fetch('/api/jana/experience-categories?visibleOnly=true');
         if (res.ok) {
           const data = await res.json();
-            setItems(Array.isArray(data) ? data : []);
+          setItems(mergeBrandCategories(Array.isArray(data) ? data : []));
+        } else {
+          setItems(DEFAULT_CATEGORIES);
         }
       } catch (error) {
         console.warn('Failed to load categories from database, using fallback:', error);
@@ -95,14 +75,14 @@ export default function ExperienceCategories({ categories, title, subtitle }: Pr
   return (
     <div style={{ padding: '6rem 0', background: 'var(--bg)' }}>
       <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-        <span style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
-          {subtitle || 'THE PILLARS OF SIWA'}
+          <span style={{ color: 'var(--gold)', fontWeight: 900, letterSpacing: '4px', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
+          {subtitle || 'SIX SIWIFY MARKETPLACES'}
         </span>
         <h2 style={{ color: 'var(--text)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>
-          {title || 'Discover the Living Spirit'}
+          {title || 'Explore Siwify'}
         </h2>
         <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '1.25rem auto 0 auto', fontSize: '0.95rem', lineHeight: 1.7 }}>
-          Journey through ancient agricultural traditions, therapeutic thermal waters, unique kershef architectures, and local marketplace trades.
+          Browse six connected hubs for stays, journeys, retreats, local products, investment, and Siwa's community.
         </p>
       </div>
 

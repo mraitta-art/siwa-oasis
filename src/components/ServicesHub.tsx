@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { BRAND_ROUTE_BY_TYPE } from '@/lib/brand-sectors';
 
 interface ServicePillar {
   id: string;           // matches business_types.id exactly
@@ -102,16 +103,49 @@ export default function ServicesHub({ title, subtitle }: { title?: string; subti
   
   // Fetch from database on mount
   useEffect(() => {
+    async function loadCategoryFallback() {
+      try {
+        const response = await fetch('/api/jana/types');
+        const types = response.ok ? await response.json() : [];
+        const parents = Array.isArray(types) ? types.filter((type: any) =>
+          (type.is_parent || Number(type.is_parent) === 1 || !type.parent_id) &&
+          (type.active === undefined || type.active === true || Number(type.active) === 1)
+        ) : [];
+        if (parents.length === 0) return FALLBACK_PILLARS;
+
+        return parents.map((type: any, index: number): ServicePillar => {
+          const route = BRAND_ROUTE_BY_TYPE[type.id];
+          return {
+            id: String(type.id),
+            name: type.name_en || type.name || String(type.id),
+            tagline: type.description || `Browse businesses, services, products, and offers in ${type.name_en || type.name}.`,
+            icon: type.icon || 'fa-store',
+            color: type.icon_color || '#287a55',
+            image_url: type.cover_image || FALLBACK_PILLARS[index % FALLBACK_PILLARS.length].image_url,
+            search_link: route ? `/${route}` : `/categories?type=${encodeURIComponent(type.id)}`,
+            is_visible: true,
+            display_order: Number(type.sort_order) || index + 1,
+          };
+        });
+      } catch {
+        return FALLBACK_PILLARS;
+      }
+    }
+
     async function fetchServices() {
       try {
         const res = await fetch('/api/jana/services?visibleOnly=true');
         if (res.ok) {
           const data = await res.json();
-          setPillars(Array.isArray(data) ? data : []);
+          if (Array.isArray(data) && data.length > 0) {
+            setPillars(data);
+          } else {
+            setPillars(await loadCategoryFallback());
+          }
         }
       } catch (error) {
         console.warn('Failed to load services from database, using fallback:', error);
-        setPillars(FALLBACK_PILLARS);
+        setPillars(await loadCategoryFallback());
       }
     }
     fetchServices();
@@ -351,7 +385,7 @@ export default function ServicesHub({ title, subtitle }: { title?: string; subti
       {/* ── Bottom CTA ── */}
       <div style={{ textAlign: 'center', marginTop: '4rem' }}>
         <button
-          onClick={() => (window.location.href = '/search/vibe')}
+          onClick={() => (window.location.href = '/categories')}
           style={{
             padding: '1.1rem 3rem',
             background: 'rgba(255,255,255,0.03)',

@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     const seasonFilter = searchParams.get('season') || '';
     const discountTypeFilter = searchParams.get('discount_type') || '';
     const featuredOnly = searchParams.get('featured') === 'true';
+    const requestedTypeIds = [...new Set(typeFilter.split(',').map(id => id.trim()).filter(Boolean))];
 
     let sql = `
       SELECT 
@@ -48,15 +49,22 @@ export async function GET(request: Request) {
 
     const params: any[] = [];
 
-    if (typeFilter) {
+    const filteredBusinessTypeIds = new Set<string>();
+    if (requestedTypeIds.length > 0) {
+      const typePlaceholders = requestedTypeIds.map(() => '?').join(',');
       const types = await query(
-        'SELECT id FROM business_types WHERE id = ? OR parent_id = ?',
-        [typeFilter, typeFilter]
-      );
-      const typeIds = (types as any[]).map(t => t.id);
+        `SELECT id FROM business_types WHERE id IN (${typePlaceholders}) OR parent_id IN (${typePlaceholders})`,
+        [...requestedTypeIds, ...requestedTypeIds]
+      ) as any[];
+      const typeIds = types.map(type => String(type.id));
+      typeIds.forEach(id => filteredBusinessTypeIds.add(id));
       if (typeIds.length > 0) {
         sql += ` AND b.type_id IN (${typeIds.map(() => '?').join(',')}) `;
         params.push(...typeIds);
+      } else {
+        requestedTypeIds.forEach(id => filteredBusinessTypeIds.add(id));
+        sql += ` AND b.type_id IN (${requestedTypeIds.map(() => '?').join(',')}) `;
+        params.push(...requestedTypeIds);
       }
     }
 
@@ -92,9 +100,10 @@ export async function GET(request: Request) {
       canonicalDiscountSql += ' AND tp.vendor_business_id = ?';
       canonicalDiscountParams.push(businessFilter);
     }
-    if (typeFilter) {
-      canonicalDiscountSql += ' AND (b.type_id = ? OR bt.parent_id = ?)';
-      canonicalDiscountParams.push(typeFilter, typeFilter);
+    if (requestedTypeIds.length > 0) {
+      const typeIds = [...filteredBusinessTypeIds];
+      canonicalDiscountSql += ` AND b.type_id IN (${typeIds.map(() => '?').join(',')})`;
+      canonicalDiscountParams.push(...typeIds);
     }
     if (seasonFilter) {
       canonicalDiscountSql += ' AND JSON_UNQUOTE(JSON_EXTRACT(d.metadata, \"$.season\")) = ?';

@@ -185,7 +185,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireVendor();
-    await ensureExperiencePackagesTable();
 
     const body = await request.json();
     const name = (body.name || body.package_name || '').trim();
@@ -239,18 +238,6 @@ export async function POST(request: NextRequest) {
         pricing.base_price || pricing.package_price || null,
       ]
     );
-
-    // Also persist in experience_packages with rich pricing and bundle metadata
-    await execute(
-      `INSERT INTO experience_packages (name, description, business_ids, pricing, active)
-       VALUES (?, ?, ?, ?, 1)`,
-      [
-        name,
-        description,
-        JSON.stringify([String(businessId)]),
-        JSON.stringify(pricing),
-      ]
-    ).catch(() => {});
 
     const [canonicalPackage] = await query('SELECT * FROM tour_products WHERE vendor_business_id = ? AND slug = ?', [String(businessId), safeSlug]) as any[];
 

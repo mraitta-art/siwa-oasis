@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import VendorOfferingStoryStudioModal from '@/components/VendorOfferingStoryStudioModal';
 
 interface Package {
   id: string;
@@ -185,6 +186,7 @@ export default function VendorPackagesPage() {
   const [vendorPhone, setVendorPhone] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showStudioModal, setShowStudioModal] = useState(false);
   const [lang, setLang] = useState<'en' | 'ar'>('en');
 
   // Form State with Category Adaptation
@@ -399,6 +401,26 @@ export default function VendorPackagesPage() {
                 {isRTL ? 'معاينة في الموقع' : 'Preview Live'}
               </Link>
             )}
+
+            <button
+              onClick={() => setShowStudioModal(true)}
+              style={{
+                background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                color: '#f0c842',
+                border: '1px solid rgba(212,175,55,0.4)',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '12px',
+                fontSize: '0.82rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+              }}
+            >
+              <i className="fas fa-magic" /> {isRTL ? '✦ استوديو الصور والقصص' : '✦ Photos & Story Studio'}
+            </button>
 
             <button
               onClick={() => setShowModal(true)}
@@ -824,6 +846,20 @@ export default function VendorPackagesPage() {
             </div>
           </div>
         )}
+
+        {/* ─── Story Studio Modal ─── */}
+        <VendorOfferingStoryStudioModal
+          isOpen={showStudioModal}
+          onClose={() => setShowStudioModal(false)}
+          businessName={businessName}
+          businessSlug={slug}
+          onItemCreated={() => {
+            fetch('/api/vendor/packages')
+              .then(res => res.json())
+              .then(data => { if (Array.isArray(data)) setPackages(data); })
+              .catch(() => {});
+          }}
+        />
 
       </div>
     </>

@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import DynamicForm from '@/components/DynamicForm';
 import { useAdmin } from '@/context/AdminContext';
+import { CATALOG_SPEC_ITEM_TYPE_OPTIONS } from '@/lib/marketplace-item-types';
 
 interface PendingBusiness {
   id: string;
@@ -172,7 +173,7 @@ export default function BusinessFormsPage() {
     setManagerLoading(true);
     try {
       const [fieldsRes, sectionsRes] = await Promise.all([
-        fetch(businessId ? `/api/jana/forms?business=${encodeURIComponent(businessId)}` : `/api/jana/forms?type=${encodeURIComponent(targetId)}&source=database`),
+        fetch(businessId ? `/api/jana/forms?business=${encodeURIComponent(businessId)}` : `/api/jana/forms?type=${encodeURIComponent(targetId)}&source=database&scope=all`),
         fetch(`/api/jana/sections?type=${encodeURIComponent(targetId)}`)
       ]);
       if (fieldsRes.ok) setManagerFields(await fieldsRes.json());
@@ -216,6 +217,8 @@ export default function BusinessFormsPage() {
         ...editingField,
         business_type_id: selectedManagerTypeId,
         ...(managerTarget === 'business' ? { business_id: selectedBusinessId } : {}),
+        field_scope: editingField.field_scope === 'catalog_spec' ? 'catalog_spec' : 'profile',
+        applies_to: editingField.field_scope === 'catalog_spec' && Array.isArray(editingField.applies_to) ? editingField.applies_to : [],
         section_id: editingField.section_id || managerSections[0]?.id || 'basic',
         name: editingField.name || editingField.label?.toLowerCase().replace(/[^a-z0-9]+/g, '_')
       })
@@ -712,6 +715,23 @@ export default function BusinessFormsPage() {
             <i className="fas fa-plus" style={{ marginRight: '0.5rem' }}></i>
             New Registration
           </button>
+          <button
+            onClick={() => { setActiveTab('manage'); setReviewBiz(null); }}
+            style={{
+              padding: '0.6rem 1.25rem',
+              borderRadius: '9px',
+              border: 'none',
+              background: activeTab === 'manage' ? '#fff' : 'transparent',
+              color: activeTab === 'manage' ? '#1e293b' : '#64748b',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'manage' ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
+            }}
+          >
+            <i className="fas fa-sliders" style={{ marginRight: '0.5rem' }}></i>
+            Manage Fields
+          </button>
           <Link
             href="/jana/sections"
             style={{
@@ -792,7 +812,7 @@ export default function BusinessFormsPage() {
                     {selectedManagerBusiness && <p style={{ margin: '0.3rem 0 0', color: '#64748b', fontSize: '0.8rem' }}>Uses the {selectedManagerType?.name || selectedManagerBusiness.type_id} typology form.</p>}
                     <p style={{ margin: '0.3rem 0 0', color: '#64748b', fontSize: '0.8rem' }}>{selectedPurpose.description}</p>
                   </div>
-                  <button disabled={!selectedManagerTypeId} onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: selectedManagerSection || managerSections[0]?.id || '', required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '9px', padding: '0.7rem 1rem', background: '#1e293b', color: '#fff', fontWeight: 800, cursor: selectedManagerTypeId ? 'pointer' : 'not-allowed', opacity: selectedManagerTypeId ? 1 : 0.5 }}><i className="fas fa-plus" style={{ marginRight: '0.4rem' }}></i>New field</button>
+                  <button disabled={!selectedManagerTypeId} onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: selectedManagerSection || managerSections[0]?.id || '', field_scope: 'profile', applies_to: [], required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '9px', padding: '0.7rem 1rem', background: '#1e293b', color: '#fff', fontWeight: 800, cursor: selectedManagerTypeId ? 'pointer' : 'not-allowed', opacity: selectedManagerTypeId ? 1 : 0.5 }}><i className="fas fa-plus" style={{ marginRight: '0.4rem' }}></i>New field</button>
                 </div>
 
                 {!selectedManagerTypeId ? (
@@ -867,7 +887,7 @@ export default function BusinessFormsPage() {
                                 </div>
                                 <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{sectionFields.length} field{sectionFields.length !== 1 ? 's' : ''} in this section</div>
                               </div>
-                              <button onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: selectedManagerSection, required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '8px', padding: '0.55rem 0.9rem', background: '#D4AF37', color: '#1a1000', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}>
+                              <button onClick={() => setEditingField({ label: '', name: '', field_type: 'text', section_id: selectedManagerSection, field_scope: 'profile', applies_to: [], required: false, vendor_editable: true, searchable: false })} style={{ border: 0, borderRadius: '8px', padding: '0.55rem 0.9rem', background: '#D4AF37', color: '#1a1000', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}>
                                 <i className="fas fa-plus" style={{ marginRight: '0.4rem' }}></i>Add field to this section
                               </button>
                             </div>
@@ -912,6 +932,19 @@ export default function BusinessFormsPage() {
                   <input value={editingField.name || ''} onChange={e => setEditingField({ ...editingField, name: e.target.value })} placeholder="Field name (optional)" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
                   <select value={editingField.field_type || 'text'} onChange={e => setEditingField({ ...editingField, field_type: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="text">Text</option><option value="textarea">Textarea</option><option value="number">Number</option><option value="select">Select</option><option value="checkbox">Checkbox</option><option value="rich_text">Rich text</option></select>
                   <select value={editingField.section_id || ''} onChange={e => setEditingField({ ...editingField, section_id: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="">Select section</option>{managerSections.map(section => <option key={section.id} value={section.id}>{section.name}</option>)}</select>
+                  {managerTarget === 'type' && <select value={editingField.field_scope || 'profile'} onChange={e => setEditingField({ ...editingField, field_scope: e.target.value, section_id: e.target.value === 'catalog_spec' ? 'sec_9_marketplace_catalog' : editingField.section_id, applies_to: e.target.value === 'catalog_spec' ? (editingField.applies_to || []) : [] })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="profile">Business profile field</option><option value="catalog_spec">Sellable catalog specification</option></select>}
+                  {managerTarget === 'type' && editingField.field_scope === 'catalog_spec' && <div style={{ gridColumn: '1 / -1', border: '1px solid #e7d78f', borderRadius: '9px', padding: '0.85rem', background: '#fffdf4' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 850, color: '#475569', marginBottom: '0.65rem' }}>APPLIES TO LISTING KINDS</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.55rem' }}>
+                      {CATALOG_SPEC_ITEM_TYPE_OPTIONS.map(option => {
+                        const appliesTo: string[] = Array.isArray(editingField.applies_to) ? editingField.applies_to : [];
+                        return <label key={option.value} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#334155', fontSize: '0.76rem' }}>
+                          <input type="checkbox" checked={appliesTo.includes(option.value)} onChange={event => setEditingField({ ...editingField, applies_to: event.target.checked ? [...appliesTo, option.value] : appliesTo.filter(item => item !== option.value) })} />
+                          {option.label}
+                        </label>;
+                      })}
+                    </div>
+                  </div>}
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.required} onChange={e => setEditingField({ ...editingField, required: e.target.checked })} /> Required</label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.vendor_editable} onChange={e => setEditingField({ ...editingField, vendor_editable: e.target.checked })} /> Vendor editable</label>
                 </div>
