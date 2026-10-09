@@ -2,6 +2,19 @@ import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
+/** Strip all HTML tags and normalize whitespace — keeps excerpts clean for plain-text display */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ sectionId: string }> }
@@ -103,7 +116,7 @@ export async function POST(
       title,
       slug,
       finalContent,
-      excerpt || content.substring(0, 160),
+      excerpt ? stripHtml(excerpt).substring(0, 160) : stripHtml(content).substring(0, 160),
       status,
       publishedAt,
       show_on_main === true,

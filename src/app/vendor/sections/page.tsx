@@ -1096,7 +1096,7 @@ export default function VendorStudio() {
                         <div key={blog.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '0.35rem' }}>{blog.title}</div>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', lineHeight: 1.5 }}>{blog.excerpt}</div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', lineHeight: 1.5 }}>{(blog.excerpt || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</div>
                             
                             <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                               {/* Status badge */}
