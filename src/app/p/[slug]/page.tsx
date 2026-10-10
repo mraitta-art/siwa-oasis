@@ -117,7 +117,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       </nav>
 
       {/* Render all admin-configured components */}
-      <DynamicHomepageRenderer layout={layout} settings={settings} />
+      <DynamicHomepageRenderer layout={layout} settings={settings} pageId={`p:${slug}`} pagePath={`/p/${slug}`} />
 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '4rem 4rem', background: '#0a0f1d', color: '#fff' }}>

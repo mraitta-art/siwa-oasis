@@ -2440,6 +2440,41 @@ function MinisiteBuilderStudioContent() {
                   />
                 </div>
 
+                {selectedComp.type === 'vendor_blog' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.3rem' }}>
+                      Blog feed layout
+                    </label>
+                    <select
+                      value={String(selectedComp.props?.blogLayout ?? 'grid')}
+                      onChange={(event) => {
+                        const updated = components.map((component) =>
+                          component.id === selectedComp.id
+                            ? { ...component, props: { ...(component.props || {}), blogLayout: event.target.value } }
+                            : component,
+                        );
+                        setComponents(updated);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      <option value="grid">Card grid</option>
+                      <option value="list">Compact list</option>
+                      <option value="featured">Featured first post</option>
+                      <option value="masonry">Masonry columns</option>
+                      <option value="minimal">Minimal list</option>
+                    </select>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.68rem', color: '#64748b' }}>
+                      Changes the presentation of all blog posts on this minisite.
+                    </p>
+                  </div>
+                )}
+
                 {/* Additional props for CTA */}
                 {selectedComp.type === 'cta_section' && (
                   <div>

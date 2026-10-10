@@ -21,6 +21,14 @@ const SETUP_STEPS = [
     url: '/api/setup/create-universal-sections',
   },
   {
+    id: 'transportation-components',
+    name: 'Transportation Components',
+    description: 'Seeds transport fields into the relevant standard sections and assigns them to Logistics & Transportation and its service subtypes.',
+    icon: 'fa-truck',
+    color: '#0ea5e9',
+    url: '/api/jana/seed-transportation',
+  },
+  {
     id: 'site-components',
     name: 'Site Components Registry',
     description: 'Seeds and initializes all page builder UI components into the component registry.',
@@ -81,6 +89,7 @@ export default function SetupPage() {
             { href: '/jana/sections', icon: 'fa-table-cells', label: '2. Sections & authority' },
             { href: '/jana/forms', icon: 'fa-clipboard-list', label: '3. Fields & forms' },
             { href: '/jana/content', icon: 'fa-photo-film', label: '4. Business content' },
+            { href: '/jana/service-templates', icon: 'fa-sliders', label: '5. Vendor service fields' },
           ].map(item => <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.7rem 0.8rem', border: '1px solid #e2e8f0', borderRadius: '9px', color: '#334155', textDecoration: 'none', fontSize: '0.72rem', fontWeight: 800 }}><i className={`fas ${item.icon}`} style={{ color: '#D4AF37' }} />{item.label}</Link>)}
         </div>
       </div>

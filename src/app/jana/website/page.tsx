@@ -30,9 +30,12 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'storytelling_section',  name: 'Storytelling',            icon: '📖', manager: null,                  color: '#f59e0b', desc: 'Heritage & culture narratives' },
   { zone: 'body',   key: 'partner_cta',           name: 'Partner CTA',             icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Call-to-action for partnerships' },
   { zone: 'body',   key: 'blog',                  name: 'Blog / Articles',         icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Latest blog posts feed' },
+  { zone: 'body',   key: 'category_commercial_tabs', name: 'Business Deals & Discounts', icon: '🏷️', manager: null, color: '#b45309', desc: 'Packages, offers, and discounts for the page category' },
   { zone: 'body',   key: 'featured_vibe',         name: 'Featured Vibe Story',     icon: '🪄', manager: null,                  color: '#D4AF37', desc: 'Highlighted experience story' },
   { zone: 'body',   key: 'investment_feed',       name: 'Investment Marketplace',  icon: '💎', manager: null,                  color: '#ec4899', desc: 'Heritage investment opportunities' },
   { zone: 'body',   key: 'services',              name: 'Business Listings CTA',   icon: '🏢', manager: '/jana/businesses',     color: '#10b981', desc: 'Simple verified-businesses banner' },
+  { zone: 'body',   key: 'text_section',          name: 'Custom Text Section',     icon: '✍️', manager: null,                  color: '#0ea5e9', desc: 'Admin-written heading and page copy' },
+  { zone: 'body',   key: 'cta_section',           name: 'Custom Call to Action',   icon: '📣', manager: null,                  color: '#f97316', desc: 'Editable message and action button' },
 
   // ── Footer zone ──
   { zone: 'footer', key: 'partner_cta',    name: 'Partner CTA (Footer)',     icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Footer partnership call-to-action' },
@@ -43,19 +46,64 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
-interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; }
+interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; publicPath: string; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
-const DEFAULT_SITE_SETTINGS = {
-  site_name: 'Siwa Today', primary_color: '#D4AF37',
+interface BuilderSiteSettings {
+  site_name: string;
+  primary_color: string;
+  tagline: string;
+  show_logo_in_hero: boolean;
+  carousel_autoplay: boolean;
+  carousel_interval: number;
+  logo_url: string;
+  show_watermark: boolean;
+  logo_height: number;
+  header_brand_label: string;
+  header_brand_icon: string;
+  header_background_color: string;
+  header_text_color: string;
+  show_header: boolean;
+  show_footer: boolean;
+  nav_links_text: string;
+  footer_tagline: string;
+  footer_copyright: string;
+  footer_links_text: string;
+  footer_background_color: string;
+  footer_text_color: string;
+  footer_muted_color: string;
+  watermark_text: string;
+}
+
+const DEFAULT_SITE_SETTINGS: BuilderSiteSettings = {
+  site_name: 'Siwa Today',
+  primary_color: '#D4AF37',
   tagline: 'Experience the magic of the oasis.',
-  show_logo_in_hero: false, carousel_autoplay: true, carousel_interval: 8000,
-  logo_url: '', show_watermark: true, logo_height: 40,
+  show_logo_in_hero: false,
+  carousel_autoplay: true,
+  carousel_interval: 8000,
+  logo_url: '',
+  show_watermark: true,
+  logo_height: 40,
+  header_brand_label: 'SIWIFY',
+  header_brand_icon: 'fa-sun',
+  header_background_color: 'rgba(255, 255, 255, 0.86)',
+  header_text_color: '#0f172a',
+  show_header: true,
+  show_footer: true,
+  nav_links_text: 'Home | /\nSiwa Stay | /siwa-stay\nSiwa Go | /siwa-go\nSiwa Retreats | /siwa-retreats\nSiwa Products | /siwa-products\nSiwa Invest | /siwa-invest\nSiwa Society | /siwa-society',
+  footer_tagline: 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.',
+  footer_copyright: 'SIWIFY • ALL RIGHTS RESERVED.',
+  footer_links_text: 'EXPLORE | The Collection | /search/vibe\nEXPLORE | Heritage DNA | #discovery\nPARTNERS & GOVERNANCE | Vendor Portal | /login\nPARTNERS & GOVERNANCE | Become a Partner | /signup\nPARTNERS & GOVERNANCE | Heritage Investment | /investment-opportunities',
+  footer_background_color: '#ffffff',
+  footer_text_color: '#0f172a',
+  footer_muted_color: '#475569',
+  watermark_text: 'SIWIFY',
 };
 
 export default function MultiPageSiteBuilder() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
-  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: true, type: 'page' }]);
+  const [pages, setPages]               = useState<PageMeta[]>([{ slug: 'main', saved: false, type: 'page', publicPath: '/' }]);
   const [types, setTypes]               = useState<any[]>([]);
   const [templates, setTemplates]       = useState<any[]>([]);
   const [currentPage, setCurrentPage]   = useState('main');
@@ -95,7 +143,7 @@ export default function MultiPageSiteBuilder() {
   const [templateMeta, setTemplateMeta] = useState({ name: '', type_id: '', level: 'basic' });
 
   // Site settings
-  const [siteSettings, setSiteSettings] = useState(DEFAULT_SITE_SETTINGS);
+  const [siteSettings, setSiteSettings] = useState<BuilderSiteSettings>(DEFAULT_SITE_SETTINGS);
   const pageLoadRequestRef = useRef(0);
 
   const notify = (msg: string, type: 'success'|'error'|'info' = 'success') => {
@@ -105,40 +153,38 @@ export default function MultiPageSiteBuilder() {
 
   // Initial data fetch
   useEffect(() => {
-    // Canonical 10 section pages always discoverable for admin
-    const CANONICAL_SYSTEM_PAGES: PageMeta[] = [
-
-
-      { slug: 'main', saved: true, type: 'page' },
-      { slug: 'activities', saved: false, type: 'page' },
-      { slug: 'accommodations', saved: false, type: 'page' },
-      { slug: 'restaurants', saved: false, type: 'page' },
-      { slug: 'packages', saved: false, type: 'page' },
-      { slug: 'services', saved: false, type: 'page' },
-      { slug: 'investment-opportunities', saved: false, type: 'page' },
-      { slug: 'offers', saved: false, type: 'page' },
-      { slug: 'crafts-wellness', saved: false, type: 'page' },
-      { slug: 'be-a-partner', saved: false, type: 'page' },
-    ];
-
-    // Initial data fetch
-    fetch('/api/jana/website/list').then(r => r.json()).then(data => {
+    fetch('/api/jana/website/list').then(async response => {
+      if (!response.ok) throw new Error('Failed to load configured pages');
+      return response.json();
+    }).then(data => {
       const fetchedPages: PageMeta[] = Array.isArray(data) ? data.map(p => {
         const type_str = p.type || '';
         if (type_str.startsWith('website_search_')) {
-          return { slug: type_str.replace('website_search_', ''), saved: true, type: 'search' as const };
+          return {
+            slug: type_str.replace('website_search_', ''),
+            saved: true,
+            type: 'search' as const,
+            publicPath: p.publicPath || `/search/${type_str.replace('website_search_', '')}`,
+          };
         } else {
-          return { slug: type_str.replace('website_', ''), saved: true, type: 'page' as const };
+          const slug = type_str.replace('website_', '');
+          return {
+            slug,
+            saved: true,
+            type: 'page' as const,
+            publicPath: p.publicPath || (slug === 'main' ? '/' : `/${slug}`),
+          };
         }
       }) : [];
 
-      // Merge canonical pages with DB saved states
-      const mergedMap = new Map<string, PageMeta>();
-      CANONICAL_SYSTEM_PAGES.forEach(cp => mergedMap.set(cp.slug, { ...cp }));
-      fetchedPages.forEach(fp => mergedMap.set(fp.slug, { ...fp, saved: true }));
-      setPages(Array.from(mergedMap.values()));
-    }).catch(() => {
-      setPages(CANONICAL_SYSTEM_PAGES);
+      if (!fetchedPages.some(page => page.slug === 'main' && page.type === 'page')) {
+        fetchedPages.unshift({ slug: 'main', saved: false, type: 'page', publicPath: '/' });
+      }
+      fetchedPages.sort((left, right) => Number(right.slug === 'main') - Number(left.slug === 'main'));
+      setPages(fetchedPages);
+    }).catch(error => {
+      notify(error.message || 'Failed to load configured pages', 'error');
+      setPages([{ slug: 'main', saved: false, type: 'page', publicPath: '/' }]);
     });
 
     fetch('/api/jana/templates').then(r => r.json()).then(data => setTemplates(Array.isArray(data) ? data : [])).catch(() => {});
@@ -159,19 +205,6 @@ export default function MultiPageSiteBuilder() {
     fetch('/api/jana/tiers').then(r => r.json()).then(d => setTiers(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
-  // Default layout seeded into the builder when no modules are saved yet
-  const DEFAULT_MAIN_SLOTS: Slot[] = [
-    { id: 'h1', key: 'hero_carousel',        zone: 'body', label: 'Hero Carousel',        props: { carousel_id: 'discovery' } },
-    { id: 'h2', key: 'services_hub',          zone: 'body', label: 'Services Hub',          props: {} },
-    { id: 'h3', key: 'experience_categories', zone: 'body', label: 'Experience Categories', props: {} },
-    { id: 'h4', key: 'search_bar',            zone: 'body', label: 'Search Engine (Full)',  props: {} },
-    { id: 'h5', key: 'smart_journey_planner', zone: 'body', label: 'Journey Planner',       props: {} },
-    { id: 'h6', key: 'ecosystem_map',         zone: 'body', label: 'Interactive Map',       props: {} },
-    { id: 'h7', key: 'local_products',        zone: 'body', label: 'Local Products',        props: {} },
-    { id: 'h8', key: 'storytelling_section',  zone: 'body', label: 'Storytelling',          props: {} },
-    { id: 'h9', key: 'partner_cta',           zone: 'body', label: 'Partner CTA',           props: {} },
-  ];
-
   // Load layout when page/template changes
   useEffect(() => {
     const requestId = ++pageLoadRequestRef.current;
@@ -190,8 +223,7 @@ export default function MultiPageSiteBuilder() {
         if (requestId !== pageLoadRequestRef.current) return;
         const t = data[0];
         if (!t) {
-          // No config in DB at all — show defaults for main, empty for others
-          setSlots(currentPage === 'main' ? DEFAULT_MAIN_SLOTS : []);
+          setSlots([]);
           return;
         }
         if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
@@ -202,9 +234,7 @@ export default function MultiPageSiteBuilder() {
           ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
         ];
 
-        // If the saved config has zero blocks AND we are on main, re-seed defaults
-        // so the admin always has content to work with instead of a blank canvas.
-        setSlots(allLoaded.length === 0 && currentPage === 'main' ? DEFAULT_MAIN_SLOTS : allLoaded);
+        setSlots(allLoaded);
       }).catch(error => {
         if (requestId !== pageLoadRequestRef.current) return;
         setSlots([]);
@@ -268,7 +298,7 @@ export default function MultiPageSiteBuilder() {
     if (pageLoading || saving) return;
     setSaving(true);
     try {
-      const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { title: s.label, engine_id: s.engine_id, carousel_id: s.carousel_id, ...(s.props || {}) } });
+      const toComp = (s: Slot) => ({ id: s.id, type: s.key, name: s.label, zone: s.zone, props: { engine_id: s.engine_id, carousel_id: s.carousel_id, ...(s.props || {}) } });
       if (mode === 'PAGES') {
         const currentPageData = pages.find(p => p.slug === currentPage);
         const pageType = currentPageData?.type || 'page';
@@ -281,14 +311,16 @@ export default function MultiPageSiteBuilder() {
             header_components: slotsFor('header').map(toComp),
             body_components:   slotsFor('body').map(toComp),
             footer_components: slotsFor('footer').map(toComp),
-            site_settings: siteSettings,
+            site_settings: { ...siteSettings, public_path: currentPageData?.publicPath || (currentPage === 'main' ? '/' : `/p/${currentPage}`) },
           }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Failed to save');
 
         setPages(prev => prev.map(p => p.slug === currentPage ? { ...p, saved: true } : p));
-        if (!pages.find(p => p.slug === currentPage)) setPages(prev => [...prev, { slug: currentPage, saved: true, type: 'page' }]);
+        if (!pages.find(p => p.slug === currentPage)) {
+          setPages(prev => [...prev, { slug: currentPage, saved: true, type: 'page', publicPath: `/p/${currentPage}` }]);
+        }
         notify(`🚀 ${currentPage.toUpperCase()} published!`);
       } else {
         if (!templateMeta.level) { notify('❌ Assign a Subscription Tier first!', 'error'); setSaving(false); return; }
@@ -320,7 +352,7 @@ export default function MultiPageSiteBuilder() {
       const slug = newPageName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if (!slug) return;
       if (pages.find(p => p.slug === slug)) { notify('⚠️ Page already exists!', 'error'); return; }
-      setPages(prev => [...prev, { slug, saved: false, type: 'page' }]);
+      setPages(prev => [...prev, { slug, saved: false, type: 'page', publicPath: `/p/${slug}` }]);
       setCurrentPage(slug); setSlots([]);
       setShowNewModal(false); setNewPageName('');
       notify(`✨ "${slug}" created – don't forget to publish!`, 'info');
@@ -375,7 +407,9 @@ export default function MultiPageSiteBuilder() {
         }
       } catch (e: any) { notify(`❌ Rename failed: ${e.message}`, 'error'); setShowRenameModal(false); return; }
     }
-    setPages(prev => prev.map(p => p.slug === renameTarget ? { slug: newSlug, saved: pg?.saved || false, type: pg?.type || 'page' } : p));
+    setPages(prev => prev.map(p => p.slug === renameTarget
+      ? { slug: newSlug, saved: pg?.saved || false, type: pg?.type || 'page', publicPath: pg?.type === 'search' ? `/search/${newSlug}` : `/p/${newSlug}` }
+      : p));
     if (currentPage === renameTarget) setCurrentPage(newSlug);
     notify(`✅ Renamed to "${newSlug}"`);
     setShowRenameModal(false); setRenameTarget(''); setRenameValue('');
@@ -444,7 +478,7 @@ export default function MultiPageSiteBuilder() {
 
           {!isCompact && <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />}
 
-          {mode === 'PAGES' && (
+          {mode === 'PAGES' && currentPage === 'main' && (
             <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer" aria-label="Preview page" title="Preview page"
               style={{ padding: isCompact ? '0.4rem 0.5rem' : '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.9)', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: isCompact ? 34 : undefined, minHeight: 34 }}>
               {isCompact ? '👁' : '👁 Preview'}
@@ -537,6 +571,40 @@ export default function MultiPageSiteBuilder() {
         )}
       </div>
 
+      {mode === 'PAGES' && (
+        <details style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', flexShrink:0, maxHeight:'38vh', overflowY:'auto' }}>
+          <summary style={{ padding:'0.55rem 1.5rem', cursor:'pointer', color:'#334155', fontSize:'0.64rem', fontWeight:900, letterSpacing:'1px' }}>
+            HEADER, FOOTER &amp; PAGE COPY SETTINGS
+          </summary>
+          <div style={{ padding:'0.75rem 1.5rem 1rem', display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:'0.85rem', alignItems:'start' }}>
+            <div style={{ display:'grid', gap:'0.5rem' }}>
+              <strong style={{ fontSize:'0.62rem', color:'#64748b' }}>HEADER</strong>
+              <label style={settingLabelStyle}><input type="checkbox" checked={siteSettings.show_header} onChange={e=>setSiteSettings(s=>({...s,show_header:e.target.checked}))} /> Show header</label>
+              <input aria-label="Header brand text" value={siteSettings.header_brand_label} onChange={e=>setSiteSettings(s=>({...s,header_brand_label:e.target.value}))} placeholder="Brand label" style={{...fieldStyle('100%'),width:'100%'}} />
+              <input aria-label="Header brand icon class" value={siteSettings.header_brand_icon} onChange={e=>setSiteSettings(s=>({...s,header_brand_icon:e.target.value}))} placeholder="Font Awesome icon, e.g. fa-sun" style={{...fieldStyle('100%'),width:'100%'}} />
+              <input aria-label="Header background color" value={siteSettings.header_background_color} onChange={e=>setSiteSettings(s=>({...s,header_background_color:e.target.value}))} placeholder="Header background color" style={{...fieldStyle('100%'),width:'100%'}} />
+              <input aria-label="Header text color" value={siteSettings.header_text_color} onChange={e=>setSiteSettings(s=>({...s,header_text_color:e.target.value}))} placeholder="Header text color" style={{...fieldStyle('100%'),width:'100%'}} />
+              <textarea aria-label="Navigation links" value={siteSettings.nav_links_text} onChange={e=>setSiteSettings(s=>({...s,nav_links_text:e.target.value}))} placeholder={'One per line: Label | /path'} style={settingTextareaStyle} />
+            </div>
+            <div style={{ display:'grid', gap:'0.5rem' }}>
+              <strong style={{ fontSize:'0.62rem', color:'#64748b' }}>FOOTER</strong>
+              <label style={settingLabelStyle}><input type="checkbox" checked={siteSettings.show_footer} onChange={e=>setSiteSettings(s=>({...s,show_footer:e.target.checked}))} /> Show footer</label>
+              <textarea aria-label="Footer tagline" value={siteSettings.footer_tagline} onChange={e=>setSiteSettings(s=>({...s,footer_tagline:e.target.value}))} placeholder="Footer brand description" style={settingTextareaStyle} />
+              <input aria-label="Footer copyright" value={siteSettings.footer_copyright} onChange={e=>setSiteSettings(s=>({...s,footer_copyright:e.target.value}))} placeholder="Copyright text" style={{...fieldStyle('100%'),width:'100%'}} />
+              <input aria-label="Footer background color" value={siteSettings.footer_background_color} onChange={e=>setSiteSettings(s=>({...s,footer_background_color:e.target.value}))} placeholder="Footer background color" style={{...fieldStyle('100%'),width:'100%'}} />
+              <input aria-label="Footer text color" value={siteSettings.footer_text_color} onChange={e=>setSiteSettings(s=>({...s,footer_text_color:e.target.value}))} placeholder="Footer text color" style={{...fieldStyle('100%'),width:'100%'}} />
+              <input aria-label="Footer link color" value={siteSettings.footer_muted_color} onChange={e=>setSiteSettings(s=>({...s,footer_muted_color:e.target.value}))} placeholder="Footer link color" style={{...fieldStyle('100%'),width:'100%'}} />
+              <textarea aria-label="Footer links" value={siteSettings.footer_links_text} onChange={e=>setSiteSettings(s=>({...s,footer_links_text:e.target.value}))} placeholder={'One per line: Group | Label | /path'} style={settingTextareaStyle} />
+            </div>
+            <div style={{ display:'grid', gap:'0.5rem' }}>
+              <strong style={{ fontSize:'0.62rem', color:'#64748b' }}>BRANDING</strong>
+              <label style={settingLabelStyle}><input type="checkbox" checked={siteSettings.show_watermark} onChange={e=>setSiteSettings(s=>({...s,show_watermark:e.target.checked}))} /> Show watermark</label>
+              <input aria-label="Watermark text" value={siteSettings.watermark_text} onChange={e=>setSiteSettings(s=>({...s,watermark_text:e.target.value}))} placeholder="Watermark text" style={{...fieldStyle('100%'),width:'100%'}} />
+            </div>
+          </div>
+        </details>
+      )}
+
       {/* ═══════════════════════ 3-COLUMN BODY ═══════════════════════════ */}
       {isCompact && (
         <div role="group" aria-label="Site Builder panels" style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6, padding:'0.5rem', background:'#0d1526', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
@@ -610,13 +678,10 @@ export default function MultiPageSiteBuilder() {
                       {/* Quick actions */}
                       <div style={{ display:'flex', gap:'3px', flexShrink:0 }} onClick={e=>e.stopPropagation()}>
                         <a href={
-                          page.slug === 'main' ? '/' :
-                          page.type === 'search' ? `/search/${page.slug}` :
-                          ['activities','accommodations','restaurants','packages','services','investment-opportunities','offers','crafts-wellness','be-a-partner'].includes(page.slug) ? `/${page.slug}` :
-                          `/p/${page.slug}`
+                          page.publicPath
                         } target="_blank" rel="noopener noreferrer" title="Preview"
                           style={iconBtn('#fff')}>👁</a>
-                        {page.slug !== 'main' && !['activities','accommodations','restaurants','packages','services','investment-opportunities','offers','crafts-wellness','be-a-partner'].includes(page.slug) && <>
+                        {page.slug !== 'main' && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
                           <button title="Delete" onClick={()=>{setDeleteTarget(page.slug);setShowDeleteModal(true);}} style={iconBtn('#ef4444','#ef444420','#ef444440')}>🗑</button>
                         </>}
@@ -753,6 +818,40 @@ export default function MultiPageSiteBuilder() {
                           <div style={{ fontSize:'0.55rem', color:'#94a3b8', fontWeight:500, marginTop:'2px' }}>{(def as any)?.desc || 'Renderable homepage module'}</div>
                         </div>
                       </div>
+
+                      <ConfigBox label="DISPLAY COPY">
+                        <div style={{ display:'grid', gap:'0.45rem' }}>
+                          <input aria-label={`${slot.label} heading`} value={slot.props?.title || ''} onChange={e=>updateSlotProp(slot.id,'title',e.target.value)} placeholder="Use component default heading" style={{...fieldStyle('100%'),width:'100%'}} />
+                          <textarea aria-label={`${slot.label} subtitle`} value={slot.props?.subtitle || ''} onChange={e=>updateSlotProp(slot.id,'subtitle',e.target.value)} placeholder="Subtitle or short description" style={settingTextareaStyle} />
+                          {slot.key === 'text_section' && <textarea aria-label="Section content" value={slot.props?.content || ''} onChange={e=>updateSlotProp(slot.id,'content',e.target.value)} placeholder="Section content" style={{...settingTextareaStyle,minHeight:100}} />}
+                          {slot.key === 'cta_section' && <>
+                            <textarea aria-label="Call to action description" value={slot.props?.description || ''} onChange={e=>updateSlotProp(slot.id,'description',e.target.value)} placeholder="Description" style={settingTextareaStyle} />
+                            <input aria-label="Call to action button label" value={slot.props?.link_text || ''} onChange={e=>updateSlotProp(slot.id,'link_text',e.target.value)} placeholder="Button label" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input aria-label="Call to action button link" value={slot.props?.link || ''} onChange={e=>updateSlotProp(slot.id,'link',e.target.value)} placeholder="/destination" style={{...fieldStyle('100%'),width:'100%'}} />
+                          </>}
+                          {slot.key === 'services' && <>
+                            <input aria-label="Button label" value={slot.props?.buttonText || ''} onChange={e=>updateSlotProp(slot.id,'buttonText',e.target.value)} placeholder="Button label" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input aria-label="Button link" value={slot.props?.buttonLink || ''} onChange={e=>updateSlotProp(slot.id,'buttonLink',e.target.value)} placeholder="/destination" style={{...fieldStyle('100%'),width:'100%'}} />
+                          </>}
+                          {slot.key === 'blog' && (
+                            <label style={{ display:'grid', gap:'0.35rem', color:'#64748b', fontSize:'0.55rem', fontWeight:900 }}>
+                              BLOG FEED LAYOUT
+                              <select
+                                aria-label="Blog feed layout"
+                                value={slot.props?.blogLayout || 'grid'}
+                                onChange={e=>updateSlotProp(slot.id,'blogLayout',e.target.value)}
+                                style={{...selectStyle,width:'100%'}}
+                              >
+                                <option value="grid">Grid</option>
+                                <option value="list">List</option>
+                                <option value="featured">Featured article</option>
+                                <option value="masonry">Masonry</option>
+                                <option value="minimal">Minimal</option>
+                              </select>
+                            </label>
+                          )}
+                        </div>
+                      </ConfigBox>
 
                       {/* Search engine picker */}
                       {slot.key === 'search_bar' && (
@@ -951,6 +1050,8 @@ function ModalIcon({ children }: { children:React.ReactNode }) {
 const fieldStyle = (w: number|string): React.CSSProperties => ({
   padding:'0.32rem 0.6rem', border:'1.5px solid #e2e8f0', borderRadius:6, fontSize:'0.68rem', fontWeight:700, width:typeof w==='number'?w:w, transition:'border-color 0.2s',
 });
+const settingLabelStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:'0.4rem', color:'#475569', fontSize:'0.65rem', fontWeight:700 };
+const settingTextareaStyle: React.CSSProperties = { width:'100%', minHeight:74, padding:'0.45rem 0.6rem', border:'1.5px solid #e2e8f0', borderRadius:6, fontSize:'0.67rem', fontWeight:600, resize:'vertical', boxSizing:'border-box' };
 const selectStyle: React.CSSProperties = {
   padding:'0.32rem 0.5rem', borderRadius:6, border:'1.5px solid #e2e8f0', fontSize:'0.68rem', fontWeight:700, background:'#fff', cursor:'pointer',
 };

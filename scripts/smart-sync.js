@@ -39,22 +39,54 @@ const SCHEMA_ONLY = argv.includes('--schema-only');
 const QUICK = argv.includes('--quick');
 const BIDIRECTIONAL = argv.includes('--bidirectional') || !argv.includes('--one-way');
 
+function loadEnvFile(file) {
+  const full = path.join(rootDir, file);
+  if (!fs.existsSync(full)) return {};
+  const vars = {};
+  fs.readFileSync(full, 'utf8').split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 0) return;
+    const key = trimmed.substring(0, eqIdx).trim();
+    const value = trimmed.substring(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+    vars[key] = value;
+  });
+  return vars;
+}
+
+const envVars = { ...loadEnvFile('.env'), ...loadEnvFile('.env.production'), ...loadEnvFile('.env.local') };
+
 const PROD_DB = {
-  host: process.env.PROD_DB_HOST || 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
-  port: parseInt(process.env.PROD_DB_PORT || '4000'),
-  user: process.env.PROD_DB_USER || process.env.DB_USER || 'root',
-  password: process.env.PROD_DB_PASSWORD || process.env.DB_PASSWORD || '',
-  database: process.env.PROD_DB_NAME || process.env.DB_NAME || 'siwa_oasis',
-  ssl: { rejectUnauthorized: false }
+  host: process.env.PROD_DB_HOST || envVars.PROD_DB_HOST || envVars.DB_HOST || 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+  port: parseInt(process.env.PROD_DB_PORT || envVars.PROD_DB_PORT || envVars.DB_PORT || '4000'),
+  user: process.env.PROD_DB_USER || envVars.PROD_DB_USER || envVars.DB_USER || 'root',
+  password: process.env.PROD_DB_PASSWORD || envVars.PROD_DB_PASSWORD || envVars.DB_PASSWORD || '',
+  database: process.env.PROD_DB_NAME || envVars.PROD_DB_NAME || envVars.DB_NAME || 'siwa_oasis',
+  ssl: { rejectUnauthorized: false },
+  connectTimeout: 60000
 };
 
 const LOCAL_DB = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'siwa_oasis'
+  host: process.env.LOCAL_DB_HOST || envVars.LOCAL_DB_HOST || '127.0.0.1',
+  port: parseInt(process.env.LOCAL_DB_PORT || envVars.LOCAL_DB_PORT || '3306'),
+  user: process.env.LOCAL_DB_USER || envVars.LOCAL_DB_USER || 'root',
+  password: process.env.LOCAL_DB_PASSWORD || envVars.LOCAL_DB_PASSWORD || 'PiCo@@4##73',
+  database: process.env.LOCAL_DB_NAME || envVars.LOCAL_DB_NAME || 'siwa_oasis',
+  connectTimeout: 60000
 };
+
+async function connectWithRetry(mysqlMod, config, label, maxRetries = 3) {
+  for (let i = 1; i <= maxRetries; i++) {
+    try {
+      return await mysqlMod.createConnection(config);
+    } catch (err) {
+      if (i === maxRetries) throw err;
+      log.warn(`Connecting to ${label} failed (${err.message}), retrying... (${i}/${maxRetries})`);
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+}
 
 // Files to watch for changes
 const WATCH_DIRS = ['src', 'public', 'migrations'];
@@ -170,7 +202,8 @@ function serializeValue(value) {
 }
 
 async function getPrimaryKeyColumns(conn, table) {
-  const [rows] = await conn.query(`SHOW KEYS FROM \`${table}\` WHERE Key_name = 'PRIMARY' ORDER BY Seq_in_index`);
+  const [rows] = await conn.query(`SHOW KEYS FROM \`${table}\` WHERE Key_name = 'PRIMARY'`);
+  rows.sort((a, b) => (a.Seq_in_index || 0) - (b.Seq_in_index || 0));
   return rows.map((row) => row.Column_name).filter(Boolean);
 }
 
@@ -353,7 +386,7 @@ async function syncSchema(migrations, changes) {
   let prodConn, localConn;
 
   try {
-    prodConn = await mysql.createConnection(PROD_DB);
+    prodConn = await connectWithRetry(mysql, PROD_DB, 'production');
     log.ok('Connected to production database');
 
     // Helper: auto-create missing table from local DB
@@ -572,7 +605,7 @@ async function syncData() {
     return 'updated';
   }
 
-  async function backupProductionTables(tableList) {
+  async function backupProductionTables(tableList, prodNames, backupTimestamp) {
     const queued = [];
     for (const table of tableList) {
       if (!prodNames.has(table)) {
@@ -587,8 +620,12 @@ async function syncData() {
   }
 
   try {
-    localConn = await mysql.createConnection(LOCAL_DB);
-    prodConn = await mysql.createConnection(PROD_DB);
+    localConn = await connectWithRetry(mysql, LOCAL_DB, 'local');
+    prodConn = await connectWithRetry(mysql, PROD_DB, 'production');
+    await localConn.query('SET FOREIGN_KEY_CHECKS = 0');
+    await prodConn.query('SET FOREIGN_KEY_CHECKS = 0');
+    await localConn.query("SET sql_mode = ''");
+    await prodConn.query("SET sql_mode = ''");
     log.ok('Connected to both databases');
 
     // Get tables from both
@@ -608,14 +645,32 @@ async function syncData() {
 
     // Create missing tables FIRST so data push can work
     for (const table of localNames) {
-      if (!prodNames.has(table) && !SKIP_TABLES.includes(table)) {
+      if (!prodNames.has(table) && !SKIP_TABLES.includes(table) && !table.startsWith('vw_')) {
         try {
           const [[createRow]] = await localConn.query(`SHOW CREATE TABLE \`${table}\``);
-          await prodConn.query(createRow['Create Table']);
-          log.ok(`Created missing table on production: ${table}`);
-          prodNames.add(table);
+          if (createRow && createRow['Create Table']) {
+            await prodConn.query(createRow['Create Table']);
+            log.ok(`Created missing table on production: ${table}`);
+            prodNames.add(table);
+          }
         } catch (e) {
           log.warn(`Could not create ${table} on production: ${e.message.substring(0, 60)}`);
+        }
+      }
+    }
+
+    for (const table of prodNames) {
+      if (!localNames.has(table) && !SKIP_TABLES.includes(table) && !table.startsWith('vw_')) {
+        try {
+          const [[createRow]] = await prodConn.query(`SHOW CREATE TABLE \`${table}\``);
+          if (createRow && createRow['Create Table']) {
+            const createSql = createRow['Create Table'].replace(/CONSTRAINT\s+`[^`]+`\s+FOREIGN\s+KEY/gi, 'FOREIGN KEY');
+            await localConn.query(createSql);
+            log.ok(`Created missing table on local: ${table}`);
+            localNames.add(table);
+          }
+        } catch (e) {
+          log.warn(`Could not create ${table} on local: ${e.message.substring(0, 60)}`);
         }
       }
     }
@@ -628,7 +683,7 @@ async function syncData() {
     const backupTables = [...new Set([...PUSH_TABLES, ...MERGE_TABLES].filter(table => prodNames.has(table) && !SKIP_TABLES.includes(table)))];
     if (REQUIRE_BACKUP && backupTables.length > 0) {
       log.step('PRODUCTION BACKUP: Preparing before data synchronization');
-      const backupOk = await backupProductionTables(backupTables);
+      const backupOk = await backupProductionTables(backupTables, prodNames, backupTimestamp);
       if (!backupOk) {
         throw new Error('Production backup failed. Aborting data sync.');
       }
@@ -706,7 +761,8 @@ async function syncData() {
     log.ok(`Data sync complete: ${tablesSynced} tables synced, ${tablesSkipped} skipped, ${tablesMerged} merged`);
     return true;
   } catch (e) {
-    log.err(`Data sync failed: ${e.message}`);
+    log.err(`Data sync failed: ${e.message || e}`);
+    if (e.stack) console.error(e.stack);
     if (localConn) await localConn.end().catch(() => {});
     if (prodConn) await prodConn.end().catch(() => {});
     return false;

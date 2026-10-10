@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
     const results = await query(
       businessId
         ? 'SELECT type FROM website_configs WHERE type LIKE ? ORDER BY type ASC'
-        : 'SELECT type, config FROM website_configs WHERE type LIKE "website_%" OR type LIKE "website_search_%" ORDER BY type ASC',
+        : `SELECT type, config FROM website_configs
+           WHERE (type LIKE 'website_%' OR type LIKE 'website_search_%')
+             AND type NOT LIKE 'website_business_%'
+           ORDER BY type ASC`,
       businessId ? [`${prefix}website_%`] : []
     );
 
@@ -41,7 +44,8 @@ export async function GET(request: NextRequest) {
           slug,
           isSearch,
           siteId,
-          publicPath: config.public_path || config.site_settings?.public_path || null,
+          publicPath: config.public_path || config.site_settings?.public_path ||
+            (isSearch ? `/search/${slug}` : slug === 'main' ? '/' : `/${slug}`),
           title: config.site_settings?.site_name || slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase()),
         };
       }));

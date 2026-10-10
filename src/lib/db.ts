@@ -207,6 +207,14 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
   }
 }
 
+/** Execute a query without the development-mode missing-schema fallback. */
+export async function queryStrict<T = any>(sql: string, params?: any[]): Promise<T[]> {
+  const [rows] = await executeWithPool(async (activePool) => {
+    return activePool.query(sql, params as never);
+  });
+  return rows as T[];
+}
+
 /** Execute a query and return the first row */
 export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T | null> {
   const rows = await query<T>(sql, params);

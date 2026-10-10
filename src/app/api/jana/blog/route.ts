@@ -1,65 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { query, execute } from '@/lib/db';
-
-async function syncToBusinessSection(
-  businessId: string,
-  sectionId: string,
-  blogData: { title: string; content: string; excerpt?: string; featured_image?: string }
-) {
-  try {
-    // 1. Update businesses custom_data
-    const rows = await query<any>(`SELECT id, custom_data FROM businesses WHERE id = ?`, [businessId]);
-    if (rows && rows.length > 0) {
-      let cd = rows[0].custom_data;
-      if (typeof cd === 'string') {
-        try {
-          cd = JSON.parse(cd);
-        } catch {
-          cd = {};
-        }
-      } else if (!cd || typeof cd !== 'object') {
-        cd = {};
-      }
-      if (!cd[sectionId]) cd[sectionId] = {};
-      cd[sectionId].section_blog = blogData.content;
-      cd[sectionId].section_blog_title = blogData.title;
-      if (blogData.excerpt) cd[sectionId].description = blogData.excerpt;
-
-      await execute(`UPDATE businesses SET custom_data = ?, updated_at = NOW() WHERE id = ?`, [
-        JSON.stringify(cd),
-        businessId,
-      ]);
-    }
-
-    // 2. Also upsert in section_blogs table
-    const existing = await query<any>(
-      `SELECT id FROM section_blogs WHERE business_id = ? AND section_id = ?`,
-      [businessId, sectionId]
-    );
-    if (existing && existing.length > 0) {
-      await execute(
-        `UPDATE section_blogs 
-         SET title = ?, content = ?, excerpt = ?, featured_image_url = ?, status = 'published', show_on_minisite = 1, updated_at = NOW()
-         WHERE id = ?`,
-        [blogData.title, blogData.content, blogData.excerpt || '', blogData.featured_image || null, existing[0].id]
-      );
-    } else {
-      const slug =
-        blogData.title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '') || 'section-story';
-      await execute(
-        `INSERT INTO section_blogs (section_id, business_id, title, slug, content, excerpt, featured_image_url, status, show_on_minisite, approved_by_admin)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'published', 1, 1)`,
-        [sectionId, businessId, blogData.title, slug, blogData.content, blogData.excerpt || '', blogData.featured_image || null]
-      );
-    }
-  } catch (err) {
-    console.error('syncToBusinessSection error:', err);
-  }
-}
+import { query } from '@/lib/db';
+import { findBusinessSectionBlogConflict, publishBlogToBusiness, validateBusinessBlogTarget, validateSiteBlogTarget } from '@/lib/blog-distribution';
 
 // GET: List all blog posts
 export async function GET(request: NextRequest) {
@@ -75,8 +17,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    let conditions: string[] = [];
-    let params: any[] = [];
+    const conditions: string[] = [];
+    const params: any[] = [];
 
     if (status !== 'all') {
       conditions.push('p.status = ?');
@@ -150,7 +92,7 @@ export async function GET(request: NextRequest) {
 // POST: Create new blog post
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const body = await request.json();
     const {
       title,
@@ -172,10 +114,37 @@ export async function POST(request: NextRequest) {
       target_template_id = null,
       target_page_slug = null,
       target_meta = null,
+      language = 'en',
     } = body;
 
     if (!title || !slug || !content) {
       return NextResponse.json({ error: 'Title, slug, and content are required' }, { status: 400 });
+    }
+    if (!['en', 'ar'].includes(language)) {
+      return NextResponse.json({ error: 'Unsupported blog language' }, { status: 400 });
+    }
+    if (target_type === 'mainsite' || target_type === 'landing_page') {
+      const targetError = await validateSiteBlogTarget(target_page_slug, status || 'draft');
+      if (targetError) return NextResponse.json({ error: targetError }, { status: 400 });
+    }
+    if (target_type === 'business_minisite' && !target_business_id) {
+      return NextResponse.json({ error: 'A target business is required for this publishing target' }, { status: 400 });
+    }
+    if (target_type === 'business_section' && (!target_business_id || !target_section_id)) {
+      return NextResponse.json({ error: 'A business and section are required for this publishing target' }, { status: 400 });
+    }
+    if (target_type === 'business_minisite' || target_type === 'business_section') {
+      const targetError = await validateBusinessBlogTarget(target_business_id, target_type, status || 'draft');
+      if (targetError) return NextResponse.json({ error: targetError }, { status: 400 });
+    }
+    if (target_type === 'business_section') {
+      const conflict = await findBusinessSectionBlogConflict(target_business_id, target_section_id, language);
+      if (conflict) {
+        return NextResponse.json({
+          error: `This section already has a ${language === 'ar' ? 'Arabic' : 'English'} blog: "${conflict.title}". Update it or choose the other language.`,
+          conflict,
+        }, { status: 409 });
+      }
     }
 
     // Calculate reading time (approx 200 words per minute)
@@ -187,8 +156,8 @@ export async function POST(request: NextRequest) {
       `INSERT INTO blog_posts 
        (title, slug, excerpt, content, featured_image, author_id, category_id, 
         status, published_at, meta_title, meta_description, meta_keywords, reading_time,
-        target_type, target_business_id, target_section_id, target_template_id, target_page_slug, target_meta)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        target_type, target_business_id, target_section_id, target_template_id, target_page_slug, target_meta, language)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         title,
         slug,
@@ -209,6 +178,7 @@ export async function POST(request: NextRequest) {
         target_template_id,
         target_page_slug,
         target_meta ? JSON.stringify(target_meta) : null,
+        language,
       ]
     );
 
@@ -233,13 +203,15 @@ export async function POST(request: NextRequest) {
     }
 
     // If target is a business section, sync directly to the business data
-    if (target_type === 'business_section' && target_business_id && target_section_id) {
-      await syncToBusinessSection(target_business_id, target_section_id, {
+    if (target_type === 'business_section' &&
+        target_business_id && target_section_id && status === 'published') {
+      await publishBlogToBusiness(target_business_id, target_section_id, postId, admin.id, {
         title,
+        slug,
         content,
         excerpt,
         featured_image,
-      });
+      }, target_type === 'business_section', language);
     }
 
     return NextResponse.json({

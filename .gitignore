@@ -75,5 +75,6 @@ service-account.json
 
 # database backups (can be large and contain sensitive data)
 *.sql
+!migrations/037_dynamic_transportation_services.sql
 database_backups/
 *.dump

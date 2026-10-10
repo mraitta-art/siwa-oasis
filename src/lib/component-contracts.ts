@@ -15,7 +15,7 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
   category_hero: { allowed: ['category', 'label', 'accent', 'description', ...COMMON_TEXT] },
   category_commercial_tabs: { allowed: ['category', ...COMMON_TEXT] },
   search_bar: { allowed: ['engine_id', 'engineId', 'defaultCategory', ...COMMON_TEXT] },
-  blog: { allowed: [...COMMON_TEXT, 'maxPosts'] },
+  blog: { allowed: [...COMMON_TEXT, 'maxPosts', 'blogLayout'] },
   featured_vibe: { allowed: [...COMMON_TEXT] },
   investment_feed: { allowed: [...COMMON_TEXT] },
   discovery_gateway: { allowed: [...COMMON_TEXT] },
@@ -87,6 +87,9 @@ export function validateComponentProps(type: string, input: unknown): ComponentP
   }
   if (output.contentAlign !== 'left' && output.contentAlign !== 'center' && output.contentAlign !== 'right') {
     delete output.contentAlign;
+  }
+  if (type === 'blog' && !['grid', 'list', 'featured', 'masonry', 'minimal'].includes(String(output.blogLayout))) {
+    output.blogLayout = 'grid';
   }
 
   return output;

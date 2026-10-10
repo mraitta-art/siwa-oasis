@@ -681,6 +681,9 @@ export default function MinisiteBuilderRenderer({
       // ──────────────────────────────────────────────
       case 'vendor_blog': {
         const title = props.title || 'Stories & Desert Dispatch';
+        const blogLayout = ['grid', 'list', 'featured', 'masonry', 'minimal'].includes(props.blogLayout)
+          ? props.blogLayout
+          : 'grid';
         const blogs =
           mode === 'untied'
             ? Array.isArray(props.posts)
@@ -712,24 +715,40 @@ export default function MinisiteBuilderRenderer({
             </div>
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                display: blogLayout === 'masonry' ? 'block' : 'grid',
+                gridTemplateColumns: blogLayout === 'list' || blogLayout === 'minimal'
+                  ? 'minmax(0, 1fr)'
+                  : 'repeat(auto-fill, minmax(280px, 1fr))',
+                columnCount: blogLayout === 'masonry' ? 3 : undefined,
+                columnGap: blogLayout === 'masonry' ? '1.25rem' : undefined,
                 gap: '1.25rem',
               }}
             >
               {blogs.map((b: any, idx: number) => (
                 <div
                   key={b.id || idx}
+                  lang={b.language || undefined}
+                  dir={b.language === 'ar' ? 'rtl' : 'ltr'}
                   style={{
-                    padding: '1.5rem',
-                    borderRadius: 16,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    display: blogLayout === 'list' ? 'flex' : blogLayout === 'masonry' ? 'inline-block' : 'block',
+                    width: blogLayout === 'masonry' ? '100%' : undefined,
+                    breakInside: blogLayout === 'masonry' ? 'avoid' : undefined,
+                    gridColumn: blogLayout === 'featured' && idx === 0 ? '1 / -1' : undefined,
+                    padding: blogLayout === 'featured' && idx === 0 ? '2rem' : '1.5rem',
+                    marginBottom: blogLayout === 'masonry' ? '1.25rem' : undefined,
+                    borderRadius: blogLayout === 'minimal' ? 0 : 16,
+                    background: blogLayout === 'minimal' ? 'transparent' : 'rgba(255,255,255,0.03)',
+                    border: blogLayout === 'minimal' ? 'none' : '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
+                  {b.category_name && (
+                    <div style={{ marginBottom: '0.55rem', color: textColor, fontSize: '0.7rem', fontWeight: 800, opacity: 0.7 }}>
+                      {b.category_name}
+                    </div>
+                  )}
                   <h3
                     style={{
-                      fontSize: '1.05rem',
+                      fontSize: blogLayout === 'featured' && idx === 0 ? '1.5rem' : '1.05rem',
                       fontWeight: 800,
                       color: textColor,
                       marginBottom: '0.5rem',
@@ -742,6 +761,7 @@ export default function MinisiteBuilderRenderer({
                       fontSize: '0.85rem',
                       color: 'rgba(255,255,255,0.65)',
                       lineHeight: 1.6,
+                      marginBottom: 0,
                     }}
                   >
                     {b.excerpt || b.content?.substring(0, 130)}...

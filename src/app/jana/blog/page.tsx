@@ -28,6 +28,7 @@ interface BlogPost {
   target_section_id?: string;
   target_template_id?: string;
   target_page_slug?: string;
+  language?: 'en' | 'ar';
 }
 
 interface Category {
@@ -738,6 +739,17 @@ export default function BlogAdminPage() {
                             {post.status}
                           </span>
 
+                          <span style={{
+                            padding: '0.3rem 0.8rem',
+                            background: '#f5f3ff',
+                            color: '#6d28d9',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                          }}>
+                            {post.language === 'ar' ? 'العربية' : 'English'}
+                          </span>
+
                           {/* Target Distribution Badge */}
                           <span style={{
                             padding: '0.3rem 0.8rem',
@@ -755,8 +767,10 @@ export default function BlogAdminPage() {
                               : post.target_type === 'template_typology'
                               ? `🎨 Template: ${post.target_template_id}`
                               : post.target_type === 'landing_page'
-                              ? `🧭 Page: ${post.target_page_slug}`
-                              : '🌐 Main Portal'}
+                              ? post.target_page_slug ? `🧭 Page: ${post.target_page_slug}` : '⚠️ Unplaced (page removed)'
+                              : post.target_page_slug
+                                ? `🌐 Main Site: ${post.target_page_slug}`
+                                : '🌐 Main Site'}
                           </span>
 
                           {post.category_name && (

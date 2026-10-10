@@ -17,7 +17,6 @@ import React, { useEffect, useState } from 'react';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import SectionAggregationPage from '@/components/SectionAggregationPage';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
-import CategoryCommercialTabs from '@/components/CategoryCommercialTabs';
 import CategoryInvestmentSection from '@/components/CategoryInvestmentSection';
 
 interface BusinessType {
@@ -122,14 +121,19 @@ export default function CategorySearchPage({
         const childrenData = childrenResponse?.ok ? await childrenResponse.json() : [];
         const children: BusinessType[] = Array.isArray(childrenData) ? childrenData : [];
         const requestedTypeId = new URLSearchParams(window.location.search).get('type');
-        const requestedChild = children.find(type => type.id === requestedTypeId);
+        const fixedParentId = CATEGORY_TO_PARENT[category.toLowerCase()]
+          || (parents.some(type => type.id === category) ? category : '');
+        const requestedChild = children.find(type =>
+          type.id === requestedTypeId && (!fixedParentId || type.parent_id === fixedParentId)
+        );
         const requestedParent = parents.find(type => type.id === requestedTypeId);
-        const childMatch = requestedChild || children.find(type => type.id === category);
-        const mappedParent = CATEGORY_TO_PARENT[category.toLowerCase()] || category;
+        const childMatch = requestedChild || children.find(type =>
+          type.id === category && (!fixedParentId || type.parent_id === fixedParentId)
+        );
         if (!cancelled) {
           setParentTypes(parents);
           setChildTypes(children);
-          setSelectedParentId(childMatch?.parent_id || requestedParent?.id || (parents.some(type => type.id === mappedParent) ? mappedParent : ''));
+          setSelectedParentId(fixedParentId || childMatch?.parent_id || requestedParent?.id || '');
           setSelectedChildId(childMatch?.id || '');
         }
       } catch {
@@ -147,19 +151,25 @@ export default function CategorySearchPage({
   const selectedTypeName = childTypes.find(type => type.id === selectedChildId)?.name
     || parentTypes.find(type => type.id === selectedParentId)?.name
     || label;
+  const fixedParentId = CATEGORY_TO_PARENT[category.toLowerCase()]
+    || (parentTypes.some(type => type.id === category) ? category : '');
+  const fixedParent = parentTypes.find(type => type.id === fixedParentId);
+  const fixedParentName = fixedParent?.name || label;
   const categorySelector = (
     <section aria-label="Filter businesses by category" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', padding: '1rem clamp(1rem, 3vw, 2rem)', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+      {!fixedParentId && (
+        <label style={{ display: 'grid', gap: '0.3rem', color: '#526459', fontSize: '0.7rem', fontWeight: 800 }}>
+          Parent category
+          <select value={selectedParentId} onChange={event => { setSelectedParentId(event.target.value); setSelectedChildId(''); }} style={{ minWidth: 210, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: 5, background: '#fff', color: '#17251d' }}>
+            <option value="">Combined / select a sector</option>
+            {parentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+          </select>
+        </label>
+      )}
       <label style={{ display: 'grid', gap: '0.3rem', color: '#526459', fontSize: '0.7rem', fontWeight: 800 }}>
-        Parent category
-        <select value={selectedParentId} onChange={event => { setSelectedParentId(event.target.value); setSelectedChildId(''); }} style={{ minWidth: 210, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: 5, background: '#fff', color: '#17251d' }}>
-          <option value="">Combined / select a sector</option>
-          {parentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-        </select>
-      </label>
-      <label style={{ display: 'grid', gap: '0.3rem', color: '#526459', fontSize: '0.7rem', fontWeight: 800 }}>
-        Business type
+        {fixedParentId ? `${fixedParentName} type` : 'Business type'}
         <select value={selectedChildId} disabled={!selectedParentId} onChange={event => setSelectedChildId(event.target.value)} style={{ minWidth: 210, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: 5, background: '#fff', color: '#17251d' }}>
-          <option value="">All types in category</option>
+          <option value="">{fixedParentId ? `All ${fixedParentName.toLowerCase()} types` : 'All types in category'}</option>
           {childTypes.filter(type => type.parent_id === selectedParentId).map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
         </select>
       </label>
@@ -234,8 +244,6 @@ export default function CategorySearchPage({
       }
       return section;
     });
-    const hasCommercialTabs = resolvedLayout.some((section: any) => section?.type === 'category_commercial_tabs');
-
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
         <MarketplaceHeader
@@ -260,7 +268,6 @@ export default function CategorySearchPage({
           categoryFilter={selectedTypeId}
           topContent={categorySelector}
         />
-        {!hasCommercialTabs && <CategoryCommercialTabs category={selectedTypeId} />}
         <CategoryInvestmentSection typeId={selectedTypeId} label={selectedTypeName} />
       </div>
     );
@@ -280,9 +287,7 @@ export default function CategorySearchPage({
         categoryFilter={selectedTypeId}
         topContent={categorySelector}
       />
-      <CategoryCommercialTabs category={selectedTypeId} />
       <CategoryInvestmentSection typeId={selectedTypeId} label={selectedTypeName} />
     </>
   );
 }
-

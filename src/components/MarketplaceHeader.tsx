@@ -14,6 +14,13 @@ interface MarketplaceHeaderProps {
   activePath?: string;
   navLinks?: NavLink[];
   accentColor?: string;
+  brandLabel?: string;
+  brandIcon?: string;
+  brandImage?: string;
+  logoHeight?: number;
+  showBrand?: boolean;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export const CANONICAL_NAV_LINKS: NavLink[] = [
@@ -31,6 +38,13 @@ export default function MarketplaceHeader({
   activePath,
   navLinks = CANONICAL_NAV_LINKS,
   accentColor = '#475569',
+  brandLabel = 'SIWIFY',
+  brandIcon = 'fa-sun',
+  brandImage = '',
+  logoHeight = 32,
+  showBrand = true,
+  backgroundColor = 'rgba(255, 255, 255, 0.86)',
+  textColor = '#475569',
 }: MarketplaceHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -42,7 +56,7 @@ export default function MarketplaceHeader({
         zIndex: 1200,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        background: 'rgba(255, 255, 255, 0.86)',
+        background: backgroundColor,
         borderBottom: '1px solid rgba(15, 23, 42, 0.07)',
         boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
       }}
@@ -58,7 +72,7 @@ export default function MarketplaceHeader({
           gap: '0.75rem',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flexShrink: 1 }}>
+        {showBrand && <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flexShrink: 1 }}>
           <Link
             href="/"
             style={{
@@ -66,14 +80,18 @@ export default function MarketplaceHeader({
               display: 'flex',
               alignItems: 'center',
               gap: '0.45rem',
-              color: '#0f172a',
+              color: textColor,
               fontWeight: 900,
               fontSize: '0.96rem',
               letterSpacing: '2.2px',
             }}
           >
-            <i className="fas fa-sun" style={{ color: accentColor, fontSize: '0.95rem' }} />
-            <span>SIWIFY</span>
+            {brandImage
+              ? <img src={brandImage} alt="" style={{ height: `${Math.max(16, Math.min(120, logoHeight))}px`, width: 'auto', maxWidth: 180, objectFit: 'contain' }} />
+              : <>
+                  {brandIcon && <i className={`fas ${brandIcon}`} style={{ color: accentColor, fontSize: '0.95rem' }} />}
+                  {brandLabel && <span>{brandLabel}</span>}
+                </>}
           </Link>
           {title && title !== 'SiWiFy' && (
             <span
@@ -91,7 +109,7 @@ export default function MarketplaceHeader({
               {title}
             </span>
           )}
-        </div>
+        </div>}
 
         <nav
           className="hidden lg:flex"
@@ -120,7 +138,7 @@ export default function MarketplaceHeader({
                   borderRadius: '999px',
                   transition: 'all 0.2s ease',
                   background: isActive ? '#f8fafc' : 'transparent',
-                  color: isActive ? '#0f172a' : '#475569',
+                  color: textColor,
                   border: isActive ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid transparent',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -141,10 +159,10 @@ export default function MarketplaceHeader({
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle navigation menu"
           style={{
-            background: '#f8fafc',
+            background: backgroundColor,
             border: '1px solid rgba(15, 23, 42, 0.08)',
             borderRadius: '10px',
-            color: '#0f172a',
+            color: textColor,
             padding: '0.55rem 0.7rem',
             fontSize: '0.96rem',
             cursor: 'pointer',
@@ -160,7 +178,7 @@ export default function MarketplaceHeader({
       {mobileMenuOpen && (
         <div
           style={{
-            background: '#ffffff',
+            background: backgroundColor,
             borderTop: '1px solid rgba(15, 23, 42, 0.08)',
             padding: '0.85rem 1rem 1.15rem',
             display: 'flex',
@@ -187,8 +205,8 @@ export default function MarketplaceHeader({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.7rem',
-                  background: isActive ? '#f8fafc' : '#ffffff',
-                  color: isActive ? '#0f172a' : '#475569',
+                  background: isActive ? '#f8fafc' : 'transparent',
+                  color: textColor,
                   border: isActive ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(15, 23, 42, 0.05)',
                 }}
               >

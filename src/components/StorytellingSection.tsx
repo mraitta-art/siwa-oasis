@@ -25,7 +25,7 @@ function formatDateLong(dateStr: string | null | undefined) {
   return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
-export default function StorytellingSection({ title, subtitle }: { title?: string; subtitle?: string }) {
+export default function StorytellingSection({ title, subtitle, pagePath = '/' }: { title?: string; subtitle?: string; pagePath?: string }) {
   const [posts, setPosts] = useState<StoryPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +56,8 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
   useEffect(() => {
     async function loadStories() {
       try {
-        const res = await fetch('/api/blog?limit=2');
+        const params = new URLSearchParams({ limit: '2', location: pagePath });
+        const res = await fetch(`/api/blog?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
           if (data.posts && data.posts.length > 0) {
@@ -74,7 +75,7 @@ export default function StorytellingSection({ title, subtitle }: { title?: strin
       setLoading(false);
     }
     loadStories();
-  }, []);
+  }, [pagePath]);
 
   if (loading) {
     return (

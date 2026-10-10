@@ -20,6 +20,7 @@ import AuctionsShowcase from '@/components/AuctionsShowcase';
 import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
 import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
+import { sitePathFromPageId } from '@/lib/site-blog-paths';
 
 // ── Scroll-triggered fade-in wrapper ──────────────────────────────────────────
 function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -60,10 +61,11 @@ interface SectionProps {
   props?: any;
   siteSettings?: any;
   pageId?: string;
+  pagePath?: string;
 }
 
 
-const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) => {
+const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: SectionProps) => {
   // Guard: skip sections with null/undefined type
   if (!type || typeof type !== 'string') return null;
 
@@ -155,7 +157,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
               padding: 'clamp(1.5rem, 5vw, 3.5rem)', borderRadius: '40px', 
               border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
             }}>
-              <VibeSearch engineId={engineId} defaultCategory={cat} />
+              <VibeSearch engineId={engineId} defaultCategory={cat} title={props?.title} subtitle={props?.subtitle} />
             </div>
           </section>
         </AnimatedSection>
@@ -168,7 +170,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
         <AnimatedSection>
           <section style={{ background: 'var(--bg)', padding: '4rem 2rem' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <HomepageBlog title={props?.title} subtitle={props?.subtitle} maxPosts={props?.maxPosts} />
+              <HomepageBlog title={props?.title} subtitle={props?.subtitle} maxPosts={props?.maxPosts} blogLayout={props?.blogLayout} pagePath={pagePath || sitePathFromPageId(pageId)} />
             </div>
           </section>
         </AnimatedSection>
@@ -274,7 +276,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId }: SectionProps) =>
       return (
         <AnimatedSection>
           <section>
-            <StorytellingSection title={props?.title} subtitle={props?.subtitle} />
+            <StorytellingSection title={props?.title} subtitle={props?.subtitle} pagePath={pagePath || sitePathFromPageId(pageId)} />
           </section>
         </AnimatedSection>
       );
@@ -392,7 +394,7 @@ function logDuplicateSectionIds(layout: any[]) {
 }
 
 // ── Main renderer ─────────────────────────────────────────────────────────────
-export default function DynamicHomepageRenderer({ layout, settings, pageId = 'main' }: { layout: any[], settings: any, pageId?: string }) {
+export default function DynamicHomepageRenderer({ layout, settings, pageId = 'main', pagePath }: { layout: any[], settings: any, pageId?: string, pagePath?: string }) {
   React.useEffect(() => {
     logDuplicateSectionIds(layout);
   }, [layout]);
@@ -413,6 +415,7 @@ export default function DynamicHomepageRenderer({ layout, settings, pageId = 'ma
                 props={section.props}
                 siteSettings={settings}
                 pageId={pageId}
+                pagePath={pagePath}
               />
             </div>
           );

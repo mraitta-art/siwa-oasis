@@ -41,12 +41,23 @@ function ServiceCatalog({ props, label }: { props: any; label?: string }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
           {items.map((item: any, index: number) => {
             const price = item.price !== undefined && item.price !== '' ? `${item.currency || 'EGP'} ${item.price}` : '';
+            const photo = typeof item.image === 'string' && /^https?:\/\//i.test(item.image) ? item.image : null;
+            const reserved = new Set([
+              'title', 'description', 'price', 'currency', 'price_unit', 'capacity', 'availability',
+              'category', 'vehicle_type', 'image', 'vehicle_photo_url', 'request_url', 'duration',
+            ]);
+            const details = Object.entries(item)
+              .filter(([key, value]) => !reserved.has(key) && value !== null && value !== undefined && value !== '')
+              .map(([key, value]) => ({
+                label: key.replace(/_/g, ' '),
+                value: Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value),
+              }));
             return (
               <article key={`${item.title || 'service'}-${index}`} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '220px', border: '1px solid #e2e8f0', borderRadius: '14px', background: '#fff' }}>
-                {item.image && <img src={item.image} alt="" style={{ width: '100%', height: '130px', objectFit: 'cover' }} />}
+                {photo && <img src={photo} alt={item.title || 'Service vehicle'} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />}
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', color: '#a16207', fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    <span>{item.category || 'Service'}</span>
+                    <span>{String(item.category || 'Service').replace(/_/g, ' ')}</span>
                     {price && <span>{price}</span>}
                   </div>
                   <h3 style={{ margin: '0.45rem 0', color: '#0f172a', fontSize: '1.05rem', fontWeight: 900 }}>{item.title}</h3>
@@ -55,6 +66,14 @@ function ServiceCatalog({ props, label }: { props: any; label?: string }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.8rem', color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>
                       {[item.duration, item.capacity, item.availability, item.price_unit].filter(Boolean).map((detail: string) => <span key={detail} style={{ padding: '0.25rem 0.45rem', borderRadius: '6px', background: '#f1f5f9' }}>{detail}</span>)}
                     </div>
+                  )}
+                  {details.length > 0 && (
+                    <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, auto) 1fr', gap: '0.35rem 0.65rem', margin: '0.9rem 0 0', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                      {details.map(detail => <React.Fragment key={detail.label}>
+                        <dt style={{ color: '#64748b', fontWeight: 800, textTransform: 'capitalize' }}>{detail.label}</dt>
+                        <dd style={{ margin: 0, color: '#334155', overflowWrap: 'anywhere' }}>{detail.value}</dd>
+                      </React.Fragment>)}
+                    </dl>
                   )}
                   {item.request_url && <a href={item.request_url} style={{ marginTop: '0.9rem', color: '#166534', fontSize: '0.7rem', fontWeight: 900, textDecoration: 'none', textTransform: 'uppercase' }}>Request service →</a>}
                 </div>

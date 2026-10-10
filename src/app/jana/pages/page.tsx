@@ -47,7 +47,7 @@ export default function PagesManager() {
     try {
       const res = await fetch('/api/jana/website/list');
       if (!res.ok) throw new Error('Failed to load');
-      const data: { type: string }[] = await res.json();
+      const data: { type: string; publicPath?: string | null }[] = await res.json();
 
       const parsed: PageEntry[] = data.map(row => {
         const t = row.type;
@@ -67,7 +67,7 @@ export default function PagesManager() {
           slug,
           type,
           label: isMain ? '🏠 Homepage (Main)' : slugToLabel(slug),
-          url: isMain ? '/' : `/p/${slug}`,
+          url: row.publicPath || (isMain ? '/' : type === 'search' ? `/search/${slug}` : `/${slug}`),
           editUrl: `/jana/website?page=${slug}`,
           isMain,
         };
@@ -102,7 +102,7 @@ export default function PagesManager() {
         header_components: [],
         body_components: [],
         footer_components: [],
-        site_settings: {},
+        site_settings: { public_path: `/p/${slug}` },
       }),
     });
 

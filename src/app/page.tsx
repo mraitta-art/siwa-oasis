@@ -13,7 +13,7 @@
 import React from 'react';
 import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
-import MarketplaceHeader from '@/components/MarketplaceHeader';
+import MarketplaceHeader, { type NavLink } from '@/components/MarketplaceHeader';
 import { getWebsiteTemplate } from '@/lib/cache';
 
 // ISR: serve cached page for 120 seconds, then regenerate in background
@@ -40,10 +40,73 @@ interface SiteSettings {
   carousel_interval?: number;
   footer_tagline?: string;
   footer_copyright?: string;
+  header_brand_label?: string;
+  header_brand_icon?: string;
+  header_background_color?: string;
+  header_text_color?: string;
+  footer_background_color?: string;
+  footer_text_color?: string;
+  footer_muted_color?: string;
+  show_header?: boolean;
+  show_footer?: boolean;
+  nav_links_text?: string;
+  footer_links_text?: string;
+  watermark_text?: string;
   search_headline?: string;
   search_subline?: string;
   services_title?: string;
   services_subtitle?: string;
+}
+
+interface FooterLink {
+  group: string;
+  label: string;
+  href: string;
+}
+
+const DEFAULT_FOOTER_LINKS: FooterLink[] = [
+  { group: 'EXPLORE', label: 'The Collection', href: '/search/vibe' },
+  { group: 'EXPLORE', label: 'Heritage DNA', href: '#discovery' },
+  { group: 'PARTNERS & GOVERNANCE', label: 'Vendor Portal', href: '/login' },
+  { group: 'PARTNERS & GOVERNANCE', label: 'Become a Partner', href: '/signup' },
+  { group: 'PARTNERS & GOVERNANCE', label: 'Heritage Investment', href: '/investment-opportunities' },
+];
+
+const DEFAULT_NAV_LINKS: NavLink[] = [
+  { href: '/', label: 'Home', icon: 'fa-house' },
+  { href: '/siwa-stay', label: 'Siwa Stay', icon: 'fa-hotel' },
+  { href: '/siwa-go', label: 'Siwa Go', icon: 'fa-compass' },
+  { href: '/siwa-retreats', label: 'Siwa Retreats', icon: 'fa-spa' },
+  { href: '/siwa-products', label: 'Siwa Products', icon: 'fa-store' },
+  { href: '/siwa-invest', label: 'Siwa Invest', icon: 'fa-chart-line' },
+  { href: '/siwa-society', label: 'Siwa Society', icon: 'fa-people-group' },
+];
+
+function parseLinks(value: string | undefined, defaults: string): string[] {
+  return (value === undefined ? defaults : value).split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+}
+
+function isSafeLink(href: string) {
+  return (href.startsWith('/') && !href.startsWith('//')) || href.startsWith('#') || /^https:\/\//i.test(href);
+}
+
+function getNavLinks(settings: SiteSettings | null): NavLink[] {
+  const lines = parseLinks(settings?.nav_links_text, DEFAULT_NAV_LINKS.map(link => `${link.label} | ${link.href}`).join('\n'));
+  return lines.flatMap(line => {
+    const [label, ...hrefParts] = line.split('|').map(part => part.trim());
+    const href = hrefParts.join('|');
+    const defaultIcon = DEFAULT_NAV_LINKS.find(link => link.href === href)?.icon;
+    return label && href && isSafeLink(href) ? [{ label, href, icon: defaultIcon }] : [];
+  });
+}
+
+function getFooterLinks(settings: SiteSettings | null): FooterLink[] {
+  const lines = parseLinks(settings?.footer_links_text, DEFAULT_FOOTER_LINKS.map(link => `${link.group} | ${link.label} | ${link.href}`).join('\n'));
+  return lines.flatMap(line => {
+    const [group, label, ...hrefParts] = line.split('|').map(part => part.trim());
+    const href = hrefParts.join('|');
+    return group && label && href && isSafeLink(href) ? [{ group, label, href }] : [];
+  });
 }
 
 // ── Luminance helper — determines if a hex color is "light" ──────────────────
@@ -102,21 +165,6 @@ function buildThemeCSS(s: SiteSettings | null): string {
   }
 }
 
-function dedupeSections(sections: LayoutSection[]): LayoutSection[] {
-  const seen = new Set<string>();
-  return sections.filter(section => {
-    const props = section.props || {};
-    const sortedProps = Object.keys(props).sort().reduce((acc, key) => {
-      acc[key] = (props as any)[key];
-      return acc;
-    }, {} as Record<string, unknown>);
-    const key = `${section.type}:${JSON.stringify(sortedProps)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 /**
  * Server Component — data is fetched during SSR, no client waterfall.
  */
@@ -126,42 +174,24 @@ export default async function Home() {
 
   const settings: SiteSettings | null = config?.site_settings || null;
 
-  const DEFAULT_MAIN_LAYOUT: LayoutSection[] = [
-    { id: 'h1', type: 'hero_carousel',        zone: 'body', props: { carousel_id: 'discovery' } },
-    { id: 'h2', type: 'services_hub',          zone: 'body', props: {} },
-    { id: 'h3', type: 'experience_categories', zone: 'body', props: {} },
-    { id: 'h4', type: 'search_bar',            zone: 'body', props: {} },
-    { id: 'h5', type: 'smart_journey_planner', zone: 'body', props: {} },
-    { id: 'h6', type: 'ecosystem_map',         zone: 'body', props: {} },
-    { id: 'h7', type: 'local_products',        zone: 'body', props: {} },
-    { id: 'h8', type: 'storytelling_section',  zone: 'body', props: {} },
-    { id: 'h9', type: 'partner_cta',           zone: 'body', props: {} },
-  ];
-
   const rawSaved = [
     ...(config?.header_components || []),
     ...(config?.body_components || []),
     ...(config?.footer_components || []),
   ];
 
-  const configuredLayout = rawSaved.length > 0 ? dedupeSections(rawSaved) : DEFAULT_MAIN_LAYOUT;
-  const marketplaceEntryTypes = new Set(['services_hub', 'experience_categories', 'search_bar', 'local_products']);
-  const presentTypes = new Set(configuredLayout.map(section => section.type));
-  const missingMarketplaceSections = DEFAULT_MAIN_LAYOUT.filter(section =>
-    marketplaceEntryTypes.has(section.type) && !presentTypes.has(section.type)
-  );
-  const heroIndex = configuredLayout.findIndex(section => section.type === 'hero_carousel');
-  const insertionIndex = heroIndex >= 0 ? heroIndex + 1 : 0;
-  const layout: LayoutSection[] = [
-    ...configuredLayout.slice(0, insertionIndex),
-    ...missingMarketplaceSections,
-    ...configuredLayout.slice(insertionIndex),
-  ];
-
+  const layout: LayoutSection[] = rawSaved;
 
   const themeCSS = buildThemeCSS(settings);
   const primary  = settings?.primary_color || '#FFB700';
-  const navBg    = settings?.nav_bg_color  || '#556B2F';
+  const footerLinks = getFooterLinks(settings);
+  const footerGroups = Array.from(new Set(footerLinks.map(link => link.group)));
+  const footerTagline = settings?.footer_tagline === undefined
+    ? 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.'
+    : settings.footer_tagline;
+  const footerCopyright = settings?.footer_copyright === undefined
+    ? 'SIWIFY • ALL RIGHTS RESERVED.'
+    : settings.footer_copyright;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -170,66 +200,54 @@ export default async function Home() {
       <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
 
       {/* 🏛️ ELITE RESPONSIVE NAVIGATION */}
-      <MarketplaceHeader
-        title={settings?.site_name || 'SiWiFy'}
-        accentColor={primary}
-        activePath="/"
-      />
+      {settings?.show_header !== false && (
+        <MarketplaceHeader
+          title={settings?.site_name || 'SiWiFy'}
+          accentColor={primary}
+          activePath="/"
+          navLinks={getNavLinks(settings)}
+          brandLabel={settings?.header_brand_label ?? 'SIWIFY'}
+          brandIcon={settings?.header_brand_icon === undefined ? 'fa-sun' : settings.header_brand_icon}
+          backgroundColor={settings?.header_background_color || 'rgba(255, 255, 255, 0.86)'}
+          textColor={settings?.header_text_color || '#0f172a'}
+          brandImage={settings?.logo_url || ''}
+          logoHeight={settings?.logo_height || 32}
+        />
+      )}
 
       {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING — SSR data passed as props */}
       {layout.length > 0 ? (
         <DynamicHomepageRenderer layout={layout} settings={settings} pageId="main" />
-      ) : (
-
-        <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center' }}>
-          <div style={{ maxWidth: '720px' }}>
-            <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#D4AF37', fontWeight: 900 }}>Homepage Builder Required</h1>
-            <p style={{ color: '#eee', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2rem' }}>
-              This homepage is controlled by the admin builder. Create or publish a <code style={{ background: 'rgba(255,255,255,0.08)', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>website_main</code> configuration in the portal architect to display content here.
-            </p>
-            <Link href="/jana/website?page=homepage" style={{ display: 'inline-block', padding: '1rem 2rem', background: '#D4AF37', color: '#000', borderRadius: '999px', fontWeight: 900, textDecoration: 'none' }}>
-              Open Homepage Builder
-            </Link>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* GLOBAL WATERMARK */}
       {settings?.show_watermark !== false && (
         <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 2000, pointerEvents: 'none', opacity: 0.18, filter: 'grayscale(100%) brightness(100%)' }}>
-          <div style={{ fontWeight: 900, letterSpacing: '5px', fontSize: '0.6rem', color: '#cbd5e1' }}>SIWIFY</div>
+          <div style={{ fontWeight: 900, letterSpacing: '5px', fontSize: '0.6rem', color: '#cbd5e1' }}>{settings?.watermark_text || 'SIWIFY'}</div>
         </div>
       )}
 
-      <footer style={{ borderTop: '1px solid rgba(15, 23, 42, 0.08)', padding: '4rem 1.25rem 3rem', background: '#ffffff', color: '#0f172a' }}>
+      {settings?.show_footer !== false && <footer style={{ borderTop: '1px solid rgba(15, 23, 42, 0.08)', padding: '4rem 1.25rem 3rem', background: settings?.footer_background_color || '#ffffff', color: settings?.footer_text_color || '#0f172a' }}>
          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
             <div>
                {settings?.logo_url ? (
                  <img src={settings.logo_url} alt={settings.site_name} style={{ height: `${(settings.logo_height || 40) * 1.2}px`, marginBottom: '1.25rem', objectFit: 'contain' }} />
                ) : (
-                 <div style={{ fontWeight: 900, letterSpacing: '6px', fontSize: '1.1rem', color: '#0f172a', marginBottom: '1.25rem' }}>SIWIFY</div>
+                 <div style={{ fontWeight: 900, letterSpacing: '6px', fontSize: '1.1rem', color: settings?.footer_text_color || '#0f172a', marginBottom: '1.25rem' }}>{settings?.header_brand_label ?? 'SIWIFY'}</div>
                )}
-               <p style={{ color: '#475569', fontSize: '0.82rem', maxWidth: '300px', lineHeight: 1.8 }}>{settings?.footer_tagline || 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.'}</p>
+               {footerTagline && <p style={{ color: settings?.footer_muted_color || '#475569', fontSize: '0.82rem', maxWidth: '300px', lineHeight: 1.8 }}>{footerTagline}</p>}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-               <span style={{ fontSize: '0.64rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.35rem' }}>EXPLORE</span>
-               <Link href="/search/vibe" style={{ color: '#334155', textDecoration: 'none', fontSize: '0.85rem' }}>The Collection</Link>
-               <Link href="#discovery" style={{ color: '#334155', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage DNA</Link>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-               <span style={{ fontSize: '0.64rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.35rem' }}>PARTNERS &amp; GOVERNANCE</span>
-               <Link href="/login" style={{ color: '#334155', textDecoration: 'none', fontSize: '0.85rem' }}>Vendor Portal</Link>
-               <Link href="/signup" style={{ textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', color: primary }}>Become a Partner</Link>
-               <Link href="/investment-opportunities" style={{ color: '#334155', textDecoration: 'none', fontSize: '0.85rem' }}>Heritage Investment</Link>
-            </div>
+            {footerGroups.map(group => <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+               <span style={{ fontSize: '0.64rem', fontWeight: 900, color: primary, letterSpacing: '3px', marginBottom: '0.35rem' }}>{group}</span>
+               {footerLinks.filter(link => link.group === group).map(link => <Link key={`${link.label}:${link.href}`} href={link.href} style={{ color: settings?.footer_muted_color || '#334155', textDecoration: 'none', fontSize: '0.85rem' }}>{link.label}</Link>)}
+            </div>)}
          </div>
 
          <div style={{ marginTop: '3.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(15, 23, 42, 0.08)', textAlign: 'center', opacity: 0.8, fontSize: '0.68rem', fontWeight: 800, letterSpacing: '2px', color: '#64748b' }}>
-            © {new Date().getFullYear()} {settings?.footer_copyright || 'SIWIFY • ALL RIGHTS RESERVED.'}
+            © {new Date().getFullYear()} {footerCopyright}
          </div>
-      </footer>
+      </footer>}
     </div>
   );
 }

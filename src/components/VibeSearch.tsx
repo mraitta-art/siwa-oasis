@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import MasterCard from './MasterCard';
 
-export default function VibeSearch({ engineId, defaultCategory }: { engineId?: string; defaultCategory?: string }) {
+export default function VibeSearch({ engineId, defaultCategory, title, subtitle }: { engineId?: string; defaultCategory?: string; title?: string; subtitle?: string }) {
   const searchParams = useSearchParams();
   const categoryFromUrl = searchParams.get('category') || '';
   const category = defaultCategory || categoryFromUrl || '';
@@ -166,8 +166,9 @@ export default function VibeSearch({ engineId, defaultCategory }: { engineId?: s
         </div>
         <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', marginBottom: '1rem' }}>
-          {defaultCategory ? `Find the best ${defaultCategory.replace(/-/g, ' ')} in Siwa` : 'What is your Siwa Story today?'}
+          {title || (defaultCategory ? `Find the best ${defaultCategory.replace(/-/g, ' ')} in Siwa` : 'What is your Siwa Story today?')}
         </h2>
+        {subtitle && <p style={{ color: '#64748b', margin: '0 0 1rem' }}>{subtitle}</p>}
         {isFood && (
           <div className="vibe-filter-options" style={{ maxWidth: '1050px', margin: '0 auto 1rem' }}>
             {foodChildTypes.map(type => (

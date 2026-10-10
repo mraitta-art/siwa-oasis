@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { execute, query } from '@/lib/db';
+import { execute, query, transaction } from '@/lib/db';
 
 import { requireAdmin } from '@/lib/auth';
 import { getWebsiteTemplate, invalidateCache } from '@/lib/cache';
 import { isSupportedComponent, validateComponentProps } from '@/lib/component-contracts';
+import { siteBlogLocationFromConfig } from '@/lib/site-blog-locations';
 
 function normalizeComponents(components: unknown) {
   if (!Array.isArray(components)) return [];
@@ -86,7 +87,22 @@ export async function DELETE(request: NextRequest) {
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
     // Prevent deleting main page
     if (id === 'website_main') return NextResponse.json({ error: 'Cannot delete the main page' }, { status: 400 });
-    await execute('DELETE FROM website_configs WHERE type = ?', [id]);
+    const [pageConfig] = await query<{ config: unknown }>(
+      'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
+      [id],
+    );
+    const location = pageConfig ? siteBlogLocationFromConfig(id, pageConfig.config) : null;
+    await transaction(async connection => {
+      if (location) {
+        await connection.execute(
+          `UPDATE blog_posts
+           SET target_type = 'landing_page', target_page_slug = NULL
+           WHERE target_type IN ('mainsite', 'landing_page') AND target_page_slug = ?`,
+          [location.path],
+        );
+      }
+      await connection.execute('DELETE FROM website_configs WHERE type = ?', [id]);
+    });
     invalidateCache.websiteSettings();
     try {
       const pageSlug = id.replace(/^website_search_/, '').replace(/^website_/, '');
@@ -98,4 +114,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
-

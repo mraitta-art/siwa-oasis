@@ -1103,6 +1103,7 @@ export default function VanityBusinessClient({
                           const interpolated = interpolateFieldTokens(dbBlog.content, secData, section.fields, biz.custom_data);
                           return (
                             <div key={`${section.id}_blog_db`} style={{ marginBottom: '2.5rem', background: '#fff', padding: '2rem', borderRadius: '24px', border: '1px solid #f1f5f9', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
+                              {dbBlog.category_name && <div style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.72rem', fontWeight: 800 }}>{dbBlog.category_name}</div>}
                               <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dbBlog.title}</h3>
                               <div className="rich-content" dangerouslySetInnerHTML={{ __html: prepareRichContent(interpolated) }} style={{ fontSize: '1.05rem', color: '#475569', lineHeight: 1.8, maxWidth: '100%', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }} />
                             </div>

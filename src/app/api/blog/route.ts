@@ -8,6 +8,17 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
+    const location = searchParams.get('location');
+    if (location && (!location.startsWith('/') || location.startsWith('//'))) {
+      return NextResponse.json({ error: 'Invalid blog page location' }, { status: 400 });
+    }
+    const locationFilter = location
+      ? location === '/blog'
+        ? ` AND p.target_type IN ('mainsite', 'landing_page')
+            AND (p.target_page_slug = ? OR (p.target_type = 'mainsite' AND p.target_page_slug IS NULL))`
+        : ` AND p.target_type IN ('mainsite', 'landing_page') AND p.target_page_slug = ?`
+      : '';
+    const locationParams = location ? [location] : [];
 
     // Get published posts
     const posts = await safeQuery(
@@ -16,16 +27,16 @@ export async function GET(request: NextRequest) {
        FROM blog_posts p
        LEFT JOIN blog_categories c ON p.category_id = c.id
        LEFT JOIN profiles u ON p.author_id = u.id
-       WHERE p.status = 'published'
+       WHERE p.status = 'published'${locationFilter}
        ORDER BY p.published_at DESC
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [...locationParams, limit, offset]
     );
 
     // Get total count
     const countResult: any = await safeQuery(
-      'SELECT COUNT(*) as total FROM blog_posts WHERE status = ?',
-      ['published']
+      `SELECT COUNT(*) as total FROM blog_posts p WHERE p.status = 'published'${locationFilter}`,
+      locationParams
     );
     const total = countResult[0]?.total || 0;
 

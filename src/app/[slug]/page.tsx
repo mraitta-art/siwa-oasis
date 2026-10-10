@@ -245,7 +245,7 @@ export default async function VanityBusinessPage({
     } catch {}
 
     const platformName = siteSettings?.site_name || 'SiWiFy.com';
-    let biz: any = rawBiz;
+    const biz: any = rawBiz;
 
     // UUID redirect — redirect to the canonical slug URL
     if (isId && biz?.slug) redirect(`/${biz.slug}`);
@@ -383,7 +383,7 @@ export default async function VanityBusinessPage({
 
       // In Replace mode, prefetch vendor data for injection
       if (minisiteLayout.mode === 'replace') {
-        const [gRes, bRes, tRes, expRes] = await Promise.all([
+        const [gRes, legacyBlogs, businessBlogs, tRes, expRes] = await Promise.all([
           safeQuery<any>(
             `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
              FROM vendor_gallery 
@@ -391,10 +391,30 @@ export default async function VanityBusinessPage({
             [biz.id]
           ).catch(() => []),
           safeQuery<any>(
-            `SELECT id, title, content, excerpt, section_id, show_on_main, show_on_minisite, status 
-             FROM section_blogs 
-             WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1 
-             ORDER BY published_at DESC`,
+            `SELECT sb.id, sb.title, sb.content, sb.excerpt, sb.section_id, sb.show_on_main,
+                    sb.show_on_minisite, sb.status, sb.language,
+                    (SELECT c.name
+                     FROM blog_posts bp
+                     JOIN blog_categories c ON c.id = bp.category_id
+                     WHERE bp.target_type = 'business_section'
+                       AND bp.target_business_id = sb.business_id
+                       AND bp.target_section_id = sb.section_id
+                       AND bp.language = sb.language
+                       AND bp.title = sb.title
+                     ORDER BY bp.updated_at DESC
+                     LIMIT 1) AS category_name
+             FROM section_blogs sb
+             WHERE sb.business_id = ? AND sb.status = 'published' AND sb.show_on_minisite = 1
+             ORDER BY sb.published_at DESC`,
+            [biz.id]
+          ).catch(() => []),
+          safeQuery<any>(
+            `SELECT p.id, p.title, p.content, p.excerpt, p.language, p.published_at,
+                    c.name AS category_name, c.slug AS category_slug
+             FROM blog_posts p
+             LEFT JOIN blog_categories c ON c.id = p.category_id
+             WHERE p.target_type = 'business_minisite' AND p.target_business_id = ? AND p.status = 'published'
+             ORDER BY p.published_at DESC`,
             [biz.id]
           ).catch(() => []),
           safeQuery<any>(
@@ -407,7 +427,16 @@ export default async function VanityBusinessPage({
           ).catch(() => []),
         ]);
         galleryItems = gRes;
-        blogPosts = bRes;
+        const combinedBlogs = [...businessBlogs, ...legacyBlogs].sort(
+          (left, right) => new Date(right.published_at || 0).getTime() - new Date(left.published_at || 0).getTime()
+        );
+        const seenBlogVersions = new Set<string>();
+        blogPosts = combinedBlogs.filter(blog => {
+          const versionKey = `${blog.language || 'en'}:${blog.title}:${blog.content}`;
+          if (seenBlogVersions.has(versionKey)) return false;
+          seenBlogVersions.add(versionKey);
+          return true;
+        });
         const normalizedExpPackages = (expRes || []).map((p: any) => {
           const pr = typeof p.pricing === 'string' ? JSON.parse(p.pricing) : (p.pricing || {});
           return {
@@ -450,7 +479,6 @@ export default async function VanityBusinessPage({
         <MinisiteBuilderRenderer
           layout={minisiteLayout}
           business={businessContext}
-          isAdmin={isAdmin}
         />
       );
     }
@@ -500,10 +528,21 @@ export default async function VanityBusinessPage({
         ),
         // Fetch published section blog posts
         safeQuery<any>(
-          `SELECT id, title, content, excerpt, section_id, show_on_main, show_on_minisite, status
-           FROM section_blogs
-           WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1
-           ORDER BY published_at DESC`,
+          `SELECT sb.id, sb.title, sb.content, sb.excerpt, sb.section_id, sb.show_on_main,
+                  sb.show_on_minisite, sb.status, sb.language,
+                  (SELECT c.name
+                   FROM blog_posts bp
+                   JOIN blog_categories c ON c.id = bp.category_id
+                   WHERE bp.target_type = 'business_section'
+                     AND bp.target_business_id = sb.business_id
+                     AND bp.target_section_id = sb.section_id
+                     AND bp.language = sb.language
+                     AND bp.title = sb.title
+                   ORDER BY bp.updated_at DESC
+                   LIMIT 1) AS category_name
+           FROM section_blogs sb
+           WHERE sb.business_id = ? AND sb.status = 'published' AND sb.show_on_minisite = 1
+           ORDER BY sb.published_at DESC`,
           [biz.id]
         ),
         // Fetch active tour products / packages for travel operators & marketplace catalog
@@ -585,7 +624,7 @@ export default async function VanityBusinessPage({
       cta_phone: sectionControls[s.id]?.cta_phone || null,
     }));
 
-    let sectionComponents: Record<string, any[]> = {};
+    const sectionComponents: Record<string, any[]> = {};
     if (sectionIds.length > 0) {
       // Component data is optional, but we need it before visibility filtering so dynamic
       // section blocks are not skipped due to TDZ / initialization order issues.
@@ -682,24 +721,52 @@ export default async function VanityBusinessPage({
           [biz.id]
         );
         if (canonicalServices.length > 0) {
+          const publicServiceFields = await safeQuery<any>(
+            `SELECT t.category, f.name
+             FROM vendor_service_templates t
+             JOIN vendor_service_template_fields f ON f.template_id = t.id
+             WHERE t.active = TRUE AND f.active = TRUE AND f.publicly_visible = TRUE`
+          );
+          const publicFieldNamesByCategory = new Map<string, Set<string>>();
+          publicServiceFields.forEach((field: any) => {
+            if (!publicFieldNamesByCategory.has(field.category)) publicFieldNamesByCategory.set(field.category, new Set());
+            publicFieldNamesByCategory.get(field.category)?.add(field.name);
+          });
+          const serviceSectionTitle = canonicalServices.every((service: any) => service.category === 'transportation')
+            ? 'Vehicles & Transportation Services'
+            : 'Services & Facilities';
+          const serviceItems = canonicalServices.map((service: any) => {
+            const parsedAttributes = typeof service.attributes === 'string'
+              ? JSON.parse(service.attributes || '{}')
+              : service.attributes || {};
+            const attributes = parsedAttributes && typeof parsedAttributes === 'object' && !Array.isArray(parsedAttributes)
+              ? parsedAttributes
+              : {};
+            const publicFieldNames = publicFieldNamesByCategory.get(service.category) || new Set<string>();
+            const publicAttributes = Object.fromEntries(
+              Object.entries(attributes).filter(([name]) => publicFieldNames.has(name))
+            );
+            return {
+              category: attributes.vehicle_type || service.category,
+              title: service.title,
+              description: service.description,
+              price: service.price,
+              currency: service.currency,
+              price_unit: service.price_unit,
+              capacity: service.capacity,
+              availability: service.availability,
+              image: attributes.vehicle_photo_url || attributes.image || null,
+              ...publicAttributes,
+            };
+          });
           sectionComponents.sec_9_marketplace_catalog = [
             ...(sectionComponents.sec_9_marketplace_catalog || []),
-            ...canonicalServices.map((service: any) => ({
-              id: `canonical-service-${service.id}`,
+            {
+              id: 'canonical-transport-services',
               type: 'service_catalog',
-              label: 'Services & Facilities',
-              props: {
-                category: service.category,
-                title: service.title,
-                description: service.description,
-                price: service.price,
-                currency: service.currency,
-                price_unit: service.price_unit,
-                capacity: service.capacity,
-                availability: service.availability,
-                ...(typeof service.attributes === 'string' ? JSON.parse(service.attributes || '{}') : service.attributes || {}),
-              },
-            })),
+              label: serviceSectionTitle,
+              props: { title: serviceSectionTitle, items: serviceItems },
+            },
           ];
         }
       }

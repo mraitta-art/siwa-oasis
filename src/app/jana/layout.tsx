@@ -111,6 +111,7 @@ const NAV_GROUPS = [
         icon: 'fa-list-check',
         children: [
           { name: 'Vendor Services Control', path: '/jana/vendor-services', icon: 'fa-toggle-on' },
+          { name: 'Vendor Service Field Templates', path: '/jana/service-templates', icon: 'fa-sliders' },
           { name: 'Services Manager', path: '/jana/services-manager', icon: 'fa-concierge-bell' },
           { name: 'Categories Manager', path: '/jana/experience-categories-manager', icon: 'fa-mountain-city' },
         ]
@@ -357,7 +358,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/diagnostic')) return { title: 'Diagnostic', tip: 'System health checks and component diagnostics.' };
     if (pathname.includes('/audit')) return { title: 'Audit Logs', tip: 'View activity history and change tracking.' };
     if (pathname.includes('/curation')) return { title: 'Curation', tip: 'Content filtering and curation rules.' };
-    if (pathname.includes('/setup')) return { title: 'System Setup', tip: 'Run database schema verification, seed default components, and configure universal sections.' };
+    if (pathname.includes('/setup')) return { title: 'System Setup', tip: 'Run database schema verification, seed default components and reusable transportation sections, and configure universal sections.' };
     return { title: 'Governance CMS', tip: 'Navigate the pipeline from Foundation through Publication.' };
   };
 

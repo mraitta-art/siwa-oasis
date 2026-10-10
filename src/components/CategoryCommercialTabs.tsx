@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 
 interface CommercialItem {
   id: string;
@@ -118,7 +119,7 @@ export default function CategoryCommercialTabs({ category }: { category: string 
           <div style={{ color: '#a16207', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>Business deals</div>
           <h2 style={{ margin: '0.35rem 0 0', color: '#0f172a', fontSize: '1.7rem', fontWeight: 900 }}>Packages, offers & discounts</h2>
         </div>
-        <a href="/offers" style={{ color: '#a16207', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', textDecoration: 'none', textTransform: 'uppercase' }}>Browse marketplace</a>
+        <Link href="/offers" style={{ color: '#a16207', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '1px', textDecoration: 'none', textTransform: 'uppercase' }}>Browse marketplace</Link>
       </div>
 
       <div role="tablist" aria-label="Business deals" style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', borderBottom: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>

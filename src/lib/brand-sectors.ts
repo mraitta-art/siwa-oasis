@@ -10,7 +10,7 @@ export const BRAND_SECTORS = {
     accent: '#287a55',
   },
   'siwa-go': {
-    category: 'adventure,logistics',
+    category: 'logistics',
     sectionId: 'sec_5_experiences',
     label: 'Siwa Go',
     icon: 'fa-compass',

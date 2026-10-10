@@ -49,10 +49,60 @@ function formatDate(dateStr: string | null | undefined): string {
   });
 }
 
-/* ── Simple Markdown → HTML renderer ───────────────────── */
-function renderMarkdown(md: string): string {
-  if (!md) return '';
-  let html = md
+function decodeHtmlEntities(value: string): string {
+  return value.replace(/&(#x[0-9a-f]+|#\d+|lt|gt|quot|apos|amp|nbsp);/gi, (entity, reference: string) => {
+    const key = reference.toLowerCase();
+    if (key === 'lt') return '<';
+    if (key === 'gt') return '>';
+    if (key === 'quot') return '"';
+    if (key === 'apos') return "'";
+    if (key === 'amp') return '&';
+    if (key === 'nbsp') return '\u00a0';
+    const codePoint = key.startsWith('#x')
+      ? Number.parseInt(key.slice(2), 16)
+      : Number.parseInt(key.slice(1), 10);
+    return Number.isFinite(codePoint) && codePoint > 0 && codePoint <= 0x10ffff
+      ? String.fromCodePoint(codePoint)
+      : entity;
+  });
+}
+
+function sanitizeBlogHtml(input: string): string {
+  let html = input
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style|iframe|object|embed|form|svg|math)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi, '')
+    .replace(/<(script|style|iframe|object|embed|form|svg|math|input|textarea|select|button|meta|link|base)\b[^>]*\/?>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s+(?:srcdoc|formaction)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  html = html.replace(/\s+(href|src|xlink:href)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi, (attribute, name: string, _quoted: string, doubleQuoted: string, singleQuoted: string, unquoted: string) => {
+    const value = decodeHtmlEntities(doubleQuoted ?? singleQuoted ?? unquoted ?? '').replace(/[\u0000-\u0020]+/g, '');
+    const isHref = name.toLowerCase() !== 'src';
+    const allowed = isHref
+      ? /^(https?:|mailto:|tel:|\/(?!\/)|#|\.\/|\.\.\/)/i.test(value)
+      : /^(https?:|\/(?!\/)|\.\/|\.\.\/)/i.test(value);
+    return allowed ? attribute : '';
+  });
+
+  return html.replace(/\s+style\s*=\s*("([^"]*)"|'([^']*)'|[^\s>]+)/gi, (attribute, _quoted: string, doubleQuoted: string, singleQuoted: string) => {
+    const style = doubleQuoted ?? singleQuoted ?? '';
+    return /url\s*\(|expression\s*\(|-moz-binding|behavior\s*:/i.test(style) ? '' : attribute;
+  });
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* RichBlogEditor stores HTML; older/imported posts may contain Markdown or escaped HTML. */
+function renderMarkdown(content: string): string {
+  if (!content) return '';
+  const decoded = decodeHtmlEntities(content);
+  if (/<\/?(?:p|div|section|article|header|footer|h[1-6]|ul|ol|li|blockquote|br|hr|img|video|audio|source|strong|em|span|a|table|thead|tbody|tr|td|th|pre|code|small|mark|figure|figcaption|center)\b/i.test(decoded)) {
+    return sanitizeBlogHtml(decoded);
+  }
+
+  let html = escapeHtml(decoded)
     // Headings
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -71,10 +121,10 @@ function renderMarkdown(md: string): string {
     .replace(/^\- (.+)$/gm, '<li>$1</li>')
     // Ordered list items
     .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    // Links
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
     // Images
     .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:12px;margin:1.5rem 0;" />')
+    // Links
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
     // Line breaks → paragraphs
     .split(/\n\n+/)
     .map(block => {
@@ -90,7 +140,7 @@ function renderMarkdown(md: string): string {
   // Wrap consecutive <li> items in <ul>
   html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
 
-  return html;
+  return sanitizeBlogHtml(html);
 }
 
 /* ── Reading progress bar ──────────────────────────────── */

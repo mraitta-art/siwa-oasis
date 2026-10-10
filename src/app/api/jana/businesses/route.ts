@@ -52,11 +52,13 @@ export async function GET(request: NextRequest) {
 
     let queryStr = `
       SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
+             bt.parent_id as parent_type_id, parent_bt.name as parent_type_name,
              ${includeType ? 'bt.sections as type_sections, bt.own_sections as type_own_sections,' : ''}
              p.email as vendor_email, p.display_name as vendor_name,
              mt.name as template_name
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
+      LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
       LEFT JOIN profiles p ON b.vendor_id = p.id
       LEFT JOIN minisite_templates mt ON b.template_id = mt.id
     `;
@@ -84,8 +86,9 @@ export async function GET(request: NextRequest) {
 
     if (includeType) {
       businesses.forEach((biz: any) => {
-        if (biz.type_sections) biz.type_sections = typeof biz.type_sections === 'string' ? JSON.parse(biz.type_sections) : biz.type_sections;
-        if (biz.type_own_sections) biz.type_own_sections = typeof biz.type_own_sections === 'string' ? JSON.parse(biz.type_own_sections) : biz.type_own_sections;
+        for (const key of ['type_sections', 'type_own_sections']) {
+          if (biz[key]) biz[key] = typeof biz[key] === 'string' ? JSON.parse(biz[key]) : biz[key];
+        }
       });
     }
 
