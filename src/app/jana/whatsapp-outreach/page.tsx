@@ -56,17 +56,25 @@ export default function WhatsAppOutreachPage() {
     loadData();
   }, []);
 
+  const [authError, setAuthError] = useState<string | null>(null);
+
   async function loadData() {
     try {
       setLoading(true);
+      setAuthError(null);
       const res = await fetch('/api/jana/whatsapp-outreach');
       const data = await res.json();
+      if (!res.ok || data.error) {
+        setAuthError(data.error || 'Failed to load directory. Please sign in as admin.');
+        return;
+      }
       if (data.businesses) {
         setBusinesses(data.businesses);
         setStats(data.stats);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setAuthError(e?.message || 'Error loading outreach directory');
     } finally {
       setLoading(false);
     }
@@ -305,7 +313,22 @@ export default function WhatsAppOutreachPage() {
       </div>
 
       {/* BUSINESS OUTREACH TABLE / CARDS */}
-      {loading ? (
+      {authError ? (
+        <div style={{ padding: '3rem 2rem', textAlign: 'center', background: '#fff', borderRadius: '18px', border: '2px dashed #fca5a5', margin: '1rem 0' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🔒</div>
+          <h3 style={{ margin: '0 0 0.5rem', color: '#991b1b', fontWeight: 900 }}>Admin Login Required</h3>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.25rem' }}>{authError}</p>
+          <a
+            href="/login?redirect=/jana/whatsapp-outreach"
+            style={{
+              padding: '0.65rem 1.4rem', borderRadius: '10px', background: '#0f172a', color: '#fff',
+              textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem', display: 'inline-block'
+            }}
+          >
+            Sign in as Admin →
+          </a>
+        </div>
+      ) : loading ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
           ⏳ Loading businesses and WhatsApp directory...
         </div>
