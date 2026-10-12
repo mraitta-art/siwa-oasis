@@ -134,7 +134,7 @@ function BlogEditorContent() {
     target_section_id: 'sec_1_identity' as string,
     target_template_id: 'hotel' as string,
     target_page_slug: '/' as string,
-    language: 'en' as 'en' | 'ar',
+    language: 'en' as 'en' | 'ar' | 'it' | 'de' | 'fr' | 'es',
   });
   const selectedBiz = businesses.find((business) => business.id === formData.target_business_id);
   const sectionOptions = React.useMemo(() => {
@@ -873,11 +873,15 @@ function BlogEditorContent() {
                   Blog language
                   <select
                     value={formData.language}
-                    onChange={event => setFormData(prev => ({ ...prev, language: event.target.value as 'en' | 'ar' }))}
+                    onChange={event => setFormData(prev => ({ ...prev, language: event.target.value as 'en' | 'ar' | 'it' | 'de' | 'fr' | 'es' }))}
                     style={targetSelectStyle}
                   >
-                    <option value="en">English</option>
-                    <option value="ar">العربية (Arabic)</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="ar">🇸🇦 العربية (Arabic)</option>
+                    <option value="it">🇮🇹 Italiano (Italian)</option>
+                    <option value="de">🇩🇪 Deutsch (German)</option>
+                    <option value="fr">🇫🇷 Français (French)</option>
+                    <option value="es">🇪🇸 Español (Spanish)</option>
                   </select>
                 </label>
                 {businessLoadError && <div role="alert" style={{ gridColumn: '1 / -1', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>{businessLoadError}</div>}

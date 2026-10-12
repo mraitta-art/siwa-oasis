@@ -206,18 +206,32 @@ function interpolateFieldTokens(
   });
 }
 
+
+/** Decode HTML entities (multi-pass to handle double-encoding) and normalise contentEditable <div> wrappers to <p>. */
 function prepareRichContent(value: unknown): string {
   if (value === null || value === undefined) return '';
   let text = String(value);
-  if (text.includes('&lt;') || text.includes('&gt;')) {
-    text = text
+
+  // Multi-pass decode to handle double/triple entity encoding
+  // e.g. &amp;lt;div&amp;gt; → &lt;div&gt; → <div>
+  for (let i = 0; i < 3; i++) {
+    const next = text
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&amp;/g, '&');
+    if (next === text) break;
+    text = next;
   }
-  // Normalize repeated empty break paragraphs
+
+  // Normalize contentEditable <div> line wrappers to <p>
+  text = text
+    .replace(/<div>\s*<br\s*\/?>\s*<\/div>/gi, '<p><br /></p>')
+    .replace(/<div>/gi, '<p>')
+    .replace(/<\/div>/gi, '</p>');
+
+  // Collapse excessive empty paragraphs
   text = text.replace(/(<p>\s*(?:<br\s*\/?>|\s*|&nbsp;)*\s*<\/p>\s*){2,}/gi, '<p><br /></p>');
   return /<\/?[a-z][\s\S]*>/i.test(text) ? text : text.replace(/\r?\n/g, '<br />');
 }

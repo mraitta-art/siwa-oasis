@@ -97,8 +97,23 @@ function escapeHtml(value: string): string {
 /* RichBlogEditor stores HTML; older/imported posts may contain Markdown or escaped HTML. */
 function renderMarkdown(content: string): string {
   if (!content) return '';
-  const decoded = decodeHtmlEntities(content);
-  if (/<\/?(?:p|div|section|article|header|footer|h[1-6]|ul|ol|li|blockquote|br|hr|img|video|audio|source|strong|em|span|a|table|thead|tbody|tr|td|th|pre|code|small|mark|figure|figcaption|center)\b/i.test(decoded)) {
+
+  // Recursively decode entities up to 3 passes to handle double/triple encoding
+  // e.g. &amp;lt;div&amp;gt; → &lt;div&gt; → <div>
+  let decoded = content;
+  for (let i = 0; i < 3; i++) {
+    const next = decodeHtmlEntities(decoded);
+    if (next === decoded) break;
+    decoded = next;
+  }
+
+  // Normalize contentEditable <div> line wrappers → <p> so CSS applies cleanly
+  decoded = decoded
+    .replace(/<div>\s*<br\s*\/?>\s*<\/div>/gi, '<p><br /></p>')
+    .replace(/<div>/gi, '<p>')
+    .replace(/<\/div>/gi, '</p>');
+
+  if (/\<\/?(?:p|section|article|header|footer|h[1-6]|ul|ol|li|blockquote|br|hr|img|video|audio|source|strong|em|span|a|table|thead|tbody|tr|td|th|pre|code|small|mark|figure|figcaption|center)\b/i.test(decoded)) {
     return sanitizeBlogHtml(decoded);
   }
 

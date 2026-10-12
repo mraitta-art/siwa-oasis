@@ -159,9 +159,10 @@ export async function syncBusinessSectionBlogContent(
   const sectionData = customData[sectionId] && typeof customData[sectionId] === 'object'
     ? customData[sectionId]
     : {};
-  const blogField = language === 'ar' ? 'section_blog_ar' : 'section_blog';
-  const blogTitleField = language === 'ar' ? 'section_blog_title_ar' : 'section_blog_title';
-  const excerptField = language === 'ar' ? 'description_ar' : 'description';
+  // Dynamic field naming: base field for 'en', suffixed with lang code for all others
+  const blogField = language === 'en' ? 'section_blog' : `section_blog_${language}`;
+  const blogTitleField = language === 'en' ? 'section_blog_title' : `section_blog_title_${language}`;
+  const excerptField = language === 'en' ? 'description' : `description_${language}`;
   customData[sectionId] = {
     ...sectionData,
     [blogField]: blog.content,

@@ -104,7 +104,6 @@ export default function AutomatedMinisiteHero({
         }
       })();
 
-      if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('carousel')) return;
       capturedSectionIds.add(sectionId);
 
       const sectionData = customData[sectionId] || customData[section?.id] || {};

@@ -11,6 +11,7 @@ export default function BrandSectorPage({ slug }: { slug: BrandSectorSlug }) {
       title={sector.title}
       description={sector.description}
       accent={sector.accent}
+      pageSlug={slug}
     />
   );
 }

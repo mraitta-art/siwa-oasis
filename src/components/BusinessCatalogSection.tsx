@@ -3,6 +3,23 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
+/** Strip HTML tags and decode common entities so rich-editor descriptions render as clean plain text. */
+function stripHtml(value: string | null | undefined): string {
+  if (!value) return '';
+  return value
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/?(div|p|li|h[1-6]|blockquote|section|article)[^>]*>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 interface CatalogItem {
   id: string;
   title: string;
@@ -138,7 +155,7 @@ export default function BusinessCatalogSection({ businessId, businessName }: { b
 
       <h4 style={{ margin: '0 0 0.4rem', fontSize: '1rem', fontWeight: 900, lineHeight: 1.3, color: '#0f172a' }}>{item.title}</h4>
       <p style={{ margin: '0 0 0.8rem', color: '#475569', fontSize: '0.8rem', lineHeight: 1.6, minHeight: '42px' }}>
-        {item.description || 'Exclusive offer available for this business.'}
+        {(() => { const t = stripHtml(item.description); return t ? (t.length > 140 ? t.slice(0, 140) + '…' : t) : 'Exclusive offer available for this business.'; })()}
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>

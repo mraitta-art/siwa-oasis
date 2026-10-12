@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
       typeId = type.parent_id;
     }
 
-    let ids = filterCoreSectionsForBusinessType(business.type_id, [...sectionIds]);
+    let ids = [...sectionIds];
+    if (ids.length === 0) ids = filterCoreSectionsForBusinessType(business.type_id, []);
     if (ids.length === 0) ids = getMinisiteSectionIds(business.type_id, []);
     if (ids.length === 0) {
       const universal = await queryStrict<{ id: string }>(
@@ -106,19 +107,13 @@ export async function GET(request: NextRequest) {
       ? new Map(publishedManifest.sections.map(section => [section.id, section]))
       : null;
     const { searchParams } = new URL(request.url);
-    const language = searchParams.get('language') || 'en';
+    const SUPPORTED_LANGUAGES = ['en', 'ar', 'it', 'de', 'fr', 'es'] as const;
+    type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
+    const language = (searchParams.get('language') || 'en') as SupportedLanguage;
     const excludePostId = searchParams.get('exclude_post_id') || undefined;
     const excludeSectionBlogId = searchParams.get('exclude_section_blog_id') || undefined;
-    if (language !== 'en' && language !== 'ar') {
-      return NextResponse.json({ error: 'Unsupported blog language' }, { status: 400 });
-    }
-    const relevantTypes: string[] = [];
-    const visitedTypes = new Set<string>();
-    let relevantTypeId = business.type_id;
-    while (relevantTypeId && !visitedTypes.has(relevantTypeId)) {
-      visitedTypes.add(relevantTypeId);
-      relevantTypes.push(relevantTypeId);
-      relevantTypeId = typesById.get(relevantTypeId)?.parent_id || null;
+    if (!SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      return NextResponse.json({ error: 'Unsupported blog language. Supported: en, ar, it, de, fr, es' }, { status: 400 });
     }
 
     const seen = new Set<string>();
@@ -135,31 +130,23 @@ export async function GET(request: NextRequest) {
       seen.add(section.id);
       return true;
     });
+
     const sections = [];
     for (const section of visibleSections) {
-      let inheritanceRules: Record<string, unknown> = {};
-      try {
-        inheritanceRules = parseJson<Record<string, unknown>>(section.inheritance_rules, {});
-      } catch {
-        throw new Error(`Section "${section.name}" has invalid policy configuration`);
-      }
-      const typologyRules = inheritanceRules.typologies && typeof inheritanceRules.typologies === 'object'
-        ? inheritanceRules.typologies as Record<string, { required_override?: string }>
-        : {};
-      const requiredOverride = relevantTypes
-        .map(typeId => typologyRules[typeId]?.required_override)
-        .find(value => value === 'required' || value === 'optional');
-      const isRequired = section.required === true || section.required === 1 || section.required === '1';
-      if (requiredOverride ? requiredOverride !== 'required' : !isRequired) continue;
+      // Check conflict for all 6 supported languages in parallel
+      const conflictResults = await Promise.all(
+        SUPPORTED_LANGUAGES.map(lang =>
+          findBusinessSectionBlogConflict(businessId, section.id, lang, excludePostId, excludeSectionBlogId)
+        )
+      );
+      const available = Object.fromEntries(
+        SUPPORTED_LANGUAGES.map((lang, i) => [lang, !conflictResults[i]])
+      ) as Record<SupportedLanguage, boolean>;
 
-      const [englishConflict, arabicConflict] = await Promise.all([
-        findBusinessSectionBlogConflict(businessId, section.id, 'en', excludePostId, excludeSectionBlogId),
-        findBusinessSectionBlogConflict(businessId, section.id, 'ar', excludePostId, excludeSectionBlogId),
-      ]);
       sections.push({
         id: section.id,
         label: getEffectiveSectionLabel(section.id, section.name, customData, controlsBySection.get(section.id)),
-        available: { en: !englishConflict, ar: !arabicConflict },
+        available,
       });
     }
 

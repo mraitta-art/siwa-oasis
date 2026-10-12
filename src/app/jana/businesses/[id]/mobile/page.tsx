@@ -373,6 +373,66 @@ export default function FreeVendorMobileDashboard() {
           </div>
         </div>
 
+        {/* ── PLATFORM BROADCAST & ADS BANNER ── */}
+        <div style={{
+          marginBottom: '1.25rem',
+          padding: '1.1rem 1.25rem',
+          borderRadius: '20px',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(99,102,241,0.12) 100%)',
+          border: '1.5px solid rgba(212,175,55,0.35)',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: '12px',
+              background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(212,175,55,0.3)',
+            }}>
+              📢
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '4px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#D4AF37', color: '#0a0f1e', padding: '1px 6px', borderRadius: '6px', letterSpacing: '0.8px' }}>
+                  {isRTL ? 'إعلان المنصة الرسمي' : 'OFFICIAL PLATFORM NOTICE'}
+                </span>
+                <span style={{ fontSize: '0.62rem', color: '#cbd5e1', fontWeight: 700 }}>
+                  SiWiFy.com
+                </span>
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', lineHeight: 1.35, marginBottom: '4px' }}>
+                {isRTL
+                  ? 'فرصتك الحصرية لتصدر نتائج رحلات سيوة والخرائط الرقمية 🌴'
+                  : 'Exclusive Opportunity: Top #1 Ranking on Siwa Trips & Maps 🌴'}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+                {isRTL
+                  ? 'عملاؤك وزوار سيوة يبحثون عنك الآن! حافظ على سرعة الرد عبر واتساب، وحدّث صور مركبتك/خدمتك باستمرار لتصلك حجوزات أكثر مباشرة وبدون أي عمولة.'
+                  : 'Guests are discovering Siwa right now! Reply promptly on WhatsApp and keep your service photos updated to maximize direct, commission-free bookings.'}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <a
+                  href={`https://wa.me/201000000000?text=${encodeURIComponent(isRTL ? `مرحباً، أود الاستفسار عن إعلانات وترقية حساب ${business?.name || ''} على SiWiFy` : `Hello, I want to inquire about promotions for ${business?.name || ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                    padding: '0.4rem 0.85rem', borderRadius: '10px',
+                    background: '#25D366', color: '#0a0f1e',
+                    fontSize: '0.65rem', fontWeight: 900, textDecoration: 'none',
+                    boxShadow: '0 2px 8px rgba(37,211,102,0.3)',
+                  }}
+                >
+                  <i className="fab fa-whatsapp" style={{ fontSize: '0.8rem' }} />
+                  {isRTL ? 'تواصل مع إدارة المنصة' : 'Contact Support'}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ── PROGRESS BAR ── */}
         <div style={{
           marginBottom: '1.75rem',

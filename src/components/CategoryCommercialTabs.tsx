@@ -3,6 +3,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
+/** Strip HTML tags and decode common entities so rich-editor descriptions render cleanly as plain text. */
+function stripHtml(value: string | null | undefined): string {
+  if (!value) return '';
+  return value
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/?(div|p|li|h[1-6]|blockquote|section|article)[^>]*>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 interface CommercialItem {
   id: string;
   title: string;
@@ -153,7 +170,9 @@ export default function CategoryCommercialTabs({ category }: { category: string 
               </div>
               <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 900 }}>{item.title}</h3>
               <div style={{ marginTop: '0.4rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 700 }}>Offered by {item.ownerName}</div>
-              <p style={{ flex: 1, margin: '0.8rem 0', color: '#475569', fontSize: '0.8rem', lineHeight: 1.55 }}>{item.description || 'Available from this business.'}</p>
+              <p style={{ flex: 1, margin: '0.8rem 0', color: '#475569', fontSize: '0.8rem', lineHeight: 1.55 }}>
+                {(() => { const t = stripHtml(item.description); return t ? (t.length > 140 ? t.slice(0, 140) + '…' : t) : 'Available from this business.'; })()}
+              </p>
               {item.categorySpecs?.values && Object.entries(item.categorySpecs.values).filter(([, value]) => value !== null && value !== undefined && value !== '').slice(0, 3).map(([key, value]) => (
                 <div key={key} style={{ marginBottom: '0.25rem', color: '#52665a', fontSize: '0.68rem' }}>
                   <strong>{key.split(':').pop()?.replace(/[_-]/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}

@@ -35,6 +35,8 @@ interface CategorySearchPageProps {
   sectionId?: string;
   /** Skip this component's builder fetch when a parent page already rendered it. */
   skipBuilderFetch?: boolean;
+  /** Optional explicit page slug for page-specific configuration */
+  pageSlug?: string;
 }
 
 /** Map category slug to canonical section ID */
@@ -99,6 +101,7 @@ export default function CategorySearchPage({
   accent,
   sectionId: propSectionId,
   skipBuilderFetch = false,
+  pageSlug,
 }: CategorySearchPageProps) {
 
   const [builderConfig, setBuilderConfig] = useState<any>(null);
@@ -108,13 +111,48 @@ export default function CategorySearchPage({
   const [selectedParentId, setSelectedParentId] = useState('');
   const [selectedChildId, setSelectedChildId] = useState('');
 
+  // Resolve page config key
+  const effectivePageKey = pageSlug || CATEGORY_TO_PAGE[category.toLowerCase()] || (
+    category === 'accommodation' ? 'accommodations' :
+    category === 'transportation' ? 'transportation' :
+    category === 'food' ? 'food-beverage' :
+    category === 'activity' ? 'activities' :
+    category === 'crafts-wellness' ? 'crafts-wellness' :
+    category === 'restaurant' ? 'restaurants' :
+    category.includes(',') ? 'siwa-products' :
+    `${category}s`
+  );
+
   useEffect(() => {
     let cancelled = false;
     async function loadBusinessTypes() {
       try {
-        const parentsResponse = await fetch('/api/business-types?is_parent=true');
+        const [parentsResponse, visibilityResponse] = await Promise.all([
+          fetch('/api/business-types?is_parent=true'),
+          fetch(`/api/category-parent-visibility?page=${encodeURIComponent(effectivePageKey)}`).catch(() => null),
+        ]);
+
         const parentsData = parentsResponse.ok ? await parentsResponse.json() : [];
-        const parents: BusinessType[] = Array.isArray(parentsData) ? parentsData : [];
+        let allParents: BusinessType[] = Array.isArray(parentsData) ? parentsData : [];
+
+        // Check if admin has configured specific parent categories for this page
+        let allowedParentIds: string[] | null = null;
+        if (visibilityResponse && visibilityResponse.ok) {
+          const visData = await visibilityResponse.json();
+          if (Array.isArray(visData.visible_parents) && visData.visible_parents.length > 0) {
+            allowedParentIds = visData.visible_parents;
+          }
+        }
+
+        // Fallback default: if the category prop is a comma-separated list of parents, restrict to them
+        if (!allowedParentIds && category.includes(',')) {
+          allowedParentIds = category.split(',').map(c => c.trim().toLowerCase());
+        }
+
+        const parents = allowedParentIds
+          ? allParents.filter(p => allowedParentIds!.includes(p.id.toLowerCase()))
+          : allParents;
+
         const childrenResponse = parents.length
           ? await fetch(`/api/business-types?parent_ids=${parents.map(type => encodeURIComponent(type.id)).join(',')}`)
           : null;
@@ -145,7 +183,7 @@ export default function CategorySearchPage({
     }
     loadBusinessTypes();
     return () => { cancelled = true; };
-  }, [category]);
+  }, [category, effectivePageKey]);
 
   const selectedTypeId = selectedChildId || selectedParentId || CATEGORY_TO_TYPE_FILTER[category.toLowerCase()] || category;
   const selectedTypeName = childTypes.find(type => type.id === selectedChildId)?.name
@@ -185,15 +223,7 @@ export default function CategorySearchPage({
     'sec_1_identity';
 
   // Resolve page config key
-  const pagePath = CATEGORY_TO_PAGE[category.toLowerCase()] || CATEGORY_TO_PAGE[typeParentId] || (
-    category === 'accommodation' ? 'accommodations' :
-    category === 'transportation' ? 'transportation' :
-    category === 'food' ? 'food-beverage' :
-    category === 'activity' ? 'activities' :
-    category === 'crafts-wellness' ? 'crafts-wellness' :
-    category === 'restaurant' ? 'restaurants' :
-    `${category}s`
-  );
+  const pagePath = effectivePageKey;
 
   useEffect(() => {
     if (skipBuilderFetch) {

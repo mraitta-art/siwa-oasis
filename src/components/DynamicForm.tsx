@@ -1295,7 +1295,11 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
           const sectionMedExpanded = expandedSectionMedia[sid] ?? false;
 
           const updateMedia = (patch: object) => {
-            onChange(sid, '_media', { ...mediaData, ...patch });
+            const updated = { ...mediaData, ...patch };
+            const cleanImages = (updated.images || []).filter(Boolean);
+            onChange(sid, '_media', updated);
+            // Also sync to section_gallery so the section's gallery storage is populated
+            onChange(sid, 'section_gallery', cleanImages);
           };
 
           const handleSectionImageUpload = async (slotIndex: number, file: File) => {
@@ -1459,11 +1463,16 @@ export default function DynamicForm({ fields, data, onChange, readOnly, userRole
                     </div>
                   </div>
 
-                  {/* === IMAGE GALLERY SLOTS (1-4) === */}
+                  {/* === SECTION MEDIA GALLERY STORE (1-4) === */}
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px', marginBottom: '1rem' }}>
-                      <i className="fas fa-images" style={{ marginRight: '0.5rem' }} />
-                      SECTION IMAGES ({sectionImages.filter(i => i?.url).length}/{MAX_SECTION_IMAGES})
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', letterSpacing: '2px' }}>
+                        <i className="fas fa-images" style={{ marginRight: '0.5rem' }} />
+                        SECTION MEDIA GALLERY STORE ({sectionImages.filter(i => i?.url).length}/{MAX_SECTION_IMAGES})
+                      </div>
+                      <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 600 }}>
+                        Store gallery for section carousel, blog, and cards with custom captions
+                      </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
                       {Array.from({ length: MAX_SECTION_IMAGES }).map((_, idx) => {

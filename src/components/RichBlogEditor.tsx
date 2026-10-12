@@ -90,6 +90,74 @@ export default function RichBlogEditor({
     updateSelection();
   };
 
+  /** Clean paste: strip Word/Docs junk, normalise <div>→<p>, insert as clean HTML. */
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Prefer plain text from clipboard for the cleanest result;
+    // fall back to HTML if plain text is empty (e.g. table pastes)
+    const plain = e.clipboardData.getData('text/plain');
+    const html  = e.clipboardData.getData('text/html');
+
+    let cleaned: string;
+    if (plain && plain.trim()) {
+      // Convert line-breaks to <br> / paragraphs and use as-is
+      cleaned = plain
+        .split(/\r?\n\r?\n/)
+        .map(para => `<p>${para.replace(/\r?\n/g, '<br />')}</p>`)
+        .join('');
+    } else if (html) {
+      // Strip Word/Docs metadata comments and wrapper spans
+      cleaned = html
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/<o:p\b[^>]*>[\s\S]*?<\/o:p>/gi, '')
+        .replace(/<w:[^>]+>[\s\S]*?<\/w:[^>]+>/gi, '')
+        .replace(/<m:[^>]+>[\s\S]*?<\/m:[^>]+>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        // Normalise block-level div wrappers → p
+        .replace(/<div>\s*<br\s*\/?>\s*<\/div>/gi, '<p><br /></p>')
+        .replace(/<div>/gi, '<p>')
+        .replace(/<\/div>/gi, '</p>')
+        // Strip class/style/id/lang attributes to avoid garbage
+        .replace(/\s+(class|style|id|lang|xml:lang|xmlns[^=]*)\s*=\s*("[^"]*"|'[^']*')/gi, '')
+        // Strip dangerous tags entirely
+        .replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, '')
+        .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    } else {
+      return;
+    }
+
+    // Insert cleaned HTML at current cursor position
+    editor.focus();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = cleaned;
+      const frag = document.createDocumentFragment();
+      let lastNode: Node | null = null;
+      while (tmp.firstChild) {
+        lastNode = frag.appendChild(tmp.firstChild);
+      }
+      range.insertNode(frag);
+      if (lastNode) {
+        const newRange = document.createRange();
+        newRange.setStartAfter(lastNode);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        lastRangeRef.current = newRange;
+      }
+    } else {
+      editor.innerHTML += cleaned;
+    }
+
+    handleInput();
+  };
+
   const execute = (command: string, cmdValue: string | undefined = undefined) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -506,6 +574,7 @@ export default function RichBlogEditor({
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onPaste={handlePaste}
           onKeyUp={updateSelection}
           onMouseUp={updateSelection}
           onFocus={updateSelection}
