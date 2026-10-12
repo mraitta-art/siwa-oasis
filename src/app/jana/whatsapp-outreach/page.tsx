@@ -127,10 +127,17 @@ export default function WhatsAppOutreachPage() {
   }
 
   function handleSendWhatsApp(biz: BusinessItem) {
-    const targetPhone = (biz.whatsapp || biz.phone || '').replace(/[^0-9]/g, '');
+    let raw = (biz.whatsapp || biz.phone || '').trim();
+    // Normalize phone number to international E.164 format
+    let clean = raw.replace(/[^0-9]/g, '');
+    if (clean.startsWith('00')) clean = clean.substring(2);
+    // If standard Egyptian 11-digit mobile starting with 01 (e.g. 010, 011, 012, 015), prepend country code 2
+    if (clean.length === 11 && clean.startsWith('01')) {
+      clean = '2' + clean;
+    }
     const text = getMessageText(biz, msgLang);
-    const url = targetPhone
-      ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(text)}`
+    const url = clean
+      ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   }
@@ -374,10 +381,47 @@ export default function WhatsAppOutreachPage() {
                   </div>
                 </div>
 
-                {/* WHATSAPP CONTACT & INLINE EDITOR */}
-                <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                {/* WHATSAPP CONTACT & INLINE EDITOR WITH COUNTRY CODE SELECTOR */}
+                <div style={{ flex: '1 1 340px', minWidth: 0 }}>
                   {isEditing ? (
-                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {/* Country Calling Code Selector */}
+                      <select
+                        onChange={(e) => {
+                          const prefix = e.target.value;
+                          if (!prefix) return;
+                          // If current value already starts with a +, replace the prefix
+                          const digitsOnly = editWhatsapp.replace(/^\+[0-9]{1,4}/, '').replace(/^0+/, '');
+                          setEditWhatsapp(`${prefix}${digitsOnly}`);
+                        }}
+                        style={{
+                          padding: '0.45rem 0.5rem',
+                          borderRadius: '8px',
+                          border: '2px solid #25D366',
+                          background: '#fff',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          outline: 'none',
+                          cursor: 'pointer',
+                        }}
+                        defaultValue="+20"
+                      >
+                        <option value="+20">🇪🇬 +20 (مصر)</option>
+                        <option value="+218">🇱🇾 +218 (ليبيا)</option>
+                        <option value="+966">🇸🇦 +966 (السعودية)</option>
+                        <option value="+971">🇦🇪 +971 (الإمارات)</option>
+                        <option value="+965">🇰🇼 +965 (الكويت)</option>
+                        <option value="+974">🇶🇦 +974 (قطر)</option>
+                        <option value="+968">🇴🇲 +968 (عمان)</option>
+                        <option value="+962">🇯🇴 +962 (الأردن)</option>
+                        <option value="+44">🇬🇧 +44 (UK)</option>
+                        <option value="+39">🇮🇹 +39 (Italy)</option>
+                        <option value="+49">🇩🇪 +49 (Germany)</option>
+                        <option value="+33">🇫🇷 +33 (France)</option>
+                        <option value="+1">🇺🇸 +1 (US/CA)</option>
+                      </select>
+
                       <input
                         type="text"
                         value={editWhatsapp}
@@ -389,7 +433,8 @@ export default function WhatsAppOutreachPage() {
                           border: '2px solid #25D366',
                           fontSize: '0.85rem',
                           outline: 'none',
-                          flex: 1,
+                          flex: '1 1 140px',
+                          minWidth: '120px',
                         }}
                       />
                       <button
