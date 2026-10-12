@@ -408,6 +408,7 @@ export default function WhatsAppOutreachPage() {
                         defaultValue="+20"
                       >
                         <option value="+20">🇪🇬 +20 (مصر)</option>
+                        <option value="+963">🇸🇾 +963 (سوريا)</option>
                         <option value="+218">🇱🇾 +218 (ليبيا)</option>
                         <option value="+966">🇸🇦 +966 (السعودية)</option>
                         <option value="+971">🇦🇪 +971 (الإمارات)</option>
