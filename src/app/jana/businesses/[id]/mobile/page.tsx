@@ -433,6 +433,84 @@ export default function FreeVendorMobileDashboard() {
           </div>
         </div>
 
+        {/* ── CAPTAIN TRUST & BENEFITS GUIDE (دليل الكابتن وفوائد المنصة) ── */}
+        <div style={{
+          marginBottom: '1.5rem',
+          padding: '1.25rem',
+          borderRadius: '20px',
+          background: 'linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,41,59,0.95))',
+          border: '1.5px solid rgba(212,175,55,0.25)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '10px',
+              background: 'rgba(212,175,55,0.15)', color: '#D4AF37',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.1rem',
+            }}>
+              🛺
+            </div>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#D4AF37' }}>
+                {isRTL ? 'دليل وفوائد الكابتن في سيوة 🌴' : 'Captain Guide & Benefits 🌴'}
+              </div>
+              <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>
+                {isRTL ? 'إزاي المنصة بتساعدك وتزود رزقك بدون أي عمولة' : 'How SiWiFy grows your daily income with 0% commission'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[
+              {
+                icon: '💰',
+                titleAr: 'مكسبك كامل في جيبك (عمولة 0%)',
+                titleEn: '100% Your Money (0% Commission)',
+                descAr: 'المنصة مش بتاخد منك أي نسبة على المشاوير. الحساب بينك وبين الزبون مباشرة كاش أو إنستاباي.',
+                descEn: 'Zero commission taken from your trips. Direct payment between you and guests.',
+              },
+              {
+                icon: '📲',
+                titleAr: 'كارتك وصفحتك الشخصية لكل زبون',
+                titleEn: 'Your Branded Digital Business Card',
+                descAr: 'بدل ما تديله رقم في ورقة وتضيع، ابعتله رابط صفحتك عليه صور التوك توك والرحلات عشان يبعته لأصحابه اللي جايين سيوة.',
+                descEn: 'Share your official link with guests so they book you again and share with friends.',
+              },
+              {
+                icon: '⭐',
+                titleAr: 'زبائن مسبقة بدون انتظار في الشارع',
+                titleEn: 'Pre-booked Guests via WhatsApp',
+                descAr: 'السياح في الفنادق ومنظمي الرحلات هيلاقوا اسمك ورقمك في دليل سيوة، ويتواصلوا معاك مباشرة قبل وصولهم.',
+                descEn: 'Tourists find your verified contact details and book trips before arriving in the oasis.',
+              },
+              {
+                icon: '🤝',
+                titleAr: 'شريك معتمد رسمي في الواحة',
+                titleEn: 'Official Verified Siwa Partner',
+                descAr: 'وجودك على المنصة بيعطيك هيبة واحترام قدام السائح إنك كابتن موثوق وملتزم بأمان ونظافة الرحلة.',
+                descEn: 'Build immediate trust with guests as an officially recognized local driver.',
+              },
+            ].map((b, idx) => (
+              <div key={idx} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                padding: '0.75rem 0.9rem', borderRadius: '14px',
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{b.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', marginBottom: '2px' }}>
+                    {isRTL ? b.titleAr : b.titleEn}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                    {isRTL ? b.descAr : b.descEn}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* ── PROGRESS BAR ── */}
         <div style={{
           marginBottom: '1.75rem',
