@@ -265,6 +265,9 @@ export default function WhatsAppOutreachPage() {
         </div>
       </div>
 
+      {/* ── DIRECT QUICK DISPATCH & TEST SENDER (إرسال فوري ومباشر لأي رقم) ── */}
+      <QuickDirectSender msgLang={msgLang} />
+
       {/* FILTER & SEARCH BAR */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', background: '#fff', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -634,6 +637,160 @@ export default function WhatsAppOutreachPage() {
           loadData();
         }}
       />
+    </div>
+  );
+}
+
+/* ─── QUICK DIRECT TEST & MANUAL DISPATCH COMPONENT ────────────────── */
+function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
+  const [driverName, setDriverName] = useState('كابتن أحمد (تجربة)');
+  const [categoryType, setCategoryType] = useState('خدمة التوك توك والنقل المحلي');
+  const [countryCode, setCountryCode] = useState('+963');
+  const [localNumber, setLocalNumber] = useState('');
+  const [customSlug, setCustomSlug] = useState('siwa-tuktuk-demo');
+
+  const fullPhone = `${countryCode}${localNumber.replace(/^0+/, '')}`;
+
+  function handleSend() {
+    let clean = fullPhone.replace(/[^0-9]/g, '');
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://siwify.com';
+    const vanityUrl = `${origin}/${customSlug || 'siwa-go'}`;
+    const mobileDashboardUrl = `${origin}/jana/businesses/demo/mobile`;
+    const socialToolkitUrl = `${origin}/vendor/social-toolkit?slug=${customSlug || 'siwa-go'}`;
+    const claimUrl = `${origin}/vendor/claim?slug=${customSlug || 'siwa-go'}`;
+
+    const text = msgLang === 'ar'
+      ? `أهلاً وسهلاً بيك يا كابتن *${driverName}*! 🛺🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك في سيوة:\n🏷️ *${categoryType}*\n\n🎁 *خدماتك المجانية الجاهزة فوراً على تليفونك:*\n━━━━━━━━━━━━━━━━━━\n1️⃣ *موقعك وكارتك الشخصي للحجز المباشر (مكسبك كامل في جيبك 0% عمولة):*\n🔗 ${vanityUrl}\n(تقدر تبعت الرابط ده لأي زبون أو سائح على واتساب عشان يحجز معاك مشاوير بحيرات الملح وفطناس وشالي)\n\n2️⃣ *تطبيق خفيف على موبايلك لإدارة مواعيدك وأسعارك:*\n📲 ${mobileDashboardUrl}\n(تقدر تعدل منه أرقامك، صور التوك توك، وأسعار مشاويرك في أي وقت)\n\n3️⃣ *صانع فيديوهات وستوري واتساب باسمك:*\n🎬 ${socialToolkitUrl}\n\n🔑 *اضغط هنا لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 ${claimUrl}\n\nلو محتاج أي مساعدة أو استفسار، رد عليا على نفس الرقم ده وأنا في خدمتك فوراً يا كابتن! 🌿🤝`
+      : `Welcome Captain *${driverName}*! 🛺🌴✨\nThis is *Jana* from *SiWiFy.com*.\nYour free digital card & booking page is ready under: *${categoryType}*.\n\n🔗 Minisite: ${vanityUrl}\n📲 Mobile App: ${mobileDashboardUrl}\n🔑 Claim profile: ${claimUrl}`;
+
+    const url = clean ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  }
+
+  return (
+    <div style={{
+      marginBottom: '1.75rem',
+      padding: '1.5rem',
+      borderRadius: '20px',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+      border: '2px solid rgba(212,175,55,0.4)',
+      boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+      color: '#fff',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', color: '#0f172a' }}>
+            ⚡
+          </div>
+          <div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#D4AF37' }}>
+              إرسال فوري ومباشر لأي رقم (Quick Dispatch &amp; Test)
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+              أدخل أي اسم وأي رقم واتساب بأي كود دولة وأرسل رسالة التوك توك فوراً للتجربة أو لسائق جديد
+            </div>
+          </div>
+        </div>
+        <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)', padding: '3px 10px', borderRadius: '20px' }}>
+          جاهز للإرسال المباشر 🟢
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+            اسم السائق / الكابتن:
+          </label>
+          <input
+            type="text"
+            value={driverName}
+            onChange={(e) => setDriverName(e.target.value)}
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+            تصنيف النشاط:
+          </label>
+          <select
+            value={categoryType}
+            onChange={(e) => setCategoryType(e.target.value)}
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+          >
+            <option value="خدمة التوك توك والنقل المحلي">🛺 خدمة التوك توك والنقل المحلي</option>
+            <option value="رحلات وسفاري 4x4 بحر الرمال">🚙 رحلات وسفاري 4x4 بحر الرمال</option>
+            <option value="مركز استشفاء وعافية وبحيرات الملح">🌿 مركز استشفاء وعافية وبحيرات الملح</option>
+            <option value="تنظيم رحلات وبرامج سياحية متكاملة">🗺️ تنظيم رحلات وبرامج سياحية متكاملة</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+            كود الدولة (مفتاح الاتصال):
+          </label>
+          <select
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid #D4AF37', background: '#1e293b', color: '#D4AF37', fontSize: '0.85rem', fontWeight: 800, outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+          >
+            <option value="+963">🇸🇾 +963 (سوريا)</option>
+            <option value="+20">🇪🇬 +20 (مصر)</option>
+            <option value="+218">🇱🇾 +218 (ليبيا)</option>
+            <option value="+966">🇸🇦 +966 (السعودية)</option>
+            <option value="+971">🇦🇪 +971 (الإمارات)</option>
+            <option value="+965">🇰🇼 +965 (الكويت)</option>
+            <option value="+974">🇶🇦 +974 (قطر)</option>
+            <option value="+968">🇴🇲 +968 (عمان)</option>
+            <option value="+962">🇯🇴 +962 (الأردن)</option>
+            <option value="+44">🇬🇧 +44 (UK)</option>
+            <option value="+39">🇮🇹 +39 (Italy)</option>
+            <option value="+49">🇩🇪 +49 (Germany)</option>
+            <option value="+1">🇺🇸 +1 (US)</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+            رقم الهاتف (الواتساب):
+          </label>
+          <input
+            type="text"
+            value={localNumber}
+            onChange={(e) => setLocalNumber(e.target.value)}
+            placeholder="مثال: 944123456"
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+          الرقم النهائي للواتساب: <strong style={{ color: '#D4AF37', fontSize: '0.85rem' }}>{fullPhone || 'لم يتم إدخال رقم'}</strong>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSend}
+          style={{
+            padding: '0.65rem 1.4rem',
+            borderRadius: '12px',
+            background: '#25D366',
+            color: '#0a0f1e',
+            border: 0,
+            fontWeight: 900,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 15px rgba(37,211,102,0.3)',
+          }}
+        >
+          <i className="fab fa-whatsapp" style={{ fontSize: '1.1rem' }} />
+          <span>فتح وإرسال عبر واتساب فوراً 🚀</span>
+        </button>
+      </div>
     </div>
   );
 }
