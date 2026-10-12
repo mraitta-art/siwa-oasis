@@ -126,14 +126,14 @@ export default function VendorClaimPage() {
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
-            🔓 Claim Your Business
+            {isRTL ? '🔑 تأكيد واستلام صفحة نشاطك التجاري' : '🔓 Claim Your Business'}
           </h1>
           <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.8rem' }}>
-            Select a listing to become its owner and activate your minisite
+            {isRTL ? 'اضغط لتأكيد ملكيتك واستلام موقعك وتطبيق الموبايل مجاناً' : 'Select a listing to become its owner and activate your minisite'}
           </p>
         </div>
         <Link href="/vendor" style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <i className="fas fa-arrow-left" style={{ transform: isRTL ? 'rotate(180deg)' : undefined }}></i> Dashboard
+          <i className="fas fa-arrow-left" style={{ transform: isRTL ? 'rotate(180deg)' : undefined }}></i> {isRTL ? 'الرئيسية' : 'Dashboard'}
         </Link>
       </div>
 
@@ -143,7 +143,11 @@ export default function VendorClaimPage() {
         {claimed && (
           <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '12px', padding: '1rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#166534', fontWeight: 700 }}>
             <i className="fas fa-check-circle" style={{ fontSize: '1.2rem' }}></i>
-            <span>Business claimed! Your minisite is now live. Head to <Link href="/vendor/sections" style={{ color: '#166534', fontWeight: 900 }}>Studio</Link> to fill in your content.</span>
+            <span>
+              {isRTL
+                ? 'مبروك! تم تأكيد وتفعيل موقعك بنجاح. موقعك وتطبيقك شغّالين الآن على SiWiFy.'
+                : 'Business claimed! Your minisite is now live. Head to Studio to fill in your content.'}
+            </span>
           </div>
         )}
 
@@ -282,16 +286,16 @@ function BizCard({ biz, isConfirming, isClaiming, onConfirm, onCancel, onClaim, 
             onClick={onConfirm}
             style={{ padding: '0.6rem 1.25rem', background: biz.isMatchingType ? '#D4AF37' : '#0f172a', color: biz.isMatchingType ? '#1a1a2e' : '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
           >
-            <i className="fas fa-key"></i> Claim
+            <i className="fas fa-key"></i> {cardStyle.direction === 'rtl' || true ? 'استلام وتأكيد الحساب' : 'Claim'}
           </button>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0f172a', textAlign: 'right', maxWidth: '220px' }}>
-              Claim <strong>"{biz.name}"</strong>? You will become its owner and your minisite will go live.
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right', maxWidth: '240px', lineHeight: 1.4 }}>
+              تأكيد استلام <strong>"{biz.name}"</strong>؟ ستصبح المالك الرسمي ويتم تفعيل تطبيقك فوراً.
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button onClick={onCancel} style={{ padding: '0.5rem 1rem', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}>
-                Cancel
+                إلغاء
               </button>
               <button
                 onClick={onClaim}
@@ -299,7 +303,7 @@ function BizCard({ biz, isConfirming, isClaiming, onConfirm, onCancel, onClaim, 
                 style={{ padding: '0.5rem 1.25rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '0.75rem', cursor: isClaiming ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
                 {isClaiming ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-check"></i>}
-                {isClaiming ? 'Claiming...' : 'Yes, Claim It'}
+                {isClaiming ? 'جاري التفعيل...' : 'نعم، استلم الحساب'}
               </button>
             </div>
           </div>
