@@ -6,6 +6,8 @@ export interface WhatsAppTemplateItem {
   id: string;
   name: string;
   categoryKey: string;
+  parentTypeId?: string;
+  childTypeId?: string;
   targetAudience: 'all' | 'new_unclaimed' | 'active_vendor' | 'tourist_client' | 'inactive_reactivation';
   isHidden: boolean;
   titleAr: string;
@@ -21,7 +23,19 @@ interface WhatsAppTemplateManagerModalProps {
   onSaved?: () => void;
 }
 
-const CATEGORY_OPTIONS = [
+export const PARENT_CATEGORY_OPTIONS = [
+  { id: 'logistics', name: '🛺 Logistics & Transport (النقل والمواصلات والتوك توك)' },
+  { id: 'adventure', name: '🚙 Travel & Excursions / Safari (سفاري ورحلات المغامرة)' },
+  { id: 'wellness', name: '🌿 Health & Wellness (الاستشفاء وبحيرات الملح وجبل الدكرور)' },
+  { id: 'accommodation', name: '🏨 Accommodation (الإقامة والفنادق والإيكولودج والمخيمات)' },
+  { id: 'food', name: '🍲 Food & Beverage (المطاعم والوجبات البدوية)' },
+  { id: 'crafts', name: '🏺 Trade & Crafts (التمور وزيت الزيتون والمنتجات اليدوية)' },
+  { id: 'arts_culture', name: '🎨 Arts, Culture & Heritage (الفنون والتراث السيوي)' },
+  { id: 'services_professional', name: '💼 Professional Services (الخدمات المهنية)' },
+  { id: 'general', name: '⭐ General Platform (عام لكافة الأنشطة)' },
+];
+
+export const CATEGORY_OPTIONS = [
   { key: 'transport', label: '🛺 Transportation & Tuk-Tuk' },
   { key: 'safari', label: '🚙 4x4 Desert Safari' },
   { key: 'wellness', label: '🌿 Health, Salt Lakes & Wellness' },
@@ -356,7 +370,7 @@ export default function WhatsAppTemplateManagerModal({
 
                   <div>
                     <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', display: 'block', marginBottom: '0.35rem' }}>
-                      Industry Category
+                      Industry Category (Preset Group)
                     </label>
                     <select
                       value={selectedTemplate.categoryKey}
@@ -378,6 +392,54 @@ export default function WhatsAppTemplateManagerModal({
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', display: 'block', marginBottom: '0.35rem' }}>
+                      Parent Category (التصنيف الرئيسي)
+                    </label>
+                    <select
+                      value={selectedTemplate.parentTypeId || 'general'}
+                      onChange={(e) => updateSelectedTemplate({ parentTypeId: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '10px',
+                        background: '#1e293b',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#fff',
+                        fontSize: '0.8rem',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {PARENT_CATEGORY_OPTIONS.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#D4AF37', display: 'block', marginBottom: '0.35rem' }}>
+                      Child Typology Key (كود النشاط الفرعي)
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedTemplate.childTypeId || ''}
+                      placeholder="e.g. tuk_tuk, safari_4x4, sand_bath, all"
+                      onChange={(e) => updateSelectedTemplate({ childTypeId: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '10px',
+                        background: '#1e293b',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#fff',
+                        fontSize: '0.8rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
                   </div>
 
                   <div>

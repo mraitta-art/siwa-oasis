@@ -36,10 +36,13 @@ export async function GET(request: NextRequest) {
 
     const businesses = await query<any>(`
       SELECT b.id, b.name, b.slug, b.subscription_tier, b.published, b.is_claimed, b.custom_data, b.created_at,
-             bt.name as type_name, bt.icon as type_icon,
+             b.type_id,
+             bt.name as type_name, bt.icon as type_icon, bt.parent_id as parent_type_id,
+             parent_bt.name as parent_type_name, parent_bt.icon as parent_type_icon,
              wc.value as minisite_config
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
+      LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
       LEFT JOIN website_configs wc ON wc.key = CONCAT('minisite_layout_', b.slug) AND wc.type = 'minisite_layout'
       ORDER BY b.created_at DESC
     `);
@@ -72,8 +75,12 @@ export async function GET(request: NextRequest) {
         id: biz.id,
         name: biz.name,
         slug: effectiveSlug,
+        type_id: biz.type_id || '',
         type_name: biz.type_name || 'Business',
         type_icon: biz.type_icon || 'fa-building',
+        parent_type_id: biz.parent_type_id || '',
+        parent_type_name: biz.parent_type_name || '',
+        parent_type_icon: biz.parent_type_icon || 'fa-layer-group',
         subscription_tier: biz.subscription_tier || 'free',
         published: !!biz.published,
         is_claimed: !!biz.is_claimed,

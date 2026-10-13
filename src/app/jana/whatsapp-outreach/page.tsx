@@ -10,8 +10,12 @@ interface BusinessItem {
   id: string;
   name: string;
   slug: string;
+  type_id?: string;
   type_name: string;
   type_icon: string;
+  parent_type_id?: string;
+  parent_type_name?: string;
+  parent_type_icon?: string;
   subscription_tier: string;
   published: boolean;
   is_claimed: boolean;
@@ -34,9 +38,11 @@ interface Stats {
 
 export default function WhatsAppOutreachPage() {
   const [businesses, setBusinesses] = useState<BusinessItem[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, withWhatsapp: 0, missingWhatsapp: 0, claimed: 0, hasMinisite: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'ready' | 'missing' | 'unclaimed' | 'has_minisite'>('all');
+  const [parentFilter, setParentFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [msgLang, setMsgLang] = useState<'ar' | 'en'>('ar');
   
@@ -46,6 +52,10 @@ export default function WhatsAppOutreachPage() {
   // Template Governance Manager state
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
+  // Targeted Template Dispatch Picker Modal for a specific business
+  const [dispatchBiz, setDispatchBiz] = useState<BusinessItem | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+
   // Editing contact
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editWhatsapp, setEditWhatsapp] = useState('');
@@ -54,7 +64,20 @@ export default function WhatsAppOutreachPage() {
 
   useEffect(() => {
     loadData();
+    loadTemplates();
   }, []);
+
+  async function loadTemplates() {
+    try {
+      const res = await fetch('/api/jana/whatsapp-templates');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.templates) setTemplates(data.templates);
+      }
+    } catch (e) {
+      console.error('Failed to load templates', e);
+    }
+  }
 
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -80,12 +103,40 @@ export default function WhatsAppOutreachPage() {
     }
   }
 
-  function getMessageText(biz: BusinessItem, lang: 'ar' | 'en'): string {
-    if (lang === 'ar') {
-      return `مرحباً ${biz.name}! 🌴\nيسرنا إبلاغكم بإطلاق تطبيقكم الحصري المجاني لإدارة ونمو نشاطكم السياحي في سيوة على منصة SiWiFy:\n\n📲 1. تطبيق إدارة السوشيال ميديا وريلز الفيديو المجاني:\n${biz.socialToolkitUrl}\n(يمكنكم تثبيته مباشرة على الموبايل أو سطح المكتب بنقرة واحدة)\n\n🌐 2. موقعكم المصغر الرسمي للحجز المباشر بدون عمولة (0%):\n${biz.vanityUrl}\n\n📊 3. لوحة تحكم موبايل حصرية لإدارة موقعكم:\n${biz.mobileDashboardUrl}\n\n🔑 4. لتفعيل وتأكيد حسابكم كشريك رسمي مجاناً:\n${biz.claimUrl}\n\nنتشرف بوجودكم معنا لتعزيز السياحة والضيافة في واحة سيوة ✨`;
+  function getMessageText(biz: BusinessItem, lang: 'ar' | 'en', explicitTemplateId?: string): string {
+    // 1. If explicit template ID provided or find matching template in templates list
+    let tpl = explicitTemplateId ? templates.find((t) => t.id === explicitTemplateId) : null;
+    
+    if (!tpl && templates.length > 0) {
+      // Find matching template by childTypeId or parentTypeId
+      tpl = templates.find((t) => !t.isHidden && t.childTypeId && t.childTypeId === biz.type_id)
+        || templates.find((t) => !t.isHidden && t.parentTypeId && t.parentTypeId === biz.parent_type_id)
+        || templates.find((t) => !t.isHidden && t.categoryKey === 'general')
+        || templates[0];
     }
 
-    return `Hello ${biz.name}! 🌴\nWe are excited to share your free exclusive growth & social media app on SiWiFy.com:\n\n📲 1. Free Social Media & Video Reels App:\n${biz.socialToolkitUrl}\n(Install directly on mobile or desktop in 1-click)\n\n🌐 2. Your Official Live Minisite (0% Commission Direct Bookings):\n${biz.vanityUrl}\n\n📊 3. Your Private Mobile Dashboard — manage your minisite from your phone:\n${biz.mobileDashboardUrl}\n\n🔑 4. Activate and claim your official partner account for free:\n${biz.claimUrl}\n\nWe look forward to welcoming your guests in Siwa Oasis! ✨`;
+    if (tpl) {
+      const templateStr = lang === 'ar' ? (tpl.contentAr || tpl.contentEn) : (tpl.contentEn || tpl.contentAr);
+      if (templateStr) {
+        return templateStr
+          .replace(/\{name\}/g, biz.name)
+          .replace(/\{parentType\}/g, biz.parent_type_name || 'سياحة وضيافة سيوة')
+          .replace(/\{childType\}/g, biz.type_name || 'خدمة معتمدة')
+          .replace(/\{minisiteUrl\}/g, biz.vanityUrl)
+          .replace(/\{mobileDashboardUrl\}/g, biz.mobileDashboardUrl)
+          .replace(/\{socialToolkitUrl\}/g, biz.socialToolkitUrl)
+          .replace(/\{claimUrl\}/g, biz.claimUrl)
+          .replace(/\{photoLinks\}/g, biz.vanityUrl)
+          .replace(/\{featureList\}/g, `• حجز مباشر بدون وسيط\n• معتمد وموثق على SiWiFy.com`);
+      }
+    }
+
+    // Fallback standard message
+    if (lang === 'ar') {
+      return `أهلاً وسهلاً بيك يا كابتن/صاحب نشاط *${biz.name}*! 🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك/نشاطك في سيوة:\n🏷️ *${biz.parent_type_name || 'خدمات سيوة'} ➔ ${biz.type_name || 'نشاط معتمد'}*\n\n🎁 *خدماتك المجانية المتاحة فوراً على تليفونك:*\n1️⃣ موقعك وكارتك للحجز المباشر (مكسبك كامل في جيبك 0% عمولة): ${biz.vanityUrl}\n2️⃣ تطبيق خفيف على موبايلك لمتابعة مشاويرك وأسعارك: ${biz.mobileDashboardUrl}\n3️⃣ صانع فيديوهات وستوري واتساب باسمك: ${biz.socialToolkitUrl}\n\n🔑 *لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 ${biz.claimUrl}\n\nلو محتاج أي مساعدة، رد عليا هنا وأنا معاك خطوة بخطوة! 🌿🤝`;
+    }
+
+    return `Welcome *${biz.name}*! 🌴✨\nThis is *Jana* from *SiWiFy.com*.\nYour verified digital card & booking page is ready under:\n🏷️ *${biz.parent_type_name || 'Tourism'} ➔ ${biz.type_name || 'Service'}*\n\n🎁 *Your 100% Free Included Tools:*\n1️⃣ Official Minisite (0% Commission): ${biz.vanityUrl}\n2️⃣ Mobile Command Dashboard: ${biz.mobileDashboardUrl}\n3️⃣ Social Video Reels Maker: ${biz.socialToolkitUrl}\n\n🔑 Claim your account: ${biz.claimUrl}\n\nHave a magical journey in Siwa Oasis! 🌿`;
   }
 
   async function handleSaveContact(bizId: string) {
@@ -155,6 +206,12 @@ export default function WhatsAppOutreachPage() {
     if (filter === 'missing' && b.has_whatsapp) return false;
     if (filter === 'unclaimed' && b.is_claimed) return false;
     if (filter === 'has_minisite' && !(b as any).has_minisite) return false;
+
+    if (parentFilter !== 'all') {
+      const matchParent = (b.parent_type_id || '').toLowerCase() === parentFilter.toLowerCase();
+      const matchType = (b.type_id || '').toLowerCase() === parentFilter.toLowerCase();
+      if (!matchParent && !matchType) return false;
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -299,20 +356,47 @@ export default function WhatsAppOutreachPage() {
           ))}
         </div>
 
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="🔍 Search business name, slug, phone..."
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '10px',
-            border: '1.5px solid #e2e8f0',
-            fontSize: '0.85rem',
-            outline: 'none',
-            minWidth: '260px',
-          }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <select
+            value={parentFilter}
+            onChange={(e) => setParentFilter(e.target.value)}
+            style={{
+              padding: '0.5rem 0.85rem',
+              borderRadius: '10px',
+              border: '1.5px solid #D4AF37',
+              background: '#fff',
+              color: '#0f172a',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="all">📂 كل التصنيفات الرئيسية (All Parents)</option>
+            <option value="logistics">🛺 النقل والمواصلات والتوك توك (Logistics &amp; Transport)</option>
+            <option value="adventure">🚙 سفاري ورحلات المغامرة (Travel &amp; Safari)</option>
+            <option value="wellness">🌿 الاستشفاء وبحيرات الملح والرمال (Health &amp; Wellness)</option>
+            <option value="accommodation">🏨 الإقامة والفنادق والمخيمات (Accommodations)</option>
+            <option value="food">🍲 المطاعم والوجبات البدوية (Food &amp; Dining)</option>
+            <option value="crafts">🏺 التمور وزيت الزيتون والحرف (Trade &amp; Crafts)</option>
+            <option value="arts_culture">🎨 الفنون والتراث الثقافي (Arts &amp; Culture)</option>
+          </select>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Search business name, slug, phone..."
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '10px',
+              border: '1.5px solid #e2e8f0',
+              fontSize: '0.85rem',
+              outline: 'none',
+              minWidth: '220px',
+            }}
+          />
+        </div>
       </div>
 
       {/* BUSINESS OUTREACH TABLE / CARDS */}
@@ -587,6 +671,37 @@ export default function WhatsAppOutreachPage() {
 
                   <button
                     type="button"
+                    onClick={() => {
+                      setDispatchBiz(biz);
+                      // Auto-select best matching template for this business
+                      const bestTpl = templates.find((t) => !t.isHidden && t.childTypeId && t.childTypeId === biz.type_id)
+                        || templates.find((t) => !t.isHidden && t.parentTypeId && t.parentTypeId === biz.parent_type_id)
+                        || templates.find((t) => !t.isHidden && t.categoryKey === 'general')
+                        || (templates.length > 0 ? templates[0] : null);
+                      setSelectedTemplateId(bestTpl ? bestTpl.id : '');
+                    }}
+                    style={{
+                      padding: '0.55rem 0.95rem',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                      color: '#D4AF37',
+                      border: '1px solid rgba(212,175,55,0.4)',
+                      fontWeight: 900,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    }}
+                    title="Choose from categorized templates tailored to this business"
+                  >
+                    <span>📜</span>
+                    <span>اختيار النموذج والإرسال</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => handleSendWhatsApp(biz)}
                     style={{
                       padding: '0.55rem 1.15rem',
@@ -619,6 +734,229 @@ export default function WhatsAppOutreachPage() {
         </div>
       )}
 
+      {/* TARGETED WHATSAPP TEMPLATE DISPATCH MODAL (Parent ➔ Child ➔ Business Name ➔ Template) */}
+      {dispatchBiz && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            background: 'rgba(15, 23, 42, 0.88)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <div
+            style={{
+              background: '#0f172a',
+              color: '#fff',
+              width: '100%',
+              maxWidth: '850px',
+              maxHeight: '92vh',
+              borderRadius: '24px',
+              border: '1px solid rgba(212,175,55,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)',
+            }}
+          >
+            {/* MODAL HEADER */}
+            <div
+              style={{
+                padding: '1.25rem 1.75rem',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(15,23,42,0.9))',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px' }}>
+                  HIERARCHICAL DISPATCHER · إرسال مخصص حسب النشاط
+                </div>
+                <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>
+                  {dispatchBiz.name}
+                </h2>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                  🏷️ {dispatchBiz.parent_type_name || 'سياحة وضيافة سيوة'} ➔ {dispatchBiz.type_name}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDispatchBiz(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: 0,
+                  color: '#fff',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.1rem',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* MODAL BODY */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* TEMPLATE PICKER */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#D4AF37', marginBottom: '0.45rem' }}>
+                  اختر النموذج المراد إرساله (Available Welcoming Templates):
+                </label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '12px',
+                    background: '#1e293b',
+                    border: '1.5px solid #D4AF37',
+                    color: '#fff',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {templates
+                    .filter((t) => !t.isHidden)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} — ({t.categoryKey})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* MESSAGE LIVE PREVIEW */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1' }}>
+                    معاينة نص الرسالة قبل الإرسال (WhatsApp Message Preview):
+                  </label>
+                  <span style={{ fontSize: '0.68rem', color: '#4ade80', fontWeight: 800 }}>
+                    جاهز للإرسال الفوري 🟢
+                  </span>
+                </div>
+
+                <div
+                  dir={msgLang === 'ar' ? 'rtl' : 'ltr'}
+                  style={{
+                    background: '#020617',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '14px',
+                    padding: '1.25rem',
+                    fontSize: '0.85rem',
+                    lineHeight: 1.7,
+                    color: '#e2e8f0',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: msgLang === 'ar' ? "'Noto Sans Arabic', 'Inter', sans-serif" : "'Inter', sans-serif",
+                    maxHeight: '280px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {getMessageText(dispatchBiz, msgLang, selectedTemplateId)}
+                </div>
+              </div>
+
+              {/* DESTINATION PHONE INFO */}
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '14px',
+                  padding: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>الرقم المستلم (Recipient Phone):</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: dispatchBiz.has_whatsapp ? '#4ade80' : '#fb923c' }}>
+                    {dispatchBiz.whatsapp || dispatchBiz.phone || '⚠️ لا يوجد رقم مسجل (سيفتح واتساب لاختيار جهة الاتصال)'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = getMessageText(dispatchBiz, msgLang, selectedTemplateId);
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text);
+                        alert('✅ تم نسخ نص الرسالة للحافظة بنجاح!');
+                      }
+                    }}
+                    style={{
+                      padding: '0.65rem 1.1rem',
+                      borderRadius: '10px',
+                      background: 'rgba(255,255,255,0.08)',
+                      color: '#fff',
+                      border: 0,
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📋 نسخ النص
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let raw = (dispatchBiz.whatsapp || dispatchBiz.phone || '').trim();
+                      let clean = raw.replace(/[^0-9]/g, '');
+                      if (clean.startsWith('00')) clean = clean.substring(2);
+                      if (clean.length === 11 && clean.startsWith('01')) clean = '2' + clean;
+                      const text = getMessageText(dispatchBiz, msgLang, selectedTemplateId);
+                      const url = clean
+                        ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}`
+                        : `https://wa.me/?text=${encodeURIComponent(text)}`;
+                      window.open(url, '_blank');
+                    }}
+                    style={{
+                      padding: '0.65rem 1.4rem',
+                      borderRadius: '10px',
+                      background: '#25D366',
+                      color: '#020617',
+                      border: 0,
+                      fontWeight: 900,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      boxShadow: '0 4px 12px rgba(37,211,102,0.35)',
+                    }}
+                  >
+                    <i className="fab fa-whatsapp" style={{ fontSize: '1.1rem' }} />
+                    <span>إرسال عبر الواتساب فوراً 🚀</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* WHATSAPP FEATURE & PHOTO SHOWCASE STUDIO MODAL */}
       {showcaseBiz && (
         <WhatsAppFeatureStudioModal
@@ -635,6 +973,7 @@ export default function WhatsAppOutreachPage() {
         onClose={() => setIsTemplateManagerOpen(false)}
         onSaved={() => {
           loadData();
+          loadTemplates();
         }}
       />
     </div>
@@ -644,7 +983,7 @@ export default function WhatsAppOutreachPage() {
 /* ─── QUICK DIRECT TEST & MANUAL DISPATCH COMPONENT ────────────────── */
 function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
   const [driverName, setDriverName] = useState('كابتن أحمد (تجربة)');
-  const [categoryType, setCategoryType] = useState('خدمة التوك توك والنقل المحلي');
+  const [categoryType, setCategoryType] = useState('🛺 خدمة التوك توك والنقل المحلي');
   const [countryCode, setCountryCode] = useState('+963');
   const [localNumber, setLocalNumber] = useState('');
   const [customSlug, setCustomSlug] = useState('siwa-tuktuk-demo');
@@ -699,7 +1038,7 @@ function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
           <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
-            اسم السائق / الكابتن:
+            اسم السائق / الكابتن / النشاط:
           </label>
           <input
             type="text"
@@ -711,17 +1050,21 @@ function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
 
         <div>
           <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
-            تصنيف النشاط:
+            التصنيف (Parent ➔ Child):
           </label>
           <select
             value={categoryType}
             onChange={(e) => setCategoryType(e.target.value)}
             style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
           >
-            <option value="خدمة التوك توك والنقل المحلي">🛺 خدمة التوك توك والنقل المحلي</option>
-            <option value="رحلات وسفاري 4x4 بحر الرمال">🚙 رحلات وسفاري 4x4 بحر الرمال</option>
-            <option value="مركز استشفاء وعافية وبحيرات الملح">🌿 مركز استشفاء وعافية وبحيرات الملح</option>
-            <option value="تنظيم رحلات وبرامج سياحية متكاملة">🗺️ تنظيم رحلات وبرامج سياحية متكاملة</option>
+            <option value="🛺 النقل والمواصلات ➔ خدمة التوك توك والنقل المحلي">🛺 النقل ➔ خدمة التوك توك والنقل المحلي</option>
+            <option value="🚐 النقل والمواصلات ➔ سيارات النقل والمطارات">🚐 النقل ➔ سيارات النقل والمطارات</option>
+            <option value="🚙 رحلات ومغامرات ➔ سفاري 4x4 بحر الرمال">🚙 رحلات ➔ سفاري 4x4 بحر الرمال</option>
+            <option value="🌿 الصحة والاستشفاء ➔ حمامات الرمال وبحيرات الملح">🌿 الصحة ➔ حمامات الرمال وبحيرات الملح</option>
+            <option value="🏨 الإقامة والفنادق ➔ إيكولودج ومخيمات بيئية">🏨 الإقامة ➔ إيكولودج ومخيمات بيئية</option>
+            <option value="🍲 الأغذية والضيافة ➔ مطاعم وعشاء بدوي">🍲 الأغذية ➔ مطاعم وعشاء بدوي</option>
+            <option value="🏺 التجارة والحرف ➔ تمور وزيت زيتون ومنتجات يدوية">🏺 التجارة ➔ تمور وزيت زيتون ومنتجات يدوية</option>
+            <option value="🗺️ رحلات وبرامج ➔ تنظيم رحلات متكاملة">🗺️ رحلات ➔ تنظيم رحلات متكاملة</option>
           </select>
         </div>
 
