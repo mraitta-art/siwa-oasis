@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import WhatsAppFeatureStudioModal from '@/components/WhatsAppFeatureStudioModal';
 import WhatsAppTemplateManagerModal from '@/components/WhatsAppTemplateManagerModal';
+import MobileDashboardAdsModal from '@/components/MobileDashboardAdsModal';
 
 interface BusinessItem {
   id: string;
@@ -22,6 +23,9 @@ interface BusinessItem {
   whatsapp: string;
   phone: string;
   has_whatsapp: boolean;
+  outreach_status?: 'new' | 'sent' | 'replied' | 'followup_due' | 'claimed';
+  outreach_notes?: string;
+  last_contacted_at?: string | null;
   vanityUrl: string;
   socialToolkitUrl: string;
   claimUrl: string;
@@ -34,6 +38,13 @@ interface Stats {
   missingWhatsapp: number;
   claimed: number;
   hasMinisite: number;
+  statuses?: {
+    new: number;
+    sent: number;
+    replied: number;
+    followup_due: number;
+    claimed: number;
+  };
 }
 
 export default function WhatsAppOutreachPage() {
@@ -41,7 +52,7 @@ export default function WhatsAppOutreachPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, withWhatsapp: 0, missingWhatsapp: 0, claimed: 0, hasMinisite: 0 });
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'ready' | 'missing' | 'unclaimed' | 'has_minisite'>('all');
+  const [filter, setFilter] = useState<'all' | 'ready' | 'missing' | 'unclaimed' | 'has_minisite' | 'status_new' | 'status_sent' | 'status_replied' | 'status_followup' | 'status_claimed'>('all');
   const [parentFilter, setParentFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [msgLang, setMsgLang] = useState<'ar' | 'en'>('ar');
@@ -52,10 +63,18 @@ export default function WhatsAppOutreachPage() {
   // Template Governance Manager state
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
+  // Mobile Dashboard Ads Manager state
+  const [isMobileAdsOpen, setIsMobileAdsOpen] = useState(false);
+
   // Targeted Template Dispatch Picker Modal for a specific business
   const [dispatchBiz, setDispatchBiz] = useState<BusinessItem | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [editedMessageText, setEditedMessageText] = useState<string>('');
+
+  // Status & Note update states
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [tempNoteText, setTempNoteText] = useState('');
 
   // Editing contact
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -186,6 +205,41 @@ export default function WhatsAppOutreachPage() {
     }
   }
 
+  async function handleUpdateOutreachStatus(businessId: string, newStatus: string, notes?: string, markSent?: boolean) {
+    try {
+      setStatusUpdatingId(businessId);
+      const res = await fetch('/api/jana/whatsapp-outreach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          outreach_status: newStatus,
+          outreach_notes: notes,
+          mark_sent: markSent,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBusinesses((prev) =>
+          prev.map((b) =>
+            b.id === businessId
+              ? {
+                  ...b,
+                  outreach_status: data.outreach_status || (newStatus as any),
+                  outreach_notes: data.outreach_notes !== undefined ? data.outreach_notes : b.outreach_notes,
+                  last_contacted_at: data.last_contacted_at || b.last_contacted_at,
+                }
+              : b
+          )
+        );
+      }
+    } catch (e) {
+      console.error('Failed to update outreach status', e);
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  }
+
   function handleSendWhatsApp(biz: BusinessItem) {
     let raw = (biz.whatsapp || biz.phone || '').trim();
     // Normalize phone number to international E.164 format
@@ -199,6 +253,10 @@ export default function WhatsAppOutreachPage() {
     const url = clean
       ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`;
+
+    // Mark status as sent and timestamp immediately
+    handleUpdateOutreachStatus(biz.id, 'sent', undefined, true);
+
     window.open(url, '_blank');
   }
 
@@ -207,6 +265,13 @@ export default function WhatsAppOutreachPage() {
     if (filter === 'missing' && b.has_whatsapp) return false;
     if (filter === 'unclaimed' && b.is_claimed) return false;
     if (filter === 'has_minisite' && !(b as any).has_minisite) return false;
+
+    // Outreach lifecycle filters
+    if (filter === 'status_new' && b.outreach_status !== 'new') return false;
+    if (filter === 'status_sent' && b.outreach_status !== 'sent') return false;
+    if (filter === 'status_replied' && b.outreach_status !== 'replied') return false;
+    if (filter === 'status_followup' && b.outreach_status !== 'followup_due') return false;
+    if (filter === 'status_claimed' && b.outreach_status !== 'claimed' && !b.is_claimed) return false;
 
     if (parentFilter !== 'all') {
       const matchParent = (b.parent_type_id || '').toLowerCase() === parentFilter.toLowerCase();
@@ -238,6 +303,29 @@ export default function WhatsAppOutreachPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* MOBILE DASHBOARD ADS & BROADCAST MANAGER BUTTON */}
+          <button
+            type="button"
+            onClick={() => setIsMobileAdsOpen(true)}
+            style={{
+              padding: '0.6rem 1.15rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(99,102,241,0.18))',
+              color: '#D4AF37',
+              border: '1.5px solid rgba(212,175,55,0.4)',
+              fontWeight: 900,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}
+          >
+            <span>📢</span>
+            <span>إعلانات وبانرات الموبايل (Mobile Ads)</span>
+          </button>
+
           {/* TEMPLATE GOVERNANCE BUTTON */}
           <button
             type="button"
@@ -291,35 +379,41 @@ export default function WhatsAppOutreachPage() {
       </div>
 
       {/* STATS TILES */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        <div style={{ background: '#fff', borderRadius: '18px', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>TOTAL BUSINESSES</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', margin: '0.2rem 0' }}>{stats.total}</div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Platform directory entities</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ background: '#fff', borderRadius: '18px', padding: '1.1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>TOTAL BUSINESSES</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#0f172a', margin: '0.15rem 0' }}>{stats.total}</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Platform directory entities</div>
         </div>
 
-        <div style={{ background: '#f0fdf4', borderRadius: '18px', padding: '1.25rem', border: '1px solid #bbf7d0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#166534', letterSpacing: '1px' }}>READY WITH WHATSAPP</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#15803d', margin: '0.2rem 0' }}>{stats.withWhatsapp}</div>
-          <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>1-Click WhatsApp dispatch enabled</div>
+        <div style={{ background: '#f8fafc', borderRadius: '18px', padding: '1.1rem', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#475569', letterSpacing: '1px' }}>🆕 لم يُرسل بعد (NEW)</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#334155', margin: '0.15rem 0' }}>{stats.statuses?.new ?? 0}</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>جاهز للتواصل الأولي</div>
         </div>
 
-        <div style={{ background: '#fff7ed', borderRadius: '18px', padding: '1.25rem', border: '1px solid #fed7aa', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#9a3412', letterSpacing: '1px' }}>NEEDS WHATSAPP NUMBER</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#c2410c', margin: '0.2rem 0' }}>{stats.missingWhatsapp}</div>
-          <div style={{ fontSize: '0.75rem', color: '#ea580c' }}>Add number to enable 1-click outreach</div>
+        <div style={{ background: '#eff6ff', borderRadius: '18px', padding: '1.1rem', border: '1px solid #bfdbfe', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#1e40af', letterSpacing: '1px' }}>📨 تم الإرسال (SENT)</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#1d4ed8', margin: '0.15rem 0' }}>{stats.statuses?.sent ?? 0}</div>
+          <div style={{ fontSize: '0.72rem', color: '#2563eb' }}>تم إرسال بطاقة الاعتماد</div>
         </div>
 
-        <div style={{ background: '#faf5ff', borderRadius: '18px', padding: '1.25rem', border: '1px solid #e9d5ff', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6b21a8', letterSpacing: '1px' }}>CLAIMED PARTNERS</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#7e22ce', margin: '0.2rem 0' }}>{stats.claimed}</div>
-          <div style={{ fontSize: '0.75rem', color: '#9333ea' }}>Fully verified partner portals</div>
+        <div style={{ background: '#fefce8', borderRadius: '18px', padding: '1.1rem', border: '1px solid #fde047', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#854d0e', letterSpacing: '1px' }}>💬 رد باهتمام (REPLIED)</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#a16207', margin: '0.15rem 0' }}>{stats.statuses?.replied ?? 0}</div>
+          <div style={{ fontSize: '0.72rem', color: '#ca8a04' }}>أبدى رغبة بالانضمام والتوثيق</div>
         </div>
 
-        <div style={{ background: '#f0f9ff', borderRadius: '18px', padding: '1.25rem', border: '1px solid #bae6fd', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#075985', letterSpacing: '1px' }}>HAS LIVE MINISITE</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0284c7', margin: '0.2rem 0' }}>{stats.hasMinisite}</div>
-          <div style={{ fontSize: '0.75rem', color: '#0369a1' }}>Ready to receive dashboard link</div>
+        <div style={{ background: '#fef2f2', borderRadius: '18px', padding: '1.1rem', border: '1px solid #fecaca', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#991b1b', letterSpacing: '1px' }}>⏰ يحتاج متابعة (FOLLOW-UP)</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#dc2626', margin: '0.15rem 0' }}>{stats.statuses?.followup_due ?? 0}</div>
+          <div style={{ fontSize: '0.72rem', color: '#ef4444' }}>يحتاج رسالة تذكير ثانية</div>
+        </div>
+
+        <div style={{ background: '#f0fdf4', borderRadius: '18px', padding: '1.1rem', border: '1px solid #bbf7d0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#166534', letterSpacing: '1px' }}>✅ معتمد (CLAIMED)</div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#15803d', margin: '0.15rem 0' }}>{stats.claimed}</div>
+          <div style={{ fontSize: '0.72rem', color: '#16a34a' }}>تم توثيق الحساب واستلام الداشبورد</div>
         </div>
       </div>
 
@@ -328,27 +422,31 @@ export default function WhatsAppOutreachPage() {
 
       {/* FILTER & SEARCH BAR */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', background: '#fff', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
           {[
-            { id: 'all', label: `All (${businesses.length})` },
-            { id: 'has_minisite', label: `🌐 Has Minisite (${stats.hasMinisite})` },
-            { id: 'ready', label: `Ready WhatsApp (${stats.withWhatsapp})` },
-            { id: 'missing', label: `Needs WhatsApp (${stats.missingWhatsapp})` },
-            { id: 'unclaimed', label: `Unclaimed (${stats.total - stats.claimed})` },
+            { id: 'all', label: `الكل (${businesses.length})` },
+            { id: 'status_new', label: `🆕 جديد لم يُرسل (${stats.statuses?.new ?? 0})` },
+            { id: 'status_sent', label: `📨 تم الإرسال (${stats.statuses?.sent ?? 0})` },
+            { id: 'status_replied', label: `💬 رد باهتمام (${stats.statuses?.replied ?? 0})` },
+            { id: 'status_followup', label: `⏰ متابعة (${stats.statuses?.followup_due ?? 0})` },
+            { id: 'status_claimed', label: `✅ معتمد (${stats.claimed})` },
+            { id: 'has_minisite', label: `🌐 موقع نشط (${stats.hasMinisite})` },
+            { id: 'ready', label: `واتساب مسجل (${stats.withWhatsapp})` },
+            { id: 'missing', label: `بدون هاتف (${stats.missingWhatsapp})` },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setFilter(tab.id as any)}
               style={{
-                padding: '0.45rem 0.9rem',
+                padding: '0.45rem 0.8rem',
                 borderRadius: '10px',
                 border: '1.5px solid',
                 borderColor: filter === tab.id ? '#0f172a' : '#e2e8f0',
                 background: filter === tab.id ? '#0f172a' : '#fff',
                 color: filter === tab.id ? '#fff' : '#64748b',
                 fontWeight: 800,
-                fontSize: '0.78rem',
+                fontSize: '0.75rem',
                 cursor: 'pointer',
               }}
             >
@@ -444,7 +542,7 @@ export default function WhatsAppOutreachPage() {
               >
                 {/* BUSINESS META */}
                 <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{biz.name}</h3>
                     <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: '50px', background: '#f1f5f9', color: '#475569' }}>
                       {biz.type_name}
@@ -466,6 +564,96 @@ export default function WhatsAppOutreachPage() {
                       <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: '50px', background: '#f1f5f9', color: '#94a3b8' }}>
                         No Minisite
                       </span>
+                    )}
+                  </div>
+
+                  {/* OUTREACH LIFECYCLE CONTROLS & NOTES */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b' }}>حالة التواصل:</span>
+                    <select
+                      value={biz.outreach_status || (biz.is_claimed ? 'claimed' : 'new')}
+                      disabled={statusUpdatingId === biz.id}
+                      onChange={(e) => handleUpdateOutreachStatus(biz.id, e.target.value)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        outline: 'none',
+                        border: '1.5px solid',
+                        background:
+                          biz.outreach_status === 'sent' ? '#eff6ff' :
+                          biz.outreach_status === 'replied' ? '#fefce8' :
+                          biz.outreach_status === 'followup_due' ? '#fef2f2' :
+                          biz.outreach_status === 'claimed' ? '#f0fdf4' : '#f8fafc',
+                        borderColor:
+                          biz.outreach_status === 'sent' ? '#93c5fd' :
+                          biz.outreach_status === 'replied' ? '#fde047' :
+                          biz.outreach_status === 'followup_due' ? '#fca5a5' :
+                          biz.outreach_status === 'claimed' ? '#86efac' : '#cbd5e1',
+                        color:
+                          biz.outreach_status === 'sent' ? '#1d4ed8' :
+                          biz.outreach_status === 'replied' ? '#a16207' :
+                          biz.outreach_status === 'followup_due' ? '#dc2626' :
+                          biz.outreach_status === 'claimed' ? '#15803d' : '#475569',
+                      }}
+                    >
+                      <option value="new">🆕 جديد (لم يُرسل)</option>
+                      <option value="sent">📨 تم الإرسال</option>
+                      <option value="replied">💬 رد باهتمام</option>
+                      <option value="followup_due">⏰ يحتاج متابعة تذكيرية</option>
+                      <option value="claimed">✅ تم الاعتماد والتوثيق</option>
+                    </select>
+
+                    {biz.last_contacted_at && (
+                      <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                        🕒 {new Date(biz.last_contacted_at).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+
+                    {editingNoteId === biz.id ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <input
+                          type="text"
+                          value={tempNoteText}
+                          onChange={(e) => setTempNoteText(e.target.value)}
+                          placeholder="ملاحظة..."
+                          style={{ padding: '2px 6px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', minWidth: '150px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleUpdateOutreachStatus(biz.id, biz.outreach_status || 'new', tempNoteText);
+                            setEditingNoteId(null);
+                          }}
+                          style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#0f172a', color: '#fff', border: 0, borderRadius: '4px', cursor: 'pointer', fontWeight: 800 }}
+                        >
+                          حفظ
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingNoteId(null)}
+                          style={{ padding: '2px 4px', fontSize: '0.7rem', background: 'transparent', border: 0, cursor: 'pointer', color: '#94a3b8' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingNoteId(biz.id);
+                          setTempNoteText(biz.outreach_notes || '');
+                        }}
+                        style={{
+                          background: 'none', border: 0, padding: 0, fontSize: '0.7rem',
+                          color: biz.outreach_notes ? '#d97706' : '#94a3b8',
+                          cursor: 'pointer', textDecoration: 'underline', fontWeight: 700,
+                        }}
+                      >
+                        📝 {biz.outreach_notes ? `ملاحظة: ${biz.outreach_notes}` : '+ ملاحظة'}
+                      </button>
                     )}
                   </div>
 
@@ -949,6 +1137,10 @@ export default function WhatsAppOutreachPage() {
                       const url = clean
                         ? `https://wa.me/${clean}?text=${encodeURIComponent(editedMessageText)}`
                         : `https://wa.me/?text=${encodeURIComponent(editedMessageText)}`;
+
+                      // Mark status as sent and timestamp
+                      handleUpdateOutreachStatus(dispatchBiz.id, 'sent', undefined, true);
+
                       window.open(url, '_blank');
                     }}
                     style={{
@@ -994,6 +1186,12 @@ export default function WhatsAppOutreachPage() {
           loadData();
           loadTemplates();
         }}
+      />
+
+      {/* MOBILE DASHBOARD BROADCAST ADS & BANNERS MODAL */}
+      <MobileDashboardAdsModal
+        isOpen={isMobileAdsOpen}
+        onClose={() => setIsMobileAdsOpen(false)}
       />
     </div>
   );

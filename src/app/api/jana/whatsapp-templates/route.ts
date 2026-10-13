@@ -26,16 +26,63 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
   // 1. LOGISTICS & TRANSPORT -> Tuk-Tuk
   {
     id: 'transport_tuktuk_welcome',
-    name: '🛺 سائقي التوك توك (ترحيب وتفعيل فوري)',
+    name: '🛺 كباتن التوك توك (شرح المزايا وأهميتها)',
     categoryKey: 'transport',
     parentTypeId: 'logistics',
     childTypeId: 'tuk_tuk',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'رسالة اعتماد كباتن التوك توك في واحة سيوة',
-    titleEn: 'Tuk-Tuk Captain Official Digital Card & Booking',
-    contentAr: `أهلاً وسهلاً بيك يا كابتن *{name}*! 🛺🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك في سيوة:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *خدماتك المجانية المتاحة فوراً على تليفونك:*\n1️⃣ موقعك وكارتك للحجز المباشر (مكسبك كامل في جيبك 0% عمولة): {minisiteUrl}\n2️⃣ تطبيق خفيف على موبايلك لمتابعة مشاويرك وأسعارك: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات وستوري واتساب باسمك: {socialToolkitUrl}\n\n🔑 *لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 {claimUrl}\n\nلو محتاج أي مساعدة، رد عليا هنا وأنا معاك خطوة بخطوة يا كابتن! 🌿🤝`,
-    contentEn: `Welcome Captain *{name}*! 🛺🌴✨\nThis is *Jana* from *SiWiFy.com*.\nWe built a 100% free digital card & booking minisite for you in Siwa:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Your Free Tools:*\n1️⃣ Direct Booking Card (0% Commission): {minisiteUrl}\n2️⃣ Mobile Command App: {mobileDashboardUrl}\n3️⃣ Video Reels & WhatsApp Story Maker: {socialToolkitUrl}\n\n🔑 *Claim your page for free:*\n👉 {claimUrl}\n\nReply here if you need any help! 🌿🤝`,
+    titleAr: 'اعتماد رسمي ومزايا كباتن التوك توك في سيوة',
+    titleEn: 'Tuk-Tuk Captain Official Digital Card & Benefits',
+    contentAr: `أهلاً وسهلاً بيك يا كابتن *{name}*! 🛺🌴✨
+معاك *جنا* من إدارة الشركاء في *SiWiFy.com* (المنصة الرقمية الأولى لدليل وسياحة واحة سيوة).
+
+يسعدنا إبلاغك باعتماد وتوثيق مركبتك رسمياً في دليل الواحة تحت تصنيف:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجك المجاني ولماذا هي مهمة جداً لزيادة دخلك؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *موقعك وكارتك الرقمي للحجز المباشر (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة ليك؟* لأن السائح أو الفندق لما يطلب توك توك مش محتاج وسيط ياخد منك نسبة! الرابط ده بتبعته لأي زبون على واتساب يشوف صورتك ورقمك وأسعارك ويحجز معاك فوراً، ومكسبك كامل في جيبك 100%.
+
+2️⃣ *تطبيق خفيف على تليفونك لمتابعة مشاويرك وأسعارك:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة ليك؟* تقدر من موبايلك في أي دقيقة تغيّر أسعار مشاوير بحيرات الملح أو فطناس، وتكتب مواعيد عملك بدون ما ترجع لحد.
+
+3️⃣ *صانع فيديوهات واستوري واتساب احترافي باسمك:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة ليك؟* بضغطة زر واحدة يصمملك فيديو ريلز واستوري باسمك ورقمك ترفعه على واتساب وتيك توك وتجيب لنفسك زباين جدد طول الموسم.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد هويتك واستلام موقعك وتطبيقك مجاناً:*
+👉 {claimUrl}
+
+لو عندك أي استفسار أو محتاج مساعدة، رد عليا على نفس المحادثة دي وأنا في خدمتك خطوة بخطوة يا كابتن! 🌿🤝
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome Captain *{name}*! 🛺🌴✨
+This is *Jana* from *SiWiFy.com* (The Official Siwa Oasis Digital Platform).
+
+Your tuk-tuk is officially verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are important for your business:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Direct Booking Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Guests book you directly with 0% middleman fees; keep 100% of your earnings.
+2️⃣ Mobile Trips Dashboard: {mobileDashboardUrl}
+• Why it matters: Update your tour rates and availability directly from your phone in seconds.
+3️⃣ Branded Video Reels & WhatsApp Story Creator: {socialToolkitUrl}
+• Why it matters: Promote your rides on TikTok & Instagram with your name & number in 1 click.
+
+🔑 *Claim your official profile for free:*
+👉 {claimUrl}
+
+Reply here anytime — we're here to help you grow! 🌿🤝
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['توك توك مرخص ونظيف', 'سائق سيوي محلي معتمد', 'جولات بحيرات الملح وغروب الفطناس', 'حجز مباشر بدون عمولة'],
   },
 
@@ -48,10 +95,56 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'airport_transfer',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'اعتماد خدمات الليموزين والنقل السياحي للمطارات',
+    titleAr: 'اعتماد خدمات الليموزين والنقل السياحي للمطارات (شرح المزايا)',
     titleEn: 'Airport & Long-Range Chauffeur Transfers Onboarding',
-    contentAr: `مرحباً بك يا كابتن *{name}*! 🚐✨\nمعاك *جنا* من منصة *SiWiFy.com*، ويسرنا إبلاغك باعتماد وتوثيق سيارتك لخدمات النقل والليموزين في سيوة:\n🏷️ *{parentType} ➔ {childType}*\n\n📌 *المزايا المتاحة لك مجاناً وفورياً:* \n1️⃣ موقعك المصغر لتلقي حجوزات النقل المباشر من القاهرة والإسكندرية ومطروح (عمولة 0%): {minisiteUrl}\n2️⃣ تطبيق موبايل سهل لتحديث أسعار المشاوير والمسارات في أي وقت: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات ريلز باسمك ولوجو خدمتك: {socialToolkitUrl}\n\n🔑 *لتأكيد بياناتك واستلام لوحة تحكمك مجاناً:* \n👉 {claimUrl}\n\nنتشرف بوجودك شريك نقل معتمد وموثوق لزوار سيوة! 🌿🤝`,
-    contentEn: `Welcome Captain *{name}*! 🚐✨\nYour passenger transfer service is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Included Free:*\n1️⃣ Direct Booking Minisite: {minisiteUrl}\n2️⃣ Rates & Trips Mobile App: {mobileDashboardUrl}\n3️⃣ Social Reels Maker: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `مرحباً بك يا كابتن *{name}*! 🚐✨
+معاك *جنا* من إدارة الشركاء في *SiWiFy.com* (دليل سياحة وانتقالات واحة سيوة).
+
+يسرنا إبلاغك باعتماد وتوثيق سيارتك لخدمات النقل والليموزين رسمياً في دليل الواحة:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجك المجاني ولماذا هي مهمة جداً لزيادة دخلك؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *موقعك المصغر لتلقي حجوزات النقل المباشر من المطارات (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة ليك؟* مشاوير المطارات (القاهرة، الإسكندرية، برج العرب، مطروح) مبالغها كبيرة، والشركات والوسطاء بياخدوا منك 15% إلى 20%. مع موقعك على SiWiFy، المسافر أو الفندق بيحجز معاك مباشرة ومكسب المشوار كاملاً ليك بدون أي استقطاع.
+
+2️⃣ *لوحة تحكم خفيفة على هاتفك لتعديل أسعار المسارات:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة ليك؟* ترفع أسعار الذهاب والعودة، وتحدد نوع السيارة (ملاكي، هاي إس، باص سياحي)، وتغلق أو تفتح حجوزاتك حسب جدول سفرك بلمسة واحدة.
+
+3️⃣ *صانع فيديوهات تسويقية واستوري واتساب باسمك ورقمك:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة ليك؟* ينتج لك فيديوهات احترافية تظهر نظافة سيارتك والتزامك بالمواعيد وتكييف السيارة، لتبني ثقة فورية مع العائلات والمسافرين الأجانب.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد بياناتك وتفعيل موقعك وتطبيقك مجاناً:*
+👉 {claimUrl}
+
+لو عندك أي استفسار، ردي عليا مباشرة على هذه المحادثة! 🌿🤝
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome Captain *{name}*! 🚐✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Oasis Platform).
+
+Your passenger transfer service is verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your transfer business:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Direct Airport Transfers Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Airport trips (Cairo, Alex, Borg El Arab) are high value. Save 15-20% broker fees and keep 100% directly.
+2️⃣ Mobile Route & Price Manager: {mobileDashboardUrl}
+• Why it matters: Update your rates per route and set vehicle availability instantly from your phone.
+3️⃣ Branded Chauffeur Reels Maker: {socialToolkitUrl}
+• Why it matters: Showcase your vehicle comfort and cleanliness to gain client trust instantly.
+
+🔑 *Claim your official profile for free:*
+👉 {claimUrl}
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['توصيل مطار القاهرة والإسكندرية', 'سيارات مكيفة ومريحة', 'سائقين محترفين ومعتمدين', 'حجز مسبق مع التزام بالمواعيد'],
   },
 
@@ -64,10 +157,56 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'safari_4x4',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'رسالة ترحيب واعتماد كباتن سفاري 4x4 وبحر الرمال',
+    titleAr: 'اعتماد كباتن سفاري 4x4 وبحر الرمال (شرح المزايا)',
     titleEn: 'Desert 4x4 Safari & Sand Sea Onboarding',
-    contentAr: `يا هلا بكابتن الصحراء والمغامرة *{name}*! 🚙🏜️✨\nمعاك *جنا* من منصة *SiWiFy.com*، ويسعدنا إعلامك باعتماد وتوثيق نشاطك وسيارات الدفع الرباعي في دليل سيوة للمغامرات:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *أدواتك المجانية الجاهزة فوراً لزيادة رحلاتك:*\n1️⃣ صفحة احترافية وموقع لعرض أسطول سياراتك وبرامج السفاري (حجز مباشر 0% عمولة): {minisiteUrl}\n2️⃣ تطبيق خفيف على تليفونك لمتابعة المواعيد ومجموعات السفاري: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات ريلز وستوري لدروب الرمال وبئر واحد والغروب: {socialToolkitUrl}\n\n🔑 *لتأكيد اعتماد نشاطك وتفعيل صفحتك مجاناً:*\n👉 {claimUrl}\n\nجاهزين نملأ جدول رحلاتك وموسمك بأجمل ضيوف! رد عليا لو حابب تضيف صور سياراتك فوراً ⛺🌄`,
-    contentEn: `Welcome Desert Captain *{name}*! 🚙🏜️✨\nYour 4x4 Desert Safari is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Included Tools:*\n1️⃣ Safari Minisite: {minisiteUrl}\n2️⃣ Mobile Trips Hub: {mobileDashboardUrl}\n3️⃣ Desert Reels Maker: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `يا هلا بكابتن الصحراء والمغامرة *{name}*! 🚙🏜️✨
+معاك *جنا* من إدارة المغامرات في *SiWiFy.com* (منصة سياحة واحة سيوة الأولى).
+
+يسعدنا إعلامك باعتماد وتوثيق نشاطك وسيارات الدفع الرباعي رسمياً في دليل مغامرات سيوة:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجك المجاني ولماذا هي مهمة جداً لزيادة رحلاتك؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *موقعك الرقمي المباشر لحجز رحلات السفاري (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة ليك؟* رحلات بحر الرمال وبئر واحد والبحيرة الباردة هي العمود الفقري لسياحة سيوة! موقعك يعرض صور سياراتك والبرامج بوضوح، والسياح والفنادق يحجزون معك مباشرة بدون وسيط يقتطع من تعبك.
+
+2️⃣ *تطبيق موبايل خفيف لإدارة جدول رحلاتك ومجموعاتك:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة ليك؟* تتحكم في أسعار باقات السفاري (شاملة العشاء والتزلج أو الجولة السريعة)، وتحدد الأيام المتاحة والمحجوزة بسهولة وأنت في قلب الواحة.
+
+3️⃣ *صانع فيديوهات ريلز وستوري سينمائية لدروب الرمال:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة ليك؟* يصنع لك فيديوهات درامية للتزلج على الرمال والمشاهد البانورامية باسمك ورقمك ترفعها على تيك توك وإنستغرام لتجذب أفواجاً جديدة باستمرار.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد اعتماد نشاطك وتفعيل صفحتك مجاناً:*
+👉 {claimUrl}
+
+جاهزون لملء جدول رحلاتك بأجمل ضيوف! ردي عليا لو حابب تضيف صور سياراتك فوراً ⛺🌄
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome Desert Captain *{name}*! 🚙🏜️✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Oasis Platform).
+
+Your 4x4 Desert Safari is officially verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your safari business:*
+━━━━━━━━━━━
+1️⃣ Safari Minisite & Showcase (0% Commission): {minisiteUrl}
+• Why it matters: Showcase your 4x4 fleet, dune routes & Sand Sea packages; direct booking with zero broker commission.
+2️⃣ Mobile Trips Hub: {mobileDashboardUrl}
+• Why it matters: Update sunset tours, sandboarding packages and availability on your mobile anytime.
+3️⃣ Desert Reels Maker: {socialToolkitUrl}
+• Why it matters: Create viral TikTok & Instagram desert reels branded with your phone and name.
+
+🔑 *Claim your official profile for free:*
+👉 {claimUrl}
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['دفع رباعي لاندكروزر مجهز', 'سفاري بحر الرمال والتزلج على الرمال', 'استراحة بئر المياه الساخنة وشاي بدوي', 'تصاريح الصحراء ودليل خبير'],
   },
 
@@ -80,10 +219,55 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'sand_bath',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'اعتماد مراكز السياحة العلاجية والاستشفاء الطبيعي',
+    titleAr: 'اعتماد مراكز السياحة العلاجية والاستشفاء الطبيعي (شرح المزايا)',
     titleEn: 'Health & Wellness Healing Centers Onboarding',
-    contentAr: `مرحباً بإدارة وأطباء مركز *{name}* للاستشفاء والعافية! 🌿✨\nمعاكم *جنا* من منصة *SiWiFy.com*، ويسرنا إعلامكم بتوثيق مركزكم في دليل سيوة الرسمي للسياحة العلاجية والاستشفاء البيئي:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *خدماتكم الرقمية المتاحة مجاناً 100%:*\n1️⃣ صفحة حجز رسمية متخصصة لبرامج الاستشفاء وجلسات الطفو وحمامات الرمال (0% عمولة): {minisiteUrl}\n2️⃣ تطبيق موبايل لإدارة الحجوزات والمواعيد واستقبال طلبات الزوار: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات تثقيفية وريلز عن فوائد ملح سيوة وعيون الكبريت: {socialToolkitUrl}\n\n🔑 *لتأكيد وتفعيل ملف المركز رسمياً:*\n👉 {claimUrl}\n\nنتشرف بالتعاون معكم لتقديم أرقى تجربة استشفائية لزوار الواحة من مصر ومختلف دول العالم! 💆‍♂️💧`,
-    contentEn: `Welcome *{name}* to Siwa Oasis Healing Hub! 🌿✨\nYour wellness center is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Tools:*\n1️⃣ Direct Healing Minisite: {minisiteUrl}\n2️⃣ Mobile Command Dashboard: {mobileDashboardUrl}\n3️⃣ Wellness Reels Maker: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `مرحباً بإدارة وأطباء مركز *{name}* للاستشفاء والعافية! 🌿💧✨
+معاكم *جنا* من قسم السياحة العلاجية في *SiWiFy.com* (المنصة المعتمدة لواحة سيوة).
+
+يسرنا إعلامكم بتوثيق مركزكم رسمياً في دليل سيوة للسياحة العلاجية والاستشفاء البيئي:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجكم المجاني ولماذا هي مهمة جداً لنجاح مركزكم؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *موقعكم الرقمي المعتمد لجلسات الاستشفاء والطفو (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة لكم؟* زوار السياحة العلاجية من مصر وأوروبا والخليج يبحثون عن ثقة ومصداقية طبية وبيئية. موقعكم يشرح فوائد حمامات الرمال وبحيرات الملح والعيون الكبريتية ويتيح الحجز المباشر معكم بدون أي وسطاء.
+
+2️⃣ *لوحة تحكم موبايل لإدارة الحجوزات والمواعيد والأسعار:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة لكم؟* تنظيم مواعيد الجلسات والبرامج العلاجية، وتحديد الطاقة الاستيعابية اليومية لتفادي التكدس وضمان راحة الضيوف.
+
+3️⃣ *صانع فيديوهات ومحتوى تثقيفي احترافي بهوية المركز:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة لكم؟* تصميم مقاطع ريلز تشرح الفوائد الصحية لملح سيوة والمساج العضوي بأسلوب علمي جذاب يجذب طالبي الاستشفاء الطبيعي.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد وتفعيل ملف المركز رسمياً مجاناً:*
+👉 {claimUrl}
+
+نتشرف بالتعاون معكم لتقديم أرقى تجربة استشفائية لضيوف الواحة! 💆‍♂️🌿
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome *{name}* to Siwa Oasis Healing Hub! 🌿✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Platform).
+
+Your wellness center is officially verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your wellness center:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Direct Healing Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Health travelers seek credible medical details. Direct booking with 0% commission.
+2️⃣ Mobile Appointments Dashboard: {mobileDashboardUrl}
+• Why it matters: Manage session capacities, peak seasons, and program rates on your mobile.
+3️⃣ Educational Wellness Reels Maker: {socialToolkitUrl}
+• Why it matters: Professional videos explaining salt lakes and sand therapy benefits.
+
+🔑 *Claim profile: {claimUrl}*
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['جلسات طفو ببحيرات الملح الصخري', 'حمامات رمال جبل الدكرور الساخنة', 'عيون كبريتية طبيعية دافئة', 'مساج عضوي بزيت الزيتون السيوي'],
   },
 
@@ -96,10 +280,55 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'glamping_tent',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'رسالة اعتماد وتوثيق الفنادق والإيكولودج والمخيمات',
+    titleAr: 'اعتماد الفنادق والإيكولودج والمخيمات (شرح المزايا وتوفير العمولات)',
     titleEn: 'Eco-Lodges, Camps & Hotels Official Onboarding',
-    contentAr: `تحياتنا لإدارة وضيافة *{name}* في واحة سيوة الساحرة! 🏨🌴✨\nمعاكم *جنا* من منصة *SiWiFy.com*، ويسعدنا توثيق واعتماد منشأتكم الفندقية في دليل إقامات سيوة المعتمد:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *باقة الأدوات الرقمية المجانية لمنشأتكم:*\n1️⃣ موقع مصغر احترافي لعرض الغرف والمخيمات واستقبال الحجوزات المباشرة بدون وسيط وبدون عمولة (0%): {minisiteUrl}\n2️⃣ لوحة تحكم موبايل لتحديث أسعار المواسم والصور وتوفر الغرف: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات ريلز وستوري إنستغرام وتيك توك بهوية الفندق: {socialToolkitUrl}\n\n🔑 *لتأكيد ملكية المنشأة واستلام لوحة التحكم مجاناً:*\n👉 {claimUrl}\n\nنتمنى لكم موسماً سياحياً استثنائياً ونحن في خدمتكم دائماً! 🌿⭐`,
-    contentEn: `Welcome *{name}* to Siwa Accommodations Directory! 🏨🌴✨\nYour lodge is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Tools:*\n1️⃣ Direct Booking Minisite (0% Commission): {minisiteUrl}\n2️⃣ Mobile Room Inventory App: {mobileDashboardUrl}\n3️⃣ Branded Reels Maker: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `تحياتنا لإدارة وضيافة *{name}* في واحة سيوة الساحرة! 🏨🌴✨
+معاكم *جنا* من إدارة الإقامات والضيافة في *SiWiFy.com* (دليل سياحة وإقامات سيوة المعتمد).
+
+يسعدنا توثيق واعتماد منشأتكم الفندقية في دليل إقامات سيوة الرسمي:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجكم المجاني ولماذا هي مهمة جداً لزيادة أرباحكم؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *موقع مصغر احترافي لاستقبال الحجوزات المباشرة (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة لكم؟* منصات الحجز العالمية (مثل Booking وAgoda) تقتطع عمولات ضخمة تتراوح بين 18% إلى 25% من كل ليلة! موقعكم على SiWiFy يتيح للنزيل الحجز المباشر عبر واتساب وتوفير آلاف الجنيهات لصالح منشأتكم مباشرة.
+
+2️⃣ *لوحة تحكم موبايل لتحديث أسعار الغرف والمواسم:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة لكم؟* تغيير أسعار المواسم، إضافة صور غرف جديدة، وتحديث حالة الغرف المتاحة بضغطة زر من مكتب الاستقبال أو الهاتف.
+
+3️⃣ *صانع فيديوهات ريلز وستوري احترافية بهوية الفندق:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة لكم؟* إنتاج فيديوهات تبرز جمال عمارة الكرشيف السيوية، والجلسات البدوية، والهدوء الليلي مع شعار الفندق لجذب رواد إنستغرام وتيك توك.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد ملكية المنشأة واستلام لوحة التحكم مجاناً:*
+👉 {claimUrl}
+
+نتمنى لكم موسماً سياحياً استثنائياً ونحن في خدمتكم دائماً! 🌿⭐
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome *{name}* to Siwa Accommodations Directory! 🏨🌴✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Platform).
+
+Your lodge is officially verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your hotel/lodge:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Direct Booking Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Global OTAs charge 18-25% commissions. Receive direct guest bookings on WhatsApp and retain 100% of revenue.
+2️⃣ Mobile Room Inventory App: {mobileDashboardUrl}
+• Why it matters: Change seasonal rates, update room availability right from your mobile.
+3️⃣ Branded Hotel Reels Maker: {socialToolkitUrl}
+• Why it matters: Create stunning architectural videos showcasing your Karshif lodge.
+
+🔑 *Claim profile: {claimUrl}*
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['عمارة كرجيف سيوية أصلية', 'إطلالات طبيعية على النخيل والجبل', 'إفطار سيوي طازج مشمول', 'غرف مجهزة ومكيفة بخدمات فندقية'],
   },
 
@@ -112,10 +341,55 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'desert_dining_event',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'اعتماد مطاعم وجلسات المطبخ السيوي والبدوي',
+    titleAr: 'اعتماد مطاعم وجلسات المطبخ السيوي (شرح المزايا والمنيو الرقمي)',
     titleEn: 'Siwan Restaurants & Bedouin Camp Dining Onboarding',
-    contentAr: `مرحباً بأصحاب الضيافة والنكهة الأصيلة في مطعم/جلسات *{name}*! 🍲🕯️✨\nمعاكم *جنا* من منصة *SiWiFy.com*، وبحب أبلغكم بتوثيق مطعمكم ومطبخكم في دليل الأكلات السيوية والبدوية:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *مزاياكم المجانية الفورية لجذب الضيوف:*\n1️⃣ منيو وموقع مصغر لعرض أكلات أبو مردم والطواجن وحجز الطاولات مباشرة (0% عمولة): {minisiteUrl}\n2️⃣ لوحة تحكم لتعديل أوقات العمل وأرقام الدليفري وأسعار الوجبات: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات وريلز شهية ومغرية لأطباقكم السيوية: {socialToolkitUrl}\n\n🔑 *لتأكيد واستلام صفحة مطعمكم مجاناً:*\n👉 {claimUrl}\n\nألف هنا وشفا، ومتشوقين نوجّه كل زوار سيوة لمائدتكم العامرة! 🌿🔥`,
-    contentEn: `Welcome *{name}* to Siwa Dining Guide! 🍲🌴✨\nYour restaurant is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Tools:*\n1️⃣ Menu & Table Booking Minisite: {minisiteUrl}\n2️⃣ Mobile Store Dashboard: {mobileDashboardUrl}\n3️⃣ Food Video Creator: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `مرحباً بأصحاب الضيافة والنكهة الأصيلة في مطعم/جلسات *{name}*! 🍲🕯️✨
+معاكم *جنا* من قسم المطاعم والضيافة في *SiWiFy.com* (دليل سياحة وضيافة واحة سيوة).
+
+يسعدنا إبلاغكم بتوثيق مطعمكم ومطبخكم رسمياً في دليل الأكلات السيوية والبدوية:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجكم المجاني ولماذا هي مهمة جداً لزيادة رواد مطعمكم؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *منيو وموقع رقمي لعرض الأكلات وحجز الطاولات (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة لكم؟* السائح القادم لسيوة يبحث دائماً عن وجبة أبو مردم المدفونة، أو طاجن البط بالبلح، أو جلسة عشاء وسط النخيل. موقعكم يعرض المنيو والأسعار بالصور، ويستقبل طلبات الحجز المسبق عبر واتساب مباشرة بدون أي عمولة.
+
+2️⃣ *لوحة تحكم موبايل لتحديث أوقات العمل وأرقام الدليفري:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة لكم؟* تعديل أسعار الوجبات اليومية، وتحديث أوقات العمل، وإتاحة طلبات التوصيل للفنادق والمخيمات بسهولة.
+
+3️⃣ *صانع فيديوهات ريلز شهية ومغرية للأطباق السيوية:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة لكم؟* تصميم مقاطع فيديو تظهر خروج لحم أبو مردم من تحت الرمال مع الشاي السيوي باللويزة لتشويق الضيوف ودعوتهم لمائدتكم.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد واستلام صفحة مطعمكم والمنيو الرقمي مجاناً:*
+👉 {claimUrl}
+
+ألف هنا وشفا، ومتشوقون لتوجيه زوار سيوة لمائدتكم العامرة! 🌿🔥
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome *{name}* to Siwa Dining Guide! 🍲🌴✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Platform).
+
+Your restaurant is verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your restaurant:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Digital Menu & Table Booking Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Travelers eagerly search for authentic Abu Mardam. Direct bookings without food app cuts.
+2️⃣ Mobile Store Dashboard: {mobileDashboardUrl}
+• Why it matters: Update daily menus, delivery contacts, and opening hours instantly.
+3️⃣ Food Reels Maker: {socialToolkitUrl}
+• Why it matters: Create mouth-watering videos of your traditional dishes and Bedouin tea.
+
+🔑 *Claim profile: {claimUrl}*
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['طواجن سيوية ومشاوي على الحطب', 'جلسات نخيل بدوية ساحرة', 'مكونات عضوية طازجة من مزارع سيوة', 'ضيافة شاي لويزة وتمور فاخرة'],
   },
 
@@ -128,10 +402,55 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'date_olive',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'رسالة ترحيب بمصنعي وتجار خيرات ومنتجات سيوة',
+    titleAr: 'اعتماد مصنعي وتجار خيرات سيوة (شرح الكتالوج والشحن للمحافظات)',
     titleEn: 'Siwa Dates, Organic Olive Oil & Salt Crafts Onboarding',
-    contentAr: `مرحباً بكم في متجر ومصنع *{name}* لخيرات ومنتجات واحة سيوة! 🏺🌴✨\nمعاكم *جنا* من منصة *SiWiFy.com*، ويسعدنا توثيق متجركم في دليل المنتجات التراثية والطبيعية الرسمي:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *أدواتكم المجانية لتسويق منتجاتكم للزوار والشحن للمحافظات:*\n1️⃣ كتالوج وموقع رقمي لعرض منتجات التمور السيوية، زيت الزيتون البكر، وأباجورات الملح (0% عمولة): {minisiteUrl}\n2️⃣ تطبيق موبايل لإضافة المنتجات، الأسعار، وعروض المواسم: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات ريلز تسويقية احترافية لمنتجاتكم: {socialToolkitUrl}\n\n🔑 *لتأكيد ملكية المتجر وتفعيل الكتالوج مجاناً:*\n👉 {claimUrl}\n\nفخورون بخيرات أرض سيوة ونعمل معكم لتوصيلها لكل زائر ومحب للواحة! 🌿📦`,
-    contentEn: `Welcome *{name}* to Siwa Heritage & Organic Products! 🏺🌴✨\nYour shop is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Tools:*\n1️⃣ Product Catalog Minisite: {minisiteUrl}\n2️⃣ Mobile Inventory Dashboard: {mobileDashboardUrl}\n3️⃣ Social Video Reels Maker: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `مرحباً بكم في متجر ومصنع *{name}* لخيرات ومنتجات واحة سيوة! 🏺🌴✨
+معاكم *جنا* من قسم المنتجات التراثية في *SiWiFy.com* (دليل سيوة الرقمي الرسمي).
+
+يسعدنا توثيق متجركم في دليل المنتجات التراثية والطبيعية الرسمي:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجكم المجاني ولماذا هي مهمة جداً لمبيعاتكم وشحن المحافظات؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *كتالوج وموقع رقمي لعرض منتجاتكم واستقبال الطلبات (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة لكم؟* الزوار يشترون تمور المجدول والصعيدي، وزيت الزيتون البكر المعصور على البارد، وأباجورات الملح الصخري. موقعكم يتيح لهم ولأصدقائهم بعد عودتهم لمحافظاتهم طلب شحنات إضافية عبر واتساب مباشرة دون وسيط تجاري.
+
+2️⃣ *لوحة تحكم موبايل لتحديث قائمة الأسعار وعروض المواسم:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة لكم؟* إضافة المنتجات الجديدة والمقاسات وباقات الهدايا وتعديل أسعار موسم الحصاد بسهولة من هاتفك.
+
+3️⃣ *صانع فيديوهات ريلز ترويجية لمنتجاتكم بهويتكم:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة لكم؟* إنتاج فيديوهات تبرز جودة زيت الزيتون المعصور على البارد وأصالة ملح سيوة العلاجي، جاهزة للنشر على شبكات التواصل لزيادة الطلبات.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد ملكية المتجر وتفعيل الكتالوج مجاناً:*
+👉 {claimUrl}
+
+فخورون بخيرات أرض سيوة ونعمل معكم لتوصيلها لكل زائر ومحب للواحة! 🌿📦
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome *{name}* to Siwa Heritage & Organic Products! 🏺🌴✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Platform).
+
+Your shop is verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your shop:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Product Catalog Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Travelers buy dates, cold-pressed olive oil & salt lamps. Enable repeat shipping orders with 0% broker fee.
+2️⃣ Mobile Inventory Dashboard: {mobileDashboardUrl}
+• Why it matters: Update harvest prices, sizes and bundle deals directly from your phone.
+3️⃣ Social Video Reels Maker: {socialToolkitUrl}
+• Why it matters: Showcase cold-pressing, salt carving, and date packaging to social media shoppers.
+
+🔑 *Claim profile: {claimUrl}*
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['زيت زيتون سيوي عضوي معصور على البارد', 'تمور سيوية فاخرة نصف جافة ورطب', 'أباجورات وتحف ملح صخري أصلي', 'مشغولات يدوية وفضيات تراثية سيوية'],
   },
 
@@ -144,10 +463,55 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'tour_operator',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'اعتماد شركات ومنظمي البرامج والرحلات الشاملة',
+    titleAr: 'اعتماد شركات ومنظمي البرامج الشاملة (شرح باقات الرحلات)',
     titleEn: 'Tour Operators & Group Travel Programs Onboarding',
-    contentAr: `مرحباً بشركة ومنظم رحلات *{name}* في واحة سيوة! 🗺️✨\nمعاكم *جنا* من منصة *SiWiFy.com*، وتم توثيق واعتماد نشاطكم لتنظيم البرامج والرحلات السياحية المتكاملة:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *مزاياكم الرقمية المتاحة لكم فوراً:*\n1️⃣ موقعكم المصغر لعرض باقات الرحلات والبرامج الشاملة (سفاري + إقامة + مزارات) بدون أي عمولة (0%): {minisiteUrl}\n2️⃣ لوحة تحكم موبايل لمتابعة البرامج وتحديث تفاصيل الباقات: {mobileDashboardUrl}\n3️⃣ صانع ريلز وفيديوهات ترويجية للرحلات الجماعية وبرامج الشركات: {socialToolkitUrl}\n\n🔑 *لتأكيد الحساب والاعتماد الرسمي:*\n👉 {claimUrl}\n\nنتمنى لكم مواسم زاخرة وأفواجاً سعيدة برحلاتكم في سيوة! 🌿🤝`,
-    contentEn: `Welcome *{name}* to Siwa Oasis Tour Operations! 🗺️✨\nYour agency is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Tools:*\n1️⃣ Multi-Day Itinerary Minisite: {minisiteUrl}\n2️⃣ Mobile Program Dashboard: {mobileDashboardUrl}\n3️⃣ Tour Reels Creator: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `مرحباً بشركة ومنظم رحلات *{name}* في واحة سيوة! 🗺️✨
+معاكم *جنا* من إدارة العمليات السياحية في *SiWiFy.com* (دليل سياحة سيوة المعتمد).
+
+تم توثيق واعتماد نشاطكم لتنظيم البرامج والرحلات السياحية المتكاملة في سيوة:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجكم المجاني ولماذا هي مهمة جداً لحجوزات الأفواج والشركات؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *موقعكم المصغر لعرض باقات وبرامج الرحلات المتكاملة (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة لكم؟* تنظيم برامج الـ 3 أيام و4 أيام (سفاري + مزارات + إقامة + نقل) يتطلب وضوحاً كاملاً في التفاصيل. موقعكم يعرض مسار كل يوم والتكلفة، ويجلب لكم حجوزات مباشرة من الأفراد والشركات بدون عمولات شركات الحجز.
+
+2️⃣ *لوحة تحكم موبايل لمتابعة البرامج وتحديث تواريخ الأفواج:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة لكم؟* تعديل تواريخ الرحلات القادمة، وتحديث الأسعار للباقات العائلية أو الفردية، وإيقاف الحجز عند اكتمال العدد بضغطة واحدة.
+
+3️⃣ *صانع فيديوهات ريلز تسويقية احترافية للرحلات الجماعية:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة لكم؟* تصميم مقاطع فيديو تلخص تجربة الرحلة الشاملة من بحيرات الملح وحتى غروب بحر الرمال مع لوجو شركتكم لجذب أفواج جديدة.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد الحساب والاعتماد الرسمي مجاناً:*
+👉 {claimUrl}
+
+نتمنى لكم مواسم زاخرة وأفواجاً سعيدة برحلاتكم في سيوة! 🌿🤝
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome *{name}* to Siwa Oasis Tour Operations! 🗺️✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Platform).
+
+Your agency is verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your tour operations:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Multi-Day Itinerary Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Present full 3D/4D programs (safari, lodge, sights); receive direct group bookings without OTA cuts.
+2️⃣ Mobile Program Dashboard: {mobileDashboardUrl}
+• Why it matters: Update departure dates, group capacity, and seasonal rates directly on mobile.
+3️⃣ Tour Reels Creator: {socialToolkitUrl}
+• Why it matters: Produce high-energy reels highlighting group adventures with your company logo.
+
+🔑 *Claim profile: {claimUrl}*
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['برامج سياحية متكاملة (سفاري + إقامة + مزارات)', 'تنظيم رحلات المجموعات والشركات', 'مرشدين محليين سيويين معتمدين', 'استخراج تصاريح الصحراء والدعم الميداني'],
   },
 
@@ -160,10 +524,55 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     childTypeId: 'local_guide_service',
     targetAudience: 'new_unclaimed',
     isHidden: false,
-    titleAr: 'رسالة اعتماد المرشدين المحليين وحراس تراث الواحة',
+    titleAr: 'اعتماد المرشدين المحليين ورواة التراث (شرح المزايا والكارت الشخصي)',
     titleEn: 'Siwan Cultural Guides & Storytellers Onboarding',
-    contentAr: `مرحباً بك يا أستاذ/كابتن *{name}*! 🧭🏛️✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا وثقنا خدمتك كمرشد ومرافق ثقافي معتمد لزوار سيوة:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *خدماتك المجانية المتاحة فوراً:*\n1️⃣ كارت وموقع شخصي لعرض مساراتك التاريخية لجبل الموتى وشالي ومعبد آمون (0% عمولة): {minisiteUrl}\n2️⃣ تطبيق موبايل لإدارة مواعيد الجولات واستقبال السياح مباشرة: {mobileDashboardUrl}\n3️⃣ صانع فيديوهات وقصص تراثية باسمك لإنستغرام وتيك توك: {socialToolkitUrl}\n\n🔑 *لتأكيد واستلام كارتك الشخصي مجاناً:*\n👉 {claimUrl}\n\nأنت صوت سيوة وتاريخها، ويسعدنا أن تكون في صدارة استقبال الضيوف! 🌿📜`,
-    contentEn: `Welcome Guide *{name}*! 🧭🏛️✨\nYour cultural guiding service is verified on *SiWiFy.com*:\n🏷️ *{parentType} ➔ {childType}*\n\n🎁 *Free Tools:*\n1️⃣ Direct Guide Minisite: {minisiteUrl}\n2️⃣ Mobile Schedule App: {mobileDashboardUrl}\n3️⃣ Heritage Story Reels Maker: {socialToolkitUrl}\n\n🔑 Claim profile: {claimUrl}`,
+    contentAr: `مرحباً بك يا أستاذ/كابتن *{name}*! 🧭🏛️✨
+معاك *جنا* من قسم التراث والثقافة في *SiWiFy.com* (دليل سياحة وتراث واحة سيوة).
+
+يسعدنا إعلامك باعتماد وتوثيق خدمتك كمرشد ومرافق ثقافي معتمد لزوار سيوة:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *مزايا برنامجك المجاني ولماذا هي مهمة جداً لحجوزاتك وسمعتك المهنية؟*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *كارت وموقع رقمي شخصي لعرض مساراتك وتاريخك (عمولة 0%):*
+🔗 {minisiteUrl}
+💡 *ليه دي مهمة ليك؟* السائح الأجنبي والمصري يقدر جداً المرشد المحلي الأصيل. موقعك يعرض خبرتك، واللغات التي تتحدثها، ومساراتك التاريخية لجبل الموتى، وقلعة شالي، ومعبد الوحي آمون، ويتيح للسائح الاتصال بك مباشرة بدون وسيط.
+
+2️⃣ *لوحة تحكم موبايل لتنظيم مواعيد الجولات واستقبال السياح:*
+📲 {mobileDashboardUrl}
+💡 *ليه دي مهمة ليك؟* تسجل المواعيد المتاحة للجولات الصباحية والمسائية وتحدد تسعيرة الجولة بالساعة أو باليوم بسهولة تامة.
+
+3️⃣ *صانع قصص وفيديوهات تراثية باسمك لإنستغرام وتيك توك:*
+🎬 {socialToolkitUrl}
+💡 *ليه دي مهمة ليك؟* إنتاج فيديوهات قصيرة تروي فيها أسرار تاريخ سيوة وعادات أهلها بأسلوبك، مما يجعلك المرشد الأول المطلوب بالاسم قبل وصول الضيوف للواحة.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *لتأكيد واستلام كارتك الشخصي مجاناً:*
+👉 {claimUrl}
+
+أنت صوت سيوة وتاريخها، ويسعدنا أن تكون في صدارة استقبال الضيوف! 🌿📜
+*فريق نجاح الشركاء — SiWiFy.com*`,
+    contentEn: `Welcome Guide *{name}*! 🧭🏛️✨
+This is *Jana* from *SiWiFy.com* (Official Siwa Platform).
+
+Your cultural guiding service is verified under:
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🎁 *Why your free tools are vital for your guiding career:*
+━━━━━━━━━━━━━━━━━━
+1️⃣ Direct Guide Minisite (0% Commission): {minisiteUrl}
+• Why it matters: Travelers revere authentic local storytellers. Direct booking with 0% middleman fees.
+2️⃣ Mobile Schedule App: {mobileDashboardUrl}
+• Why it matters: Manage walking tour hours, hourly/daily rates from your phone.
+3️⃣ Heritage Story Reels Maker: {socialToolkitUrl}
+• Why it matters: Create bite-sized historical tales highlighting Siwa history with your contact card.
+
+🔑 *Claim profile: {claimUrl}*
+
+*Partner Success Team — SiWiFy.com*`,
     includedFeatures: ['مرشد محلي سيوي معتمد', 'معرفة عميقة بتاريخ شالي والآثار', 'جولات مشي ثقافية مخصصة', 'إتقان اللغات الأجنبية واللغة السيوية'],
   },
 
@@ -176,8 +585,52 @@ const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
     isHidden: false,
     titleAr: 'بطاقة عرض موثوقة ومباشرة للزبائن والسياح (0% عمولة)',
     titleEn: 'Direct Tourist Showcase & 0% Commission Booking Pitch',
-    contentAr: `🌴 مرحباً بك في واحة سيوة الساحرة! ✨\n\nنقدم لك خدمة موثوقة ومعتمدة مباشرة مع: *{name}*\n🏷️ *{parentType} ➔ {childType}*\n\n📸 *معرض الصور والمركبة / الخدمة:*\n{photoLinks}\n\n✨ *المميزات والخدمات المشمولة:*\n{featureList}\n\n🌐 *للتفاصيل والاتصال والحجز المباشر (مكسبك 0% عمولة وسيطة):*\n{minisiteUrl}\n\nنتمنى لكم أوقاتاً ساحرة وتجربة لا تُنسى في سيوة! 🌿☀️`,
-    contentEn: `🌴 Welcome to Magical Siwa Oasis! ✨\n\nHere is verified direct service details for: *{name}*\n🏷️ *{parentType} ➔ {childType}*\n\n📸 *Showcase & Photos:*\n{photoLinks}\n\n✨ *Included Features:*\n{featureList}\n\n🌐 *Direct Minisite (0% Commission):*\n{minisiteUrl}\n\nHave an unforgettable journey in Siwa! 🌿☀️`,
+    contentAr: `🌴 مرحباً بك في واحة سيوة الساحرة! ✨
+
+نقدم لك خدمة موثوقة ومعتمدة رسمياً ومباشرة مع: *{name}*
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+✨ *لماذا الحجز عبر SiWiFy.com هو الأفضل لك؟*
+━━━━━━━━━━━━━━━━━━
+• ✅ *حجز مباشر 100% بدون أي عمولة وسيطة* (أفضل سعر مضمون مباشرة من الكابتن/المزود).
+• ✅ *شركاء محليون معتمدون وموثقون* تم التحقق من هويتهم ومركباتهم.
+• ✅ *تواصل فوري وسريع عبر واتساب* وتأكيد لحظي.
+
+📸 *معرض الصور والمركبة / الخدمة:*
+{photoLinks}
+
+✨ *أبرز المميزات والخدمات المشمولة:*
+{featureList}
+
+🌐 *للتفاصيل والاتصال والحجز المباشر:*
+🔗 {minisiteUrl}
+
+نتمنى لكم أوقاتاً ساحرة وتجربة لا تُنسى في سيوة! 🌿☀️
+*دليل وسياحة واحة سيوة — SiWiFy.com*`,
+    contentEn: `🌴 Welcome to Magical Siwa Oasis! ✨
+
+Here is verified direct service details for: *{name}*
+🏷️ *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+✨ *Why booking through SiWiFy.com is your best choice:*
+━━━━━━━━━━━━━━━━━━
+• ✅ *100% Direct booking with ZERO middleman markup* (Best guaranteed local price).
+• ✅ *Verified local Siwan partners & vehicles*.
+• ✅ *Instant WhatsApp direct confirmation*.
+
+📸 *Showcase & Photos:*
+{photoLinks}
+
+✨ *Included Features:*
+{featureList}
+
+🌐 *Direct Minisite (0% Commission):*
+{minisiteUrl}
+
+Have an unforgettable journey in Siwa! 🌿☀️
+*Siwa Oasis Official Guide — SiWiFy.com*`,
     includedFeatures: ['شريك معتمد وموثق على SiWiFy.com', 'حجز وتواصل مباشر 100% بدون وسيط', 'أسعار واضحة وعادلة', 'دعم محلي في واحة سيوة'],
   },
 ];
