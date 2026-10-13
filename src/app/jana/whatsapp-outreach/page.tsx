@@ -55,6 +55,7 @@ export default function WhatsAppOutreachPage() {
   // Targeted Template Dispatch Picker Modal for a specific business
   const [dispatchBiz, setDispatchBiz] = useState<BusinessItem | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [editedMessageText, setEditedMessageText] = useState<string>('');
 
   // Editing contact
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -678,7 +679,9 @@ export default function WhatsAppOutreachPage() {
                         || templates.find((t) => !t.isHidden && t.parentTypeId && t.parentTypeId === biz.parent_type_id)
                         || templates.find((t) => !t.isHidden && t.categoryKey === 'general')
                         || (templates.length > 0 ? templates[0] : null);
-                      setSelectedTemplateId(bestTpl ? bestTpl.id : '');
+                      const initialTplId = bestTpl ? bestTpl.id : '';
+                      setSelectedTemplateId(initialTplId);
+                      setEditedMessageText(getMessageText(biz, msgLang, initialTplId));
                     }}
                     style={{
                       padding: '0.55rem 0.95rem',
@@ -818,7 +821,11 @@ export default function WhatsAppOutreachPage() {
                 </label>
                 <select
                   value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  onChange={(e) => {
+                    const newTplId = e.target.value;
+                    setSelectedTemplateId(newTplId);
+                    setEditedMessageText(getMessageText(dispatchBiz, msgLang, newTplId));
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
@@ -843,35 +850,49 @@ export default function WhatsAppOutreachPage() {
                 </select>
               </div>
 
-              {/* MESSAGE LIVE PREVIEW */}
+              {/* MESSAGE LIVE EDITABLE PREVIEW */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1' }}>
-                    معاينة نص الرسالة قبل الإرسال (WhatsApp Message Preview):
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#D4AF37' }}>
+                    ✏️ نص الرسالة المباشر (يمكنك تعديل أي كلمة أو إضافة أي ملاحظة هنا قبل الإرسال):
                   </label>
-                  <span style={{ fontSize: '0.68rem', color: '#4ade80', fontWeight: 800 }}>
-                    جاهز للإرسال الفوري 🟢
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditedMessageText(getMessageText(dispatchBiz, msgLang, selectedTemplateId))}
+                    style={{
+                      background: 'none',
+                      border: 0,
+                      color: '#94a3b8',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    🔄 استعادة النص الأصلي للنموذج
+                  </button>
                 </div>
 
-                <div
+                <textarea
+                  value={editedMessageText}
+                  onChange={(e) => setEditedMessageText(e.target.value)}
                   dir={msgLang === 'ar' ? 'rtl' : 'ltr'}
+                  rows={9}
                   style={{
+                    width: '100%',
                     background: '#020617',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    border: '1.5px solid rgba(212,175,55,0.4)',
                     borderRadius: '14px',
                     padding: '1.25rem',
-                    fontSize: '0.85rem',
+                    fontSize: '0.88rem',
                     lineHeight: 1.7,
                     color: '#e2e8f0',
-                    whiteSpace: 'pre-wrap',
                     fontFamily: msgLang === 'ar' ? "'Noto Sans Arabic', 'Inter', sans-serif" : "'Inter', sans-serif",
-                    maxHeight: '280px',
-                    overflowY: 'auto',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    resize: 'vertical',
                   }}
-                >
-                  {getMessageText(dispatchBiz, msgLang, selectedTemplateId)}
-                </div>
+                />
               </div>
 
               {/* DESTINATION PHONE INFO */}
@@ -899,9 +920,8 @@ export default function WhatsAppOutreachPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const text = getMessageText(dispatchBiz, msgLang, selectedTemplateId);
                       if (navigator.clipboard) {
-                        navigator.clipboard.writeText(text);
+                        navigator.clipboard.writeText(editedMessageText);
                         alert('✅ تم نسخ نص الرسالة للحافظة بنجاح!');
                       }
                     }}
@@ -926,10 +946,9 @@ export default function WhatsAppOutreachPage() {
                       let clean = raw.replace(/[^0-9]/g, '');
                       if (clean.startsWith('00')) clean = clean.substring(2);
                       if (clean.length === 11 && clean.startsWith('01')) clean = '2' + clean;
-                      const text = getMessageText(dispatchBiz, msgLang, selectedTemplateId);
                       const url = clean
-                        ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}`
-                        : `https://wa.me/?text=${encodeURIComponent(text)}`;
+                        ? `https://wa.me/${clean}?text=${encodeURIComponent(editedMessageText)}`
+                        : `https://wa.me/?text=${encodeURIComponent(editedMessageText)}`;
                       window.open(url, '_blank');
                     }}
                     style={{
