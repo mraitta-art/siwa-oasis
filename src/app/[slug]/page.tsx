@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import MinisiteBuilderRenderer from '@/components/MinisiteBuilderRenderer';
+import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
 import { fetchMinisiteLayout } from '@/lib/minisite-layout';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
@@ -476,10 +477,18 @@ export default async function VanityBusinessPage({
       };
 
       return (
-        <MinisiteBuilderRenderer
-          layout={minisiteLayout}
-          business={businessContext}
-        />
+        <>
+          <MinisiteClaimBanner
+            businessId={biz.id}
+            businessName={biz.name}
+            slug={biz.slug || slug}
+            initialClaimed={Boolean(biz.is_claimed || biz.custom_data?.claim_record)}
+          />
+          <MinisiteBuilderRenderer
+            layout={minisiteLayout}
+            business={businessContext}
+          />
+        </>
       );
     }
 

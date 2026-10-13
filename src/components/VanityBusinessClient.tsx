@@ -512,7 +512,7 @@ export default function VanityBusinessClient({
         businessId={biz.id}
         businessName={biz.name}
         slug={slug}
-        initialClaimed={Boolean(biz.custom_data?.claim_record)}
+        initialClaimed={Boolean(biz.is_claimed || biz.custom_data?.claim_record)}
       />
       {serializedTemplateComponents.length > 0 && (
         <div data-minisite-template={templatePlan?.templateId}>
