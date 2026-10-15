@@ -3,9 +3,43 @@ import './globals.css';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://siwify.com'),
   title: 'SIWIFY | The Premium Desert Marketplace of Siwa Oasis',
   description: 'Discover Siwa Oasis - Hotels, eco-lodges, restaurants, 4x4 safari, healing salt lakes, and direct bookings on SiWiFy.com',
   manifest: '/manifest.json',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://siwify.com',
+    siteName: 'SIWIFY',
+    title: 'SIWIFY | The Premium Desert Marketplace of Siwa Oasis',
+    description: 'Discover Siwa Oasis - Hotels, eco-lodges, restaurants, 4x4 safari, healing salt lakes, and direct bookings on SiWiFy.com',
+    images: [
+      {
+        url: '/icons/icon-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'SIWIFY - Siwa Oasis Marketplace',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'SIWIFY | The Premium Desert Marketplace of Siwa Oasis',
+    description: 'Discover Siwa Oasis - Hotels, eco-lodges, restaurants, 4x4 safari, healing salt lakes, and direct bookings on SiWiFy.com',
+    images: ['/icons/icon-512x512.png'],
+  },
   icons: {
     icon: [
       { url: '/favicon-48x48.png', sizes: '48x48', type: 'image/png' },
