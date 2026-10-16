@@ -18,6 +18,7 @@ import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import SectionAggregationPage from '@/components/SectionAggregationPage';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 import CategoryInvestmentSection from '@/components/CategoryInvestmentSection';
+import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 
 interface BusinessType {
   id: string;
@@ -304,8 +305,20 @@ export default function CategorySearchPage({
   }
 
   // ── No admin layout → full auto-aggregation page ────────────────────────────
+  const isPlanningCategory = ['accommodation', 'accommodations', 'food', 'restaurants', 'restaurant', 'adventure', 'activity', 'activities', 'logistics', 'transportation', 'wellness'].includes(category.toLowerCase()) || Boolean(pageSlug?.startsWith('siwa-'));
+
   return (
     <>
+      <MarketplaceHeader
+        title={label}
+        accentColor={accent}
+      />
+      {isPlanningCategory && (
+        <SmartJourneyPlanner
+          category={category}
+          subtitle={label}
+        />
+      )}
       <SectionAggregationPage
         sectionId={resolvedSection}
         pageConfigId={`website_${pagePath}`}

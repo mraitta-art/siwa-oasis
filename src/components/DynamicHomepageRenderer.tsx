@@ -246,7 +246,12 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: Sectio
       return (
         <AnimatedSection>
           <section>
-            <SmartJourneyPlanner title={props?.title} subtitle={props?.subtitle} />
+            <SmartJourneyPlanner
+              title={props?.title}
+              subtitle={props?.subtitle}
+              mode={props?.mode}
+              category={props?.category || pageId}
+            />
           </section>
         </AnimatedSection>
       );

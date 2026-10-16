@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
-interface CatalogItem {
+export interface CatalogItem {
   id: string;
   is_visible: boolean;
   vendor_business_ids?: string[];
@@ -29,9 +29,78 @@ interface CatalogItem {
   desc_ar?: string;
   badge_en?: string;
   badge_ar?: string;
+  room_types?: RoomTypeOption[];
 }
 
-interface CustomWish {
+export interface RoomTypeOption {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  multiplier: number;
+  capacity: string;
+}
+
+export interface StayPeriod {
+  id: string;
+  item_id: string;
+  hotel_name: string;
+  room_type_id: string;
+  room_type_name: string;
+  start_date: string;
+  start_time: string;
+  end_date: string;
+  end_time: string;
+  nights: number;
+  price_per_night: number;
+  total_price: number;
+}
+
+export interface TourBooking {
+  id: string;
+  item: CatalogItem;
+  tour_date: string;
+  departure_time: string;
+  return_time: string;
+  guide_language: string;
+  price_per_person: number;
+  total_price: number;
+}
+
+export interface TransportLeg {
+  id: string;
+  item_id: string;
+  vehicle_name: string;
+  route_label: string;
+  start_date: string;
+  start_time: string;
+  end_date: string;
+  end_time: string;
+  days: number;
+  rate_per_day: number;
+  total_price: number;
+}
+
+export interface DiningBooking {
+  id: string;
+  item: CatalogItem;
+  dining_date: string;
+  time_slot: string;
+  guests_count: number;
+  price_per_person: number;
+  total_price: number;
+}
+
+export interface ActivityBooking {
+  id: string;
+  item: CatalogItem;
+  activity_date: string;
+  time_slot: string;
+  duration_hours: string;
+  price_per_person: number;
+  total_price: number;
+}
+
+export interface CustomWish {
   id: string;
   category: string;
   title: string;
@@ -40,58 +109,66 @@ interface CustomWish {
   end_date?: string;
   end_time?: string;
   duration?: string;
-  estimated_price?: number;
   notes?: string;
   is_custom_wish: true;
 }
 
-interface TimingSchedule {
-  start_date: string;
-  start_time: string;
-  end_date: string;
-  end_time: string;
-  duration_label?: string;
+export interface SmartJourneyPlannerProps {
+  title?: string;
+  subtitle?: string;
+  mode?: 'all' | 'accommodation' | 'safaris' | 'activities' | 'transport' | 'dining';
+  category?: string;
 }
 
-// ─── STYLES & LUXURY PALETTE ────────────────────────────────────────────────
+// ─── DEFAULT CONFIGURATION & ROOM TYPES ─────────────────────────────────────
 
-const S = {
-  wrap: { padding: '5rem 0', background: '#0a0d14', color: '#f8fafc', borderTop: '1px solid rgba(255,255,255,0.06)' } as React.CSSProperties,
-  inner: { maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' } as React.CSSProperties,
-  goldBadge: {
-    background: 'rgba(212,175,55,0.15)', color: '#D4AF37',
-    border: '1px solid rgba(212,175,55,0.3)', padding: '0.25rem 0.75rem',
-    borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '2px',
-    textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+const DEFAULT_ROOM_TYPES: RoomTypeOption[] = [
+  { id: 'standard', name_en: 'Authentic Mudbrick Room', name_ar: 'غرفة كرشيف تقليدية', multiplier: 1.0, capacity: '2 Guests' },
+  { id: 'deluxe', name_en: 'Deluxe Salt & Palm Suite', name_ar: 'جناح ملحي فاخر مع إطلالة النخيل', multiplier: 1.35, capacity: '2-3 Guests' },
+  { id: 'glamp', name_en: 'Royal Desert Glamping Tent', name_ar: 'خيمة فندقية ملكية في الكثبان', multiplier: 1.5, capacity: '2 Guests' },
+  { id: 'villa', name_en: 'Private Bedouin Chalet / Villa', name_ar: 'شاليه / فيلا بدوية خاصة', multiplier: 1.9, capacity: '4-6 Guests' },
+];
+
+const DEFAULT_ACCOMMODATIONS: CatalogItem[] = [
+  {
+    id: 'stay_authentic_ecolodge',
+    is_visible: true,
+    name_en: 'Heritage Salt & Palm Eco-Lodge',
+    name_ar: 'نزل بيئي تقليدي من حجر الكرشيف والملح',
+    desc_en: 'Authentic candlelit kershef lodge surrounded by organic date palms and freshwater spring.',
+    price_per_night: 1800,
+    badge_en: 'Eco Certified',
+    icon: '🛖',
+    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+    room_types: DEFAULT_ROOM_TYPES,
   },
-  h2: { fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, margin: '0.5rem 0', letterSpacing: '-0.5px' } as React.CSSProperties,
-  sub: { color: '#94a3b8', fontSize: '0.95rem', maxWidth: '650px', lineHeight: 1.6 } as React.CSSProperties,
-  card: {
-    background: '#111520', border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: '24px', padding: '1.5rem', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-  } as React.CSSProperties,
-  input: {
-    width: '100%', padding: '0.75rem 1rem', background: '#0a0d14',
-    border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff',
-    fontSize: '0.85rem', outline: 'none', transition: 'border-color 0.2s',
-  } as React.CSSProperties,
-};
-
-// ─── DEFAULT FALLBACKS ──────────────────────────────────────────────────────
+  {
+    id: 'stay_luxury_desert_camp',
+    is_visible: true,
+    name_en: 'Great Sand Sea Luxury Glamping Camp',
+    name_ar: 'مخيم فندقي فاخر في قلب بحر الرمال الأعظم',
+    desc_en: 'Bedouin royal canvas suite, private campfire, dune sunrise viewing, private bath.',
+    price_per_night: 2400,
+    badge_en: 'Stargazer Choice',
+    icon: '⛺',
+    image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
+    room_types: DEFAULT_ROOM_TYPES,
+  },
+  {
+    id: 'stay_oasis_chalet',
+    is_visible: true,
+    name_en: 'Fatnas Island Sunset Palm Villa',
+    name_ar: 'فيلا واحة فطناس بإطلالة الغروب والبحيرة',
+    desc_en: 'Private secluded waterfront retreat directly facing the sunset salt lake with private garden.',
+    price_per_night: 2900,
+    badge_en: 'Waterfront Sunset',
+    icon: '🌴',
+    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+    room_types: DEFAULT_ROOM_TYPES,
+  },
+];
 
 const DEFAULT_EXPERIENCES: CatalogItem[] = [
-  {
-    id: 'exp_salt_lakes',
-    is_visible: true,
-    title_en: 'Salt Lakes Floating & Crystal Mineral Pools',
-    title_ar: 'الطفو في بحيرات الملح وعيون المياه المعدنية العلاجية',
-    category: 'Wellness & Nature',
-    duration: '3-4 Hours',
-    base_price_egp: 450,
-    highlight_en: 'Zero-gravity salt float + pure olive oil rinse in ancient palms',
-    icon: '🌊',
-    image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
-  },
   {
     id: 'exp_great_sand_sea',
     is_visible: true,
@@ -103,6 +180,18 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
     highlight_en: 'Giant dunes crossing, fossil ocean site, Bedouin tea & sandboarding',
     icon: '🚙',
     image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80',
+  },
+  {
+    id: 'exp_salt_lakes',
+    is_visible: true,
+    title_en: 'Salt Lakes Floating & Crystal Mineral Pools',
+    title_ar: 'الطفو في بحيرات الملح وعيون المياه المعدنية العلاجية',
+    category: 'Wellness & Nature',
+    duration: '3-4 Hours',
+    base_price_egp: 450,
+    highlight_en: 'Zero-gravity salt float + pure olive oil rinse in ancient palms',
+    icon: '🌊',
+    image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
   },
   {
     id: 'exp_shali_amun_oracle',
@@ -118,49 +207,33 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
   },
 ];
 
-const DEFAULT_ACCOMMODATIONS: CatalogItem[] = [
-  {
-    id: 'stay_authentic_ecolodge',
-    is_visible: true,
-    name_en: 'Heritage Salt & Palm Eco-Lodge',
-    name_ar: 'نزل بيئي تقليدي من حجر الكرشيف والملح',
-    desc_en: 'Authentic candlelit kershef lodge surrounded by organic date palms and freshwater spring',
-    price_per_night: 1800,
-    badge_en: 'Eco Certified',
-    icon: '🛖',
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
-  },
-  {
-    id: 'stay_luxury_desert_camp',
-    is_visible: true,
-    name_en: 'Great Sand Sea Luxury Glamping Camp',
-    name_ar: 'مخيم فندقي فاخر في قلب بحر الرمال الأعظم',
-    desc_en: 'Bedouin royal canvas suite, private campfire, dune sunrise viewing, private bath',
-    price_per_night: 2400,
-    badge_en: 'Stargazer Choice',
-    icon: '⛺',
-    image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
-  },
-];
-
 const DEFAULT_TRANSPORTS: CatalogItem[] = [
+  {
+    id: 'trans_vip_cairo_transfer',
+    is_visible: true,
+    name_en: 'VIP Private Direct Transfer (Cairo / Alex <-> Siwa)',
+    name_ar: 'توصيل سياحي خاص ومباشر (القاهرة / الإسكندرية إلى سيوة)',
+    desc_en: 'Door-to-door luxury air-conditioned van with refreshments and rest stops.',
+    rate_per_day: 3500,
+    icon: '🚐',
+  },
   {
     id: 'trans_4x4_safari_cruiser',
     is_visible: true,
     name_en: 'Private 4x4 Land Cruiser with Siwan Desert Pilot',
     name_ar: 'سيارة لاندكروزر دفع رباعي خاصة مع سائق خبير بالصحراء',
-    desc_en: 'Fully desert-equipped 4WD with air conditioning, deflation gear, and licensed pilot',
+    desc_en: 'Fully desert-equipped 4WD with air conditioning, deflation gear, and licensed pilot.',
     rate_per_day: 1800,
     icon: '🚙',
   },
   {
-    id: 'trans_vip_cairo_transfer',
+    id: 'trans_local_tuktuk_oasis',
     is_visible: true,
-    name_en: 'Direct VIP Private Transfer (Cairo / Alex <-> Siwa)',
-    name_ar: 'توصيل سياحي خاص ومباشر (القاهرة / الإسكندرية إلى سيوة)',
-    desc_en: 'Door-to-door luxury air-conditioned van with refreshments and rest stops',
-    rate_per_day: 3500,
-    icon: '🚐',
+    name_en: 'Local Oasis Shuttle & Sightseeing Vehicle',
+    name_ar: 'وسيلة تنقل سيوية خفيفة للجولات المحلية داخل الواحة',
+    desc_en: 'Daily on-demand local transit between palm groves, Shali fortress, and salt lakes.',
+    rate_per_day: 600,
+    icon: '🛺',
   },
 ];
 
@@ -170,8 +243,8 @@ const DEFAULT_MEALS: CatalogItem[] = [
     is_visible: true,
     name_en: 'Traditional Under-Sand Roasted Lamb (Radm) Feast',
     name_ar: 'وليمة لحم الردم البدوي المطهو تحت رمال الصحراء',
-    desc_en: 'Slow-cooked lamb under hot desert sand, Siwan spiced rice, fresh garden salad, and lemongrass tea',
-    price_per_person: 420,
+    desc_en: 'Slow-cooked lamb under hot desert sand, Siwan spiced rice, fresh garden salad, and lemongrass tea.',
+    price_per_person: 450,
     icon: '🔥',
   },
   {
@@ -179,17 +252,60 @@ const DEFAULT_MEALS: CatalogItem[] = [
     is_visible: true,
     name_en: 'Organic Palm Grove Farm-to-Table Lunch',
     name_ar: 'غداء ريفي عضوي في مزارع النخيل وعيون المياه',
-    desc_en: 'Freshly baked Siwan flatbread, sun-ripened olives, local duck or chicken tajine, date sweet',
+    desc_en: 'Freshly baked Siwan flatbread, sun-ripened olives, local duck or chicken tajine, date sweet.',
     price_per_person: 280,
     icon: '🍽️',
   },
 ];
 
+// ─── STYLES & LUXURY PALETTE ────────────────────────────────────────────────
+
+const S = {
+  wrap: { padding: '5rem 0', background: '#0a0d14', color: '#f8fafc', borderTop: '1px solid rgba(255,255,255,0.06)' } as React.CSSProperties,
+  inner: { maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' } as React.CSSProperties,
+  goldBadge: {
+    background: 'rgba(212,175,55,0.15)', color: '#D4AF37',
+    border: '1px solid rgba(212,175,55,0.3)', padding: '0.25rem 0.75rem',
+    borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '2px',
+    textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+  },
+  h2: { fontSize: 'clamp(1.85rem, 3.2vw, 2.5rem)', fontWeight: 900, margin: '0.5rem 0', letterSpacing: '-0.5px' } as React.CSSProperties,
+  sub: { color: '#94a3b8', fontSize: '0.95rem', maxWidth: '680px', lineHeight: 1.6 } as React.CSSProperties,
+  card: {
+    background: '#111520', border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '24px', padding: '1.5rem', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+  } as React.CSSProperties,
+  input: {
+    width: '100%', padding: '0.75rem 1rem', background: '#0a0d14',
+    border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff',
+    fontSize: '0.85rem', outline: 'none', transition: 'border-color 0.2s',
+  } as React.CSSProperties,
+};
+
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 
-export default function SmartJourneyPlanner({ title, subtitle }: { title?: string; subtitle?: string }) {
-  // Navigation & Category Tab state
-  const [activeCategory, setActiveCategory] = useState<'accommodation' | 'safaris' | 'activities' | 'transport' | 'dining'>('accommodation');
+export default function SmartJourneyPlanner({
+  title,
+  subtitle,
+  mode: propMode,
+  category: propCategory,
+}: SmartJourneyPlannerProps) {
+  // Determine effective mode: 'all' or standalone category ('accommodation', 'safaris', etc.)
+  const initialMode = useMemo(() => {
+    if (propMode) return propMode;
+    if (propCategory) {
+      const lower = propCategory.toLowerCase();
+      if (lower.includes('accom') || lower.includes('hotel') || lower.includes('stay')) return 'accommodation';
+      if (lower.includes('advent') || lower.includes('safari') || lower.includes('tour') || lower.includes('exp')) return 'safaris';
+      if (lower.includes('logis') || lower.includes('trans') || lower.includes('move')) return 'transport';
+      if (lower.includes('food') || lower.includes('rest') || lower.includes('dine') || lower.includes('table')) return 'dining';
+      if (lower.includes('well') || lower.includes('retreat')) return 'activities';
+    }
+    return 'all';
+  }, [propMode, propCategory]);
+
+  const [activeMode, setActiveMode] = useState<SmartJourneyPlannerProps['mode']>(initialMode);
+  const [activeCategoryTab, setActiveCategoryTab] = useState<'accommodation' | 'safaris' | 'activities' | 'transport' | 'dining'>('accommodation');
 
   // Loaded Catalog Data
   const [catalog, setCatalog] = useState<{
@@ -206,40 +322,42 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     meals: DEFAULT_MEALS,
   });
 
-  // Selected State per Category with Start and End Date/Time Timelines
-  const [selectedStay, setSelectedStay] = useState<CatalogItem | null>(null);
-  const [stayTiming, setStayTiming] = useState<TimingSchedule>({
+  // ── MULTI-ITEM & MULTI-PERIOD STATE ───────────────────────────────────────
+  
+  // 1. Multiple Accommodations with room types & dates
+  const [stayPeriods, setStayPeriods] = useState<StayPeriod[]>([]);
+  // Stay configurator form state
+  const [pendingStayItem, setPendingStayItem] = useState<CatalogItem | null>(null);
+  const [stayConfig, setStayConfig] = useState({
+    room_type_id: 'standard',
     start_date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
     start_time: '14:00',
-    end_date: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    end_date: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
     end_time: '11:00',
   });
 
-  const [selectedTours, setSelectedTours] = useState<Array<{ item: CatalogItem; timing: TimingSchedule }>>([]);
-  const [selectedActivities, setSelectedActivities] = useState<Array<{ item: CatalogItem; timing: TimingSchedule }>>([]);
+  // 2. Multiple Tours & Safaris
+  const [tourBookings, setTourBookings] = useState<TourBooking[]>([]);
   
-  const [selectedTransport, setSelectedTransport] = useState<CatalogItem | null>(null);
-  const [transportTiming, setTransportTiming] = useState<TimingSchedule>({
+  // 3. Multiple Transport Legs
+  const [transportLegs, setTransportLegs] = useState<TransportLeg[]>([]);
+  const [pendingTransItem, setPendingTransItem] = useState<CatalogItem | null>(null);
+  const [transConfig, setTransConfig] = useState({
+    route_label: 'Cairo -> Siwa VIP Transfer',
     start_date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    start_time: '08:00',
-    end_date: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    end_time: '20:00',
+    start_time: '07:00',
+    end_date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    end_time: '16:00',
+    coverage_days: 1,
   });
 
-  const [selectedMeal, setSelectedMeal] = useState<CatalogItem | null>(null);
-  const [mealTiming, setMealTiming] = useState<TimingSchedule>({
-    start_date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    start_time: '19:30',
-    end_date: '',
-    end_time: '22:00',
-  });
+  // 4. Multiple Dining Bookings
+  const [diningBookings, setDiningBookings] = useState<DiningBooking[]>([]);
 
-  // Guests & Guide Preferences
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
-  const [guideLanguage, setGuideLanguage] = useState('English');
+  // 5. Multiple Activities Bookings
+  const [activityBookings, setActivityBookings] = useState<ActivityBooking[]>([]);
 
-  // Crowdsourced Custom Wishes (+ Add Custom Selection)
+  // 6. Crowdsourced Custom Wishes
   const [customWishes, setCustomWishes] = useState<CustomWish[]>([]);
   const [showCustomWishModal, setShowCustomWishModal] = useState(false);
   const [wishInput, setWishInput] = useState({
@@ -250,13 +368,18 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     notes: '',
   });
 
-  // Side-Part Inspector Drawer state ("sidepart")
+  // Guests & Preferences
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [guideLanguage, setGuideLanguage] = useState('English');
+
+  // Side-Part Inspector Drawer state
   const [inspectingItem, setInspectingItem] = useState<{
     item: CatalogItem;
     category: string;
   } | null>(null);
 
-  // Visitor Checkout & Submission
+  // Customer Contact & Dispatch State
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -264,8 +387,24 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<any>(null);
 
-  // Fetch Live Catalog on mount
+  // ── LOAD DRAFT FROM LOCALSTORAGE ON MOUNT ─────────────────────────────────
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('siwify_journey_draft');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.stayPeriods)) setStayPeriods(parsed.stayPeriods);
+        if (Array.isArray(parsed.tourBookings)) setTourBookings(parsed.tourBookings);
+        if (Array.isArray(parsed.transportLegs)) setTransportLegs(parsed.transportLegs);
+        if (Array.isArray(parsed.diningBookings)) setDiningBookings(parsed.diningBookings);
+        if (Array.isArray(parsed.activityBookings)) setActivityBookings(parsed.activityBookings);
+        if (Array.isArray(parsed.customWishes)) setCustomWishes(parsed.customWishes);
+        if (parsed.adults) setAdults(parsed.adults);
+        if (parsed.children) setChildren(parsed.children);
+      }
+    } catch {}
+
+    // Fetch dynamic catalog
     fetch('/api/journeys/customizer')
       .then(r => r.json())
       .then(d => {
@@ -283,95 +422,204 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
       .catch(() => {});
   }, []);
 
-  // ─── CALCULATIONS & COMBO DISCOUNT LOGIC ───────────────────────────────────
+  // ── SAVE DRAFT TO LOCALSTORAGE ON UPDATES ──────────────────────────────────
+  useEffect(() => {
+    try {
+      localStorage.setItem('siwify_journey_draft', JSON.stringify({
+        stayPeriods,
+        tourBookings,
+        transportLegs,
+        diningBookings,
+        activityBookings,
+        customWishes,
+        adults,
+        children,
+        updated_at: Date.now(),
+      }));
+    } catch {}
+  }, [stayPeriods, tourBookings, transportLegs, diningBookings, activityBookings, customWishes, adults, children]);
 
-  const nightsCount = useMemo(() => {
-    if (!stayTiming.start_date || !stayTiming.end_date) return 3;
-    const diffTime = Math.abs(new Date(stayTiming.end_date).getTime() - new Date(stayTiming.start_date).getTime());
-    return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  }, [stayTiming.start_date, stayTiming.end_date]);
+  // If initialMode changed from props, sync activeMode
+  useEffect(() => {
+    setActiveMode(initialMode);
+    if (initialMode !== 'all') {
+      setActiveCategoryTab(initialMode as any);
+    }
+  }, [initialMode]);
 
-  const transportDays = useMemo(() => {
-    if (!transportTiming.start_date || !transportTiming.end_date) return 3;
-    const diffTime = Math.abs(new Date(transportTiming.end_date).getTime() - new Date(transportTiming.start_date).getTime());
-    return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  }, [transportTiming.start_date, transportTiming.end_date]);
+  // ── DYNAMIC CALCULATIONS & COMBO PRICING ───────────────────────────────────
+
+  const totalNights = useMemo(() => {
+    return stayPeriods.reduce((sum, s) => sum + s.nights, 0);
+  }, [stayPeriods]);
 
   const pricingSummary = useMemo(() => {
     let subtotal = 0;
     const totalGuests = adults + children * 0.5;
 
-    // Accommodation
-    if (selectedStay) {
-      subtotal += (selectedStay.price_per_night || 0) * nightsCount;
-    }
-
-    // Tours & Safaris
-    selectedTours.forEach(t => {
-      subtotal += (t.item.base_price_egp || 0) * adults + (t.item.base_price_egp || 0) * 0.5 * children;
+    // 1. Accommodations
+    stayPeriods.forEach(s => {
+      subtotal += s.total_price;
     });
 
-    // Activities
-    selectedActivities.forEach(a => {
-      subtotal += (a.item.base_price_egp || 0) * adults + (a.item.base_price_egp || 0) * 0.5 * children;
+    // 2. Tours
+    tourBookings.forEach(t => {
+      subtotal += t.price_per_person * adults + t.price_per_person * 0.5 * children;
     });
 
-    // Transport
-    if (selectedTransport) {
-      subtotal += (selectedTransport.rate_per_day || 0) * transportDays;
-    }
+    // 3. Transports
+    transportLegs.forEach(l => {
+      subtotal += l.total_price;
+    });
 
-    // Dining
-    if (selectedMeal) {
-      subtotal += (selectedMeal.price_per_person || 0) * totalGuests;
-    }
+    // 4. Dining
+    diningBookings.forEach(d => {
+      subtotal += d.price_per_person * totalGuests;
+    });
 
-    // Categories selected count for combo discount trigger
-    let parentCount = 0;
-    if (selectedStay) parentCount++;
-    if (selectedTours.length > 0) parentCount++;
-    if (selectedActivities.length > 0) parentCount++;
-    if (selectedTransport) parentCount++;
-    if (selectedMeal) parentCount++;
-    if (customWishes.length > 0) parentCount++;
+    // 5. Activities
+    activityBookings.forEach(a => {
+      subtotal += a.price_per_person * totalGuests;
+    });
 
-    const isComboUnlocked = parentCount >= 3;
+    // Count parent sectors for combo discount
+    let sectorCount = 0;
+    if (stayPeriods.length > 0) sectorCount++;
+    if (tourBookings.length > 0) sectorCount++;
+    if (transportLegs.length > 0) sectorCount++;
+    if (diningBookings.length > 0) sectorCount++;
+    if (activityBookings.length > 0) sectorCount++;
+    if (customWishes.length > 0) sectorCount++;
+
+    const isComboUnlocked = sectorCount >= 3;
     const discountPercent = isComboUnlocked ? (catalog.bundle_discount_percent || 15) : 0;
     const discountAmount = Math.round((subtotal * discountPercent) / 100);
     const finalTotal = Math.max(0, subtotal - discountAmount);
 
     return {
       subtotal,
-      parentCount,
+      sectorCount,
       isComboUnlocked,
       discountPercent,
       discountAmount,
       finalTotal,
     };
-  }, [
-    selectedStay, nightsCount, selectedTours, selectedActivities,
-    selectedTransport, transportDays, selectedMeal, adults, children,
-    customWishes.length, catalog.bundle_discount_percent
-  ]);
+  }, [stayPeriods, tourBookings, transportLegs, diningBookings, activityBookings, customWishes.length, adults, children, catalog.bundle_discount_percent]);
 
-  // ─── ACTION HANDLERS ──────────────────────────────────────────────────────
+  // ── ACTION HANDLERS: ADDING / REMOVING MULTI-ITEMS ─────────────────────────
+
+  const handleAddStayPeriod = (item: CatalogItem) => {
+    const diff = Math.abs(new Date(stayConfig.end_date).getTime() - new Date(stayConfig.start_date).getTime());
+    const nights = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+
+    const roomTypes = item.room_types || DEFAULT_ROOM_TYPES;
+    const selectedRoom = roomTypes.find(r => r.id === stayConfig.room_type_id) || roomTypes[0];
+    const basePrice = item.price_per_night || 1800;
+    const pricePerNight = Math.round(basePrice * selectedRoom.multiplier);
+    const totalPrice = pricePerNight * nights;
+
+    const newStay: StayPeriod = {
+      id: `stay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      item_id: item.id,
+      hotel_name: item.name_en || 'Oasis Accommodation',
+      room_type_id: selectedRoom.id,
+      room_type_name: selectedRoom.name_en,
+      start_date: stayConfig.start_date,
+      start_time: stayConfig.start_time,
+      end_date: stayConfig.end_date,
+      end_time: stayConfig.end_time,
+      nights,
+      price_per_night: pricePerNight,
+      total_price: totalPrice,
+    };
+
+    setStayPeriods(prev => [...prev, newStay]);
+    setPendingStayItem(null);
+  };
+
+  const handleRemoveStayPeriod = (stayId: string) => {
+    setStayPeriods(prev => prev.filter(s => s.id !== stayId));
+  };
 
   const handleToggleTour = (item: CatalogItem) => {
-    const exists = selectedTours.find(t => t.item.id === item.id);
+    const exists = tourBookings.find(t => t.item.id === item.id);
     if (exists) {
-      setSelectedTours(prev => prev.filter(t => t.item.id !== item.id));
+      setTourBookings(prev => prev.filter(t => t.item.id !== item.id));
     } else {
-      setSelectedTours(prev => [
+      const defaultDate = stayPeriods[0]?.start_date || new Date().toISOString().split('T')[0];
+      setTourBookings(prev => [
         ...prev,
         {
+          id: `tour_${Date.now()}_${item.id}`,
           item,
-          timing: {
-            start_date: stayTiming.start_date || new Date().toISOString().split('T')[0],
-            start_time: '14:30',
-            end_date: stayTiming.start_date || new Date().toISOString().split('T')[0],
-            end_time: '19:00',
-            duration_label: item.duration || 'Half Day',
-          },
+          tour_date: defaultDate,
+          departure_time: '14:30',
+          return_time: '19:00',
+          guide_language: guideLanguage,
+          price_per_person: item.base_price_egp || 500,
+          total_price: (item.base_price_egp || 500) * (adults + children * 0.5),
+        },
+      ]);
+    }
+  };
+
+  const handleAddTransportLeg = (item: CatalogItem) => {
+    const days = Math.max(1, transConfig.coverage_days || 1);
+    const rate = item.rate_per_day || 1800;
+    const newLeg: TransportLeg = {
+      id: `trans_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      item_id: item.id,
+      vehicle_name: item.name_en || 'Private Transit',
+      route_label: transConfig.route_label,
+      start_date: transConfig.start_date,
+      start_time: transConfig.start_time,
+      end_date: transConfig.end_date,
+      end_time: transConfig.end_time,
+      days,
+      rate_per_day: rate,
+      total_price: rate * days,
+    };
+    setTransportLegs(prev => [...prev, newLeg]);
+    setPendingTransItem(null);
+  };
+
+  const handleToggleDining = (item: CatalogItem) => {
+    const exists = diningBookings.find(d => d.item.id === item.id);
+    if (exists) {
+      setDiningBookings(prev => prev.filter(d => d.item.id !== item.id));
+    } else {
+      const date = stayPeriods[0]?.start_date || new Date().toISOString().split('T')[0];
+      setDiningBookings(prev => [
+        ...prev,
+        {
+          id: `meal_${Date.now()}_${item.id}`,
+          item,
+          dining_date: date,
+          time_slot: '19:30',
+          guests_count: adults + children,
+          price_per_person: item.price_per_person || 300,
+          total_price: (item.price_per_person || 300) * (adults + children * 0.5),
+        },
+      ]);
+    }
+  };
+
+  const handleToggleActivity = (item: CatalogItem) => {
+    const exists = activityBookings.find(a => a.item.id === item.id);
+    if (exists) {
+      setActivityBookings(prev => prev.filter(a => a.item.id !== item.id));
+    } else {
+      const date = stayPeriods[0]?.start_date || new Date().toISOString().split('T')[0];
+      setActivityBookings(prev => [
+        ...prev,
+        {
+          id: `act_${Date.now()}_${item.id}`,
+          item,
+          activity_date: date,
+          time_slot: '10:00',
+          duration_hours: item.duration || '3 Hours',
+          price_per_person: item.base_price_egp || 450,
+          total_price: (item.base_price_egp || 450) * (adults + children * 0.5),
         },
       ]);
     }
@@ -381,7 +629,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     if (!wishInput.title.trim()) return;
     const newWish: CustomWish = {
       id: `wish_${Date.now()}`,
-      category: activeCategory,
+      category: activeCategoryTab,
       title: wishInput.title,
       start_date: wishInput.start_date,
       start_time: wishInput.start_time,
@@ -400,43 +648,49 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     });
   };
 
+  // ── FINAL RESERVATION DISPATCH ────────────────────────────────────────────
+
   const handleDispatchReservation = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
-      alert('Please provide your name and WhatsApp/Phone number.');
+      alert('Please provide your name and WhatsApp / phone number.');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const primaryDates = stayPeriods.length > 0
+        ? `${stayPeriods[0].start_date} to ${stayPeriods[stayPeriods.length - 1].end_date}`
+        : transportLegs.length > 0
+        ? `${transportLegs[0].start_date} to ${transportLegs[transportLegs.length - 1].end_date}`
+        : `${new Date().toISOString().split('T')[0]}`;
+
       const payload = {
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_email: customerEmail,
-        duration_days: Math.max(nightsCount, transportDays),
-        travel_dates: `${stayTiming.start_date} to ${stayTiming.end_date}`,
+        duration_days: Math.max(1, totalNights, transportLegs.reduce((sum, l) => sum + l.days, 0)),
+        travel_dates: primaryDates,
         adults_count: adults,
         children_count: children,
         guide_language: guideLanguage,
         special_notes: specialNotes,
-        selected_experiences: [
-          ...selectedTours.map(t => ({ id: t.item.id, title_en: t.item.title_en, base_price_egp: t.item.base_price_egp, timing: t.timing })),
-          ...selectedActivities.map(a => ({ id: a.item.id, title_en: a.item.title_en, base_price_egp: a.item.base_price_egp, timing: a.timing })),
-        ],
-        selected_experience_ids: [
-          ...selectedTours.map(t => t.item.id),
-          ...selectedActivities.map(a => a.item.id),
-        ],
-        accommodation_id: selectedStay?.id,
-        transport_id: selectedTransport?.id,
-        meal_id: selectedMeal?.id,
-        accommodation_preference: selectedStay?.name_en,
-        transport_preference: selectedTransport?.name_en,
-        meal_preference: selectedMeal?.name_en,
+        selected_experiences: tourBookings.map(t => ({
+          id: t.item.id,
+          title_en: t.item.title_en,
+          base_price_egp: t.price_per_person,
+          timing: { start_date: t.tour_date, start_time: t.departure_time, end_time: t.return_time },
+        })),
+        accommodation_preference: stayPeriods.map(s => `${s.hotel_name} [${s.room_type_name}, ${s.nights}N (${s.start_date})]`).join(' | ') || 'None',
+        transport_preference: transportLegs.map(l => `${l.vehicle_name} [${l.route_label}, ${l.start_date}]`).join(' | ') || 'None',
+        meal_preference: diningBookings.map(d => `${d.item.name_en} [${d.dining_date} ${d.time_slot}]`).join(' | ') || 'None',
         custom_wishes: customWishes,
-        timings: {
-          stay: { ...stayTiming, nights: nightsCount },
-          transport: { ...transportTiming, days: transportDays },
-          meal: mealTiming,
+        manifest_details: {
+          stay_periods: stayPeriods,
+          transport_legs: transportLegs,
+          tour_bookings: tourBookings,
+          dining_bookings: diningBookings,
+          activity_bookings: activityBookings,
+          total_price: pricingSummary.finalTotal,
         },
       };
 
@@ -448,6 +702,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
       const data = await res.json();
       if (data.success || data.request_code) {
         setBookingSuccess(data);
+        localStorage.removeItem('siwify_journey_draft');
       } else {
         alert(data.error || 'Failed to submit reservation. Please try again.');
       }
@@ -464,34 +719,40 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     return (
       <section style={S.wrap}>
         <div style={S.inner}>
-          <div style={{ ...S.card, textAlign: 'center', padding: '4.5rem 2rem', maxWidth: '750px', margin: '0 auto' }}>
+          <div style={{ ...S.card, textAlign: 'center', padding: '4.5rem 2rem', maxWidth: '760px', margin: '0 auto' }}>
             <div style={{ width: '84px', height: '84px', background: 'rgba(212,175,55,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
               <i className="fas fa-check-circle" style={{ fontSize: '2.75rem', color: '#D4AF37' }} />
             </div>
             <span style={S.goldBadge}>RESERVATION DISPATCHED</span>
-            <h2 style={{ ...S.h2, marginTop: '1rem' }}>Your Siwa Journey is Booked!</h2>
+            <h2 style={{ ...S.h2, marginTop: '1rem' }}>Your Siwa Itinerary is Reserved!</h2>
             <p style={{ color: '#94a3b8', fontSize: '1rem', lineHeight: 1.6, margin: '1rem auto 2rem', maxWidth: '520px' }}>
               Reference Tracking Code: <strong style={{ color: '#D4AF37', fontSize: '1.25rem' }}>{bookingSuccess.request_code}</strong>
             </p>
 
             <div style={{ background: '#0a0d14', padding: '1.5rem', borderRadius: '18px', textAlign: 'left', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
                 Summary of Confirmed Selections:
               </div>
               <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.8 }}>
-                {selectedStay && <li>🏨 <strong>Stay:</strong> {selectedStay.name_en} ({nightsCount} nights: {stayTiming.start_date} to {stayTiming.end_date})</li>}
-                {selectedTours.map((t, idx) => (
-                  <li key={idx}>🚙 <strong>Safari:</strong> {t.item.title_en} ({t.timing.start_date} at {t.timing.start_time})</li>
+                {stayPeriods.map((s, idx) => (
+                  <li key={idx}>🏨 <strong>Stay {idx + 1}:</strong> {s.hotel_name} ({s.room_type_name}, {s.nights} nights: {s.start_date} to {s.end_date})</li>
                 ))}
-                {selectedTransport && <li>🚐 <strong>Transport:</strong> {selectedTransport.name_en} ({transportTiming.start_date})</li>}
-                {selectedMeal && <li>🍽️ <strong>Dining:</strong> {selectedMeal.name_en} ({mealTiming.start_date} at {mealTiming.start_time})</li>}
+                {transportLegs.map((l, idx) => (
+                  <li key={idx}>🚐 <strong>Transport Leg {idx + 1}:</strong> {l.vehicle_name} ({l.route_label}, {l.start_date})</li>
+                ))}
+                {tourBookings.map((t, idx) => (
+                  <li key={idx}>🚙 <strong>Safari Tour:</strong> {t.item.title_en} ({t.tour_date} at {t.departure_time})</li>
+                ))}
+                {diningBookings.map((d, idx) => (
+                  <li key={idx}>🍽️ <strong>Dining:</strong> {d.item.name_en} ({d.dining_date} at {d.time_slot})</li>
+                ))}
                 {customWishes.map((w, idx) => (
                   <li key={idx} style={{ color: '#ec4899' }}>✨ <strong>Custom Wish:</strong> {w.title} ({w.start_date})</li>
                 ))}
               </ul>
-              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Estimated Cost:</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981' }}>{pricingSummary.finalTotal.toLocaleString()} EGP</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981' }}>{pricingSummary.finalTotal.toLocaleString()} EGP</span>
               </div>
             </div>
 
@@ -516,21 +777,49 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
     );
   }
 
-  // ─── PLANNER MAIN VIEW ────────────────────────────────────────────────────
+  // ─── MAIN PLANNER WORKSPACE ───────────────────────────────────────────────
+
+  const isStandaloneMode = activeMode !== 'all';
+  const categoryHeaderTitle = activeMode === 'accommodation' ? 'Accommodation & Stay Planner'
+    : activeMode === 'safaris' ? 'Desert Safaris & Tours Program'
+    : activeMode === 'transport' ? 'Transfers & Logistics Route Planner'
+    : activeMode === 'dining' ? 'Dining & Bedouin Feast Planner'
+    : activeMode === 'activities' ? 'Activities & Wellness Healing Planner'
+    : title || 'Craft Your Custom Siwa Itinerary';
+
+  const categoryHeaderSub = activeMode === 'accommodation'
+    ? 'Plan your stay across multiple hotels, ecolodges, and desert camps. Select different room types and exact check-in/out dates for each stay.'
+    : activeMode === 'safaris'
+    ? 'Select multiple desert tours, sunset safaris, and historical walking programs with exact dates and departure times.'
+    : activeMode === 'transport'
+    ? 'Configure multiple transit legs (arrival, in-oasis 4x4 cruiser, return transfer) with door-to-door timing.'
+    : subtitle || 'Select your accommodations, desert safaris, private transfers, and culinary feasts with exact dates and combo discounts.';
 
   return (
     <section style={S.wrap} id="smart-journey-planner">
       <div style={S.inner}>
-        {/* Header Block */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '3rem' }}>
+        {/* Header Block with Mode Switch */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem' }}>
           <div>
-            <span style={S.goldBadge}>
-              <i className="fas fa-sparkles" /> {subtitle || 'SMART JOURNEY PLANNER'}
-            </span>
-            <h2 style={S.h2}>{title || 'Craft Your Custom Siwa Itinerary'}</h2>
-            <p style={S.sub}>
-              Select your accommodations, desert safaris, private transfers, and culinary feasts. Every selection supports exact date and timing with real-time combo discounts.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <span style={S.goldBadge}>
+                <i className="fas fa-sparkles" /> {isStandaloneMode ? `${activeMode?.toUpperCase()} PLANNER` : 'SMART JOURNEY PLANNER'}
+              </span>
+              {isStandaloneMode && (
+                <button
+                  onClick={() => setActiveMode('all')}
+                  style={{
+                    background: 'rgba(212,175,55,0.1)', color: '#D4AF37',
+                    border: '1px solid rgba(212,175,55,0.25)', padding: '0.2rem 0.65rem',
+                    borderRadius: '20px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer',
+                  }}
+                >
+                  Switch to Complete Journey Builder &rarr;
+                </button>
+              )}
+            </div>
+            <h2 style={S.h2}>{categoryHeaderTitle}</h2>
+            <p style={S.sub}>{categoryHeaderSub}</p>
           </div>
 
           {/* Combo Deal Flash Notifier Banner */}
@@ -538,160 +827,231 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
             background: pricingSummary.isComboUnlocked ? 'rgba(16,185,129,0.15)' : 'rgba(212,175,55,0.12)',
             border: `1px solid ${pricingSummary.isComboUnlocked ? '#10b981' : '#D4AF37'}`,
             padding: '1rem 1.5rem', borderRadius: '18px', display: 'flex', alignItems: 'center', gap: '1rem',
-            animation: 'pulseGlow 2.5s infinite',
           }}>
             <div style={{ fontSize: '1.75rem' }}>{pricingSummary.isComboUnlocked ? '🎉' : '🔥'}</div>
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 900, color: pricingSummary.isComboUnlocked ? '#10b981' : '#D4AF37' }}>
-                {pricingSummary.isComboUnlocked ? 'COMBO DISCOUNT ACTIVE: 15% OFF!' : 'BUNDLE & SAVE 15%'}
+                {pricingSummary.isComboUnlocked ? 'COMBO DISCOUNT ACTIVE: 15% OFF!' : 'BUNDLE 3+ SECTORS & SAVE 15%'}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                 {pricingSummary.isComboUnlocked
-                  ? `Saved ${pricingSummary.discountAmount.toLocaleString()} EGP across ${pricingSummary.parentCount} sectors!`
-                  : `Select items from 3 sectors to unlock 15% off (${pricingSummary.parentCount}/3 chosen)`}
+                  ? `Saved ${pricingSummary.discountAmount.toLocaleString()} EGP across your itinerary!`
+                  : `Select from 3 sectors to unlock 15% off (${pricingSummary.sectorCount}/3 active)`}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Parent Category Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          {[
-            { id: 'accommodation', label: '1. Accommodation', icon: 'fa-bed', selected: !!selectedStay },
-            { id: 'safaris', label: '2. Safaris & Desert Tours', icon: 'fa-compass', count: selectedTours.length },
-            { id: 'activities', label: '3. Activities & Wellness', icon: 'fa-spa', count: selectedActivities.length },
-            { id: 'transport', label: '4. Transfers & Logistics', icon: 'fa-car', selected: !!selectedTransport },
-            { id: 'dining', label: '5. Dining & Feasts', icon: 'fa-utensils', selected: !!selectedMeal },
-          ].map((cat) => {
-            const active = activeCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id as any)}
-                style={{
-                  background: active ? '#D4AF37' : '#111520',
-                  color: active ? '#000' : '#cbd5e1',
-                  border: active ? '1px solid #D4AF37' : '1px solid rgba(255,255,255,0.08)',
-                  padding: '0.85rem 1.4rem', borderRadius: '16px',
-                  fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '0.6rem',
-                  whiteSpace: 'nowrap', transition: 'all 0.2s ease',
-                }}
-              >
-                <i className={`fas ${cat.icon}`} />
-                {cat.label}
-                {cat.selected && <span style={{ background: active ? '#000' : '#10b981', color: active ? '#D4AF37' : '#fff', padding: '0.1rem 0.45rem', borderRadius: '10px', fontSize: '0.65rem' }}>✓</span>}
-                {typeof cat.count === 'number' && cat.count > 0 && <span style={{ background: active ? '#000' : '#10b981', color: active ? '#D4AF37' : '#fff', padding: '0.1rem 0.45rem', borderRadius: '10px', fontSize: '0.65rem' }}>{cat.count}</span>}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Planner Workspace Layout: 2 Columns (Main Selection + Sticky Live Manifest) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: '2rem', alignItems: 'start' }}>
-          
-          {/* LEFT: Category Selection & Timetable Controls */}
-          <div>
-            {/* ─── 1. ACCOMMODATION SECTOR ─── */}
-            {activeCategory === 'accommodation' && (
-              <div>
-                {/* Stay Timing Pickers (Check-in / Check-out) */}
-                <div style={{ ...S.card, marginBottom: '2rem', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <i className="fas fa-calendar-alt" style={{ color: '#D4AF37' }} />
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Stay Schedule & Duration</h3>
-                    </div>
-                    <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
-                      {nightsCount} {nightsCount === 1 ? 'Night' : 'Nights'} Stay
+        {/* Master Category Tabs (visible in 'all' mode, or can switch between them) */}
+        {!isStandaloneMode && (
+          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            {[
+              { id: 'accommodation', label: '1. Accommodation & Stays', icon: 'fa-bed', count: stayPeriods.length },
+              { id: 'safaris', label: '2. Safaris & Desert Tours', icon: 'fa-compass', count: tourBookings.length },
+              { id: 'transport', label: '3. Transfers & Logistics', icon: 'fa-car', count: transportLegs.length },
+              { id: 'dining', label: '4. Dining & Feasts', icon: 'fa-utensils', count: diningBookings.length },
+              { id: 'activities', label: '5. Activities & Wellness', icon: 'fa-spa', count: activityBookings.length },
+            ].map((cat) => {
+              const active = activeCategoryTab === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategoryTab(cat.id as any)}
+                  style={{
+                    background: active ? '#D4AF37' : '#111520',
+                    color: active ? '#000' : '#cbd5e1',
+                    border: active ? '1px solid #D4AF37' : '1px solid rgba(255,255,255,0.08)',
+                    padding: '0.85rem 1.4rem', borderRadius: '16px',
+                    fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
+                    whiteSpace: 'nowrap', transition: 'all 0.2s ease',
+                  }}
+                >
+                  <i className={`fas ${cat.icon}`} />
+                  {cat.label}
+                  {cat.count > 0 && (
+                    <span style={{
+                      background: active ? '#000' : '#10b981',
+                      color: active ? '#D4AF37' : '#fff',
+                      padding: '0.1rem 0.5rem', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 900,
+                    }}>
+                      {cat.count}
                     </span>
-                  </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, marginBottom: '0.4rem' }}>CHECK-IN DATE & TIME</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input
-                          type="date"
-                          value={stayTiming.start_date}
-                          onChange={(e) => setStayTiming({ ...stayTiming, start_date: e.target.value })}
-                          style={S.input}
-                        />
-                        <input
-                          type="time"
-                          value={stayTiming.start_time}
-                          onChange={(e) => setStayTiming({ ...stayTiming, start_time: e.target.value })}
-                          style={{ ...S.input, width: '100px' }}
-                        />
-                      </div>
+        {/* Workspace: Left (Selection & Period Builder) + Right (Live Itinerary Manifest) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: '2rem', alignItems: 'start' }}>
+          
+          {/* LEFT COLUMN: ACTIVE SECTOR BUILDER */}
+          <div>
+            {/* ════════════ 1. ACCOMMODATION SECTOR ════════════ */}
+            {(activeMode === 'accommodation' || activeCategoryTab === 'accommodation') && (
+              <div>
+                {/* Active Stay Periods List */}
+                {stayPeriods.length > 0 && (
+                  <div style={{ ...S.card, marginBottom: '2rem', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#10b981', margin: 0 }}>
+                        <i className="fas fa-bed" style={{ marginRight: '0.5rem' }} /> Planned Stays ({stayPeriods.length} Stays, {totalNights} Total Nights)
+                      </h4>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Multi-hotel periods configured</span>
                     </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, marginBottom: '0.4rem' }}>CHECK-OUT DATE & TIME</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input
-                          type="date"
-                          value={stayTiming.end_date}
-                          onChange={(e) => setStayTiming({ ...stayTiming, end_date: e.target.value })}
-                          style={S.input}
-                        />
-                        <input
-                          type="time"
-                          value={stayTiming.end_time}
-                          onChange={(e) => setStayTiming({ ...stayTiming, end_time: e.target.value })}
-                          style={{ ...S.input, width: '100px' }}
-                        />
-                      </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {stayPeriods.map((stay, idx) => (
+                        <div key={stay.id} style={{
+                          background: '#0a0d14', border: '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex',
+                          justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem',
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>
+                              <span style={{ color: '#D4AF37', marginRight: '0.5rem' }}>Period {idx + 1}:</span>
+                              {stay.hotel_name}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>{stay.room_type_name}</span> &bull; {stay.nights} Nights ({stay.start_date} at {stay.start_time} to {stay.end_date} at {stay.end_time})
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 900, color: '#10b981', fontSize: '1rem' }}>{stay.total_price.toLocaleString()} EGP</div>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{stay.price_per_night.toLocaleString()} / night</div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveStayPeriod(stay.id)}
+                              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer' }}
+                              title="Remove stay period"
+                            >
+                              <i className="fas fa-trash" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Accommodations Grid */}
+                {/* Accommodations Catalog Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                   {catalog.accommodations.map((stay) => {
-                    const isSelected = selectedStay?.id === stay.id;
+                    const isConfiguring = pendingStayItem?.id === stay.id;
+                    const stayCount = stayPeriods.filter(s => s.item_id === stay.id).length;
+
                     return (
-                      <div key={stay.id} style={{ ...S.card, border: isSelected ? '2px solid #D4AF37' : S.card.border, position: 'relative' }}>
-                        {stay.badge_en && (
-                          <span style={{ position: 'absolute', top: '1rem', right: '1rem', background: '#D4AF37', color: '#000', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 900 }}>
-                            {stay.badge_en}
-                          </span>
-                        )}
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{stay.icon || '🏨'}</div>
+                      <div key={stay.id} style={{ ...S.card, border: isConfiguring ? '2px solid #D4AF37' : S.card.border }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <span style={{ fontSize: '2.5rem' }}>{stay.icon || '🛖'}</span>
+                          {stay.badge_en && (
+                            <span style={{ background: '#D4AF37', color: '#000', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 900 }}>
+                              {stay.badge_en}
+                            </span>
+                          )}
+                        </div>
+
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{stay.name_en}</h4>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '48px', margin: '0 0 1rem' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>
                           {stay.desc_en}
                         </p>
 
-                        {/* Flash Deal Tag */}
-                        <div style={{ background: 'rgba(212,175,55,0.08)', padding: '0.5rem 0.75rem', borderRadius: '10px', fontSize: '0.75rem', color: '#D4AF37', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fas fa-gift" /> Free Bedouin Welcome Tea & Dates
-                        </div>
-
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <div>
-                            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / night</span>
                           </div>
                           <button
                             onClick={() => setInspectingItem({ item: stay, category: 'accommodation' })}
                             style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
                           >
-                            Inspect Details &rarr;
+                            Inspect &rarr;
                           </button>
                         </div>
 
-                        <button
-                          onClick={() => setSelectedStay(isSelected ? null : stay)}
-                          style={{
-                            width: '100%', padding: '0.75rem',
-                            background: isSelected ? '#10b981' : '#D4AF37',
-                            color: isSelected ? '#fff' : '#000',
-                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
-                          }}
-                        >
-                          {isSelected ? '✓ Stay Selected' : 'Choose This Stay'}
-                        </button>
+                        {/* Room & Period Configurator Inline Drawer */}
+                        {isConfiguring ? (
+                          <div style={{ background: '#0a0d14', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(212,175,55,0.3)', marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#D4AF37', fontWeight: 800, marginBottom: '0.5rem' }}>
+                              SELECT ROOM TYPE & STAY DATES:
+                            </div>
+
+                            {/* Room Type Selector */}
+                            <div style={{ marginBottom: '0.75rem' }}>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: 800, marginBottom: '0.25rem' }}>ROOM / SUITE TYPE</label>
+                              <select
+                                value={stayConfig.room_type_id}
+                                onChange={(e) => setStayConfig({ ...stayConfig, room_type_id: e.target.value })}
+                                style={{ ...S.input, padding: '0.5rem' }}
+                              >
+                                {(stay.room_types || DEFAULT_ROOM_TYPES).map(r => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.name_en} ({Math.round((stay.price_per_night || 1800) * r.multiplier)} EGP / night)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Dates and Times */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>CHECK-IN</label>
+                                <input
+                                  type="date"
+                                  value={stayConfig.start_date}
+                                  onChange={(e) => setStayConfig({ ...stayConfig, start_date: e.target.value })}
+                                  style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>CHECK-OUT</label>
+                                <input
+                                  type="date"
+                                  value={stayConfig.end_date}
+                                  onChange={(e) => setStayConfig({ ...stayConfig, end_date: e.target.value })}
+                                  style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
+                                />
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button
+                                onClick={() => handleAddStayPeriod(stay)}
+                                style={{ flex: 1, padding: '0.65rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                              >
+                                Confirm Stay Period
+                              </button>
+                              <button
+                                onClick={() => setPendingStayItem(null)}
+                                style={{ padding: '0.65rem 0.85rem', background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', fontSize: '0.8rem', cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setPendingStayItem(stay);
+                              setStayConfig(prev => ({
+                                ...prev,
+                                room_type_id: stay.room_types?.[0]?.id || 'standard',
+                              }));
+                            }}
+                            style={{
+                              width: '100%', padding: '0.75rem',
+                              background: stayCount > 0 ? '#10b981' : '#D4AF37',
+                              color: stayCount > 0 ? '#fff' : '#000',
+                              border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                            }}
+                          >
+                            {stayCount > 0 ? `+ Add Another Period (${stayCount} Booked)` : '+ Configure Dates & Room'}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -699,14 +1059,14 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               </div>
             )}
 
-            {/* ─── 2. SAFARIS & DESERT TOURS ─── */}
-            {activeCategory === 'safaris' && (
+            {/* ════════════ 2. SAFARIS & DESERT TOURS ════════════ */}
+            {(activeMode === 'safaris' || activeCategoryTab === 'safaris') && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                   {catalog.experiences.map((exp) => {
-                    const selected = selectedTours.find(t => t.item.id === exp.id);
+                    const booking = tourBookings.find(t => t.item.id === exp.id);
                     return (
-                      <div key={exp.id} style={{ ...S.card, border: selected ? '2px solid #D4AF37' : S.card.border }}>
+                      <div key={exp.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <span style={{ fontSize: '2.5rem' }}>{exp.icon || '🚙'}</span>
                           <span style={{ background: 'rgba(255,255,255,0.06)', color: '#D4AF37', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 800 }}>
@@ -715,37 +1075,32 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                         </div>
 
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{exp.title_en}</h4>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '48px', margin: '0 0 1rem' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>
                           {exp.highlight_en}
                         </p>
 
-                        {/* Flash Deal Notifier */}
-                        <div style={{ background: 'rgba(236,72,153,0.08)', padding: '0.5rem 0.75rem', borderRadius: '10px', fontSize: '0.75rem', color: '#ec4899', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fas fa-fire" /> Free Sandboards & Sunset Tea Included
-                        </div>
-
-                        {/* Schedule Timing Input when selected */}
-                        {selected && (
+                        {/* Timing Schedule Controls if selected */}
+                        {booking && (
                           <div style={{ background: '#0a0d14', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 800, marginBottom: '0.35rem' }}>TOUR DEPARTURE & SUNSET RETURN:</div>
+                            <div style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 800, marginBottom: '0.35rem' }}>TOUR DATE & TIME:</div>
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                               <input
                                 type="date"
-                                value={selected.timing.start_date}
+                                value={booking.tour_date}
                                 onChange={(e) => {
                                   const date = e.target.value;
-                                  setSelectedTours(prev => prev.map(t => t.item.id === exp.id ? { ...t, timing: { ...t.timing, start_date: date, end_date: date } } : t));
+                                  setTourBookings(prev => prev.map(t => t.id === booking.id ? { ...t, tour_date: date } : t));
                                 }}
-                                style={S.input}
+                                style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
                               />
                               <input
                                 type="time"
-                                value={selected.timing.start_time}
+                                value={booking.departure_time}
                                 onChange={(e) => {
                                   const time = e.target.value;
-                                  setSelectedTours(prev => prev.map(t => t.item.id === exp.id ? { ...t, timing: { ...t.timing, start_time: time } } : t));
+                                  setTourBookings(prev => prev.map(t => t.id === booking.id ? { ...t, departure_time: time } : t));
                                 }}
-                                style={{ ...S.input, width: '90px' }}
+                                style={{ ...S.input, width: '90px', padding: '0.4rem', fontSize: '0.75rem' }}
                               />
                             </div>
                           </div>
@@ -768,12 +1123,12 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                           onClick={() => handleToggleTour(exp)}
                           style={{
                             width: '100%', padding: '0.75rem',
-                            background: selected ? '#10b981' : '#D4AF37',
-                            color: selected ? '#fff' : '#000',
+                            background: booking ? '#10b981' : '#D4AF37',
+                            color: booking ? '#fff' : '#000',
                             border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
                           }}
                         >
-                          {selected ? '✓ Added to Journey' : '+ Add Safari Tour'}
+                          {booking ? '✓ Added to Tour Program' : '+ Add to Tour Program'}
                         </button>
                       </div>
                     );
@@ -782,111 +1137,60 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               </div>
             )}
 
-            {/* ─── 3. ACTIVITIES & WELLNESS ─── */}
-            {activeCategory === 'activities' && (
+            {/* ════════════ 3. TRANSFERS & LOGISTICS ════════════ */}
+            {(activeMode === 'transport' || activeCategoryTab === 'transport') && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                  {catalog.experiences.slice(0, 2).map((act) => {
-                    const selected = selectedActivities.find(a => a.item.id === act.id);
-                    return (
-                      <div key={act.id} style={{ ...S.card, border: selected ? '2px solid #D4AF37' : S.card.border }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{act.icon || '🏄'}</div>
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{act.highlight_en}</p>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{act.base_price_egp} EGP</span>
-                          <button
-                            onClick={() => setInspectingItem({ item: act, category: 'activities' })}
-                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            Inspect &rarr;
-                          </button>
+                {/* Active Transport Legs List */}
+                {transportLegs.length > 0 && (
+                  <div style={{ ...S.card, marginBottom: '2rem', border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#3b82f6', margin: 0 }}>
+                        <i className="fas fa-car" style={{ marginRight: '0.5rem' }} /> Configured Transit Legs ({transportLegs.length} Legs)
+                      </h4>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {transportLegs.map((leg, idx) => (
+                        <div key={leg.id} style={{
+                          background: '#0a0d14', border: '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex',
+                          justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem',
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>
+                              <span style={{ color: '#3b82f6', marginRight: '0.5rem' }}>Leg {idx + 1}:</span>
+                              {leg.route_label}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                              {leg.vehicle_name} &bull; {leg.start_date} at {leg.start_time} ({leg.days} Days)
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 900, color: '#10b981', fontSize: '1rem' }}>{leg.total_price.toLocaleString()} EGP</div>
+                            </div>
+                            <button
+                              onClick={() => setTransportLegs(prev => prev.filter(l => l.id !== leg.id))}
+                              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                              <i className="fas fa-trash" />
+                            </button>
+                          </div>
                         </div>
-
-                        <button
-                          onClick={() => {
-                            if (selected) {
-                              setSelectedActivities(prev => prev.filter(a => a.item.id !== act.id));
-                            } else {
-                              setSelectedActivities(prev => [...prev, { item: act, timing: { start_date: stayTiming.start_date, start_time: '10:00', end_date: stayTiming.start_date, end_time: '13:00' } }]);
-                            }
-                          }}
-                          style={{
-                            width: '100%', padding: '0.75rem',
-                            background: selected ? '#10b981' : '#D4AF37',
-                            color: selected ? '#fff' : '#000',
-                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
-                          }}
-                        >
-                          {selected ? '✓ Added Activity' : '+ Add Activity'}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ─── 4. TRANSFERS & LOGISTICS ─── */}
-            {activeCategory === 'transport' && (
-              <div>
-                {/* Transport timing header */}
-                <div style={{ ...S.card, marginBottom: '2rem', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <i className="fas fa-clock" style={{ color: '#D4AF37' }} />
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Pickup & Transit Schedule</h3>
-                    </div>
-                    <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
-                      {transportDays} Days Coverage
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, marginBottom: '0.4rem' }}>PICKUP DATE & TIME</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input
-                          type="date"
-                          value={transportTiming.start_date}
-                          onChange={(e) => setTransportTiming({ ...transportTiming, start_date: e.target.value })}
-                          style={S.input}
-                        />
-                        <input
-                          type="time"
-                          value={transportTiming.start_time}
-                          onChange={(e) => setTransportTiming({ ...transportTiming, start_time: e.target.value })}
-                          style={{ ...S.input, width: '100px' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, marginBottom: '0.4rem' }}>DROP-OFF DATE & TIME</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input
-                          type="date"
-                          value={transportTiming.end_date}
-                          onChange={(e) => setTransportTiming({ ...transportTiming, end_date: e.target.value })}
-                          style={S.input}
-                        />
-                        <input
-                          type="time"
-                          value={transportTiming.end_time}
-                          onChange={(e) => setTransportTiming({ ...transportTiming, end_time: e.target.value })}
-                          style={{ ...S.input, width: '100px' }}
-                        />
-                      </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
+                {/* Transports Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                   {catalog.transports.map((trans) => {
-                    const isSelected = selectedTransport?.id === trans.id;
+                    const isConfiguring = pendingTransItem?.id === trans.id;
+                    const legCount = transportLegs.filter(l => l.item_id === trans.id).length;
+
                     return (
-                      <div key={trans.id} style={{ ...S.card, border: isSelected ? '2px solid #D4AF37' : S.card.border }}>
+                      <div key={trans.id} style={{ ...S.card, border: isConfiguring ? '2px solid #3b82f6' : S.card.border }}>
                         <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{trans.icon || '🚐'}</div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{trans.name_en}</h4>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{trans.desc_en}</p>
@@ -901,17 +1205,73 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                           </button>
                         </div>
 
-                        <button
-                          onClick={() => setSelectedTransport(isSelected ? null : trans)}
-                          style={{
-                            width: '100%', padding: '0.75rem',
-                            background: isSelected ? '#10b981' : '#D4AF37',
-                            color: isSelected ? '#fff' : '#000',
-                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
-                          }}
-                        >
-                          {isSelected ? '✓ Vehicle Selected' : 'Select Vehicle'}
-                        </button>
+                        {isConfiguring ? (
+                          <div style={{ background: '#0a0d14', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(59,130,246,0.3)', marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 800, marginBottom: '0.5rem' }}>CONFIGURE ROUTE LEG:</div>
+
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <label style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>ROUTE / PURPOSE</label>
+                              <select
+                                value={transConfig.route_label}
+                                onChange={(e) => setTransConfig({ ...transConfig, route_label: e.target.value })}
+                                style={{ ...S.input, padding: '0.4rem' }}
+                              >
+                                <option value="Cairo <-> Siwa VIP Direct Transfer">Cairo &harr; Siwa VIP Direct Transfer</option>
+                                <option value="Alexandria <-> Siwa Private Van">Alexandria &harr; Siwa Private Van</option>
+                                <option value="In-Oasis 4x4 Cruiser (Desert Safaris & Lakes)">In-Oasis 4x4 Cruiser (Desert Safaris & Lakes)</option>
+                                <option value="Local Oasis Sightseeing & Daily Shuttle">Local Oasis Sightseeing & Daily Shuttle</option>
+                              </select>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>DATE</label>
+                                <input
+                                  type="date"
+                                  value={transConfig.start_date}
+                                  onChange={(e) => setTransConfig({ ...transConfig, start_date: e.target.value })}
+                                  style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>TIME</label>
+                                <input
+                                  type="time"
+                                  value={transConfig.start_time}
+                                  onChange={(e) => setTransConfig({ ...transConfig, start_time: e.target.value })}
+                                  style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
+                                />
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button
+                                onClick={() => handleAddTransportLeg(trans)}
+                                style={{ flex: 1, padding: '0.65rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                              >
+                                Add Transit Leg
+                              </button>
+                              <button
+                                onClick={() => setPendingTransItem(null)}
+                                style={{ padding: '0.65rem 0.85rem', background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', fontSize: '0.8rem', cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setPendingTransItem(trans)}
+                            style={{
+                              width: '100%', padding: '0.75rem',
+                              background: legCount > 0 ? '#3b82f6' : '#D4AF37',
+                              color: legCount > 0 ? '#fff' : '#000',
+                              border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                            }}
+                          >
+                            {legCount > 0 ? `+ Add Another Leg (${legCount} Booked)` : '+ Add Transit Leg'}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -919,17 +1279,44 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               </div>
             )}
 
-            {/* ─── 5. DINING & FEASTS ─── */}
-            {activeCategory === 'dining' && (
+            {/* ════════════ 4. DINING & FEASTS ════════════ */}
+            {(activeMode === 'dining' || activeCategoryTab === 'dining') && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                   {catalog.meals.map((meal) => {
-                    const isSelected = selectedMeal?.id === meal.id;
+                    const booking = diningBookings.find(d => d.item.id === meal.id);
                     return (
-                      <div key={meal.id} style={{ ...S.card, border: isSelected ? '2px solid #D4AF37' : S.card.border }}>
+                      <div key={meal.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border }}>
                         <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{meal.icon || '🍽️'}</div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{meal.name_en}</h4>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{meal.desc_en}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>{meal.desc_en}</p>
+
+                        {/* Timing controls when selected */}
+                        {booking && (
+                          <div style={{ background: '#0a0d14', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 800, marginBottom: '0.35rem' }}>DINING DATE & TIME:</div>
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <input
+                                type="date"
+                                value={booking.dining_date}
+                                onChange={(e) => {
+                                  const date = e.target.value;
+                                  setDiningBookings(prev => prev.map(d => d.id === booking.id ? { ...d, dining_date: date } : d));
+                                }}
+                                style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
+                              />
+                              <input
+                                type="time"
+                                value={booking.time_slot}
+                                onChange={(e) => {
+                                  const time = e.target.value;
+                                  setDiningBookings(prev => prev.map(d => d.id === booking.id ? { ...d, time_slot: time } : d));
+                                }}
+                                style={{ ...S.input, width: '90px', padding: '0.4rem', fontSize: '0.75rem' }}
+                              />
+                            </div>
+                          </div>
+                        )}
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{meal.price_per_person} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ person</span></span>
@@ -942,15 +1329,15 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                         </div>
 
                         <button
-                          onClick={() => setSelectedMeal(isSelected ? null : meal)}
+                          onClick={() => handleToggleDining(meal)}
                           style={{
                             width: '100%', padding: '0.75rem',
-                            background: isSelected ? '#10b981' : '#D4AF37',
-                            color: isSelected ? '#fff' : '#000',
+                            background: booking ? '#10b981' : '#D4AF37',
+                            color: booking ? '#fff' : '#000',
                             border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
                           }}
                         >
-                          {isSelected ? '✓ Dining Selected' : 'Choose Dining'}
+                          {booking ? '✓ Added to Dining Schedule' : '+ Book Table / Feast'}
                         </button>
                       </div>
                     );
@@ -959,10 +1346,50 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               </div>
             )}
 
-            {/* "+ Add Custom Selection" Button (Crowdsourced Ingestion) */}
-            <div style={{ marginTop: '1.5rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '18px', border: '1px dashed rgba(255,255,255,0.1)' }}>
-              <div style={{ fontSize: '0.9rem', color: '#cbd5e1', fontWeight: 700, marginBottom: '0.4rem' }}>
-                Looking for an unlisted desert camp, hot spring, or special experience?
+            {/* ════════════ 5. ACTIVITIES & WELLNESS ════════════ */}
+            {(activeMode === 'activities' || activeCategoryTab === 'activities') && (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                  {catalog.experiences.slice(0, 2).map((act) => {
+                    const booking = activityBookings.find(a => a.item.id === act.id);
+                    return (
+                      <div key={act.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{act.icon || '🏄'}</div>
+                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{act.highlight_en}</p>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{act.base_price_egp} EGP</span>
+                          <button
+                            onClick={() => setInspectingItem({ item: act, category: 'activities' })}
+                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Inspect &rarr;
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleActivity(act)}
+                          style={{
+                            width: '100%', padding: '0.75rem',
+                            background: booking ? '#10b981' : '#D4AF37',
+                            color: booking ? '#fff' : '#000',
+                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                          }}
+                        >
+                          {booking ? '✓ Added Activity' : '+ Add Activity'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* "+ Add Custom Selection" (Crowdsourced discovery) */}
+            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '18px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '0.9rem', color: '#cbd5e1', fontWeight: 700, marginBottom: '0.35rem' }}>
+                Looking for an unlisted place, camp, or special tour?
               </div>
               <p style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '480px', margin: '0 auto 1rem' }}>
                 Add your custom wish directly to your itinerary. Our local team will arrange it with verified providers and review it for our official catalog.
@@ -976,20 +1403,20 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                   display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                 }}
               >
-                <i className="fas fa-plus" /> + Add Custom {activeCategory} Selection
+                <i className="fas fa-plus" /> + Add Custom Selection
               </button>
             </div>
           </div>
 
-          {/* RIGHT: Sticky Live Itinerary Manifest & Reservation Form */}
+          {/* RIGHT COLUMN: STICKY COMPREHENSIVE ITINERARY MANIFEST */}
           <div style={{ position: 'sticky', top: '5.5rem' }}>
             <div style={{ ...S.card, border: '1px solid rgba(212,175,55,0.3)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: '#fff' }}>
-                  Journey Manifest
+                  {isStandaloneMode ? `${activeMode?.toUpperCase()} MANIFEST` : 'JOURNEY MANIFEST'}
                 </h3>
                 <span style={{ fontSize: '0.75rem', color: '#D4AF37', fontWeight: 800 }}>
-                  {pricingSummary.parentCount} Selected
+                  {stayPeriods.length + tourBookings.length + transportLegs.length + diningBookings.length + activityBookings.length + customWishes.length} Items
                 </span>
               </div>
 
@@ -1020,47 +1447,52 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               </div>
 
               {/* Itinerary Timeline List */}
-              <div style={{ maxHeight: '240px', overflowY: 'auto', marginBottom: '1.25rem', paddingRight: '0.25rem' }}>
-                {selectedStay && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div style={{ maxHeight: '280px', overflowY: 'auto', marginBottom: '1.25rem', paddingRight: '0.25rem' }}>
+                {/* 1. Stays */}
+                {stayPeriods.map((s, idx) => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: '#fff' }}>🏨 {selectedStay.name_en}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{stayTiming.start_date} ({nightsCount} nights)</div>
+                      <div style={{ fontWeight: 700, color: '#fff' }}>🏨 Stay {idx + 1}: {s.hotel_name}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{s.room_type_name} &bull; {s.nights}N ({s.start_date})</div>
                     </div>
-                    <span style={{ fontWeight: 800, color: '#10b981' }}>{((selectedStay.price_per_night || 0) * nightsCount).toLocaleString()} EGP</span>
-                  </div>
-                )}
-
-                {selectedTours.map((t, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, color: '#fff' }}>🚙 {t.item.title_en}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t.timing.start_date} at {t.timing.start_time}</div>
-                    </div>
-                    <span style={{ fontWeight: 800, color: '#10b981' }}>{((t.item.base_price_egp || 0) * (adults + children * 0.5)).toLocaleString()} EGP</span>
+                    <span style={{ fontWeight: 800, color: '#10b981' }}>{s.total_price.toLocaleString()} EGP</span>
                   </div>
                 ))}
 
-                {selectedTransport && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                {/* 2. Transports */}
+                {transportLegs.map((l, idx) => (
+                  <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: '#fff' }}>🚐 {selectedTransport.name_en}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{transportTiming.start_date} ({transportDays} days)</div>
+                      <div style={{ fontWeight: 700, color: '#fff' }}>🚐 Leg {idx + 1}: {l.route_label}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{l.start_date} at {l.start_time}</div>
                     </div>
-                    <span style={{ fontWeight: 800, color: '#10b981' }}>{((selectedTransport.rate_per_day || 0) * transportDays).toLocaleString()} EGP</span>
+                    <span style={{ fontWeight: 800, color: '#10b981' }}>{l.total_price.toLocaleString()} EGP</span>
                   </div>
-                )}
+                ))}
 
-                {selectedMeal && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                {/* 3. Tours */}
+                {tourBookings.map((t, idx) => (
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: '#fff' }}>🍽️ {selectedMeal.name_en}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{mealTiming.start_date} at {mealTiming.start_time}</div>
+                      <div style={{ fontWeight: 700, color: '#fff' }}>🚙 {t.item.title_en}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t.tour_date} at {t.departure_time}</div>
                     </div>
-                    <span style={{ fontWeight: 800, color: '#10b981' }}>{((selectedMeal.price_per_person || 0) * (adults + children * 0.5)).toLocaleString()} EGP</span>
+                    <span style={{ fontWeight: 800, color: '#10b981' }}>{((t.price_per_person) * (adults + children * 0.5)).toLocaleString()} EGP</span>
                   </div>
-                )}
+                ))}
 
+                {/* 4. Dining */}
+                {diningBookings.map((d, idx) => (
+                  <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#fff' }}>🍽️ {d.item.name_en}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{d.dining_date} at {d.time_slot}</div>
+                    </div>
+                    <span style={{ fontWeight: 800, color: '#10b981' }}>{((d.price_per_person) * (adults + children * 0.5)).toLocaleString()} EGP</span>
+                  </div>
+                ))}
+
+                {/* 5. Custom Wishes */}
                 {customWishes.map((w, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#ec4899' }}>
                     <div>
@@ -1071,9 +1503,9 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                   </div>
                 ))}
 
-                {pricingSummary.parentCount === 0 && (
-                  <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>
-                    No items selected yet. Choose accommodations or tours above.
+                {stayPeriods.length === 0 && tourBookings.length === 0 && transportLegs.length === 0 && diningBookings.length === 0 && customWishes.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2rem 0', color: '#64748b', fontSize: '0.85rem' }}>
+                    No items planned yet. Add selections above to build your schedule.
                   </div>
                 )}
               </div>
@@ -1117,15 +1549,15 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               {/* Dispatch Button */}
               <button
                 onClick={handleDispatchReservation}
-                disabled={isSubmitting || pricingSummary.parentCount === 0}
+                disabled={isSubmitting || pricingSummary.subtotal === 0}
                 style={{
                   width: '100%', padding: '1rem',
-                  background: pricingSummary.parentCount === 0 ? '#1e293b' : 'linear-gradient(135deg, #D4AF37, #f0c842)',
-                  color: pricingSummary.parentCount === 0 ? '#64748b' : '#000',
+                  background: pricingSummary.subtotal === 0 ? '#1e293b' : 'linear-gradient(135deg, #D4AF37, #f0c842)',
+                  color: pricingSummary.subtotal === 0 ? '#64748b' : '#000',
                   border: 'none', borderRadius: '50px', fontWeight: 900, fontSize: '0.9rem',
-                  cursor: pricingSummary.parentCount === 0 || isSubmitting ? 'not-allowed' : 'pointer',
+                  cursor: pricingSummary.subtotal === 0 || isSubmitting ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                  boxShadow: pricingSummary.parentCount > 0 ? '0 10px 25px rgba(212,175,55,0.25)' : 'none',
+                  boxShadow: pricingSummary.subtotal > 0 ? '0 10px 25px rgba(212,175,55,0.25)' : 'none',
                 }}
               >
                 {isSubmitting ? (
@@ -1146,19 +1578,16 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
           display: 'flex', justifyContent: 'flex-end',
           background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)',
         }}>
-          {/* Backdrop click to dismiss */}
           <div
             onClick={() => setInspectingItem(null)}
             style={{ position: 'absolute', inset: 0, cursor: 'pointer' }}
           />
 
-          {/* Slide Drawer Panel */}
           <div style={{
             position: 'relative', width: '100%', maxWidth: '460px', height: '100%',
             background: '#111520', borderLeft: '1px solid rgba(255,255,255,0.1)',
             padding: '2.5rem 2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column',
             justifyContent: 'space-between', boxShadow: '-20px 0 50px rgba(0,0,0,0.8)',
-            animation: 'slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -1194,25 +1623,32 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                 {inspectingItem.item.highlight_en || inspectingItem.item.desc_en}
               </p>
 
-              <div style={{ background: '#0a0d14', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-                  INCLUDED HIGHLIGHTS & AMENITIES
+              {inspectingItem.category === 'accommodation' && (
+                <div style={{ background: '#0a0d14', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                    AVAILABLE ROOM TYPES
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#cbd5e1', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                    {(inspectingItem.item.room_types || DEFAULT_ROOM_TYPES).map(r => (
+                      <li key={r.id}><strong>{r.name_en}:</strong> {Math.round((inspectingItem.item.price_per_night || 1800) * r.multiplier)} EGP / night ({r.capacity})</li>
+                    ))}
+                  </ul>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>
-                  <div><i className="fas fa-check" style={{ color: '#10b981', marginRight: '0.5rem' }} /> Direct provider WhatsApp verification</div>
-                  <div><i className="fas fa-check" style={{ color: '#10b981', marginRight: '0.5rem' }} /> Flexible timing adjustment</div>
-                  <div><i className="fas fa-check" style={{ color: '#10b981', marginRight: '0.5rem' }} /> Local English / Arabic speaking guidance</div>
-                </div>
-              </div>
+              )}
             </div>
 
             <div>
               <button
                 onClick={() => {
-                  if (inspectingItem.category === 'accommodation') setSelectedStay(inspectingItem.item);
-                  else if (inspectingItem.category === 'safaris') handleToggleTour(inspectingItem.item);
-                  else if (inspectingItem.category === 'transport') setSelectedTransport(inspectingItem.item);
-                  else if (inspectingItem.category === 'dining') setSelectedMeal(inspectingItem.item);
+                  if (inspectingItem.category === 'accommodation') {
+                    setPendingStayItem(inspectingItem.item);
+                  } else if (inspectingItem.category === 'safaris') {
+                    handleToggleTour(inspectingItem.item);
+                  } else if (inspectingItem.category === 'transport') {
+                    setPendingTransItem(inspectingItem.item);
+                  } else if (inspectingItem.category === 'dining') {
+                    handleToggleDining(inspectingItem.item);
+                  }
                   setInspectingItem(null);
                 }}
                 style={{
@@ -1222,14 +1658,14 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                 }}
               >
-                <i className="fas fa-plus" /> Select & Add to My Journey
+                <i className="fas fa-plus" /> Select & Configure This Option
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── MODAL: ADD CUSTOM SELECTION (+ CROWDSOURCED INGESTION) ─────────── */}
+      {/* ─── MODAL: ADD CUSTOM SELECTION ────────────────────────────────────── */}
       {showCustomWishModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000,
@@ -1242,7 +1678,7 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#fff' }}>
-                Add Custom {activeCategory.toUpperCase()} Wish
+                Add Custom Place or Experience
               </h3>
               <button onClick={() => setShowCustomWishModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.25rem', cursor: 'pointer' }}>
                 <i className="fas fa-times" />
@@ -1251,10 +1687,10 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Custom Place or Experience Name *</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Custom Name *</label>
                 <input
                   type="text"
-                  placeholder="e.g. Private Sunset at Fatnas Island or Sand Bath at Dakrour"
+                  placeholder="e.g. Private sunset dune camp or Dakrour sand bath session"
                   value={wishInput.title}
                   onChange={(e) => setWishInput({ ...wishInput, title: e.target.value })}
                   style={S.input}
@@ -1283,10 +1719,10 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Special Requirements or Details</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Notes & Requirements</label>
                 <textarea
                   rows={2}
-                  placeholder="Tell us what you have in mind (e.g. bonfire, private musician, photography)..."
+                  placeholder="Specific requirements, room preferences, allergies, or questions..."
                   value={wishInput.notes}
                   onChange={(e) => setWishInput({ ...wishInput, notes: e.target.value })}
                   style={{ ...S.input, resize: 'vertical' }}
@@ -1311,18 +1747,6 @@ export default function SmartJourneyPlanner({ title, subtitle }: { title?: strin
           </div>
         </div>
       )}
-
-      {/* Global Injected CSS Keyframes */}
-      <style>{`
-        @keyframes pulseGlow {
-          0%, 100% { box-shadow: 0 0 15px rgba(212,175,55,0.2); }
-          50% { box-shadow: 0 0 30px rgba(212,175,55,0.45); }
-        }
-        @keyframes slideInRight {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-      `}</style>
     </section>
   );
 }
