@@ -24,7 +24,7 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'services_hub',          name: 'Services Hub',             icon: '🏛️', manager: '/jana/businesses',     color: '#6366f1', desc: 'Directory of all services & categories' },
   { zone: 'body',   key: 'experience_categories', name: 'Experience Categories',    icon: '🎭', manager: null,                  color: '#8b5cf6', desc: 'Interactive category cards' },
   { zone: 'body',   key: 'search_bar',            name: 'Search Engine (Full)',     icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Full-width search block' },
-  { zone: 'body',   key: 'smart_journey_planner', name: 'Journey Planner',         icon: '🗓️', manager: null,                  color: '#14b8a6', desc: 'AI-powered trip planning tool' },
+  { zone: 'body',   key: 'smart_journey_planner', name: 'Journey Planner',         icon: '🗓️', manager: '/jana/journey-planner', color: '#14b8a6', desc: 'AI-powered trip planning tool' },
   { zone: 'body',   key: 'ecosystem_map',         name: 'Interactive Map',         icon: '🗺️', manager: null,                  color: '#10b981', desc: 'Full ecosystem map of Siwa' },
   { zone: 'body',   key: 'local_products',        name: 'Local Products',          icon: '🫒', manager: null,                  color: '#84cc16', desc: 'Showcase of artisan & local goods' },
   { zone: 'body',   key: 'storytelling_section',  name: 'Storytelling',            icon: '📖', manager: null,                  color: '#f59e0b', desc: 'Heritage & culture narratives' },

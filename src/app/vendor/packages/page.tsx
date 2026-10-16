@@ -191,6 +191,7 @@ export default function VendorPackagesPage() {
 
   // Form State with Category Adaptation
   const [category, setCategory] = useState<VendorCategory>('general');
+  const [allowedCategories, setAllowedCategories] = useState<VendorCategory[]>([]);
   const [newPkgName, setNewPkgName] = useState('');
   const [newPkgNameAr, setNewPkgNameAr] = useState('');
   const [newPkgPrice, setNewPkgPrice] = useState('');
@@ -213,15 +214,45 @@ export default function VendorPackagesPage() {
           setSlug(d.business.slug || d.business.id || '');
           setBusinessName(d.business.name || '');
           setVendorPhone(d.business.vendor_phone || d.business.phone || '');
-          // Detect category from business type
-          const typeId = String(d.business.type_id || '').toLowerCase();
-          if (typeId.includes('hotel') || typeId.includes('camp') || typeId.includes('resort')) setCategory('hotel');
-          else if (typeId.includes('safari') || typeId.includes('transport') || typeId.includes('driver')) setCategory('safari');
-          else if (typeId.includes('food') || typeId.includes('restaurant') || typeId.includes('cafe')) setCategory('restaurant');
-          else if (typeId.includes('wellness') || typeId.includes('salt') || typeId.includes('spa')) setCategory('wellness');
-          else if (typeId.includes('tour') || typeId.includes('operator') || typeId.includes('agency')) {
-            setCategory('tour_operator');
-            setIsComposedBundle(true);
+          
+          // Check explicit modular permissions configured by Admin
+          const customData = d.business.custom_data || {};
+          const jModules: string[] = Array.isArray(customData.journey_modules) ? customData.journey_modules : [];
+          
+          let permittedCats: VendorCategory[] = [];
+          if (jModules.length > 0) {
+            if (jModules.includes('accommodation')) permittedCats.push('hotel');
+            if (jModules.includes('tours_safari')) {
+              permittedCats.push('safari');
+              permittedCats.push('tour_operator');
+            }
+            if (jModules.includes('activities_wellness')) permittedCats.push('wellness');
+            if (jModules.includes('transportation') && !permittedCats.includes('safari')) permittedCats.push('safari');
+            if (jModules.includes('dining')) permittedCats.push('restaurant');
+          } else {
+            // Default inference based on business typology
+            const typeId = String(d.business.type_id || '').toLowerCase();
+            const parentId = String(d.typology?.parent?.id || '').toLowerCase();
+            
+            if (typeId.includes('hotel') || typeId.includes('camp') || typeId.includes('resort') || parentId.includes('accom')) {
+              permittedCats = ['hotel'];
+            } else if (typeId.includes('food') || typeId.includes('restaurant') || typeId.includes('cafe') || parentId.includes('food')) {
+              permittedCats = ['restaurant'];
+            } else if (typeId.includes('wellness') || typeId.includes('salt') || typeId.includes('spa') || parentId.includes('well')) {
+              permittedCats = ['wellness'];
+            } else if (typeId.includes('safari') || typeId.includes('transport') || typeId.includes('driver') || parentId.includes('logis')) {
+              permittedCats = ['safari'];
+            } else if (typeId.includes('tour') || typeId.includes('operator') || typeId.includes('agency') || parentId.includes('advent')) {
+              permittedCats = ['tour_operator', 'safari'];
+            } else {
+              permittedCats = ['hotel', 'safari', 'restaurant', 'wellness', 'tour_operator'];
+            }
+          }
+
+          setAllowedCategories(permittedCats);
+          if (permittedCats.length > 0) {
+            setCategory(permittedCats[0]);
+            if (permittedCats[0] === 'tour_operator') setIsComposedBundle(true);
           }
         }
       })
@@ -629,7 +660,7 @@ export default function VendorPackagesPage() {
                     { id: 'restaurant', icon: 'fa-utensils', label_en: 'Dining', label_ar: 'مطاعم' },
                     { id: 'wellness', icon: 'fa-spa', label_en: 'Wellness', label_ar: 'استشفاء' },
                     { id: 'tour_operator', icon: 'fa-compass', label_en: 'Tour Bundler', label_ar: 'منظم رحلات' },
-                  ].map((cat) => (
+                  ].filter(cat => allowedCategories.length === 0 || allowedCategories.includes(cat.id as any)).map((cat) => (
                     <button
                       key={cat.id}
                       type="button"

@@ -15,6 +15,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
   const [sections, setSections] = useState<any[]>([]);
   const [tier, setTier] = useState<any>(null);
   const [adminControls, setAdminControls] = useState<Record<string, any>>({});
+  const [journeyModules, setJourneyModules] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -53,8 +54,30 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
         setAdminControls(controlsMap);
       }
 
+      const capRes = await fetch(`/api/jana/businesses/${id}/capabilities`);
+      const capData = await capRes.json();
+      if (capData?.success) {
+        setJourneyModules(capData.enabled_modules || []);
+      }
+
     } catch (e) { console.error(e); }
     setLoading(false);
+  }
+
+  async function toggleJourneyModule(modId: string) {
+    const next = journeyModules.includes(modId)
+      ? journeyModules.filter(m => m !== modId)
+      : [...journeyModules, modId];
+    setJourneyModules(next);
+    try {
+      await fetch(`/api/jana/businesses/${id}/capabilities`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled_modules: next })
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   const handleDataChange = (sectionId: string, name: string, value: any) => {
@@ -173,6 +196,36 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
                      <span style={{ fontWeight: 800, color: '#D4AF37' }}>{Object.keys(biz.custom_data || {}).length} / {sections.length}</span>
                    </div>
                 </div>
+
+                <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                     <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#1e293b', fontWeight: 800 }}>Journey Capabilities</h4>
+                     <Link href="/jana/journey-planner" style={{ fontSize: '0.7rem', color: '#D4AF37', textDecoration: 'none', fontWeight: 800 }}>Planner &rarr;</Link>
+                   </div>
+                   <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 1rem', lineHeight: 1.4 }}>
+                     Select which journey planner sectors this vendor can create packages and receive bookings for:
+                   </p>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                     {[
+                       { id: 'accommodation', label: '🏨 Accommodation & Stays' },
+                       { id: 'tours_safari', label: '🚙 Desert Safaris & Tours' },
+                       { id: 'activities_wellness', label: '🏄 Activities & Wellness' },
+                       { id: 'transportation', label: '🚐 Transfers & Logistics' },
+                       { id: 'dining', label: '🍽️ Dining & Bedouin Feasts' },
+                     ].map(m => (
+                       <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.75rem', color: '#1e293b', fontWeight: 600, cursor: 'pointer' }}>
+                         <input
+                           type="checkbox"
+                           checked={journeyModules.includes(m.id)}
+                           onChange={() => toggleJourneyModule(m.id)}
+                           style={{ accentColor: '#D4AF37' }}
+                         />
+                         {m.label}
+                       </label>
+                     ))}
+                   </div>
+                </div>
+
                 <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#1e293b' }}>Section Controls (Admin)</h4>
                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
