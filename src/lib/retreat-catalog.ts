@@ -4,10 +4,14 @@ import { DEFAULT_COMMERCIAL_ITEMS } from './commercial-catalog';
 const findItem = (id: string) => {
   const found = DEFAULT_COMMERCIAL_ITEMS.find(item => item.id === id);
   if (!found) {
-    throw new Error(`Catalog item not found: ${id}`);
+    console.warn(`[RetreatCatalog] Item ID "${id}" not found in commercial catalog. Using fallback.`);
+    const prefix = id.split('_')[0];
+    const fallback = DEFAULT_COMMERCIAL_ITEMS.find(item => item.id.startsWith(prefix)) || DEFAULT_COMMERCIAL_ITEMS[0];
+    return fallback;
   }
   return found;
 };
+
 
 export const SIGNATURE_RETREAT_PROGRAMS: RetreatProgram[] = [
   {
@@ -54,9 +58,10 @@ export const SIGNATURE_RETREAT_PROGRAMS: RetreatProgram[] = [
         vibe_view: 'Aghurmi Salt Lake Shore',
         vibe_color: '#0284c7',
         accommodation: findItem('acc_aghurmi_lake_sanctuary'),
-        transport: findItem('trans_airport_transfer'),
+        transport: findItem('trn_package_round_transfer'),
         dining: findItem('din_lake_candlelit'),
-        activity: findItem('act_salt_lake_floating'),
+        activity: findItem('act_salt_lake_float'),
+
 
         day_price: 4800,
         timeline: [
@@ -131,9 +136,10 @@ export const SIGNATURE_RETREAT_PROGRAMS: RetreatProgram[] = [
         vibe_view: 'Great Sand Sea Horizon',
         vibe_color: '#d97706',
         accommodation: findItem('acc_dunes_glamping_camp'),
-        transport: findItem('trans_safari_cruiser'),
+        transport: findItem('trn_landcruiser_4x4'),
         dining: findItem('din_package_dune_sunset'),
-        activity: findItem('act_cleopatra_bath'),
+        activity: findItem('act_package_oasis_wellness_day'),
+
         day_price: 5900,
         timeline: [
           {
@@ -221,10 +227,11 @@ export const SIGNATURE_RETREAT_PROGRAMS: RetreatProgram[] = [
         vibe_view: 'Old Shali Citadel & Olive Groves',
         vibe_color: '#15803d',
         accommodation: findItem('acc_taziry_standard'),
-        transport: findItem('trans_safari_cruiser'),
+        transport: findItem('trn_landcruiser_4x4'),
         dining: findItem('din_abdu_feast'),
-        activity: findItem('act_cleopatra_bath'),
-        tour: findItem('tour_temple_oracle'),
+        activity: findItem('act_package_oasis_wellness_day'),
+        tour: findItem('tur_shali_oracle_walk'),
+
         day_price: 2800,
         timeline: [
           {
@@ -333,9 +340,10 @@ SIGNATURE_RETREAT_PROGRAMS[1].days = [
     vibe_view: 'Mountain of the Dead & Palms',
     vibe_color: '#0d9488',
     accommodation: findItem('acc_taziry_standard'),
-    transport: findItem('trans_airport_transfer'),
+    transport: findItem('trn_package_round_transfer'),
     dining: findItem('din_abdu_feast'),
-    activity: findItem('act_salt_lake_floating'),
+    activity: findItem('act_salt_lake_float'),
+
     day_price: 3600,
     timeline: [
       {
