@@ -353,7 +353,7 @@ export default function CommercialBookingEngine({
         </div>
 
         {isModalOpen && (
-          <CommercialBookingModal item={item} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} accentColor={accentColor} />
+          <CommercialBookingModal item={item} onClose={() => setIsModalOpen(false)} accentColor={accentColor} />
         )}
       </div>
     );
@@ -874,7 +874,6 @@ export default function CommercialBookingEngine({
       {isModalOpen && (
         <CommercialBookingModal
           item={{ ...item, price: currentPrice }}
-          isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           accentColor={accentColor}
         />
