@@ -23,6 +23,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Packages', icon: '📦', href: '/admin/packages', badge: '12', badgeColor: '#f59e0b' },
       { label: 'Offers', icon: '🎁', href: '/admin/offers', badge: '8', badgeColor: '#f59e0b' },
       { label: 'Discounts', icon: '💰', href: '/admin/discounts', badge: '3', badgeColor: '#f59e0b' },
+      { label: 'Card Links Manager', icon: '🔗', href: '/admin/commercial-links', badge: 'NEW', badgeColor: '#6366f1' },
       { label: 'Investment Ops', icon: '💵', href: '/admin/investment-opportunities', badge: '6', badgeColor: '#f59e0b' },
       { label: 'Field Requests', icon: '💡', href: '/admin/field-requests' },
       { label: 'Submissions', icon: '📥', href: '/admin/submissions' },

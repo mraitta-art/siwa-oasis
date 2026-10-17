@@ -100,7 +100,69 @@ export interface CommercialItem {
   vehicle_type?: string;            // e.g. "VIP Pullman Sleeper Coach (AC, WiFi)"
   vehicle_capacity?: number;        // e.g. 45 seats or 4 seats
   amenities?: string[];             // e.g. ["AC", "WiFi", "Reclining Seats", "USB Charging", "Restroom"]
+
+  // Multi-Photo Gallery & Media
+  gallery_images?: string[];        // 3 to 6 photos for interactive card carousel
+
+  // Admin Configured Custom & Vendor Links (Registered Vendors, OTAs, Direct Contacts, etc.)
+  custom_links?: CardCustomLink[];
+
+  // External Price Benchmark & Trust Links (Booking.com, TripAdvisor, Viator, Google)
+  comparison_links?: ComparisonLinks;
+
+  // Direct Booking Hot Offer Perks
+  hot_offer?: HotOfferPerk;
+
+  // Local Executing Vendor / Operator Details
+  executing_partner?: ExecutingPartner;
 }
+
+export type CardLinkType = 
+  | 'platform_vendor'  // Registered Vendor on our platform
+  | 'external_ota'      // Booking.com, TripAdvisor, Viator, etc.
+  | 'direct_partner'   // External vendor not registered on our platform
+  | 'social_contact'   // WhatsApp, Instagram, Telegram, Phone
+  | 'custom';          // Custom website or review page
+
+export interface CardCustomLink {
+  id: string;
+  title: string;                 // e.g. "Booking.com Benchmark", "Official Taziry Lodge Page", "TripAdvisor Reviews"
+  url: string;                   // Target URL (e.g. "https://...", "/biz/taziry", "/vendors/123")
+  type: CardLinkType;
+  is_registered_vendor?: boolean;// When true, renders a distinctive verified platform badge
+  badge_text?: string;           // Optional chip text: e.g. "Platform Partner 🛡️", "Check Price ↗", "Viator"
+  benchmark_price?: number;      // Optional external OTA reference price to calculate direct savings
+  ota_name?: string;             // Optional label e.g. "Booking.com"
+  accent_color?: string;         // e.g. "#003580", "#00aa6c", "#D4AF37"
+  icon?: string;                 // e.g. "🏨", "⭐", "🌐", "💬", "🛡️", "↗"
+  is_active?: boolean;           // Allows admin to toggle visibility on/off
+}
+
+export interface ComparisonLinks {
+  booking_com_url?: string;
+  tripadvisor_url?: string;
+  viator_url?: string;
+  google_reviews_url?: string;
+  ota_benchmark_price?: number;
+  ota_name?: string; // e.g. 'Booking.com' | 'TripAdvisor' | 'Viator'
+}
+
+export interface HotOfferPerk {
+  title: string;                // e.g. 'Siwify Direct Hot Offer'
+  perk_description: string;     // e.g. 'Free Sunset Dunes Tea + Instant Direct Savings'
+  badge_label?: string;         // e.g. '🔥 HOT OFFER'
+  discount_percentage?: number; // e.g. 15
+}
+
+export interface ExecutingPartner {
+  name: string;                 // e.g. 'Great Sand Sea 4x4 Pilots Guild'
+  role_title: string;           // e.g. 'Licensed Desert Safari Operator'
+  verified_badge: string;       // e.g. 'Siwify Verified Partner'
+  external_profile_url?: string;// e.g. TripAdvisor or Google review link
+  rating?: number;
+  reviews_count?: number;
+}
+
 
 export interface BookingPayload {
 

@@ -26,12 +26,36 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     vibe_tags: ['heritage', 'silence', 'relaxation', 'organic_food'],
     check_in_time: '14:00',
     check_out_time: '11:00',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+      'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_benchmark_price: 2750,
+      ota_name: 'Booking.com'
+    },
+    hot_offer: {
+      title: 'Direct Booker VIP Advantage',
+      perk_description: 'Save 550 EGP vs Booking.com + Free Sunset Dunes Tea on arrival & late checkout',
+      badge_label: '🔥 HOT OFFER • SAVE 550 EGP'
+    },
+    executing_partner: {
+      name: 'Taziry Heritage Village Management',
+      role_title: 'Certified Eco-Lodge Property',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 84
+    },
     options: [
       { id: 'opt_standard', name_en: 'Standard King Room', name_ar: 'غرفة كينج قياسية', multiplier: 1.0, capacity: '2 Guests' },
       { id: 'opt_deluxe', name_en: 'Deluxe Palm Terrace Suite', name_ar: 'جناح ديلوكس مع تراس النخيل', multiplier: 1.35, capacity: '2-3 Guests' },
       { id: 'opt_family', name_en: 'Family 2-Bedroom Chalet', name_ar: 'شاليه عائلي غرفتين نوم', multiplier: 1.85, capacity: '4-5 Guests' }
     ]
   },
+
   {
     id: 'acc_aghurmi_lake_sanctuary',
     sector: 'accommodation',
@@ -56,6 +80,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     vibe_tags: ['lake_view', 'silence', 'meditation', 'relaxation'],
     check_in_time: '14:00',
     check_out_time: '11:00',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+      'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_benchmark_price: 3200,
+      ota_name: 'Booking.com'
+    },
+    hot_offer: {
+      title: 'Waterfront Sanctuary Direct Advantage',
+      perk_description: 'Save 600 EGP vs Booking.com + Free Sunset Salt Spa Access & Early 11:00 Check-in',
+      badge_label: '🔥 HOT OFFER • SAVE 600 EGP'
+    },
+    executing_partner: {
+      name: 'Aghurmi Salt Eco-Sanctuary',
+      role_title: 'Eco-Certified Lakeside Sanctuary',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 5.0,
+      reviews_count: 67
+    },
     options: [
       { id: 'opt_lake_chalet', name_en: 'Waterfront Meditation Chalet', name_ar: 'شاليه مواجه للبحيرة', multiplier: 1.0, capacity: '2 Guests' },
       { id: 'opt_lake_suite', name_en: 'Panoramic Salt Horizon Suite', name_ar: 'جناح بانورامي إطلالة ملحية', multiplier: 1.4, capacity: '2 Guests' }
@@ -85,6 +132,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     vibe_tags: ['desert_stars', 'silence', 'adventure'],
     check_in_time: '15:30',
     check_out_time: '10:30',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
+      'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_benchmark_price: 2950,
+      ota_name: 'TripAdvisor / OTA'
+    },
+    hot_offer: {
+      title: 'Stargazer Direct Package Deal',
+      perk_description: 'Save 550 EGP vs OTAs + Free Stargazing Telescope Session & Fireside Bedouin Tea',
+      badge_label: '🔥 HOT OFFER • SAVE 550 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Bedouin Nomad Expeditions',
+      role_title: 'Deep Desert Glamping Operator',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 95
+    },
     options: [
       { id: 'opt_bedouin_tent', name_en: 'Luxury Bedouin Dome Tent', name_ar: 'خيمة قبة بدوية فاخرة', multiplier: 1.0, capacity: '2 Guests' },
       { id: 'opt_sky_tent', name_en: 'Open Stargazer Sky Bed Suite', name_ar: 'سرير رصد النجوم المفتوح', multiplier: 1.25, capacity: '2 Guests' }
@@ -111,6 +181,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 19,
     price_unit: 'package',
     currency: 'EGP',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_benchmark_price: 9600,
+      ota_name: 'OTA Bundles'
+    },
+    hot_offer: {
+      title: 'Romantic Bundle VIP Direct Privilege',
+      perk_description: 'Save 1,800 EGP vs OTA standard bundle + Complimentary Private Candlelit Wine/Juice Setup',
+      badge_label: '🔥 HOT OFFER • SAVE 1,800 EGP'
+    },
+    executing_partner: {
+      name: 'Taziry Heritage Village Management',
+      role_title: 'Certified Eco-Lodge Property',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 84
+    },
     inclusions: [
       '3 Nights in Luxury Kershef Suite',
       'Daily Organic Farm Breakfast',
@@ -171,6 +264,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     menu_highlights: ['Pit-Roasted Mandi Lamb', 'Siwan Spiced Rice', 'Date Puree Soup', 'Fresh Mint Tea'],
     dietary_tags: ['Authentic Siwan Halal', 'Vegetarian Platter Option'],
     vibe_tags: ['heritage', 'organic_food', 'relaxation'],
+    gallery_images: [
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'
+    ],
+    comparison_links: {
+      tripadvisor_url: 'https://www.tripadvisor.com/Restaurants-g303856-Siwa_Matrouh_Governorate.html',
+      google_reviews_url: 'https://maps.google.com/?q=Abdu+Restaurant+Siwa',
+      ota_benchmark_price: 480,
+      ota_name: 'TripAdvisor Concierge'
+    },
+    hot_offer: {
+      title: 'Direct Reservation Gourmet Perk',
+      perk_description: 'Save 100 EGP vs Concierge Rates + Free Warm Siwan Date Puree Dessert & Mountain Mint Tea',
+      badge_label: '🔥 HOT OFFER • SAVE 100 EGP'
+    },
+    executing_partner: {
+      name: 'Chef Abdu Heritage Kitchen',
+      role_title: 'Siwan Gastronomic Pioneer',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.8,
+      reviews_count: 142
+    },
     options: [
       { id: 'opt_mandi_lamb', name_en: 'Pit-Roasted Lamb Mandi', name_ar: 'مندي لحم ضأن بلدي', multiplier: 1.0 },
       { id: 'opt_mandi_chicken', name_en: 'Desert Spiced Chicken', name_ar: 'دجاج محمر بالخلطة السيوية', multiplier: 0.8 },
@@ -205,6 +321,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     menu_highlights: ['Organic Garden Date Salad', 'Slow-Simmered Clay Pot Tajin', 'Cold-Pressed Olive Oil Tasting', 'Wild Lemongrass Infusion'],
     dietary_tags: ['100% Organic Farm-to-Table', 'Vegetarian & Vegan Specialties', 'Gluten-Free Available'],
     vibe_tags: ['lake_view', 'silence', 'meditation', 'relaxation'],
+    gallery_images: [
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'
+    ],
+    comparison_links: {
+      tripadvisor_url: 'https://www.tripadvisor.com/Restaurants-g303856-Siwa_Matrouh_Governorate.html',
+      google_reviews_url: 'https://maps.google.com/?q=Aghurmi+Lake+Dining+Siwa',
+      ota_benchmark_price: 550,
+      ota_name: 'TripAdvisor Luxury Dining'
+    },
+    hot_offer: {
+      title: 'Waterfront Prime Table Advantage',
+      perk_description: 'Save 130 EGP vs External Agents + Guaranteed Waterfront Front-Row Seating & Free Pomegranate Cocktail',
+      badge_label: '🔥 HOT OFFER • SAVE 130 EGP'
+    },
+    executing_partner: {
+      name: 'Aghurmi Sanctuary Culinary Crew',
+      role_title: 'Organic Farm-to-Table Specialists',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 5.0,
+      reviews_count: 88
+    },
     options: [
       { id: 'opt_organic_tajin', name_en: 'Clay-pot Organic Lamb Tajin', name_ar: 'طاجن لحم بلدي في الفخار', multiplier: 1.0 },
       { id: 'opt_lake_vegan', name_en: 'Raw Garden Vegan Symphony', name_ar: 'وجبة الحديقة النباتية النقية', multiplier: 0.75 }
@@ -240,6 +379,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     menu_highlights: ['Pit-Roasted Underground Lamb', 'Desert Hearth Bread', 'Charcoal Roasted Vegetables', 'Traditional Zarda Tea'],
     dietary_tags: ['Farm-to-Table Meat & Produce', 'Gluten-Free Friendly'],
     vibe_tags: ['desert_stars', 'silence', 'adventure'],
+    gallery_images: [
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
+      'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80'
+    ],
+    comparison_links: {
+      viator_url: 'https://www.viator.com/Egypt-tours/Desert-Dining/d723-g12',
+      tripadvisor_url: 'https://www.tripadvisor.com/Restaurants-g303856-Siwa_Matrouh_Governorate.html',
+      ota_benchmark_price: 2400,
+      ota_name: 'Viator VIP Desert'
+    },
+    hot_offer: {
+      title: 'Private Dunes Stargazer Hot Offer',
+      perk_description: 'Save 550 EGP vs Viator + Free Professional Astronomical Telescope Stargazing Guide & S\'mores Bonfire Kit',
+      badge_label: '🔥 HOT OFFER • SAVE 550 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Desert Bedouin Masters',
+      role_title: 'Nomadic Desert Hospitality Crew',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 110
+    },
     inclusions: [
       'Private 4x4 round-trip transfer to secluded dune',
       'Lantern and carpet luxury setup with bonfire',
