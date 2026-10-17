@@ -48,7 +48,36 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
     allowed: [...COMMON_TEXT, 'initialProgramId', 'program_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
     defaults: { initialProgramId: 'retreat_silence_3days' },
   },
+  reservation_accommodation: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'accommodation', defaultKind: 'all' },
+  },
+  reservation_dining: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'dining', defaultKind: 'all' },
+  },
+  reservation_transportation: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'transports', defaultKind: 'all' },
+  },
+  reservation_transports: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'transports', defaultKind: 'all' },
+  },
+  reservation_activities: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'activities', defaultKind: 'all' },
+  },
+  reservation_tours: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'tours', defaultKind: 'all' },
+  },
+  reservation_products: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'products', defaultKind: 'all' },
+  },
 };
+
 
 
 

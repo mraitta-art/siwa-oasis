@@ -1,6 +1,8 @@
 import React from 'react';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import DynamicSectorBookingShowcase from '@/components/DynamicSectorBookingShowcase';
+import RetreatProgramBuilder from '@/components/RetreatProgramBuilder';
+
 
 /**
  * Strip dangerous HTML tags/attributes to mitigate XSS.
@@ -194,20 +196,45 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
       );
 
     case 'sector_booking_showcase':
-
     case 'commercial_deals_matrix':
+    case 'reservation_accommodation':
+    case 'reservation_dining':
+    case 'reservation_transportation':
+    case 'reservation_transports':
+    case 'reservation_activities':
+    case 'reservation_tours':
+    case 'reservation_products': {
+      const explicitSector = 
+        type === 'reservation_accommodation' ? 'accommodation' :
+        type === 'reservation_dining' ? 'dining' :
+        (type === 'reservation_transportation' || type === 'reservation_transports') ? 'transports' :
+        type === 'reservation_activities' ? 'activities' :
+        type === 'reservation_tours' ? 'tours' :
+        type === 'reservation_products' ? 'products' :
+        (props?.sector || 'all');
+
       return (
         <DynamicSectorBookingShowcase
-          sector={props?.sector || 'all'}
+          sector={explicitSector}
           businessId={props?.businessId || props?.business_id}
           businessSlug={props?.businessSlug || props?.business_slug}
           title={props?.title || resolvedTitle}
           subtitle={props?.subtitle}
           accentColor={props?.accentColor || props?.primary_color || '#D4AF37'}
           defaultKind={props?.defaultKind || (type === 'commercial_deals_matrix' ? 'offer' : 'all')}
-          allowSectorSwitching={props?.allowSectorSwitching !== false && !props?.businessId && !props?.business_slug}
+          allowSectorSwitching={props?.allowSectorSwitching !== false && explicitSector === 'all' && !props?.businessId && !props?.business_slug}
         />
       );
+    }
+
+    case 'retreat_program_builder':
+      return (
+        <RetreatProgramBuilder
+          initialProgramId={props?.initialProgramId || props?.program_id || 'retreat_silence_3days'}
+          accentColor={props?.accentColor || props?.primary_color || '#D4AF37'}
+        />
+      );
+
 
     default:
 

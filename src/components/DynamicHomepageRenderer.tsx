@@ -243,23 +243,41 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: Sectio
         </AnimatedSection>
       );
 
-    // ─── SECTOR BOOKING SHOWCASE (ACCOMMODATION, DINING, PRODUCTS, TRANSPORTS, ACTIVITIES, TOURS) ──
+    // ─── SECTOR BOOKING SHOWCASE & DEDICATED RESERVATION MODULES ──
     case 'sector_booking_showcase':
     case 'commercial_deals_matrix':
+    case 'reservation_accommodation':
+    case 'reservation_dining':
+    case 'reservation_transportation':
+    case 'reservation_transports':
+    case 'reservation_activities':
+    case 'reservation_tours':
+    case 'reservation_products': {
+      const explicitSector = 
+        type === 'reservation_accommodation' ? 'accommodation' :
+        type === 'reservation_dining' ? 'dining' :
+        (type === 'reservation_transportation' || type === 'reservation_transports') ? 'transports' :
+        type === 'reservation_activities' ? 'activities' :
+        type === 'reservation_tours' ? 'tours' :
+        type === 'reservation_products' ? 'products' :
+        (props?.sector || 'all');
+
       return (
         <AnimatedSection>
           <DynamicSectorBookingShowcase
-            sector={props?.sector || 'all'}
+            sector={explicitSector}
             businessId={props?.businessId || props?.business_id}
             businessSlug={props?.businessSlug || props?.business_slug}
             title={props?.title}
             subtitle={props?.subtitle}
             accentColor={props?.accentColor || siteSettings?.primary_color || '#D4AF37'}
-            defaultKind={props?.defaultKind || 'all'}
-            allowSectorSwitching={props?.allowSectorSwitching !== false}
+            defaultKind={props?.defaultKind || (type === 'commercial_deals_matrix' ? 'offer' : 'all')}
+            allowSectorSwitching={props?.allowSectorSwitching !== false && explicitSector === 'all'}
           />
         </AnimatedSection>
       );
+    }
+
 
     // ─── RETREAT PROGRAM BUILDER ──────────────────────────
     case 'retreat_program_builder':
