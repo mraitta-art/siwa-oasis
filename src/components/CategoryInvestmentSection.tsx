@@ -86,23 +86,25 @@ export default function CategoryInvestmentSection({ typeId, label }: { typeId: s
         </div>
       )}
       <style jsx>{`
-        .category-investments { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 3rem; color: #17251d; }
-        .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-        .eyebrow { margin: 0 0 0.4rem; color: #9a6a24; font-size: 0.68rem; font-weight: 850; letter-spacing: 1px; }
-        h2 { margin: 0; font-size: 1.3rem; }
-        .section-heading > a { color: #28543c; font-size: 0.75rem; font-weight: 800; }
-        .investment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.8rem; }
-        .investment-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid #dce5de; border-radius: 6px; background: #fff; padding: 1rem; }
-        .category { margin: 0 0 0.45rem; color: #92612a; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
-        h3 { margin: 0; font-size: 1rem; line-height: 1.4; }
-        .owner { margin: 0.45rem 0 0; color: #607165; font-size: 0.75rem; }
-        .owner strong { color: #234b37; }
-        .terms { display: grid; gap: 0.3rem; margin: 0.8rem 0; color: #355c43; font-size: 0.73rem; }
-        .providers { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; border-top: 1px solid #e8eee9; padding-top: 0.7rem; }
-        .providers > span:first-child { flex-basis: 100%; color: #77867b; font-size: 0.64rem; font-weight: 850; text-transform: uppercase; }
-        .providers a, .providers > span:not(:first-child) { border: 1px solid #dbe7dd; border-radius: 3px; padding: 0.25rem 0.4rem; color: #2c5741; font-size: 0.68rem; }
-        .owner-link { display: block; margin-top: 0.75rem; border-radius: 4px; background: #1b4335; padding: 0.6rem; color: #fff; font-size: 0.72rem; font-weight: 800; text-align: center; text-decoration: none; }
-        .state { border: 1px dashed #c8d4ca; padding: 1.5rem 1rem; color: #617367; text-align: center; }
+        .category-investments { max-width: 1200px; margin: 0 auto; padding: 3rem 1rem 4rem; color: #f8fafc; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+        .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+        .eyebrow { margin: 0 0 0.4rem; color: #D4AF37; font-size: 0.68rem; font-weight: 850; letter-spacing: 2px; }
+        h2 { margin: 0; font-size: 1.3rem; font-weight: 800; color: #f8fafc; }
+        .section-heading > a { color: #D4AF37; font-size: 0.75rem; font-weight: 800; text-decoration: none; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 2px; }
+        .investment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+        .investment-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 14px; background: #0f172a; padding: 1.25rem; box-shadow: 0 4px 24px rgba(0,0,0,0.3); transition: transform 0.2s, box-shadow 0.2s; }
+        .investment-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.2); }
+        .category { margin: 0 0 0.45rem; color: #D4AF37; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { margin: 0; font-size: 1rem; line-height: 1.4; color: #f8fafc; font-weight: 700; }
+        .owner { margin: 0.45rem 0 0; color: rgba(248, 250, 252, 0.6); font-size: 0.75rem; }
+        .owner strong { color: #D4AF37; }
+        .terms { display: grid; gap: 0.3rem; margin: 0.8rem 0; color: #10b981; font-size: 0.73rem; }
+        .providers { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.7rem; }
+        .providers > span:first-child { flex-basis: 100%; color: rgba(248, 250, 252, 0.4); font-size: 0.64rem; font-weight: 850; text-transform: uppercase; letter-spacing: 0.5px; }
+        .providers a, .providers > span:not(:first-child) { border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 0.25rem 0.5rem; color: rgba(248, 250, 252, 0.75); font-size: 0.68rem; background: rgba(255, 255, 255, 0.04); text-decoration: none; }
+        .owner-link { display: block; margin-top: 0.85rem; border-radius: 8px; background: linear-gradient(135deg, #D4AF37 0%, #b89327 100%); padding: 0.65rem; color: #000; font-size: 0.72rem; font-weight: 850; text-align: center; text-decoration: none; letter-spacing: 0.5px; transition: opacity 0.15s; }
+        .owner-link:hover { opacity: 0.9; }
+        .state { border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 12px; background: rgba(15, 23, 42, 0.4); padding: 2rem 1rem; color: rgba(248, 250, 252, 0.45); text-align: center; font-size: 0.85rem; }
         @media (max-width: 620px) { .section-heading { align-items: start; flex-direction: column; } }
       `}</style>
     </section>

@@ -37,14 +37,14 @@ export default function MarketplaceHeader({
   title = 'SiWiFy',
   activePath,
   navLinks = CANONICAL_NAV_LINKS,
-  accentColor = '#475569',
+  accentColor = '#D4AF37',
   brandLabel = 'SIWIFY',
   brandIcon = 'fa-sun',
   brandImage = '',
   logoHeight = 32,
   showBrand = true,
-  backgroundColor = 'rgba(255, 255, 255, 0.86)',
-  textColor = '#475569',
+  backgroundColor = 'rgba(7, 11, 18, 0.92)',
+  textColor = 'rgba(248, 250, 252, 0.85)',
 }: MarketplaceHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -54,11 +54,11 @@ export default function MarketplaceHeader({
         position: 'sticky',
         top: 0,
         zIndex: 1200,
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         background: backgroundColor,
-        borderBottom: '1px solid rgba(15, 23, 42, 0.07)',
-        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
+        borderBottom: '1px solid rgba(212, 175, 55, 0.12)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
       }}
     >
       <div
@@ -80,14 +80,14 @@ export default function MarketplaceHeader({
               display: 'flex',
               alignItems: 'center',
               gap: '0.45rem',
-              color: textColor,
+              color: '#f8fafc',
               fontWeight: 900,
               fontSize: '0.96rem',
               letterSpacing: '2.2px',
             }}
           >
             {brandImage
-              ? <img src={brandImage} alt="" style={{ height: `${Math.max(16, Math.min(120, logoHeight))}px`, width: 'auto', maxWidth: 180, objectFit: 'contain' }} />
+              ? <img src={brandImage} alt="" style={{ height: `clamp(16px, ${Math.max(16, Math.min(120, logoHeight))}px, 120px)`, width: 'auto', maxWidth: 180, objectFit: 'contain' }} />
               : <>
                   {brandIcon && <i className={`fas ${brandIcon}`} style={{ color: accentColor, fontSize: '0.95rem' }} />}
                   {brandLabel && <span>{brandLabel}</span>}
@@ -97,9 +97,10 @@ export default function MarketplaceHeader({
             <span
               style={{
                 fontSize: '0.7rem',
-                color: '#64748b',
+                color: accentColor,
+                opacity: 0.8,
                 fontWeight: 700,
-                borderLeft: '1px solid rgba(15, 23, 42, 0.12)',
+                borderLeft: '1px solid rgba(212, 175, 55, 0.2)',
                 paddingLeft: '0.7rem',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -137,9 +138,9 @@ export default function MarketplaceHeader({
                   padding: '0.52rem 0.7rem',
                   borderRadius: '999px',
                   transition: 'all 0.2s ease',
-                  background: isActive ? '#f8fafc' : 'transparent',
-                  color: textColor,
-                  border: isActive ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid transparent',
+                  background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
+                  color: isActive ? '#D4AF37' : 'rgba(248, 250, 252, 0.72)',
+                  border: isActive ? '1px solid rgba(212,175,55,0.25)' : '1px solid transparent',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -147,7 +148,7 @@ export default function MarketplaceHeader({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {link.icon && <i className={`fas ${link.icon}`} style={{ fontSize: '0.68rem' }} />}
+                {link.icon && <i className={`fas ${link.icon}`} style={{ fontSize: '0.68rem', color: isActive ? accentColor : 'rgba(248,250,252,0.45)' }} />}
                 <span>{link.label}</span>
               </Link>
             );
@@ -159,10 +160,10 @@ export default function MarketplaceHeader({
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle navigation menu"
           style={{
-            background: backgroundColor,
-            border: '1px solid rgba(15, 23, 42, 0.08)',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(212,175,55,0.2)',
             borderRadius: '10px',
-            color: textColor,
+            color: '#ffffff',
             padding: '0.55rem 0.7rem',
             fontSize: '0.96rem',
             cursor: 'pointer',
@@ -178,15 +179,15 @@ export default function MarketplaceHeader({
       {mobileMenuOpen && (
         <div
           style={{
-            background: backgroundColor,
-            borderTop: '1px solid rgba(15, 23, 42, 0.08)',
+            background: 'rgba(7, 11, 18, 0.97)',
+            borderTop: '1px solid rgba(212,175,55,0.12)',
             padding: '0.85rem 1rem 1.15rem',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.45rem',
             maxHeight: 'calc(100vh - 70px)',
             overflowY: 'auto',
-            boxShadow: '0 18px 35px rgba(15, 23, 42, 0.06)',
+            boxShadow: '0 18px 35px rgba(0, 0, 0, 0.4)',
           }}
         >
           {navLinks.map((link) => {
@@ -205,12 +206,12 @@ export default function MarketplaceHeader({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.7rem',
-                  background: isActive ? '#f8fafc' : 'transparent',
-                  color: textColor,
-                  border: isActive ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(15, 23, 42, 0.05)',
+                  background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
+                  color: isActive ? '#D4AF37' : 'rgba(248, 250, 252, 0.72)',
+                  border: isActive ? '1px solid rgba(212,175,55,0.25)' : '1px solid rgba(212,175,55,0.06)',
                 }}
               >
-                {link.icon && <i className={`fas ${link.icon}`} style={{ width: '18px', textAlign: 'center', color: accentColor }} />}
+                {link.icon && <i className={`fas ${link.icon}`} style={{ width: '18px', textAlign: 'center', color: isActive ? accentColor : 'rgba(248,250,252,0.45)' }} />}
                 <span>{link.label}</span>
               </Link>
             );

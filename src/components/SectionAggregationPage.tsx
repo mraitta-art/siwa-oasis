@@ -105,17 +105,17 @@ function getWhatsAppLink(phone: string | null): string | null {
 function SkeletonCard() {
   return (
     <div style={{
-      background: '#fff',
+      background: '#0f172a',
       borderRadius: '16px',
       overflow: 'hidden',
       boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       animation: 'pulse 1.5s ease-in-out infinite',
     }}>
-      <div style={{ height: '180px', background: '#e2e8f0' }} />
+      <div style={{ height: '180px', background: '#1e293b' }} />
       <div style={{ padding: '1rem' }}>
-        <div style={{ height: '12px', background: '#e2e8f0', borderRadius: '6px', marginBottom: '0.5rem', width: '60%' }} />
-        <div style={{ height: '10px', background: '#f1f5f9', borderRadius: '6px', width: '40%' }} />
-        <div style={{ height: '36px', background: '#f1f5f9', borderRadius: '8px', marginTop: '1rem' }} />
+        <div style={{ height: '12px', background: '#1e293b', borderRadius: '6px', marginBottom: '0.5rem', width: '60%' }} />
+        <div style={{ height: '10px', background: '#1e293b', borderRadius: '6px', width: '40%' }} />
+        <div style={{ height: '36px', background: '#1e293b', borderRadius: '8px', marginTop: '1rem' }} />
       </div>
     </div>
   );
@@ -143,7 +143,7 @@ function VendorCard({
   return (
     <article
       style={{
-        background: '#fff',
+        background: '#0f172a',
         borderRadius: '16px',
         overflow: 'hidden',
         boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
@@ -151,11 +151,11 @@ function VendorCard({
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
         cursor: 'pointer',
-        border: isTrusted ? `1.5px solid ${accentColor}33` : '1.5px solid transparent',
+        border: isTrusted ? '1.5px solid rgba(212,175,55,0.35)' : '1px solid rgba(255,255,255,0.06)',
       }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(0,0,0,0.13)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-6px)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.18)';
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLElement).style.transform = 'none';
@@ -163,7 +163,7 @@ function VendorCard({
       }}
     >
       {/* Cover Image */}
-      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#e2e8f0' }}>
+      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#1e293b' }}>
         <img
           src={coverSrc}
           alt={vendor.name}
@@ -206,7 +206,7 @@ function VendorCard({
           <div style={{
             position: 'absolute', bottom: '10px', left: '12px',
             width: '40px', height: '40px', borderRadius: '50%',
-            background: '#fff', overflow: 'hidden',
+            background: '#1e293b', overflow: 'hidden',
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -234,7 +234,7 @@ function VendorCard({
 
       {/* Card body */}
       <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-        <div style={{ fontWeight: 800, fontSize: 'clamp(0.85rem, 1.5vw, 1rem)', color: '#1e293b', lineHeight: 1.3 }}>
+        <div style={{ fontWeight: 800, fontSize: 'clamp(0.85rem, 1.5vw, 1rem)', color: '#f8fafc', lineHeight: 1.3 }}>
           {vendor.name}
         </div>
 
@@ -248,7 +248,7 @@ function VendorCard({
         )}
 
         {price && (
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(248,250,252,0.55)', fontWeight: 600 }}>
             From {price}
           </div>
         )}
@@ -383,7 +383,7 @@ export default function SectionAggregationPage({
   // ── Admin builder layout overrides ───────────────────────────────────────────
   if (builderConfig) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #070B12)' }}>
         <DynamicHomepageRenderer
           layout={builderConfig.layout}
           settings={builderConfig.site_settings || null}
@@ -410,7 +410,7 @@ export default function SectionAggregationPage({
 
   // ── Full auto-aggregation page ────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#070B12', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
@@ -427,21 +427,21 @@ export default function SectionAggregationPage({
 
       {/* ── Hero Banner ─────────────────────────────────────────────────────── */}
       <section style={{
-        background: `linear-gradient(135deg, #0f172a 0%, #1e293b 100%)`,
+        background: `linear-gradient(160deg, #070B12 0%, #0f172a 50%, #0b1520 100%)`,
         color: '#fff',
         padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem)',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Accent glow */}
+        {/* Cinematic radial glow */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: 'min(600px, 80vw)', height: '200px',
-          background: resolvedAccent,
-          opacity: 0.07, borderRadius: '50%',
-          filter: 'blur(80px)',
+          background: `radial-gradient(ellipse at center, ${resolvedAccent} 0%, transparent 70%)`,
+          opacity: 0.10, borderRadius: '50%',
+          filter: 'blur(60px)',
           pointerEvents: 'none',
         }} />
 
@@ -466,13 +466,14 @@ export default function SectionAggregationPage({
             fontSize: 'clamp(1.75rem, 4vw, 3rem)',
             fontWeight: 900, marginBottom: '1rem',
             letterSpacing: '-0.02em', lineHeight: 1.2,
+            color: '#f8fafc',
           }}>
             {pageLabel}
           </h1>
 
           <p style={{
             fontSize: 'clamp(0.9rem, 1.8vw, 1.15rem)',
-            opacity: 0.75, maxWidth: '600px', margin: '0 auto 2rem',
+            color: 'rgba(255,255,255,0.65)', maxWidth: '600px', margin: '0 auto 2rem',
             lineHeight: 1.7,
           }}>
             {description}
@@ -568,7 +569,7 @@ function VendorGrid({
               {sectionMeta?.emoji} {sectionMeta?.label}
             </div>
           )}
-          <div style={{ fontWeight: 800, fontSize: 'clamp(1rem, 2vw, 1.35rem)', color: '#1e293b' }}>
+          <div style={{ fontWeight: 800, fontSize: 'clamp(1rem, 2vw, 1.35rem)', color: '#f8fafc' }}>
             {loading
               ? 'Loading partners…'
               : `${totalVendors} ${totalVendors === 1 ? 'Partner' : 'Partners'} Found`}
@@ -588,25 +589,30 @@ function VendorGrid({
 
         {/* Search input */}
         <div style={{ position: 'relative', flexShrink: 0, minWidth: 'min(280px, 100%)' }}>
+          <style>{`
+            .sap-search-input::placeholder { color: rgba(248,250,252,0.35); }
+          `}</style>
           <i className="fas fa-search" style={{
             position: 'absolute', left: '12px', top: '50%',
-            transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.8rem', pointerEvents: 'none',
+            transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', pointerEvents: 'none',
           }} />
           <input
             type="search"
             value={search}
             onChange={e => onSearch(e.target.value)}
             placeholder="Search partners…"
+            className="sap-search-input"
             style={{
               paddingLeft: '2.2rem', paddingRight: '1rem',
               paddingTop: '0.6rem', paddingBottom: '0.6rem',
-              borderRadius: '50px', border: '2px solid #e2e8f0',
+              borderRadius: '50px', border: '1.5px solid rgba(255,255,255,0.08)',
               fontSize: '0.85rem', outline: 'none', width: '100%',
-              boxSizing: 'border-box', background: '#fff',
+              boxSizing: 'border-box', background: '#1e293b',
+              color: '#f8fafc',
               transition: 'border-color 0.15s',
             }}
             onFocus={e => { (e.target as HTMLInputElement).style.borderColor = accentColor; }}
-            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = '#e2e8f0'; }}
+            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
           />
         </div>
       </div>
@@ -624,14 +630,14 @@ function VendorGrid({
         /* Empty state */
         <div style={{
           textAlign: 'center', padding: 'clamp(3rem, 8vw, 6rem) 1rem',
-          background: '#fff', borderRadius: '20px',
-          border: '2px dashed #e2e8f0',
+          background: '#0f172a', borderRadius: '20px',
+          border: '2px dashed rgba(255,255,255,0.08)',
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{sectionMeta?.emoji || '🏔️'}</div>
-          <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>
+          <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#f8fafc', marginBottom: '0.5rem' }}>
             {search ? 'No results found' : 'No partners yet'}
           </div>
-          <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+          <p style={{ color: 'rgba(255,255,255,0.5)', maxWidth: '400px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
             {search
               ? `No partners match "${search}" in this section. Try a broader search.`
               : `This section doesn't have any registered partners yet. Be the first to join!`}
@@ -694,6 +700,8 @@ function VendorGrid({
           display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
           alignItems: 'center', justifyContent: 'space-between',
           color: '#fff',
+          boxShadow: '0 0 80px rgba(212,175,55,0.06) inset',
+          border: '1px solid rgba(212,175,55,0.1)',
         }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', marginBottom: '0.35rem' }}>

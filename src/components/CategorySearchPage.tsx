@@ -3,7 +3,7 @@
 /**
  * CategorySearchPage
  * ─────────────────────────────────────────────────────────────────────────────
- * Used by: /activities, /restaurants, /accommodations, /crafts-wellness
+ * Used by all Siwify brand sector pages (/siwa-stay, /siwa-go, /siwa-table…)
  *
  * Priority:
  *  1. Admin has configured a builder layout → render DynamicHomepageRenderer
@@ -96,6 +96,38 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
   'arts_culture,education_research,events_entertainment,media_content,services_professional': 'siwa-society',
 };
 
+// ─── Per-sector hero background images ───────────────────────────────────────
+const SECTOR_HERO: Record<string, { image: string; tagline: string; gradient: string }> = {
+  'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(40,122,85,0.28) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(40,88,122,0.28) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-table':      { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(180,83,60,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-retreats':   { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(88,118,90,0.32) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-products':   { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(155,104,50,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-move':       { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(161,93,43,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-invest':     { image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1400', tagline: 'Invest in the next Siwa story', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(152,113,58,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-society':    { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(100,119,107,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-experiences':{ image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(40,122,85,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+};
+
+const DEFAULT_HERO = {
+  image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400',
+  tagline: 'Discover the magic of Siwa Oasis',
+  gradient: 'linear-gradient(160deg,rgba(7,11,18,0.85) 0%,rgba(15,23,42,0.6) 60%,rgba(7,11,18,0.95) 100%)',
+};
+
+// ─── Sector icon map ──────────────────────────────────────────────────────────
+const SECTOR_ICON: Record<string, string> = {
+  'siwa-stay': 'fa-hotel',
+  'siwa-go': 'fa-compass',
+  'siwa-table': 'fa-utensils',
+  'siwa-retreats': 'fa-spa',
+  'siwa-products': 'fa-store',
+  'siwa-move': 'fa-car',
+  'siwa-invest': 'fa-chart-line',
+  'siwa-society': 'fa-people-group',
+  'siwa-experiences': 'fa-map-marked-alt',
+};
+
 export default function CategorySearchPage({
   category,
   label,
@@ -126,6 +158,9 @@ export default function CategorySearchPage({
     `${category}s`
   );
 
+  const heroConfig = SECTOR_HERO[pageSlug || ''] || DEFAULT_HERO;
+  const sectorIcon = SECTOR_ICON[pageSlug || ''] || 'fa-sun';
+
   useEffect(() => {
     let cancelled = false;
     async function loadBusinessTypes() {
@@ -138,7 +173,6 @@ export default function CategorySearchPage({
         const parentsData = parentsResponse.ok ? await parentsResponse.json() : [];
         let allParents: BusinessType[] = Array.isArray(parentsData) ? parentsData : [];
 
-        // Check if admin has configured specific parent categories for this page
         let allowedParentIds: string[] | null = null;
         if (visibilityResponse && visibilityResponse.ok) {
           const visData = await visibilityResponse.json();
@@ -147,7 +181,6 @@ export default function CategorySearchPage({
           }
         }
 
-        // Fallback default: if the category prop is a comma-separated list of parents, restrict to them
         if (!allowedParentIds && category.includes(',')) {
           allowedParentIds = category.split(',').map(c => c.trim().toLowerCase());
         }
@@ -196,24 +229,160 @@ export default function CategorySearchPage({
     || (parentTypes.some(type => type.id === category) ? category : '');
   const fixedParent = parentTypes.find(type => type.id === fixedParentId);
   const fixedParentName = fixedParent?.name || label;
+
+  // ─── Dark cinematic pill filter bar ──────────────────────────────────────────
   const categorySelector = (
-    <section aria-label="Filter businesses by category" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', padding: '1rem clamp(1rem, 3vw, 2rem)', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-      {!fixedParentId && (
-        <label style={{ display: 'grid', gap: '0.3rem', color: '#526459', fontSize: '0.7rem', fontWeight: 800 }}>
-          Parent category
-          <select value={selectedParentId} onChange={event => { setSelectedParentId(event.target.value); setSelectedChildId(''); }} style={{ minWidth: 210, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: 5, background: '#fff', color: '#17251d' }}>
-            <option value="">Combined / select a sector</option>
-            {parentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-          </select>
-        </label>
+    <section
+      aria-label="Filter businesses by category"
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '0.6rem',
+        flexWrap: 'wrap',
+        padding: '1.25rem clamp(1rem, 3vw, 2rem)',
+        background: 'rgba(11, 17, 32, 0.85)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+      }}
+    >
+      {!fixedParentId && parentTypes.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'center' }}>Sector</span>
+          {parentTypes.map(type => {
+            const isActive = selectedParentId === type.id;
+            return (
+              <button
+                key={type.id}
+                onClick={() => { setSelectedParentId(type.id); setSelectedChildId(''); }}
+                style={{
+                  background: isActive ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+                  border: isActive ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '50px',
+                  color: isActive ? '#D4AF37' : 'rgba(248,250,252,0.65)',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.42rem 0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {type.name}
+              </button>
+            );
+          })}
+          {selectedParentId && (
+            <button
+              onClick={() => { setSelectedParentId(''); setSelectedChildId(''); }}
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '50px',
+                color: 'rgba(255,255,255,0.35)',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '0.42rem 0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Clear
+            </button>
+          )}
+        </div>
       )}
-      <label style={{ display: 'grid', gap: '0.3rem', color: '#526459', fontSize: '0.7rem', fontWeight: 800 }}>
-        {fixedParentId ? `${fixedParentName} type` : 'Business type'}
-        <select value={selectedChildId} disabled={!selectedParentId} onChange={event => setSelectedChildId(event.target.value)} style={{ minWidth: 210, padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: 5, background: '#fff', color: '#17251d' }}>
-          <option value="">{fixedParentId ? `All ${fixedParentName.toLowerCase()} types` : 'All types in category'}</option>
-          {childTypes.filter(type => type.parent_id === selectedParentId).map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-        </select>
-      </label>
+
+      {selectedParentId && childTypes.filter(type => type.parent_id === selectedParentId).length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'center' }}>
+            {fixedParentId ? `${fixedParentName} type` : 'Type'}
+          </span>
+          <button
+            onClick={() => setSelectedChildId('')}
+            style={{
+              background: !selectedChildId ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+              border: !selectedChildId ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '50px',
+              color: !selectedChildId ? '#D4AF37' : 'rgba(248,250,252,0.55)',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              padding: '0.42rem 0.9rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            All types
+          </button>
+          {childTypes.filter(type => type.parent_id === selectedParentId).map(type => {
+            const isActive = selectedChildId === type.id;
+            return (
+              <button
+                key={type.id}
+                onClick={() => setSelectedChildId(type.id)}
+                style={{
+                  background: isActive ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+                  border: isActive ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '50px',
+                  color: isActive ? '#D4AF37' : 'rgba(248,250,252,0.65)',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.42rem 0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {type.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* When fixedParentId: show only child type pills in a single row */}
+      {fixedParentId && childTypes.filter(type => type.parent_id === selectedParentId).length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+          <button
+            onClick={() => setSelectedChildId('')}
+            style={{
+              background: !selectedChildId ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+              border: !selectedChildId ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '50px',
+              color: !selectedChildId ? '#D4AF37' : 'rgba(248,250,252,0.55)',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              padding: '0.42rem 0.9rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            All {fixedParentName.toLowerCase()} types
+          </button>
+          {childTypes.filter(type => type.parent_id === selectedParentId).map(type => {
+            const isActive = selectedChildId === type.id;
+            return (
+              <button
+                key={type.id}
+                onClick={() => setSelectedChildId(type.id)}
+                style={{
+                  background: isActive ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+                  border: isActive ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '50px',
+                  color: isActive ? '#D4AF37' : 'rgba(248,250,252,0.65)',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.42rem 0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {type.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 
@@ -225,7 +394,6 @@ export default function CategorySearchPage({
     CATEGORY_TO_SECTION[typeParentId] ||
     'sec_1_identity';
 
-  // Resolve page config key
   const pagePath = effectivePageKey;
 
   useEffect(() => {
@@ -267,7 +435,6 @@ export default function CategorySearchPage({
 
   // ── Admin builder layout — renders it, PLUS appends vendor grid below ───────
   if (builderConfig) {
-    // Ensure search_bar sections carry the correct category
     const resolvedLayout = builderConfig.layout.map((section: any) => {
       if (section?.type === 'search_bar') {
         return { ...section, props: { ...(section.props || {}), defaultCategory: selectedTypeId } };
@@ -283,7 +450,7 @@ export default function CategorySearchPage({
       : resolvedLayout;
 
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
+      <div style={{ minHeight: '100vh', background: '#070B12' }}>
         <MarketplaceHeader
           title={label}
           accentColor={accent}
@@ -316,11 +483,122 @@ export default function CategorySearchPage({
   const isPlanningCategory = ['accommodation', 'accommodations', 'food', 'restaurants', 'restaurant', 'adventure', 'activity', 'activities', 'logistics', 'transportation', 'wellness'].includes(category.toLowerCase()) || Boolean(pageSlug?.startsWith('siwa-'));
 
   return (
-    <>
+    <div style={{ minHeight: '100vh', background: '#070B12' }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+        @keyframes heroPulse { 0%,100% { transform: scale(1.02); } 50% { transform: scale(1.06); } }
+      `}</style>
+
       <MarketplaceHeader
         title={label}
         accentColor={accent}
       />
+
+      {/* ── Cinematic per-sector hero ──────────────────────────────────────── */}
+      <section style={{
+        position: 'relative',
+        height: 'clamp(340px, 52vw, 600px)',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {/* Hero background image with Ken Burns */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `url(${heroConfig.image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          animation: 'heroPulse 20s ease-in-out infinite',
+          transformOrigin: 'center',
+        }} />
+
+        {/* Cinematic gradient overlay */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: heroConfig.gradient,
+        }} />
+
+        {/* Gold accent radial glow */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-60px', left: '50%', transform: 'translateX(-50%)',
+          width: '600px', height: '300px',
+          background: `radial-gradient(ellipse at center, ${accent}22 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }} />
+
+        {/* Hero content */}
+        <div style={{
+          position: 'relative', zIndex: 2,
+          textAlign: 'center',
+          padding: '0 clamp(1.5rem, 5vw, 4rem)',
+          maxWidth: '900px',
+          animation: 'fadeUp 0.8s ease both',
+        }}>
+          {/* Sector pill badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+            background: 'rgba(212,175,55,0.12)',
+            border: '1px solid rgba(212,175,55,0.3)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '50px',
+            padding: '0.35rem 0.9rem',
+            marginBottom: '1.25rem',
+            fontSize: '0.68rem', fontWeight: 900, letterSpacing: '2px',
+            color: '#D4AF37', textTransform: 'uppercase',
+          }}>
+            <i className={`fas ${sectorIcon}`} style={{ fontSize: '0.65rem' }} />
+            {label}
+          </div>
+
+          {/* Main heading */}
+          <h1 style={{
+            fontSize: 'clamp(2rem, 5.5vw, 4.5rem)',
+            fontWeight: 900,
+            color: '#f8fafc',
+            letterSpacing: '-0.03em',
+            lineHeight: 1.1,
+            margin: '0 0 0.75rem',
+            textShadow: '0 4px 32px rgba(0,0,0,0.5)',
+          }}>
+            {title}
+          </h1>
+
+          {/* Tagline */}
+          <p style={{
+            fontSize: 'clamp(0.9rem, 1.8vw, 1.2rem)',
+            color: 'rgba(255,255,255,0.65)',
+            fontWeight: 400,
+            lineHeight: 1.6,
+            margin: '0 auto 1.75rem',
+            maxWidth: '600px',
+          }}>
+            {heroConfig.tagline}
+          </p>
+
+          {/* Description snippet */}
+          <p style={{
+            fontSize: '0.82rem',
+            color: 'rgba(255,255,255,0.45)',
+            lineHeight: 1.6,
+            maxWidth: '560px',
+            margin: '0 auto',
+          }}>
+            {description}
+          </p>
+        </div>
+
+        {/* Bottom fade to main dark bg */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          height: '120px',
+          background: 'linear-gradient(to bottom, transparent, #070B12)',
+        }} />
+      </section>
+
+      {/* ── RetreatProgramBuilder or SmartJourneyPlanner ───────────────────── */}
       {pageSlug === 'siwa-retreats' ? (
         <RetreatProgramBuilder accentColor={accent} />
       ) : isPlanningCategory ? (
@@ -330,6 +608,7 @@ export default function CategorySearchPage({
         />
       ) : null}
 
+      {/* ── Vendor grid with dark pill filters ──────────────────────────────── */}
       <SectionAggregationPage
         sectionId={resolvedSection}
         pageConfigId={`website_${pagePath}`}
@@ -342,6 +621,6 @@ export default function CategorySearchPage({
         topContent={categorySelector}
       />
       <CategoryInvestmentSection typeId={selectedTypeId} label={selectedTypeName} />
-    </>
+    </div>
   );
 }

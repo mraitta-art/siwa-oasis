@@ -433,6 +433,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     rating: 5.0,
     reviews_count: 210,
     location_name: 'Aghurmi Press Facility',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&q=80',
+      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80',
+      'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&q=80'
+    ],
+    comparison_links: {
+      amazon_url: 'https://www.amazon.eg/s?k=olive+oil+extra+virgin',
+      supermarket_benchmark_price: 440,
+      ota_benchmark_price: 440,
+      ota_name: 'Cairo Gourmet Markets'
+    },
+    hot_offer: {
+      title: 'Direct Farm Gate Guarantee',
+      perk_description: 'Save 90 EGP vs Cairo Gourmet Outlets + Guaranteed Harvest Batch Certificate with free tasting olive sample',
+      badge_label: '🔥 HOT OFFER • SAVE 90 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Organic Growers Collective',
+      role_title: 'Certified Organic Oasis Producers',
+      verified_badge: 'Verified Siwify Producer',
+      rating: 5.0,
+      reviews_count: 210
+    },
     options: [
       { id: 'opt_1l', name_en: '1 Liter Glass Bottle', name_ar: 'زجاجة ١ لتر فاخرة', multiplier: 1.0 },
       { id: 'opt_3l', name_en: '3 Liters Metal Tin Container', name_ar: 'صفيحة ٣ لتر محكمة الغلق', multiplier: 2.8 },
@@ -459,6 +482,30 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 24,
     price_unit: 'box',
     currency: 'EGP',
+    rating: 4.9,
+    reviews_count: 88,
+    gallery_images: [
+      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80',
+      'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&q=80',
+      'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800&q=80'
+    ],
+    comparison_links: {
+      gift_shop_url: 'https://www.tripadvisor.com/Attractions-g303856-Activities-c26-t144-Siwa_Matrouh_Governorate.html',
+      ota_benchmark_price: 1550,
+      ota_name: 'Boutique Souvenir Stores'
+    },
+    hot_offer: {
+      title: 'Hamper Direct Bundle Advantage',
+      perk_description: 'Save 450 EGP vs Retail + Complimentary hand-woven palm leaf basket gift packaging & custom gift note card',
+      badge_label: '🔥 HOT OFFER • SAVE 450 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Crafts & Heritage Guild',
+      role_title: 'Artisan Heritage Workshop',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 88
+    },
     inclusions: [
       '1x Premium Extra Virgin Olive Oil (1L)',
       '1x Medjool / Siwi Royal Dates Box (1kg)',
@@ -486,7 +533,31 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 25,
     price_unit: 'kg',
     currency: 'EGP',
-    minimum_order: 3
+    rating: 4.8,
+    reviews_count: 142,
+    minimum_order: 3,
+    gallery_images: [
+      'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&q=80',
+      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80',
+      'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&q=80'
+    ],
+    comparison_links: {
+      retail_price: 220,
+      ota_benchmark_price: 220,
+      ota_name: 'Cairo Dates Market'
+    },
+    hot_offer: {
+      title: 'Bulk Farm Direct Price',
+      perk_description: 'Save 70 EGP/kg vs City Stores + Free vacuum packaging seal for 12 months freshness retention',
+      badge_label: '🔥 HOT OFFER • SAVE 35%'
+    },
+    executing_partner: {
+      name: 'Siwa Palm Oasis Cooperative',
+      role_title: 'Oasis Date Palm Farmers',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.8,
+      reviews_count: 142
+    }
   },
 
   // ── 4. TRANSPORTS ───────────────────────────────────────────────────────────
@@ -520,6 +591,28 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     vehicle_type: 'Mercedes-Benz MCV 600 VIP Pullman (45 Seats)',
     vehicle_capacity: 45,
     amenities: ['Air Conditioning', 'Reclining Sleep Seats', 'Individual USB Port', 'Restroom on Board', 'Complimentary Water & Snack Box'],
+    gallery_images: [
+      'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80',
+      'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=800&q=80',
+      'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80'
+    ],
+    comparison_links: {
+      bus_agency_url: 'https://www.tripadvisor.com/Travel-g303856-s301/Siwa:Egypt:Arriving.And.Departing.html',
+      ota_benchmark_price: 550,
+      ota_name: 'Offline Ticket Counters'
+    },
+    hot_offer: {
+      title: 'Guaranteed Seat & Luggage Protection',
+      perk_description: 'Save 100 EGP + Direct WhatsApp e-ticket confirmation with reserved front rows and 2 pieces of heavy luggage free',
+      badge_label: '🔥 HOT OFFER • SAVE 100 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Royal Express Lines',
+      role_title: 'Official Oasis Transport Operator',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.8,
+      reviews_count: 240
+    },
     options: [
       { id: 'opt_seat_standard', name_en: 'Standard Reclining Seat', name_ar: 'مقعد سياحي مريح', multiplier: 1.0 },
       { id: 'opt_seat_front_vip', name_en: 'Front Panoramic VIP Seat', name_ar: 'مقعد أمامي VIP بانورامي', multiplier: 1.25 }
@@ -529,7 +622,6 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     id: 'trn_landcruiser_4x4',
     sector: 'transports',
     kind: 'direct',
-
     business_id: 'biz_siwa_desert_riders',
     business_name: 'Siwa Desert 4x4 Fleet & Logistics',
     business_slug: 'siwa-desert-riders',
@@ -547,6 +639,28 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     rating: 4.9,
     reviews_count: 95,
     location_name: 'Siwa Central Station',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80',
+      'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80',
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80'
+    ],
+    comparison_links: {
+      tripadvisor_url: 'https://www.tripadvisor.com/Attractions-g303856-Activities-c59-Siwa_Matrouh_Governorate.html',
+      ota_benchmark_price: 2300,
+      ota_name: 'Hotel Concierge Desks'
+    },
+    hot_offer: {
+      title: 'Siwan Pilot Direct Booking Advantage',
+      perk_description: 'Save 500 EGP vs Hotel Desks + Guaranteed Siwan pilot with 10+ years desert experience & free sandboarding gear',
+      badge_label: '🔥 HOT OFFER • SAVE 500 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Desert Pilots Syndicate',
+      role_title: 'Licensed 4WD Desert Navigators',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 95
+    },
     options: [
       { id: 'opt_half_day', name_en: 'Half Day (4 Hours Safari)', name_ar: 'نصف يوم (٤ ساعات سفاري)', multiplier: 0.7 },
       { id: 'opt_full_day', name_en: 'Full Day (8 Hours Safari)', name_ar: 'يوم كامل (٨ ساعات سفاري)', multiplier: 1.0 },
@@ -573,6 +687,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 19,
     price_unit: 'pass',
     currency: 'EGP',
+    rating: 4.9,
+    reviews_count: 64,
+    gallery_images: [
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80',
+      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80',
+      'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80'
+    ],
+    comparison_links: {
+      ota_benchmark_price: 3800,
+      ota_name: 'Tour Agency Transfer Packages'
+    },
+    hot_offer: {
+      title: 'Unlimited Mobility Privilege',
+      perk_description: 'Save 900 EGP + On-call WhatsApp dispatch in under 15 minutes anywhere in Siwa Oasis with zero hidden gas fees',
+      badge_label: '🔥 HOT OFFER • SAVE 900 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Desert 4x4 Fleet & Logistics',
+      role_title: 'Central Fleet Coordinator',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 64
+    },
     inclusions: [
       '3-Day on-call private vehicle service in Siwa',
       'Daily hotel pickup & drop-off to all attractions',
@@ -603,6 +740,28 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     rating: 4.9,
     reviews_count: 178,
     location_name: 'Zaytoun Salt Basin',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&q=80',
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80'
+    ],
+    comparison_links: {
+      tripadvisor_url: 'https://www.tripadvisor.com/Attractions-g303856-Activities-c57-Siwa_Matrouh_Governorate.html',
+      ota_benchmark_price: 450,
+      ota_name: 'Hotel Spa Desks'
+    },
+    hot_offer: {
+      title: 'Pure Salt Float Direct Special',
+      perk_description: 'Save 150 EGP vs Tour Desks + Complimentary pure cold-pressed Siwa olive oil after-float skin massage vial',
+      badge_label: '🔥 HOT OFFER • SAVE 150 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Salt & Mineral Sanctuary',
+      role_title: 'Natural Salt Basin Stewards',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.9,
+      reviews_count: 178
+    },
     options: [
       { id: 'opt_standard_float', name_en: 'Single Floating Session', name_ar: 'جلسة طفو مفردة', multiplier: 1.0 },
       { id: 'opt_float_sand_bath', name_en: 'Float + Therapeutic Sand Bath', name_ar: 'طفو + حمام رمل علاجي بالدفن', multiplier: 2.2 }
@@ -628,6 +787,30 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 23,
     price_unit: 'package',
     currency: 'EGP',
+    rating: 5.0,
+    reviews_count: 92,
+    gallery_images: [
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&q=80',
+      'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80'
+    ],
+    comparison_links: {
+      viator_url: 'https://www.viator.com/Egypt-tours/Spa-Tours/d723-g23',
+      ota_benchmark_price: 1850,
+      ota_name: 'Viator Wellness'
+    },
+    hot_offer: {
+      title: 'Full Oasis Rejuvenation Perk',
+      perk_description: 'Save 500 EGP vs Viator + Free Siwan herbal tea ceremony with dates and Cleopatra spring fresh pomegranate juice',
+      badge_label: '🔥 HOT OFFER • SAVE 500 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Healing Herbs & Spa Masters',
+      role_title: 'Oasis Wellness Practitioners',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 5.0,
+      reviews_count: 92
+    },
     inclusions: [
       'Access to private turquoise salt lake pools',
       'Freshwater rinse and skin restorative oils',
@@ -658,6 +841,29 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     rating: 5.0,
     reviews_count: 120,
     location_name: 'Shali Citadel Gate',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800&q=80',
+      'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+      'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80'
+    ],
+    comparison_links: {
+      getyourguide_url: 'https://www.getyourguide.com/siwa-oasis-l104107/',
+      tripadvisor_url: 'https://www.tripadvisor.com/Attractions-g303856-Activities-Siwa_Matrouh_Governorate.html',
+      ota_benchmark_price: 900,
+      ota_name: 'GetYourGuide'
+    },
+    hot_offer: {
+      title: 'Native Siwan Storyteller Hot Offer',
+      perk_description: 'Save 250 EGP vs GetYourGuide + Exclusive access to private Kershef heritage rooftop with complimentary mint tea',
+      badge_label: '🔥 HOT OFFER • SAVE 250 EGP'
+    },
+    executing_partner: {
+      name: 'Amun Oasis Cultural Expeditions',
+      role_title: 'Siwan Heritage Storytellers',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 5.0,
+      reviews_count: 120
+    },
     options: [
       { id: 'opt_group_tour', name_en: 'Small Group (English/Arabic)', name_ar: 'مجموعة صغيرة (عربي/إنجليزي)', multiplier: 1.0 },
       { id: 'opt_private_guide', name_en: 'Exclusive Private Guide & Car', name_ar: 'مرشد خاص وسيارة حصرية', multiplier: 1.9 }
@@ -683,6 +889,31 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 24,
     price_unit: 'person',
     currency: 'EGP',
+    rating: 5.0,
+    reviews_count: 185,
+    gallery_images: [
+      'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80',
+      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80',
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80'
+    ],
+    comparison_links: {
+      viator_url: 'https://www.viator.com/Egypt-tours/4WD-Tours/d723-g9',
+      tripadvisor_url: 'https://www.tripadvisor.com/Attractions-g303856-Activities-c61-t193-Siwa_Matrouh_Governorate.html',
+      ota_benchmark_price: 2000,
+      ota_name: 'Viator 4x4 Safari'
+    },
+    hot_offer: {
+      title: 'Grand Safari Direct Adventure Advantage',
+      perk_description: 'Save 550 EGP vs Viator + Free desert sunset photography session & high-performance waxing sandboards included',
+      badge_label: '🔥 HOT OFFER • SAVE 550 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Desert Bedouin Pilots',
+      role_title: 'Official Sand Sea Guides',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 5.0,
+      reviews_count: 185
+    },
     inclusions: [
       '4x4 Land Cruiser with professional desert pilot',
       'All military and desert checkpoint permits included',
