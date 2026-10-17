@@ -80,7 +80,16 @@ export interface CommercialItem {
   check_in_time?: string;
   check_out_time?: string;
   duration_label?: string;
+
+  // Architectural, Sensory & Culinary DNA (Dining, Lodging, Venues)
+  building_material?: string; // e.g. 'Hand-hewn Kershef Mudbrick & Palm Wood', 'Bedouin Starlight Sand Pit'
+  view_type?: string;         // e.g. 'Waterfront Salt Lake Horizon', 'Endless Golden Dunes', 'Old Shali Citadel'
+  vibe_ambience?: string;     // e.g. 'Candlelit Acoustic Silence', 'Fireplace Starlight Circle'
+  seating_style?: string;     // e.g. 'Handwoven Bedouin Kilims on Soft Sand', 'Carved Wooden Terrace'
+  menu_highlights?: string[]; // e.g. ['Subterranean Mandi Lamb', 'Siwan Date Salad', 'Wild Mint Tea']
+  dietary_tags?: string[];    // e.g. ['Farm-to-Table', 'Vegetarian Available', '100% Organic']
 }
+
 
 
 export interface BookingPayload {

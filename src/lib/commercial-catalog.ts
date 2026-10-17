@@ -164,10 +164,50 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     rating: 4.8,
     reviews_count: 142,
     location_name: 'Shali Market Square',
+    building_material: 'Thick Kershef Mudbrick Walls & Ancient Palm-Tree Canopy',
+    view_type: 'Old Shali Fortress Skyline & Palm Oasis',
+    vibe_ambience: 'Authentic Oasis Heritage & Gentle Lantern Glow',
+    seating_style: 'Carved Olive-Wood Tables & Shaded Garden Patios',
+    menu_highlights: ['Pit-Roasted Mandi Lamb', 'Siwan Spiced Rice', 'Date Puree Soup', 'Fresh Mint Tea'],
+    dietary_tags: ['Authentic Siwan Halal', 'Vegetarian Platter Option'],
+    vibe_tags: ['heritage', 'organic_food', 'relaxation'],
     options: [
       { id: 'opt_mandi_lamb', name_en: 'Pit-Roasted Lamb Mandi', name_ar: 'مندي لحم ضأن بلدي', multiplier: 1.0 },
       { id: 'opt_mandi_chicken', name_en: 'Desert Spiced Chicken', name_ar: 'دجاج محمر بالخلطة السيوية', multiplier: 0.8 },
       { id: 'opt_vegetarian', name_en: 'Siwan Vegan Oasis Platter', name_ar: 'طبق الواحة النباتي مع زيت الزيتون', multiplier: 0.65 }
+    ]
+  },
+  {
+    id: 'din_lake_candlelit',
+    sector: 'dining',
+    kind: 'direct',
+    business_id: 'biz_aghurmi_retreat',
+    business_name: 'Aghurmi Salt Lake Dining Deck',
+    business_slug: 'aghurmi-retreat',
+    whatsapp_number: '201001234567',
+    title_en: 'Aghurmi Waterfront Candlelit Organic Dinner',
+    title_ar: 'عشاء الشموع العضوي على ضفاف بحيرة الملح',
+    desc_en: 'Intimate candlelit dining terrace built right onto the shore of Aghurmi Salt Lake, offering total silence and organic farm ingredients.',
+    desc_ar: 'تراس عشاء رومانسي هادئ بإضاءة الشموع على ضفاف بحيرة الملح مباشرة، مصمم للسكينة والهدوء مع وجبات عضوية.',
+    image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+    icon: '🕯️',
+    badge_en: 'Waterfront Silence',
+    price: 420,
+    price_unit: 'person',
+    currency: 'EGP',
+    rating: 5.0,
+    reviews_count: 88,
+    location_name: 'Aghurmi Salt Lake Waterfront',
+    building_material: 'Sun-dried Kershef Mudbrick & Palm-trunk Pergola',
+    view_type: 'Direct Aghurmi Salt Lake Sunset Reflection',
+    vibe_ambience: 'Total Silence, Candlelit Waters, Soft Acoustic Sitar',
+    seating_style: 'Low Palm-Wood Dining Tables & Organic Linen Cushions',
+    menu_highlights: ['Organic Garden Date Salad', 'Slow-Simmered Clay Pot Tajin', 'Cold-Pressed Olive Oil Tasting', 'Wild Lemongrass Infusion'],
+    dietary_tags: ['100% Organic Farm-to-Table', 'Vegetarian & Vegan Specialties', 'Gluten-Free Available'],
+    vibe_tags: ['lake_view', 'silence', 'meditation', 'relaxation'],
+    options: [
+      { id: 'opt_organic_tajin', name_en: 'Clay-pot Organic Lamb Tajin', name_ar: 'طاجن لحم بلدي في الفخار', multiplier: 1.0 },
+      { id: 'opt_lake_vegan', name_en: 'Raw Garden Vegan Symphony', name_ar: 'وجبة الحديقة النباتية النقية', multiplier: 0.75 }
     ]
   },
   {
@@ -190,6 +230,16 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     discount_percentage: 20,
     price_unit: 'package',
     currency: 'EGP',
+    rating: 4.9,
+    reviews_count: 110,
+    location_name: 'Great Sand Sea Dune Crest',
+    building_material: 'Open-Air Desert Starlight Circle with Camel-Hair Windscreens',
+    view_type: '360° Endless Golden Dunes Horizon & Milky Way Sky',
+    vibe_ambience: 'Crackling Olive-Wood Bonfire & Bedouin Flute',
+    seating_style: 'Handwoven Bedouin Kilims on Soft Warm Sand',
+    menu_highlights: ['Pit-Roasted Underground Lamb', 'Desert Hearth Bread', 'Charcoal Roasted Vegetables', 'Traditional Zarda Tea'],
+    dietary_tags: ['Farm-to-Table Meat & Produce', 'Gluten-Free Friendly'],
+    vibe_tags: ['desert_stars', 'silence', 'adventure'],
     inclusions: [
       'Private 4x4 round-trip transfer to secluded dune',
       'Lantern and carpet luxury setup with bonfire',
@@ -197,6 +247,7 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
       'Bedouin lemongrass tea & stargazing telescope'
     ]
   },
+
 
   // ── 3. PRODUCTS ─────────────────────────────────────────────────────────────
   {

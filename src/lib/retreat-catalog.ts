@@ -55,8 +55,9 @@ export const SIGNATURE_RETREAT_PROGRAMS: RetreatProgram[] = [
         vibe_color: '#0284c7',
         accommodation: findItem('acc_aghurmi_lake_sanctuary'),
         transport: findItem('trans_airport_transfer'),
-        dining: findItem('din_abdu_feast'),
+        dining: findItem('din_lake_candlelit'),
         activity: findItem('act_salt_lake_floating'),
+
         day_price: 4800,
         timeline: [
           {

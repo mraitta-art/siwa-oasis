@@ -90,6 +90,46 @@ export default function CommercialBookingEngine({
           {item.desc_en}
         </p>
 
+        {/* Sensory & Architectural DNA (Material, View, Vibe, Menu) */}
+        {(item.building_material || item.view_type || item.vibe_ambience || item.menu_highlights) && (
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #f1f5f9',
+            borderRadius: '12px',
+            padding: '0.65rem 0.85rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.35rem',
+            fontSize: '0.74rem'
+          }}>
+            {item.building_material && (
+              <div style={{ display: 'flex', gap: '0.4rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🏛️ Structure:</span>
+                <span>{item.building_material}</span>
+              </div>
+            )}
+            {item.view_type && (
+              <div style={{ display: 'flex', gap: '0.4rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🌅 View:</span>
+                <span style={{ fontWeight: 800, color: accentColor }}>{item.view_type}</span>
+              </div>
+            )}
+            {item.vibe_ambience && (
+              <div style={{ display: 'flex', gap: '0.4rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>✨ Atmosphere:</span>
+                <span style={{ fontStyle: 'italic' }}>{item.vibe_ambience}</span>
+              </div>
+            )}
+            {item.menu_highlights && item.menu_highlights.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.4rem', color: '#334155', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🍽️ Menu Highlights:</span>
+                <span>{item.menu_highlights.join(' • ')}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+
         {/* Room / Tier Option Selector */}
         {item.options && item.options.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginTop: '0.2rem' }}>
@@ -275,6 +315,52 @@ export default function CommercialBookingEngine({
         <p style={{ margin: 0, fontSize: '0.86rem', color: '#64748b', lineHeight: 1.55, flex: 1 }}>
           {item.desc_en}
         </p>
+
+        {/* Sensory & Architectural DNA (Material, View, Vibe, Menu) */}
+        {(item.building_material || item.view_type || item.vibe_ambience || item.menu_highlights) && (
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '14px',
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.45rem',
+            fontSize: '0.8rem'
+          }}>
+            {item.building_material && (
+              <div style={{ display: 'flex', gap: '0.5rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🏛️ Architecture / Material:</span>
+                <span style={{ fontWeight: 600 }}>{item.building_material}</span>
+              </div>
+            )}
+            {item.view_type && (
+              <div style={{ display: 'flex', gap: '0.5rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🌅 Panoramic View:</span>
+                <span style={{ fontWeight: 800, color: accentColor }}>{item.view_type}</span>
+              </div>
+            )}
+            {item.vibe_ambience && (
+              <div style={{ display: 'flex', gap: '0.5rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>✨ Ambient Vibe:</span>
+                <span style={{ fontStyle: 'italic', color: '#1e293b' }}>{item.vibe_ambience}</span>
+              </div>
+            )}
+            {item.seating_style && (
+              <div style={{ display: 'flex', gap: '0.5rem', color: '#334155' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🪑 Seating Arrangement:</span>
+                <span>{item.seating_style}</span>
+              </div>
+            )}
+            {item.menu_highlights && item.menu_highlights.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', color: '#334155', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, color: '#64748b' }}>🍽️ Signature Menu:</span>
+                <span style={{ fontWeight: 600 }}>{item.menu_highlights.join(' • ')}</span>
+              </div>
+            )}
+          </div>
+        )}
+
 
         {/* Options / Room types if present */}
         {item.options && item.options.length > 0 && (
