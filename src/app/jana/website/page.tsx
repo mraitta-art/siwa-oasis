@@ -20,6 +20,14 @@ const PALETTE: PaletteItem[] = [
   { zone: 'header', key: 'search_bar',     name: 'Search Bar (Compact)',    icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Compact header search widget' },
 
   // ── Body zone ──
+  { zone: 'body',   key: 'retreat_program_builder', name: 'Retreat Program Builder', icon: '🧘', manager: '/jana/packages',  color: '#58765a', desc: 'Interactive Siwa Retreat Program Builder with dynamic days & options' },
+  { zone: 'body',   key: 'reservation_accommodation', name: 'Accommodation Booking', icon: '🏨', manager: '/admin/commercial-links', color: '#287a55', desc: 'Direct booking cards & OTA arbitrage for stays & lodges' },
+  { zone: 'body',   key: 'reservation_dining', name: 'Dining Booking Module', icon: '🍽️', manager: '/admin/commercial-links', color: '#b4533c', desc: 'Restaurant & desert dining reservation cards with perks' },
+  { zone: 'body',   key: 'reservation_transportation', name: 'Transportation Booking', icon: '🚌', manager: '/admin/commercial-links', color: '#a15d2b', desc: 'Bus seats, 4x4 Land Cruiser & mobility passes' },
+  { zone: 'body',   key: 'reservation_activities', name: 'Activities & Wellness', icon: '🌊', manager: '/admin/commercial-links', color: '#0d9488', desc: 'Salt lake floating & wellness session bookings' },
+  { zone: 'body',   key: 'reservation_tours', name: 'Tours & Safari Booking', icon: '🧭', manager: '/admin/commercial-links', color: '#ca8a04', desc: 'Guided heritage walks & desert expeditions' },
+  { zone: 'body',   key: 'reservation_products', name: 'Products Showcase', icon: '🫒', manager: '/admin/commercial-links', color: '#9b6832', desc: 'Organic dates, olive oil, and craft hamper gift boxes' },
+  { zone: 'body',   key: 'sector_booking_showcase', name: 'Universal Booking Matrix', icon: '⚡', manager: '/admin/commercial-links', color: '#D4AF37', desc: 'Interactive tabs across all 6 commercial booking sectors' },
   { zone: 'body',   key: 'hero_carousel',        name: 'Hero Carousel',            icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
   { zone: 'body',   key: 'services_hub',          name: 'Services Hub',             icon: '🏛️', manager: '/jana/businesses',     color: '#6366f1', desc: 'Directory of all services & categories' },
   { zone: 'body',   key: 'experience_categories', name: 'Experience Categories',    icon: '🎭', manager: null,                  color: '#8b5cf6', desc: 'Interactive category cards' },
@@ -176,6 +184,27 @@ export default function MultiPageSiteBuilder() {
           };
         }
       }) : [];
+
+      const CANONICAL_SECTOR_SLUGS = [
+        'siwa-retreats',
+        'siwa-stay',
+        'siwa-go',
+        'siwa-table',
+        'siwa-products',
+        'siwa-invest',
+        'siwa-society',
+      ];
+
+      CANONICAL_SECTOR_SLUGS.forEach(secSlug => {
+        if (!fetchedPages.some(page => page.slug === secSlug && page.type === 'page')) {
+          fetchedPages.push({
+            slug: secSlug,
+            saved: false,
+            type: 'page' as const,
+            publicPath: `/${secSlug}`,
+          });
+        }
+      });
 
       if (!fetchedPages.some(page => page.slug === 'main' && page.type === 'page')) {
         fetchedPages.unshift({ slug: 'main', saved: false, type: 'page', publicPath: '/' });
@@ -478,8 +507,8 @@ export default function MultiPageSiteBuilder() {
 
           {!isCompact && <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)' }} />}
 
-          {mode === 'PAGES' && currentPage === 'main' && (
-            <a href={currentPage === 'main' ? '/' : `/p/${currentPage}`} target="_blank" rel="noopener noreferrer" aria-label="Preview page" title="Preview page"
+          {mode === 'PAGES' && (
+            <a href={currentPage === 'main' ? '/' : `/${currentPage.replace(/^\//, '')}`} target="_blank" rel="noopener noreferrer" aria-label="Preview page" title="Preview page"
               style={{ padding: isCompact ? '0.4rem 0.5rem' : '0.38rem 0.85rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.9)', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: isCompact ? 34 : undefined, minHeight: 34 }}>
               {isCompact ? '👁' : '👁 Preview'}
             </a>
