@@ -329,9 +329,45 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
 
   // ── 4. TRANSPORTS ───────────────────────────────────────────────────────────
   {
+    id: 'trn_cairo_siwa_bus_coach',
+    sector: 'transports',
+    kind: 'direct',
+    business_id: 'biz_west_delta_siwa',
+    business_name: 'West Delta & Siwa Royal Express',
+    business_slug: 'siwa-royal-express',
+    whatsapp_number: '201008899776',
+    title_en: 'Cairo ➔ Siwa Direct VIP Overnight Sleeper Coach',
+    title_ar: 'أتوبيس القاهرة ➔ سيوة المباشر الفاخر (حجز مقعد)',
+    desc_en: 'Direct overnight luxury bus with reclining leather seats, AC, USB charging, on-board restroom, and hostess service.',
+    desc_ar: 'أتوبيس فاخر مباشر من القاهرة إلى سيوة بمقاعد جلدية مريحة وتكييف وشواحن وخدمة ضيافة ودورة مياه.',
+    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80',
+    icon: '🚌',
+    badge_en: 'Daily Scheduled Coach',
+    booking_unit_type: 'seat',
+    price: 450,
+    price_unit: 'seat',
+    currency: 'EGP',
+    rating: 4.8,
+    reviews_count: 240,
+    departure_time: '22:00',
+    estimated_arrival_time: '06:30 (+1 Day)',
+    departure_station: 'Cairo - Tahrir Bus Terminal',
+    arrival_station: 'Siwa Oasis - Market Central Station',
+    route_label: 'Cairo ➔ Siwa Oasis Direct',
+    duration_approx: '8.5 Hours',
+    vehicle_type: 'Mercedes-Benz MCV 600 VIP Pullman (45 Seats)',
+    vehicle_capacity: 45,
+    amenities: ['Air Conditioning', 'Reclining Sleep Seats', 'Individual USB Port', 'Restroom on Board', 'Complimentary Water & Snack Box'],
+    options: [
+      { id: 'opt_seat_standard', name_en: 'Standard Reclining Seat', name_ar: 'مقعد سياحي مريح', multiplier: 1.0 },
+      { id: 'opt_seat_front_vip', name_en: 'Front Panoramic VIP Seat', name_ar: 'مقعد أمامي VIP بانورامي', multiplier: 1.25 }
+    ]
+  },
+  {
     id: 'trn_landcruiser_4x4',
     sector: 'transports',
     kind: 'direct',
+
     business_id: 'biz_siwa_desert_riders',
     business_name: 'Siwa Desert 4x4 Fleet & Logistics',
     business_slug: 'siwa-desert-riders',

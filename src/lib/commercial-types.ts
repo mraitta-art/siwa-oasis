@@ -88,11 +88,22 @@ export interface CommercialItem {
   seating_style?: string;     // e.g. 'Handwoven Bedouin Kilims on Soft Sand', 'Carved Wooden Terrace'
   menu_highlights?: string[]; // e.g. ['Subterranean Mandi Lamb', 'Siwan Date Salad', 'Wild Mint Tea']
   dietary_tags?: string[];    // e.g. ['Farm-to-Table', 'Vegetarian Available', '100% Organic']
+
+  // Transportation & Fleet DNA (Buses, Vans, 4x4, Transfers)
+  booking_unit_type?: 'seat' | 'vehicle' | 'pass'; // 'seat' (bus ticket) vs 'vehicle' (private 4x4)
+  departure_time?: string;          // e.g. "22:00"
+  estimated_arrival_time?: string;  // e.g. "06:30 (+1 Day)"
+  departure_station?: string;       // e.g. "Cairo - Tahrir GoBus Station"
+  arrival_station?: string;         // e.g. "Siwa Oasis - Central Depot"
+  route_label?: string;             // e.g. "Cairo ➔ Siwa Oasis Direct"
+  duration_approx?: string;         // e.g. "8.5 Hours"
+  vehicle_type?: string;            // e.g. "VIP Pullman Sleeper Coach (AC, WiFi)"
+  vehicle_capacity?: number;        // e.g. 45 seats or 4 seats
+  amenities?: string[];             // e.g. ["AC", "WiFi", "Reclining Seats", "USB Charging", "Restroom"]
 }
 
-
-
 export interface BookingPayload {
+
   item_id: string;
   item_title: string;
   sector: SectorType;

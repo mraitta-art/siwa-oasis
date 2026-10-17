@@ -271,6 +271,67 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               </div>
             </div>
 
+            {/* Transit Route & Schedule Card */}
+
+            {item.sector === 'transports' && (item.departure_time || item.route_label) && (
+              <div style={{
+                background: 'rgba(212,175,55,0.06)',
+                border: `1px solid rgba(212,175,55,0.3)`,
+                borderRadius: '14px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                fontSize: '0.8rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 900, color: accentColor, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.06em' }}>
+                    🚌 {item.booking_unit_type === 'seat' ? 'Scheduled Passenger Coach' : 'Private Vehicle Service'}
+                  </span>
+                  {item.duration_approx && (
+                    <span style={{ background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', color: '#cbd5e1' }}>
+                      ⏱️ {item.duration_approx}
+                    </span>
+                  )}
+                </div>
+
+                {item.route_label && (
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fff' }}>
+                    {item.route_label}
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.2rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Departure:</div>
+                    <div style={{ fontWeight: 800, color: '#38bdf8' }}>{item.departure_time || 'On-Demand'}</div>
+                    {item.departure_station && (
+                      <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>📍 {item.departure_station}</div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Estimated Arrival:</div>
+                    <div style={{ fontWeight: 800, color: '#4ade80' }}>{item.estimated_arrival_time || 'Determined by driver'}</div>
+                    {item.arrival_station && (
+                      <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>🏁 {item.arrival_station}</div>
+                    )}
+                  </div>
+                </div>
+
+                {item.amenities && item.amenities.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.3rem' }}>
+                    {item.amenities.map((amenity, idx) => (
+                      <span key={idx} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.68rem', color: '#94a3b8' }}>
+                        ✓ {amenity}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+
             {/* Sector-specific options tier */}
             {item.options && item.options.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
