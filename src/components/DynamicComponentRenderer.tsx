@@ -1,5 +1,6 @@
 import React from 'react';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+import DynamicSectorBookingShowcase from '@/components/DynamicSectorBookingShowcase';
 
 /**
  * Strip dangerous HTML tags/attributes to mitigate XSS.
@@ -192,7 +193,24 @@ export default function DynamicComponentRenderer({ component }: DynamicComponent
         </div>
       );
 
+    case 'sector_booking_showcase':
+
+    case 'commercial_deals_matrix':
+      return (
+        <DynamicSectorBookingShowcase
+          sector={props?.sector || 'all'}
+          businessId={props?.businessId || props?.business_id}
+          businessSlug={props?.businessSlug || props?.business_slug}
+          title={props?.title || resolvedTitle}
+          subtitle={props?.subtitle}
+          accentColor={props?.accentColor || props?.primary_color || '#D4AF37'}
+          defaultKind={props?.defaultKind || (type === 'commercial_deals_matrix' ? 'offer' : 'all')}
+          allowSectorSwitching={props?.allowSectorSwitching !== false && !props?.businessId && !props?.business_slug}
+        />
+      );
+
     default:
+
       return (
         <div style={{ padding: '2rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center', color: '#991b1b' }}>
           ⚠️ Unknown component type: {type}

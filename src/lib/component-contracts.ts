@@ -36,7 +36,21 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
   faq: { allowed: [...COMMON_TEXT, 'faqs', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   auctions_feed: { allowed: [...COMMON_TEXT, 'filterType', 'filterStatus', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   partner_registration_form: { allowed: [...COMMON_TEXT, 'hero_title', 'hero_subtitle', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  sector_booking_showcase: {
+    allowed: [...COMMON_TEXT, 'sector', 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'all', defaultKind: 'all', allowSectorSwitching: true },
+  },
+  commercial_deals_matrix: {
+    allowed: [...COMMON_TEXT, 'sector', 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { sector: 'all', defaultKind: 'offer', allowSectorSwitching: true },
+  },
+  retreat_program_builder: {
+    allowed: [...COMMON_TEXT, 'initialProgramId', 'program_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+    defaults: { initialProgramId: 'retreat_silence_3days' },
+  },
 };
+
+
 
 function isPlainObject(value: unknown): value is ComponentProps {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

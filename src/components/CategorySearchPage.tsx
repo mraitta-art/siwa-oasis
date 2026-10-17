@@ -19,6 +19,8 @@ import SectionAggregationPage from '@/components/SectionAggregationPage';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 import CategoryInvestmentSection from '@/components/CategoryInvestmentSection';
 import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
+import RetreatProgramBuilder from '@/components/RetreatProgramBuilder';
+
 
 interface BusinessType {
   id: string;
@@ -275,6 +277,11 @@ export default function CategorySearchPage({
       }
       return section;
     });
+
+    const finalLayout = pageSlug === 'siwa-retreats' && !resolvedLayout.some((s: any) => s?.type === 'retreat_program_builder')
+      ? [{ id: 'sec_retreat_builder', type: 'retreat_program_builder', props: { accentColor: accent } }, ...resolvedLayout]
+      : resolvedLayout;
+
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg, #f8fafc)' }}>
         <MarketplaceHeader
@@ -282,10 +289,11 @@ export default function CategorySearchPage({
           accentColor={accent}
         />
         <DynamicHomepageRenderer
-          layout={resolvedLayout}
+          layout={finalLayout}
           settings={builderConfig?.site_settings || { primary_color: accent }}
           pageId={pagePath}
         />
+
         {/* Live vendor section grid appended below the builder layout */}
         <SectionAggregationPage
           sectionId={resolvedSection}
@@ -313,12 +321,15 @@ export default function CategorySearchPage({
         title={label}
         accentColor={accent}
       />
-      {isPlanningCategory && (
+      {pageSlug === 'siwa-retreats' ? (
+        <RetreatProgramBuilder accentColor={accent} />
+      ) : isPlanningCategory ? (
         <SmartJourneyPlanner
           category={category}
           subtitle={label}
         />
-      )}
+      ) : null}
+
       <SectionAggregationPage
         sectionId={resolvedSection}
         pageConfigId={`website_${pagePath}`}

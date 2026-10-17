@@ -16,7 +16,10 @@ import ServicesHub from '@/components/ServicesHub';
 import CategoryCommercialTabs from '@/components/CategoryCommercialTabs';
 import CategoryPageHero from '@/components/CategoryPageHero';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
+import DynamicSectorBookingShowcase from '@/components/DynamicSectorBookingShowcase';
+import RetreatProgramBuilder from '@/components/RetreatProgramBuilder';
 import AuctionsShowcase from '@/components/AuctionsShowcase';
+
 import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
 import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
@@ -240,7 +243,37 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: Sectio
         </AnimatedSection>
       );
 
+    // ─── SECTOR BOOKING SHOWCASE (ACCOMMODATION, DINING, PRODUCTS, TRANSPORTS, ACTIVITIES, TOURS) ──
+    case 'sector_booking_showcase':
+    case 'commercial_deals_matrix':
+      return (
+        <AnimatedSection>
+          <DynamicSectorBookingShowcase
+            sector={props?.sector || 'all'}
+            businessId={props?.businessId || props?.business_id}
+            businessSlug={props?.businessSlug || props?.business_slug}
+            title={props?.title}
+            subtitle={props?.subtitle}
+            accentColor={props?.accentColor || siteSettings?.primary_color || '#D4AF37'}
+            defaultKind={props?.defaultKind || 'all'}
+            allowSectorSwitching={props?.allowSectorSwitching !== false}
+          />
+        </AnimatedSection>
+      );
+
+    // ─── RETREAT PROGRAM BUILDER ──────────────────────────
+    case 'retreat_program_builder':
+      return (
+        <AnimatedSection>
+          <RetreatProgramBuilder
+            initialProgramId={props?.initialProgramId || props?.program_id || 'retreat_silence_3days'}
+            accentColor={props?.accentColor || siteSettings?.primary_color || '#D4AF37'}
+          />
+        </AnimatedSection>
+      );
+
     // ─── SMART JOURNEY PLANNER ────────────────────────────
+
     case 'journey_collection':
     case 'smart_journey_planner':
       return (
