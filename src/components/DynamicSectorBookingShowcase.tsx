@@ -36,11 +36,15 @@ export default function DynamicSectorBookingShowcase({
 }: DynamicSectorBookingShowcaseProps) {
   const [selectedSector, setSelectedSector] = useState<SectorType | 'all'>(sector);
   const [selectedKind, setSelectedKind] = useState<CommercialKind | 'all'>(defaultKind);
+  const [selectedVibe, setSelectedVibe] = useState<string>('all');
+  const [selectedView, setSelectedView] = useState<string>('all');
+  const [selectedSetting, setSelectedSetting] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [items, setItems] = useState<CommercialItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeBookingItem, setActiveBookingItem] = useState<CommercialItem | null>(null);
 
-  // Fetch items dynamically
+  // Fetch items dynamically with multi-criteria Vibe & View search
   useEffect(() => {
     let isMounted = true;
     async function fetchItems() {
@@ -49,6 +53,10 @@ export default function DynamicSectorBookingShowcase({
         const params = new URLSearchParams();
         if (selectedSector !== 'all') params.set('sector', selectedSector);
         if (selectedKind !== 'all') params.set('kind', selectedKind);
+        if (selectedVibe !== 'all') params.set('vibe', selectedVibe);
+        if (selectedView !== 'all') params.set('view', selectedView);
+        if (selectedSetting !== 'all') params.set('setting', selectedSetting);
+        if (searchQuery.trim()) params.set('q', searchQuery.trim());
         if (businessId) params.set('business_id', businessId);
         if (businessSlug) params.set('business_slug', businessSlug);
 
@@ -65,7 +73,7 @@ export default function DynamicSectorBookingShowcase({
     }
     fetchItems();
     return () => { isMounted = false; };
-  }, [selectedSector, selectedKind, businessId, businessSlug]);
+  }, [selectedSector, selectedKind, selectedVibe, selectedView, selectedSetting, searchQuery, businessId, businessSlug]);
 
   return (
     <section style={{
@@ -177,7 +185,7 @@ export default function DynamicSectorBookingShowcase({
           display: 'flex',
           gap: '0.5rem',
           justifyContent: 'center',
-          marginBottom: '2.5rem',
+          marginBottom: '1.25rem',
           flexWrap: 'wrap'
         }}>
           {[
@@ -206,6 +214,150 @@ export default function DynamicSectorBookingShowcase({
               </button>
             );
           })}
+        </div>
+
+        {/* 2.5 Vibe, Views & Setting Atmospheric Filter Bar */}
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(212,175,55,0.15)',
+          borderRadius: '18px',
+          padding: '1rem 1.25rem',
+          marginBottom: '2.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.85rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem' }}>✨</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Filter by Oasis Vibe, Setting & Views
+              </span>
+            </div>
+
+            {/* Quick search input */}
+            <div style={{ position: 'relative', minWidth: '220px' }}>
+              <input
+                type="text"
+                placeholder="Search sand baths, candlelit, lake..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.45rem 0.85rem 0.45rem 2rem',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: '#0a0f18',
+                  color: '#fff',
+                  fontSize: '0.75rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#64748b' }}>🔍</span>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Vibe Selection Pills */}
+          <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.35rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', whiteSpace: 'nowrap', marginRight: '0.3rem' }}>
+              VIBE:
+            </span>
+            {[
+              { id: 'all', label: 'All Vibes' },
+              { id: 'sand_bath', label: '🏜️ Sand Bath Healing' },
+              { id: 'sulfur_spring', label: '♨️ Hot Sulfur Spring' },
+              { id: 'salt_lake_float', label: '🌊 Salt Lake Float' },
+              { id: 'candlelit_desert', label: '🕯️ Candlelit Desert' },
+              { id: 'eco_retreat', label: '🌿 Eco Sanctuary' },
+              { id: 'bedouin_night', label: '⛺ Bedouin Camp' },
+              { id: 'lake_view', label: '🌅 Sunset Lake' },
+              { id: 'deep_desert', label: '🚙 Great Sand Sea' }
+            ].map(v => (
+              <button
+                key={v.id}
+                onClick={() => setSelectedVibe(v.id)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '20px',
+                  border: selectedVibe === v.id ? `1.5px solid ${accentColor}` : '1px solid rgba(255,255,255,0.08)',
+                  background: selectedVibe === v.id ? 'rgba(212,175,55,0.18)' : 'rgba(255,255,255,0.03)',
+                  color: selectedVibe === v.id ? accentColor : '#cbd5e1',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Setting / Views Selection Pills */}
+          <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.35rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', whiteSpace: 'nowrap', marginRight: '0.3rem' }}>
+              VIEW / LOCATION:
+            </span>
+            {[
+              { id: 'all', label: 'All Views' },
+              { id: 'lake_view', label: '🌅 Lake View' },
+              { id: 'dune_view', label: '🏜️ Dunes View' },
+              { id: 'oasis_garden', label: '🌴 Palm Grove' },
+              { id: 'mountain_view', label: '⛰️ Dakrour Mountain' },
+              { id: 'cleopatra_spring', label: '💧 Cleopatra Spring' }
+            ].map(vw => (
+              <button
+                key={vw.id}
+                onClick={() => setSelectedView(vw.id)}
+                style={{
+                  padding: '0.3rem 0.7rem',
+                  borderRadius: '16px',
+                  border: selectedView === vw.id ? '1.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.08)',
+                  background: selectedView === vw.id ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.03)',
+                  color: selectedView === vw.id ? '#38bdf8' : '#cbd5e1',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {vw.label}
+              </button>
+            ))}
+            {(selectedVibe !== 'all' || selectedView !== 'all' || searchQuery.trim()) && (
+              <button
+                onClick={() => {
+                  setSelectedVibe('all');
+                  setSelectedView('all');
+                  setSelectedSetting('all');
+                  setSearchQuery('');
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '14px',
+                  background: 'rgba(239,68,68,0.12)',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                  color: '#f87171',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Reset Filters ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 3. Items Grid */}

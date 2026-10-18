@@ -44,6 +44,11 @@ export interface CatalogItem {
   is_trusted?: boolean;
   setting_location?: string;
   vibe_tags?: string[];
+  vibe_ambience?: string;
+  treatment_type?: string;
+  vehicle_type?: string;
+  seating_style?: string;
+  menu_highlights?: string;
   accommodation_type?: string;
   view_type?: string;
   building_material?: string;
@@ -1451,8 +1456,20 @@ export default function SmartJourneyPlanner({
                             </span>
                           )}
                           {exp.category && (
-                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', fontSize: '0.7rem', color: '#cbd5e1', fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>
-                              📍 {exp.category}
+                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.68rem', color: '#cbd5e1', fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.9)', background: 'rgba(0,0,0,0.5)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                📍 {exp.category}
+                              </span>
+                              {exp.vibe_ambience && (
+                                <span style={{ fontSize: '0.65rem', color: '#D4AF37', fontWeight: 800, background: 'rgba(212,175,55,0.2)', border: '1px solid rgba(212,175,55,0.3)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                  ✨ {exp.vibe_ambience.replace(/_/g, ' ')}
+                                </span>
+                              )}
+                              {exp.treatment_type && (
+                                <span style={{ fontSize: '0.65rem', color: '#34d399', fontWeight: 800, background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.3)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                  🌿 {exp.treatment_type.replace(/_/g, ' ')}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1894,8 +1911,13 @@ export default function SmartJourneyPlanner({
                             padding: '0.25rem 0.65rem', borderRadius: '10px',
                             fontSize: '0.68rem', fontWeight: 900,
                           }}>
-                            Authentic Feast
+                            {meal.vibe_ambience ? meal.vibe_ambience.replace(/_/g, ' ') : 'Authentic Feast'}
                           </div>
+                          {meal.view_type && (
+                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700, background: 'rgba(0,0,0,0.6)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                              🌅 {meal.view_type.replace(/_/g, ' ')}
+                            </div>
+                          )}
                         </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{meal.name_en}</h4>
                         
@@ -2653,9 +2675,56 @@ export default function SmartJourneyPlanner({
                 </div>
               )}
 
-              <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+              <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '1.2rem' }}>
                 {inspectingItem.item.highlight_en || inspectingItem.item.desc_en}
               </p>
+
+              {/* ── Vibe, View & Atmospheric DNA Badges ── */}
+              {(inspectingItem.item.setting_location || inspectingItem.item.view_type || inspectingItem.item.vibe_ambience || (inspectingItem.item.vibe_tags && inspectingItem.item.vibe_tags.length > 0) || inspectingItem.item.vehicle_type || inspectingItem.item.treatment_type) && (
+                <div style={{
+                  background: 'rgba(212, 175, 55, 0.05)',
+                  border: '1px solid rgba(212, 175, 55, 0.2)',
+                  borderRadius: '14px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.5rem',
+                }}>
+                  <div style={{ fontSize: '0.68rem', color: '#D4AF37', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span>✨</span> ATMOSPHERIC DNA & VIBE PROFILE
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    {inspectingItem.item.setting_location && (
+                      <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#f1f5f9', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                        📍 {inspectingItem.item.setting_location.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {inspectingItem.item.view_type && (
+                      <span style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                        🌅 {inspectingItem.item.view_type.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {inspectingItem.item.vibe_ambience && (
+                      <span style={{ background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.3)', color: '#f472b6', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                        ✨ {inspectingItem.item.vibe_ambience.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {inspectingItem.item.treatment_type && (
+                      <span style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+                        🌿 {inspectingItem.item.treatment_type.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {inspectingItem.item.vehicle_type && (
+                      <span style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', color: '#facc15', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+                        🚙 {inspectingItem.item.vehicle_type.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {Array.isArray(inspectingItem.item.vibe_tags) && inspectingItem.item.vibe_tags.map(tag => (
+                      <span key={tag} style={{ background: 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)', padding: '0.2rem 0.5rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {inspectingItem.category === 'accommodation' && (
                 <div style={{ background: '#0a0d14', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' }}>

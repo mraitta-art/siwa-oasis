@@ -28,8 +28,15 @@ export interface JourneyCatalogItemBase {
   direct_discount_note?: string;
   rating?: number;
   reviews_count?: number;
-  location_name?: string;
-  gallery_images?: string[];
+  // Vibe, View & Sectional Experience DNA
+  vibe_tags?: string[];
+  setting_location?: 'on_lake' | 'on_lake_and_pool' | 'dune' | 'multiple_views' | 'oasis_palms' | 'citadel' | 'spring' | string;
+  view_type?: string;
+  vibe_ambience?: string;
+  seating_style?: string;
+  menu_highlights?: string[];
+  vehicle_type?: string;
+  treatment_type?: string;
 }
 
 

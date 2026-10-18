@@ -32,6 +32,15 @@ interface JourneyCatalogItemBase {
   reviews_count?: number;
   location_name?: string;
   gallery_images?: string[];
+  // Vibe, View & Sectional Experience DNA
+  vibe_tags?: string[];
+  setting_location?: string;
+  view_type?: string;
+  vibe_ambience?: string;
+  seating_style?: string;
+  menu_highlights?: string[];
+  vehicle_type?: string;
+  treatment_type?: string;
 }
 
 interface JourneyExperience extends JourneyCatalogItemBase {
@@ -105,6 +114,7 @@ interface RegisteredBusiness {
   name: string;
   slug?: string;
   type_id?: string;
+  type_name?: string;
   phone?: string;
   whatsapp?: string;
   is_trusted?: boolean;
@@ -1053,6 +1063,126 @@ export default function JourneyCardsPage() {
                             placeholder="الشارة…"
                           />
                         </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+
+                {/* ─── Atmospheric DNA & Vibe Architecture (collapsible) ─── */}
+                <CollapsibleSection
+                  title="✨ Vibe, Views & Atmospheric DNA"
+                  expanded={isExpanded('vibe_dna')}
+                  onToggle={() => toggleSection(secKey('vibe_dna'))}
+                >
+                  <div style={{ display: 'grid', gap: '0.65rem' }}>
+                    {/* Setting Location & View Type */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.6rem' }}>
+                      <div>
+                        <label style={labelStyle}>Oasis Setting Location</label>
+                        <select
+                          value={item.setting_location || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'setting_location', e.target.value)}
+                          style={{ ...inputStyle, cursor: 'pointer' }}
+                        >
+                          <option value="">— Select Oasis Setting —</option>
+                          <option value="on_lake">Waterfront Salt Lake Shore</option>
+                          <option value="on_lake_and_pool">Lakefront & Spring Pool</option>
+                          <option value="dune">Great Sand Sea Dunes</option>
+                          <option value="oasis_palms">Ancient Palm Groves</option>
+                          <option value="citadel">Old Shali Citadel Ruins</option>
+                          <option value="spring">Natural Thermal Spring Basin</option>
+                          <option value="multiple_views">Multiple Panoramas (Mountain & Dunes)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>View Type Panorama</label>
+                        <input
+                          value={item.view_type || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'view_type', e.target.value)}
+                          style={inputStyle}
+                          placeholder="e.g. Waterfront Salt Lake Horizon & Golden Dunes"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Vibe Tags */}
+                    <div>
+                      <label style={labelStyle}>Vibe Tags (Comma Separated)</label>
+                      <input
+                        value={Array.isArray(item.vibe_tags) ? item.vibe_tags.join(', ') : (item.vibe_tags || '')}
+                        onChange={(e) => {
+                          const tags = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          updateItem(activeTab, idx, 'vibe_tags', tags);
+                        }}
+                        style={inputStyle}
+                        placeholder="e.g. silence, lake_silence, desert_stars, organic_food, heritage"
+                      />
+                    </div>
+
+                    {/* Ambience & Seating Style */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                      <div>
+                        <label style={labelStyle}>Atmospheric Ambience</label>
+                        <input
+                          value={item.vibe_ambience || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'vibe_ambience', e.target.value)}
+                          style={inputStyle}
+                          placeholder="e.g. Candlelit Acoustic Silence"
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Seating / Furniture Style</label>
+                        <input
+                          value={item.seating_style || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'seating_style', e.target.value)}
+                          style={inputStyle}
+                          placeholder="e.g. Handwoven Bedouin Kilims on Soft Sand"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sector-Specific Sectional Fields */}
+                    {activeTab === 'meals' && (
+                      <div>
+                        <label style={labelStyle}>Culinary DNA & Menu Highlights (Comma Separated)</label>
+                        <input
+                          value={Array.isArray(item.menu_highlights) ? item.menu_highlights.join(', ') : (item.menu_highlights || '')}
+                          onChange={(e) => {
+                            const menus = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                            updateItem(activeTab, idx, 'menu_highlights', menus);
+                          }}
+                          style={inputStyle}
+                          placeholder="e.g. Subterranean Mandi Lamb, Cold-Pressed Olive Oil, Date Confectionery"
+                        />
+                      </div>
+                    )}
+
+                    {activeTab === 'transports' && (
+                      <div>
+                        <label style={labelStyle}>Transit Fleet / Vehicle Type</label>
+                        <input
+                          value={item.vehicle_type || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'vehicle_type', e.target.value)}
+                          style={inputStyle}
+                          placeholder="e.g. VIP AC 4x4 Land Cruiser with Pro Sandboard"
+                        />
+                      </div>
+                    )}
+
+                    {activeTab === 'experiences' && (
+                      <div>
+                        <label style={labelStyle}>Natural Treatment / Healing Protocol</label>
+                        <select
+                          value={item.treatment_type || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'treatment_type', e.target.value)}
+                          style={{ ...inputStyle, cursor: 'pointer', color: C.gold }}
+                        >
+                          <option value="">— Non-Medical / Pure Leisure —</option>
+                          <option value="sand_therapy_detox">🏜️ Sand Bath Joint & Rheumatism Therapy (جبل دكرور)</option>
+                          <option value="salt_lake_healing">🌊 Hyper-Saline Salt Float & Skin Healing (بحيرات الملح)</option>
+                          <option value="sulfur_springs_plunge">♨️ Volcanic Sulfur Spring Muscle Soak (بئر واحد)</option>
+                          <option value="herbal_nutrition_reset">🌿 Herbal & Organic Olive Oil Detox (استشفاء عشبي)</option>
+                        </select>
                       </div>
                     )}
                   </div>

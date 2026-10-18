@@ -56,6 +56,15 @@ function parseCatalog(value: unknown): JourneyCustomizerCatalog {
         commercial_item_id: item.commercial_item_id || def.commercial_item_id,
         image: item.image || def.image,
         icon: item.icon || def.icon,
+        // Vibe, View & Sectional Experience DNA
+        vibe_tags: item.vibe_tags || def.vibe_tags || [],
+        setting_location: item.setting_location || def.setting_location,
+        view_type: item.view_type || def.view_type,
+        vibe_ambience: item.vibe_ambience || def.vibe_ambience,
+        seating_style: item.seating_style || def.seating_style,
+        menu_highlights: item.menu_highlights || def.menu_highlights,
+        vehicle_type: item.vehicle_type || def.vehicle_type,
+        treatment_type: item.treatment_type || def.treatment_type,
       };
     }) as any;
   }
@@ -71,7 +80,7 @@ function validateCatalog(input: unknown): input is JourneyCustomizerCatalog {
   if (!Number.isFinite(Number(catalog.bundle_discount_percent)) || Number(catalog.bundle_discount_percent) < 0 || Number(catalog.bundle_discount_percent) > 100) return false;
 
   return groups.every(group => {
-    const items = catalog[group] as Array<Record<string, unknown>>;
+    const items = (catalog[group] as unknown) as Array<Record<string, unknown>>;
     const ids = new Set<string>();
     return items.length <= 100 && items.every(item => {
       if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !/^[a-z0-9_-]{1,100}$/i.test(item.id)) return false;
@@ -87,11 +96,10 @@ function validateCatalog(input: unknown): input is JourneyCustomizerCatalog {
 
 function publicCatalog(catalog: JourneyCustomizerCatalog): JourneyCustomizerCatalog {
   const result = JSON.parse(JSON.stringify(catalog)) as JourneyCustomizerCatalog;
-  for (const group of ['experiences', 'accommodations', 'transports', 'meals'] as const) {
-    result[group] = result[group]
-      .filter(item => item.is_visible)
-      .map(item => ({ ...item, vendor_business_ids: [] })) as typeof result[typeof group];
-  }
+  result.experiences = result.experiences.filter(item => item.is_visible).map(item => ({ ...item, vendor_business_ids: [] }));
+  result.accommodations = result.accommodations.filter(item => item.is_visible).map(item => ({ ...item, vendor_business_ids: [] }));
+  result.transports = result.transports.filter(item => item.is_visible).map(item => ({ ...item, vendor_business_ids: [] }));
+  result.meals = result.meals.filter(item => item.is_visible).map(item => ({ ...item, vendor_business_ids: [] }));
   return result;
 }
 
