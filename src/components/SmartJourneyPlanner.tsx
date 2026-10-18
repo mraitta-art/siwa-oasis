@@ -37,6 +37,9 @@ export interface CatalogItem {
   business_name?: string;
   business_phone?: string | null;
   whatsapp_number?: string;
+  provider_type?: 'hotel' | 'operator' | 'siwify_direct' | 'artisan';
+  provider_badge?: string;
+  is_trusted?: boolean;
   setting_location?: string;
   vibe_tags?: string[];
   accommodation_type?: string;
@@ -499,12 +502,15 @@ export default function SmartJourneyPlanner({
             image: item.image || item.gallery_images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
             room_types: (item.options && item.options.length > 0) ? item.options : DEFAULT_ROOM_TYPES,
             
-            // Rich Accommodation Attributes
+            // Rich Accommodation & Provider Attributes
             business_id: item.business_id,
             business_slug: item.business_slug,
             business_name: item.business_name,
             business_phone: item.business_phone,
             whatsapp_number: item.whatsapp_number,
+            provider_type: item.provider_type || 'hotel',
+            provider_badge: item.provider_badge || (item.is_trusted ? 'Verified Hotel Partner 🛡️' : 'Hotel Partner'),
+            is_trusted: item.is_trusted,
             setting_location: item.setting_location,
             vibe_tags: item.vibe_tags,
             accommodation_type: item.accommodation_type,
@@ -1148,6 +1154,53 @@ export default function SmartJourneyPlanner({
                         </div>
 
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.35rem', color: '#fff' }}>{stay.name_en}</h4>
+                        
+                        {/* ── Provider Attribution Header Strip ── */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.4rem',
+                          marginBottom: '0.65rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '8px',
+                          background: 'rgba(212, 175, 55, 0.08)',
+                          border: '1px solid rgba(212, 175, 55, 0.2)',
+                          fontSize: '0.72rem',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.85rem' }}>
+                              {stay.provider_type === 'hotel' ? '🏨' : stay.provider_type === 'operator' ? '🧭' : '🛡️'}
+                            </span>
+                            <span style={{ color: '#94a3b8' }}>Provider:</span>
+                            {stay.business_slug ? (
+                              <Link
+                                href={`/${stay.business_slug}`}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(212,175,55,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="View Provider Minisite & Verified Profile"
+                              >
+                                {stay.business_name || stay.name_en} ↗
+                              </Link>
+                            ) : (
+                              <span style={{ color: '#f1f5f9', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {stay.business_name || stay.name_en}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{
+                            flexShrink: 0,
+                            background: stay.is_trusted !== false ? 'rgba(16,185,129,0.18)' : 'rgba(212,175,55,0.18)',
+                            color: stay.is_trusted !== false ? '#34d399' : '#D4AF37',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.3px',
+                          }}>
+                            {stay.provider_badge || (stay.provider_type === 'hotel' ? 'Direct Hotel' : 'Verified Host')}
+                          </span>
+                        </div>
+
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '40px', margin: '0 0 0.85rem' }}>
                           {stay.desc_en}
                         </p>
@@ -1387,6 +1440,53 @@ export default function SmartJourneyPlanner({
                         </div>
 
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{exp.title_en}</h4>
+                        
+                        {/* ── Provider Attribution Header Strip ── */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.4rem',
+                          marginBottom: '0.65rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '8px',
+                          background: 'rgba(212, 175, 55, 0.08)',
+                          border: '1px solid rgba(212, 175, 55, 0.2)',
+                          fontSize: '0.72rem',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.85rem' }}>
+                              {exp.provider_type === 'hotel' ? '🏨' : exp.provider_type === 'artisan' ? '🌴' : '🧭'}
+                            </span>
+                            <span style={{ color: '#94a3b8' }}>Operated by:</span>
+                            {exp.business_slug ? (
+                              <Link
+                                href={`/${exp.business_slug}`}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(212,175,55,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="View Operator Profile & Minisite"
+                              >
+                                {exp.business_name || 'Bedouin Tour Guild'} ↗
+                              </Link>
+                            ) : (
+                              <span style={{ color: '#f1f5f9', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {exp.business_name || 'Siwa Verified Operator'}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{
+                            flexShrink: 0,
+                            background: exp.is_trusted !== false ? 'rgba(16,185,129,0.18)' : 'rgba(212,175,55,0.18)',
+                            color: exp.is_trusted !== false ? '#34d399' : '#D4AF37',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.3px',
+                          }}>
+                            {exp.provider_badge || 'Local Operator 🛡️'}
+                          </span>
+                        </div>
+
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>
                           {exp.highlight_en}
                         </p>
@@ -1594,6 +1694,51 @@ export default function SmartJourneyPlanner({
                           </div>
                         </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{trans.name_en}</h4>
+                        
+                        {/* ── Provider Attribution Header Strip ── */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.4rem',
+                          marginBottom: '0.65rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '8px',
+                          background: 'rgba(59, 130, 246, 0.08)',
+                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                          fontSize: '0.72rem',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.85rem' }}>🚙</span>
+                            <span style={{ color: '#94a3b8' }}>Fleet Operator:</span>
+                            {trans.business_slug ? (
+                              <Link
+                                href={`/${trans.business_slug}`}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(59,130,246,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="View Transport Fleet Minisite"
+                              >
+                                {trans.business_name || 'Licensed Fleet Operator'} ↗
+                              </Link>
+                            ) : (
+                              <span style={{ color: '#f1f5f9', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {trans.business_name || 'Siwa Certified Transport Fleet'}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{
+                            flexShrink: 0,
+                            background: 'rgba(59,130,246,0.18)',
+                            color: '#60a5fa',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.3px',
+                          }}>
+                            {trans.provider_badge || 'Licensed Carrier 🛡️'}
+                          </span>
+                        </div>
+
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{trans.desc_en}</p>
 
                         {/* ── OUR OFFER banner for Transport ── */}
@@ -1735,6 +1880,51 @@ export default function SmartJourneyPlanner({
                           </div>
                         </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{meal.name_en}</h4>
+                        
+                        {/* ── Provider Attribution Header Strip ── */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.4rem',
+                          marginBottom: '0.65rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '8px',
+                          background: 'rgba(212, 175, 55, 0.08)',
+                          border: '1px solid rgba(212, 175, 55, 0.2)',
+                          fontSize: '0.72rem',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.85rem' }}>🍽️</span>
+                            <span style={{ color: '#94a3b8' }}>Oasis Kitchen:</span>
+                            {meal.business_slug ? (
+                              <Link
+                                href={`/${meal.business_slug}`}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(212,175,55,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="View Dining Venue Minisite"
+                              >
+                                {meal.business_name || 'Authentic Oasis Kitchen'} ↗
+                              </Link>
+                            ) : (
+                              <span style={{ color: '#f1f5f9', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {meal.business_name || 'Siwa Heritage Dining'}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{
+                            flexShrink: 0,
+                            background: meal.is_trusted !== false ? 'rgba(16,185,129,0.18)' : 'rgba(212,175,55,0.18)',
+                            color: meal.is_trusted !== false ? '#34d399' : '#D4AF37',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.3px',
+                          }}>
+                            {meal.provider_badge || 'Verified Kitchen 🛡️'}
+                          </span>
+                        </div>
+
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>{meal.desc_en}</p>
 
                         {/* Timing controls when selected */}

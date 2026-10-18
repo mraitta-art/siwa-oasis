@@ -203,6 +203,8 @@ export async function GET(request: NextRequest) {
         gallery_images,
         is_trusted: b.is_trusted !== undefined ? Boolean(b.is_trusted) : true,
         badge_en: b.is_trusted ? 'Verified Sanctuary' : undefined,
+        provider_type: 'hotel' as const,
+        provider_badge: b.is_trusted ? 'Verified Hotel Partner 🛡️' : 'Hotel Partner',
 
         price,
         original_price,
