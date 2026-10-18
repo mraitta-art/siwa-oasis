@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -33,6 +33,13 @@ export default function GlobalJourneyFloater() {
 
   const [isDismissed, setIsDismissed] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  // Dragging state
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
+  const hasMovedRef = useRef(false);
 
   // Sync draft from localStorage
   const syncDraft = () => {
@@ -94,7 +101,6 @@ export default function GlobalJourneyFloater() {
   useEffect(() => {
     syncDraft();
 
-    // Listen to local changes via storage event and custom events
     const handleStorageChange = () => syncDraft();
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('siwify_draft_updated', handleStorageChange);
@@ -107,6 +113,69 @@ export default function GlobalJourneyFloater() {
       clearInterval(interval);
     };
   }, []);
+
+  // Dragging event handlers (touch + mouse)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    dragStartRef.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      startOffsetX: offset.x,
+      startOffsetY: offset.y,
+    };
+    hasMovedRef.current = false;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const t = e.touches[0];
+    const dx = t.clientX - dragStartRef.current.startX;
+    const dy = t.clientY - dragStartRef.current.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      hasMovedRef.current = true;
+    }
+    setOffset({
+      x: dragStartRef.current.startOffsetX + dx,
+      y: dragStartRef.current.startOffsetY + dy,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startOffsetX: offset.x,
+      startOffsetY: offset.y,
+    };
+    hasMovedRef.current = false;
+    setIsDragging(true);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - dragStartRef.current.startX;
+      const dy = moveEvent.clientY - dragStartRef.current.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        hasMovedRef.current = true;
+      }
+      setOffset({
+        x: dragStartRef.current.startOffsetX + dx,
+        y: dragStartRef.current.startOffsetY + dy,
+      });
+    };
+
+    const onMouseUp = () => {
+      setIsDragging(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   // Don't render on admin dashboard
   if (pathname?.startsWith('/jana') || isDismissed) {
@@ -127,13 +196,15 @@ export default function GlobalJourneyFloater() {
           .gjf-pill-text-sub { display: none; }
         }
       `}</style>
-      {/* Floating Bottom Right Journey Capsule */}
+
+      {/* Floating Bottom Right Draggable Journey Capsule */}
       <aside
         aria-label="Your Siwa Custom Journey Itinerary"
         style={{
           position: 'fixed',
           bottom: 'clamp(0.85rem, 3vw, 1.5rem)',
           right: 'clamp(0.75rem, 3vw, 1.5rem)',
+          transform: `translate(${offset.x}px, ${offset.y}px)`,
           zIndex: 9990,
           display: 'flex',
           flexDirection: 'column',
@@ -141,10 +212,12 @@ export default function GlobalJourneyFloater() {
           gap: '0.6rem',
           fontFamily: 'inherit',
           maxWidth: 'calc(100vw - 1.5rem)',
+          touchAction: 'none',
+          userSelect: 'none',
         }}
       >
         {/* Expanded Quick Drawer */}
-        {isExpanded && (
+        {isExpanded && !isMinimized && (
           <div
             style={{
               background: '#0d150f',
@@ -162,13 +235,23 @@ export default function GlobalJourneyFloater() {
                 <span style={{ fontSize: '1rem' }}>🏜️</span>
                 <strong style={{ color: '#fff', fontSize: '0.9rem' }}>Your Custom Journey</strong>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsExpanded(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                ✕
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsMinimized(true)}
+                  title="Minimize to floating bubble"
+                  style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  <i className="fas fa-compress-alt" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <p style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 0.85rem' }}>
@@ -255,72 +338,180 @@ export default function GlobalJourneyFloater() {
           </div>
         )}
 
-        {/* The Main Pill Capsule */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            background: 'rgba(7, 11, 8, 0.94)',
-            backdropFilter: 'blur(16px)',
-            border: isCombo ? '1.5px solid #10b981' : '1.5px solid rgba(212, 175, 55, 0.45)',
-            borderRadius: '50px',
-            padding: '0.45rem 0.65rem 0.45rem 0.85rem',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(212, 175, 55, 0.15)',
-            cursor: 'pointer',
-            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {/* Pulsing indicator icon */}
-          <div style={{
-            width: '28px', height: '28px', borderRadius: '50%',
-            background: isCombo ? 'rgba(16, 185, 129, 0.2)' : 'rgba(212, 175, 55, 0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: isCombo ? '#10b981' : '#D4AF37', fontSize: '0.85rem',
-          }}>
-            <i className={`fas ${draft.itemsCount > 0 ? 'fa-suitcase-rolling' : 'fa-compass'}`} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '0.25rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '0.3px', lineHeight: 1.2 }}>
-              {draft.itemsCount > 0 ? `${draft.itemsCount} Reserved in Journey` : 'Planning a Full Journey?'}
-            </span>
-            <span style={{ fontSize: '0.65rem', color: isCombo ? '#34d399' : '#D4AF37', fontWeight: 700 }} className="gjf-pill-text-sub">
-              {draft.itemsCount > 0
-                ? (isCombo ? '15% Off Active • Tap to Review' : `${draft.sectorsCount}/3 Sectors • Add More for 15% Off`)
-                : 'Combine All Services →'}
-            </span>
-          </div>
-
-          {/* Expand/Collapse Chevron */}
+        {/* ── DRAGGABLE MINIMIZED BUBBLE OR PILL ── */}
+        {isMinimized ? (
+          /* Ultra-compact 48px circular bubble */
           <div
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onClick={() => {
+              if (!hasMovedRef.current) {
+                setIsMinimized(false);
+                setIsExpanded(true);
+              }
+            }}
+            title="Drag anywhere to move • Tap to expand itinerary"
             style={{
-              width: '24px', height: '24px', borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.08)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#94a3b8', fontSize: '0.7rem',
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(13, 21, 15, 0.95)',
+              backdropFilter: 'blur(16px)',
+              border: isCombo ? '2px solid #10b981' : '2px solid #D4AF37',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.85), 0 0 15px rgba(212,175,55,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              position: 'relative',
+              transition: isDragging ? 'none' : 'transform 0.15s ease',
             }}
           >
-            <i className={`fas fa-chevron-${isExpanded ? 'down' : 'up'}`} />
+            <span style={{ fontSize: '1.25rem' }}>🏜️</span>
+            {draft.itemsCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: isCombo ? '#10b981' : '#D4AF37',
+                  color: '#000',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  fontSize: '0.68rem',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                }}
+              >
+                {draft.itemsCount}
+              </span>
+            )}
           </div>
-
-          {/* Dismiss button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsDismissed(true);
-            }}
-            title="Hide for this session"
+        ) : (
+          /* The Main Pill Capsule (Draggable & Collapsible) */
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
             style={{
-              background: 'none', border: 'none', color: '#64748b',
-              fontSize: '0.75rem', cursor: 'pointer', padding: '0 0.2rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(7, 11, 8, 0.95)',
+              backdropFilter: 'blur(16px)',
+              border: isCombo ? '1.5px solid #10b981' : '1.5px solid rgba(212, 175, 55, 0.45)',
+              borderRadius: '50px',
+              padding: '0.45rem 0.65rem 0.45rem 0.85rem',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(212, 175, 55, 0.15)',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              transition: isDragging ? 'none' : 'box-shadow 0.2s ease',
+            }}
+            onClick={() => {
+              if (!hasMovedRef.current) {
+                setIsExpanded(!isExpanded);
+              }
             }}
           >
-            ✕
-          </button>
-        </div>
+            {/* Drag Handle indicator icon */}
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: isCombo ? 'rgba(16, 185, 129, 0.2)' : 'rgba(212, 175, 55, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isCombo ? '#10b981' : '#D4AF37',
+                fontSize: '0.85rem',
+              }}
+            >
+              <i className={`fas ${draft.itemsCount > 0 ? 'fa-suitcase-rolling' : 'fa-compass'}`} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '0.25rem' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '0.3px', lineHeight: 1.2 }}>
+                {draft.itemsCount > 0 ? `${draft.itemsCount} Reserved in Journey` : 'Planning a Full Journey?'}
+              </span>
+              <span style={{ fontSize: '0.65rem', color: isCombo ? '#34d399' : '#D4AF37', fontWeight: 700 }} className="gjf-pill-text-sub">
+                {draft.itemsCount > 0
+                  ? (isCombo ? '15% Off Active • Tap to Review' : `${draft.sectorsCount}/3 Sectors • Add More for 15% Off`)
+                  : 'Combine All Services →'}
+              </span>
+            </div>
+
+            {/* Expand/Collapse Chevron */}
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#94a3b8',
+                fontSize: '0.7rem',
+              }}
+            >
+              <i className={`fas fa-chevron-${isExpanded ? 'down' : 'up'}`} />
+            </div>
+
+            {/* Minimize to Bubble Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMinimized(true);
+                setIsExpanded(false);
+              }}
+              title="Minimize to tiny bubble (no overlap)"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: 'none',
+                color: '#cbd5e1',
+                borderRadius: '50%',
+                width: '22px',
+                height: '22px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+              }}
+            >
+              &ndash;
+            </button>
+
+            {/* Dismiss button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDismissed(true);
+              }}
+              title="Hide for this session"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                padding: '0 0.2rem',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );

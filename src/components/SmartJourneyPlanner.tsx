@@ -419,6 +419,7 @@ export default function SmartJourneyPlanner({
 
   // ── ACCOMMODATION MANIFEST & BUDGET EXPANDER STATE ─────────────────────────
   const [isAccManifestOpen, setIsAccManifestOpen] = useState(true);
+  const [isCalculatorCollapsed, setIsCalculatorCollapsed] = useState(false);
   const [editingStayId, setEditingStayId] = useState<string | null>(null);
   const [showCalendarAuditModal, setShowCalendarAuditModal] = useState(false);
 
@@ -910,11 +911,12 @@ export default function SmartJourneyPlanner({
         }
         .sjp-right-panel {
           position: sticky;
-          top: 5rem;
+          top: 5.5rem;
           width: 100%;
-        }
-        .sjp-mobile-summary-pill {
-          display: none;
+          max-height: calc(100vh - 6.5rem);
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(212,175,55,0.3) transparent;
         }
         @media (max-width: 1024px) {
           .sjp-workspace {
@@ -923,39 +925,12 @@ export default function SmartJourneyPlanner({
           }
           .sjp-right-panel {
             position: static !important;
+            max-height: none !important;
+            overflow-y: visible !important;
             margin-top: 1.5rem;
-          }
-          .sjp-mobile-summary-pill {
-            display: inline-flex;
-            position: fixed;
-            bottom: 4.8rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9980;
-            background: rgba(13, 21, 15, 0.96);
-            backdrop-filter: blur(16px);
-            border: 1.5px solid #10b981;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.85);
-            border-radius: 50px;
-            padding: 0.55rem 1.25rem;
-            align-items: center;
-            gap: 0.75rem;
-            color: #fff;
-            font-size: 0.8rem;
-            font-weight: 800;
-            text-decoration: none;
-            white-space: nowrap;
           }
         }
       `}</style>
-
-      {/* Mobile Sticky Quick-Jump Pill */}
-      {pricingSummary.subtotal > 0 && (
-        <a href="#journey-calculator-manifest" className="sjp-mobile-summary-pill">
-          <span>🧮 Calculator: <strong style={{ color: '#10b981' }}>{pricingSummary.finalTotal.toLocaleString()} EGP</strong></span>
-          <span style={{ fontSize: '0.7rem', color: '#D4AF37' }}>Review & Dispatch &darr;</span>
-        </a>
-      )}
 
       <div style={S.inner}>
         {/* Header Block with Mode Switch */}
@@ -1717,14 +1692,49 @@ export default function SmartJourneyPlanner({
           {/* RIGHT COLUMN: STICKY COMPREHENSIVE ITINERARY MANIFEST */}
           <div className="sjp-right-panel" id="journey-calculator-manifest">
             <div style={{ ...S.card, border: '1px solid rgba(212,175,55,0.3)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#fff' }}>
-                  {isStandaloneMode ? `🧮 ${activeMode?.toUpperCase()} CALCULATOR & MANIFEST` : '🧮 JOURNEY CALCULATOR & MANIFEST'}
-                </h3>
-                <span style={{ fontSize: '0.75rem', color: '#D4AF37', fontWeight: 800 }}>
-                  {stayPeriods.length + tourBookings.length + transportLegs.length + diningBookings.length + activityBookings.length + customWishes.length} Items
-                </span>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: isCalculatorCollapsed ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: isCalculatorCollapsed ? '0' : '1rem',
+                marginBottom: isCalculatorCollapsed ? '0' : '1.25rem',
+              }}>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🧮</span>
+                    <span>{isStandaloneMode ? `${activeMode?.toUpperCase()} CALCULATOR` : 'JOURNEY CALCULATOR'}</span>
+                  </h3>
+                  <div style={{ fontSize: '0.72rem', color: '#D4AF37', fontWeight: 700, marginTop: '0.2rem' }}>
+                    {stayPeriods.length + tourBookings.length + transportLegs.length + diningBookings.length + activityBookings.length + customWishes.length} Items &bull; <strong style={{ color: '#10b981' }}>{pricingSummary.finalTotal.toLocaleString()} EGP</strong>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCalculatorCollapsed(!isCalculatorCollapsed)}
+                  aria-label={isCalculatorCollapsed ? 'Expand Calculator' : 'Collapse Calculator'}
+                  style={{
+                    background: isCalculatorCollapsed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.08)',
+                    border: isCalculatorCollapsed ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.15)',
+                    color: isCalculatorCollapsed ? '#34d399' : '#cbd5e1',
+                    borderRadius: '20px',
+                    padding: '0.35rem 0.8rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <i className={`fas fa-chevron-${isCalculatorCollapsed ? 'down' : 'up'}`} />
+                  <span>{isCalculatorCollapsed ? 'Expand' : 'Collapse'}</span>
+                </button>
               </div>
+
+              {!isCalculatorCollapsed && (
+                <>
 
               {/* Guests Count Controls */}
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', background: '#0a0d14', padding: '0.75rem', borderRadius: '12px' }}>
@@ -2130,8 +2140,10 @@ export default function SmartJourneyPlanner({
                   <span><i className="fab fa-whatsapp" /> Reserve & Dispatch Itinerary</span>
                 )}
               </button>
-            </div>
-          </div>
+            </>
+          )}
+        </div>
+      </div>
         </div>
       </div>
 
