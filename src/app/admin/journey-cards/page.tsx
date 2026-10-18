@@ -19,6 +19,8 @@ interface JourneyCatalogItemBase {
   business_phone?: string | null;
   whatsapp_number?: string;
   provider_type?: 'hotel' | 'operator' | 'siwify_direct' | 'artisan';
+  parent_business_type_id?: string;
+  child_business_type_id?: string;
   provider_badge?: string;
   is_trusted?: boolean;
   ota_benchmark_price?: number;
@@ -82,6 +84,36 @@ interface JourneyCustomizerCatalog {
 interface CardCustomLink {
   url: string;
   label?: string;
+}
+
+interface ParentBusinessType {
+  id: string;
+  name: string;
+  icon?: string;
+  icon_color?: string;
+}
+
+interface ChildBusinessType {
+  id: string;
+  name: string;
+  parent_id: string;
+  icon?: string;
+}
+
+interface RegisteredBusiness {
+  id: string;
+  name: string;
+  slug?: string;
+  type_id?: string;
+  phone?: string;
+  whatsapp?: string;
+  is_trusted?: boolean;
+}
+
+interface MediaPhoto {
+  url: string;
+  name?: string;
+  source: string;
 }
 
 type TabKey = 'experiences' | 'accommodations' | 'transports' | 'meals';
@@ -224,13 +256,25 @@ export default function JourneyCardsPage() {
   const [linksMap, setLinksMap] = useState<Record<string, CardCustomLink[]>>({});
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Hierarchy state (Parent types, Child types, Registered businesses)
+  const [parents, setParents] = useState<ParentBusinessType[]>([]);
+  const [childrenTypes, setChildrenTypes] = useState<ChildBusinessType[]>([]);
+  const [businesses, setBusinesses] = useState<RegisteredBusiness[]>([]);
+
+  // Media Library & Upload state
+  const [mediaLibrary, setMediaLibrary] = useState<MediaPhoto[]>([]);
+  const [mediaPickerCardId, setMediaPickerCardId] = useState<string | null>(null);
+  const [uploadingForCardId, setUploadingForCardId] = useState<string | null>(null);
+
   /* ── Fetch ── */
   useEffect(() => {
     (async () => {
       try {
-        const [catRes, linksRes] = await Promise.all([
+        const [catRes, linksRes, hierRes, mediaRes] = await Promise.all([
           fetch('/api/journeys/customizer?view=admin'),
           fetch('/api/admin/commercial-links'),
+          fetch('/api/admin/businesses-hierarchy').catch(() => null),
+          fetch('/api/admin/media-library').catch(() => null),
         ]);
         if (!catRes.ok) throw new Error('Failed to load catalog');
         const catData = await catRes.json();
@@ -241,6 +285,18 @@ export default function JourneyCardsPage() {
           const linksData = await linksRes.json();
           if (linksData.links_map) setLinksMap(linksData.links_map);
         }
+
+        if (hierRes && hierRes.ok) {
+          const hierData = await hierRes.json();
+          if (hierData.parents) setParents(hierData.parents);
+          if (hierData.children) setChildrenTypes(hierData.children);
+          if (hierData.businesses) setBusinesses(hierData.businesses);
+        }
+
+        if (mediaRes && mediaRes.ok) {
+          const mData = await mediaRes.json();
+          if (mData.images) setMediaLibrary(mData.images);
+        }
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -248,6 +304,35 @@ export default function JourneyCardsPage() {
       }
     })();
   }, []);
+
+  /* ── Local file upload handler ── */
+  const handleFileUpload = async (tab: TabKey, idx: number, cardId: string, file: File) => {
+    setUploadingForCardId(cardId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('businessName', 'journey_cards');
+      formData.append('sectionName', tab);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        updateItem(tab, idx, 'image', data.url);
+        // Also add to active media library picker
+        setMediaLibrary((prev) => [{ url: data.url, name: file.name, source: 'upload' }, ...prev]);
+      } else {
+        alert(data.error || 'Upload failed');
+      }
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploadingForCardId(null);
+    }
+  };
 
   /* ── Save ── */
   const save = useCallback(async () => {
@@ -561,15 +646,86 @@ export default function JourneyCardsPage() {
                     />
                   </div>
 
-                  {/* Image URL */}
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <label style={labelStyle}>Image URL</label>
+                  {/* Image URL & Multi-source Photo Picker */}
+                  <div style={{ marginTop: '0.65rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                      <label style={{ ...labelStyle, marginBottom: 0 }}>Card Photo</label>
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        {/* 1. Local Device File Upload */}
+                        <label
+                          style={{
+                            fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8',
+                            background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)',
+                            padding: '3px 8px', borderRadius: '6px', cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                          }}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleFileUpload(activeTab, idx, itemId, f);
+                            }}
+                          />
+                          {uploadingForCardId === itemId ? '⏳ Uploading…' : '📁 Upload from Device'}
+                        </label>
+
+                        {/* 2. Choose from Existing Library */}
+                        <button
+                          type="button"
+                          onClick={() => setMediaPickerCardId(mediaPickerCardId === itemId ? null : itemId)}
+                          style={{
+                            fontSize: '0.68rem', fontWeight: 800, color: C.gold,
+                            background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)',
+                            padding: '3px 8px', borderRadius: '6px', cursor: 'pointer',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          {mediaPickerCardId === itemId ? '✕ Close Library' : '🖼️ Pick Existing'}
+                        </button>
+                      </div>
+                    </div>
+
                     <input
                       value={item.image || ''}
                       onChange={(e) => updateItem(activeTab, idx, 'image', e.target.value)}
                       style={inputStyle}
-                      placeholder="https://…"
+                      placeholder="https://… or select / upload above"
                     />
+
+                    {/* Existing Media Library Grid Drawer */}
+                    {mediaPickerCardId === itemId && (
+                      <div style={{
+                        marginTop: '0.5rem', padding: '0.65rem', borderRadius: '10px',
+                        background: 'rgba(0,0,0,0.5)', border: `1px solid ${C.border}`,
+                        maxHeight: '180px', overflowY: 'auto',
+                      }}>
+                        <div style={{ fontSize: '0.65rem', color: C.textSecondary, marginBottom: '0.4rem', fontWeight: 700 }}>
+                          Select from uploaded & curated Siwa photos ({mediaLibrary.length}):
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '0.4rem' }}>
+                          {mediaLibrary.map((photo, pIdx) => (
+                            <div
+                              key={photo.url + pIdx}
+                              onClick={() => {
+                                updateItem(activeTab, idx, 'image', photo.url);
+                                setMediaPickerCardId(null);
+                              }}
+                              title={photo.name || photo.url}
+                              style={{
+                                height: '52px', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer',
+                                border: item.image === photo.url ? `2px solid ${C.gold}` : '1px solid rgba(255,255,255,0.1)',
+                                position: 'relative', background: '#000',
+                              }}
+                            >
+                              <img src={photo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -580,54 +736,149 @@ export default function JourneyCardsPage() {
                   onToggle={() => toggleSection(secKey('provider'))}
                 >
                   <div style={{ display: 'grid', gap: '0.6rem' }}>
+                    {/* 1. Parent Business Type Selector */}
                     <div>
-                      <label style={labelStyle}>Business Name</label>
-                      <input
-                        value={item.business_name || ''}
+                      <label style={labelStyle}>👑 Parent Category (Sector)</label>
+                      <select
+                        value={item.parent_business_type_id || (activeTab === 'accommodations' ? 'accommodation' : activeTab === 'transports' ? 'logistics' : activeTab === 'meals' ? 'food' : 'adventure')}
                         onChange={(e) => {
-                          updateItem(activeTab, idx, 'business_name', e.target.value);
-                          if (!item.business_slug) {
-                            updateItem(activeTab, idx, 'business_slug', slugify(e.target.value));
+                          const pVal = e.target.value;
+                          updateItem(activeTab, idx, 'parent_business_type_id', pVal);
+                          // Reset child subtype if it doesn't match new parent
+                          updateItem(activeTab, idx, 'child_business_type_id', '');
+                        }}
+                        style={{ ...inputStyle, cursor: 'pointer', background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}
+                      >
+                        <option value="">— Select Parent Category —</option>
+                        {parents.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 2. Child Sub-Type Selector (Based on selected Parent) */}
+                    <div>
+                      <label style={labelStyle}>📋 Child Business Type (Specific Sub-type)</label>
+                      <select
+                        value={item.child_business_type_id || ''}
+                        onChange={(e) => {
+                          const cVal = e.target.value;
+                          updateItem(activeTab, idx, 'child_business_type_id', cVal);
+                          const childObj = childrenTypes.find(c => c.id === cVal);
+                          if (childObj && !item.provider_badge) {
+                            updateItem(activeTab, idx, 'provider_badge', childObj.name);
                           }
                         }}
-                        style={inputStyle}
-                        placeholder="Business name…"
-                      />
+                        style={{ ...inputStyle, cursor: 'pointer' }}
+                      >
+                        <option value="">— Select Child Sub-Type —</option>
+                        {childrenTypes
+                          .filter((c) => {
+                            const activeParent = item.parent_business_type_id || (activeTab === 'accommodations' ? 'accommodation' : activeTab === 'transports' ? 'logistics' : activeTab === 'meals' ? 'food' : 'adventure');
+                            return !activeParent || c.parent_id === activeParent;
+                          })
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                      </select>
                     </div>
+
+                    {/* 3. Link Existing Registered Business (Instant Autofill) */}
                     <div>
-                      <label style={labelStyle}>Business Slug</label>
-                      <input
-                        value={item.business_slug || ''}
-                        onChange={(e) => updateItem(activeTab, idx, 'business_slug', e.target.value)}
-                        style={inputStyle}
-                        placeholder="auto-generated-slug"
-                      />
+                      <label style={labelStyle}>🏪 Link Registered Business (Optional)</label>
+                      <select
+                        value={item.business_id || ''}
+                        onChange={(e) => {
+                          const bId = e.target.value;
+                          const bObj = businesses.find(b => b.id === bId);
+                          if (bObj) {
+                            updateItem(activeTab, idx, 'business_id', bObj.id);
+                            updateItem(activeTab, idx, 'business_name', bObj.name);
+                            if (bObj.slug) updateItem(activeTab, idx, 'business_slug', bObj.slug);
+                            if (bObj.phone) updateItem(activeTab, idx, 'business_phone', bObj.phone);
+                            if (bObj.whatsapp) updateItem(activeTab, idx, 'whatsapp_number', bObj.whatsapp);
+                            if (bObj.is_trusted !== undefined) updateItem(activeTab, idx, 'is_trusted', bObj.is_trusted);
+                            if (bObj.type_id) {
+                              updateItem(activeTab, idx, 'child_business_type_id', bObj.type_id);
+                              const matchedChild = childrenTypes.find(c => c.id === bObj.type_id);
+                              if (matchedChild?.parent_id) {
+                                updateItem(activeTab, idx, 'parent_business_type_id', matchedChild.parent_id);
+                              }
+                            }
+                          } else {
+                            updateItem(activeTab, idx, 'business_id', '');
+                          }
+                        }}
+                        style={{ ...inputStyle, cursor: 'pointer', color: C.gold }}
+                      >
+                        <option value="">— Choose Registered Business Instance —</option>
+                        {businesses.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.is_trusted ? '🛡️ ' : ''}{b.name} ({b.type_name || b.type_id || 'Business'})
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
+                    {/* 4. Business Name & Slug */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.6rem' }}>
+                      <div>
+                        <label style={labelStyle}>Business Name</label>
+                        <input
+                          value={item.business_name || ''}
+                          onChange={(e) => {
+                            updateItem(activeTab, idx, 'business_name', e.target.value);
+                            if (!item.business_slug) {
+                              updateItem(activeTab, idx, 'business_slug', slugify(e.target.value));
+                            }
+                          }}
+                          style={inputStyle}
+                          placeholder="Business name…"
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Business Slug (Minisite Link)</label>
+                        <input
+                          value={item.business_slug || ''}
+                          onChange={(e) => updateItem(activeTab, idx, 'business_slug', e.target.value)}
+                          style={inputStyle}
+                          placeholder="auto-generated-slug"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 5. Provider Type & Badge */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                       <div>
-                        <label style={labelStyle}>Provider Type</label>
+                        <label style={labelStyle}>Provider Operational Type</label>
                         <select
                           value={item.provider_type || ''}
                           onChange={(e) => updateItem(activeTab, idx, 'provider_type', e.target.value || undefined)}
                           style={{ ...inputStyle, cursor: 'pointer' }}
                         >
                           <option value="">— None —</option>
-                          <option value="hotel">Hotel</option>
-                          <option value="operator">Operator</option>
+                          <option value="hotel">Hotel / Lodge</option>
+                          <option value="operator">Tour / Safari Operator</option>
                           <option value="siwify_direct">Siwify Direct</option>
-                          <option value="artisan">Artisan</option>
+                          <option value="artisan">Artisan / Producer</option>
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>Provider Badge</label>
+                        <label style={labelStyle}>Provider Badge Text</label>
                         <input
                           value={item.provider_badge || ''}
                           onChange={(e) => updateItem(activeTab, idx, 'provider_badge', e.target.value)}
                           style={inputStyle}
-                          placeholder="e.g. ⭐ Verified"
+                          placeholder="e.g. ⭐ Verified Sanctuary"
                         />
                       </div>
                     </div>
+
+                    {/* 6. Trusted checkbox */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.25rem' }}>
                       <label style={{ ...labelStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                         <input
@@ -644,7 +895,7 @@ export default function JourneyCardsPage() {
                           background: 'rgba(74,222,128,0.12)', color: C.green,
                           padding: '0.2rem 0.5rem', borderRadius: '6px',
                         }}>
-                          ✓ Verified
+                          ✓ Verified Platform Partner 🛡️
                         </span>
                       )}
                     </div>

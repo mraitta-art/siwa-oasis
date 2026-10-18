@@ -38,6 +38,8 @@ export interface CatalogItem {
   business_phone?: string | null;
   whatsapp_number?: string;
   provider_type?: 'hotel' | 'operator' | 'siwify_direct' | 'artisan';
+  parent_business_type_id?: string;
+  child_business_type_id?: string;
   provider_badge?: string;
   is_trusted?: boolean;
   setting_location?: string;
