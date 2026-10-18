@@ -22,8 +22,45 @@ function ensureCatalogTable(): Promise<void> {
 }
 
 function parseCatalog(value: unknown): JourneyCustomizerCatalog {
-  if (typeof value === 'string') return JSON.parse(value) as JourneyCustomizerCatalog;
-  return (value || DEFAULT_JOURNEY_CUSTOMIZER) as JourneyCustomizerCatalog;
+  let parsed: any;
+  if (typeof value === 'string') {
+    try { parsed = JSON.parse(value); } catch { parsed = DEFAULT_JOURNEY_CUSTOMIZER; }
+  } else {
+    parsed = value || DEFAULT_JOURNEY_CUSTOMIZER;
+  }
+
+  // Gracefully merge default provider and comparison fields into existing DB records
+  const result = { ...DEFAULT_JOURNEY_CUSTOMIZER, ...parsed };
+  const groups = ['experiences', 'accommodations', 'transports', 'meals'] as const;
+
+  for (const group of groups) {
+    const defaultGroupItems = (DEFAULT_JOURNEY_CUSTOMIZER[group] as any[]) || [];
+    const defaultMap = new Map<string, any>(defaultGroupItems.map(it => [it.id, it]));
+    const currentGroupItems = (parsed[group] as any[]) || [];
+
+    result[group] = currentGroupItems.map((item: any) => {
+      const def = defaultMap.get(item.id) || {};
+      return {
+        ...def,
+        ...item,
+        // Preserve default provider details if missing in legacy DB row
+        business_name: item.business_name || def.business_name,
+        business_slug: item.business_slug || def.business_slug,
+        provider_type: item.provider_type || def.provider_type,
+        provider_badge: item.provider_badge || def.provider_badge,
+        is_trusted: item.is_trusted !== undefined ? item.is_trusted : def.is_trusted,
+        ota_benchmark_price: item.ota_benchmark_price || def.ota_benchmark_price,
+        ota_name: item.ota_name || def.ota_name,
+        external_check_url: item.external_check_url || def.external_check_url,
+        direct_discount_note: item.direct_discount_note || def.direct_discount_note,
+        commercial_item_id: item.commercial_item_id || def.commercial_item_id,
+        image: item.image || def.image,
+        icon: item.icon || def.icon,
+      };
+    }) as any;
+  }
+
+  return result as JourneyCustomizerCatalog;
 }
 
 function validateCatalog(input: unknown): input is JourneyCustomizerCatalog {
