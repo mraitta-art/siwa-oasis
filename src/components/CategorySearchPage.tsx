@@ -20,6 +20,7 @@ import MarketplaceHeader from '@/components/MarketplaceHeader';
 import CategoryInvestmentSection from '@/components/CategoryInvestmentSection';
 import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import RetreatProgramBuilder from '@/components/RetreatProgramBuilder';
+import AccommodationExplorer from '@/components/AccommodationExplorer';
 
 
 interface BusinessType {
@@ -599,9 +600,17 @@ export default function CategorySearchPage({
         }} />
       </section>
 
-      {/* ── RetreatProgramBuilder or SmartJourneyPlanner ───────────────────── */}
+      {/* ── RetreatProgramBuilder, AccommodationExplorer, or SmartJourneyPlanner ── */}
       {pageSlug === 'siwa-retreats' ? (
         <RetreatProgramBuilder accentColor={accent} />
+      ) : pageSlug === 'siwa-stay' || category === 'accommodation' ? (
+        <>
+          <AccommodationExplorer accentColor={accent} />
+          <SmartJourneyPlanner
+            category={category}
+            subtitle={label}
+          />
+        </>
       ) : isPlanningCategory ? (
         <SmartJourneyPlanner
           category={category}

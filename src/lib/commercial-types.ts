@@ -84,6 +84,10 @@ export interface CommercialItem {
   // Architectural, Sensory & Culinary DNA (Dining, Lodging, Venues)
   building_material?: string; // e.g. 'Hand-hewn Kershef Mudbrick & Palm Wood', 'Bedouin Starlight Sand Pit'
   view_type?: string;         // e.g. 'Waterfront Salt Lake Horizon', 'Endless Golden Dunes', 'Old Shali Citadel'
+  setting_location?: 'on_lake' | 'on_lake_and_pool' | 'dune' | 'multiple_views' | 'oasis_palms';
+  accommodation_type?: 'ecolodge' | 'salt_chalet' | 'glamping' | 'heritage_suite' | 'villa';
+  has_pool?: boolean;
+  minisite_url?: string;
   vibe_ambience?: string;     // e.g. 'Candlelit Acoustic Silence', 'Fireplace Starlight Circle'
   seating_style?: string;     // e.g. 'Handwoven Bedouin Kilims on Soft Sand', 'Carved Wooden Terrace'
   menu_highlights?: string[]; // e.g. ['Subterranean Mandi Lamb', 'Siwan Date Salad', 'Wild Mint Tea']

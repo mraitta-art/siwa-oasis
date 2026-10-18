@@ -59,7 +59,19 @@ export default function CommercialBookingEngine({
     : [item.image];
 
   // Resolve links (admin custom_links first, then legacy comparison_links)
-  const resolvedLinks: CardCustomLink[] = (item.custom_links && item.custom_links.length > 0)
+  const minisitePill: CardCustomLink[] = item.business_slug ? [{
+    id: `minisite_${item.business_slug}`,
+    title: `${item.business_name} Minisite`,
+    url: `/${item.business_slug}#sec_3_facilities`,
+    type: 'platform_vendor' as const,
+    badge_text: 'Provider Minisite',
+    accent_color: '#4ade80',
+    icon: '🏛️',
+    is_active: true,
+    is_registered_vendor: true,
+  }] : [];
+
+  const rawLinks: CardCustomLink[] = (item.custom_links && item.custom_links.length > 0)
     ? item.custom_links.filter(l => l.is_active !== false)
     : (item.comparison_links ? [
         ...(item.comparison_links.booking_com_url ? [{
@@ -87,6 +99,11 @@ export default function CommercialBookingEngine({
           badge_text: 'Google Maps', accent_color: '#e58e26', icon: '📍', is_active: true,
         }] : []),
       ] : []);
+
+  const resolvedLinks: CardCustomLink[] = [
+    ...minisitePill,
+    ...rawLinks.filter(l => !l.url?.includes(`/${item.business_slug}`))
+  ];
 
   const benchmarkLink = resolvedLinks.find(l => l.benchmark_price && l.benchmark_price > currentPrice);
   const savings = benchmarkLink?.benchmark_price ? benchmarkLink.benchmark_price - currentPrice : null;
@@ -197,8 +214,26 @@ export default function CommercialBookingEngine({
         <div style={{ padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {/* Title row */}
           <div>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: accentColor, marginBottom: '3px' }}>
-              {item.business_name}
+            <div style={{ marginBottom: '3px' }}>
+              <a
+                href={item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: accentColor,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>{item.business_name}</span>
+                <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>↗ Minisite</span>
+              </a>
             </div>
             <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#f8fafc', lineHeight: 1.35 }}>
               {item.title_en}
@@ -520,8 +555,30 @@ export default function CommercialBookingEngine({
           padding: '1rem 1.4rem 1.1rem',
           zIndex: 2,
         }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>
-            {item.business_name}
+          <div style={{ marginBottom: '4px' }}>
+            <a
+              href={item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                color: '#fde68a',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                textDecoration: 'none',
+                background: 'rgba(8,14,10,0.75)',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                border: '1px solid rgba(212,175,55,0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <span>🏛️ {item.business_name}</span>
+              <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>• View Minisite ↗</span>
+            </a>
           </div>
           <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
             {item.title_en}
@@ -897,38 +954,66 @@ export default function CommercialBookingEngine({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            style={{
-              background: `linear-gradient(135deg, ${accentColor} 0%, #b88628 100%)`,
-              color: '#0d150f',
-              border: 'none',
-              padding: '0.85rem 1.8rem',
-              borderRadius: '14px',
-              fontSize: '0.88rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              letterSpacing: '0.04em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 6px 20px rgba(212,175,55,0.25)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 28px rgba(212,175,55,0.4)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.transform = 'none';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(212,175,55,0.25)';
-            }}
-          >
-            <span>{cfg.icon}</span>
-            <span>Book Directly</span>
-            <span>→</span>
-          </button>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {item.business_slug && (
+              <a
+                href={`/${item.business_slug}#sec_3_facilities`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: '#132016',
+                  color: '#f8fafc',
+                  border: `1.5px solid ${accentColor}`,
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '14px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <span>🏛️ Minisite</span>
+                <span style={{ fontSize: '0.72rem', color: '#4ade80' }}>↗</span>
+              </a>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              style={{
+                background: `linear-gradient(135deg, ${accentColor} 0%, #b88628 100%)`,
+                color: '#0d150f',
+                border: 'none',
+                padding: '0.85rem 1.6rem',
+                borderRadius: '14px',
+                fontSize: '0.88rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                letterSpacing: '0.04em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 6px 20px rgba(212,175,55,0.25)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 28px rgba(212,175,55,0.4)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'none';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(212,175,55,0.25)';
+              }}
+            >
+              <span>{cfg.icon}</span>
+              <span>Book Directly</span>
+              <span>→</span>
+            </button>
+          </div>
         </div>
       </div>
 

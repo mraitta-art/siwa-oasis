@@ -24,6 +24,10 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     reviews_count: 84,
     location_name: 'Gebel Dakrour Area',
     vibe_tags: ['heritage', 'silence', 'relaxation', 'organic_food'],
+    setting_location: 'multiple_views',
+    accommodation_type: 'ecolodge',
+    has_pool: true,
+    view_type: 'Multiple Views (White Mountain, Ancient Palm Canopy & Dunes)',
     check_in_time: '14:00',
     check_out_time: '11:00',
     gallery_images: [
@@ -70,14 +74,18 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     desc_ar: 'شاليه بيئي على ضفاف بحيرة الملح مباشرة مصمم للهدوء التام والتأمل واستعادة التوازن النفسي.',
     image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
     icon: '🌊',
-    badge_en: 'Lake View Haven',
+    badge_en: 'On Lake Shore',
     price: 2600,
     price_unit: 'night',
     currency: 'EGP',
     rating: 5.0,
     reviews_count: 67,
     location_name: 'Aghurmi Salt Lake Shore',
-    vibe_tags: ['lake_view', 'silence', 'meditation', 'relaxation'],
+    setting_location: 'on_lake',
+    accommodation_type: 'salt_chalet',
+    has_pool: false,
+    view_type: 'On Lake (Waterfront Salt Lake Shore & Reflective Waters)',
+    vibe_tags: ['lake_silence', 'silence', 'meditation', 'relaxation'],
     check_in_time: '14:00',
     check_out_time: '11:00',
     gallery_images: [
@@ -108,6 +116,64 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
       { id: 'opt_lake_suite', name_en: 'Panoramic Salt Horizon Suite', name_ar: 'جناح بانورامي إطلالة ملحية', multiplier: 1.4, capacity: '2 Guests' }
     ]
   },
+
+  {
+    id: 'acc_siwa_salt_lagoon_resort',
+    sector: 'accommodation',
+    kind: 'direct',
+    business_id: 'biz_salt_lagoon',
+    business_name: 'Siwa Salt Lagoon & Pool Resort',
+    business_slug: 'siwa-salt-lagoon',
+    whatsapp_number: '201005544332',
+    title_en: 'Waterfront Lake Chalet with Mineral Spring Pool',
+    title_ar: 'شاليه مواجه للبحيرة مباشرة مع مسبح مياه كبريتية عذبة',
+    desc_en: 'Premier luxury stay sitting right on the salt lake shore with private access plus a crystal natural fresh spring pool nestled in palm gardens.',
+    desc_ar: 'إقامة فاخرة تجمع بين إطلالة مباشرة على مياه البحيرة الملحية ومسبح خاص بالمياه العذبة والينابيع الدافئة.',
+    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+    icon: '🏊',
+    badge_en: 'On Lake & Pool',
+    price: 3100,
+    price_unit: 'night',
+    currency: 'EGP',
+    rating: 4.95,
+    reviews_count: 78,
+    location_name: 'Lake Siwa Western Shore & Springs',
+    setting_location: 'on_lake_and_pool',
+    accommodation_type: 'salt_chalet',
+    has_pool: true,
+    view_type: 'On Lake & Pool (Direct Waterfront Shore + Palm Spring Pool)',
+    vibe_tags: ['lake_silence', 'salt_healing', 'relaxation', 'luxury'],
+    check_in_time: '14:00',
+    check_out_time: '12:00',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_benchmark_price: 3800,
+      ota_name: 'Booking.com'
+    },
+    hot_offer: {
+      title: 'Lake & Pool Direct Package',
+      perk_description: 'Save 700 EGP vs Booking.com + Free Floating Salt Session & Poolside Fresh Siwan Juices',
+      badge_label: '🔥 HOT OFFER • SAVE 700 EGP'
+    },
+    executing_partner: {
+      name: 'Siwa Salt Lagoon Management',
+      role_title: 'Premier Waterfront Resort',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.95,
+      reviews_count: 78
+    },
+    options: [
+      { id: 'opt_lake_pool_chalet', name_en: 'Lake & Pool View Chalet', name_ar: 'شاليه إطلالة بحيرة ومسبح', multiplier: 1.0, capacity: '2 Guests' },
+      { id: 'opt_private_pool_suite', name_en: 'Private Spring Plunge Pool Villa', name_ar: 'فيلا خاصة مع مسبح ينابيع', multiplier: 1.5, capacity: '2-4 Guests' }
+    ]
+  },
+
   {
     id: 'acc_dunes_glamping_camp',
     sector: 'accommodation',
@@ -122,13 +188,17 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     desc_ar: 'خيام بدوية فاخرة وسط الكثبان الذهبية الشاهقة بعيداً عن أضواء المدينة مع رؤية كاملة لمجرة درب التبانة.',
     image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
     icon: '⛺',
-    badge_en: 'Deep Dunes',
+    badge_en: 'Dune Crest',
     price: 2400,
     price_unit: 'night',
     currency: 'EGP',
     rating: 4.9,
     reviews_count: 95,
     location_name: 'Great Sand Sea (Deep Dunes)',
+    setting_location: 'dune',
+    accommodation_type: 'glamping',
+    has_pool: false,
+    view_type: 'Dune (Great Sand Sea Crests & Open Stars)',
     vibe_tags: ['desert_stars', 'silence', 'adventure'],
     check_in_time: '15:30',
     check_out_time: '10:30',
@@ -158,6 +228,63 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
     options: [
       { id: 'opt_bedouin_tent', name_en: 'Luxury Bedouin Dome Tent', name_ar: 'خيمة قبة بدوية فاخرة', multiplier: 1.0, capacity: '2 Guests' },
       { id: 'opt_sky_tent', name_en: 'Open Stargazer Sky Bed Suite', name_ar: 'سرير رصد النجوم المفتوح', multiplier: 1.25, capacity: '2 Guests' }
+    ]
+  },
+
+  {
+    id: 'acc_shali_fortress_lodge',
+    sector: 'accommodation',
+    kind: 'direct',
+    business_id: 'biz_shali_suites',
+    business_name: 'Old Shali Heritage Suites',
+    business_slug: 'shali-suites',
+    whatsapp_number: '201007788990',
+    title_en: 'Shali Citadel 360° Panoramic Mudbrick Suite',
+    title_ar: 'جناح قلعة شالي الفخاري مع إطلالة بانورامية 360 درجة',
+    desc_en: 'Ancient 12th-century Kershef architecture restored with royal organic luxury, offering panoramic views spanning the citadel, date palm sea, and salt lakes.',
+    desc_ar: 'إقامة تاريخية أصيلة بحجر الكرشيف تطل ببانوراما 360 درجة على أطلال قلعة شالي وغابات النخيل وبحيرات الملح في الأفق.',
+    image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&q=80',
+    icon: '🏰',
+    badge_en: 'Multiple Views',
+    price: 2800,
+    price_unit: 'night',
+    currency: 'EGP',
+    rating: 4.92,
+    reviews_count: 53,
+    location_name: 'Old Shali Citadel Heights',
+    setting_location: 'multiple_views',
+    accommodation_type: 'heritage_suite',
+    has_pool: false,
+    view_type: 'Multiple Views (360° Citadel Fortress, Salt Lakes & Palm Canopy)',
+    vibe_tags: ['heritage', 'silence', 'wisdom', 'culture'],
+    check_in_time: '14:00',
+    check_out_time: '11:30',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&q=80',
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_benchmark_price: 3450,
+      ota_name: 'Booking.com'
+    },
+    hot_offer: {
+      title: 'Citadel Panorama Direct Advantage',
+      perk_description: 'Save 650 EGP vs Booking.com + Free Guided Shali Citadel Sunset Walk & Rooftop Date Tea',
+      badge_label: '🔥 HOT OFFER • SAVE 650 EGP'
+    },
+    executing_partner: {
+      name: 'Shali Heritage Hospitality Group',
+      role_title: 'Historic Citadel Property Operator',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 4.92,
+      reviews_count: 53
+    },
+    options: [
+      { id: 'opt_citadel_suite', name_en: 'Royal Kershef Citadel Suite', name_ar: 'جناح الكرشيف الملكي', multiplier: 1.0, capacity: '2 Guests' },
+      { id: 'opt_rooftop_terrace', name_en: '360° Panorama Rooftop Penthouse', name_ar: 'بنتهاوس التراس البانورامي 360', multiplier: 1.45, capacity: '2-3 Guests' }
     ]
   },
 

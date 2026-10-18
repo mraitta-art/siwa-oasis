@@ -18,6 +18,7 @@ import CategoryPageHero from '@/components/CategoryPageHero';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import DynamicSectorBookingShowcase from '@/components/DynamicSectorBookingShowcase';
 import RetreatProgramBuilder from '@/components/RetreatProgramBuilder';
+import AccommodationExplorer from '@/components/AccommodationExplorer';
 import AuctionsShowcase from '@/components/AuctionsShowcase';
 
 import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
@@ -278,6 +279,21 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: Sectio
       );
     }
 
+
+    // ─── ACCOMMODATION EXPLORER (Vibe, Setting & Minisite Hub) ───
+    case 'accommodation_explorer':
+      return (
+        <AnimatedSection>
+          <AccommodationExplorer
+            accentColor={props?.accentColor || siteSettings?.primary_color || '#D4AF37'}
+            initialSetting={props?.initialSetting || 'all'}
+            initialVibe={props?.initialVibe || 'all'}
+            initialType={props?.initialType || 'all'}
+            title={props?.title}
+            subtitle={props?.subtitle}
+          />
+        </AnimatedSection>
+      );
 
     // ─── RETREAT PROGRAM BUILDER ──────────────────────────
     case 'retreat_program_builder':

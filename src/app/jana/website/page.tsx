@@ -20,6 +20,7 @@ const PALETTE: PaletteItem[] = [
   { zone: 'header', key: 'search_bar',     name: 'Search Bar (Compact)',    icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Compact header search widget' },
 
   // ── Body zone ──
+  { zone: 'body',   key: 'accommodation_explorer', name: 'Accommodation Explorer', icon: '🛖', manager: '/admin/commercial-links', color: '#287a55', desc: 'Explore stays by Vibe, Setting (Lake, Pool, Dunes) & Minisite links' },
   { zone: 'body',   key: 'retreat_program_builder', name: 'Retreat Program Builder', icon: '🧘', manager: '/jana/packages',  color: '#58765a', desc: 'Interactive Siwa Retreat Program Builder with dynamic days & options' },
   { zone: 'body',   key: 'reservation_accommodation', name: 'Accommodation Booking', icon: '🏨', manager: '/admin/commercial-links', color: '#287a55', desc: 'Direct booking cards & OTA arbitrage for stays & lodges' },
   { zone: 'body',   key: 'reservation_dining', name: 'Dining Booking Module', icon: '🍽️', manager: '/admin/commercial-links', color: '#b4533c', desc: 'Restaurant & desert dining reservation cards with perks' },
