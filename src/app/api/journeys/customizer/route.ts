@@ -110,3 +110,62 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: error?.message || 'Failed to save journey catalog' }, { status });
   }
 }
+
+/**
+ * PATCH — Update a single item within the catalog without replacing everything.
+ * Body: { group: 'experiences'|'accommodations'|'transports'|'meals', item_id: string, updates: Partial<item> }
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const admin = await requireAdmin();
+    const body = await request.json();
+    const { group, item_id, updates } = body;
+
+    const validGroups = ['experiences', 'accommodations', 'transports', 'meals'] as const;
+    if (!validGroups.includes(group) || !item_id || !updates || typeof updates !== 'object') {
+      return NextResponse.json({ error: 'Required: group (experiences|accommodations|transports|meals), item_id, updates object' }, { status: 400 });
+    }
+
+    // Load current catalog
+    let row: { catalog: unknown; revision: number } | null;
+    try {
+      row = await queryOne<{ catalog: unknown; revision: number }>(
+        'SELECT catalog, revision FROM journey_customizer_catalog WHERE config_key = ? LIMIT 1',
+        [CONFIG_KEY]
+      );
+    } catch (error: any) {
+      if (error?.code !== 'ER_NO_SUCH_TABLE') throw error;
+      row = null;
+    }
+    const catalog = row ? parseCatalog(row.catalog) : { ...DEFAULT_JOURNEY_CUSTOMIZER };
+
+    // Find and update the item
+    const items = catalog[group as keyof Pick<JourneyCustomizerCatalog, 'experiences' | 'accommodations' | 'transports' | 'meals'>] as any[];
+    const idx = items.findIndex((it: any) => it.id === item_id);
+    if (idx === -1) {
+      return NextResponse.json({ error: `Item '${item_id}' not found in group '${group}'` }, { status: 404 });
+    }
+
+    // Merge updates (don't allow id change)
+    const { id: _id, ...safeUpdates } = updates;
+    items[idx] = { ...items[idx], ...safeUpdates };
+
+    // Validate the modified catalog
+    if (!validateCatalog(catalog)) {
+      return NextResponse.json({ error: 'Updated catalog failed validation. Check your changes.' }, { status: 400 });
+    }
+
+    await ensureCatalogTable();
+    await execute(
+      `INSERT INTO journey_customizer_catalog (config_key, catalog, revision, updated_by, updated_at)
+       VALUES (?, ?, 1, ?, NOW())
+       ON DUPLICATE KEY UPDATE catalog = VALUES(catalog), revision = revision + 1, updated_by = VALUES(updated_by), updated_at = NOW()`,
+      [CONFIG_KEY, JSON.stringify(catalog), admin.id]
+    );
+
+    return NextResponse.json({ success: true, item: items[idx] });
+  } catch (error: any) {
+    const status = error?.message?.includes('authenticated') || error?.message?.includes('Admin access') ? 403 : 500;
+    return NextResponse.json({ error: error?.message || 'Failed to patch journey item' }, { status });
+  }
+}

@@ -5,6 +5,9 @@ export interface JourneyCatalogItemBase {
   image?: string;
   icon?: string;
 
+  // Bridge to commercial-links admin system (links curated in /admin/commercial-links appear on journey cards)
+  commercial_item_id?: string;
+
   // Dynamic Provider & Service Operator Details (Controlled by Admin / Vendor system)
   business_id?: string;
   business_name?: string;
@@ -26,6 +29,7 @@ export interface JourneyCatalogItemBase {
   location_name?: string;
   gallery_images?: string[];
 }
+
 
 export interface JourneyExperience extends JourneyCatalogItemBase {
   title_en: string;
@@ -82,6 +86,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
       id: 'exp_salt_lakes',
       is_visible: true,
       vendor_business_ids: ['biz_cleopatra_springs'],
+      commercial_item_id: 'act_salt_lake_float',
       business_id: 'biz_cleopatra_springs',
       business_name: 'Siwa Salt & Mineral Sanctuary',
       business_slug: 'siwa-salt-sanctuary',
@@ -110,6 +115,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
       id: 'exp_great_sand_sea',
       is_visible: true,
       vendor_business_ids: ['biz_siwa_desert_riders'],
+      commercial_item_id: 'trn_landcruiser_4x4',
       business_id: 'biz_siwa_desert_riders',
       business_name: 'Siwa Desert Pilots Syndicate',
       business_slug: 'siwa-desert-riders',
@@ -138,6 +144,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
       id: 'exp_shali_amun_oracle',
       is_visible: true,
       vendor_business_ids: ['biz_amun_expeditions'],
+      commercial_item_id: 'tur_shali_oracle_walk',
       business_id: 'biz_amun_expeditions',
       business_name: 'Amun Oasis Cultural Expeditions',
       business_slug: 'amun-expeditions',
@@ -250,6 +257,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
   accommodations: [
     {
       id: 'ecolodge_premium', is_visible: true, vendor_business_ids: ['biz_taziry'],
+      commercial_item_id: 'acc_taziry_standard',
       business_id: 'biz_taziry', business_name: 'Taziry Ecolodge & Heritage Village', business_slug: 'taziry-ecolodge',
       provider_type: 'hotel', provider_badge: 'Direct from Hotel', is_trusted: true,
       name_en: 'Authentic Kershef Mud-Brick Eco-Lodge',
@@ -266,6 +274,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
     },
     {
       id: 'desert_glamping', is_visible: true, vendor_business_ids: ['biz_aghurmi_retreat'],
+      commercial_item_id: 'acc_dunes_glamping_camp',
       business_id: 'biz_aghurmi_retreat', business_name: 'Aghurmi Salt Lake Eco Sanctuary', business_slug: 'aghurmi-retreat',
       provider_type: 'hotel', provider_badge: 'Direct from Camp', is_trusted: true,
       name_en: 'Luxury Desert Safari Glamping Camp',
@@ -282,6 +291,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
     },
     {
       id: 'boutique_resort', is_visible: true, vendor_business_ids: ['biz_siwa_resort'],
+      commercial_item_id: 'acc_aghurmi_lake_sanctuary',
       business_id: 'biz_siwa_resort', business_name: 'Siwan Palm Garden Resort', business_slug: 'siwan-palm-resort',
       provider_type: 'hotel', provider_badge: 'Direct Hotel Partner', is_trusted: true,
       name_en: 'Boutique Siwan Palm Garden Resort',
@@ -311,6 +321,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
   transports: [
     {
       id: 'private_4x4', is_visible: true, vendor_business_ids: ['biz_siwa_desert_riders'],
+      commercial_item_id: 'trn_landcruiser_4x4',
       business_id: 'biz_siwa_desert_riders', business_name: 'Siwa Desert Pilots Syndicate', business_slug: 'siwa-desert-riders',
       provider_type: 'operator', provider_badge: 'Licensed 4WD Pilot', is_trusted: true,
       name_en: 'Dedicated Private 4x4 Land Cruiser (Full Stay)',
@@ -340,6 +351,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
     },
     {
       id: 'cairo_transfer_4x4', is_visible: true, vendor_business_ids: ['biz_west_delta_siwa'],
+      commercial_item_id: 'trn_cairo_siwa_bus_coach',
       business_id: 'biz_west_delta_siwa', business_name: 'West Delta & Siwa Royal Express', business_slug: 'siwa-royal-express',
       provider_type: 'operator', provider_badge: 'Official Oasis Transport Operator', is_trusted: true,
       name_en: 'VIP Cairo / Alex Roundtrip + Local 4x4 Package',
@@ -357,6 +369,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
   meals: [
     {
       id: 'mandi_lamb', is_visible: true, vendor_business_ids: ['biz_abdu_restaurant'],
+      commercial_item_id: 'din_abdu_feast',
       business_id: 'biz_abdu_restaurant', business_name: 'Abdu Heritage Restaurant & Garden', business_slug: 'abdu-restaurant',
       provider_type: 'operator', provider_badge: 'Heritage Kitchen & Garden', is_trusted: true,
       name_en: 'Bedouin Lamb Under Sand (Mendhi)',
@@ -372,6 +385,7 @@ export const DEFAULT_JOURNEY_CUSTOMIZER: JourneyCustomizerCatalog = {
     },
     {
       id: 'organic_vegan', is_visible: true, vendor_business_ids: ['biz_aghurmi_retreat'],
+      commercial_item_id: 'din_lake_candlelit',
       business_id: 'biz_aghurmi_retreat', business_name: 'Aghurmi Sanctuary Culinary Crew', business_slug: 'aghurmi-retreat',
       provider_type: 'hotel', provider_badge: 'Organic Farm-to-Table', is_trusted: true,
       name_en: 'Organic Siwan Vegan Feast',

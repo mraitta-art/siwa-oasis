@@ -58,6 +58,10 @@ export interface CatalogItem {
   reviews_count?: number;
   location_name?: string;
   gallery_images?: string[];
+
+  // Bridge to commercial-links admin system
+  commercial_item_id?: string;
+  custom_links?: { id: string; title: string; url: string; type: string; badge_text?: string; icon?: string; accent_color?: string; ota_name?: string; benchmark_price?: number; is_registered_vendor?: boolean; is_active?: boolean }[];
 }
 
 export interface RoomTypeOption {
@@ -467,21 +471,33 @@ export default function SmartJourneyPlanner({
       }
     } catch {}
 
-    // Fetch dynamic journey customizer catalog
-    fetch('/api/journeys/customizer')
-      .then(r => r.json())
-      .then(d => {
-        if (d?.catalog) {
-          setCatalog(prev => ({
-            ...prev,
-            ...d.catalog,
-            experiences: d.catalog.experiences?.length ? d.catalog.experiences : prev.experiences,
-            transports: d.catalog.transports?.length ? d.catalog.transports : prev.transports,
-            meals: d.catalog.meals?.length ? d.catalog.meals : prev.meals,
-          }));
-        }
-      })
-      .catch(() => {});
+    // Fetch dynamic journey customizer catalog and commercial links
+    Promise.all([
+      fetch('/api/journeys/customizer').then(r => r.json()).catch(() => ({})),
+      fetch('/api/admin/commercial-links').then(r => r.json()).catch(() => ({})),
+    ]).then(([d, commData]) => {
+      const linksMap = commData?.links_map || {};
+
+      if (d?.catalog) {
+        const enrichItems = (items: CatalogItem[] = []) =>
+          items.map(item => {
+            const mappedId = item.commercial_item_id || item.id;
+            const extraLinks = linksMap[mappedId] || [];
+            return {
+              ...item,
+              custom_links: extraLinks.length > 0 ? extraLinks : item.custom_links,
+            };
+          });
+
+        setCatalog(prev => ({
+          ...prev,
+          ...d.catalog,
+          experiences: enrichItems(d.catalog.experiences?.length ? d.catalog.experiences : prev.experiences),
+          transports: enrichItems(d.catalog.transports?.length ? d.catalog.transports : prev.transports),
+          meals: enrichItems(d.catalog.meals?.length ? d.catalog.meals : prev.meals),
+        }));
+      }
+    });
 
     // Fetch live accommodation vendors from DB & Master Template baseline
     fetch('/api/accommodation-vendors?limit=60')
@@ -2659,7 +2675,44 @@ export default function SmartJourneyPlanner({
                     COMMERCIAL RATES & BOOKING BENCHMARK
                   </div>
                   
-                  {inspectingItem.item.external_check_url && (
+                  {/* Dynamic Admin-Curated Multi-Channel Links */}
+                  {Array.isArray(inspectingItem.item.custom_links) && inspectingItem.item.custom_links.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.75rem' }}>
+                      <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
+                        Direct Channels & Benchmark Links:
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {inspectingItem.item.custom_links
+                          .filter(l => l.is_active !== false)
+                          .map(link => (
+                            <a
+                              key={link.id}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                color: link.accent_color || '#38bdf8',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${link.accent_color ? link.accent_color + '44' : 'rgba(255,255,255,0.1)'}`,
+                                padding: '0.35rem 0.65rem',
+                                borderRadius: '8px',
+                              }}
+                            >
+                              <span>{link.icon || '🔗'}</span>
+                              <span>{link.badge_text || link.title}</span>
+                            </a>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {inspectingItem.item.external_check_url && (!inspectingItem.item.custom_links || inspectingItem.item.custom_links.length === 0) && (
                     <div style={{ marginBottom: '0.65rem' }}>
                       <a
                         href={inspectingItem.item.external_check_url}

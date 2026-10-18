@@ -51,6 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Journeys',
     items: [
+      { label: 'Journey Cards Manager', icon: '🎯', href: '/admin/journey-cards', badge: 'VISUAL', badgeColor: '#D4AF37' },
       { label: 'Journey Requests', icon: '🗺️', href: '/admin/journey-requests', badge: 'NEW', badgeColor: '#6366f1' },
       { label: 'Journey Config', icon: '⚙️', href: '/admin/journey-config' },
       { label: 'Journey Policies', icon: '📋', href: '/admin/journey-policies' },
