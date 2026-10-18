@@ -484,17 +484,20 @@ export default function SectionAggregationPage({
           {/* Stats strip */}
           {totalVendors > 0 && (
             <div style={{
-              display: 'inline-flex', gap: '2rem', alignItems: 'center',
+              display: 'flex', flexWrap: 'wrap', gap: 'clamp(0.4rem, 2vw, 1rem)',
+              alignItems: 'center', justifyContent: 'center',
               background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)',
-              padding: '0.65rem 1.5rem', borderRadius: '50px',
+              padding: 'clamp(0.5rem, 2vw, 0.65rem) clamp(0.85rem, 4vw, 1.5rem)',
+              borderRadius: '50px',
               border: '1px solid rgba(255,255,255,0.12)',
-              fontSize: '0.8rem', color: 'rgba(255,255,255,0.85)',
+              fontSize: 'clamp(0.7rem, 1.8vw, 0.8rem)', color: 'rgba(255,255,255,0.85)',
+              maxWidth: '100%',
             }}>
-              <span><strong style={{ color: resolvedAccent, fontWeight: 900 }}>{totalVendors}</strong> &nbsp;partners</span>
-              <span style={{ opacity: 0.4 }}>|</span>
+              <span><strong style={{ color: resolvedAccent, fontWeight: 900 }}>{totalVendors}</strong>&nbsp;partners</span>
+              <span style={{ opacity: 0.35 }}>·</span>
               <span>0% commission</span>
-              <span style={{ opacity: 0.4 }}>|</span>
-              <span>Direct WhatsApp booking</span>
+              <span style={{ opacity: 0.35 }}>·</span>
+              <span>Direct WhatsApp</span>
             </div>
           )}
         </div>
@@ -559,10 +562,10 @@ function VendorGrid({
       {/* ── Section header + search ─────────────────────────────────────────── */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '1rem',
-        alignItems: 'center', justifyContent: 'space-between',
+        alignItems: 'flex-start', justifyContent: 'space-between',
         marginBottom: '2rem',
       }}>
-        <div>
+        <div style={{ minWidth: 0, flex: '1 1 200px' }}>
           {embedded && (
             <div style={{
               fontSize: '0.65rem', fontWeight: 900, color: accentColor,
@@ -590,7 +593,7 @@ function VendorGrid({
         </div>
 
         {/* Search input */}
-        <div style={{ position: 'relative', flexShrink: 0, minWidth: 'min(280px, 100%)' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 'min(220px, 100%)', maxWidth: '380px' }}>
           <style>{`
             .sap-search-input::placeholder { color: rgba(248,250,252,0.35); }
           `}</style>

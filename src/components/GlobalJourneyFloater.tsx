@@ -117,20 +117,30 @@ export default function GlobalJourneyFloater() {
 
   return (
     <>
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .gjf-pill-text-sub { display: inline; }
+        @media (max-width: 400px) {
+          .gjf-pill-text-sub { display: none; }
+        }
+      `}</style>
       {/* Floating Bottom Right Journey Capsule */}
       <aside
         aria-label="Your Siwa Custom Journey Itinerary"
         style={{
           position: 'fixed',
-          bottom: '1.5rem',
-          right: '1.5rem',
+          bottom: 'clamp(0.85rem, 3vw, 1.5rem)',
+          right: 'clamp(0.75rem, 3vw, 1.5rem)',
           zIndex: 9990,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
           gap: '0.6rem',
           fontFamily: 'inherit',
-          maxWidth: 'calc(100vw - 3rem)',
+          maxWidth: 'calc(100vw - 1.5rem)',
         }}
       >
         {/* Expanded Quick Drawer */}
@@ -276,10 +286,10 @@ export default function GlobalJourneyFloater() {
             <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '0.3px', lineHeight: 1.2 }}>
               {draft.itemsCount > 0 ? `${draft.itemsCount} Reserved in Journey` : 'Planning a Full Journey?'}
             </span>
-            <span style={{ fontSize: '0.65rem', color: isCombo ? '#34d399' : '#D4AF37', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.65rem', color: isCombo ? '#34d399' : '#D4AF37', fontWeight: 700 }} className="gjf-pill-text-sub">
               {draft.itemsCount > 0
-                ? (isCombo ? '15% Off Active • Tap to Review' : `${draft.sectorsCount}/3 Sectors • Add 1 More for 15% Off`)
-                : 'Explore & Combine All Services →'}
+                ? (isCombo ? '15% Off Active • Tap to Review' : `${draft.sectorsCount}/3 Sectors • Add More for 15% Off`)
+                : 'Combine All Services →'}
             </span>
           </div>
 
