@@ -241,6 +241,7 @@ const DEFAULT_TRANSPORTS: CatalogItem[] = [
     desc_en: 'Door-to-door luxury air-conditioned van with refreshments and rest stops.',
     rate_per_day: 3500,
     icon: '🚐',
+    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80',
   },
   {
     id: 'trans_4x4_safari_cruiser',
@@ -250,6 +251,7 @@ const DEFAULT_TRANSPORTS: CatalogItem[] = [
     desc_en: 'Fully desert-equipped 4WD with air conditioning, deflation gear, and licensed pilot.',
     rate_per_day: 1800,
     icon: '🚙',
+    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80',
   },
   {
     id: 'trans_local_tuktuk_oasis',
@@ -259,6 +261,7 @@ const DEFAULT_TRANSPORTS: CatalogItem[] = [
     desc_en: 'Daily on-demand local transit between palm groves, Shali fortress, and salt lakes.',
     rate_per_day: 600,
     icon: '🛺',
+    image: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800&q=80',
   },
 ];
 
@@ -271,6 +274,7 @@ const DEFAULT_MEALS: CatalogItem[] = [
     desc_en: 'Slow-cooked lamb under hot desert sand, Siwan spiced rice, fresh garden salad, and lemongrass tea.',
     price_per_person: 450,
     icon: '🔥',
+    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
   },
   {
     id: 'meal_palm_garden_lunch',
@@ -280,6 +284,7 @@ const DEFAULT_MEALS: CatalogItem[] = [
     desc_en: 'Freshly baked Siwan flatbread, sun-ripened olives, local duck or chicken tajine, date sweet.',
     price_per_person: 280,
     icon: '🍽️',
+    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
   },
 ];
 
@@ -896,6 +901,62 @@ export default function SmartJourneyPlanner({
 
   return (
     <section style={S.wrap} id="smart-journey-planner">
+      <style>{`
+        .sjp-workspace {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 390px;
+          gap: 2rem;
+          align-items: start;
+        }
+        .sjp-right-panel {
+          position: sticky;
+          top: 5rem;
+          width: 100%;
+        }
+        .sjp-mobile-summary-pill {
+          display: none;
+        }
+        @media (max-width: 1024px) {
+          .sjp-workspace {
+            grid-template-columns: 1fr !important;
+            gap: 2rem;
+          }
+          .sjp-right-panel {
+            position: static !important;
+            margin-top: 1.5rem;
+          }
+          .sjp-mobile-summary-pill {
+            display: inline-flex;
+            position: fixed;
+            bottom: 4.8rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9980;
+            background: rgba(13, 21, 15, 0.96);
+            backdrop-filter: blur(16px);
+            border: 1.5px solid #10b981;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.85);
+            border-radius: 50px;
+            padding: 0.55rem 1.25rem;
+            align-items: center;
+            gap: 0.75rem;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-decoration: none;
+            white-space: nowrap;
+          }
+        }
+      `}</style>
+
+      {/* Mobile Sticky Quick-Jump Pill */}
+      {pricingSummary.subtotal > 0 && (
+        <a href="#journey-calculator-manifest" className="sjp-mobile-summary-pill">
+          <span>🧮 Calculator: <strong style={{ color: '#10b981' }}>{pricingSummary.finalTotal.toLocaleString()} EGP</strong></span>
+          <span style={{ fontSize: '0.7rem', color: '#D4AF37' }}>Review & Dispatch &darr;</span>
+        </a>
+      )}
+
       <div style={S.inner}>
         {/* Header Block with Mode Switch */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem' }}>
@@ -943,7 +1004,7 @@ export default function SmartJourneyPlanner({
 
         {/* Master Category Tabs (visible in 'all' mode, or can switch between them) */}
         {!isStandaloneMode && (
-          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             {[
               { id: 'accommodation', label: '1. Accommodation & Stays', icon: 'fa-bed', count: stayPeriods.length },
               { id: 'safaris', label: '2. Safaris & Desert Tours', icon: 'fa-compass', count: tourBookings.length },
@@ -984,7 +1045,7 @@ export default function SmartJourneyPlanner({
         )}
 
         {/* Workspace: Left (Selection & Period Builder) + Right (Live Itinerary Manifest) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: '2rem', alignItems: 'start' }}>
+        <div className="sjp-workspace">
           
           {/* LEFT COLUMN: ACTIVE SECTOR BUILDER */}
           <div>
@@ -1217,12 +1278,37 @@ export default function SmartJourneyPlanner({
                   {catalog.experiences.map((exp) => {
                     const booking = tourBookings.find(t => t.item.id === exp.id);
                     return (
-                      <div key={exp.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontSize: '2.5rem' }}>{exp.icon || '🚙'}</span>
-                          <span style={{ background: 'rgba(255,255,255,0.06)', color: '#D4AF37', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 800 }}>
-                            {exp.duration}
-                          </span>
+                      <div key={exp.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border, padding: '1.25rem' }}>
+                        {/* Visual Safari Photo Header */}
+                        <div style={{ position: 'relative', height: '145px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                          <img
+                            src={exp.image || 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80'}
+                            alt={exp.title_en || 'Siwa Safari'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                          }} />
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', display: 'flex', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{exp.icon || '🚙'}</span>
+                          </div>
+                          {exp.duration && (
+                            <span style={{
+                              position: 'absolute', top: '0.6rem', right: '0.6rem',
+                              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+                              color: '#D4AF37', padding: '0.25rem 0.65rem', borderRadius: '10px',
+                              fontSize: '0.68rem', fontWeight: 800, border: '1px solid rgba(212,175,55,0.3)',
+                            }}>
+                              {exp.duration}
+                            </span>
+                          )}
+                          {exp.category && (
+                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', fontSize: '0.7rem', color: '#cbd5e1', fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>
+                              📍 {exp.category}
+                            </div>
+                          )}
                         </div>
 
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{exp.title_en}</h4>
@@ -1341,8 +1427,31 @@ export default function SmartJourneyPlanner({
                     const legCount = transportLegs.filter(l => l.item_id === trans.id).length;
 
                     return (
-                      <div key={trans.id} style={{ ...S.card, border: isConfiguring ? '2px solid #3b82f6' : S.card.border }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{trans.icon || '🚐'}</div>
+                      <div key={trans.id} style={{ ...S.card, border: isConfiguring ? '2px solid #3b82f6' : S.card.border, padding: '1.25rem' }}>
+                        {/* Visual Transport Vehicle Photo Header */}
+                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                          <img
+                            src={trans.image || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80'}
+                            alt={trans.name_en || 'Siwa Transport'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                          }} />
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
+                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{trans.icon || '🚐'}</span>
+                          </div>
+                          <div style={{
+                            position: 'absolute', top: '0.6rem', right: '0.6rem',
+                            background: 'rgba(59,130,246,0.85)', color: '#fff',
+                            padding: '0.25rem 0.65rem', borderRadius: '10px',
+                            fontSize: '0.68rem', fontWeight: 800,
+                          }}>
+                            Direct VIP
+                          </div>
+                        </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{trans.name_en}</h4>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{trans.desc_en}</p>
 
@@ -1437,8 +1546,31 @@ export default function SmartJourneyPlanner({
                   {catalog.meals.map((meal) => {
                     const booking = diningBookings.find(d => d.item.id === meal.id);
                     return (
-                      <div key={meal.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{meal.icon || '🍽️'}</div>
+                      <div key={meal.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border, padding: '1.25rem' }}>
+                        {/* Visual Dining Photo Header */}
+                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                          <img
+                            src={meal.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80'}
+                            alt={meal.name_en || 'Siwa Dining'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                          }} />
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
+                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{meal.icon || '🍽️'}</span>
+                          </div>
+                          <div style={{
+                            position: 'absolute', top: '0.6rem', right: '0.6rem',
+                            background: 'rgba(212,175,55,0.85)', color: '#000',
+                            padding: '0.25rem 0.65rem', borderRadius: '10px',
+                            fontSize: '0.68rem', fontWeight: 900,
+                          }}>
+                            Authentic Feast
+                          </div>
+                        </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{meal.name_en}</h4>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>{meal.desc_en}</p>
 
@@ -1504,8 +1636,31 @@ export default function SmartJourneyPlanner({
                   {catalog.experiences.slice(0, 2).map((act) => {
                     const booking = activityBookings.find(a => a.item.id === act.id);
                     return (
-                      <div key={act.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{act.icon || '🏄'}</div>
+                      <div key={act.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border, padding: '1.25rem' }}>
+                        {/* Visual Activity Photo Header */}
+                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                          <img
+                            src={act.image || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80'}
+                            alt={act.title_en || 'Siwa Activity'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                          }} />
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
+                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{act.icon || '🏄'}</span>
+                          </div>
+                          <div style={{
+                            position: 'absolute', top: '0.6rem', right: '0.6rem',
+                            background: 'rgba(16,185,129,0.85)', color: '#000',
+                            padding: '0.25rem 0.65rem', borderRadius: '10px',
+                            fontSize: '0.68rem', fontWeight: 900,
+                          }}>
+                            Wellness
+                          </div>
+                        </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{act.highlight_en}</p>
 
@@ -1560,11 +1715,11 @@ export default function SmartJourneyPlanner({
           </div>
 
           {/* RIGHT COLUMN: STICKY COMPREHENSIVE ITINERARY MANIFEST */}
-          <div style={{ position: 'sticky', top: '5.5rem' }}>
+          <div className="sjp-right-panel" id="journey-calculator-manifest">
             <div style={{ ...S.card, border: '1px solid rgba(212,175,55,0.3)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: '#fff' }}>
-                  {isStandaloneMode ? `${activeMode?.toUpperCase()} MANIFEST` : 'JOURNEY MANIFEST'}
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#fff' }}>
+                  {isStandaloneMode ? `🧮 ${activeMode?.toUpperCase()} CALCULATOR & MANIFEST` : '🧮 JOURNEY CALCULATOR & MANIFEST'}
                 </h3>
                 <span style={{ fontSize: '0.75rem', color: '#D4AF37', fontWeight: 800 }}>
                   {stayPeriods.length + tourBookings.length + transportLegs.length + diningBookings.length + activityBookings.length + customWishes.length} Items
