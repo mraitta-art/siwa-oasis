@@ -337,6 +337,144 @@ export default function JanaAccommodationTemplatePage() {
                             fontFamily: 'inherit',
                           }}
                         />
+                      ) : fld.key === 'room_types' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.6)' }}>
+                              Configure multiple room tier options & multipliers
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = Array.isArray(templateValues.room_types) ? templateValues.room_types : [];
+                                const newId = `room_${current.length + 1}`;
+                                handleFieldChange('room_types', [
+                                  ...current,
+                                  {
+                                    id: newId,
+                                    name_en: `New Room Tier ${current.length + 1}`,
+                                    name_ar: `فئة غرفة جديدة ${current.length + 1}`,
+                                    capacity: '2 Guests',
+                                    multiplier: 1.0 + (current.length * 0.25),
+                                    desc: 'Private en-suite bathroom with oasis vista'
+                                  }
+                                ]);
+                              }}
+                              style={{
+                                background: 'rgba(212,175,55,0.15)',
+                                border: '1px solid #D4AF37',
+                                color: '#D4AF37',
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: '6px',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              + Add Room Option
+                            </button>
+                          </div>
+
+                          {/* Existing Room Tiers List */}
+                          {(Array.isArray(templateValues.room_types) ? templateValues.room_types : []).map((rm: any, idx: number) => (
+                            <div
+                              key={rm.id || idx}
+                              style={{
+                                background: '#0d150f',
+                                border: '1px solid rgba(212,175,55,0.2)',
+                                borderRadius: '8px',
+                                padding: '0.6rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.4rem',
+                              }}
+                            >
+                              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  placeholder="Tier Name (e.g. Royal Suite)"
+                                  value={rm.name_en || ''}
+                                  onChange={(e) => {
+                                    const next = [...templateValues.room_types];
+                                    next[idx] = { ...next[idx], name_en: e.target.value };
+                                    handleFieldChange('room_types', next);
+                                  }}
+                                  style={{
+                                    flex: 2,
+                                    background: '#132016',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    color: '#f8fafc',
+                                    padding: '0.35rem 0.5rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.75rem',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Capacity (e.g. 2 Guests)"
+                                  value={rm.capacity || ''}
+                                  onChange={(e) => {
+                                    const next = [...templateValues.room_types];
+                                    next[idx] = { ...next[idx], capacity: e.target.value };
+                                    handleFieldChange('room_types', next);
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    background: '#132016',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    color: '#f8fafc',
+                                    padding: '0.35rem 0.5rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.75rem',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <input
+                                  type="number"
+                                  step="0.05"
+                                  title="Price Multiplier (e.g. 1.0 = Base, 1.5 = +50%)"
+                                  placeholder="Multiplier"
+                                  value={rm.multiplier ?? 1.0}
+                                  onChange={(e) => {
+                                    const next = [...templateValues.room_types];
+                                    next[idx] = { ...next[idx], multiplier: parseFloat(e.target.value) || 1.0 };
+                                    handleFieldChange('room_types', next);
+                                  }}
+                                  style={{
+                                    width: '75px',
+                                    background: '#132016',
+                                    border: '1px solid rgba(212,175,55,0.25)',
+                                    color: '#D4AF37',
+                                    fontWeight: 700,
+                                    padding: '0.35rem 0.5rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.75rem',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = templateValues.room_types.filter((_: any, i: number) => i !== idx);
+                                    handleFieldChange('room_types', next);
+                                  }}
+                                  style={{
+                                    background: 'rgba(239,68,68,0.15)',
+                                    border: '1px solid rgba(239,68,68,0.3)',
+                                    color: '#ef4444',
+                                    borderRadius: '6px',
+                                    padding: '0.35rem 0.5rem',
+                                    fontSize: '0.7rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       ) : (
                         <input
                           type={fld.type === 'number' || fld.type === 'price' ? 'number' : 'text'}
