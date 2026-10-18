@@ -64,10 +64,17 @@ export default function AccommodationExplorer({
   customVibes,
   customTypes
 }: AccommodationExplorerProps) {
-  // Filter states
-  const [selectedSetting, setSelectedSetting] = useState<string>(initialSetting);
-  const [selectedVibe, setSelectedVibe] = useState<string>(initialVibe);
-  const [selectedType, setSelectedType] = useState<string>(initialType);
+  // Multi-selection filter states (arrays of IDs)
+  const [selectedSettings, setSelectedSettings] = useState<string[]>(
+    initialSetting && initialSetting !== 'all' ? [initialSetting] : []
+  );
+  const [selectedVibes, setSelectedVibes] = useState<string[]>(
+    initialVibe && initialVibe !== 'all' ? [initialVibe] : []
+  );
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    initialType && initialType !== 'all' ? [initialType] : []
+  );
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Active room option selection per item { [itemId]: CommercialOption }
   const [selectedOptions, setSelectedOptions] = useState<Record<string, CommercialOption>>({});
@@ -174,33 +181,76 @@ export default function AccommodationExplorer({
     return base;
   }, [customTypes, accommodationItems, dbTypes]);
 
-  // Filtered items
+  // Toggle multi-selection helpers
+  const toggleSettingFilter = (id: string) => {
+    if (id === 'all') {
+      setSelectedSettings([]);
+      return;
+    }
+    setSelectedSettings(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleVibeFilter = (id: string) => {
+    if (id === 'all') {
+      setSelectedVibes([]);
+      return;
+    }
+    setSelectedVibes(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleTypeFilter = (id: string) => {
+    if (id === 'all') {
+      setSelectedTypes([]);
+      return;
+    }
+    setSelectedTypes(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // Multi-faceted search & filter evaluation
   const filteredItems = useMemo(() => {
     return accommodationItems.filter(item => {
-      // 1. Setting filter
-      if (selectedSetting !== 'all') {
-        if (item.setting_location !== selectedSetting) return false;
+      // Search query filter (matches title, description, location, or partner name)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = item.business_name?.toLowerCase().includes(q) || item.title_en?.toLowerCase().includes(q);
+        const matchesDesc = item.desc_en?.toLowerCase().includes(q);
+        const matchesLocation = item.location_name?.toLowerCase().includes(q) || item.view_type?.toLowerCase().includes(q);
+        if (!matchesName && !matchesDesc && !matchesLocation) return false;
       }
-      // 2. Vibe filter
-      if (selectedVibe !== 'all') {
-        if (!item.vibe_tags?.includes(selectedVibe)) return false;
+
+      // 1. Multi-Setting filter (OR matches across active selections)
+      if (selectedSettings.length > 0) {
+        if (!item.setting_location || !selectedSettings.includes(item.setting_location)) return false;
       }
-      // 3. Type filter
-      if (selectedType !== 'all') {
-        if (item.accommodation_type !== selectedType) return false;
+
+      // 2. Multi-Vibe filter (matches if item has ANY of the selected vibes)
+      if (selectedVibes.length > 0) {
+        const hasVibe = selectedVibes.some(v => item.vibe_tags?.includes(v));
+        if (!hasVibe) return false;
       }
+
+      // 3. Multi-Type filter (matches if item is ANY of the selected types)
+      if (selectedTypes.length > 0) {
+        if (!item.accommodation_type || !selectedTypes.includes(item.accommodation_type)) return false;
+      }
+
       return true;
     });
-  }, [accommodationItems, selectedSetting, selectedVibe, selectedType]);
+  }, [accommodationItems, searchQuery, selectedSettings, selectedVibes, selectedTypes]);
 
-  const activeFiltersCount = (selectedSetting !== 'all' ? 1 : 0) +
-    (selectedVibe !== 'all' ? 1 : 0) +
-    (selectedType !== 'all' ? 1 : 0);
+  const activeFiltersCount = selectedSettings.length + selectedVibes.length + selectedTypes.length + (searchQuery.trim() ? 1 : 0);
 
   const handleResetFilters = () => {
-    setSelectedSetting('all');
-    setSelectedVibe('all');
-    setSelectedType('all');
+    setSelectedSettings([]);
+    setSelectedVibes([]);
+    setSelectedTypes([]);
+    setSearchQuery('');
   };
 
   // ── Loading skeleton while fetching from DB ───────────────────────────────
@@ -318,24 +368,74 @@ export default function AccommodationExplorer({
           gap: '1.25rem'
         }}>
 
-          {/* Row A: Location & Setting Filter */}
+          {/* Row 0: Live Search Input Bar */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔍 Search sanctuaries by name, mudbrick, pool, spring or lake..."
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                background: '#101a12',
+                border: '1.5px solid rgba(212,175,55,0.25)',
+                borderRadius: '16px',
+                padding: '0.75rem 1rem 0.75rem 2.8rem',
+                color: '#f8fafc',
+                fontSize: '0.86rem',
+                outline: 'none',
+                transition: 'border-color 0.2s ease',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = accentColor; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)'; }}
+            />
+            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, fontSize: '0.9rem' }}>
+              📍
+            </span>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+
+          {/* Row A: Location & Setting Multi-Select Filter */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: accentColor }}>
-                📍 Filter by Location &amp; Views
+                📍 Filter by Location &amp; Views (Multi-Select)
               </span>
               <span style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)' }}>
-                On Lake, Pool, Deep Dunes or 360° Citadel
+                {selectedSettings.length > 0 ? `${selectedSettings.length} selected` : 'Select multiple settings'}
               </span>
             </div>
             <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap' }}>
               {availableSettingFilters.map(f => {
-                const isActive = selectedSetting === f.id;
+                const isActive = f.id === 'all'
+                  ? selectedSettings.length === 0
+                  : selectedSettings.includes(f.id);
                 return (
                   <button
                     key={f.id}
                     type="button"
-                    onClick={() => setSelectedSetting(f.id)}
+                    onClick={() => toggleSettingFilter(f.id)}
                     style={{
                       background: isActive ? 'linear-gradient(135deg, #1f3624, #2a4c33)' : '#132016',
                       border: isActive ? `1.5px solid ${accentColor}` : '1px solid rgba(212,175,55,0.18)',
@@ -354,6 +454,9 @@ export default function AccommodationExplorer({
                   >
                     <span>{f.icon}</span>
                     <span>{f.label}</span>
+                    {isActive && f.id !== 'all' && (
+                      <span style={{ fontSize: '0.65rem', color: accentColor, marginLeft: '2px' }}>✓</span>
+                    )}
                   </button>
                 );
               })}
@@ -362,22 +465,29 @@ export default function AccommodationExplorer({
 
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
 
-          {/* Row B & C Grid: Vibe and Stay Type Filters */}
+          {/* Row B & C Grid: Vibe and Stay Type Filters (Multi-Select) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             
             {/* Vibe Selection */}
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86efac', marginBottom: '0.5rem' }}>
-                ✨ Experience Vibe
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86efac' }}>
+                  ✨ Experience Vibe
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.45)' }}>
+                  {selectedVibes.length > 0 ? `${selectedVibes.length} active` : 'Pick any combination'}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
                 {availableVibeFilters.map(v => {
-                  const isActive = selectedVibe === v.id;
+                  const isActive = v.id === 'all'
+                    ? selectedVibes.length === 0
+                    : selectedVibes.includes(v.id);
                   return (
                     <button
                       key={v.id}
                       type="button"
-                      onClick={() => setSelectedVibe(v.id)}
+                      onClick={() => toggleVibeFilter(v.id)}
                       style={{
                         background: isActive ? 'linear-gradient(135deg, #1a3826, #245236)' : '#101a12',
                         border: isActive ? '1.5px solid #4ade80' : '1px solid rgba(255,255,255,0.08)',
@@ -395,6 +505,9 @@ export default function AccommodationExplorer({
                     >
                       <span>{v.icon}</span>
                       <span>{v.label}</span>
+                      {isActive && v.id !== 'all' && (
+                        <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>✓</span>
+                      )}
                     </button>
                   );
                 })}
@@ -403,17 +516,24 @@ export default function AccommodationExplorer({
 
             {/* Type Selection */}
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#fde68a', marginBottom: '0.5rem' }}>
-                🛖 Accommodation Type
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#fde68a' }}>
+                  🛖 Accommodation Type
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.45)' }}>
+                  {selectedTypes.length > 0 ? `${selectedTypes.length} active` : 'Select stay styles'}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
                 {availableTypeFilters.map(t => {
-                  const isActive = selectedType === t.id;
+                  const isActive = t.id === 'all'
+                    ? selectedTypes.length === 0
+                    : selectedTypes.includes(t.id);
                   return (
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => setSelectedType(t.id)}
+                      onClick={() => toggleTypeFilter(t.id)}
                       style={{
                         background: isActive ? 'linear-gradient(135deg, #3d2c16, #5c411c)' : '#101a12',
                         border: isActive ? `1.5px solid ${accentColor}` : '1px solid rgba(255,255,255,0.08)',
@@ -431,6 +551,9 @@ export default function AccommodationExplorer({
                     >
                       <span>{t.icon}</span>
                       <span>{t.label}</span>
+                      {isActive && t.id !== 'all' && (
+                        <span style={{ fontSize: '0.62rem', color: accentColor }}>✓</span>
+                      )}
                     </button>
                   );
                 })}
