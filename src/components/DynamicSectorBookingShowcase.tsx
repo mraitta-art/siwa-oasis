@@ -70,7 +70,7 @@ export default function DynamicSectorBookingShowcase({
   return (
     <section style={{
       padding: '4rem 1.5rem',
-      background: 'linear-gradient(180deg, #070a12 0%, #0d1322 100%)',
+      background: 'linear-gradient(180deg, #070b08 0%, #101912 100%)',
       color: '#f8fafc',
       position: 'relative',
       overflow: 'hidden'
@@ -243,9 +243,9 @@ export default function DynamicSectorBookingShowcase({
               <article
                 key={item.id}
                 style={{
-                  background: '#111827',
+                  background: '#0d150f',
                   borderRadius: '24px',
-                  border: item.kind === 'package' ? `1px solid ${accentColor}` : '1px solid rgba(255,255,255,0.08)',
+                  border: item.kind === 'package' ? `1px solid ${accentColor}` : '1px solid rgba(212,175,55,0.18)',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',

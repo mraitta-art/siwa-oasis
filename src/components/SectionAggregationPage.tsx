@@ -105,17 +105,18 @@ function getWhatsAppLink(phone: string | null): string | null {
 function SkeletonCard() {
   return (
     <div style={{
-      background: '#0f172a',
+      background: '#0d150f',
       borderRadius: '16px',
       overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
       animation: 'pulse 1.5s ease-in-out infinite',
+      border: '1px solid rgba(212,175,55,0.12)'
     }}>
-      <div style={{ height: '180px', background: '#1e293b' }} />
+      <div style={{ height: '180px', background: '#18281b' }} />
       <div style={{ padding: '1rem' }}>
-        <div style={{ height: '12px', background: '#1e293b', borderRadius: '6px', marginBottom: '0.5rem', width: '60%' }} />
-        <div style={{ height: '10px', background: '#1e293b', borderRadius: '6px', width: '40%' }} />
-        <div style={{ height: '36px', background: '#1e293b', borderRadius: '8px', marginTop: '1rem' }} />
+        <div style={{ height: '12px', background: '#18281b', borderRadius: '6px', marginBottom: '0.5rem', width: '60%' }} />
+        <div style={{ height: '10px', background: '#18281b', borderRadius: '6px', width: '40%' }} />
+        <div style={{ height: '36px', background: '#18281b', borderRadius: '8px', marginTop: '1rem' }} />
       </div>
     </div>
   );
@@ -143,27 +144,27 @@ function VendorCard({
   return (
     <article
       style={{
-        background: '#0f172a',
+        background: '#0d150f',
         borderRadius: '16px',
         overflow: 'hidden',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
         cursor: 'pointer',
-        border: isTrusted ? '1.5px solid rgba(212,175,55,0.35)' : '1px solid rgba(255,255,255,0.06)',
+        border: isTrusted ? '1.5px solid rgba(212,175,55,0.35)' : '1px solid rgba(212,175,55,0.15)',
       }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLElement).style.transform = 'translateY(-6px)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.18)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.25)';
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLElement).style.transform = 'none';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 16px rgba(0,0,0,0.07)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 16px rgba(0,0,0,0.3)';
       }}
     >
       {/* Cover Image */}
-      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#1e293b' }}>
+      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#132016' }}>
         <img
           src={coverSrc}
           alt={vendor.name}
@@ -206,8 +207,9 @@ function VendorCard({
           <div style={{
             position: 'absolute', bottom: '10px', left: '12px',
             width: '40px', height: '40px', borderRadius: '50%',
-            background: '#1e293b', overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            background: '#132016', overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(212,175,55,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <img
@@ -373,7 +375,7 @@ export default function SectionAggregationPage({
   // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#070B12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: '#070b08', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2.5px solid ${accentColor}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -383,7 +385,7 @@ export default function SectionAggregationPage({
   // ── Admin builder layout overrides ───────────────────────────────────────────
   if (builderConfig) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg, #070B12)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #070b08)' }}>
         <DynamicHomepageRenderer
           layout={builderConfig.layout}
           settings={builderConfig.site_settings || null}
@@ -410,7 +412,7 @@ export default function SectionAggregationPage({
 
   // ── Full auto-aggregation page ────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#070B12', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#070b08', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
@@ -427,7 +429,7 @@ export default function SectionAggregationPage({
 
       {/* ── Hero Banner ─────────────────────────────────────────────────────── */}
       <section style={{
-        background: `linear-gradient(160deg, #070B12 0%, #0f172a 50%, #0b1520 100%)`,
+        background: `linear-gradient(160deg, #070b08 0%, #101c13 50%, #17281b 100%)`,
         color: '#fff',
         padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem)',
         textAlign: 'center',
@@ -605,14 +607,14 @@ function VendorGrid({
             style={{
               paddingLeft: '2.2rem', paddingRight: '1rem',
               paddingTop: '0.6rem', paddingBottom: '0.6rem',
-              borderRadius: '50px', border: '1.5px solid rgba(255,255,255,0.08)',
+              borderRadius: '50px', border: '1.5px solid rgba(212,175,55,0.2)',
               fontSize: '0.85rem', outline: 'none', width: '100%',
-              boxSizing: 'border-box', background: '#1e293b',
+              boxSizing: 'border-box', background: '#132016',
               color: '#f8fafc',
               transition: 'border-color 0.15s',
             }}
             onFocus={e => { (e.target as HTMLInputElement).style.borderColor = accentColor; }}
-            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'rgba(212,175,55,0.2)'; }}
           />
         </div>
       </div>
@@ -630,8 +632,8 @@ function VendorGrid({
         /* Empty state */
         <div style={{
           textAlign: 'center', padding: 'clamp(3rem, 8vw, 6rem) 1rem',
-          background: '#0f172a', borderRadius: '20px',
-          border: '2px dashed rgba(255,255,255,0.08)',
+          background: '#0d150f', borderRadius: '20px',
+          border: '2px dashed rgba(212,175,55,0.2)',
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{sectionMeta?.emoji || '🏔️'}</div>
           <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#f8fafc', marginBottom: '0.5rem' }}>
@@ -646,9 +648,9 @@ function VendorGrid({
             <button
               onClick={() => onSearch('')}
               style={{
-                background: accentColor, color: '#fff',
+                background: accentColor, color: '#070b08',
                 padding: '0.75rem 2rem', borderRadius: '50px',
-                fontWeight: 700, border: 'none', cursor: 'pointer',
+                fontWeight: 800, border: 'none', cursor: 'pointer',
                 fontSize: '0.875rem',
               }}
             >
@@ -659,9 +661,9 @@ function VendorGrid({
               href="/be-a-partner"
               style={{
                 display: 'inline-block',
-                background: accentColor, color: '#fff',
+                background: accentColor, color: '#070b08',
                 padding: '0.75rem 2rem', borderRadius: '50px',
-                fontWeight: 700, textDecoration: 'none',
+                fontWeight: 800, textDecoration: 'none',
                 fontSize: '0.875rem',
               }}
             >
@@ -695,13 +697,13 @@ function VendorGrid({
         <div style={{
           marginTop: 'clamp(2.5rem, 5vw, 4rem)',
           padding: 'clamp(2rem, 4vw, 3rem)',
-          background: `linear-gradient(135deg, #0f172a, #1e293b)`,
+          background: `linear-gradient(135deg, #101c13, #18281b)`,
           borderRadius: '20px',
           display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
           alignItems: 'center', justifyContent: 'space-between',
           color: '#fff',
           boxShadow: '0 0 80px rgba(212,175,55,0.06) inset',
-          border: '1px solid rgba(212,175,55,0.1)',
+          border: '1px solid rgba(212,175,55,0.2)',
         }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', marginBottom: '0.35rem' }}>

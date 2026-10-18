@@ -92,27 +92,28 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
   wellness: 'crafts-wellness',
   journeys: 'journeys',
   'adventure,logistics': 'siwa-go',
-  'food,crafts,agriculture_industry,production_trade': 'siwa-products',
+  'food': 'siwa-table',
+  'crafts,agriculture_industry,production_trade': 'siwa-products',
   'arts_culture,education_research,events_entertainment,media_content,services_professional': 'siwa-society',
 };
 
 // ─── Per-sector hero background images ───────────────────────────────────────
 const SECTOR_HERO: Record<string, { image: string; tagline: string; gradient: string }> = {
-  'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(40,122,85,0.28) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(40,88,122,0.28) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-table':      { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(180,83,60,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-retreats':   { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(88,118,90,0.32) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-products':   { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(155,104,50,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-move':       { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(161,93,43,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-invest':     { image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1400', tagline: 'Invest in the next Siwa story', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(152,113,58,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-society':    { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(100,119,107,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
-  'siwa-experiences':{ image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,18,0.82) 0%,rgba(40,122,85,0.3) 60%,rgba(7,11,18,0.9) 100%)' },
+  'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(42,93,63,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-table':      { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(180,83,60,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-retreats':   { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(42,107,71,0.32) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-products':   { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(121,71,38,0.35) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-move':       { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(161,93,43,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-invest':     { image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1400', tagline: 'Invest in the next Siwa story', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-society':    { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(56,119,84,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-experiences':{ image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(42,93,63,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
 };
 
 const DEFAULT_HERO = {
   image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400',
   tagline: 'Discover the magic of Siwa Oasis',
-  gradient: 'linear-gradient(160deg,rgba(7,11,18,0.85) 0%,rgba(15,23,42,0.6) 60%,rgba(7,11,18,0.95) 100%)',
+  gradient: 'linear-gradient(160deg,rgba(7,11,8,0.88) 0%,rgba(24,40,27,0.6) 60%,rgba(7,11,8,0.95) 100%)',
 };
 
 // ─── Sector icon map ──────────────────────────────────────────────────────────
@@ -240,7 +241,7 @@ export default function CategorySearchPage({
         gap: '0.6rem',
         flexWrap: 'wrap',
         padding: '1.25rem clamp(1rem, 3vw, 2rem)',
-        background: 'rgba(11, 17, 32, 0.85)',
+        background: 'rgba(13, 21, 15, 0.9)',
         backdropFilter: 'blur(16px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         borderTop: '1px solid rgba(255,255,255,0.04)',
@@ -420,7 +421,7 @@ export default function CategorySearchPage({
   if (loading) {
     return (
       <div style={{
-        minHeight: '100vh', background: '#070B12',
+        minHeight: '100vh', background: '#070b08',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
@@ -450,7 +451,7 @@ export default function CategorySearchPage({
       : resolvedLayout;
 
     return (
-      <div style={{ minHeight: '100vh', background: '#070B12' }}>
+      <div style={{ minHeight: '100vh', background: '#070b08' }}>
         <MarketplaceHeader
           title={label}
           accentColor={accent}
@@ -483,7 +484,7 @@ export default function CategorySearchPage({
   const isPlanningCategory = ['accommodation', 'accommodations', 'food', 'restaurants', 'restaurant', 'adventure', 'activity', 'activities', 'logistics', 'transportation', 'wellness'].includes(category.toLowerCase()) || Boolean(pageSlug?.startsWith('siwa-'));
 
   return (
-    <div style={{ minHeight: '100vh', background: '#070B12' }}>
+    <div style={{ minHeight: '100vh', background: '#070b08' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
@@ -594,7 +595,7 @@ export default function CategorySearchPage({
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
           height: '120px',
-          background: 'linear-gradient(to bottom, transparent, #070B12)',
+          background: 'linear-gradient(to bottom, transparent, #070b08)',
         }} />
       </section>
 

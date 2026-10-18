@@ -1552,7 +1552,7 @@ export default function SmartJourneyPlanner({
                 disabled={isSubmitting || pricingSummary.subtotal === 0}
                 style={{
                   width: '100%', padding: '1rem',
-                  background: pricingSummary.subtotal === 0 ? '#1e293b' : 'linear-gradient(135deg, #D4AF37, #f0c842)',
+                  background: pricingSummary.subtotal === 0 ? '#18281b' : 'linear-gradient(135deg, #D4AF37, #f0c842)',
                   color: pricingSummary.subtotal === 0 ? '#64748b' : '#000',
                   border: 'none', borderRadius: '50px', fontWeight: 900, fontSize: '0.9rem',
                   cursor: pricingSummary.subtotal === 0 || isSubmitting ? 'not-allowed' : 'pointer',

@@ -26,6 +26,7 @@ interface MarketplaceHeaderProps {
 export const CANONICAL_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
   { href: '/siwa-stay', label: 'Siwa Stay', icon: 'fa-hotel' },
+  { href: '/siwa-table', label: 'Siwa Table', icon: 'fa-utensils' },
   { href: '/siwa-go', label: 'Siwa Go', icon: 'fa-compass' },
   { href: '/siwa-retreats', label: 'Siwa Retreats', icon: 'fa-spa' },
   { href: '/siwa-products', label: 'Siwa Products', icon: 'fa-store' },
@@ -43,7 +44,7 @@ export default function MarketplaceHeader({
   brandImage = '',
   logoHeight = 32,
   showBrand = true,
-  backgroundColor = 'rgba(7, 11, 18, 0.92)',
+  backgroundColor = 'rgba(8, 14, 10, 0.94)',
   textColor = 'rgba(248, 250, 252, 0.85)',
 }: MarketplaceHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -179,7 +180,7 @@ export default function MarketplaceHeader({
       {mobileMenuOpen && (
         <div
           style={{
-            background: 'rgba(7, 11, 18, 0.97)',
+            background: 'rgba(8, 14, 10, 0.98)',
             borderTop: '1px solid rgba(212,175,55,0.12)',
             padding: '0.85rem 1rem 1.15rem',
             display: 'flex',

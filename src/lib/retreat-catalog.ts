@@ -56,7 +56,7 @@ export const SIGNATURE_RETREAT_PROGRAMS: RetreatProgram[] = [
         vibe_badge_en: 'Waterfront Reflection',
         vibe_badge_ar: 'إطلالة بحيرة الملح',
         vibe_view: 'Aghurmi Salt Lake Shore',
-        vibe_color: '#0284c7',
+        vibe_color: '#2a7258',
         accommodation: findItem('acc_aghurmi_lake_sanctuary'),
         transport: findItem('trn_package_round_transfer'),
         dining: findItem('din_lake_candlelit'),
