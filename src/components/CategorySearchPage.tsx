@@ -93,7 +93,6 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
   wellness: 'crafts-wellness',
   journeys: 'journeys',
   'adventure,logistics': 'siwa-go',
-  'food': 'siwa-table',
   'crafts,agriculture_industry,production_trade': 'siwa-products',
   'arts_culture,education_research,events_entertainment,media_content,services_professional': 'siwa-society',
 };
@@ -619,17 +618,59 @@ export default function CategorySearchPage({
       ) : null}
 
       {/* ── Vendor grid with dark pill filters ──────────────────────────────── */}
-      <SectionAggregationPage
-        sectionId={resolvedSection}
-        pageConfigId={`website_${pagePath}`}
-        pageLabel={title}
-        description={description}
-        accentColor={accent}
-        ctaLabel={`Explore ${label}`}
-        showPartnerCta
-        categoryFilter={selectedTypeId}
-        topContent={categorySelector}
-      />
+      {(pageSlug === 'siwa-stay' || category === 'accommodation') ? (
+        // For siwa-stay: AccommodationExplorer above IS the full DB-driven display.
+        // Only show the partner CTA strip + investment section (no duplicate vendor grid).
+        <div style={{
+          maxWidth: '1320px', margin: '0 auto',
+          padding: 'clamp(2rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem)',
+        }}>
+          {/* Partner CTA strip */}
+          <div style={{
+            padding: 'clamp(2rem, 4vw, 3rem)',
+            background: 'linear-gradient(135deg, #101c13, #18281b)',
+            borderRadius: '20px',
+            display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
+            alignItems: 'center', justifyContent: 'space-between',
+            color: '#fff',
+            boxShadow: '0 0 80px rgba(212,175,55,0.06) inset',
+            border: '1px solid rgba(212,175,55,0.2)',
+          }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', marginBottom: '0.35rem' }}>
+                Own a Lodge, Chalet, or Camp in Siwa?
+              </div>
+              <p style={{ opacity: 0.7, fontSize: '0.85rem', margin: 0 }}>
+                List your property on Siwify and get a cinematic minisite with direct WhatsApp bookings — 0% commission.
+              </p>
+            </div>
+            <a
+              href="/be-a-partner"
+              style={{
+                background: accent, color: '#fff',
+                padding: '0.85rem 2rem', borderRadius: '50px',
+                fontWeight: 800, textDecoration: 'none',
+                fontSize: '0.9rem', flexShrink: 0,
+                boxShadow: `0 6px 20px ${accent}55`,
+              }}
+            >
+              List Your Property →
+            </a>
+          </div>
+        </div>
+      ) : (
+        <SectionAggregationPage
+          sectionId={resolvedSection}
+          pageConfigId={`website_${pagePath}`}
+          pageLabel={title}
+          description={description}
+          accentColor={accent}
+          ctaLabel={`Explore ${label}`}
+          showPartnerCta
+          categoryFilter={selectedTypeId}
+          topContent={categorySelector}
+        />
+      )}
       <CategoryInvestmentSection typeId={selectedTypeId} label={selectedTypeName} />
     </div>
   );

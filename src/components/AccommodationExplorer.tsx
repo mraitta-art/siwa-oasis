@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { CommercialItem, CommercialOption } from '@/lib/commercial-types';
 import { DEFAULT_COMMERCIAL_ITEMS } from '@/lib/commercial-catalog';
@@ -78,15 +78,45 @@ export default function AccommodationExplorer({
   // Active modal item for direct reservation
   const [bookingModalItem, setBookingModalItem] = useState<CommercialItem | null>(null);
 
-  // All accommodation items from catalog
-  const accommodationItems = useMemo(() => {
-    return DEFAULT_COMMERCIAL_ITEMS.filter(item => item.sector === 'accommodation');
+  // ── DB-driven data ────────────────────────────────────────────────────────
+  const [dbItems, setDbItems] = useState<CommercialItem[]>([]);
+  const [dbLoading, setDbLoading] = useState(true);
+  const [dbSettings, setDbSettings] = useState<string[]>([]);
+  const [dbVibes, setDbVibes] = useState<string[]>([]);
+  const [dbTypes, setDbTypes] = useState<string[]>([]);
+
+  useEffect(() => {
+    setDbLoading(true);
+    fetch('/api/accommodation-vendors?limit=60')
+      .then(r => r.ok ? r.json() : { items: [], available_settings: [], available_vibes: [], available_types: [] })
+      .then(data => {
+        const fetched: CommercialItem[] = data.items || [];
+        setDbItems(fetched);
+        setDbSettings(data.available_settings || []);
+        setDbVibes(data.available_vibes || []);
+        setDbTypes(data.available_types || []);
+      })
+      .catch(() => setDbItems([]))
+      .finally(() => setDbLoading(false));
   }, []);
 
-  // Dynamically resolved filters (admin props > live catalog discovery > default taxonomy)
+  // Merge: DB items first, static catalog as demo fallback when DB is empty
+  const accommodationItems = useMemo<CommercialItem[]>(() => {
+    if (dbLoading) return [];
+    if (dbItems.length > 0) return dbItems;
+    return DEFAULT_COMMERCIAL_ITEMS.filter(item => item.sector === 'accommodation');
+  }, [dbItems, dbLoading]);
+
+  // Dynamically resolved filters (admin props > DB-discovered > catalog discovery > default taxonomy)
   const availableSettingFilters = useMemo(() => {
     if (customSettings && customSettings.length > 0) return customSettings;
     const base = [...DEFAULT_SETTING_FILTERS];
+    // Add DB-discovered settings not already in default list
+    dbSettings.forEach(s => {
+      if (s && !base.some(b => b.id === s)) {
+        base.push({ id: s, label: s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: '📍' });
+      }
+    });
     accommodationItems.forEach(item => {
       if (item.setting_location && !base.some(b => b.id === item.setting_location)) {
         base.push({
@@ -98,11 +128,17 @@ export default function AccommodationExplorer({
       }
     });
     return base;
-  }, [customSettings, accommodationItems]);
+  }, [customSettings, accommodationItems, dbSettings]);
 
   const availableVibeFilters = useMemo(() => {
     if (customVibes && customVibes.length > 0) return customVibes;
     const base = [...DEFAULT_VIBE_FILTERS];
+    // Add DB-discovered vibes not already in default list
+    dbVibes.forEach(vt => {
+      if (vt && !base.some(b => b.id === vt)) {
+        base.push({ id: vt, label: vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: '✨' });
+      }
+    });
     accommodationItems.forEach(item => {
       item.vibe_tags?.forEach(vt => {
         if (!base.some(b => b.id === vt)) {
@@ -115,11 +151,17 @@ export default function AccommodationExplorer({
       });
     });
     return base;
-  }, [customVibes, accommodationItems]);
+  }, [customVibes, accommodationItems, dbVibes]);
 
   const availableTypeFilters = useMemo(() => {
     if (customTypes && customTypes.length > 0) return customTypes;
     const base = [...DEFAULT_TYPE_FILTERS];
+    // Add DB-discovered types not already in default list
+    dbTypes.forEach(t => {
+      if (t && !base.some(b => b.id === t)) {
+        base.push({ id: t, label: t.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: '🛖' });
+      }
+    });
     accommodationItems.forEach(item => {
       if (item.accommodation_type && !base.some(b => b.id === item.accommodation_type)) {
         base.push({
@@ -130,7 +172,7 @@ export default function AccommodationExplorer({
       }
     });
     return base;
-  }, [customTypes, accommodationItems]);
+  }, [customTypes, accommodationItems, dbTypes]);
 
   // Filtered items
   const filteredItems = useMemo(() => {
@@ -160,6 +202,55 @@ export default function AccommodationExplorer({
     setSelectedVibe('all');
     setSelectedType('all');
   };
+
+  // ── Loading skeleton while fetching from DB ───────────────────────────────
+  if (dbLoading) {
+    return (
+      <section style={{
+        background: 'linear-gradient(180deg, #070b08 0%, #0d150f 50%, #101c13 100%)',
+        color: '#f8fafc',
+        padding: 'clamp(3rem, 6vw, 5rem) clamp(1rem, 3vw, 2.5rem)',
+        borderTop: '1px solid rgba(212,175,55,0.15)',
+        borderBottom: '1px solid rgba(212,175,55,0.15)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem',
+        minHeight: '340px', justifyContent: 'center',
+      }}>
+        <style>{`
+          @keyframes accSpin { to { transform: rotate(360deg); } }
+          @keyframes accPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        `}</style>
+        <div style={{
+          width: '44px', height: '44px', borderRadius: '50%',
+          border: `3px solid ${accentColor}`, borderTopColor: 'transparent',
+          animation: 'accSpin 0.8s linear infinite',
+        }} />
+        <div style={{ fontSize: '0.82rem', color: 'rgba(248,250,252,0.5)', letterSpacing: '1px' }}>
+          Loading verified sanctuaries…
+        </div>
+        {/* Skeleton cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px,100%), 1fr))',
+          gap: '1.25rem', width: '100%', maxWidth: '1360px',
+          animation: 'accPulse 1.5s ease-in-out infinite',
+        }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{
+              background: '#0d150f', borderRadius: '20px', overflow: 'hidden',
+              border: '1px solid rgba(212,175,55,0.12)',
+            }}>
+              <div style={{ height: '220px', background: '#132016' }} />
+              <div style={{ padding: '1rem' }}>
+                <div style={{ height: '14px', background: '#18281b', borderRadius: '6px', marginBottom: '0.6rem', width: '65%' }} />
+                <div style={{ height: '11px', background: '#18281b', borderRadius: '6px', width: '42%', marginBottom: '0.9rem' }} />
+                <div style={{ height: '36px', background: '#18281b', borderRadius: '10px' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section style={{
@@ -358,9 +449,24 @@ export default function AccommodationExplorer({
             fontSize: '0.76rem',
             color: 'rgba(248,250,252,0.65)'
           }}>
-            <div>
-              Showing <strong style={{ color: '#f8fafc' }}>{filteredItems.length} verified stays</strong>
-              {activeFiltersCount > 0 && <span> matching your custom location and vibe criteria</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div>
+                Showing <strong style={{ color: '#f8fafc' }}>{filteredItems.length} verified stays</strong>
+                {activeFiltersCount > 0 && <span> matching your criteria</span>}
+              </div>
+              {/* Data source badge */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                background: dbItems.length > 0 ? 'rgba(74,222,128,0.1)' : 'rgba(212,175,55,0.08)',
+                border: dbItems.length > 0 ? '1px solid rgba(74,222,128,0.25)' : '1px solid rgba(212,175,55,0.2)',
+                borderRadius: '20px', padding: '0.2rem 0.65rem',
+                fontSize: '0.65rem', fontWeight: 800,
+                color: dbItems.length > 0 ? '#4ade80' : accentColor,
+                letterSpacing: '0.5px',
+              }}>
+                <span style={{ fontSize: '0.55rem' }}>●</span>
+                {dbItems.length > 0 ? 'Live Data' : 'Demo Mode'}
+              </div>
             </div>
 
             {activeFiltersCount > 0 && (
