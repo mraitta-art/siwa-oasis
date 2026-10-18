@@ -169,8 +169,9 @@ export async function GET(request: NextRequest) {
       } : undefined));
 
       // Comparison links
-      const booking_com_url = (cd.comparison_links || {}).booking_com_url || get('booking_com_url') || null;
-      const tripadvisor_url = (cd.comparison_links || {}).tripadvisor_url || get('tripadvisor_url') || null;
+      const booking_com_url = (cd.comparison_links || {}).booking_com_url || get('booking_com_url') || baseline.booking_com_url || null;
+      const tripadvisor_url = (cd.comparison_links || {}).tripadvisor_url || get('tripadvisor_url') || baseline.tripadvisor_url || null;
+      const ota_benchmark_price = get('ota_benchmark_price') ? Number(get('ota_benchmark_price')) : baseline.ota_benchmark_price;
 
       // Room options
       const options = (() => {
@@ -235,7 +236,8 @@ export async function GET(request: NextRequest) {
         comparison_links: {
           booking_com_url: booking_com_url || undefined,
           tripadvisor_url: tripadvisor_url || undefined,
-          ota_name: external_check_label ? 'Booking.com' : undefined,
+          ota_benchmark_price: ota_benchmark_price ?? undefined,
+          ota_name: external_check_label?.includes('TripAdvisor') ? 'TripAdvisor' : 'Booking.com',
         },
 
         options,
