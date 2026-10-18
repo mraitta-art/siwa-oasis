@@ -26,9 +26,12 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
   const [loading, setLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<any>(null);
 
+  const hasPrice = typeof item.price === 'number' && item.price > 0 && !item.price_on_request;
+
   // Dynamic calculation
   const calculateTotal = () => {
-    let base = item.price;
+    if (!hasPrice) return 0;
+    let base = item.price || 0;
     if (selectedOption?.multiplier) {
       base = base * selectedOption.multiplier;
     }
@@ -266,7 +269,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   {item.title_en}
                 </h4>
                 <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 800, marginTop: '0.2rem' }}>
-                  {item.price} {item.currency} / {item.price_unit}
+                  {hasPrice ? `${item.price} ${item.currency || 'EGP'} / ${item.price_unit || 'night'}` : '✨ Rates Upon Request (Customized Quote)'}
                 </div>
               </div>
             </div>
@@ -550,14 +553,14 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
             }}>
               <div>
                 <span style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>
-                  Estimated Investment
+                  {hasPrice ? 'Estimated Investment' : 'Pricing & Availability'}
                 </span>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  No prepayment required • Direct payment in Siwa
+                  {hasPrice ? 'No prepayment required • Direct payment in Siwa' : 'Direct custom quote sent to your WhatsApp/Phone'}
                 </div>
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#10b981' }}>
-                {totalPrice} {item.currency || 'EGP'}
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: hasPrice ? '#10b981' : accentColor }}>
+                {hasPrice ? `${totalPrice} ${item.currency || 'EGP'}` : 'Upon Request'}
               </div>
             </div>
 
@@ -579,7 +582,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 boxShadow: `0 8px 25px rgba(212, 175, 55, 0.3)`
               }}
             >
-              {loading ? 'Processing...' : 'Reserve & Dispatch Itinerary →'}
+              {loading ? 'Processing...' : (hasPrice ? 'Reserve & Dispatch Itinerary →' : 'Inquire Direct & Request Quote →')}
             </button>
           </form>
         )}

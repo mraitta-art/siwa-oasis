@@ -289,6 +289,65 @@ export const DEFAULT_COMMERCIAL_ITEMS: CommercialItem[] = [
   },
 
   {
+    id: 'acc_siwa_royal_sanctuary',
+    sector: 'accommodation',
+    kind: 'direct',
+    business_id: 'biz_royal_sanctuary',
+    business_name: 'Royal Palm Grove Oasis Sanctuary & Private Villa',
+    business_slug: 'royal-sanctuary',
+    whatsapp_number: '201009988776',
+    title_en: 'Royal Palm Grove Private Eco-Compound & Villa',
+    title_ar: 'فيلا ومنتجع واحة النخيل الملكية الخاصة',
+    desc_en: 'Exclusive private 5-acre estate with private natural sulphur spring pool, century-old date palm forest, and bespoke personal butler service.',
+    desc_ar: 'ملاذ خاص فاخر بمساحة 5 أفدنة يضم مسبحاً كبريتياً طبيعياً خاصاً وغابة نخيل عتيقة وخدمة الضيافة السيوية الراقية حسب الطلب.',
+    image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80',
+    icon: '🌴',
+    badge_en: 'Private Estate',
+    price_on_request: true,
+    price_unit: 'night',
+    currency: 'EGP',
+    rating: 5.0,
+    reviews_count: 38,
+    location_name: 'Western Palm Groves, Siwa',
+    setting_location: 'oasis_palms',
+    accommodation_type: 'villa',
+    has_pool: true,
+    view_type: 'Private Palm Canopy & Spring Waters',
+    vibe_tags: ['silence', 'relaxation', 'meditation', 'luxury'],
+    minisite_url: 'https://www.siwaoasis.com/stay',
+    minisite_label: 'More About Sanctuary ↗',
+    external_check_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+    external_check_label: 'Check on Booking.com ↗',
+    direct_discount_note: 'Direct booking on Siwify: Get 15% platform discount + private chef & oasis tea ceremony',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80',
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80'
+    ],
+    comparison_links: {
+      booking_com_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+      tripadvisor_url: 'https://www.tripadvisor.com/Hotels-g303856-Siwa_Matrouh_Governorate-Hotels.html',
+      ota_name: 'Luxury Retreats / OTAs'
+    },
+    hot_offer: {
+      title: 'Direct Reservation VIP Privilege',
+      perk_description: 'Book direct with Siwify to lock in Platform VIP Concierge + 15% direct discount voucher applied to your custom stay quote',
+      badge_label: '🔥 VIP DIRECT PRIVILEGE'
+    },
+    executing_partner: {
+      name: 'Siwa Royal Palms Heritage Trust',
+      role_title: 'Private Oasis Estate Guardians',
+      verified_badge: 'Verified Siwify Partner',
+      rating: 5.0,
+      reviews_count: 38
+    },
+    options: [
+      { id: 'opt_full_villa', name_en: 'Entire Private 3-Bedroom Villa', name_ar: 'الفيلا الخاصة بالكامل 3 غرف', multiplier: 1.0, capacity: 'Up to 8 Guests' },
+      { id: 'opt_master_compound', name_en: 'Full 5-Acre Estate Buyout', name_ar: 'حجز الملاذ بالكامل 5 أفدنة', multiplier: 2.2, capacity: 'Up to 20 Guests' }
+    ]
+  },
+
+  {
     id: 'acc_package_romantic_3days',
     sector: 'accommodation',
     kind: 'package',

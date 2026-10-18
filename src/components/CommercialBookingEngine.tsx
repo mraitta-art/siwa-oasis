@@ -51,20 +51,24 @@ export default function CommercialBookingEngine({
   const [activeImg, setActiveImg] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  const hasPrice = typeof item.price === 'number' && item.price > 0 && !item.price_on_request;
   const multiplier = selectedOption?.multiplier ?? 1;
-  const currentPrice = Math.round(item.price * multiplier);
+  const currentPrice = hasPrice ? Math.round((item.price || 0) * multiplier) : 0;
 
   const gallery = item.gallery_images && item.gallery_images.length > 0
     ? item.gallery_images
     : [item.image];
 
-  // Resolve links (admin custom_links first, then legacy comparison_links)
-  const minisitePill: CardCustomLink[] = item.business_slug ? [{
-    id: `minisite_${item.business_slug}`,
-    title: `${item.business_name} Minisite`,
-    url: `/${item.business_slug}#sec_3_facilities`,
+  // Resolve links (admin custom_links first, then general info url, then legacy comparison_links)
+  const generalInfoUrl = item.minisite_url || (item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#');
+  const infoButtonLabel = item.minisite_label || 'More About ↗';
+
+  const minisitePill: CardCustomLink[] = generalInfoUrl !== '#' ? [{
+    id: `minisite_${item.business_slug || item.id}`,
+    title: `${item.business_name} - ${infoButtonLabel}`,
+    url: generalInfoUrl,
     type: 'platform_vendor' as const,
-    badge_text: 'Provider Minisite',
+    badge_text: infoButtonLabel,
     accent_color: '#4ade80',
     icon: '🏛️',
     is_active: true,
@@ -367,13 +371,22 @@ export default function CommercialBookingEngine({
           {/* Footer */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <div>
-              <div style={{ fontSize: '0.62rem', color: 'rgba(248,250,252,0.45)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Direct Rate</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc' }}>
-                  {item.currency} {currentPrice.toLocaleString()}
-                </span>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)' }}>/{item.price_unit}</span>
-              </div>
+              {hasPrice ? (
+                <>
+                  <div style={{ fontSize: '0.62rem', color: 'rgba(248,250,252,0.45)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Direct Rate</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc' }}>
+                      {item.currency || 'EGP'} {currentPrice.toLocaleString()}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)' }}>/{item.price_unit || 'night'}</span>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <div style={{ fontSize: '0.62rem', color: '#fde68a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Direct Rates</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 900, color: accentColor }}>Upon Request</div>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: '0.45rem' }}>
               {onCustomiseClick && (
@@ -397,7 +410,7 @@ export default function CommercialBookingEngine({
                     cursor: 'pointer', boxShadow: '0 4px 14px rgba(212,175,55,0.25)',
                   }}
                 >
-                  Book Direct
+                  {hasPrice ? 'Book Direct' : 'Inquire Direct'}
                 </button>
               )}
             </div>
@@ -936,28 +949,40 @@ export default function CommercialBookingEngine({
           gap: '0.75rem', flexWrap: 'wrap',
         }}>
           <div>
-            {item.original_price && item.original_price > currentPrice && (
-              <div style={{ fontSize: '0.78rem', color: 'rgba(248,250,252,0.4)', textDecoration: 'line-through', marginBottom: '1px' }}>
-                {item.currency} {item.original_price.toLocaleString()}
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span style={{ fontSize: '1.65rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.02em' }}>
-                {item.currency} {currentPrice.toLocaleString()}
-              </span>
-              <span style={{ fontSize: '0.78rem', color: 'rgba(248,250,252,0.5)', fontWeight: 600 }}>/{item.price_unit}</span>
-            </div>
-            {item.discount_percentage && item.discount_percentage > 0 && (
-              <div style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 800, marginTop: '1px' }}>
-                Save {item.discount_percentage}% Direct Booking Advantage
+            {hasPrice ? (
+              <>
+                {item.original_price && item.original_price > currentPrice && (
+                  <div style={{ fontSize: '0.78rem', color: 'rgba(248,250,252,0.4)', textDecoration: 'line-through', marginBottom: '1px' }}>
+                    {item.currency || 'EGP'} {item.original_price.toLocaleString()}
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '1.65rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+                    {item.currency || 'EGP'} {currentPrice.toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: 'rgba(248,250,252,0.5)', fontWeight: 600 }}>/{item.price_unit || 'night'}</span>
+                </div>
+                {item.discount_percentage && item.discount_percentage > 0 && (
+                  <div style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 800, marginTop: '1px' }}>
+                    Save {item.discount_percentage}% Direct Booking Advantage
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                <div style={{ fontSize: '0.68rem', color: '#fde68a', textTransform: 'uppercase', fontWeight: 800 }}>Direct Rates</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: accentColor }}>
+                  Rates Upon Request
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)' }}>Custom quote for your dates</div>
               </div>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {item.business_slug && (
+            {generalInfoUrl !== '#' && (
               <a
-                href={`/${item.business_slug}#sec_3_facilities`}
+                href={generalInfoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -976,7 +1001,7 @@ export default function CommercialBookingEngine({
                   transition: 'all 0.2s ease',
                 }}
               >
-                <span>🏛️ Minisite</span>
+                <span>🏛️ {infoButtonLabel}</span>
                 <span style={{ fontSize: '0.72rem', color: '#4ade80' }}>↗</span>
               </a>
             )}
@@ -1010,8 +1035,7 @@ export default function CommercialBookingEngine({
               }}
             >
               <span>{cfg.icon}</span>
-              <span>Book Directly</span>
-              <span>→</span>
+              <span>{hasPrice ? cfg.actionLabel : 'Inquire Direct →'}</span>
             </button>
           </div>
         </div>

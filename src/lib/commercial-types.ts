@@ -52,12 +52,17 @@ export interface CommercialItem {
   badge_en?: string;
   badge_ar?: string;
   
-  // Pricing
-  price: number;
+  // Pricing (Can be set or optional/upon request)
+  price?: number;
   original_price?: number;
   discount_percentage?: number;
-  price_unit: string; // e.g. 'night', 'person', 'trip', 'bottle', 'kg', 'session'
-  currency: string;   // 'EGP'
+  price_unit?: string; // e.g. 'night', 'person', 'trip', 'bottle', 'kg', 'session'
+  currency?: string;   // 'EGP'
+  price_on_request?: boolean; // When true or when price is unset/0, displayed as 'Rates Upon Request'
+  direct_discount_note?: string; // e.g. 'Book direct with us & get 15% platform discount + free sunset tea'
+  external_check_url?: string;  // e.g. Booking.com or TripAdvisor URL for price verification
+  external_check_label?: string;// e.g. 'Check on Booking.com ↗'
+  minisite_label?: string;      // e.g. 'More About ↗', 'Visit Minisite ↗', 'Explore Story ↗'
   
   // Sector-specific options
   options?: CommercialOption[];

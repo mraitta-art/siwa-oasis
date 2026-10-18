@@ -33,6 +33,7 @@ const DEFAULT_SETTING_FILTERS: FilterItemOption[] = [
   { id: 'on_lake_and_pool', label: 'On Lake & Pool', icon: '🌊🏊', desc: 'Waterfront shore + fresh spring pool' },
   { id: 'dune', label: 'Deep Sand Dunes', icon: '🏜️', desc: '100m dunes & stargazing crests' },
   { id: 'multiple_views', label: 'Multiple Views (360°)', icon: '🌅', desc: 'Citadel, salt lakes & palm canopy' },
+  { id: 'oasis_palms', label: 'Oasis Palm Groves', icon: '🌴', desc: 'Date palm forests & private spring pools' },
 ];
 
 const DEFAULT_VIBE_FILTERS: FilterItemOption[] = [
@@ -49,6 +50,7 @@ const DEFAULT_TYPE_FILTERS: FilterItemOption[] = [
   { id: 'ecolodge', label: 'Heritage Eco-Lodges', icon: '🛖' },
   { id: 'glamping', label: 'Glamping Domes & Tents', icon: '⛺' },
   { id: 'heritage_suite', label: 'Citadel Mudbrick Suites', icon: '🏰' },
+  { id: 'villa', label: 'Private Villas & Compounds', icon: '🏡' },
 ];
 
 export default function AccommodationExplorer({
@@ -422,10 +424,11 @@ export default function AccommodationExplorer({
             gap: '2rem'
           }}>
             {filteredItems.map(item => {
-              // Current room option
+              // Pricing status
+              const hasPrice = typeof item.price === 'number' && item.price > 0 && !item.price_on_request;
               const currentOption = selectedOptions[item.id] || (item.options ? item.options[0] : null);
               const multiplier = currentOption?.multiplier ?? 1;
-              const calculatedPrice = Math.round(item.price * multiplier);
+              const calculatedPrice = hasPrice ? Math.round((item.price || 0) * multiplier) : 0;
 
               // Gallery carousel
               const gallery = item.gallery_images && item.gallery_images.length > 0 ? item.gallery_images : [item.image];
@@ -449,12 +452,22 @@ export default function AccommodationExplorer({
                 }));
               };
 
-              // Minisite URL
-              const minisiteHref = item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#';
+              // General Info / Minisite URL (supports dedicated minisite or custom general URL)
+              const generalInfoUrl = item.minisite_url || (item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#');
+              const isExternalInfoUrl = generalInfoUrl.startsWith('http://') || generalInfoUrl.startsWith('https://') || generalInfoUrl.startsWith('//');
+              const infoButtonLabel = item.minisite_label || 'More About ↗';
+
+              // External price verification & comparison URL (e.g. Booking.com, TripAdvisor)
+              const externalCheckUrl = item.external_check_url ||
+                item.comparison_links?.booking_com_url ||
+                item.comparison_links?.tripadvisor_url ||
+                item.custom_links?.find(l => l.type === 'external_ota')?.url;
+              const externalCheckLabel = item.external_check_label ||
+                (item.comparison_links?.ota_name ? `Check on ${item.comparison_links.ota_name} ↗` : 'Check on Booking.com ↗');
 
               // Benchmark price savings
               const benchmarkPrice = item.comparison_links?.ota_benchmark_price;
-              const savings = benchmarkPrice && benchmarkPrice > calculatedPrice ? benchmarkPrice - calculatedPrice : null;
+              const savings = hasPrice && benchmarkPrice && benchmarkPrice > calculatedPrice ? benchmarkPrice - calculatedPrice : null;
 
               return (
                 <article
@@ -480,28 +493,55 @@ export default function AccommodationExplorer({
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <Link
-                      href={minisiteHref}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        textDecoration: 'none',
-                        color: 'inherit'
-                      }}
-                    >
-                      <span style={{ fontSize: '1rem' }}>🏛️</span>
-                      <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          {item.business_name}
+                    {isExternalInfoUrl ? (
+                      <a
+                        href={generalInfoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          textDecoration: 'none',
+                          color: 'inherit'
+                        }}
+                      >
+                        <span style={{ fontSize: '1rem' }}>🏛️</span>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {item.business_name}
+                          </div>
+                          <div style={{ fontSize: '0.62rem', color: '#4ade80', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <span>✓ Verified Provider</span>
+                            <span>•</span>
+                            <span style={{ textDecoration: 'underline' }}>{infoButtonLabel}</span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.62rem', color: '#4ade80', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <span>✓ Verified Provider</span>
-                          <span>•</span>
-                          <span style={{ textDecoration: 'underline' }}>Explore Minisite ↗</span>
+                      </a>
+                    ) : (
+                      <Link
+                        href={generalInfoUrl}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          textDecoration: 'none',
+                          color: 'inherit'
+                        }}
+                      >
+                        <span style={{ fontSize: '1rem' }}>🏛️</span>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {item.business_name}
+                          </div>
+                          <div style={{ fontSize: '0.62rem', color: '#4ade80', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <span>✓ Verified Provider</span>
+                            <span>•</span>
+                            <span style={{ textDecoration: 'underline' }}>{infoButtonLabel}</span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
+                      </Link>
+                    )}
 
                     {item.rating && (
                       <div style={{
@@ -746,57 +786,162 @@ export default function AccommodationExplorer({
                       </div>
                     )}
 
+                    {/* ── EXTERNAL PRICE CHECK & PLATFORM DISCOUNT CALLOUT ── */}
+                    {(externalCheckUrl || item.direct_discount_note || benchmarkPrice || item.discount_percentage) && (
+                      <div style={{
+                        background: 'linear-gradient(135deg, rgba(16,28,19,0.85) 0%, rgba(21,38,24,0.7) 100%)',
+                        border: '1px solid rgba(212,175,55,0.22)',
+                        borderRadius: '12px',
+                        padding: '0.65rem 0.85rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.45rem'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                          {externalCheckUrl && (
+                            <a
+                              href={externalCheckUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                fontSize: '0.72rem',
+                                color: '#93c5fd',
+                                textDecoration: 'none',
+                                fontWeight: 800,
+                                background: 'rgba(30,58,138,0.25)',
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '20px',
+                                border: '1px solid rgba(147,197,253,0.3)',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>🏨</span>
+                              <span>{externalCheckLabel}</span>
+                            </a>
+                          )}
+
+                          {benchmarkPrice && (
+                            <div style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.55)', marginLeft: 'auto' }}>
+                              OTA Price: <span style={{ textDecoration: 'line-through' }}>EGP {benchmarkPrice.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Direct Platform Discount Note */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.73rem',
+                          color: '#4ade80',
+                          fontWeight: 800
+                        }}>
+                          <span>🛡️</span>
+                          <span>
+                            {item.direct_discount_note ||
+                             (savings ? `Book direct on Siwify & save EGP ${savings.toLocaleString()} vs external OTAs` :
+                             (item.discount_percentage ? `Get our ${item.discount_percentage}% Direct Platform Discount` :
+                             'Direct Platform Advantage: Best Rate Guarantee + Local Oasis Perks'))}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Price and Comparison Strip */}
                     <div style={{
-                      paddingTop: '0.85rem',
+                      paddingTop: '0.75rem',
                       borderTop: '1px solid rgba(255,255,255,0.08)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'baseline'
                     }}>
-                      <div>
-                        {benchmarkPrice && savings && (
-                          <div style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)', marginBottom: '2px' }}>
-                            <span>Booking.com: </span>
-                            <span style={{ textDecoration: 'line-through' }}>EGP {benchmarkPrice.toLocaleString()}</span>
-                            <span style={{ color: '#4ade80', fontWeight: 800, marginLeft: '4px' }}>Save EGP {savings.toLocaleString()}</span>
+                      {hasPrice ? (
+                        <div>
+                          {benchmarkPrice && savings && (
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)', marginBottom: '2px' }}>
+                              <span>Booking.com: </span>
+                              <span style={{ textDecoration: 'line-through' }}>EGP {benchmarkPrice.toLocaleString()}</span>
+                              <span style={{ color: '#4ade80', fontWeight: 800, marginLeft: '4px' }}>Save EGP {savings.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                            <span style={{ fontSize: '1.5rem', fontWeight: 900, color: accentColor }}>
+                              EGP {calculatedPrice.toLocaleString()}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'rgba(248,250,252,0.6)', fontWeight: 700 }}>
+                              /{item.price_unit || 'night'}
+                            </span>
                           </div>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                          <span style={{ fontSize: '1.5rem', fontWeight: 900, color: accentColor }}>
-                            EGP {calculatedPrice.toLocaleString()}
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: 'rgba(248,250,252,0.6)', fontWeight: 700 }}>
-                            /{item.price_unit}
-                          </span>
                         </div>
-                      </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ fontSize: '0.66rem', color: '#fde68a', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            ✨ Transparent Direct Rates
+                          </div>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 900, color: accentColor }}>
+                            Rates Upon Request
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.5)' }}>
+                            Custom direct quote &amp; seasonal availability
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Dual Action CTAs: Minisite Exploration + Direct Reservation */}
+                    {/* Dual Action CTAs: More About / General Link + Direct Reservation/Inquiry */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.6rem', marginTop: '0.2rem' }}>
-                      <Link
-                        href={minisiteHref}
-                        style={{
-                          background: '#132016',
-                          border: `1.5px solid ${accentColor}`,
-                          color: '#f8fafc',
-                          padding: '0.75rem 0.5rem',
-                          borderRadius: '12px',
-                          fontSize: '0.8rem',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          textDecoration: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '5px',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
-                        }}
-                      >
-                        <span>🏛️ Visit Minisite ↗</span>
-                      </Link>
+                      {isExternalInfoUrl ? (
+                        <a
+                          href={generalInfoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            background: '#132016',
+                            border: `1.5px solid ${accentColor}`,
+                            color: '#f8fafc',
+                            padding: '0.75rem 0.5rem',
+                            borderRadius: '12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            textAlign: 'center',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          <span>🏛️ {infoButtonLabel}</span>
+                        </a>
+                      ) : (
+                        <Link
+                          href={generalInfoUrl}
+                          style={{
+                            background: '#132016',
+                            border: `1.5px solid ${accentColor}`,
+                            color: '#f8fafc',
+                            padding: '0.75rem 0.5rem',
+                            borderRadius: '12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            textAlign: 'center',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          <span>🏛️ {infoButtonLabel}</span>
+                        </Link>
+                      )}
 
                       <button
                         type="button"
@@ -817,7 +962,7 @@ export default function AccommodationExplorer({
                           boxShadow: '0 4px 15px rgba(212,175,55,0.3)'
                         }}
                       >
-                        <span>Reserve Direct →</span>
+                        <span>{hasPrice ? 'Reserve Direct →' : 'Inquire Direct →'}</span>
                       </button>
                     </div>
 
