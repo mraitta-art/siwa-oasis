@@ -59,7 +59,10 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/:path*',
-        headers: securityHeaders,
+        headers: [
+          ...securityHeaders,
+          { key: 'x-vercel-toolbar', value: '0' },
+        ],
       },
       {
         source: '/icons/:path*',
