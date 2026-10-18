@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
+import GlobalJourneyFloater from '@/components/GlobalJourneyFloater';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://siwify.com'),
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         {children}
         <AnalyticsTracker />
+        <GlobalJourneyFloater />
       </body>
     </html>
   );

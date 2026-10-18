@@ -30,6 +30,31 @@ export interface CatalogItem {
   badge_en?: string;
   badge_ar?: string;
   room_types?: RoomTypeOption[];
+
+  // Rich Accommodation & Stay Planner specific attributes
+  business_id?: string;
+  business_slug?: string;
+  business_name?: string;
+  business_phone?: string | null;
+  whatsapp_number?: string;
+  setting_location?: string;
+  vibe_tags?: string[];
+  accommodation_type?: string;
+  view_type?: string;
+  building_material?: string;
+  has_pool?: boolean;
+  hot_spring?: boolean;
+  check_in_time?: string;
+  check_out_time?: string;
+  ota_benchmark_price?: number;
+  ota_name?: string;
+  external_check_url?: string | null;
+  minisite_url?: string;
+  direct_discount_note?: string;
+  rating?: number;
+  reviews_count?: number;
+  location_name?: string;
+  gallery_images?: string[];
 }
 
 export interface RoomTypeOption {
@@ -387,6 +412,11 @@ export default function SmartJourneyPlanner({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<any>(null);
 
+  // ── ACCOMMODATION MANIFEST & BUDGET EXPANDER STATE ─────────────────────────
+  const [isAccManifestOpen, setIsAccManifestOpen] = useState(true);
+  const [editingStayId, setEditingStayId] = useState<string | null>(null);
+  const [showCalendarAuditModal, setShowCalendarAuditModal] = useState(false);
+
   // ── LOAD DRAFT FROM LOCALSTORAGE ON MOUNT ─────────────────────────────────
   useEffect(() => {
     try {
@@ -404,7 +434,7 @@ export default function SmartJourneyPlanner({
       }
     } catch {}
 
-    // Fetch dynamic catalog
+    // Fetch dynamic journey customizer catalog
     fetch('/api/journeys/customizer')
       .then(r => r.json())
       .then(d => {
@@ -413,9 +443,61 @@ export default function SmartJourneyPlanner({
             ...prev,
             ...d.catalog,
             experiences: d.catalog.experiences?.length ? d.catalog.experiences : prev.experiences,
-            accommodations: d.catalog.accommodations?.length ? d.catalog.accommodations : prev.accommodations,
             transports: d.catalog.transports?.length ? d.catalog.transports : prev.transports,
             meals: d.catalog.meals?.length ? d.catalog.meals : prev.meals,
+          }));
+        }
+      })
+      .catch(() => {});
+
+    // Fetch live accommodation vendors from DB & Master Template baseline
+    fetch('/api/accommodation-vendors?limit=60')
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(data => {
+        if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
+          const liveAccommodations: CatalogItem[] = data.items.map((item: any) => ({
+            id: item.id || `acc_${item.business_id}`,
+            is_visible: true,
+            vendor_business_ids: item.business_id ? [item.business_id] : [],
+            name_en: item.title_en || item.business_name,
+            name_ar: item.title_ar || item.business_name,
+            desc_en: item.desc_en,
+            desc_ar: item.desc_ar,
+            price_per_night: item.price || 1800,
+            badge_en: item.is_trusted ? 'Verified Sanctuary' : (item.badge_en || 'Siwa Haven'),
+            icon: item.accommodation_type === 'glamping' ? '⛺' : item.accommodation_type === 'villa' ? '🏡' : '🛖',
+            image: item.image || item.gallery_images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+            room_types: (item.options && item.options.length > 0) ? item.options : DEFAULT_ROOM_TYPES,
+            
+            // Rich Accommodation Attributes
+            business_id: item.business_id,
+            business_slug: item.business_slug,
+            business_name: item.business_name,
+            business_phone: item.business_phone,
+            whatsapp_number: item.whatsapp_number,
+            setting_location: item.setting_location,
+            vibe_tags: item.vibe_tags,
+            accommodation_type: item.accommodation_type,
+            view_type: item.view_type,
+            building_material: item.building_material,
+            has_pool: item.has_pool,
+            hot_spring: item.hot_spring,
+            check_in_time: item.check_in_time || '14:00',
+            check_out_time: item.check_out_time || '11:00',
+            ota_benchmark_price: item.comparison_links?.ota_benchmark_price,
+            ota_name: item.comparison_links?.ota_name || 'Booking.com',
+            external_check_url: item.external_check_url || item.comparison_links?.booking_com_url,
+            minisite_url: item.minisite_url,
+            direct_discount_note: item.direct_discount_note,
+            rating: item.rating,
+            reviews_count: item.reviews_count,
+            location_name: item.location_name,
+            gallery_images: item.gallery_images,
+          }));
+
+          setCatalog(prev => ({
+            ...prev,
+            accommodations: liveAccommodations,
           }));
         }
       })
@@ -451,6 +533,10 @@ export default function SmartJourneyPlanner({
 
   const totalNights = useMemo(() => {
     return stayPeriods.reduce((sum, s) => sum + s.nights, 0);
+  }, [stayPeriods]);
+
+  const accommodationSubtotal = useMemo(() => {
+    return stayPeriods.reduce((sum, s) => sum + s.total_price, 0);
   }, [stayPeriods]);
 
   const pricingSummary = useMemo(() => {
@@ -539,6 +625,19 @@ export default function SmartJourneyPlanner({
 
   const handleRemoveStayPeriod = (stayId: string) => {
     setStayPeriods(prev => prev.filter(s => s.id !== stayId));
+  };
+
+  const handleUpdateStayPeriod = (stayId: string, updates: Partial<StayPeriod>) => {
+    setStayPeriods(prev => prev.map(s => {
+      if (s.id !== stayId) return s;
+      const updated = { ...s, ...updates };
+      // Recalculate nights and prices if dates or room changed
+      const diff = Math.abs(new Date(updated.end_date).getTime() - new Date(updated.start_date).getTime());
+      const nights = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+      updated.nights = nights;
+      updated.total_price = updated.price_per_night * nights;
+      return updated;
+    }));
   };
 
   const handleToggleTour = (item: CatalogItem) => {
@@ -946,31 +1045,83 @@ export default function SmartJourneyPlanner({
 
                     return (
                       <div key={stay.id} style={{ ...S.card, border: isConfiguring ? '2px solid #D4AF37' : S.card.border }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontSize: '2.5rem' }}>{stay.icon || '🛖'}</span>
-                          {stay.badge_en && (
-                            <span style={{ background: '#D4AF37', color: '#000', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 900 }}>
-                              {stay.badge_en}
+                        {/* Property Visual Header with Image Preview */}
+                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                          <img
+                            src={stay.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'}
+                            alt={stay.name_en || 'Siwa Accommodation'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                          }} />
+
+                          {/* Badges on top */}
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            {stay.badge_en && (
+                              <span style={{ background: '#D4AF37', color: '#000', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 900 }}>
+                                {stay.badge_en}
+                              </span>
+                            )}
+                            {stay.has_pool && (
+                              <span style={{ background: 'rgba(59,130,246,0.85)', color: '#fff', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 800 }}>
+                                🏊 Pool
+                              </span>
+                            )}
+                            {stay.hot_spring && (
+                              <span style={{ background: 'rgba(236,72,153,0.85)', color: '#fff', padding: '0.2rem 0.55rem', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 800 }}>
+                                ♨️ Hot Spring
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Setting / Vista tag at bottom of image */}
+                          <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', right: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#cbd5e1', fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                              📍 {stay.setting_location?.replace(/_/g, ' ') || 'Siwa Oasis'}
                             </span>
-                          )}
+                            <span style={{ fontSize: '0.68rem', color: '#D4AF37', fontWeight: 800 }}>
+                              {stay.room_types?.length || 2} Room Tiers
+                            </span>
+                          </div>
                         </div>
 
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{stay.name_en}</h4>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>
+                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.35rem', color: '#fff' }}>{stay.name_en}</h4>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '40px', margin: '0 0 0.85rem' }}>
                           {stay.desc_en}
                         </p>
 
+                        {/* Pricing & OTA Benchmark Row */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <div>
-                            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / night</span>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
+                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / night</span>
+                            </div>
+                            {stay.ota_benchmark_price && stay.ota_benchmark_price > (stay.price_per_night || 0) && (
+                              <div style={{ fontSize: '0.68rem', color: '#ef4444', textDecoration: 'line-through' }}>
+                                {stay.ota_name || 'Booking.com'}: {stay.ota_benchmark_price.toLocaleString()} EGP
+                              </div>
+                            )}
                           </div>
-                          <button
-                            onClick={() => setInspectingItem({ item: stay, category: 'accommodation' })}
-                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            Inspect &rarr;
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            {stay.minisite_url && (
+                              <Link
+                                href={stay.minisite_url}
+                                target="_blank"
+                                style={{ color: '#D4AF37', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}
+                              >
+                                Minisite ↗
+                              </Link>
+                            )}
+                            <button
+                              onClick={() => setInspectingItem({ item: stay, category: 'accommodation' })}
+                              style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              Inspect &rarr;
+                            </button>
+                          </div>
                         </div>
 
                         {/* Room & Period Configurator Inline Drawer */}
@@ -1446,18 +1597,276 @@ export default function SmartJourneyPlanner({
                 </div>
               </div>
 
-              {/* Itinerary Timeline List */}
-              <div style={{ maxHeight: '280px', overflowY: 'auto', marginBottom: '1.25rem', paddingRight: '0.25rem' }}>
-                {/* 1. Stays */}
-                {stayPeriods.map((s, idx) => (
-                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, color: '#fff' }}>🏨 Stay {idx + 1}: {s.hotel_name}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{s.room_type_name} &bull; {s.nights}N ({s.start_date})</div>
+              {/* ── SPECIALIZED COLLAPSIBLE ACCOMMODATION MANIFEST & BUDGET ADJUSTER ── */}
+              <div style={{
+                background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(7, 24, 16, 0.95) 100%)',
+                border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '16px',
+                marginBottom: '1.25rem',
+                overflow: 'hidden',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(16, 185, 129, 0.2)',
+              }}>
+                {/* Collapsible Header with Distinct Oasis Emerald / Gold Character */}
+                <button
+                  type="button"
+                  onClick={() => setIsAccManifestOpen(!isAccManifestOpen)}
+                  style={{
+                    width: '100%',
+                    padding: '0.85rem 1rem',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    border: 'none',
+                    borderBottom: isAccManifestOpen ? '1px solid rgba(16, 185, 129, 0.25)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '8px',
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#10b981', fontSize: '0.85rem'
+                    }}>
+                      <i className="fas fa-bed" />
                     </div>
-                    <span style={{ fontWeight: 800, color: '#10b981' }}>{s.total_price.toLocaleString()} EGP</span>
+                    <div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#34d399', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                        Accommodation Calculations
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                        {stayPeriods.length} Stays &bull; {totalNights} Nights
+                      </div>
+                    </div>
                   </div>
-                ))}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#10b981' }}>
+                        {accommodationSubtotal.toLocaleString()} EGP
+                      </span>
+                      <div style={{ fontSize: '0.65rem', color: '#6ee7b7' }}>Stay Subtotal</div>
+                    </div>
+                    <i
+                      className={`fas fa-chevron-${isAccManifestOpen ? 'up' : 'down'}`}
+                      style={{ fontSize: '0.75rem', color: '#34d399', transition: 'transform 0.2s' }}
+                    />
+                  </div>
+                </button>
+
+                {/* Collapsible Body */}
+                {isAccManifestOpen && (
+                  <div style={{ padding: '0.85rem 1rem' }}>
+                    {stayPeriods.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1rem 0.5rem', color: '#94a3b8', fontSize: '0.75rem' }}>
+                        <i className="fas fa-bed" style={{ fontSize: '1.2rem', color: 'rgba(16,185,129,0.4)', marginBottom: '0.35rem', display: 'block' }} />
+                        No stays selected yet. Choose a lodge or camp from above to start your accommodation budget.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {stayPeriods.map((s, idx) => {
+                          const isEditing = editingStayId === s.id;
+                          return (
+                            <div
+                              key={s.id}
+                              style={{
+                                background: 'rgba(0, 0, 0, 0.4)',
+                                border: '1px solid rgba(16, 185, 129, 0.2)',
+                                borderRadius: '10px',
+                                padding: '0.65rem 0.75rem',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
+                                <div>
+                                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#fff' }}>
+                                    <span style={{ color: '#D4AF37', marginRight: '0.3rem' }}>#{idx + 1}</span>
+                                    {s.hotel_name}
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 600 }}>
+                                    {s.room_type_name}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#10b981' }}>
+                                    {s.total_price.toLocaleString()} EGP
+                                  </div>
+                                  <div style={{ fontSize: '0.65rem', color: '#64748b' }}>
+                                    {s.nights}N @ {s.price_per_night.toLocaleString()}/n
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Time & Date Checker Badge */}
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                background: 'rgba(255,255,255,0.03)',
+                                padding: '0.35rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.68rem',
+                                color: '#94a3b8',
+                                marginTop: '0.35rem',
+                              }}>
+                                <div>
+                                  <i className="far fa-calendar-alt" style={{ color: '#D4AF37', marginRight: '0.35rem' }} />
+                                  <span>{s.start_date} <strong style={{ color: '#fff' }}>({s.start_time})</strong></span>
+                                  <span style={{ margin: '0 0.35rem', color: '#64748b' }}>&rarr;</span>
+                                  <span>{s.end_date} <strong style={{ color: '#fff' }}>({s.end_time})</strong></span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingStayId(isEditing ? null : s.id)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#D4AF37',
+                                    cursor: 'pointer',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    textDecoration: 'underline',
+                                    padding: 0,
+                                  }}
+                                >
+                                  {isEditing ? 'Close' : 'Adjust'}
+                                </button>
+                              </div>
+
+                              {/* Inline Time Checker & Budget Adjuster Form */}
+                              {isEditing && (
+                                <div style={{
+                                  marginTop: '0.6rem',
+                                  paddingTop: '0.6rem',
+                                  borderTop: '1px dashed rgba(16, 185, 129, 0.25)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.5rem',
+                                }}>
+                                  <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800, textTransform: 'uppercase' }}>
+                                    Adjust Timing & Stay Dates:
+                                  </div>
+
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', fontWeight: 700 }}>Check-in Date</label>
+                                      <input
+                                        type="date"
+                                        value={s.start_date}
+                                        onChange={(e) => handleUpdateStayPeriod(s.id, { start_date: e.target.value })}
+                                        style={{ ...S.input, padding: '0.25rem 0.4rem', fontSize: '0.7rem' }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', fontWeight: 700 }}>Check-out Date</label>
+                                      <input
+                                        type="date"
+                                        value={s.end_date}
+                                        onChange={(e) => handleUpdateStayPeriod(s.id, { end_date: e.target.value })}
+                                        style={{ ...S.input, padding: '0.25rem 0.4rem', fontSize: '0.7rem' }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', fontWeight: 700 }}>Check-in Time</label>
+                                      <input
+                                        type="time"
+                                        value={s.start_time}
+                                        onChange={(e) => handleUpdateStayPeriod(s.id, { start_time: e.target.value })}
+                                        style={{ ...S.input, padding: '0.25rem 0.4rem', fontSize: '0.7rem' }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', fontWeight: 700 }}>Check-out Time</label>
+                                      <input
+                                        type="time"
+                                        value={s.end_time}
+                                        onChange={(e) => handleUpdateStayPeriod(s.id, { end_time: e.target.value })}
+                                        style={{ ...S.input, padding: '0.25rem 0.4rem', fontSize: '0.7rem' }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.2rem' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveStayPeriod(s.id)}
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.15)',
+                                        color: '#ef4444',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        borderRadius: '6px',
+                                        padding: '0.25rem 0.6rem',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      <i className="fas fa-trash" style={{ marginRight: '0.25rem' }} /> Remove Stay
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingStayId(null)}
+                                      style={{
+                                        background: '#10b981',
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '0.25rem 0.75rem',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      Done
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Quick Calendar & Timing Overview Trigger */}
+                    {stayPeriods.length > 0 && (
+                      <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                          <i className="fas fa-calendar-check" style={{ color: '#34d399', marginRight: '0.35rem' }} />
+                          {stayPeriods[0]?.start_date} &rarr; {stayPeriods[stayPeriods.length - 1]?.end_date}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCalendarAuditModal(true)}
+                          style={{
+                            background: 'rgba(212, 175, 55, 0.15)',
+                            color: '#D4AF37',
+                            border: '1px solid rgba(212, 175, 55, 0.3)',
+                            borderRadius: '12px',
+                            padding: '0.2rem 0.5rem',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          View Schedule &rarr;
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Other Itinerary Elements (Tours, Transports, Dining, Wishes) */}
+              <div style={{ maxHeight: '220px', overflowY: 'auto', marginBottom: '1.25rem', paddingRight: '0.25rem' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.5px' }}>
+                  Other Experiences & Transit ({tourBookings.length + transportLegs.length + diningBookings.length + customWishes.length})
+                </div>
 
                 {/* 2. Transports */}
                 {transportLegs.map((l, idx) => (
@@ -1503,9 +1912,9 @@ export default function SmartJourneyPlanner({
                   </div>
                 ))}
 
-                {stayPeriods.length === 0 && tourBookings.length === 0 && transportLegs.length === 0 && diningBookings.length === 0 && customWishes.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '2rem 0', color: '#64748b', fontSize: '0.85rem' }}>
-                    No items planned yet. Add selections above to build your schedule.
+                {tourBookings.length === 0 && transportLegs.length === 0 && diningBookings.length === 0 && customWishes.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '1rem 0', color: '#64748b', fontSize: '0.75rem' }}>
+                    No extra tours or transit legs added.
                   </div>
                 )}
               </div>
@@ -1743,6 +2152,141 @@ export default function SmartJourneyPlanner({
                   Add Wish to Itinerary
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ─── MODAL: DAY CALENDAR & TIMING AUDITOR ───────────────────────────── */}
+      {showCalendarAuditModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+        }}>
+          <div style={{
+            background: '#0d150f', border: '1.5px solid rgba(16, 185, 129, 0.4)',
+            borderRadius: '24px', maxWidth: '640px', width: '100%', padding: '2rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(16, 185, 129, 0.1)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(16, 185, 129, 0.2)', color: '#34d399',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem',
+                }}>
+                  <i className="fas fa-calendar-alt" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#fff' }}>
+                    Stay Schedule & Day Calendar Checker
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Audit your stay periods, check-in windows, and budget breakdown
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCalendarAuditModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.25rem', cursor: 'pointer' }}
+              >
+                <i className="fas fa-times" />
+              </button>
+            </div>
+
+            {/* Overall Stay Summary Metrics */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem',
+              background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '16px',
+              border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: '1.5rem',
+            }}>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Total Properties</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff' }}>{stayPeriods.length}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Total Nights</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#D4AF37' }}>{totalNights} Nights</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Accommodations Budget</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{accommodationSubtotal.toLocaleString()} EGP</div>
+              </div>
+            </div>
+
+            {/* Chronological Stay Cards with Day Indicators */}
+            <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.25rem', marginBottom: '1.5rem' }}>
+              {stayPeriods.map((s, idx) => (
+                <div
+                  key={s.id}
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.05)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    borderRadius: '14px',
+                    padding: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{
+                        background: '#10b981', color: '#000',
+                        fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: '10px',
+                      }}>
+                        Stay {idx + 1}
+                      </span>
+                      <strong style={{ color: '#fff', fontSize: '0.95rem' }}>{s.hotel_name}</strong>
+                    </div>
+                    <span style={{ color: '#34d399', fontWeight: 800, fontSize: '0.9rem' }}>
+                      {s.total_price.toLocaleString()} EGP
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.75rem', color: '#cbd5e1' }}>
+                    <div>
+                      <span style={{ color: '#64748b' }}>Room Tier:</span> <strong style={{ color: '#D4AF37' }}>{s.room_type_name}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748b' }}>Duration:</span> <strong>{s.nights} Nights</strong> (@ {s.price_per_night.toLocaleString()} / night)
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: '0.5rem', paddingTop: '0.5rem',
+                    borderTop: '1px dashed rgba(255,255,255,0.08)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    fontSize: '0.72rem', color: '#94a3b8',
+                  }}>
+                    <div>
+                      <i className="fas fa-sign-in-alt" style={{ color: '#10b981', marginRight: '0.3rem' }} />
+                      Check-in: <strong style={{ color: '#fff' }}>{s.start_date} at {s.start_time}</strong>
+                    </div>
+                    <div>
+                      <i className="fas fa-sign-out-alt" style={{ color: '#ef4444', marginRight: '0.3rem' }} />
+                      Check-out: <strong style={{ color: '#fff' }}>{s.end_date} at {s.end_time}</strong>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowCalendarAuditModal(false)}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#000',
+                  border: 'none',
+                  padding: '0.75rem 2rem',
+                  borderRadius: '12px',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
