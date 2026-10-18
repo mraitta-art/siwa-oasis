@@ -2037,6 +2037,24 @@ export default function SmartJourneyPlanner({
                           </div>
                         </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
+
+                        {/* ── Provider Attribution Strip ── */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', padding: '0.35rem 0.6rem', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ color: '#94a3b8' }}>Operated by:</span>
+                            {act.business_slug ? (
+                              <a href={`/${act.business_slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a78bfa', fontWeight: 700, textDecoration: 'none' }}>
+                                {act.business_name || 'Local Wellness Guide'} ↗
+                              </a>
+                            ) : (
+                              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>{act.business_name || 'Siwa Oasis Wellness'}</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: act.is_trusted ? '#34d399' : '#D4AF37', background: act.is_trusted ? 'rgba(52,211,153,0.12)' : 'rgba(212,175,55,0.12)', padding: '0.15rem 0.45rem', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                            {act.provider_badge || 'Wellness Operator ✦'}
+                          </span>
+                        </div>
+
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{act.highlight_en}</p>
 
                         {/* ── OUR OFFER banner for Activities ── */}
