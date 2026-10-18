@@ -75,6 +75,7 @@ const DEFAULT_FOOTER_LINKS: FooterLink[] = [
 const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
   { href: '/siwa-stay', label: 'Siwa Stay', icon: 'fa-hotel' },
+  { href: '/siwa-table', label: 'Siwa Table', icon: 'fa-utensils' },
   { href: '/siwa-go', label: 'Siwa Go', icon: 'fa-compass' },
   { href: '/siwa-retreats', label: 'Siwa Retreats', icon: 'fa-spa' },
   { href: '/siwa-products', label: 'Siwa Products', icon: 'fa-store' },
@@ -208,8 +209,8 @@ export default async function Home() {
           navLinks={getNavLinks(settings)}
           brandLabel={settings?.header_brand_label ?? 'SIWIFY'}
           brandIcon={settings?.header_brand_icon === undefined ? 'fa-sun' : settings.header_brand_icon}
-          backgroundColor={settings?.header_background_color || 'rgba(255, 255, 255, 0.86)'}
-          textColor={settings?.header_text_color || '#0f172a'}
+          backgroundColor={settings?.header_background_color || 'rgba(8, 14, 10, 0.94)'}
+          textColor={settings?.header_text_color || 'rgba(248, 250, 252, 0.88)'}
           brandImage={settings?.logo_url || ''}
           logoHeight={settings?.logo_height || 32}
         />

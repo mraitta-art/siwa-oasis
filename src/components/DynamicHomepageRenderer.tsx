@@ -26,29 +26,53 @@ import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
 import { sitePathFromPageId } from '@/lib/site-blog-paths';
 
-// ── Scroll-triggered fade-in wrapper ──────────────────────────────────────────
+// ── Section Context for above-the-fold immediate rendering ────────────────────
+const SectionIndexContext = React.createContext<{ isFirst: boolean }>({ isFirst: false });
+
+// ── Scroll-triggered fade-in wrapper (bypassed for top/above-the-fold content) ─
 function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const { isFirst } = React.useContext(SectionIndexContext);
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(isFirst);
 
   useEffect(() => {
+    if (isFirst || visible) return;
     const el = ref.current;
     if (!el) return;
+
+    // Fast check: if element is already within or near viewport, make visible immediately
+    const rect = el.getBoundingClientRect();
+    if (rect.top < (window.innerHeight || 800) + 120) {
+      setVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold: 0.08, rootMargin: '60px' }
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.01, rootMargin: '120px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [isFirst, visible]);
+
+  if (isFirst) {
+    return <div style={{ opacity: 1, transform: 'none' }}>{children}</div>;
+  }
 
   return (
     <div
       ref={ref}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(28px)',
-        transition: `opacity 0.7s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}ms, transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}ms`,
+        transform: visible ? 'translateY(0)' : 'translateY(24px)',
+        transition: visible
+          ? `opacity 0.6s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}ms, transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}ms`
+          : 'none',
         willChange: 'opacity, transform',
       }}
     >
@@ -482,13 +506,15 @@ export default function DynamicHomepageRenderer({ layout, settings, pageId = 'ma
               className="component-responsive-shell"
               data-component-type={section.type ?? undefined}
             >
-              <SectionRenderer
-                type={section.type ?? ''}
-                props={section.props}
-                siteSettings={settings}
-                pageId={pageId}
-                pagePath={pagePath}
-              />
+              <SectionIndexContext.Provider value={{ isFirst: idx === 0 }}>
+                <SectionRenderer
+                  type={section.type ?? ''}
+                  props={section.props}
+                  siteSettings={settings}
+                  pageId={pageId}
+                  pagePath={pagePath}
+                />
+              </SectionIndexContext.Provider>
             </div>
           );
         } catch {

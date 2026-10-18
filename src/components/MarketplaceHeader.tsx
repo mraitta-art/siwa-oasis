@@ -34,6 +34,20 @@ export const CANONICAL_NAV_LINKS: NavLink[] = [
   { href: '/siwa-society', label: 'Siwa Society', icon: 'fa-people-group' },
 ];
 
+function isLightBackground(color: string | undefined): boolean {
+  if (!color) return false;
+  const s = color.toLowerCase().trim();
+  if (s.startsWith('#fff') || s.startsWith('#f') || s.startsWith('white')) return true;
+  const match = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (match) {
+    const r = parseInt(match[1], 10);
+    const g = parseInt(match[2], 10);
+    const b = parseInt(match[3], 10);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 135;
+  }
+  return false;
+}
+
 export default function MarketplaceHeader({
   title = 'SiWiFy',
   activePath,
@@ -49,6 +63,19 @@ export default function MarketplaceHeader({
 }: MarketplaceHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const light = isLightBackground(backgroundColor);
+
+  // Dynamic contrast colors: 100% visible on both dark luxury glass and light backgrounds
+  const brandColor = light ? '#0f172a' : '#f8fafc';
+  const navInactiveColor = light ? '#1e293b' : 'rgba(248, 250, 252, 0.88)';
+  const navActiveColor = light ? '#B8860B' : '#D4AF37';
+  const navActiveBg = light ? 'rgba(184, 134, 11, 0.12)' : 'rgba(212, 175, 55, 0.12)';
+  const navActiveBorder = light ? 'rgba(184, 134, 11, 0.3)' : 'rgba(212, 175, 55, 0.3)';
+  const navIconInactive = light ? '#475569' : 'rgba(248, 250, 252, 0.65)';
+  const burgerColor = light ? '#0f172a' : '#ffffff';
+  const burgerBg = light ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)';
+  const burgerBorder = light ? 'rgba(0, 0, 0, 0.12)' : 'rgba(212, 175, 55, 0.25)';
+
   return (
     <header
       style={{
@@ -58,18 +85,24 @@ export default function MarketplaceHeader({
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         background: backgroundColor,
-        borderBottom: '1px solid rgba(212, 175, 55, 0.12)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        borderBottom: light ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(212, 175, 55, 0.12)',
+        boxShadow: light ? '0 4px 20px rgba(0,0,0,0.06)' : '0 8px 32px rgba(0,0,0,0.4)',
       }}
     >
-      {/* Responsive CSS — media queries control desktop nav vs hamburger visibility */}
+      {/* Responsive CSS */}
       <style>{`
         .mh-desktop-nav { display: none !important; }
         .mh-burger      { display: inline-flex !important; }
+        .mh-mobile-strip { display: flex !important; }
+        .mh-desktop-nav::-webkit-scrollbar,
+        .mh-mobile-strip::-webkit-scrollbar { display: none; }
+
         @media (min-width: 1024px) {
           .mh-desktop-nav { display: flex !important; }
           .mh-burger      { display: none !important; }
+          .mh-mobile-strip { display: none !important; }
         }
+
         .mh-drawer {
           max-height: 0;
           overflow: hidden;
@@ -83,7 +116,7 @@ export default function MarketplaceHeader({
         @media (min-width: 1024px) {
           .mh-drawer { display: none !important; }
         }
-        .mh-link:hover { opacity: 0.82; }
+        .mh-link:hover { opacity: 0.85; transform: translateY(-1px); }
       `}</style>
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
@@ -91,7 +124,7 @@ export default function MarketplaceHeader({
         style={{
           maxWidth: '1500px',
           margin: '0 auto',
-          padding: '0.75rem 1rem',
+          padding: '0.65rem 1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -100,7 +133,7 @@ export default function MarketplaceHeader({
       >
         {/* Brand */}
         {showBrand && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0, flexShrink: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0, flexShrink: 0 }}>
             <Link
               href="/"
               style={{
@@ -108,7 +141,7 @@ export default function MarketplaceHeader({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                color: '#f8fafc',
+                color: brandColor,
                 fontWeight: 900,
                 fontSize: '0.96rem',
                 letterSpacing: '2.2px',
@@ -137,9 +170,9 @@ export default function MarketplaceHeader({
                 style={{
                   fontSize: '0.68rem',
                   color: accentColor,
-                  opacity: 0.8,
+                  opacity: 0.9,
                   fontWeight: 700,
-                  borderLeft: '1px solid rgba(212, 175, 55, 0.2)',
+                  borderLeft: light ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(212, 175, 55, 0.2)',
                   paddingLeft: '0.6rem',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -153,17 +186,19 @@ export default function MarketplaceHeader({
           </div>
         )}
 
-        {/* Desktop nav — hidden on mobile via .mh-desktop-nav CSS class */}
+        {/* Desktop nav — visible on desktop >= 1024px */}
         <nav
           className="mh-desktop-nav"
           style={{
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '0.12rem',
+            gap: 'clamp(0.12rem, 0.35vw, 0.3rem)',
             flexWrap: 'nowrap',
             flex: 1,
             minWidth: 0,
-            overflow: 'hidden',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}
         >
           {navLinks.map((link) => {
@@ -175,25 +210,26 @@ export default function MarketplaceHeader({
                 className="mh-link"
                 style={{
                   textDecoration: 'none',
-                  fontSize: '0.72rem',
+                  fontSize: 'clamp(0.68rem, 0.78vw, 0.76rem)',
                   fontWeight: 700,
-                  padding: '0.52rem 0.7rem',
+                  padding: '0.45rem clamp(0.35rem, 0.55vw, 0.7rem)',
                   borderRadius: '999px',
                   transition: 'all 0.2s ease',
-                  background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
-                  color: isActive ? '#D4AF37' : 'rgba(248, 250, 252, 0.72)',
-                  border: isActive ? '1px solid rgba(212,175,55,0.25)' : '1px solid transparent',
+                  background: isActive ? navActiveBg : 'transparent',
+                  color: isActive ? navActiveColor : navInactiveColor,
+                  border: isActive ? `1px solid ${navActiveBorder}` : '1px solid transparent',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.28rem',
+                  gap: '0.3rem',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 {link.icon && (
                   <i
                     className={`fas ${link.icon}`}
-                    style={{ fontSize: '0.68rem', color: isActive ? accentColor : 'rgba(248,250,252,0.45)' }}
+                    style={{ fontSize: '0.68rem', color: isActive ? navActiveColor : navIconInactive }}
                   />
                 )}
                 <span>{link.label}</span>
@@ -210,17 +246,17 @@ export default function MarketplaceHeader({
           aria-expanded={mobileMenuOpen}
           className="mh-burger"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(212,175,55,0.2)',
+            background: burgerBg,
+            border: `1px solid ${burgerBorder}`,
             borderRadius: '10px',
-            color: '#ffffff',
+            color: burgerColor,
             padding: '0',
-            fontSize: '1rem',
+            fontSize: '1.05rem',
             cursor: 'pointer',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '44px',
-            height: '44px',
+            width: '42px',
+            height: '42px',
             flexShrink: 0,
           }}
         >
@@ -228,12 +264,59 @@ export default function MarketplaceHeader({
         </button>
       </div>
 
+      {/* ── Mobile/Inspect Horizontal Quick Bar: All pages immediately visible at the top! ── */}
+      <div
+        className="mh-mobile-strip"
+        style={{
+          padding: '0.3rem 0.75rem 0.55rem',
+          gap: '0.35rem',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          borderTop: light ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(212, 175, 55, 0.1)',
+        }}
+      >
+        {navLinks.map((link) => {
+          const isActive = activePath === link.href;
+          return (
+            <Link
+              key={`mstrip-${link.href}`}
+              href={link.href}
+              style={{
+                textDecoration: 'none',
+                fontSize: '0.73rem',
+                fontWeight: 700,
+                padding: '0.32rem 0.65rem',
+                borderRadius: '999px',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                flexShrink: 0,
+                background: isActive ? navActiveBg : (light ? 'rgba(0,0,0,0.04)' : 'rgba(255, 255, 255, 0.04)'),
+                color: isActive ? navActiveColor : navInactiveColor,
+                border: isActive ? `1px solid ${navActiveBorder}` : (light ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255, 255, 255, 0.08)'),
+              }}
+            >
+              {link.icon && (
+                <i
+                  className={`fas ${link.icon}`}
+                  style={{ fontSize: '0.68rem', color: isActive ? navActiveColor : navIconInactive }}
+                />
+              )}
+              <span>{link.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+
       {/* ── Mobile Drawer — slides down below header ────────────────────────── */}
       <div className={`mh-drawer${mobileMenuOpen ? ' open' : ''}`}>
         <div
           style={{
-            background: 'rgba(8, 14, 10, 0.98)',
-            borderTop: '1px solid rgba(212,175,55,0.12)',
+            background: light ? '#ffffff' : 'rgba(8, 14, 10, 0.98)',
+            borderTop: light ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(212,175,55,0.12)',
             padding: '0.75rem 0.85rem 1.25rem',
             display: 'flex',
             flexDirection: 'column',
@@ -247,7 +330,7 @@ export default function MarketplaceHeader({
             const isActive = activePath === link.href;
             return (
               <Link
-                key={link.href}
+                key={`drawer-${link.href}`}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 style={{
@@ -260,9 +343,9 @@ export default function MarketplaceHeader({
                   alignItems: 'center',
                   gap: '0.8rem',
                   minHeight: '48px',       /* tap-target ≥ 48px */
-                  background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
-                  color: isActive ? '#D4AF37' : 'rgba(248, 250, 252, 0.85)',
-                  border: isActive ? '1px solid rgba(212,175,55,0.25)' : '1px solid rgba(212,175,55,0.06)',
+                  background: isActive ? navActiveBg : 'transparent',
+                  color: isActive ? navActiveColor : navInactiveColor,
+                  border: isActive ? `1px solid ${navActiveBorder}` : (light ? '1px solid rgba(0,0,0,0.05)' : '1px solid rgba(212,175,55,0.06)'),
                 }}
               >
                 {link.icon && (
@@ -272,7 +355,7 @@ export default function MarketplaceHeader({
                       width: '20px',
                       textAlign: 'center',
                       fontSize: '0.92rem',
-                      color: isActive ? accentColor : 'rgba(248,250,252,0.45)',
+                      color: isActive ? navActiveColor : navIconInactive,
                     }}
                   />
                 )}

@@ -166,6 +166,10 @@ const DEFAULT_ACCOMMODATIONS: CatalogItem[] = [
     icon: '🛖',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
     room_types: DEFAULT_ROOM_TYPES,
+    ota_benchmark_price: 2250,
+    ota_name: 'Booking.com',
+    external_check_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Oasis',
+    direct_discount_note: 'Book direct on Siwify & save 450 EGP vs Booking.com + welcome herbal tea',
   },
   {
     id: 'stay_luxury_desert_camp',
@@ -178,6 +182,10 @@ const DEFAULT_ACCOMMODATIONS: CatalogItem[] = [
     icon: '⛺',
     image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&q=80',
     room_types: DEFAULT_ROOM_TYPES,
+    ota_benchmark_price: 2950,
+    ota_name: 'Booking.com',
+    external_check_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Camp',
+    direct_discount_note: 'Direct Bedouin Offer: Save 550 EGP vs OTAs + private sunset campfire ceremony',
   },
   {
     id: 'stay_oasis_chalet',
@@ -190,6 +198,10 @@ const DEFAULT_ACCOMMODATIONS: CatalogItem[] = [
     icon: '🌴',
     image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
     room_types: DEFAULT_ROOM_TYPES,
+    ota_benchmark_price: 3600,
+    ota_name: 'Booking.com',
+    external_check_url: 'https://www.booking.com/searchresults.html?ss=Siwa+Villa',
+    direct_discount_note: 'Siwify Exclusive: Save 700 EGP + complimentary Fatnas salt lake boat session',
   },
 ];
 
@@ -205,6 +217,10 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
     highlight_en: 'Giant dunes crossing, fossil ocean site, Bedouin tea & sandboarding',
     icon: '🚙',
     image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80',
+    ota_benchmark_price: 1550,
+    ota_name: 'TripAdvisor',
+    external_check_url: 'https://www.tripadvisor.com/Search?q=Siwa+Safari',
+    direct_discount_note: 'Direct Booking Perk: Save 300 EGP + private dune sandboarding instructor included',
   },
   {
     id: 'exp_salt_lakes',
@@ -217,6 +233,10 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
     highlight_en: 'Zero-gravity salt float + pure olive oil rinse in ancient palms',
     icon: '🌊',
     image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
+    ota_benchmark_price: 600,
+    ota_name: 'Viator',
+    external_check_url: 'https://www.viator.com/searchResults/all?text=Siwa+Salt+Lakes',
+    direct_discount_note: 'Direct Oasis Offer: Save 150 EGP + fresh spring rinse & local dates included',
   },
   {
     id: 'exp_shali_amun_oracle',
@@ -229,6 +249,10 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
     highlight_en: 'Kershef mud-brick fortress climb with local Siwan storyteller',
     icon: '🏛️',
     image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+    ota_benchmark_price: 480,
+    ota_name: 'GetYourGuide',
+    external_check_url: 'https://www.getyourguide.com/s/?q=Siwa',
+    direct_discount_note: 'Direct Heritage Offer: Native Siwi elder guide + sunset tea atop Shali citadel',
   },
 ];
 
@@ -1128,25 +1152,101 @@ export default function SmartJourneyPlanner({
                           {stay.desc_en}
                         </p>
 
-                        {/* Pricing & OTA Benchmark Row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-                              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
-                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / night</span>
+                        {/* ── OTA Booking Site Link & Benchmark Price ── */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap',
+                          marginBottom: '0.65rem',
+                          padding: '0.45rem 0.65rem',
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.07)',
+                          borderRadius: '10px',
+                        }}>
+                          {stay.external_check_url ? (
+                            <a
+                              href={stay.external_check_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                color: '#60a5fa',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                background: 'rgba(96, 165, 250, 0.12)',
+                                border: '1px solid rgba(96, 165, 250, 0.25)',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              <span>🏨 Check on {stay.ota_name || 'Booking.com'} ↗</span>
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <span>🏨</span> Verified Platform Direct
+                            </span>
+                          )}
+
+                          {stay.ota_benchmark_price && stay.ota_benchmark_price > (stay.price_per_night || 0) && (
+                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                              OTA: <span style={{ textDecoration: 'line-through', color: '#f87171' }}>{stay.ota_benchmark_price.toLocaleString()} EGP</span>
                             </div>
-                            {stay.ota_benchmark_price && stay.ota_benchmark_price > (stay.price_per_night || 0) && (
-                              <div style={{ fontSize: '0.68rem', color: '#ef4444', textDecoration: 'line-through' }}>
-                                {stay.ota_name || 'Booking.com'}: {stay.ota_benchmark_price.toLocaleString()} EGP
-                              </div>
-                            )}
+                          )}
+                        </div>
+
+                        {/* ── OUR OFFER / Direct Platform Advantage ── */}
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.2) 100%)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: '10px',
+                          padding: '0.55rem 0.75rem',
+                          marginBottom: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
+                          <span style={{ fontSize: '0.95rem' }}>🛡️</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#34d399', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · DIRECT PLATFORM ADVANTAGE
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#d1fae5', fontWeight: 700, lineHeight: 1.3 }}>
+                              {stay.direct_discount_note || (
+                                stay.ota_benchmark_price && stay.ota_benchmark_price > (stay.price_per_night || 0)
+                                  ? `Book direct on Siwify & save ${(stay.ota_benchmark_price - (stay.price_per_night || 0)).toLocaleString()} EGP vs ${stay.ota_name || 'Booking.com'}`
+                                  : 'Best Rate Guarantee + Local Oasis Perks'
+                              )}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Pricing & Minisite Row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / night</span>
                           </div>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             {stay.minisite_url && (
                               <Link
                                 href={stay.minisite_url}
                                 target="_blank"
-                                style={{ color: '#D4AF37', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}
+                                style={{
+                                  color: '#D4AF37',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 800,
+                                  textDecoration: 'none',
+                                  background: 'rgba(212,175,55,0.1)',
+                                  border: '1px solid rgba(212,175,55,0.25)',
+                                  padding: '0.2rem 0.55rem',
+                                  borderRadius: '6px',
+                                }}
                               >
                                 Minisite ↗
                               </Link>
@@ -1318,6 +1418,72 @@ export default function SmartJourneyPlanner({
                           </div>
                         )}
 
+                        {/* ── Safari Booking Site Link & Comparison ── */}
+                        {(exp.external_check_url || exp.ota_benchmark_price) && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap',
+                            marginBottom: '0.65rem',
+                            padding: '0.45rem 0.65rem',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.07)',
+                            borderRadius: '10px',
+                          }}>
+                            {exp.external_check_url && (
+                              <a
+                                href={exp.external_check_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  color: '#60a5fa',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  textDecoration: 'none',
+                                  background: 'rgba(96, 165, 250, 0.12)',
+                                  border: '1px solid rgba(96, 165, 250, 0.25)',
+                                  padding: '0.2rem 0.55rem',
+                                  borderRadius: '6px',
+                                }}
+                              >
+                                <span>🧭 Check on {exp.ota_name || 'TripAdvisor'} ↗</span>
+                              </a>
+                            )}
+                            {exp.ota_benchmark_price && exp.ota_benchmark_price > (exp.base_price_egp || 0) && (
+                              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                OTA: <span style={{ textDecoration: 'line-through', color: '#f87171' }}>{exp.ota_benchmark_price.toLocaleString()} EGP</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ── OUR OFFER banner for Safaris ── */}
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(180, 130, 20, 0.18) 100%)',
+                          border: '1px solid rgba(212, 175, 55, 0.3)',
+                          borderRadius: '10px',
+                          padding: '0.5rem 0.75rem',
+                          marginBottom: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
+                          <span style={{ fontSize: '0.9rem' }}>🛡️</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · LOCAL OASIS DIRECT
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#fef08a', fontWeight: 700, lineHeight: 1.3 }}>
+                              {exp.direct_discount_note || 'Licensed Bedouin guide, certified 4x4 cruiser & equipment included'}
+                            </span>
+                          </div>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <div>
                             <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{exp.base_price_egp} EGP</span>
@@ -1429,6 +1595,28 @@ export default function SmartJourneyPlanner({
                         </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{trans.name_en}</h4>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{trans.desc_en}</p>
+
+                        {/* ── OUR OFFER banner for Transport ── */}
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(30, 64, 175, 0.18) 100%)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          borderRadius: '10px',
+                          padding: '0.45rem 0.75rem',
+                          marginBottom: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
+                          <span style={{ fontSize: '0.85rem' }}>🛡️</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · PRIVATE DIRECT ROUTE
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#bfdbfe', fontWeight: 700, lineHeight: 1.3 }}>
+                              {trans.direct_discount_note || 'Verified 4x4 Land Cruiser or AC Van with licensed Siwi driver included'}
+                            </span>
+                          </div>
+                        </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{trans.rate_per_day} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ day</span></span>
@@ -1576,6 +1764,28 @@ export default function SmartJourneyPlanner({
                           </div>
                         )}
 
+                        {/* ── OUR OFFER banner for Dining ── */}
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(180, 130, 20, 0.18) 100%)',
+                          border: '1px solid rgba(212, 175, 55, 0.3)',
+                          borderRadius: '10px',
+                          padding: '0.45rem 0.75rem',
+                          marginBottom: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
+                          <span style={{ fontSize: '0.85rem' }}>🛡️</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · CHEF DIRECT FEAST
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#fef08a', fontWeight: 700, lineHeight: 1.3 }}>
+                              {meal.direct_discount_note || 'Guaranteed fresh organic oasis harvest, dates & private garden seating'}
+                            </span>
+                          </div>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{meal.price_per_person} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ person</span></span>
                           <button
@@ -1638,6 +1848,28 @@ export default function SmartJourneyPlanner({
                         </div>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1rem' }}>{act.highlight_en}</p>
+
+                        {/* ── OUR OFFER banner for Activities ── */}
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.2) 100%)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: '10px',
+                          padding: '0.45rem 0.75rem',
+                          marginBottom: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
+                          <span style={{ fontSize: '0.85rem' }}>🛡️</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#34d399', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · WELLNESS & HEALING
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#d1fae5', fontWeight: 700, lineHeight: 1.3 }}>
+                              {act.direct_discount_note || 'Direct Oasis Access: Private mineral spring float & virgin olive oil rinse'}
+                            </span>
+                          </div>
+                        </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{act.base_price_egp} EGP</span>
@@ -2209,6 +2441,60 @@ export default function SmartJourneyPlanner({
                       <li key={r.id}><strong>{r.name_en}:</strong> {Math.round((inspectingItem.item.price_per_night || 1800) * r.multiplier)} EGP / night ({r.capacity})</li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* ── Booking Site Comparison & Our Offer in Inspector ── */}
+              {(inspectingItem.item.external_check_url || inspectingItem.item.ota_benchmark_price || inspectingItem.item.direct_discount_note) && (
+                <div style={{ background: '#0a0d14', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(212,175,55,0.2)', marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#D4AF37', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.65rem' }}>
+                    COMMERCIAL RATES & BOOKING BENCHMARK
+                  </div>
+                  
+                  {inspectingItem.item.external_check_url && (
+                    <div style={{ marginBottom: '0.65rem' }}>
+                      <a
+                        href={inspectingItem.item.external_check_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          color: '#60a5fa',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          background: 'rgba(96, 165, 250, 0.12)',
+                          border: '1px solid rgba(96, 165, 250, 0.3)',
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        <span>🏨 Check Price on {inspectingItem.item.ota_name || 'Booking.com'} ↗</span>
+                      </a>
+                    </div>
+                  )}
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.5rem',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    borderRadius: '10px',
+                    padding: '0.6rem 0.75rem',
+                  }}>
+                    <span style={{ fontSize: '1rem' }}>🛡️</span>
+                    <div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        OUR OFFER · DIRECT PLATFORM ADVANTAGE
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#d1fae5', fontWeight: 700, marginTop: '2px' }}>
+                        {inspectingItem.item.direct_discount_note || 'Best Rate Guarantee + Local Oasis Perks + Verified Authentic Host'}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
