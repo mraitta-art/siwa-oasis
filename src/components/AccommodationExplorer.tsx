@@ -6,6 +6,13 @@ import { CommercialItem, CommercialOption } from '@/lib/commercial-types';
 import { DEFAULT_COMMERCIAL_ITEMS } from '@/lib/commercial-catalog';
 import CommercialBookingModal from '@/components/CommercialBookingModal';
 
+export interface FilterItemOption {
+  id: string;
+  label: string;
+  icon?: string;
+  desc?: string;
+}
+
 export interface AccommodationExplorerProps {
   accentColor?: string;
   initialSetting?: string;
@@ -13,11 +20,14 @@ export interface AccommodationExplorerProps {
   initialType?: string;
   title?: string;
   subtitle?: string;
+  customSettings?: FilterItemOption[];
+  customVibes?: FilterItemOption[];
+  customTypes?: FilterItemOption[];
 }
 
-// ─── FILTER TAXONOMIES ────────────────────────────────────────────────────────
+// ─── DEFAULT FILTER TAXONOMIES (Extensible by Admin & Live DB Items) ─────────
 
-const SETTING_FILTERS = [
+const DEFAULT_SETTING_FILTERS: FilterItemOption[] = [
   { id: 'all', label: 'All Settings & Views', icon: '✦' },
   { id: 'on_lake', label: 'On Lake Shore', icon: '🌊', desc: 'Direct salt lake waterfront' },
   { id: 'on_lake_and_pool', label: 'On Lake & Pool', icon: '🌊🏊', desc: 'Waterfront shore + fresh spring pool' },
@@ -25,7 +35,7 @@ const SETTING_FILTERS = [
   { id: 'multiple_views', label: 'Multiple Views (360°)', icon: '🌅', desc: 'Citadel, salt lakes & palm canopy' },
 ];
 
-const VIBE_FILTERS = [
+const DEFAULT_VIBE_FILTERS: FilterItemOption[] = [
   { id: 'all', label: 'All Vibes', icon: '✨' },
   { id: 'lake_silence', label: 'Lake Silence & Meditation', icon: '🧘' },
   { id: 'desert_stars', label: 'Desert Stars & Stargazing', icon: '🌌' },
@@ -33,7 +43,7 @@ const VIBE_FILTERS = [
   { id: 'salt_healing', label: 'Salt Healing & Relaxation', icon: '♨️' },
 ];
 
-const TYPE_FILTERS = [
+const DEFAULT_TYPE_FILTERS: FilterItemOption[] = [
   { id: 'all', label: 'All Stay Types', icon: '🛖' },
   { id: 'salt_chalet', label: 'Salt Chalets', icon: '🌊' },
   { id: 'ecolodge', label: 'Heritage Eco-Lodges', icon: '🛖' },
@@ -47,7 +57,10 @@ export default function AccommodationExplorer({
   initialVibe = 'all',
   initialType = 'all',
   title = 'Explore Accommodations by Vibe, Setting & Views',
-  subtitle = 'Discover Siwa’s premier verified eco-lodges, lake chalets, and dune camps. Every card directly connects you to the provider’s dedicated minisite with direct transparent pricing.'
+  subtitle = 'Discover Siwa’s premier verified eco-lodges, lake chalets, and dune camps. Every card directly connects you to the provider’s dedicated minisite with direct transparent pricing.',
+  customSettings,
+  customVibes,
+  customTypes
 }: AccommodationExplorerProps) {
   // Filter states
   const [selectedSetting, setSelectedSetting] = useState<string>(initialSetting);
@@ -67,6 +80,55 @@ export default function AccommodationExplorer({
   const accommodationItems = useMemo(() => {
     return DEFAULT_COMMERCIAL_ITEMS.filter(item => item.sector === 'accommodation');
   }, []);
+
+  // Dynamically resolved filters (admin props > live catalog discovery > default taxonomy)
+  const availableSettingFilters = useMemo(() => {
+    if (customSettings && customSettings.length > 0) return customSettings;
+    const base = [...DEFAULT_SETTING_FILTERS];
+    accommodationItems.forEach(item => {
+      if (item.setting_location && !base.some(b => b.id === item.setting_location)) {
+        base.push({
+          id: item.setting_location,
+          label: item.setting_location.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          icon: '📍',
+          desc: item.view_type || 'Custom View'
+        });
+      }
+    });
+    return base;
+  }, [customSettings, accommodationItems]);
+
+  const availableVibeFilters = useMemo(() => {
+    if (customVibes && customVibes.length > 0) return customVibes;
+    const base = [...DEFAULT_VIBE_FILTERS];
+    accommodationItems.forEach(item => {
+      item.vibe_tags?.forEach(vt => {
+        if (!base.some(b => b.id === vt)) {
+          base.push({
+            id: vt,
+            label: vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            icon: '✨'
+          });
+        }
+      });
+    });
+    return base;
+  }, [customVibes, accommodationItems]);
+
+  const availableTypeFilters = useMemo(() => {
+    if (customTypes && customTypes.length > 0) return customTypes;
+    const base = [...DEFAULT_TYPE_FILTERS];
+    accommodationItems.forEach(item => {
+      if (item.accommodation_type && !base.some(b => b.id === item.accommodation_type)) {
+        base.push({
+          id: item.accommodation_type,
+          label: item.accommodation_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          icon: '🛖'
+        });
+      }
+    });
+    return base;
+  }, [customTypes, accommodationItems]);
 
   // Filtered items
   const filteredItems = useMemo(() => {
@@ -174,7 +236,7 @@ export default function AccommodationExplorer({
               </span>
             </div>
             <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap' }}>
-              {SETTING_FILTERS.map(f => {
+              {availableSettingFilters.map(f => {
                 const isActive = selectedSetting === f.id;
                 return (
                   <button
@@ -216,7 +278,7 @@ export default function AccommodationExplorer({
                 ✨ Experience Vibe
               </div>
               <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                {VIBE_FILTERS.map(v => {
+                {availableVibeFilters.map(v => {
                   const isActive = selectedVibe === v.id;
                   return (
                     <button
@@ -252,7 +314,7 @@ export default function AccommodationExplorer({
                 🛖 Accommodation Type
               </div>
               <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                {TYPE_FILTERS.map(t => {
+                {availableTypeFilters.map(t => {
                   const isActive = selectedType === t.id;
                   return (
                     <button
