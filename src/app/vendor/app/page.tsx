@@ -29,6 +29,16 @@ interface PermissionsMap {
   verified_badge?: boolean;
 }
 
+interface MobileAdNotice {
+  enabled: boolean;
+  badgeAr?: string;
+  titleAr?: string;
+  descAr?: string;
+  icon?: string;
+  ctaTextAr?: string;
+  whatsappNumber?: string;
+}
+
 export default function VendorAppHubPage() {
   const searchParams = useSearchParams();
   const slugParam = searchParams.get('slug');
@@ -39,25 +49,27 @@ export default function VendorAppHubPage() {
     social_bio: true,
     profile_editor: true,
   });
+  const [adNotice, setAdNotice] = useState<MobileAdNotice | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedBio, setCopiedBio] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadData();
+    loadAdNotice();
   }, [slugParam]);
 
   async function loadData() {
     setLoading(true);
     try {
-      // 1. Fetch vendor's current business profile
       let bizData: any = null;
       const resBiz = await fetch('/api/vendor/business');
       if (resBiz.ok) {
         bizData = await resBiz.json();
       }
 
-      // If no business loaded via session, try fetching by slug or demo fallback
       if (!bizData?.id && slugParam) {
         const resPublic = await fetch(`/api/businesses/${slugParam}`);
         if (resPublic.ok) {
@@ -66,7 +78,6 @@ export default function VendorAppHubPage() {
       }
 
       if (!bizData?.id) {
-        // Fallback placeholder for newly claimed / demo vendor
         bizData = {
           id: 'demo-vendor',
           name: 'نشاطك التجاري في سيوة',
@@ -78,7 +89,6 @@ export default function VendorAppHubPage() {
 
       setBiz(bizData);
 
-      // 2. Load Permissions for this business
       const resPerms = await fetch(`/api/vendor/permissions?businessId=${bizData.id}`);
       if (resPerms.ok) {
         const permsData = await resPerms.json();
@@ -93,19 +103,37 @@ export default function VendorAppHubPage() {
     }
   }
 
+  async function loadAdNotice() {
+    try {
+      const res = await fetch('/api/jana/mobile-ads');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.ad && data.ad.enabled) {
+          setAdNotice(data.ad);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load mobile ads ribbon', e);
+    }
+  }
+
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://siwify.com';
   const minisiteUrl = `${origin}/${biz?.slug || 'my-page'}`;
-  const bioText = `🌴 احجز معنا مباشرة عبر موقعنا الرسمي في سيوة:\n🔗 ${minisiteUrl}`;
+  const bioText = `🌴 احجز معنا مباشرة وبأفضل سعر بدون وسيط في سيوة:\n🔗 ${minisiteUrl}`;
+  const inviteText = `يا هلا بيك يا كابتن وزميلنا في سيوة! 🌴✨\nمنصة SiWiFy بتعمل صفحة وكارت رقمي مجاناً لكل أنشطة سيوة لحجز الزوار المباشر وربط روابط بوكينج وجوجل ماب الخاصة بيك.\nسجل واستلم كارتك وتطبيقك فوراً من هنا:\n👉 ${origin}/vendor/app`;
 
-  function copyToClipboard(text: string, isBio = false) {
+  function copyToClipboard(text: string, type: 'bio' | 'link' | 'invite') {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
-      if (isBio) {
+      if (type === 'bio') {
         setCopiedBio(true);
         setTimeout(() => setCopiedBio(false), 2500);
-      } else {
+      } else if (type === 'link') {
         setCopiedLink(true);
         setTimeout(() => setCopiedLink(false), 2500);
+      } else {
+        setCopiedInvite(true);
+        setTimeout(() => setCopiedInvite(false), 2500);
       }
     }
   }
@@ -127,7 +155,7 @@ export default function VendorAppHubPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: "'Inter', 'Cairo', sans-serif",
+        fontFamily: "'Cairo', 'Inter', sans-serif",
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🌴</div>
@@ -151,12 +179,68 @@ export default function VendorAppHubPage() {
         {/* ─── PWA INSTALL NOTIFICATION ───────────────────────────────── */}
         <PWAInstallPrompt />
 
+        {/* ─── LIVE NEWS RIBBON & OFFICIAL BROADCAST (إذا كان مفعلاً من الإدارة) ─── */}
+        {adNotice && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(20,29,47,0.95) 100%)',
+            border: '1.5px solid #D4AF37',
+            borderRadius: '16px',
+            padding: '0.85rem 1.15rem',
+            marginBottom: '1.25rem',
+            boxShadow: '0 4px 20px rgba(212,175,55,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>{adNotice.icon || '📢'}</span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#D4AF37', color: '#070B12', padding: '1px 6px', borderRadius: '4px' }}>
+                    {adNotice.badgeAr || 'تنبيه عاجل'}
+                  </span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#f8fafc' }}>
+                    {adNotice.titleAr}
+                  </span>
+                </div>
+                {adNotice.descAr && (
+                  <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.2rem', lineHeight: 1.5 }}>
+                    {adNotice.descAr}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {adNotice.whatsappNumber && (
+              <a
+                href={`https://wa.me/${adNotice.whatsappNumber}?text=${encodeURIComponent('مرحباً إدارة سيوة، بخصوص إعلان المنصة: ' + (adNotice.titleAr || ''))}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '10px',
+                  background: '#25D366',
+                  color: '#070B12',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 8px rgba(37,211,102,0.3)',
+                }}
+              >
+                {adNotice.ctaTextAr || 'متابعة'}
+              </a>
+            )}
+          </div>
+        )}
+
         {/* ─── TOP BAR ──────────────────────────────────────────────── */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '1.5rem',
+          marginBottom: '1.25rem',
           paddingBottom: '1rem',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}>
@@ -172,16 +256,66 @@ export default function VendorAppHubPage() {
             </div>
           </div>
 
-          <div style={{
-            padding: '4px 12px',
-            borderRadius: '20px',
-            background: currentTier.bg,
-            color: currentTier.color,
-            border: `1px solid ${currentTier.border}`,
-            fontSize: '0.72rem',
-            fontWeight: 800,
-          }}>
-            {currentTier.label}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: currentTier.bg,
+              color: currentTier.color,
+              border: `1px solid ${currentTier.border}`,
+              fontSize: '0.72rem',
+              fontWeight: 800,
+            }}>
+              {currentTier.label}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowUpgradeModal(true)}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+                color: '#070B12',
+                border: 0,
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+              }}
+            >
+              ترقية ⚡
+            </button>
+          </div>
+        </div>
+
+        {/* ─── VALUE PROPOSITION STRIP (خدماتنا وتفاوض الكوبونات والاتصال المباشر) ─── */}
+        <div style={{
+          background: 'rgba(212,175,55,0.08)',
+          border: '1px solid rgba(212,175,55,0.3)',
+          borderRadius: '18px',
+          padding: '1.15rem 1.25rem',
+          marginBottom: '1.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '1.2rem' }}>🤝</span>
+            <span style={{ fontWeight: 900, color: '#D4AF37', fontSize: '0.9rem' }}>
+              كيف تخدمك منصة SiWiFy لتطوير نشاطك وزيادة زوارك؟
+            </span>
+          </div>
+
+          <div style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            <div>
+              🌐 <strong>صفحتك وكارتك أونلاين:</strong> نضع نشاطك ومركبتك/مخيمك على الموقع العام لزوار سيوة مع توثيق اسمك.
+            </div>
+            <div>
+              🔗 <strong>ربط كل مواقع الحجز الخاصة بك:</strong> نضع روابطك المباشرة (Booking.com، خرائط Google، إنستغرام، فيسبوك) ليختار الزائر طريقته المفضلة.
+            </div>
+            <div>
+              📞 <strong>اتصال ومحادثة مباشرة بدون وسيط:</strong> الزائر يتصل بك أو يراسلك على واتسابك مباشرة دون أي طرف ثالث.
+            </div>
+            <div>
+              🎟️ <strong>نسبة تفاوضية لتقديم كوبونات حصرية للزوار:</strong> عمولتنا تفاوضية ومرنة، ويمكنك تقديم خصومات وكوبونات خاصة لرواد سيوة لتشجيعهم على اختيارك وتصدر ترتيب البحث.
+            </div>
           </div>
         </div>
 
@@ -238,7 +372,7 @@ export default function VendorAppHubPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
             <button
               type="button"
-              onClick={() => copyToClipboard(minisiteUrl, false)}
+              onClick={() => copyToClipboard(minisiteUrl, 'link')}
               style={{
                 padding: '0.75rem',
                 borderRadius: '12px',
@@ -260,7 +394,7 @@ export default function VendorAppHubPage() {
 
             <button
               type="button"
-              onClick={() => copyToClipboard(bioText, true)}
+              onClick={() => copyToClipboard(bioText, 'bio')}
               style={{
                 padding: '0.75rem',
                 borderRadius: '12px',
@@ -294,7 +428,7 @@ export default function VendorAppHubPage() {
           }}>
             💡 <strong>ضع هذا الرابط في بايو حسابك على إنستغرام أو تيك توك:</strong>
             <br />
-            عندما يضغط عليه السياح سيفتح كارتك الشخصي للحجز المباشر بالأسعار والواتساب بدون عمولة (0%).
+            عندما يضغط عليه السياح سيفتح كارتك الشخصي للحجز المباشر بالأسعار ورقم هاتفك وروابطك الرسمية بدون وسيط (0% عمولة).
           </div>
         </div>
 
@@ -319,15 +453,14 @@ export default function VendorAppHubPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.5rem',
-                transition: 'transform 0.2s',
               }}
             >
               <div style={{ fontSize: '1.6rem' }}>✏️</div>
               <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#f8fafc' }}>
-                تعديل الصور والأسعار
+                تعديل الصور والأسعار والروابط
               </div>
               <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                تحديث صور المركبة، الأسعار، وأرقام الاتصال
+                إضافة روابط بوكينج وجوجل ماب وأرقامك
               </div>
             </Link>
 
@@ -356,19 +489,23 @@ export default function VendorAppHubPage() {
                 </div>
               </Link>
             ) : (
-              <div style={{
-                background: 'rgba(15,23,42,0.5)',
-                border: '1px dashed rgba(255,255,255,0.08)',
-                borderRadius: '16px',
-                padding: '1.15rem',
-                color: '#64748b',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-              }}>
+              <div
+                onClick={() => setShowUpgradeModal(true)}
+                style={{
+                  background: 'rgba(15,23,42,0.5)',
+                  border: '1px dashed rgba(255,255,255,0.08)',
+                  borderRadius: '16px',
+                  padding: '1.15rem',
+                  color: '#64748b',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
                 <div style={{ fontSize: '1.6rem', filter: 'grayscale(1)' }}>🔒</div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>صانع الستوري</div>
-                <div style={{ fontSize: '0.7rem' }}>متاح في الباقة الاحترافية (Pro)</div>
+                <div style={{ fontSize: '0.7rem', color: '#D4AF37' }}>اضغط لترقية الباقة (Pro) ↗</div>
               </div>
             )}
 
@@ -397,19 +534,23 @@ export default function VendorAppHubPage() {
                 </div>
               </Link>
             ) : (
-              <div style={{
-                background: 'rgba(15,23,42,0.5)',
-                border: '1px dashed rgba(255,255,255,0.08)',
-                borderRadius: '16px',
-                padding: '1.15rem',
-                color: '#64748b',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-              }}>
+              <div
+                onClick={() => setShowUpgradeModal(true)}
+                style={{
+                  background: 'rgba(15,23,42,0.5)',
+                  border: '1px dashed rgba(255,255,255,0.08)',
+                  borderRadius: '16px',
+                  padding: '1.15rem',
+                  color: '#64748b',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
                 <div style={{ fontSize: '1.6rem', filter: 'grayscale(1)' }}>🔒</div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>استوديو الباقات</div>
-                <div style={{ fontSize: '0.7rem' }}>متاح للشركاء المعتمدين</div>
+                <div style={{ fontSize: '0.7rem', color: '#D4AF37' }}>متاح للشركاء المعتمدين ↗</div>
               </div>
             )}
 
@@ -438,29 +579,96 @@ export default function VendorAppHubPage() {
                 </div>
               </Link>
             ) : (
-              <div style={{
-                background: 'rgba(15,23,42,0.5)',
-                border: '1px dashed rgba(255,255,255,0.08)',
-                borderRadius: '16px',
-                padding: '1.15rem',
-                color: '#64748b',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-              }}>
+              <div
+                onClick={() => setShowUpgradeModal(true)}
+                style={{
+                  background: 'rgba(15,23,42,0.5)',
+                  border: '1px dashed rgba(255,255,255,0.08)',
+                  borderRadius: '16px',
+                  padding: '1.15rem',
+                  color: '#64748b',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
                 <div style={{ fontSize: '1.6rem', filter: 'grayscale(1)' }}>🔒</div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>إحصائيات الزيارات</div>
-                <div style={{ fontSize: '0.7rem' }}>يتطلب ترقية الباقة</div>
+                <div style={{ fontSize: '0.7rem', color: '#D4AF37' }}>يتطلب ترقية الباقة ↗</div>
               </div>
             )}
 
           </div>
         </div>
 
+        {/* ─── CARD 3: VIRAL GROWTH & SHARING WITH FELLOW VENDORS ──────── */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(37,211,102,0.1) 0%, rgba(15,23,42,0.95) 100%)',
+          border: '1.5px solid rgba(37,211,102,0.3)',
+          borderRadius: '20px',
+          padding: '1.25rem 1.4rem',
+          marginBottom: '1.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '1.4rem' }}>🤝</span>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#4ade80' }}>
+                شارك التطبيق مع زملائك في سيوة (Viral Referral)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                ساعد زملاءك من سائقي التوك توك والدفع الرباعي والمخيمات ليستلموا كارتهم المجاني
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.65rem', marginTop: '0.85rem' }}>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(inviteText, 'invite')}
+              style={{
+                flex: 1,
+                padding: '0.65rem 1rem',
+                borderRadius: '12px',
+                background: '#1e293b',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.15)',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              {copiedInvite ? '✓ تم نسخ رسالة الدعوة!' : '📋 نسخ رسالة الدعوة'}
+            </button>
+
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(inviteText)}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
+                background: '#25D366',
+                color: '#070B12',
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: '0 4px 12px rgba(37,211,102,0.3)',
+              }}
+            >
+              <span>إرسال لزميل عبر واتساب</span>
+              <span>💬</span>
+            </a>
+          </div>
+        </div>
+
         {/* ─── QUICK WHATSAPP SUPPORT FOR VENDOR ────────────────────────── */}
         <div style={{
-          background: 'rgba(37,211,102,0.08)',
-          border: '1px solid rgba(37,211,102,0.25)',
+          background: 'rgba(212,175,55,0.06)',
+          border: '1px solid rgba(212,175,55,0.2)',
           borderRadius: '18px',
           padding: '1.1rem 1.4rem',
           display: 'flex',
@@ -470,11 +678,11 @@ export default function VendorAppHubPage() {
           gap: '1rem',
         }}>
           <div>
-            <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#4ade80' }}>
+            <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#D4AF37' }}>
               💬 خط دعم الشركاء في سيوة
             </div>
             <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '0.2rem' }}>
-              فريق جنا معك خطوة بخطوة لأي استفسار أو ترقية لباقات أعلى
+              فريق جنا معك خطوة بخطوة للاتفاق على كوبونات الزوار وترقية الباقات
             </div>
           </div>
 
@@ -495,12 +703,154 @@ export default function VendorAppHubPage() {
               gap: '0.4rem',
             }}
           >
-            <span>واتساب الدعم</span>
+            <span>واتساب الإدارة</span>
             <span>💬</span>
           </a>
         </div>
 
       </div>
+
+      {/* ─── MODAL: WHY & HOW TO UPGRADE + NEGOTIABLE COUPONS ─────────── */}
+      {showUpgradeModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 999999,
+          background: 'rgba(7, 11, 18, 0.88)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.25rem',
+        }}>
+          <div style={{
+            background: '#0f172a',
+            border: '1.5px solid #D4AF37',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '560px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(15,23,42,0.95))',
+            }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '1.5px' }}>
+                  دليل الترقية وشراكة سيوة
+                </div>
+                <h3 style={{ margin: '0.2rem 0 0', color: '#fff', fontSize: '1.15rem', fontWeight: 900 }}>
+                  لماذا وكيف ترقي حسابك على SiWiFy؟
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: 0,
+                  color: '#fff',
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', lineHeight: 1.7, fontSize: '0.85rem' }}>
+              <div style={{ background: 'rgba(212,175,55,0.06)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(212,175,55,0.2)' }}>
+                <div style={{ fontWeight: 900, color: '#D4AF37', marginBottom: '0.35rem' }}>
+                  🎯 مزايا الترقية للشريك المحترف والموثق:
+                </div>
+                <ul style={{ margin: 0, paddingRight: '1.2rem', color: '#cbd5e1' }}>
+                  <li><strong>تصدر نتائج البحث:</strong> ظهور نشاطك في المراكز الأولى عند بحث السياح عن رحلات وسفاري وفنادق سيوة.</li>
+                  <li><strong>إدراجك في مخطط الرحلات (Smart Journey Planner):</strong> ربط خدماتك في برامج الزوار الشاملة.</li>
+                  <li><strong>صانع الستوري والفيديوهات:</strong> أدوات تصميم مخصصة لإنستغرام وتيك توك باسمك وشعارك.</li>
+                  <li><strong>شارة التوثيق الرسمية (Verified Partner):</strong> تزيد ثقة السائح وتضاعف الحجوزات 3 أضعاف.</li>
+                </ul>
+              </div>
+
+              <div style={{ background: 'rgba(34,197,94,0.06)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <div style={{ fontWeight: 900, color: '#4ade80', marginBottom: '0.35rem' }}>
+                  🎟️ نظام الكوبونات والتفاوض الخاص:
+                </div>
+                <div style={{ color: '#cbd5e1' }}>
+                  نحن نعمل بنظام الشراكة المرنة! إذا قدمت كود خصم أو كوبون حصري لزوار المنصة، نقوم بتمييز نشاطك مجاناً وإبراز عرضك في الصفحة الرئيسية وعلى منصاتنا في السوشيال ميديا.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 900, color: '#fff', marginBottom: '0.4rem' }}>
+                  📞 كيف تبدأ الترقية أو الاتفاق على كوبون؟
+                </div>
+                <div style={{ color: '#94a3b8' }}>
+                  تواصل مباشرة مع إدارة المنصة عبر واتساب، وسيتم تفعيل الميزات الإضافية لحسابك فوراً.
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                style={{
+                  padding: '0.55rem 1.25rem',
+                  borderRadius: '10px',
+                  background: 'transparent',
+                  color: '#94a3b8',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                إغلاق
+              </button>
+
+              <a
+                href={`https://wa.me/201000000000?text=${encodeURIComponent(`مرحباً إدارة SiWiFy، أرغب في ترقية حسابي (${biz?.name}) والاتفاق على تقديم كوبون خصم للزوار.`)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '0.65rem 1.35rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #D4AF37, #f59e0b)',
+                  color: '#070B12',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  boxShadow: '0 4px 15px rgba(212,175,55,0.3)',
+                }}
+              >
+                <span>طلب الترقية والتفاوض عبر واتساب ⚡</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
