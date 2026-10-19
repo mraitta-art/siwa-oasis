@@ -56,7 +56,14 @@ export default function WhatsAppOutreachPage() {
   const [parentFilter, setParentFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [msgLang, setMsgLang] = useState<'ar' | 'en'>('ar');
-  
+
+  // Dynamic business types loaded from /api/signup/types
+  const [bizTypes, setBizTypes] = useState<{id:string;name:string;icon:string;icon_color:string;is_parent:boolean;parent_id:string|null}[]>([]);
+
+  // Derived type helpers
+  const parentTypes = bizTypes.filter(t => t.is_parent);
+  const getChildTypes = (parentId: string) => bizTypes.filter(t => !t.is_parent && t.parent_id === parentId);
+
   // Showcase modal state
   const [showcaseBiz, setShowcaseBiz] = useState<{ id: string; name: string } | null>(null);
 
@@ -70,6 +77,10 @@ export default function WhatsAppOutreachPage() {
   const [dispatchBiz, setDispatchBiz] = useState<BusinessItem | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [editedMessageText, setEditedMessageText] = useState<string>('');
+
+  // Dispatch Tier & Mode selectors
+  const [dispatchTier, setDispatchTier] = useState<'free'|'pro'|'verified_partner'>('free');
+  const [dispatchMode, setDispatchMode] = useState<'direct'|'gatekeeper'>('direct');
 
   // Status & Note update states
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -85,6 +96,7 @@ export default function WhatsAppOutreachPage() {
   useEffect(() => {
     loadData();
     loadTemplates();
+    loadBizTypes();
   }, []);
 
   async function loadTemplates() {
@@ -97,6 +109,16 @@ export default function WhatsAppOutreachPage() {
     } catch (e) {
       console.error('Failed to load templates', e);
     }
+  }
+
+  async function loadBizTypes() {
+    try {
+      const res = await fetch('/api/signup/types');
+      if (res.ok) {
+        const data = await res.json();
+        setBizTypes(Array.isArray(data) ? data : []);
+      }
+    } catch (e) { console.error('Failed to load types', e); }
   }
 
   const [authError, setAuthError] = useState<string | null>(null);
@@ -123,7 +145,7 @@ export default function WhatsAppOutreachPage() {
     }
   }
 
-  function getMessageText(biz: BusinessItem, lang: 'ar' | 'en', explicitTemplateId?: string): string {
+  function getMessageText(biz: BusinessItem, lang: 'ar' | 'en', explicitTemplateId?: string, tier?: string, mode?: string): string {
     // 1. If explicit template ID provided or find matching template in templates list
     let tpl = explicitTemplateId ? templates.find((t) => t.id === explicitTemplateId) : null;
     
@@ -135,6 +157,8 @@ export default function WhatsAppOutreachPage() {
         || templates[0];
     }
 
+    const claimUrlWithParams = biz.claimUrl + (tier ? `&tier=${tier}` : '') + (mode === 'gatekeeper' ? '&mode=gatekeeper' : '');
+
     if (tpl) {
       const templateStr = lang === 'ar' ? (tpl.contentAr || tpl.contentEn) : (tpl.contentEn || tpl.contentAr);
       if (templateStr) {
@@ -145,7 +169,7 @@ export default function WhatsAppOutreachPage() {
           .replace(/\{minisiteUrl\}/g, biz.vanityUrl)
           .replace(/\{mobileDashboardUrl\}/g, biz.mobileDashboardUrl)
           .replace(/\{socialToolkitUrl\}/g, biz.socialToolkitUrl)
-          .replace(/\{claimUrl\}/g, biz.claimUrl)
+          .replace(/\{claimUrl\}/g, claimUrlWithParams)
           .replace(/\{photoLinks\}/g, biz.vanityUrl)
           .replace(/\{featureList\}/g, `• حجز مباشر بدون وسيط\n• معتمد وموثق على SiWiFy.com`);
       }
@@ -153,10 +177,10 @@ export default function WhatsAppOutreachPage() {
 
     // Fallback standard message
     if (lang === 'ar') {
-      return `أهلاً وسهلاً بيك يا كابتن/صاحب نشاط *${biz.name}*! 🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك/نشاطك في سيوة:\n🏷️ *${biz.parent_type_name || 'خدمات سيوة'} ➔ ${biz.type_name || 'نشاط معتمد'}*\n\n🎁 *خدماتك المجانية المتاحة فوراً على تليفونك:*\n1️⃣ موقعك وكارتك للحجز المباشر (مكسبك كامل في جيبك 0% عمولة): ${biz.vanityUrl}\n2️⃣ تطبيق خفيف على موبايلك لمتابعة مشاويرك وأسعارك: ${biz.mobileDashboardUrl}\n3️⃣ صانع فيديوهات وستوري واتساب باسمك: ${biz.socialToolkitUrl}\n\n🔑 *لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 ${biz.claimUrl}\n\nلو محتاج أي مساعدة، رد عليا هنا وأنا معاك خطوة بخطوة! 🌿🤝`;
+      return `أهلاً وسهلاً بيك يا كابتن/صاحب نشاط *${biz.name}*! 🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك/نشاطك في سيوة:\n🏷️ *${biz.parent_type_name || 'خدمات سيوة'} ➔ ${biz.type_name || 'نشاط معتمد'}*\n\n🎁 *خدماتك المجانية المتاحة فوراً على تليفونك:*\n1️⃣ موقعك وكارتك للحجز المباشر (مكسبك كامل في جيبك 0% عمولة): ${biz.vanityUrl}\n2️⃣ تطبيق خفيف على موبايلك لمتابعة مشاويرك وأسعارك: ${biz.mobileDashboardUrl}\n3️⃣ صانع فيديوهات وستوري واتساب باسمك: ${biz.socialToolkitUrl}\n\n🔑 *لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 ${claimUrlWithParams}\n\nلو محتاج أي مساعدة، رد عليا هنا وأنا معاك خطوة بخطوة! 🌿🤝`;
     }
 
-    return `Welcome *${biz.name}*! 🌴✨\nThis is *Jana* from *SiWiFy.com*.\nYour verified digital card & booking page is ready under:\n🏷️ *${biz.parent_type_name || 'Tourism'} ➔ ${biz.type_name || 'Service'}*\n\n🎁 *Your 100% Free Included Tools:*\n1️⃣ Official Minisite (0% Commission): ${biz.vanityUrl}\n2️⃣ Mobile Command Dashboard: ${biz.mobileDashboardUrl}\n3️⃣ Social Video Reels Maker: ${biz.socialToolkitUrl}\n\n🔑 Claim your account: ${biz.claimUrl}\n\nHave a magical journey in Siwa Oasis! 🌿`;
+    return `Welcome *${biz.name}*! 🌴✨\nThis is *Jana* from *SiWiFy.com*.\nYour verified digital card & booking page is ready under:\n🏷️ *${biz.parent_type_name || 'Tourism'} ➔ ${biz.type_name || 'Service'}*\n\n🎁 *Your 100% Free Included Tools:*\n1️⃣ Official Minisite (0% Commission): ${biz.vanityUrl}\n2️⃣ Mobile Command Dashboard: ${biz.mobileDashboardUrl}\n3️⃣ Social Video Reels Maker: ${biz.socialToolkitUrl}\n\n🔑 Claim your account: ${claimUrlWithParams}\n\nHave a magical journey in Siwa Oasis! 🌿`;
   }
 
   async function handleSaveContact(bizId: string) {
@@ -202,6 +226,60 @@ export default function WhatsAppOutreachPage() {
       navigator.clipboard.writeText(text);
       setCopiedId(biz.id);
       setTimeout(() => setCopiedId(null), 2500);
+    }
+  }
+
+  async function generateAndSend() {
+    if (!dispatchBiz) return;
+    try {
+      // Create invite record for tracking (and gatekeeper URL if needed)
+      const res = await fetch('/api/onboard/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: dispatchBiz.id,
+          subscription_tier: dispatchTier,
+          dispatch_mode: dispatchMode,
+        }),
+      });
+      const data = await res.json();
+
+      let finalMessage = editedMessageText;
+      if (data.onboard_url && dispatchMode === 'gatekeeper') {
+        // Replace claim URLs in message with the regulated onboarding URL
+        finalMessage = finalMessage
+          .replace(/https?:\/\/[^\s]*\/vendor\/claim[^\s]*/g, data.onboard_url)
+          .replace(/https?:\/\/[^\s]*\/onboard\/[^\s]*/g, data.onboard_url);
+        // Also append the onboard URL if not already present
+        if (!finalMessage.includes(data.onboard_url)) {
+          finalMessage += `\n\n🔐 رابط قبول اللوائح والانضمام:\n👉 ${data.onboard_url}`;
+        }
+      }
+
+      let raw = (dispatchBiz.whatsapp || dispatchBiz.phone || '').trim();
+      let clean = raw.replace(/[^0-9]/g, '');
+      if (clean.startsWith('00')) clean = clean.substring(2);
+      if (clean.length === 11 && clean.startsWith('01')) clean = '2' + clean;
+      const url = clean
+        ? `https://wa.me/${clean}?text=${encodeURIComponent(finalMessage)}`
+        : `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
+
+      handleUpdateOutreachStatus(dispatchBiz.id, 'sent', undefined, true);
+      window.open(url, '_blank');
+      setDispatchBiz(null);
+    } catch (e: any) {
+      console.error('Failed to generate invite, sending without token', e);
+      // Fallback: send without token
+      let raw = (dispatchBiz.whatsapp || dispatchBiz.phone || '').trim();
+      let clean = raw.replace(/[^0-9]/g, '');
+      if (clean.startsWith('00')) clean = clean.substring(2);
+      if (clean.length === 11 && clean.startsWith('01')) clean = '2' + clean;
+      const url = clean
+        ? `https://wa.me/${clean}?text=${encodeURIComponent(editedMessageText)}`
+        : `https://wa.me/?text=${encodeURIComponent(editedMessageText)}`;
+      handleUpdateOutreachStatus(dispatchBiz.id, 'sent', undefined, true);
+      window.open(url, '_blank');
+      setDispatchBiz(null);
     }
   }
 
@@ -418,7 +496,7 @@ export default function WhatsAppOutreachPage() {
       </div>
 
       {/* ── DIRECT QUICK DISPATCH & TEST SENDER (إرسال فوري ومباشر لأي رقم) ── */}
-      <QuickDirectSender msgLang={msgLang} />
+      <QuickDirectSender msgLang={msgLang} parentTypes={parentTypes} getChildTypes={getChildTypes} />
 
       {/* FILTER & SEARCH BAR */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', background: '#fff', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
@@ -471,14 +549,12 @@ export default function WhatsAppOutreachPage() {
               cursor: 'pointer',
             }}
           >
-            <option value="all">📂 كل التصنيفات الرئيسية (All Parents)</option>
-            <option value="logistics">🛺 النقل والمواصلات والتوك توك (Logistics &amp; Transport)</option>
-            <option value="adventure">🚙 سفاري ورحلات المغامرة (Travel &amp; Safari)</option>
-            <option value="wellness">🌿 الاستشفاء وبحيرات الملح والرمال (Health &amp; Wellness)</option>
-            <option value="accommodation">🏨 الإقامة والفنادق والمخيمات (Accommodations)</option>
-            <option value="food">🍲 المطاعم والوجبات البدوية (Food &amp; Dining)</option>
-            <option value="crafts">🏺 التمور وزيت الزيتون والحرف (Trade &amp; Crafts)</option>
-            <option value="arts_culture">🎨 الفنون والتراث الثقافي (Arts &amp; Culture)</option>
+            <option value="all">📂 كل التصنيفات الرئيسية (All)</option>
+            {parentTypes.map(pt => (
+              <option key={pt.id} value={pt.id}>
+                {pt.name}
+              </option>
+            ))}
           </select>
 
           <input
@@ -869,7 +945,7 @@ export default function WhatsAppOutreachPage() {
                         || (templates.length > 0 ? templates[0] : null);
                       const initialTplId = bestTpl ? bestTpl.id : '';
                       setSelectedTemplateId(initialTplId);
-                      setEditedMessageText(getMessageText(biz, msgLang, initialTplId));
+                      setEditedMessageText(getMessageText(biz, msgLang, initialTplId, dispatchTier, dispatchMode));
                     }}
                     style={{
                       padding: '0.55rem 0.95rem',
@@ -1002,6 +1078,42 @@ export default function WhatsAppOutreachPage() {
 
             {/* MODAL BODY */}
             <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* TIER & DISPATCH MODE */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#D4AF37', marginBottom: '0.45rem' }}>
+                    🎖️ Subscription Tier (الباقة):
+                  </label>
+                  <select
+                    value={dispatchTier}
+                    onChange={e => setDispatchTier(e.target.value as any)}
+                    style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '10px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#f1f5f9', fontSize: '0.85rem', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }}
+                  >
+                    <option value="free">🆓 Free — مجاناً</option>
+                    <option value="pro">⭐ Pro — احترافي</option>
+                    <option value="verified_partner">✅ Verified Partner — شريك معتمد</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#D4AF37', marginBottom: '0.45rem' }}>
+                    🚀 Dispatch Mode (طريقة التفعيل):
+                  </label>
+                  <select
+                    value={dispatchMode}
+                    onChange={e => setDispatchMode(e.target.value as any)}
+                    style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '10px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#f1f5f9', fontSize: '0.85rem', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }}
+                  >
+                    <option value="direct">⚡ Direct Activation — تفعيل فوري</option>
+                    <option value="gatekeeper">🔒 Gatekeeper — قبول اللوائح أولاً</option>
+                  </select>
+                </div>
+              </div>
+              {/* Gatekeeper info note */}
+              {dispatchMode === 'gatekeeper' && (
+                <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '12px', padding: '0.85rem 1rem', fontSize: '0.78rem', color: '#D4AF37', lineHeight: 1.6 }}>
+                  🔒 <strong>وضع البوابة الصامتة:</strong> سيُرسَل للمورّد رابط صفحة خاصة يقرأ فيها لوائح وأنظمة سيوايفاي المتعلقة بتصنيفه. بعد قبوله يُفعَّل حسابه تلقائياً في الخلفية.
+                </div>
+              )}
               {/* TEMPLATE PICKER */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#D4AF37', marginBottom: '0.45rem' }}>
@@ -1012,7 +1124,7 @@ export default function WhatsAppOutreachPage() {
                   onChange={(e) => {
                     const newTplId = e.target.value;
                     setSelectedTemplateId(newTplId);
-                    setEditedMessageText(getMessageText(dispatchBiz, msgLang, newTplId));
+                    setEditedMessageText(getMessageText(dispatchBiz, msgLang, newTplId, dispatchTier, dispatchMode));
                   }}
                   style={{
                     width: '100%',
@@ -1046,7 +1158,7 @@ export default function WhatsAppOutreachPage() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setEditedMessageText(getMessageText(dispatchBiz, msgLang, selectedTemplateId))}
+                    onClick={() => setEditedMessageText(getMessageText(dispatchBiz, msgLang, selectedTemplateId, dispatchTier, dispatchMode))}
                     style={{
                       background: 'none',
                       border: 0,
@@ -1129,20 +1241,7 @@ export default function WhatsAppOutreachPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      let raw = (dispatchBiz.whatsapp || dispatchBiz.phone || '').trim();
-                      let clean = raw.replace(/[^0-9]/g, '');
-                      if (clean.startsWith('00')) clean = clean.substring(2);
-                      if (clean.length === 11 && clean.startsWith('01')) clean = '2' + clean;
-                      const url = clean
-                        ? `https://wa.me/${clean}?text=${encodeURIComponent(editedMessageText)}`
-                        : `https://wa.me/?text=${encodeURIComponent(editedMessageText)}`;
-
-                      // Mark status as sent and timestamp
-                      handleUpdateOutreachStatus(dispatchBiz.id, 'sent', undefined, true);
-
-                      window.open(url, '_blank');
-                    }}
+                    onClick={() => generateAndSend()}
                     style={{
                       padding: '0.65rem 1.4rem',
                       borderRadius: '10px',
@@ -1198,12 +1297,19 @@ export default function WhatsAppOutreachPage() {
 }
 
 /* ─── QUICK DIRECT TEST & MANUAL DISPATCH COMPONENT ────────────────── */
-function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
+function QuickDirectSender({ msgLang, parentTypes, getChildTypes }: {
+  msgLang: 'ar' | 'en';
+  parentTypes: {id:string;name:string;icon:string;icon_color:string;is_parent:boolean;parent_id:string|null}[];
+  getChildTypes: (pid: string) => {id:string;name:string;icon:string;icon_color:string;is_parent:boolean;parent_id:string|null}[];
+}) {
   const [driverName, setDriverName] = useState('كابتن أحمد (تجربة)');
-  const [categoryType, setCategoryType] = useState('🛺 خدمة التوك توك والنقل المحلي');
+  const [selectedParentId, setSelectedParentId] = useState('');
+  const [selectedChildId, setSelectedChildId] = useState('');
   const [countryCode, setCountryCode] = useState('+963');
   const [localNumber, setLocalNumber] = useState('');
   const [customSlug, setCustomSlug] = useState('siwa-tuktuk-demo');
+  const [quickTier, setQuickTier] = useState<'free'|'pro'|'verified_partner'>('free');
+  const [quickMode, setQuickMode] = useState<'direct'|'gatekeeper'>('direct');
 
   const fullPhone = `${countryCode}${localNumber.replace(/^0+/, '')}`;
 
@@ -1213,11 +1319,15 @@ function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
     const vanityUrl = `${origin}/${customSlug || 'siwa-go'}`;
     const mobileDashboardUrl = `${origin}/jana/businesses/demo/mobile`;
     const socialToolkitUrl = `${origin}/vendor/social-toolkit?slug=${customSlug || 'siwa-go'}`;
-    const claimUrl = `${origin}/vendor/claim?slug=${customSlug || 'siwa-go'}`;
+    const claimUrl = `${origin}/vendor/claim?slug=${customSlug || 'siwa-go'}&tier=${quickTier}${quickMode === 'gatekeeper' ? '&mode=gatekeeper' : ''}`;
+
+    const parentName = parentTypes.find(p => p.id === selectedParentId)?.name || 'سياحة وضيافة سيوة';
+    const childName = getChildTypes(selectedParentId).find(c => c.id === selectedChildId)?.name || 'خدمة معتمدة';
+    const categoryLabel = selectedParentId ? `${parentName} ➔ ${childName}` : 'سياحة وضيافة سيوة';
 
     const text = msgLang === 'ar'
-      ? `أهلاً وسهلاً بيك يا كابتن *${driverName}*! 🛺🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك في سيوة:\n🏷️ *${categoryType}*\n\n🎁 *خدماتك المجانية الجاهزة فوراً على تليفونك:*\n━━━━━━━━━━━━━━━━━━\n1️⃣ *موقعك وكارتك الشخصي للحجز المباشر (مكسبك كامل في جيبك 0% عمولة):*\n🔗 ${vanityUrl}\n(تقدر تبعت الرابط ده لأي زبون أو سائح على واتساب عشان يحجز معاك مشاوير بحيرات الملح وفطناس وشالي)\n\n2️⃣ *تطبيق خفيف على موبايلك لإدارة مواعيدك وأسعارك:*\n📲 ${mobileDashboardUrl}\n(تقدر تعدل منه أرقامك، صور التوك توك، وأسعار مشاويرك في أي وقت)\n\n3️⃣ *صانع فيديوهات وستوري واتساب باسمك:*\n🎬 ${socialToolkitUrl}\n\n🔑 *اضغط هنا لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 ${claimUrl}\n\nلو محتاج أي مساعدة أو استفسار، رد عليا على نفس الرقم ده وأنا في خدمتك فوراً يا كابتن! 🌿🤝`
-      : `Welcome Captain *${driverName}*! 🛺🌴✨\nThis is *Jana* from *SiWiFy.com*.\nYour free digital card & booking page is ready under: *${categoryType}*.\n\n🔗 Minisite: ${vanityUrl}\n📲 Mobile App: ${mobileDashboardUrl}\n🔑 Claim profile: ${claimUrl}`;
+      ? `أهلاً وسهلاً بيك يا كابتن *${driverName}*! 🛺🌴✨\nمعاك *جنا* من منصة *SiWiFy.com*، وبحب أقولك إننا جهزنالك كارت وصفحة شخصية مجانية تماماً ليك ولمركبتك في سيوة:\n🏷️ *${categoryLabel}*\n\n🎁 *خدماتك المجانية الجاهزة فوراً على تليفونك:*\n━━━━━━━━━━━━━━━━━━\n1️⃣ *موقعك وكارتك الشخصي للحجز المباشر (مكسبك كامل في جيبك 0% عمولة):*\n🔗 ${vanityUrl}\n(تقدر تبعت الرابط ده لأي زبون أو سائح على واتساب عشان يحجز معاك مشاوير بحيرات الملح وفطناس وشالي)\n\n2️⃣ *تطبيق خفيف على موبايلك لإدارة مواعيدك وأسعارك:*\n📲 ${mobileDashboardUrl}\n(تقدر تعدل منه أرقامك، صور التوك توك، وأسعار مشاويرك في أي وقت)\n\n3️⃣ *صانع فيديوهات وستوري واتساب باسمك:*\n🎬 ${socialToolkitUrl}\n\n🔑 *اضغط هنا لتأكيد اسمك واستلام صفحتك مجاناً:*\n👉 ${claimUrl}\n\nلو محتاج أي مساعدة أو استفسار، رد عليا على نفس الرقم ده وأنا في خدمتك فوراً يا كابتن! 🌿🤝`
+      : `Welcome Captain *${driverName}*! 🛺🌴✨\nThis is *Jana* from *SiWiFy.com*.\nYour free digital card & booking page is ready under: *${categoryLabel}*.\n\n🔗 Minisite: ${vanityUrl}\n📲 Mobile App: ${mobileDashboardUrl}\n🔑 Claim profile: ${claimUrl}`;
 
     const url = clean ? `https://wa.me/${clean}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
@@ -1265,25 +1375,41 @@ function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
           />
         </div>
 
+        {/* CASCADE: Parent Category */}
         <div>
           <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
-            التصنيف (Parent ➔ Child):
+            📂 التصنيف الرئيسي (Parent Category):
           </label>
           <select
-            value={categoryType}
-            onChange={(e) => setCategoryType(e.target.value)}
-            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+            value={selectedParentId}
+            onChange={e => { setSelectedParentId(e.target.value); setSelectedChildId(''); }}
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' as const, cursor: 'pointer' }}
           >
-            <option value="🛺 النقل والمواصلات ➔ خدمة التوك توك والنقل المحلي">🛺 النقل ➔ خدمة التوك توك والنقل المحلي</option>
-            <option value="🚐 النقل والمواصلات ➔ سيارات النقل والمطارات">🚐 النقل ➔ سيارات النقل والمطارات</option>
-            <option value="🚙 رحلات ومغامرات ➔ سفاري 4x4 بحر الرمال">🚙 رحلات ➔ سفاري 4x4 بحر الرمال</option>
-            <option value="🌿 الصحة والاستشفاء ➔ حمامات الرمال وبحيرات الملح">🌿 الصحة ➔ حمامات الرمال وبحيرات الملح</option>
-            <option value="🏨 الإقامة والفنادق ➔ إيكولودج ومخيمات بيئية">🏨 الإقامة ➔ إيكولودج ومخيمات بيئية</option>
-            <option value="🍲 الأغذية والضيافة ➔ مطاعم وعشاء بدوي">🍲 الأغذية ➔ مطاعم وعشاء بدوي</option>
-            <option value="🏺 التجارة والحرف ➔ تمور وزيت زيتون ومنتجات يدوية">🏺 التجارة ➔ تمور وزيت زيتون ومنتجات يدوية</option>
-            <option value="🗺️ رحلات وبرامج ➔ تنظيم رحلات متكاملة">🗺️ رحلات ➔ تنظيم رحلات متكاملة</option>
+            <option value="">-- اختر تصنيف رئيسي --</option>
+            {parentTypes.map(pt => (
+              <option key={pt.id} value={pt.id}>{pt.name}</option>
+            ))}
           </select>
         </div>
+
+        {/* CASCADE: Child Typology (shown only when parent selected) */}
+        {selectedParentId && (
+          <div>
+            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+              🏷️ التخصص (Child Typology):
+            </label>
+            <select
+              value={selectedChildId}
+              onChange={e => setSelectedChildId(e.target.value)}
+              style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid #D4AF37', background: '#1e293b', color: '#D4AF37', fontSize: '0.85rem', fontWeight: 800, outline: 'none', boxSizing: 'border-box' as const, cursor: 'pointer' }}
+            >
+              <option value="">-- اختر تخصص --</option>
+              {getChildTypes(selectedParentId).map(ct => (
+                <option key={ct.id} value={ct.id}>{ct.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
@@ -1321,6 +1447,37 @@ function QuickDirectSender({ msgLang }: { msgLang: 'ar' | 'en' }) {
             placeholder="مثال: 944123456"
             style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
           />
+        </div>
+      </div>
+
+      {/* TIER & MODE ROW */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+            🎖️ Subscription Tier (الباقة):
+          </label>
+          <select
+            value={quickTier}
+            onChange={e => setQuickTier(e.target.value as any)}
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#f1f5f9', fontSize: '0.85rem', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }}
+          >
+            <option value="free">🆓 Free — مجاناً</option>
+            <option value="pro">⭐ Pro — احترافي</option>
+            <option value="verified_partner">✅ Verified Partner — شريك معتمد</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#cbd5e1', marginBottom: '0.35rem' }}>
+            🚀 Dispatch Mode (طريقة التفعيل):
+          </label>
+          <select
+            value={quickMode}
+            onChange={e => setQuickMode(e.target.value as any)}
+            style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: '#1e293b', color: '#f1f5f9', fontSize: '0.85rem', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }}
+          >
+            <option value="direct">⚡ Direct Activation — تفعيل فوري</option>
+            <option value="gatekeeper">🔒 Gatekeeper — قبول اللوائح أولاً</option>
+          </select>
         </div>
       </div>
 
