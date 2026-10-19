@@ -46,11 +46,11 @@ export default function OnboardTokenPage({ params }: { params: { token: string }
           setInvite(data);
           if (data.status === 'accepted') {
             setAccepted(true);
-            setRedirect(`/vendor/claim?slug=${data.business_slug}&tier=${data.subscription_tier}&onboarded=1`);
+            setRedirect(`/vendor/app?slug=${data.business_slug}&tier=${data.subscription_tier}&onboarded=1`);
           }
-          // Direct mode: skip gatekeeper, go straight to claim
+          // Direct mode: skip gatekeeper, go straight to vendor app hub
           if (data.dispatch_mode === 'direct' && data.status === 'pending') {
-            setRedirect(`/vendor/claim?slug=${data.business_slug}&tier=${data.subscription_tier}`);
+            setRedirect(`/vendor/app?slug=${data.business_slug}&tier=${data.subscription_tier}`);
           }
         }
       } catch (e: any) {

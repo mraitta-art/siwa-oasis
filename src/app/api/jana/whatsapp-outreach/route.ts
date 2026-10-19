@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         vanityUrl: `${origin}/${effectiveSlug}`,
         socialToolkitUrl: `${origin}/vendor/social-toolkit?slug=${effectiveSlug}`,
         claimUrl: `${origin}/vendor/claim?slug=${effectiveSlug}`,
-        mobileDashboardUrl: `${origin}/jana/businesses/${biz.id}/mobile`,
+        mobileDashboardUrl: `${origin}/vendor/app?slug=${effectiveSlug}`,
       };
     });
 

@@ -1,10 +1,12 @@
 {
-  "name": "SiWiFy — Siwa Oasis Marketplace",
-  "short_name": "SiWiFy",
-  "description": "Discover and book hotels, safari tours, restaurants and wellness in Siwa Oasis.",
-  "start_url": "/",
+  "name": "SiWiFy — لوحة تحكم الشركاء وسيوة",
+  "short_name": "SiWiFy Vendor",
+  "description": "تطبيق إدارة النشاط التجاري وحجوزات واحة سيوة وبطاقة الأعمال الرقمية",
+  "start_url": "/vendor/app",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0f1e",
+  "orientation": "portrait-primary",
+  "background_color": "#070B12",
   "theme_color": "#D4AF37",
   "icons": [
     {

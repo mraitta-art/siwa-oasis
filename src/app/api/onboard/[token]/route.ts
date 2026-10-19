@@ -104,7 +104,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       success:        true,
       message:        'تم قبول اللوائح والأنظمة. حسابك جاهز الآن!',
       business_slug:  invite.business_slug,
-      redirect:       `/vendor/claim?slug=${invite.business_slug}&tier=${invite.subscription_tier}&onboarded=1`,
+      redirect:       `/vendor/app?slug=${invite.business_slug}&tier=${invite.subscription_tier}&onboarded=1`,
     });
   } catch (e: any) {
     console.error('[onboard/token POST] Error:', e);
