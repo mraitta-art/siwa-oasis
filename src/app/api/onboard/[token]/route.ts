@@ -77,6 +77,15 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     }
 
     if (invite.status !== 'pending') {
+      if (invite.status === 'accepted') {
+        return NextResponse.json({
+          success: true,
+          already_accepted: true,
+          message: 'حسابك مفعل بالفعل وجاهز للاستخدام.',
+          business_slug: invite.business_slug,
+          redirect: `/vendor/app?slug=${invite.business_slug}&tier=${invite.subscription_tier}&onboarded=1`,
+        });
+      }
       return NextResponse.json(
         { error: 'This invite has already been used or expired', current_status: invite.status },
         { status: 409 }

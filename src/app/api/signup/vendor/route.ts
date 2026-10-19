@@ -134,15 +134,27 @@ export async function POST(req: NextRequest) {
     };
 
     // 1. Check email uniqueness
-    const existing = (await query('SELECT id FROM profiles WHERE email = ?', [email])) as any[];
+    const existing = (await query('SELECT id, role, display_name FROM profiles WHERE email = ?', [email])) as any[];
     if (existing.length > 0) {
-      return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
+      return NextResponse.json({
+        error: acceptedLanguage === 'ar'
+          ? 'هذا البريد الإلكتروني مسجل بالفعل لدينا. يمكنك تسجيل الدخول مباشرة إلى حسابك بدلاً من التسجيل مرة أخرى.'
+          : 'This email is already registered. Please sign in to your existing account.',
+        code: 'EMAIL_ALREADY_REGISTERED',
+        suggestion: '/login',
+      }, { status: 400 });
     }
 
     // 1b. Check phone uniqueness
-    const existingPhone = (await query('SELECT id FROM profiles WHERE phone = ?', [phone.trim()])) as any[];
+    const existingPhone = (await query('SELECT id, email, display_name FROM profiles WHERE phone = ?', [phone.trim()])) as any[];
     if (existingPhone.length > 0) {
-      return NextResponse.json({ error: 'Phone number already registered' }, { status: 400 });
+      return NextResponse.json({
+        error: acceptedLanguage === 'ar'
+          ? `رقم الهاتف (${phone.trim()}) مسجل بالفعل لحساب شريك آخر. إذا كنت صاحب هذا الرقم، يمكنك تسجيل الدخول أو استعادة كلمة المرور، أو التواصل مع إدارة سيوة عبر واتساب.`
+          : `Phone number (${phone.trim()}) is already registered. Please log in or contact Siwify support.`,
+        code: 'PHONE_ALREADY_REGISTERED',
+        suggestion: '/login',
+      }, { status: 400 });
     }
 
     // 1c. Enforce child-only business type requirement
