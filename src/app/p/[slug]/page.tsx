@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
 
 // ── Luminance helper ─────────────────────────────────────────────────────────
 function isLight(hex?: string): boolean {
@@ -18,14 +19,14 @@ function isLight(hex?: string): boolean {
 }
 
 function buildThemeCSS(settings: any): string {
-  const bg  = settings?.bg_color    || '#FAF6F0';
-  const pri = settings?.primary_color || '#FFB700';
-  const nav = settings?.nav_bg_color  || '#556B2F';
+  const bg  = settings?.bg_color    || '#070b08';
+  const pri = settings?.primary_color || '#D4AF37';
+  const nav = settings?.nav_bg_color  || 'rgba(7, 11, 18, 0.92)';
   const light = isLight(bg);
   if (light) {
-    return `:root { --bg:${bg}; --bg-alt:${bg}ee; --card:#ffffff; --text:#202D15; --text-muted:#5A4A3A; --text-light:#8E7B6C; --border:#E8DFD3; --border-light:#F4ECE0; --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.06); --shadow-md:0 4px 12px rgba(0,0,0,0.08); --shadow-lg:0 10px 25px rgba(0,0,0,0.10); }`;
+    return `:root { --bg:${bg}; --bg-alt:${bg}ee; --card:#ffffff; --text:#0f172a; --text-muted:#475569; --text-light:#64748b; --border:#e2e8f0; --border-light:#f1f5f9; --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.06); --shadow-md:0 4px 12px rgba(0,0,0,0.08); --shadow-lg:0 10px 25px rgba(0,0,0,0.10); }`;
   }
-  return `:root { --bg:${bg}; --bg-alt:${bg}dd; --card:rgba(255,255,255,0.04); --text:#f8fafc; --text-muted:#cbd5e1; --text-light:#94a3b8; --border:rgba(255,255,255,0.08); --border-light:rgba(255,255,255,0.05); --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.3); --shadow-md:0 4px 12px rgba(0,0,0,0.4); --shadow-lg:0 10px 25px rgba(0,0,0,0.5); }`;
+  return `:root { --bg:${bg}; --bg-alt:#0d150f; --card:rgba(255,255,255,0.04); --text:#f8fafc; --text-muted:#cbd5e1; --text-light:#94a3b8; --border:rgba(212,175,55,0.15); --border-light:rgba(255,255,255,0.05); --gold:${pri}; --gold-hover:${pri}cc; --dark:${nav}; --shadow-sm:0 1px 3px rgba(0,0,0,0.3); --shadow-md:0 4px 12px rgba(0,0,0,0.4); --shadow-lg:0 10px 25px rgba(0,0,0,0.5); }`;
 }
 
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -92,29 +93,11 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Dynamic theme variables */}
       <style dangerouslySetInnerHTML={{ __html: buildThemeCSS(settings) }} />
-      {/* Navigation */}
-      <nav style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
-        padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 5vw, 4rem)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: `linear-gradient(to bottom, ${settings?.nav_bg_color || '#556B2F'}dd, transparent)`,
-      }}>
-        <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 'clamp(1rem, 3vw, 1.25rem)', letterSpacing: '4px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {settings?.logo_url ? (
-            <img src={settings.logo_url} alt={settings.site_name || 'SiWiFy.com'} style={{ height: `${settings.logo_height || 40}px`, objectFit: 'contain' }} />
-          ) : (
-            <>
-              <i className="fas fa-sun" style={{ color: settings?.primary_color || '#D4AF37', fontSize: '1.5rem' }}></i>
-              <span style={{ color: settings?.primary_color || '#D4AF37' }}>
-                {settings?.site_name || 'SiWiFy.com'}
-              </span>
-            </>
-          )}
-        </Link>
-        <Link href="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', padding: '0.5rem 1.25rem', border: `1px solid ${settings?.primary_color ? `${settings.primary_color}55` : 'rgba(255,255,255,0.15)'}`, borderRadius: '50px', transition: 'all 0.2s' }}>
-          ← HOME
-        </Link>
-      </nav>
+      {/* Global Marketplace Navigation */}
+      <MarketplaceHeader
+        title={settings?.site_name || slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+        accentColor={settings?.primary_color || '#D4AF37'}
+      />
 
       {/* Render all admin-configured components */}
       <DynamicHomepageRenderer layout={layout} settings={settings} pageId={`p:${slug}`} pagePath={`/p/${slug}`} />

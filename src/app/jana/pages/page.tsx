@@ -102,12 +102,12 @@ export default function PagesManager() {
         header_components: [],
         body_components: [],
         footer_components: [],
-        site_settings: { public_path: `/p/${slug}` },
+        site_settings: { public_path: `/${slug}` },
       }),
     });
 
     if (res.ok) {
-      const previewUrl = newType === 'search' ? `/search/${slug}` : `/p/${slug}`;
+      const previewUrl = newType === 'search' ? `/search/${slug}` : `/${slug}`;
       notify(`✅ Page "${slug}" created. Open Visual Editor and save content, then preview at ${previewUrl}`);
       setCreating(false);
       setNewSlug('');
@@ -185,10 +185,9 @@ export default function PagesManager() {
         <div style={{ marginBottom: '1.75rem', background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(229,231,235,0.08)', borderRadius: '16px', padding: '1.5rem', color: '#cbd5e1' }}>
           <div style={{ fontWeight: 900, color: '#D4AF37', marginBottom: '0.75rem' }}>How to create and publish a page</div>
           <ol style={{ margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8, fontSize: '0.95rem' }}>
-            <li>Create a <strong>Content</strong> page to publish under <code style={{ color: '#94a3b8' }}>/p/[slug]</code>, or a <strong>Search</strong> page under <code style={{ color: '#94a3b8' }}>/search/[slug]</code>.</li>
-            <li>Open the page in the Visual Editor and save at least one section so it stops falling back to the homepage.</li>
-            <li>Visit the preview URL shown in the list, or click <em>Edit</em> to continue updating the page.</li>
-            <li>If the new page still looks like the homepage, save the editor again and refresh the preview URL.</li>
+            <li>Create a <strong>Content</strong> page to publish under canonical root URL <code style={{ color: '#D4AF37' }}>/[slug]</code> (e.g. <code style={{ color: '#94a3b8' }}>/about</code>), or a <strong>Search</strong> page under <code style={{ color: '#38bdf8' }}>/search/[slug]</code>.</li>
+            <li>Open the page in the Visual Editor and add your desired experience blocks, journeys, or custom storytelling sections.</li>
+            <li>Hit <strong>Save & Publish</strong> (Ctrl+S) — your page goes live immediately with the platform-wide dark luxury theme.</li>
           </ol>
         </div>
 
@@ -225,7 +224,7 @@ export default function PagesManager() {
                 {newSlug && (
                   <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#64748b' }}>
                     URL: <span style={{ color: '#D4AF37', fontWeight: 700 }}>
-                      {newType === 'search' ? '/search/' : '/p/'}{slugify(newSlug)}
+                      {newType === 'search' ? '/search/' : '/'}{slugify(newSlug)}
                     </span>
                   </div>
                 )}
@@ -347,8 +346,8 @@ export default function PagesManager() {
         {/* Info box */}
         <div style={{ marginTop: '2.5rem', background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '12px', padding: '1.25rem 1.5rem' }}>
           <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, lineHeight: 1.8 }}>
-            <strong style={{ color: '#D4AF37' }}>📄 Content pages</strong> are served at <code style={{ color: '#94a3b8' }}>/p/[slug]</code> and built with the Visual Editor.<br />
-            <strong style={{ color: '#38bdf8' }}>🔍 Search pages</strong> are specialized search views with custom filters and engines.<br />
+            <strong style={{ color: '#D4AF37' }}>📄 Content pages</strong> are served directly at canonical root <code style={{ color: '#D4AF37' }}>/[slug]</code> with the global luxury header and dark theme.<br />
+            <strong style={{ color: '#38bdf8' }}>🔍 Search pages</strong> are specialized search views with custom filters and engines at <code style={{ color: '#38bdf8' }}>/search/[slug]</code>.<br />
             <strong style={{ color: '#D4AF37' }}>🏠 Homepage (Main)</strong> is served at <code style={{ color: '#94a3b8' }}>/</code> and cannot be deleted.
           </p>
         </div>

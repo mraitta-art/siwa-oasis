@@ -51,6 +51,25 @@ const PALETTE: PaletteItem[] = [
   { zone: 'footer', key: 'blog',           name: 'Recent Articles (Footer)', icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Blog posts in footer area' },
 ];
 
+// ── Minisite Master Template Component Palette ────────────────────────────────
+const MINISITE_PALETTE: PaletteItem[] = [
+  // ── Header zone ──
+  { zone: 'header', key: 'vendor_hero',      name: 'Vendor Hero & Cover',       icon: '🏨', manager: null, color: '#D4AF37', desc: 'Cover image, logo, verified badge, and direct WhatsApp CTA' },
+  { zone: 'header', key: 'hero_carousel',    name: 'Hero Slideshow',            icon: '🎬', manager: null, color: '#eab308', desc: 'Full-width cinematic slideshow for lodge or camp' },
+
+  // ── Body zone ──
+  { zone: 'body',   key: 'vendor_services',  name: 'Services & Amenities',      icon: '🛎️', manager: null, color: '#10b981', desc: 'Core amenities, room features, and hospitality perks' },
+  { zone: 'body',   key: 'vendor_gallery',   name: 'Visual Spaces & Highlights',icon: '🖼️', manager: null, color: '#38bdf8', desc: 'Approved vendor gallery and atmospheric photos' },
+  { zone: 'body',   key: 'vendor_packages',  name: 'Packages & Booking Offers', icon: '📦', manager: null, color: '#f59e0b', desc: 'Direct booking tiers, package rates, and OTA comparisons' },
+  { zone: 'body',   key: 'vendor_story',     name: 'Heritage Story & Ambience', icon: '📖', manager: null, color: '#a855f7', desc: 'Narrative history, Kershef architecture, and oasis philosophy' },
+  { zone: 'body',   key: 'vendor_location',  name: 'Location & Setting Map',    icon: '🗺️', manager: null, color: '#06b6d4', desc: 'Oasis location coordinates, driving guide & distances' },
+  { zone: 'body',   key: 'vendor_faq',       name: 'Guest FAQ & Essentials',    icon: '❓', manager: null, color: '#ec4899', desc: 'Check-in times, desert guidelines, and house rules' },
+  { zone: 'body',   key: 'text_section',     name: 'Custom Announcement Text',  icon: '✍️', manager: null, color: '#64748b', desc: 'Host message or seasonal opening dates' },
+
+  // ── Footer zone ──
+  { zone: 'footer', key: 'vendor_contact',   name: 'Direct Contact & WhatsApp', icon: '📞', manager: null, color: '#22c55e', desc: 'Direct owner contact bar, location pin, and booking assistance' },
+];
+
 const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981', footer: '#64748b' };
 
 type Zone = 'header' | 'body' | 'footer';
@@ -96,17 +115,17 @@ const DEFAULT_SITE_SETTINGS: BuilderSiteSettings = {
   logo_height: 40,
   header_brand_label: 'SIWIFY',
   header_brand_icon: 'fa-sun',
-  header_background_color: 'rgba(255, 255, 255, 0.86)',
-  header_text_color: '#0f172a',
+  header_background_color: 'rgba(7, 11, 18, 0.92)',
+  header_text_color: '#f8fafc',
   show_header: true,
   show_footer: true,
   nav_links_text: 'Home | /\nSiwa Stay | /siwa-stay\nSiwa Go | /siwa-go\nSiwa Retreats | /siwa-retreats\nSiwa Products | /siwa-products\nSiwa Invest | /siwa-invest\nSiwa Society | /siwa-society',
   footer_tagline: 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.',
   footer_copyright: 'SIWIFY • ALL RIGHTS RESERVED.',
   footer_links_text: 'EXPLORE | The Collection | /search/vibe\nEXPLORE | Heritage DNA | #discovery\nPARTNERS & GOVERNANCE | Vendor Portal | /login\nPARTNERS & GOVERNANCE | Become a Partner | /signup\nPARTNERS & GOVERNANCE | Heritage Investment | /investment-opportunities',
-  footer_background_color: '#ffffff',
-  footer_text_color: '#0f172a',
-  footer_muted_color: '#475569',
+  footer_background_color: '#070B12',
+  footer_text_color: '#f8fafc',
+  footer_muted_color: '#94a3b8',
   watermark_text: 'SIWIFY',
 };
 
@@ -288,7 +307,7 @@ export default function MultiPageSiteBuilder() {
   };
 
   // ── Slot helpers ────────────────────────────────────────────────────────────
-  const FULL_PALETTE = [...PALETTE, ...dynamicComponents];
+  const FULL_PALETTE = mode === 'TEMPLATES' ? MINISITE_PALETTE : [...PALETTE, ...dynamicComponents];
   const palettFor = (z: Zone) => FULL_PALETTE.filter(p => p.zone === z);
   const slotsFor  = (z: Zone) => slots.filter(s => s.zone === z);
 
