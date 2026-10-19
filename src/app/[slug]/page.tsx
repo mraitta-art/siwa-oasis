@@ -57,7 +57,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   try {
     const { biz, isId } = await fetchBusinessData(slug);
 
-    if (!biz) return { title: 'Business Not Found - SiWiFy.com' };
+    if (!biz) {
+      const [customPage] = await safeQuery<any>(
+        'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
+        [`website_${slug}`]
+      ).catch(() => []);
+      if (customPage) {
+        let conf: any = {};
+        try { conf = typeof customPage.config === 'string' ? JSON.parse(customPage.config) : customPage.config; } catch {}
+        const pageTitle = conf?.site_settings?.site_name || slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        return {
+          title: `${pageTitle} — Siwify`,
+          description: conf?.site_settings?.tagline || `Explore ${pageTitle} in Siwa Oasis.`,
+        };
+      }
+      return { title: 'Page Not Found - SiWiFy.com' };
+    }
     if (isId && biz.slug) return { title: `Redirecting to ${biz.name || 'Business'}...` };
 
     // Normalize JSON
