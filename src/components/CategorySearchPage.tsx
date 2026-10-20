@@ -99,15 +99,16 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
 
 // ─── Per-sector hero background images ───────────────────────────────────────
 const SECTOR_HERO: Record<string, { image: string; tagline: string; gradient: string }> = {
-  'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(42,93,63,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-table':      { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(180,83,60,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-retreats':   { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(42,107,71,0.32) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-products':   { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(121,71,38,0.35) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-move':       { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(161,93,43,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-table':      { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(251,113,133,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-retreats':   { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(52,211,153,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-retreat':    { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(52,211,153,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-products':   { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(245,158,11,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-move':       { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(56,189,248,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
   'siwa-invest':     { image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1400', tagline: 'Invest in the next Siwa story', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-society':    { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(56,119,84,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-experiences':{ image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(42,93,63,0.3) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-society':    { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(167,139,250,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-experiences':{ image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
 };
 
 const DEFAULT_HERO = {
@@ -118,15 +119,16 @@ const DEFAULT_HERO = {
 
 // ─── Sector icon map ──────────────────────────────────────────────────────────
 const SECTOR_ICON: Record<string, string> = {
-  'siwa-stay': 'fa-hotel',
+  'siwa-stay': 'fa-bed',
   'siwa-go': 'fa-compass',
   'siwa-table': 'fa-utensils',
   'siwa-retreats': 'fa-spa',
+  'siwa-retreat': 'fa-spa',
   'siwa-products': 'fa-store',
   'siwa-move': 'fa-car',
   'siwa-invest': 'fa-chart-line',
   'siwa-society': 'fa-people-group',
-  'siwa-experiences': 'fa-map-marked-alt',
+  'siwa-experiences': 'fa-compass',
 };
 
 export default function CategorySearchPage({
@@ -541,14 +543,14 @@ export default function CategorySearchPage({
           {/* Sector pill badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            background: 'rgba(212,175,55,0.12)',
-            border: '1px solid rgba(212,175,55,0.3)',
+            background: `${accent}1f`,
+            border: `1px solid ${accent}55`,
             backdropFilter: 'blur(12px)',
             borderRadius: '50px',
             padding: '0.35rem 0.9rem',
             marginBottom: '1.25rem',
             fontSize: '0.68rem', fontWeight: 900, letterSpacing: '2px',
-            color: '#D4AF37', textTransform: 'uppercase',
+            color: accent, textTransform: 'uppercase',
           }}>
             <i className={`fas ${sectorIcon}`} style={{ fontSize: '0.65rem' }} />
             {label}
@@ -600,18 +602,45 @@ export default function CategorySearchPage({
       </section>
 
       {/* ── RetreatProgramBuilder, AccommodationExplorer, or SmartJourneyPlanner ── */}
-      {pageSlug === 'siwa-retreats' ? (
-        <RetreatProgramBuilder accentColor={accent} />
-      ) : pageSlug === 'siwa-stay' || category === 'accommodation' ? (
+      {pageSlug === 'siwa-retreats' || pageSlug === 'siwa-retreat' || category === 'wellness' ? (
         <>
-          <AccommodationExplorer accentColor={accent} />
+          <RetreatProgramBuilder accentColor={accent} />
           <SmartJourneyPlanner
+            mode="retreatment"
             category={category}
             subtitle={label}
           />
         </>
+      ) : pageSlug === 'siwa-stay' || category === 'accommodation' ? (
+        <>
+          <AccommodationExplorer accentColor={accent} />
+          <SmartJourneyPlanner
+            mode="accommodation"
+            category={category}
+            subtitle={label}
+          />
+        </>
+      ) : pageSlug === 'siwa-go' || pageSlug === 'siwa-experiences' || category === 'adventure' ? (
+        <SmartJourneyPlanner
+          mode="safaris"
+          category={category}
+          subtitle={label}
+        />
+      ) : pageSlug === 'siwa-move' || category === 'logistics' || category === 'transportation' ? (
+        <SmartJourneyPlanner
+          mode="transport"
+          category={category}
+          subtitle={label}
+        />
+      ) : pageSlug === 'siwa-table' || category === 'food' || category === 'restaurant' || category === 'restaurants' ? (
+        <SmartJourneyPlanner
+          mode="dining"
+          category={category}
+          subtitle={label}
+        />
       ) : isPlanningCategory ? (
         <SmartJourneyPlanner
+          mode="all"
           category={category}
           subtitle={label}
         />

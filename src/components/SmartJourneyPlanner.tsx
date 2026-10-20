@@ -518,8 +518,8 @@ export default function SmartJourneyPlanner({
       if (lower.includes('advent') || lower.includes('safari') || lower.includes('tour') || lower.includes('exp')) return 'safaris';
       if (lower.includes('logis') || lower.includes('trans') || lower.includes('move')) return 'transport';
       if (lower.includes('food') || lower.includes('rest') || lower.includes('dine') || lower.includes('table')) return 'dining';
-      if (lower.includes('retreat') || lower.includes('sand bath') || lower.includes('heal') || lower.includes('salt')) return 'retreatment';
-      if (lower.includes('well') || lower.includes('activ') || lower.includes('lake')) return 'activities';
+      if (lower.includes('retreat') || lower.includes('sand bath') || lower.includes('heal') || lower.includes('salt') || lower.includes('well')) return 'retreatment';
+      if (lower.includes('activ') || lower.includes('lake') || lower.includes('cultur')) return 'activities';
     }
     return 'all';
   }, [propMode, propCategory]);
