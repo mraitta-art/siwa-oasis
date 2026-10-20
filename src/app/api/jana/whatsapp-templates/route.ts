@@ -23,6 +23,159 @@ export interface WhatsAppTemplateItem {
 }
 
 const DEFAULT_TEMPLATES: WhatsAppTemplateItem[] = [
+  // ── SPECIAL OUTREACH WORKFLOW CATEGORIES ─────────────────────────────────
+  // 1. Minisite Prepared by Admin -> Accept & Mobile PWA Home Screen
+  {
+    id: 'minisite_ready_pwa_onboarding',
+    name: '📱 1. تم تجهيز موقعك بالكامل — تفعيل وتثبيت على الشاشة الرئيسية (PWA)',
+    categoryKey: 'minisite_ready',
+    targetAudience: 'new_unclaimed',
+    isHidden: false,
+    titleAr: 'موقعك وتطبيقك جاهزان — تفعيل وتثبيت على الشاشة الرئيسية',
+    titleEn: 'Your Minisite & Mobile App Are Ready — Instant Activation & Home Screen Setup',
+    contentAr: `أهلاً وسهلاً بك يا غالي في *{name}*! 🌴✨
+معك *جنا* من إدارة الشركاء في منصة *SiWiFy.com* (دليل سياحة وضيافة واحة سيوة).
+
+🎉 *بشرى سارة: قمنا بتجهيز موقعك وكارتك الرقمي المتكامل نيابةً عنك بالكامل!*
+🏷️ التصنيف المعتمد: *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🚀 *خطوات استلام موقعك وتشغيله على موبايلك في دقيقة واحدة:*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *معاينة موقعك للحجز المباشر (عمولة 0%):*
+🌐 {minisiteUrl}
+• مكسبك بالكامل في جيبك مباشرة من الزوار بدون أي استقطاعات.
+
+2️⃣ *قبول الشروط واعتماد حسابك فوراً:*
+👉 {claimUrl}
+• بمجرد الضغط والموافقة، يُفعّل حسابك وتصبح صفحتك مرئية رسمياً لجميع زوار سيوة.
+
+3️⃣ *تشغيل التطبيق وتثبيته على شاشة موبايلك الرئيسية:*
+📲 {mobileDashboardUrl}
+💡 *طريقة التثبيت السهلة (Install to Home Screen):*
+• افتح الرابط في متصفح موبايلك (Chrome أو Safari).
+• اضغط على خيارات المتصفح (الثلاث نقاط أو زر المشاركة ⬆️).
+• اختر *"إضافة إلى الشاشة الرئيسية" (Add to Home Screen)*.
+• سيظهر لك أيقونة تطبيق خاصة باسمك لمتابعة الحجوزات والأسعار مباشرة كأي تطبيق أصلي!
+
+لو واجهتك أي صعوبة، أرسل لي رسالة هنا وسأقوم بمساعدتك فوراً! 🌿🤝`,
+    contentEn: `Welcome *{name}*! 🌴✨
+This is *Jana* from the Partner Success Team at *SiWiFy.com*.
+
+🎉 *Great news: We have prepared your complete verified digital card & minisite for you!*
+🏷️ Category: *{parentType} ➔ {childType}*
+
+━━━━━━━━━━━━━━━━━━
+🚀 *Your 3 Simple Steps to Launch on Your Mobile:*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *Preview your direct booking minisite (0% Commission):*
+🌐 {minisiteUrl}
+
+2️⃣ *Accept regulations and activate your verified profile:*
+👉 {claimUrl}
+
+3️⃣ *Add your Dashboard to your Mobile Home Screen:*
+📲 {mobileDashboardUrl}
+💡 *Quick Setup (PWA):*
+• Open the link on Chrome / Safari.
+• Tap browser options (3 dots or Share icon ⬆️).
+• Tap *"Add to Home Screen"*.
+• You'll have an app icon right on your phone screen to manage bookings anytime!
+
+Reply here if you need any assistance — we're here for you! 🌿🤝`,
+    includedFeatures: ['موقع كامل مجهز مسبقاً', 'تطبيق ويب تقدمي PWA', 'تثبيت على الشاشة الرئيسية', 'عمولة 0%'],
+  },
+
+  // 2. Fast Step-by-Step Self Registration
+  {
+    id: 'quick_self_registration_steps',
+    name: '⚡ 2. تسجيل فوري وتفعيل حسابك بنفسك (خطوات سريعة)',
+    categoryKey: 'quick_register',
+    targetAudience: 'new_unclaimed',
+    isHidden: false,
+    titleAr: 'سجّل نشاطك بنفسك في خطوات سريعة ومجانية',
+    titleEn: 'Quick Step-by-Step Registration Guide for Siwa Partners',
+    contentAr: `مرحباً بك صاحب نشاط *{name}*! 🌴✨
+معك *جنا* من منصة *SiWiFy.com*.
+
+ندعوك للانضمام مجاناً إلى شبكة شركاء سيوة الرسمية لزيادة حجوزاتك ومبيعاتك في الموسم الحالي!
+
+━━━━━━━━━━━━━━━━━━
+⚡ *خطوات سريعة للتسجيل والتوثيق بنفسك (أقل من دقيقتين):*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *ابدأ التسجيل وتأكيد هويتك:*
+👉 {claimUrl}
+• اكتب رقم تليفونك وكلمة سر من اختيارك لتأمين حسابك.
+
+2️⃣ *استلم صفحتك وكارت الحجز المباشر فوراً:*
+🌐 {minisiteUrl}
+• يمكنك إرسال هذا الرابط لزبائنك على واتساب وإنستجرام للحجز المباشر.
+
+3️⃣ *تحكم في خدماتك وأسعارك من تليفونك:*
+📲 {mobileDashboardUrl}
+• أدخل صورك وعدّل أسعارك وعروضك في أي لحظة.
+
+سجّل الآن قبل اكتمال مقاعد الفئة المجانية في منطقتك! 🚀`,
+    contentEn: `Welcome *{name}*! 🌴✨
+Join the verified Siwa tourism directory on *SiWiFy.com* to multiply your direct bookings with zero commissions!
+
+━━━━━━━━━━━━━━━━━━
+⚡ *Fast Steps to Register & Claim (Under 2 Minutes):*
+━━━━━━━━━━━━━━━━━━
+
+1️⃣ *Claim your account:*
+👉 {claimUrl}
+
+2️⃣ *Share your direct booking link:*
+🌐 {minisiteUrl}
+
+3️⃣ *Manage from your mobile:*
+📲 {mobileDashboardUrl}
+
+We are excited to have you with us! 🌿☀️`,
+    includedFeatures: ['تسجيل مباشر وفوري', 'لوحة تحكم للموبايل', '0% عمولة', 'دعم فني مباشر'],
+  },
+
+  // 3. Follow-up & Reminder
+  {
+    id: 'crm_followup_reminder',
+    name: '⏰ 3. تذكير ومتابعة الشركاء (Follow-Up & Activation Reminder)',
+    categoryKey: 'followup',
+    targetAudience: 'inactive_reactivation',
+    isHidden: false,
+    titleAr: 'تذكير بموقعك وتطبيقك الجاهز للاستلام على SiWiFy',
+    titleEn: 'Friendly Follow-Up: Your Minisite & Mobile App Are Awaiting You',
+    contentAr: `أهلاً بك مجدداً *{name}*! 🌴✨
+معك *جنا* من منصة *SiWiFy.com*.
+
+نود تذكيرك بأن موقعك الرقمي وتطبيق الموبايل الخاص بنشاطك:
+🏷️ *{parentType} ➔ {childType}*
+جاهز تماماً بانتظار تفعيلك لتبدأ في استقبال طلبات الحجز المباشرة من سياح الواحة.
+
+━━━━━━━━━━━━━━━━━━
+🔑 *رابط التفعيل السريع واستلام الحساب:*
+👉 {claimUrl}
+
+📱 *معاينة صفحتك وتطبيقك:*
+🌐 {minisiteUrl}
+📲 {mobileDashboardUrl}
+
+هل واجهتك أي مشكلة أثناء محاولة الدخول؟ رد عليّ في أي وقت وسأساعدك فوراً! 🌿🤝`,
+    contentEn: `Hello again *{name}*! 🌴✨
+This is *Jana* from *SiWiFy.com*.
+
+A friendly reminder that your verified minisite & mobile dashboard under *{parentType} ➔ {childType}* is waiting for your activation:
+
+👉 *Activate Now:* {claimUrl}
+🌐 *Preview Minisite:* {minisiteUrl}
+
+Let us know if you need any help getting set up! 🌿🤝`,
+    includedFeatures: ['تذكير بالموقع المجهز', 'متابعة دورية', 'دعم فني فوري'],
+  },
+
   // 1. LOGISTICS & TRANSPORT -> Tuk-Tuk
   {
     id: 'transport_tuktuk_welcome',

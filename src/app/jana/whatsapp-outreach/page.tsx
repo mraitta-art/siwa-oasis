@@ -81,6 +81,9 @@ export default function WhatsAppOutreachPage() {
   // Dispatch Tier & Mode selectors
   const [dispatchTier, setDispatchTier] = useState<'free'|'pro'|'verified_partner'>('free');
   const [dispatchMode, setDispatchMode] = useState<'direct'|'gatekeeper'>('direct');
+  // 3 Primary Sending & Follow-up Categories requested by Admin:
+  // 'all' | 'minisite_ready' (Category 1) | 'quick_register' (Category 2) | 'followup' (Category 3)
+  const [workflowCategory, setWorkflowCategory] = useState<'all' | 'minisite_ready' | 'quick_register' | 'followup'>('all');
 
   // Status & Note update states
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -158,6 +161,12 @@ export default function WhatsAppOutreachPage() {
     }
 
     const claimUrlWithParams = biz.claimUrl + (tier ? `&tier=${tier}` : '') + (mode === 'gatekeeper' ? '&mode=gatekeeper' : '');
+
+    // If a workflow category is active and no explicit template chosen, match corresponding workflow template
+    if (!explicitTemplateId && workflowCategory !== 'all') {
+      const wfTpl = templates.find(t => !t.isHidden && t.categoryKey === workflowCategory);
+      if (wfTpl) tpl = wfTpl;
+    }
 
     if (tpl) {
       const templateStr = lang === 'ar' ? (tpl.contentAr || tpl.contentEn) : (tpl.contentEn || tpl.contentAr);
@@ -345,6 +354,11 @@ export default function WhatsAppOutreachPage() {
   }
 
   const filtered = businesses.filter((b) => {
+    // ── Primary 3 Outreach Categories ──
+    if (workflowCategory === 'minisite_ready' && !(b as any).has_minisite) return false;
+    if (workflowCategory === 'quick_register' && (b.is_claimed || (b as any).has_minisite)) return false;
+    if (workflowCategory === 'followup' && b.outreach_status !== 'sent' && b.outreach_status !== 'followup_due') return false;
+
     if (filter === 'ready' && !b.has_whatsapp) return false;
     if (filter === 'missing' && b.has_whatsapp) return false;
     if (filter === 'unclaimed' && b.is_claimed) return false;
@@ -522,6 +536,169 @@ export default function WhatsAppOutreachPage() {
           <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#15803d', margin: '0.15rem 0' }}>{stats.claimed}</div>
           <div style={{ fontSize: '0.72rem', color: '#16a34a' }}>تم توثيق الحساب واستلام الداشبورد</div>
         </div>
+      </div>
+
+      {/* ── 3 PRIMARY WORKFLOW CATEGORIES FOR SENDING & CRM ── */}
+      <div style={{
+        background: '#fff',
+        borderRadius: '20px',
+        border: '1.5px solid #e2e8f0',
+        padding: '1.25rem 1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '2px', textTransform: 'uppercase' }}>
+              🎯 OUTREACH & CONVERSION CAMPAIGNS · تصنيفات الإرسال والمتابعة
+            </div>
+            <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
+              اختر مسار الإرسال المناسب (3 Sending Categories & CRM)
+            </h2>
+          </div>
+          <Link
+            href="/jana/invites"
+            style={{
+              padding: '0.55rem 1.1rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              textDecoration: 'none',
+              boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+            }}
+          >
+            <span>📋</span>
+            <span>فتح نظام الـ CRM لمتابعة قبول الشركاء</span>
+          </Link>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          {/* CATEGORY 1: PREPARED MINISITE + HOME SCREEN PWA */}
+          <div
+            onClick={() => setWorkflowCategory(workflowCategory === 'minisite_ready' ? 'all' : 'minisite_ready')}
+            style={{
+              cursor: 'pointer',
+              borderRadius: '16px',
+              padding: '1.1rem 1.25rem',
+              border: '2px solid',
+              borderColor: workflowCategory === 'minisite_ready' ? '#3b82f6' : '#e2e8f0',
+              background: workflowCategory === 'minisite_ready' ? '#eff6ff' : '#f8fafc',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>📱</span>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                background: workflowCategory === 'minisite_ready' ? '#3b82f6' : '#cbd5e1',
+                color: '#fff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '12px'
+              }}>
+                الفئة 1 (مجهز مسبقاً)
+              </span>
+            </div>
+            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.35rem' }}>
+              المواقع المجهزة بالكامل + التثبيت
+            </div>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              للأنشطة التي جهز لها الأدمن موقعاً. ترسل لهم رابط القبول وتشغيل التطبيق على الموبايل وتثبيته على الشاشة الرئيسية (PWA).
+            </p>
+          </div>
+
+          {/* CATEGORY 2: QUICK SELF REGISTRATION */}
+          <div
+            onClick={() => setWorkflowCategory(workflowCategory === 'quick_register' ? 'all' : 'quick_register')}
+            style={{
+              cursor: 'pointer',
+              borderRadius: '16px',
+              padding: '1.1rem 1.25rem',
+              border: '2px solid',
+              borderColor: workflowCategory === 'quick_register' ? '#D4AF37' : '#e2e8f0',
+              background: workflowCategory === 'quick_register' ? '#fffbeb' : '#f8fafc',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>⚡</span>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                background: workflowCategory === 'quick_register' ? '#D4AF37' : '#cbd5e1',
+                color: '#fff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '12px'
+              }}>
+                الفئة 2 (تسجيل فوري)
+              </span>
+            </div>
+            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.35rem' }}>
+              التسجيل السريع بخطوات مبسطة
+            </div>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              رسالة تعليمية بخطوات مباشرة لتمكين الشريك من توثيق حسابه بنفسه فوراً وتعيين كلمة المرور واستلام لوحة التحكم.
+            </p>
+          </div>
+
+          {/* CATEGORY 3: FOLLOW-UP & CRM RE-ENGAGEMENT */}
+          <div
+            onClick={() => setWorkflowCategory(workflowCategory === 'followup' ? 'all' : 'followup')}
+            style={{
+              cursor: 'pointer',
+              borderRadius: '16px',
+              padding: '1.1rem 1.25rem',
+              border: '2px solid',
+              borderColor: workflowCategory === 'followup' ? '#ef4444' : '#e2e8f0',
+              background: workflowCategory === 'followup' ? '#fef2f2' : '#f8fafc',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>⏰</span>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                background: workflowCategory === 'followup' ? '#ef4444' : '#cbd5e1',
+                color: '#fff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '12px'
+              }}>
+                الفئة 3 (المتابعة وCRM)
+              </span>
+            </div>
+            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.35rem' }}>
+              المتابعة وإعادة التذكير (Follow-Up)
+            </div>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              فلترة وتوجيه رسائل تذكير للشركاء الذين تم إرسال الدعوة لهم ولكن لم يفعلوا حسابهم بعد، مع رابط مباشر لتأكيد القبول.
+            </p>
+          </div>
+        </div>
+
+        {workflowCategory !== 'all' && (
+          <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f1f5f9', padding: '0.55rem 1rem', borderRadius: '10px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+              🔍 الفلتر النشط حالياً: {
+                workflowCategory === 'minisite_ready' ? 'عرض الأنشطة المجهزة بالكامل فقط (Minisite Ready)' :
+                workflowCategory === 'quick_register' ? 'عرض الأنشطة غير المسجلة لدعوتهم للتسجيل السريع' :
+                'عرض الأنشطة التي تم إرسال رسالة لها وبانتظار المتابعة (CRM Follow-up)'
+              }
+            </span>
+            <button
+              type="button"
+              onClick={() => setWorkflowCategory('all')}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+            >
+              إلغاء الفلتر وعرض الكل ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── DIRECT QUICK DISPATCH & TEST SENDER (إرسال فوري ومباشر لأي رقم) ── */}
@@ -967,11 +1144,17 @@ export default function WhatsAppOutreachPage() {
                     type="button"
                     onClick={() => {
                       setDispatchBiz(biz);
-                      // Auto-select best matching template for this business
-                      const bestTpl = templates.find((t) => !t.isHidden && t.childTypeId && t.childTypeId === biz.type_id)
-                        || templates.find((t) => !t.isHidden && t.parentTypeId && t.parentTypeId === biz.parent_type_id)
-                        || templates.find((t) => !t.isHidden && t.categoryKey === 'general')
-                        || (templates.length > 0 ? templates[0] : null);
+                      // Auto-select best matching template (giving priority to selected workflow category)
+                      let bestTpl = null;
+                      if (workflowCategory !== 'all') {
+                        bestTpl = templates.find((t) => !t.isHidden && t.categoryKey === workflowCategory);
+                      }
+                      if (!bestTpl) {
+                        bestTpl = templates.find((t) => !t.isHidden && t.childTypeId && t.childTypeId === biz.type_id)
+                          || templates.find((t) => !t.isHidden && t.parentTypeId && t.parentTypeId === biz.parent_type_id)
+                          || templates.find((t) => !t.isHidden && t.categoryKey === 'general')
+                          || (templates.length > 0 ? templates[0] : null);
+                      }
                       const initialTplId = bestTpl ? bestTpl.id : '';
                       setSelectedTemplateId(initialTplId);
                       setEditedMessageText(getMessageText(biz, msgLang, initialTplId, dispatchTier, dispatchMode));
