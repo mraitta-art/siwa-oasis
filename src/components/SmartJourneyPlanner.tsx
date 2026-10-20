@@ -155,9 +155,109 @@ export interface CustomWish {
 export interface SmartJourneyPlannerProps {
   title?: string;
   subtitle?: string;
-  mode?: 'all' | 'accommodation' | 'safaris' | 'activities' | 'transport' | 'dining';
+  mode?: 'all' | 'accommodation' | 'safaris' | 'activities' | 'transport' | 'dining' | 'retreatment';
   category?: string;
 }
+
+// ─── SECTOR COLOR PALETTES & THEMES ──────────────────────────────────────────
+export const SECTOR_THEMES = {
+  accommodation: {
+    id: 'accommodation',
+    name: 'Accommodation & Stays',
+    nameAr: 'الإقامة والفنادق والبيوت البيئية',
+    icon: 'fa-bed',
+    emoji: '🛖',
+    accent: '#D4AF37',
+    accentLight: '#F5E6AD',
+    gradient: 'linear-gradient(135deg, rgba(212,175,55,0.14) 0%, rgba(13,17,23,0.95) 100%)',
+    border: 'rgba(212,175,55,0.3)',
+    tagBg: 'rgba(212,175,55,0.15)',
+    tagColor: '#D4AF37',
+    badgeText: 'Kershef & Palm Lodges',
+    btnBg: '#D4AF37',
+    btnText: '#000',
+  },
+  safaris: {
+    id: 'safaris',
+    name: 'Desert Safaris & Tours',
+    nameAr: 'سفاري بحر الرمال والمغامرات',
+    icon: 'fa-compass',
+    emoji: '🚙',
+    accent: '#F97316',
+    accentLight: '#FDBA74',
+    gradient: 'linear-gradient(135deg, rgba(249,115,22,0.14) 0%, rgba(20,13,8,0.95) 100%)',
+    border: 'rgba(249,115,22,0.35)',
+    tagBg: 'rgba(249,115,22,0.15)',
+    tagColor: '#F97316',
+    badgeText: 'Great Sand Sea 4x4',
+    btnBg: '#F97316',
+    btnText: '#000',
+  },
+  transport: {
+    id: 'transport',
+    name: 'Transfers & Logistics',
+    nameAr: 'النقل والمواصلات الخاصة',
+    icon: 'fa-car',
+    emoji: '🚐',
+    accent: '#38BDF8',
+    accentLight: '#BAE6FD',
+    gradient: 'linear-gradient(135deg, rgba(56,189,248,0.14) 0%, rgba(8,16,28,0.95) 100%)',
+    border: 'rgba(56,189,248,0.35)',
+    tagBg: 'rgba(56,189,248,0.15)',
+    tagColor: '#38BDF8',
+    badgeText: 'Private Direct Fleet',
+    btnBg: '#38BDF8',
+    btnText: '#000',
+  },
+  dining: {
+    id: 'dining',
+    name: 'Dining & Feasts',
+    nameAr: 'المطاعم والولائم البدوية',
+    icon: 'fa-utensils',
+    emoji: '🍽️',
+    accent: '#FB7185',
+    accentLight: '#FECDD3',
+    gradient: 'linear-gradient(135deg, rgba(251,113,133,0.14) 0%, rgba(28,10,14,0.95) 100%)',
+    border: 'rgba(251,113,133,0.35)',
+    tagBg: 'rgba(251,113,133,0.15)',
+    tagColor: '#FB7185',
+    badgeText: 'Under-Sand Feasts',
+    btnBg: '#FB7185',
+    btnText: '#000',
+  },
+  retreatment: {
+    id: 'retreatment',
+    name: 'Retreatment & Healing',
+    nameAr: 'الاستشفاء بالرمال وبحيرات الملح',
+    icon: 'fa-spa',
+    emoji: '🌿',
+    accent: '#34D399',
+    accentLight: '#A7F3D0',
+    gradient: 'linear-gradient(135deg, rgba(52,211,153,0.14) 0%, rgba(6,24,18,0.95) 100%)',
+    border: 'rgba(52,211,153,0.35)',
+    tagBg: 'rgba(52,211,153,0.15)',
+    tagColor: '#34D399',
+    badgeText: 'Salt & Sand Therapy',
+    btnBg: '#34D399',
+    btnText: '#000',
+  },
+  activities: {
+    id: 'activities',
+    name: 'Activities & Nature',
+    nameAr: 'الأنشطة والبحيرات الطبيعية',
+    icon: 'fa-person-hiking',
+    emoji: '🏄',
+    accent: '#A78BFA',
+    accentLight: '#DDD6FE',
+    gradient: 'linear-gradient(135deg, rgba(167,139,250,0.14) 0%, rgba(18,12,30,0.95) 100%)',
+    border: 'rgba(167,139,250,0.35)',
+    tagBg: 'rgba(167,139,250,0.15)',
+    tagColor: '#A78BFA',
+    badgeText: 'Oasis Wonders',
+    btnBg: '#A78BFA',
+    btnText: '#000',
+  },
+};
 
 // ─── DEFAULT CONFIGURATION & ROOM TYPES ─────────────────────────────────────
 
@@ -235,22 +335,69 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
     ota_name: 'TripAdvisor',
     external_check_url: 'https://www.tripadvisor.com/Search?q=Siwa+Safari',
     direct_discount_note: 'Direct Booking Perk: Save 300 EGP + private dune sandboarding instructor included',
+    provider_type: 'operator',
+    provider_badge: 'Desert Guild 🚙',
+    is_trusted: true,
+  },
+  {
+    id: 'exp_dakrour_sand_bath',
+    is_visible: true,
+    title_en: 'Dakrour Mountain Thermal Sand Bath Therapy',
+    title_ar: 'علاج حمام الرمال الساخنة بجبل الدكرور',
+    category: 'Retreatment & Healing',
+    duration: 'Full Session / 3-5 Hours',
+    base_price_egp: 950,
+    highlight_en: 'Ancient natural sand burial for joint relief, rheumatic detox & immune boost under certified Bedouin healers.',
+    icon: '🌿',
+    image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+    ota_benchmark_price: 1350,
+    ota_name: 'Direct Healing Clinic',
+    external_check_url: 'https://www.google.com/search?q=Siwa+Sand+Baths',
+    direct_discount_note: 'Authentic Healer Guild: Includes herbal infusion, post-bath rest tent & pure olive massage',
+    provider_type: 'artisan',
+    provider_badge: 'Bedouin Healer Guild 🌿',
+    is_trusted: true,
+    business_name: 'Dakrour Natural Healing Sanctuary',
   },
   {
     id: 'exp_salt_lakes',
     is_visible: true,
     title_en: 'Salt Lakes Floating & Crystal Mineral Pools',
     title_ar: 'الطفو في بحيرات الملح وعيون المياه المعدنية العلاجية',
-    category: 'Wellness & Nature',
+    category: 'Retreatment & Healing',
     duration: '3-4 Hours',
     base_price_egp: 450,
-    highlight_en: 'Zero-gravity salt float + pure olive oil rinse in ancient palms',
+    highlight_en: 'Zero-gravity hypersaline salt float (95% purity) + pure olive oil rinse in ancient date palms.',
     icon: '🌊',
     image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
     ota_benchmark_price: 600,
     ota_name: 'Viator',
     external_check_url: 'https://www.viator.com/searchResults/all?text=Siwa+Salt+Lakes',
     direct_discount_note: 'Direct Oasis Offer: Save 150 EGP + fresh spring rinse & local dates included',
+    provider_type: 'operator',
+    provider_badge: 'Natural Salt Oasis 🌊',
+    is_trusted: true,
+    business_name: 'Siwa Salt Lakes Nature Sanctuary',
+  },
+  {
+    id: 'exp_cleopatra_sulfur_spring',
+    is_visible: true,
+    title_en: 'Cleopatra Spring & Deep Sulfur Mineral Bath at Twilight',
+    title_ar: 'عين كليوباترا وحمام المياه الكبريتية الدافئة',
+    category: 'Retreatment & Healing',
+    duration: '2 Hours',
+    base_price_egp: 400,
+    highlight_en: 'Natural warm sulfuric bubbling spring rich in restorative minerals, surrounded by shaded palms and date cafes.',
+    icon: '♨️',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    ota_benchmark_price: 550,
+    ota_name: 'Oasis Local Pass',
+    external_check_url: 'https://www.google.com/search?q=Cleopatra+Bath+Siwa',
+    direct_discount_note: 'Includes private mineral rinse basin + organic lemongrass mint tea',
+    provider_type: 'operator',
+    provider_badge: 'Thermal Springs Certified ♨️',
+    is_trusted: true,
+    business_name: 'Siwa Springs Sanctuary',
   },
   {
     id: 'exp_shali_amun_oracle',
@@ -260,13 +407,17 @@ const DEFAULT_EXPERIENCES: CatalogItem[] = [
     category: 'Heritage & History',
     duration: '2.5 Hours',
     base_price_egp: 350,
-    highlight_en: 'Kershef mud-brick fortress climb with local Siwan storyteller',
+    highlight_en: 'Kershef mud-brick fortress climb with local Siwan storyteller & panoramic oasis sunset.',
     icon: '🏛️',
     image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
     ota_benchmark_price: 480,
     ota_name: 'GetYourGuide',
     external_check_url: 'https://www.getyourguide.com/s/?q=Siwa',
     direct_discount_note: 'Direct Heritage Offer: Native Siwi elder guide + sunset tea atop Shali citadel',
+    provider_type: 'artisan',
+    provider_badge: 'Heritage Guide 🏛️',
+    is_trusted: true,
+    business_name: 'Shali Antiquities Storytellers',
   },
 ];
 
@@ -367,13 +518,14 @@ export default function SmartJourneyPlanner({
       if (lower.includes('advent') || lower.includes('safari') || lower.includes('tour') || lower.includes('exp')) return 'safaris';
       if (lower.includes('logis') || lower.includes('trans') || lower.includes('move')) return 'transport';
       if (lower.includes('food') || lower.includes('rest') || lower.includes('dine') || lower.includes('table')) return 'dining';
-      if (lower.includes('well') || lower.includes('retreat')) return 'activities';
+      if (lower.includes('retreat') || lower.includes('sand bath') || lower.includes('heal') || lower.includes('salt')) return 'retreatment';
+      if (lower.includes('well') || lower.includes('activ') || lower.includes('lake')) return 'activities';
     }
     return 'all';
   }, [propMode, propCategory]);
 
   const [activeMode, setActiveMode] = useState<SmartJourneyPlannerProps['mode']>(initialMode);
-  const [activeCategoryTab, setActiveCategoryTab] = useState<'accommodation' | 'safaris' | 'activities' | 'transport' | 'dining'>('accommodation');
+  const [activeCategoryTab, setActiveCategoryTab] = useState<'accommodation' | 'safaris' | 'transport' | 'retreatment' | 'dining' | 'activities'>('accommodation');
 
   // Loaded Catalog Data
   const [catalog, setCatalog] = useState<{
@@ -941,17 +1093,107 @@ export default function SmartJourneyPlanner({
   const categoryHeaderTitle = activeMode === 'accommodation' ? 'Accommodation & Stay Planner'
     : activeMode === 'safaris' ? 'Desert Safaris & Tours Program'
     : activeMode === 'transport' ? 'Transfers & Logistics Route Planner'
+    : activeMode === 'retreatment' ? 'Retreatment, Salt & Sand Healing Planner'
     : activeMode === 'dining' ? 'Dining & Bedouin Feast Planner'
-    : activeMode === 'activities' ? 'Activities & Wellness Healing Planner'
+    : activeMode === 'activities' ? 'Activities & Heritage Exploration Planner'
     : title || 'Craft Your Custom Siwa Itinerary';
 
   const categoryHeaderSub = activeMode === 'accommodation'
     ? 'Plan your stay across multiple hotels, ecolodges, and desert camps. Select different room types and exact check-in/out dates for each stay.'
     : activeMode === 'safaris'
-    ? 'Select multiple desert tours, sunset safaris, and historical walking programs with exact dates and departure times.'
+    ? 'Select multiple desert tours, sunset safaris, and Great Sand Sea 4x4 expeditions with exact dates and departure times.'
     : activeMode === 'transport'
     ? 'Configure multiple transit legs (arrival, in-oasis 4x4 cruiser, return transfer) with door-to-door timing.'
-    : subtitle || 'Select your accommodations, desert safaris, private transfers, and culinary feasts with exact dates and combo discounts.';
+    : activeMode === 'retreatment'
+    ? 'Recharge with authentic Dakrour mountain hot sand burials, hyper-saline salt lake floats, and bubbling Cleopatra sulfur springs.'
+    : activeMode === 'dining'
+    ? 'Book authentic Bedouin feasts, under-sand Mandi dinners, and palm garden tables with custom dates and guest counts.'
+    : subtitle || 'Select your accommodations, desert safaris, private transfers, healing retreats, and culinary feasts with combo discounts.';
+
+  // ── SECTOR STEPPER DEFINITIONS & PROGRESS TRACKING ────────────────────────
+  const SECTOR_STEPS = useMemo(() => [
+    { id: 'accommodation' as const, label: '1. Accommodation', sub: 'Eco-Lodges & Camps', labelAr: 'الإقامة والفنادق البيئية', stepNum: 1, theme: SECTOR_THEMES.accommodation },
+    { id: 'safaris' as const, label: '2. Desert Safaris', sub: 'Great Sand Sea 4x4', labelAr: 'سفاري بحر الرمال الأعظم', stepNum: 2, theme: SECTOR_THEMES.safaris },
+    { id: 'transport' as const, label: '3. Transfers & Logistics', sub: 'VIP Direct Rides', labelAr: 'النقل والسيارات الخاصة', stepNum: 3, theme: SECTOR_THEMES.transport },
+    { id: 'retreatment' as const, label: '4. Healing & Retreats', sub: 'Salt & Sand Baths', labelAr: 'الاستشفاء بالرمال والمياه الكبريتية', stepNum: 4, theme: SECTOR_THEMES.retreatment },
+    { id: 'dining' as const, label: '5. Dining & Feasts', sub: 'Bedouin Mandi & Feasts', labelAr: 'المطاعم والولائم البدوية', stepNum: 5, theme: SECTOR_THEMES.dining },
+    { id: 'activities' as const, label: '6. Nature & Heritage', sub: 'Citadel & Lakes', labelAr: 'الآثار والبحيرات الطبيعية', stepNum: 6, theme: SECTOR_THEMES.activities },
+  ], []);
+
+  const currentStepIndex = SECTOR_STEPS.findIndex(s => s.id === activeCategoryTab);
+  const currentStep = SECTOR_STEPS[currentStepIndex >= 0 ? currentStepIndex : 0];
+  const nextStep = currentStepIndex < SECTOR_STEPS.length - 1 ? SECTOR_STEPS[currentStepIndex + 1] : null;
+  const prevStep = currentStepIndex > 0 ? SECTOR_STEPS[currentStepIndex - 1] : null;
+
+  const handleNextStep = () => {
+    if (nextStep) {
+      setActiveCategoryTab(nextStep.id);
+      if (typeof window !== 'undefined') {
+        const el = document.getElementById('smart-journey-planner');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      const el = document.getElementById('journey-calculator-manifest');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (prevStep) {
+      setActiveCategoryTab(prevStep.id);
+      if (typeof window !== 'undefined') {
+        const el = document.getElementById('smart-journey-planner');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Distinct Experience Subsets
+  const safariExperiences = useMemo(() => {
+    const list = catalog.experiences.filter(exp => {
+      const t = ((exp.category || '') + ' ' + (exp.title_en || '')).toLowerCase();
+      return !t.includes('bath') && !t.includes('salt') && !t.includes('sulfur') && !t.includes('mineral') && !t.includes('oracle') && !t.includes('shali') && !t.includes('citadel') && !t.includes('heritage') && !t.includes('retreat');
+    });
+    return list.length > 0 ? list : catalog.experiences.slice(0, 3);
+  }, [catalog.experiences]);
+
+  const retreatmentExperiences = useMemo(() => {
+    const list = catalog.experiences.filter(exp => {
+      const t = ((exp.category || '') + ' ' + (exp.title_en || '') + ' ' + (exp.treatment_type || '')).toLowerCase();
+      return t.includes('bath') || t.includes('sand') || t.includes('salt') || t.includes('sulfur') || t.includes('spring') || t.includes('heal') || t.includes('well') || t.includes('retreat') || t.includes('spa') || t.includes('therap');
+    });
+    return list.length > 0 ? list : catalog.experiences;
+  }, [catalog.experiences]);
+
+  const heritageActivitiesExperiences = useMemo(() => {
+    const list = catalog.experiences.filter(exp => {
+      const t = ((exp.category || '') + ' ' + (exp.title_en || '')).toLowerCase();
+      return !t.includes('sand sea') && !t.includes('safari') && !t.includes('dune') && !t.includes('4x4') && !t.includes('sand bath') && !t.includes('sulfur');
+    });
+    return list.length > 0 ? list : catalog.experiences.slice(0, 2);
+  }, [catalog.experiences]);
+
+  const totalItemsCount = stayPeriods.length + tourBookings.length + transportLegs.length + diningBookings.length + activityBookings.length + customWishes.length;
+
+  const activeCategoryCount = useMemo(() => {
+    if (activeCategoryTab === 'accommodation') return stayPeriods.length;
+    if (activeCategoryTab === 'safaris') return tourBookings.length;
+    if (activeCategoryTab === 'transport') return transportLegs.length;
+    if (activeCategoryTab === 'retreatment') {
+      return activityBookings.filter(a => {
+        const t = ((a.item.category || '') + ' ' + (a.item.title_en || '') + ' ' + (a.item.treatment_type || '')).toLowerCase();
+        return t.includes('bath') || t.includes('sand') || t.includes('salt') || t.includes('sulfur') || t.includes('spring') || t.includes('heal') || t.includes('well') || t.includes('retreat');
+      }).length;
+    }
+    if (activeCategoryTab === 'dining') return diningBookings.length;
+    if (activeCategoryTab === 'activities') {
+      return activityBookings.filter(a => {
+        const t = ((a.item.category || '') + ' ' + (a.item.title_en || '') + ' ' + (a.item.treatment_type || '')).toLowerCase();
+        return !t.includes('bath') && !t.includes('sand') && !t.includes('salt') && !t.includes('sulfur') && !t.includes('spring') && !t.includes('heal') && !t.includes('well') && !t.includes('retreat');
+      }).length;
+    }
+    return 0;
+  }, [activeCategoryTab, stayPeriods, tourBookings, transportLegs, diningBookings, activityBookings]);
 
   return (
     <section style={S.wrap} id="smart-journey-planner">
@@ -971,6 +1213,15 @@ export default function SmartJourneyPlanner({
           scrollbar-width: thin;
           scrollbar-color: rgba(212,175,55,0.3) transparent;
         }
+        .sjp-mobile-stepper {
+          display: none;
+        }
+        .sjp-mobile-bottom-bar {
+          display: none;
+        }
+        .sjp-desktop-tabs {
+          display: flex;
+        }
         @media (max-width: 1024px) {
           .sjp-workspace {
             grid-template-columns: 1fr !important;
@@ -981,6 +1232,37 @@ export default function SmartJourneyPlanner({
             max-height: none !important;
             overflow-y: visible !important;
             margin-top: 1.5rem;
+          }
+        }
+        @media (max-width: 768px) {
+          .sjp-desktop-tabs {
+            display: none !important;
+          }
+          .sjp-mobile-stepper {
+            display: block !important;
+          }
+          .sjp-mobile-bottom-bar {
+            display: flex !important;
+          }
+          .sjp-card {
+            padding: 1.25rem !important;
+            border-radius: 20px !important;
+          }
+          .sjp-card-hero-img {
+            height: 195px !important;
+            border-radius: 16px !important;
+          }
+          .sjp-card-title {
+            font-size: 1.22rem !important;
+            line-height: 1.35 !important;
+          }
+          .sjp-card-price {
+            font-size: 1.35rem !important;
+          }
+          .sjp-card-cta {
+            padding: 0.95rem 1.25rem !important;
+            font-size: 0.95rem !important;
+            border-radius: 14px !important;
           }
         }
       `}</style>
@@ -1030,40 +1312,189 @@ export default function SmartJourneyPlanner({
           </div>
         </div>
 
-        {/* Master Category Tabs (visible in 'all' mode, or can switch between them) */}
+        {/* ── MOBILE STEP-BY-STEP ENLARGE STEPPER (Screens <= 768px) ── */}
         {!isStandaloneMode && (
-          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            {[
-              { id: 'accommodation', label: '1. Accommodation & Stays', icon: 'fa-bed', count: stayPeriods.length },
-              { id: 'safaris', label: '2. Safaris & Desert Tours', icon: 'fa-compass', count: tourBookings.length },
-              { id: 'transport', label: '3. Transfers & Logistics', icon: 'fa-car', count: transportLegs.length },
-              { id: 'dining', label: '4. Dining & Feasts', icon: 'fa-utensils', count: diningBookings.length },
-              { id: 'activities', label: '5. Activities & Wellness', icon: 'fa-spa', count: activityBookings.length },
-            ].map((cat) => {
+          <div className="sjp-mobile-stepper" style={{ marginBottom: '2rem' }}>
+            <div style={{
+              background: currentStep.theme.gradient,
+              border: `2px solid ${currentStep.theme.accent}`,
+              borderRadius: '22px',
+              padding: '1.25rem 1.35rem',
+              boxShadow: `0 12px 36px -6px ${currentStep.theme.accent}44`,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                <span style={{
+                  background: currentStep.theme.accent,
+                  color: '#000',
+                  padding: '0.3rem 0.8rem',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 900,
+                  letterSpacing: '0.6px',
+                  textTransform: 'uppercase',
+                }}>
+                  Step {currentStep.stepNum} of 6
+                </span>
+                <span style={{ fontSize: '0.82rem', color: '#cbd5e1', fontWeight: 800 }}>
+                  {activeCategoryCount > 0 ? (
+                    <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <i className="fas fa-check-circle" /> {activeCategoryCount} Selected
+                    </span>
+                  ) : (
+                    <span style={{ color: '#94a3b8' }}>Select to continue</span>
+                  )}
+                </span>
+              </div>
+
+              {/* Title, Emoji & Arabic Identity */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '0.85rem' }}>
+                <span style={{
+                  width: '46px', height: '46px', borderRadius: '14px',
+                  background: currentStep.theme.tagBg, border: `1px solid ${currentStep.theme.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem',
+                }}>
+                  {currentStep.theme.emoji}
+                </span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+                    {currentStep.label}
+                  </h3>
+                  <div style={{ fontSize: '0.82rem', color: currentStep.theme.accent, fontWeight: 700, marginTop: '0.2rem' }}>
+                    {currentStep.labelAr}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step Dots Segmented Tracker */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.4rem', margin: '1rem 0' }}>
+                {SECTOR_STEPS.map((s, idx) => {
+                  const isDone = idx < currentStepIndex;
+                  const isCurrent = idx === currentStepIndex;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveCategoryTab(s.id)}
+                      style={{
+                        height: '7px',
+                        borderRadius: '4px',
+                        background: isCurrent ? s.theme.accent : isDone ? '#10b981' : 'rgba(255,255,255,0.12)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'all 0.2s',
+                      }}
+                      title={`Step ${s.stepNum}: ${s.label}`}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Quick Step Controls */}
+              <div style={{ display: 'flex', gap: '0.65rem', marginTop: '0.85rem' }}>
+                {prevStep && (
+                  <button
+                    onClick={handlePrevStep}
+                    style={{
+                      flex: 1, padding: '0.75rem 0.85rem',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      color: '#cbd5e1', borderRadius: '12px',
+                      fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
+                    }}
+                  >
+                    ← Step {prevStep.stepNum}
+                  </button>
+                )}
+                {nextStep ? (
+                  <button
+                    onClick={handleNextStep}
+                    style={{
+                      flex: 1.5, padding: '0.75rem 1rem',
+                      background: nextStep.theme.accent,
+                      border: 'none',
+                      color: '#000', borderRadius: '12px',
+                      fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer',
+                      boxShadow: `0 6px 18px -4px ${nextStep.theme.accent}66`,
+                    }}
+                  >
+                    Next: {nextStep.label.replace(/^\d+\.\s*/, '')} ➔
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('journey-calculator-manifest');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    style={{
+                      flex: 1.5, padding: '0.75rem 1rem',
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      border: 'none',
+                      color: '#fff', borderRadius: '12px',
+                      fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer',
+                    }}
+                  >
+                    Review & Complete 🧮 ➔
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── DESKTOP & TABLET MASTER CATEGORY TABS ── */}
+        {!isStandaloneMode && (
+          <div className="sjp-desktop-tabs" style={{ gap: '0.75rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            {SECTOR_STEPS.map((cat) => {
               const active = activeCategoryTab === cat.id;
+              const theme = cat.theme;
+              const count = cat.id === 'accommodation' ? stayPeriods.length
+                : cat.id === 'safaris' ? tourBookings.length
+                : cat.id === 'transport' ? transportLegs.length
+                : cat.id === 'retreatment' ? activityBookings.filter(a => {
+                    const t = ((a.item.category || '') + ' ' + (a.item.title_en || '') + ' ' + (a.item.treatment_type || '')).toLowerCase();
+                    return t.includes('bath') || t.includes('sand') || t.includes('salt') || t.includes('sulfur') || t.includes('spring') || t.includes('heal') || t.includes('well') || t.includes('retreat');
+                  }).length
+                : cat.id === 'dining' ? diningBookings.length
+                : activityBookings.filter(a => {
+                    const t = ((a.item.category || '') + ' ' + (a.item.title_en || '') + ' ' + (a.item.treatment_type || '')).toLowerCase();
+                    return !t.includes('bath') && !t.includes('sand') && !t.includes('salt') && !t.includes('sulfur') && !t.includes('spring') && !t.includes('heal') && !t.includes('well') && !t.includes('retreat');
+                  }).length;
+
               return (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategoryTab(cat.id as any)}
                   style={{
-                    background: active ? '#D4AF37' : '#111520',
-                    color: active ? '#000' : '#cbd5e1',
-                    border: active ? '1px solid #D4AF37' : '1px solid rgba(255,255,255,0.08)',
-                    padding: '0.85rem 1.4rem', borderRadius: '16px',
+                    background: active ? theme.gradient : '#0f141f',
+                    color: active ? '#fff' : '#94a3b8',
+                    border: active ? `2px solid ${theme.accent}` : '1px solid rgba(255,255,255,0.08)',
+                    padding: '0.85rem 1.35rem', borderRadius: '18px',
                     fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '0.6rem',
-                    whiteSpace: 'nowrap', transition: 'all 0.2s ease',
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    whiteSpace: 'nowrap', transition: 'all 0.25s ease',
+                    boxShadow: active ? `0 8px 24px -4px ${theme.accent}44` : 'none',
                   }}
                 >
-                  <i className={`fas ${cat.icon}`} />
-                  {cat.label}
-                  {cat.count > 0 && (
+                  <span style={{
+                    width: '32px', height: '32px', borderRadius: '10px',
+                    background: active ? theme.tagBg : 'rgba(255,255,255,0.04)',
+                    color: active ? theme.accent : '#64748b',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1rem',
+                  }}>
+                    {theme.emoji}
+                  </span>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 900, color: active ? '#f8fafc' : '#cbd5e1' }}>{cat.label}</div>
+                    <div style={{ fontSize: '0.65rem', color: active ? theme.accent : '#64748b', fontWeight: 700 }}>{cat.sub}</div>
+                  </div>
+                  {count > 0 && (
                     <span style={{
-                      background: active ? '#000' : '#10b981',
-                      color: active ? '#D4AF37' : '#fff',
-                      padding: '0.1rem 0.5rem', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 900,
+                      background: theme.accent,
+                      color: '#000',
+                      padding: '0.15rem 0.55rem', borderRadius: '10px', fontSize: '0.72rem', fontWeight: 900,
                     }}>
-                      {cat.count}
+                      {count}
                     </span>
                   )}
                 </button>
@@ -1133,9 +1564,9 @@ export default function SmartJourneyPlanner({
                     const stayCount = stayPeriods.filter(s => s.item_id === stay.id).length;
 
                     return (
-                      <div key={stay.id} style={{ ...S.card, border: isConfiguring ? '2px solid #D4AF37' : S.card.border }}>
+                      <div key={stay.id} className="sjp-card" style={{ ...S.card, border: isConfiguring ? '2px solid #D4AF37' : S.card.border }}>
                         {/* Property Visual Header with Image Preview */}
-                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                        <div className="sjp-card-hero-img" style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
                           <img
                             src={stay.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'}
                             alt={stay.name_en || 'Siwa Accommodation'}
@@ -1176,7 +1607,7 @@ export default function SmartJourneyPlanner({
                           </div>
                         </div>
 
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.35rem', color: '#fff' }}>{stay.name_en}</h4>
+                        <h4 className="sjp-card-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.35rem', color: '#fff' }}>{stay.name_en}</h4>
                         
                         {/* ── Provider Attribution Header Strip ── */}
                         <div style={{
@@ -1305,7 +1736,7 @@ export default function SmartJourneyPlanner({
                         {/* Pricing & Minisite Row */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-                            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
+                            <span className="sjp-card-price" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{stay.price_per_night} EGP</span>
                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / night</span>
                           </div>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1405,6 +1836,7 @@ export default function SmartJourneyPlanner({
                                 room_type_id: stay.room_types?.[0]?.id || 'standard',
                               }));
                             }}
+                            className="sjp-card-cta"
                             style={{
                               width: '100%', padding: '0.75rem',
                               background: stayCount > 0 ? '#10b981' : '#D4AF37',
@@ -1426,12 +1858,13 @@ export default function SmartJourneyPlanner({
             {(activeMode === 'safaris' || activeCategoryTab === 'safaris') && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                  {catalog.experiences.map((exp) => {
+                  {safariExperiences.map((exp) => {
                     const booking = tourBookings.find(t => t.item.id === exp.id);
+                    const theme = SECTOR_THEMES.safaris;
                     return (
-                      <div key={exp.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border, padding: '1.25rem' }}>
+                      <div key={exp.id} className="sjp-card" style={{ ...S.card, border: booking ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`, padding: '1.25rem', background: '#0d0d12' }}>
                         {/* Visual Safari Photo Header */}
-                        <div style={{ position: 'relative', height: '145px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                        <div className="sjp-card-hero-img" style={{ position: 'relative', height: '145px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
                           <img
                             src={exp.image || 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80'}
                             alt={exp.title_en || 'Siwa Safari'}
@@ -1440,7 +1873,7 @@ export default function SmartJourneyPlanner({
                           />
                           <div style={{
                             position: 'absolute', inset: 0,
-                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                            background: 'linear-gradient(to top, rgba(20,13,8,0.92) 0%, transparent 60%)',
                           }} />
                           <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', display: 'flex', gap: '0.4rem' }}>
                             <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{exp.icon || '🚙'}</span>
@@ -1449,8 +1882,8 @@ export default function SmartJourneyPlanner({
                             <span style={{
                               position: 'absolute', top: '0.6rem', right: '0.6rem',
                               background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
-                              color: '#D4AF37', padding: '0.25rem 0.65rem', borderRadius: '10px',
-                              fontSize: '0.68rem', fontWeight: 800, border: '1px solid rgba(212,175,55,0.3)',
+                              color: theme.accent, padding: '0.25rem 0.65rem', borderRadius: '10px',
+                              fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${theme.border}`,
                             }}>
                               {exp.duration}
                             </span>
@@ -1461,20 +1894,15 @@ export default function SmartJourneyPlanner({
                                 📍 {exp.category}
                               </span>
                               {exp.vibe_ambience && (
-                                <span style={{ fontSize: '0.65rem', color: '#D4AF37', fontWeight: 800, background: 'rgba(212,175,55,0.2)', border: '1px solid rgba(212,175,55,0.3)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                <span style={{ fontSize: '0.65rem', color: theme.accent, fontWeight: 800, background: theme.tagBg, border: `1px solid ${theme.border}`, padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
                                   ✨ {exp.vibe_ambience.replace(/_/g, ' ')}
-                                </span>
-                              )}
-                              {exp.treatment_type && (
-                                <span style={{ fontSize: '0.65rem', color: '#34d399', fontWeight: 800, background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.3)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
-                                  🌿 {exp.treatment_type.replace(/_/g, ' ')}
                                 </span>
                               )}
                             </div>
                           )}
                         </div>
 
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{exp.title_en}</h4>
+                        <h4 className="sjp-card-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{exp.title_en}</h4>
                         
                         {/* ── Provider Attribution Header Strip ── */}
                         <div style={{
@@ -1485,8 +1913,8 @@ export default function SmartJourneyPlanner({
                           marginBottom: '0.65rem',
                           padding: '0.35rem 0.65rem',
                           borderRadius: '8px',
-                          background: 'rgba(212, 175, 55, 0.08)',
-                          border: '1px solid rgba(212, 175, 55, 0.2)',
+                          background: theme.tagBg,
+                          border: `1px solid ${theme.border}`,
                           fontSize: '0.72rem',
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
@@ -1497,7 +1925,7 @@ export default function SmartJourneyPlanner({
                             {exp.business_slug ? (
                               <Link
                                 href={`/${exp.business_slug}`}
-                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(212,175,55,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: `1px dotted ${theme.accent}`, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title="View Operator Profile & Minisite"
                               >
                                 {exp.business_name || 'Bedouin Tour Guild'} ↗
@@ -1510,8 +1938,8 @@ export default function SmartJourneyPlanner({
                           </div>
                           <span style={{
                             flexShrink: 0,
-                            background: exp.is_trusted !== false ? 'rgba(16,185,129,0.18)' : 'rgba(212,175,55,0.18)',
-                            color: exp.is_trusted !== false ? '#34d399' : '#D4AF37',
+                            background: exp.is_trusted !== false ? 'rgba(16,185,129,0.18)' : 'rgba(249,115,22,0.18)',
+                            color: exp.is_trusted !== false ? '#34d399' : theme.accent,
                             padding: '0.15rem 0.45rem',
                             borderRadius: '6px',
                             fontSize: '0.64rem',
@@ -1529,7 +1957,7 @@ export default function SmartJourneyPlanner({
                         {/* Timing Schedule Controls if selected */}
                         {booking && (
                           <div style={{ background: '#0a0d14', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 800, marginBottom: '0.35rem' }}>TOUR DATE & TIME:</div>
+                            <div style={{ fontSize: '0.7rem', color: theme.accent, fontWeight: 800, marginBottom: '0.35rem' }}>TOUR DATE & TIME:</div>
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                               <input
                                 type="date"
@@ -1599,8 +2027,8 @@ export default function SmartJourneyPlanner({
 
                         {/* ── OUR OFFER banner for Safaris ── */}
                         <div style={{
-                          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(180, 130, 20, 0.18) 100%)',
-                          border: '1px solid rgba(212, 175, 55, 0.3)',
+                          background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(180, 80, 20, 0.18) 100%)',
+                          border: `1px solid ${theme.border}`,
                           borderRadius: '10px',
                           padding: '0.5rem 0.75rem',
                           marginBottom: '0.85rem',
@@ -1610,10 +2038,10 @@ export default function SmartJourneyPlanner({
                         }}>
                           <span style={{ fontSize: '0.9rem' }}>🛡️</span>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: theme.accent, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                               OUR OFFER · LOCAL OASIS DIRECT
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: '#fef08a', fontWeight: 700, lineHeight: 1.3 }}>
+                            <span style={{ fontSize: '0.74rem', color: '#fed7aa', fontWeight: 700, lineHeight: 1.3 }}>
                               {exp.direct_discount_note || 'Licensed Bedouin guide, certified 4x4 cruiser & equipment included'}
                             </span>
                           </div>
@@ -1621,12 +2049,12 @@ export default function SmartJourneyPlanner({
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <div>
-                            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{exp.base_price_egp} EGP</span>
+                            <span className="sjp-card-price" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{exp.base_price_egp} EGP</span>
                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / person</span>
                           </div>
                           <button
                             onClick={() => setInspectingItem({ item: exp, category: 'safaris' })}
-                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: theme.accent, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
                           >
                             Inspect &rarr;
                           </button>
@@ -1634,11 +2062,12 @@ export default function SmartJourneyPlanner({
 
                         <button
                           onClick={() => handleToggleTour(exp)}
+                          className="sjp-card-cta"
                           style={{
                             width: '100%', padding: '0.75rem',
-                            background: booking ? '#10b981' : '#D4AF37',
+                            background: booking ? '#10b981' : theme.accent,
                             color: booking ? '#fff' : '#000',
-                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                            border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
                           }}
                         >
                           {booking ? '✓ Added to Tour Program' : '+ Add to Tour Program'}
@@ -1701,11 +2130,12 @@ export default function SmartJourneyPlanner({
                   {catalog.transports.map((trans) => {
                     const isConfiguring = pendingTransItem?.id === trans.id;
                     const legCount = transportLegs.filter(l => l.item_id === trans.id).length;
+                    const theme = SECTOR_THEMES.transport;
 
                     return (
-                      <div key={trans.id} style={{ ...S.card, border: isConfiguring ? '2px solid #3b82f6' : S.card.border, padding: '1.25rem' }}>
+                      <div key={trans.id} className="sjp-card" style={{ ...S.card, border: isConfiguring ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`, padding: '1.25rem', background: '#0a0e14' }}>
                         {/* Visual Transport Vehicle Photo Header */}
-                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                        <div className="sjp-card-hero-img" style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
                           <img
                             src={trans.image || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80'}
                             alt={trans.name_en || 'Siwa Transport'}
@@ -1714,21 +2144,21 @@ export default function SmartJourneyPlanner({
                           />
                           <div style={{
                             position: 'absolute', inset: 0,
-                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                            background: 'linear-gradient(to top, rgba(8,16,28,0.92) 0%, transparent 60%)',
                           }} />
                           <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
                             <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{trans.icon || '🚐'}</span>
                           </div>
                           <div style={{
                             position: 'absolute', top: '0.6rem', right: '0.6rem',
-                            background: 'rgba(59,130,246,0.85)', color: '#fff',
+                            background: theme.accent, color: '#000',
                             padding: '0.25rem 0.65rem', borderRadius: '10px',
-                            fontSize: '0.68rem', fontWeight: 800,
+                            fontSize: '0.68rem', fontWeight: 900,
                           }}>
                             Direct VIP
                           </div>
                         </div>
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{trans.name_en}</h4>
+                        <h4 className="sjp-card-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{trans.name_en}</h4>
                         
                         {/* ── Provider Attribution Header Strip ── */}
                         <div style={{
@@ -1739,8 +2169,8 @@ export default function SmartJourneyPlanner({
                           marginBottom: '0.65rem',
                           padding: '0.35rem 0.65rem',
                           borderRadius: '8px',
-                          background: 'rgba(59, 130, 246, 0.08)',
-                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                          background: theme.tagBg,
+                          border: `1px solid ${theme.border}`,
                           fontSize: '0.72rem',
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
@@ -1749,7 +2179,7 @@ export default function SmartJourneyPlanner({
                             {trans.business_slug ? (
                               <Link
                                 href={`/${trans.business_slug}`}
-                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(59,130,246,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: `1px dotted ${theme.accent}`, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title="View Transport Fleet Minisite"
                               >
                                 {trans.business_name || 'Licensed Fleet Operator'} ↗
@@ -1762,8 +2192,8 @@ export default function SmartJourneyPlanner({
                           </div>
                           <span style={{
                             flexShrink: 0,
-                            background: 'rgba(59,130,246,0.18)',
-                            color: '#60a5fa',
+                            background: 'rgba(56,189,248,0.18)',
+                            color: theme.accent,
                             padding: '0.15rem 0.45rem',
                             borderRadius: '6px',
                             fontSize: '0.64rem',
@@ -1778,8 +2208,8 @@ export default function SmartJourneyPlanner({
 
                         {/* ── OUR OFFER banner for Transport ── */}
                         <div style={{
-                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(30, 64, 175, 0.18) 100%)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(14, 116, 144, 0.18) 100%)',
+                          border: `1px solid ${theme.border}`,
                           borderRadius: '10px',
                           padding: '0.45rem 0.75rem',
                           marginBottom: '0.85rem',
@@ -1789,28 +2219,28 @@ export default function SmartJourneyPlanner({
                         }}>
                           <span style={{ fontSize: '0.85rem' }}>🛡️</span>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: theme.accent, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                               OUR OFFER · PRIVATE DIRECT ROUTE
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: '#bfdbfe', fontWeight: 700, lineHeight: 1.3 }}>
+                            <span style={{ fontSize: '0.74rem', color: '#bae6fd', fontWeight: 700, lineHeight: 1.3 }}>
                               {trans.direct_discount_note || 'Verified 4x4 Land Cruiser or AC Van with licensed Siwi driver included'}
                             </span>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{trans.rate_per_day} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ day</span></span>
+                          <span className="sjp-card-price" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{trans.rate_per_day} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ day</span></span>
                           <button
                             onClick={() => setInspectingItem({ item: trans, category: 'transport' })}
-                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: theme.accent, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
                           >
                             Inspect &rarr;
                           </button>
                         </div>
 
                         {isConfiguring ? (
-                          <div style={{ background: '#0a0d14', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(59,130,246,0.3)', marginBottom: '1rem' }}>
-                            <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 800, marginBottom: '0.5rem' }}>CONFIGURE ROUTE LEG:</div>
+                          <div style={{ background: '#0a0d14', padding: '1rem', borderRadius: '14px', border: `1px solid ${theme.accent}`, marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.75rem', color: theme.accent, fontWeight: 800, marginBottom: '0.5rem' }}>CONFIGURE ROUTE LEG:</div>
 
                             <div style={{ marginBottom: '0.5rem' }}>
                               <label style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>ROUTE / PURPOSE</label>
@@ -1850,7 +2280,7 @@ export default function SmartJourneyPlanner({
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button
                                 onClick={() => handleAddTransportLeg(trans)}
-                                style={{ flex: 1, padding: '0.65rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                                style={{ flex: 1, padding: '0.65rem', background: theme.accent, color: '#000', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer' }}
                               >
                                 Add Transit Leg
                               </button>
@@ -1865,11 +2295,12 @@ export default function SmartJourneyPlanner({
                         ) : (
                           <button
                             onClick={() => setPendingTransItem(trans)}
+                            className="sjp-card-cta"
                             style={{
                               width: '100%', padding: '0.75rem',
-                              background: legCount > 0 ? '#3b82f6' : '#D4AF37',
+                              background: legCount > 0 ? '#10b981' : theme.accent,
                               color: legCount > 0 ? '#fff' : '#000',
-                              border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                              border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
                             }}
                           >
                             {legCount > 0 ? `+ Add Another Leg (${legCount} Booked)` : '+ Add Transit Leg'}
@@ -1882,16 +2313,189 @@ export default function SmartJourneyPlanner({
               </div>
             )}
 
-            {/* ════════════ 4. DINING & FEASTS ════════════ */}
+            {/* ════════════ 4. RETREATMENT & HEALING SECTOR ════════════ */}
+            {(activeMode === 'retreatment' || activeCategoryTab === 'retreatment') && (
+              <div>
+                {/* Active Retreatment Bookings Banner */}
+                {activityBookings.filter(a => {
+                  const t = ((a.item.category || '') + ' ' + (a.item.title_en || '') + ' ' + (a.item.treatment_type || '')).toLowerCase();
+                  return t.includes('bath') || t.includes('sand') || t.includes('salt') || t.includes('sulfur') || t.includes('spring') || t.includes('heal') || t.includes('well') || t.includes('retreat');
+                }).length > 0 && (
+                  <div style={{ ...S.card, marginBottom: '2rem', border: '1px solid rgba(52,211,153,0.35)', background: 'rgba(52,211,153,0.04)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#34D399', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>🌿</span> Confirmed Healing & Wellness Therapies
+                      </h4>
+                      <span style={{ fontSize: '0.75rem', color: '#6ee7b7', fontWeight: 800 }}>Oasis Nature Therapy</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Retreatment Cards Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                  {retreatmentExperiences.map((exp) => {
+                    const booking = activityBookings.find(a => a.item.id === exp.id);
+                    const theme = SECTOR_THEMES.retreatment;
+                    return (
+                      <div key={exp.id} className="sjp-card" style={{ ...S.card, border: booking ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`, padding: '1.25rem', background: '#0a1210' }}>
+                        {/* Visual Photo Header */}
+                        <div className="sjp-card-hero-img" style={{ position: 'relative', height: '145px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                          <img
+                            src={exp.image || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80'}
+                            alt={exp.title_en || 'Siwa Healing Therapy'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(to top, rgba(6,24,18,0.92) 0%, transparent 60%)',
+                          }} />
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
+                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{exp.icon || '🌿'}</span>
+                          </div>
+                          {exp.duration && (
+                            <span style={{
+                              position: 'absolute', top: '0.6rem', right: '0.6rem',
+                              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+                              color: theme.accent, padding: '0.25rem 0.65rem', borderRadius: '10px',
+                              fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${theme.border}`,
+                            }}>
+                              {exp.duration}
+                            </span>
+                          )}
+                          <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.68rem', color: '#A7F3D0', fontWeight: 800, background: 'rgba(6,24,18,0.75)', border: `1px solid ${theme.border}`, padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                              🌿 {exp.category || 'Retreatment & Healing'}
+                            </span>
+                            {exp.highlight_en?.toLowerCase().includes('joint') && (
+                              <span style={{ fontSize: '0.65rem', color: '#fef08a', fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                🦴 Joint & Detox
+                              </span>
+                            )}
+                            {exp.highlight_en?.toLowerCase().includes('salt') && (
+                              <span style={{ fontSize: '0.65rem', color: '#67e8f9', fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                🌊 95% Mineral Float
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <h4 className="sjp-card-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{exp.title_en}</h4>
+                        
+                        {/* Provider Header Strip */}
+                        <div style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          gap: '0.4rem', marginBottom: '0.65rem', padding: '0.35rem 0.65rem',
+                          borderRadius: '8px', background: theme.tagBg, border: `1px solid ${theme.border}`,
+                          fontSize: '0.72rem',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.85rem' }}>🌿</span>
+                            <span style={{ color: '#94a3b8' }}>Sanctuary:</span>
+                            <span style={{ color: '#f1f5f9', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {exp.business_name || 'Bedouin Healer Guild'}
+                            </span>
+                          </div>
+                          <span style={{
+                            flexShrink: 0, background: 'rgba(52,211,153,0.18)', color: '#34d399',
+                            padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.64rem', fontWeight: 800,
+                          }}>
+                            {exp.provider_badge || 'Bedouin Healer Guild 🌿'}
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5, minHeight: '44px', margin: '0 0 1rem' }}>
+                          {exp.highlight_en}
+                        </p>
+
+                        {/* Timing / Session Controls if selected */}
+                        {booking && (
+                          <div style={{ background: '#0a0d14', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ fontSize: '0.7rem', color: theme.accent, fontWeight: 800, marginBottom: '0.35rem' }}>THERAPY DATE & SESSION:</div>
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <input
+                                type="date"
+                                value={booking.activity_date}
+                                onChange={(e) => {
+                                  const date = e.target.value;
+                                  setActivityBookings(prev => prev.map(a => a.id === booking.id ? { ...a, activity_date: date } : a));
+                                }}
+                                style={{ ...S.input, padding: '0.4rem', fontSize: '0.75rem' }}
+                              />
+                              <input
+                                type="time"
+                                value={booking.time_slot}
+                                onChange={(e) => {
+                                  const time = e.target.value;
+                                  setActivityBookings(prev => prev.map(a => a.id === booking.id ? { ...a, time_slot: time } : a));
+                                }}
+                                style={{ ...S.input, width: '90px', padding: '0.4rem', fontSize: '0.75rem' }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* OUR OFFER / Direct Healing Advantage */}
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(52,211,153,0.12) 0%, rgba(5,150,105,0.18) 100%)',
+                          border: `1px solid ${theme.border}`, borderRadius: '10px',
+                          padding: '0.5rem 0.75rem', marginBottom: '0.85rem',
+                          display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        }}>
+                          <span style={{ fontSize: '0.9rem' }}>🛡️</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: theme.accent, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · NATURAL OASIS HEALING
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#a7f3d0', fontWeight: 700, lineHeight: 1.3 }}>
+                              {exp.direct_discount_note || 'Includes pure virgin olive oil rinse, herbal Siwi tea & guided relaxation tent'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <div>
+                            <span className="sjp-card-price" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{exp.base_price_egp} EGP</span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}> / person</span>
+                          </div>
+                          <button
+                            onClick={() => setInspectingItem({ item: exp, category: 'retreatment' })}
+                            style={{ background: 'transparent', border: 'none', color: theme.accent, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Inspect &rarr;
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleActivity(exp)}
+                          className="sjp-card-cta"
+                          style={{
+                            width: '100%', padding: '0.75rem',
+                            background: booking ? '#10b981' : theme.accent,
+                            color: booking ? '#fff' : '#000',
+                            border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
+                          }}
+                        >
+                          {booking ? '✓ Added to Healing Program' : '+ Add to Healing Program'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ════════════ 5. DINING & FEASTS ════════════ */}
             {(activeMode === 'dining' || activeCategoryTab === 'dining') && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                   {catalog.meals.map((meal) => {
                     const booking = diningBookings.find(d => d.item.id === meal.id);
+                    const theme = SECTOR_THEMES.dining;
                     return (
-                      <div key={meal.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border, padding: '1.25rem' }}>
+                      <div key={meal.id} className="sjp-card" style={{ ...S.card, border: booking ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`, padding: '1.25rem', background: '#120a0e' }}>
                         {/* Visual Dining Photo Header */}
-                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                        <div className="sjp-card-hero-img" style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
                           <img
                             src={meal.image || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80'}
                             alt={meal.name_en || 'Siwa Dining'}
@@ -1900,26 +2504,26 @@ export default function SmartJourneyPlanner({
                           />
                           <div style={{
                             position: 'absolute', inset: 0,
-                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                            background: 'linear-gradient(to top, rgba(28,10,14,0.92) 0%, transparent 60%)',
                           }} />
                           <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
                             <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{meal.icon || '🍽️'}</span>
                           </div>
                           <div style={{
                             position: 'absolute', top: '0.6rem', right: '0.6rem',
-                            background: 'rgba(212,175,55,0.85)', color: '#000',
+                            background: theme.accent, color: '#000',
                             padding: '0.25rem 0.65rem', borderRadius: '10px',
                             fontSize: '0.68rem', fontWeight: 900,
                           }}>
                             {meal.vibe_ambience ? meal.vibe_ambience.replace(/_/g, ' ') : 'Authentic Feast'}
                           </div>
                           {meal.view_type && (
-                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700, background: 'rgba(0,0,0,0.6)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', fontSize: '0.68rem', color: '#fecdd3', fontWeight: 700, background: 'rgba(0,0,0,0.6)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
                               🌅 {meal.view_type.replace(/_/g, ' ')}
                             </div>
                           )}
                         </div>
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{meal.name_en}</h4>
+                        <h4 className="sjp-card-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{meal.name_en}</h4>
                         
                         {/* ── Provider Attribution Header Strip ── */}
                         <div style={{
@@ -1930,8 +2534,8 @@ export default function SmartJourneyPlanner({
                           marginBottom: '0.65rem',
                           padding: '0.35rem 0.65rem',
                           borderRadius: '8px',
-                          background: 'rgba(212, 175, 55, 0.08)',
-                          border: '1px solid rgba(212, 175, 55, 0.2)',
+                          background: theme.tagBg,
+                          border: `1px solid ${theme.border}`,
                           fontSize: '0.72rem',
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
@@ -1940,7 +2544,7 @@ export default function SmartJourneyPlanner({
                             {meal.business_slug ? (
                               <Link
                                 href={`/${meal.business_slug}`}
-                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: '1px dotted rgba(212,175,55,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                style={{ color: '#f1f5f9', fontWeight: 800, textDecoration: 'none', borderBottom: `1px dotted ${theme.accent}`, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title="View Dining Venue Minisite"
                               >
                                 {meal.business_name || 'Authentic Oasis Kitchen'} ↗
@@ -1953,8 +2557,8 @@ export default function SmartJourneyPlanner({
                           </div>
                           <span style={{
                             flexShrink: 0,
-                            background: meal.is_trusted !== false ? 'rgba(16,185,129,0.18)' : 'rgba(212,175,55,0.18)',
-                            color: meal.is_trusted !== false ? '#34d399' : '#D4AF37',
+                            background: 'rgba(251,113,133,0.18)',
+                            color: theme.accent,
                             padding: '0.15rem 0.45rem',
                             borderRadius: '6px',
                             fontSize: '0.64rem',
@@ -1970,7 +2574,7 @@ export default function SmartJourneyPlanner({
                         {/* Timing controls when selected */}
                         {booking && (
                           <div style={{ background: '#0a0d14', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#D4AF37', fontWeight: 800, marginBottom: '0.35rem' }}>DINING DATE & TIME:</div>
+                            <div style={{ fontSize: '0.7rem', color: theme.accent, fontWeight: 800, marginBottom: '0.35rem' }}>DINING DATE & TIME:</div>
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                               <input
                                 type="date"
@@ -1996,8 +2600,8 @@ export default function SmartJourneyPlanner({
 
                         {/* ── OUR OFFER banner for Dining ── */}
                         <div style={{
-                          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(180, 130, 20, 0.18) 100%)',
-                          border: '1px solid rgba(212, 175, 55, 0.3)',
+                          background: 'linear-gradient(135deg, rgba(251, 113, 133, 0.12) 0%, rgba(190, 24, 93, 0.18) 100%)',
+                          border: `1px solid ${theme.border}`,
                           borderRadius: '10px',
                           padding: '0.45rem 0.75rem',
                           marginBottom: '0.85rem',
@@ -2007,20 +2611,20 @@ export default function SmartJourneyPlanner({
                         }}>
                           <span style={{ fontSize: '0.85rem' }}>🛡️</span>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: theme.accent, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                               OUR OFFER · CHEF DIRECT FEAST
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: '#fef08a', fontWeight: 700, lineHeight: 1.3 }}>
+                            <span style={{ fontSize: '0.74rem', color: '#fecdd3', fontWeight: 700, lineHeight: 1.3 }}>
                               {meal.direct_discount_note || 'Guaranteed fresh organic oasis harvest, dates & private garden seating'}
                             </span>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{meal.price_per_person} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ person</span></span>
+                          <span className="sjp-card-price" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{meal.price_per_person} EGP <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ person</span></span>
                           <button
                             onClick={() => setInspectingItem({ item: meal, category: 'dining' })}
-                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: theme.accent, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
                           >
                             Inspect &rarr;
                           </button>
@@ -2028,11 +2632,12 @@ export default function SmartJourneyPlanner({
 
                         <button
                           onClick={() => handleToggleDining(meal)}
+                          className="sjp-card-cta"
                           style={{
                             width: '100%', padding: '0.75rem',
-                            background: booking ? '#10b981' : '#D4AF37',
+                            background: booking ? '#10b981' : theme.accent,
                             color: booking ? '#fff' : '#000',
-                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                            border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
                           }}
                         >
                           {booking ? '✓ Added to Dining Schedule' : '+ Book Table / Feast'}
@@ -2044,16 +2649,17 @@ export default function SmartJourneyPlanner({
               </div>
             )}
 
-            {/* ════════════ 5. ACTIVITIES & WELLNESS ════════════ */}
+            {/* ════════════ 6. NATURE & HERITAGE ACTIVITIES ════════════ */}
             {(activeMode === 'activities' || activeCategoryTab === 'activities') && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                  {catalog.experiences.slice(0, 2).map((act) => {
+                  {heritageActivitiesExperiences.map((act) => {
                     const booking = activityBookings.find(a => a.item.id === act.id);
+                    const theme = SECTOR_THEMES.activities;
                     return (
-                      <div key={act.id} style={{ ...S.card, border: booking ? '2px solid #D4AF37' : S.card.border, padding: '1.25rem' }}>
+                      <div key={act.id} className="sjp-card" style={{ ...S.card, border: booking ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`, padding: '1.25rem', background: '#0e0a14' }}>
                         {/* Visual Activity Photo Header */}
-                        <div style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
+                        <div className="sjp-card-hero-img" style={{ position: 'relative', height: '140px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#070b08' }}>
                           <img
                             src={act.image || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80'}
                             alt={act.title_en || 'Siwa Activity'}
@@ -2062,36 +2668,36 @@ export default function SmartJourneyPlanner({
                           />
                           <div style={{
                             position: 'absolute', inset: 0,
-                            background: 'linear-gradient(to top, rgba(7,11,8,0.92) 0%, transparent 60%)',
+                            background: 'linear-gradient(to top, rgba(18,12,30,0.92) 0%, transparent 60%)',
                           }} />
                           <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem' }}>
-                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{act.icon || '🏄'}</span>
+                            <span style={{ fontSize: '1.4rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>{act.icon || '🏛️'}</span>
                           </div>
                           <div style={{
                             position: 'absolute', top: '0.6rem', right: '0.6rem',
-                            background: 'rgba(16,185,129,0.85)', color: '#000',
+                            background: theme.accent, color: '#000',
                             padding: '0.25rem 0.65rem', borderRadius: '10px',
                             fontSize: '0.68rem', fontWeight: 900,
                           }}>
-                            Wellness
+                            Heritage & Nature
                           </div>
                         </div>
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
+                        <h4 className="sjp-card-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#fff' }}>{act.title_en}</h4>
 
                         {/* ── Provider Attribution Strip ── */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', padding: '0.35rem 0.6rem', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', padding: '0.35rem 0.6rem', background: theme.tagBg, borderRadius: '8px', border: `1px solid ${theme.border}` }}>
                           <div style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ color: '#94a3b8' }}>Operated by:</span>
                             {act.business_slug ? (
-                              <a href={`/${act.business_slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a78bfa', fontWeight: 700, textDecoration: 'none' }}>
-                                {act.business_name || 'Local Wellness Guide'} ↗
+                              <a href={`/${act.business_slug}`} target="_blank" rel="noopener noreferrer" style={{ color: theme.accent, fontWeight: 700, textDecoration: 'none' }}>
+                                {act.business_name || 'Heritage Storyteller'} ↗
                               </a>
                             ) : (
-                              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>{act.business_name || 'Siwa Oasis Wellness'}</span>
+                              <span style={{ color: '#cbd5e1', fontWeight: 700 }}>{act.business_name || 'Siwa Antiquities Storyteller'}</span>
                             )}
                           </div>
-                          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: act.is_trusted ? '#34d399' : '#D4AF37', background: act.is_trusted ? 'rgba(52,211,153,0.12)' : 'rgba(212,175,55,0.12)', padding: '0.15rem 0.45rem', borderRadius: '6px', whiteSpace: 'nowrap' }}>
-                            {act.provider_badge || 'Wellness Operator ✦'}
+                          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: theme.accent, background: 'rgba(167,139,250,0.18)', padding: '0.15rem 0.45rem', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                            {act.provider_badge || 'Heritage Guild ✦'}
                           </span>
                         </div>
 
@@ -2099,8 +2705,8 @@ export default function SmartJourneyPlanner({
 
                         {/* ── OUR OFFER banner for Activities ── */}
                         <div style={{
-                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.2) 100%)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.12) 0%, rgba(124, 58, 237, 0.18) 100%)',
+                          border: `1px solid ${theme.border}`,
                           borderRadius: '10px',
                           padding: '0.45rem 0.75rem',
                           marginBottom: '0.85rem',
@@ -2110,20 +2716,20 @@ export default function SmartJourneyPlanner({
                         }}>
                           <span style={{ fontSize: '0.85rem' }}>🛡️</span>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#34d399', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                              OUR OFFER · WELLNESS & HEALING
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: theme.accent, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                              OUR OFFER · HERITAGE & STORIES
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: '#d1fae5', fontWeight: 700, lineHeight: 1.3 }}>
-                              {act.direct_discount_note || 'Direct Oasis Access: Private mineral spring float & virgin olive oil rinse'}
+                            <span style={{ fontSize: '0.74rem', color: '#ddd6fe', fontWeight: 700, lineHeight: 1.3 }}>
+                              {act.direct_discount_note || 'Native Siwi elder storyteller, entrance access & sunset tea included'}
                             </span>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{act.base_price_egp} EGP</span>
+                          <span className="sjp-card-price" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{act.base_price_egp} EGP</span>
                           <button
                             onClick={() => setInspectingItem({ item: act, category: 'activities' })}
-                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: theme.accent, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
                           >
                             Inspect &rarr;
                           </button>
@@ -2131,18 +2737,81 @@ export default function SmartJourneyPlanner({
 
                         <button
                           onClick={() => handleToggleActivity(act)}
+                          className="sjp-card-cta"
                           style={{
                             width: '100%', padding: '0.75rem',
-                            background: booking ? '#10b981' : '#D4AF37',
+                            background: booking ? '#10b981' : theme.accent,
                             color: booking ? '#fff' : '#000',
-                            border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                            border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
                           }}
                         >
-                          {booking ? '✓ Added Activity' : '+ Add Activity'}
+                          {booking ? '✓ Added Exploration' : '+ Add Exploration'}
                         </button>
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP PROGRESSION BANNER ── */}
+            {!isStandaloneMode && (
+              <div style={{
+                marginTop: '1.5rem', marginBottom: '2rem',
+                background: currentStep.theme.gradient,
+                border: `1px solid ${currentStep.theme.border}`,
+                borderRadius: '20px', padding: '1.25rem 1.5rem',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem',
+                boxShadow: `0 8px 30px -4px ${currentStep.theme.accent}22`,
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: currentStep.theme.accent, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Step {currentStep.stepNum} of 6 Completed
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>
+                    {nextStep ? `Ready to customize ${nextStep.label.replace(/^\d+\.\s*/, '')}?` : 'Itinerary completed! Ready to review & dispatch.'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+                  {prevStep && (
+                    <button
+                      onClick={handlePrevStep}
+                      style={{
+                        padding: '0.65rem 1rem', background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1',
+                        borderRadius: '12px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
+                      }}
+                    >
+                      ← Back
+                    </button>
+                  )}
+                  {nextStep ? (
+                    <button
+                      onClick={handleNextStep}
+                      style={{
+                        padding: '0.75rem 1.4rem', background: nextStep.theme.accent,
+                        border: 'none', color: '#000',
+                        borderRadius: '14px', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer',
+                        boxShadow: `0 6px 20px -4px ${nextStep.theme.accent}66`,
+                      }}
+                    >
+                      Next: {nextStep.label.replace(/^\d+\.\s*/, '')} ➔
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById('journey-calculator-manifest');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      style={{
+                        padding: '0.75rem 1.4rem', background: '#10b981',
+                        border: 'none', color: '#000',
+                        borderRadius: '14px', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer',
+                      }}
+                    >
+                      Review & Book 🧮 ➔
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -3073,6 +3742,71 @@ export default function SmartJourneyPlanner({
                 Done
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STICKY MOBILE BOTTOM FLOATING BAR (Screens <= 768px) ── */}
+      {!isStandaloneMode && (
+        <div className="sjp-mobile-bottom-bar" style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
+          background: 'rgba(7, 11, 18, 0.96)', backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(212,175,55,0.25)',
+          padding: '0.85rem 1.25rem',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem',
+          boxShadow: '0 -10px 30px rgba(0,0,0,0.6)',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800 }}>
+              {totalItemsCount} items selected
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', lineHeight: 1.2 }}>
+              {pricingSummary.finalTotal.toLocaleString()} <span style={{ fontSize: '0.72rem' }}>EGP</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              onClick={() => {
+                const el = document.getElementById('journey-calculator-manifest');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
+                color: '#f8fafc', padding: '0.65rem 0.95rem', borderRadius: '12px',
+                fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer',
+              }}
+            >
+              🧮 Review
+            </button>
+            {nextStep ? (
+              <button
+                onClick={handleNextStep}
+                style={{
+                  background: nextStep.theme.accent, border: 'none',
+                  color: '#000', padding: '0.7rem 1.25rem', borderRadius: '14px',
+                  fontSize: '0.88rem', fontWeight: 900, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  boxShadow: `0 4px 16px -2px ${nextStep.theme.accent}66`,
+                }}
+              >
+                <span>Next</span> <span>➔</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  const el = document.getElementById('journey-calculator-manifest');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none',
+                  color: '#000', padding: '0.7rem 1.25rem', borderRadius: '14px',
+                  fontSize: '0.88rem', fontWeight: 900, cursor: 'pointer',
+                }}
+              >
+                Book 🚀
+              </button>
+            )}
           </div>
         </div>
       )}
