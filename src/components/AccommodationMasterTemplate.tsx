@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -63,8 +63,8 @@ export default function AccommodationMasterTemplate({
   const roomTypes: any[] = Array.isArray(data.room_types) && data.room_types.length > 0
     ? data.room_types
     : [
-        { id: 'room_1', name_en: 'Kershef Mudbrick King Suite', name_ar: 'Ø¬Ù†Ø§Ø­ Ø§Ù„ÙƒØ±Ø´ÙŠÙ Ø§Ù„Ù…Ù„ÙƒÙŠ', capacity: '2 Adults', price_delta: 0, desc: 'Panoramic terrace facing lake, natural ventilation, en-suite salt bath.' },
-        { id: 'room_2', name_en: 'Palm Canopy Family Chalet', name_ar: 'Ø´Ø§Ù„ÙŠÙ‡ Ø§Ù„Ø¹Ø§Ø¦Ù„Ø© ÙˆØ³Ø· Ø§Ù„Ù†Ø®ÙŠÙ„', capacity: '4 Adults', price_delta: 1200, desc: 'Two double bedrooms, shaded courtyard with direct pool and spring access.' },
+        { id: 'room_1', name_en: 'Kershef Mudbrick King Suite', name_ar: 'جناح الكرشيف الملكي', capacity: '2 Adults', price_delta: 0, desc: 'Panoramic terrace facing lake, natural ventilation, en-suite salt bath.' },
+        { id: 'room_2', name_en: 'Palm Canopy Family Chalet', name_ar: 'شاليه العائلة وسط النخيل', capacity: '4 Adults', price_delta: 1200, desc: 'Two double bedrooms, shaded courtyard with direct pool and spring access.' },
       ];
 
   const waLink = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello, I would like to inquire about reserving at ${businessName} via Siwify.`)}`;
@@ -81,7 +81,7 @@ export default function AccommodationMasterTemplate({
         boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
       }}
     >
-      {/* â”€â”€ TIER STATUS BANNER (Preview Mode or Admin Insight) â”€â”€ */}
+      {/* ── TIER STATUS BANNER (Preview Mode or Admin Insight) ── */}
       {mode === 'preview' && (
         <div
           style={{
@@ -107,7 +107,7 @@ export default function AccommodationMasterTemplate({
         </div>
       )}
 
-      {/* â”€â”€ SECTION 1: HERO / COVER / IDENTITY (Basic Listing +) â”€â”€ */}
+      {/* ── SECTION 1: HERO / COVER / IDENTITY (Basic Listing +) ── */}
       <div style={{ position: 'relative', minHeight: '380px', overflow: 'hidden' }}>
         <img
           src={galleryImages[activePhotoIdx] || coverImage}
@@ -152,7 +152,7 @@ export default function AccommodationMasterTemplate({
                   letterSpacing: '0.5px',
                 }}
               >
-                â˜… TRUSTED SANCTUARY
+                ★ TRUSTED SANCTUARY
               </span>
             )}
             <span
@@ -167,7 +167,7 @@ export default function AccommodationMasterTemplate({
                 color: '#0F172A',
               }}
             >
-              ðŸ“ {locationName}
+              📍 {locationName}
             </span>
           </div>
 
@@ -185,7 +185,7 @@ export default function AccommodationMasterTemplate({
                 color: '#D4AF37',
               }}
             >
-              â˜… {rating} <span style={{ opacity: 0.6, fontSize: '0.65rem' }}>({reviewsCount})</span>
+              ★ {rating} <span style={{ opacity: 0.6, fontSize: '0.65rem' }}>({reviewsCount})</span>
             </div>
           )}
         </div>
@@ -234,7 +234,7 @@ export default function AccommodationMasterTemplate({
         </div>
       </div>
 
-      {/* â”€â”€ SECTION 2: GALLERY CAROUSEL (Standard Camp +) â”€â”€ */}
+      {/* ── SECTION 2: GALLERY CAROUSEL (Standard Camp +) ── */}
       {allows('standard_camp') && galleryImages.length > 1 && (
         <div
           style={{
@@ -271,7 +271,7 @@ export default function AccommodationMasterTemplate({
         </div>
       )}
 
-      {/* â”€â”€ SECTION 3: DISCOVERY TAXONOMY PILLS (Standard Camp +) â”€â”€ */}
+      {/* ── SECTION 3: DISCOVERY TAXONOMY PILLS (Standard Camp +) ── */}
       {allows('standard_camp') && (
         <div
           style={{
@@ -298,7 +298,7 @@ export default function AccommodationMasterTemplate({
               fontWeight: 700,
             }}
           >
-            ðŸ“ {settingLocation.replace(/_/g, ' ').toUpperCase()}
+            📍 {settingLocation.replace(/_/g, ' ').toUpperCase()}
           </span>
           <span
             style={{
@@ -311,7 +311,7 @@ export default function AccommodationMasterTemplate({
               fontWeight: 600,
             }}
           >
-            ðŸ›– {accommodationType.replace(/_/g, ' ').toUpperCase()}
+            🛖 {accommodationType.replace(/_/g, ' ').toUpperCase()}
           </span>
           {hasPool && (
             <span
@@ -325,7 +325,7 @@ export default function AccommodationMasterTemplate({
                 fontWeight: 600,
               }}
             >
-              ðŸŠ Pool On-Site
+              🏊 Pool On-Site
             </span>
           )}
           {hotSpring && (
@@ -340,7 +340,7 @@ export default function AccommodationMasterTemplate({
                 fontWeight: 600,
               }}
             >
-              â™¨ï¸ Natural Hot Spring
+              ♨️ Natural Hot Spring
             </span>
           )}
           {vibeTags.slice(0, 3).map((vt) => (
@@ -356,13 +356,13 @@ export default function AccommodationMasterTemplate({
                 fontWeight: 600,
               }}
             >
-              âœ¨ {vt.replace(/_/g, ' ')}
+              ✨ {vt.replace(/_/g, ' ')}
             </span>
           ))}
         </div>
       )}
 
-      {/* â”€â”€ SECTION 4: NARRATIVE & ARCHITECTURAL DNA â”€â”€ */}
+      {/* ── SECTION 4: NARRATIVE & ARCHITECTURAL DNA ── */}
       <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
         <div>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#0F172A' }}>
@@ -375,16 +375,16 @@ export default function AccommodationMasterTemplate({
           {allows('standard_camp') && (
             <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ fontSize: '0.74rem', color: 'rgba(248,250,252,0.6)' }}>
-                ðŸ›ï¸ <strong style={{ color: '#0F172A' }}>Architecture:</strong> {buildingMaterial}
+                🏛️ <strong style={{ color: '#0F172A' }}>Architecture:</strong> {buildingMaterial}
               </div>
               <div style={{ fontSize: '0.74rem', color: 'rgba(248,250,252,0.6)' }}>
-                ðŸŒ… <strong style={{ color: '#0F172A' }}>Signature Vista:</strong> {viewType}
+                🌅 <strong style={{ color: '#0F172A' }}>Signature Vista:</strong> {viewType}
               </div>
             </div>
           )}
         </div>
 
-        {/* â”€â”€ SECTION 5: PRICING & DIRECT VALUE STRIP â”€â”€ */}
+        {/* ── SECTION 5: PRICING & DIRECT VALUE STRIP ── */}
         <div
           style={{
             background: '#F8FAFC',
@@ -431,7 +431,7 @@ export default function AccommodationMasterTemplate({
                   margin: '0.5rem 0',
                 }}
               >
-                â˜… {data.direct_discount_note}
+                ★ {data.direct_discount_note}
               </div>
             )}
 
@@ -444,7 +444,7 @@ export default function AccommodationMasterTemplate({
                   rel="noopener noreferrer"
                   style={{ color: '#93c5fd', textDecoration: 'underline' }}
                 >
-                  {data.external_check_label || 'Compare live prices on Booking.com â†—'}
+                  {data.external_check_label || 'Compare live prices on Booking.com ↗'}
                 </a>
               </div>
             )}
@@ -471,7 +471,7 @@ export default function AccommodationMasterTemplate({
                 gap: '0.4rem',
               }}
             >
-              <span>ðŸ’¬</span>
+              <span>💬</span>
               <span>{priceOnRequest ? 'Inquire Direct' : 'Book on WhatsApp'}</span>
             </a>
 
@@ -490,14 +490,14 @@ export default function AccommodationMasterTemplate({
                   cursor: 'pointer',
                 }}
               >
-                Reserve Online â†’
+                Reserve Online →
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* â”€â”€ SECTION 6: ROOM & SUITE CONFIGURATIONS (Standard Camp +) â”€â”€ */}
+      {/* ── SECTION 6: ROOM & SUITE CONFIGURATIONS (Standard Camp +) ── */}
       {allows('standard_camp') && roomTypes.length > 0 && (
         <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', marginBottom: '0.6rem' }}>
@@ -521,7 +521,7 @@ export default function AccommodationMasterTemplate({
                   {rm.name_en}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)', margin: '0.2rem 0' }}>
-                  ðŸ‘¥ {rm.capacity || '2 Guests'} â€¢ {rm.desc || 'En-suite bath, natural airflow'}
+                  👥 {rm.capacity || '2 Guests'} • {rm.desc || 'En-suite bath, natural airflow'}
                 </div>
               </div>
             ))}
@@ -529,7 +529,7 @@ export default function AccommodationMasterTemplate({
         </div>
       )}
 
-      {/* â”€â”€ SECTION 7: GASTRONOMY & EXPERIENCES (Premium Lodge +) â”€â”€ */}
+      {/* ── SECTION 7: GASTRONOMY & EXPERIENCES (Premium Lodge +) ── */}
       {allows('premium_lodge') && (data.has_on_site_restaurant || data.curated_activities) && (
         <div
           style={{
@@ -544,7 +544,7 @@ export default function AccommodationMasterTemplate({
           {data.has_on_site_restaurant && (
             <div>
               <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#fde68a', textTransform: 'uppercase', marginBottom: '0.3rem' }}>
-                ðŸ½ï¸ Farm-To-Table Dining
+                🍽️ Farm-To-Table Dining
               </div>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0F172A' }}>
                 {data.restaurant_name || 'Sanctuary Lantern Kitchen'}
@@ -558,7 +558,7 @@ export default function AccommodationMasterTemplate({
           {data.curated_activities && (
             <div>
               <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#86efac', textTransform: 'uppercase', marginBottom: '0.3rem' }}>
-                ðŸ§­ Desert Expeditions On-Site
+                🧭 Desert Expeditions On-Site
               </div>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0F172A' }}>
                 Curated Oasis Retreat Inclusions
@@ -571,7 +571,7 @@ export default function AccommodationMasterTemplate({
         </div>
       )}
 
-      {/* â”€â”€ SECTION 8: MASTER HOT OFFER / VIP ADVANTAGE (Luxury Estate Level) â”€â”€ */}
+      {/* ── SECTION 8: MASTER HOT OFFER / VIP ADVANTAGE (Luxury Estate Level) ── */}
       {allows('luxury_estate') && (data.hot_offer_title || data.hot_offer_perk) && (
         <div
           style={{
@@ -587,7 +587,7 @@ export default function AccommodationMasterTemplate({
         >
           <div>
             <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#fde68a', letterSpacing: '1px', textTransform: 'uppercase' }}>
-              {data.hot_offer_badge || 'ðŸ”¥ VIP ADVANTAGE (MASTER LEVEL EXCLUSIVE)'}
+              {data.hot_offer_badge || '🔥 VIP ADVANTAGE (MASTER LEVEL EXCLUSIVE)'}
             </div>
             <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#D4AF37' }}>
               {data.hot_offer_title || 'Imperial Estate Privilege'}

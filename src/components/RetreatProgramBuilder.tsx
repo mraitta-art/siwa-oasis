@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { RetreatProgram, RetreatDayProgram, RetreatTimeSlot } from '@/lib/retreat-types';
@@ -142,7 +142,7 @@ export default function RetreatProgramBuilder({
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem 6rem', fontFamily: 'inherit', color: '#0F172A' }}>
       
-      {/* â”€â”€ 1. PROGRAM SELECTOR TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 1. PROGRAM SELECTOR TABS ────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
         <div style={{
           display: 'inline-flex',
@@ -159,14 +159,14 @@ export default function RetreatProgramBuilder({
           letterSpacing: '0.1em',
           marginBottom: '0.75rem'
         }}>
-          <span>âœ¨</span>
+          <span>✨</span>
           <span>Orchestrated Experiential Programs</span>
         </div>
         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: '#0F172A', margin: '0 0 0.8rem', letterSpacing: '-0.02em' }}>
           Siwa Vibe Retreats
         </h1>
         <p style={{ maxWidth: '680px', margin: '0 auto', fontSize: '1.05rem', color: 'rgba(248,250,252,0.7)', lineHeight: 1.6 }}>
-          A transformative multi-day journey where each day embodies a unique vibe â€” seamlessly integrating waterfront eco-lodges, private 4x4 dunes, healing mineral waters, and authentic candlelit banquets.
+          A transformative multi-day journey where each day embodies a unique vibe — seamlessly integrating waterfront eco-lodges, private 4x4 dunes, healing mineral waters, and authentic candlelit banquets.
         </p>
 
         {/* Signature Program Switcher */}
@@ -211,11 +211,11 @@ export default function RetreatProgramBuilder({
                   justifyContent: 'center',
                   fontSize: '1.3rem'
                 }}>
-                  {prog.duration_days === 3 ? 'ðŸ›–' : 'ðŸŒŠ'}
+                  {prog.duration_days === 3 ? '🛖' : '🌊'}
                 </div>
                 <div>
                   <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: accentColor }}>
-                    {prog.duration_days} Days / {prog.duration_nights} Nights â€¢ Save {prog.discount_percentage}%
+                    {prog.duration_days} Days / {prog.duration_nights} Nights • Save {prog.discount_percentage}%
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0F172A' }}>
                     {prog.title_en}
@@ -227,7 +227,7 @@ export default function RetreatProgramBuilder({
         </div>
       </div>
 
-      {/* â”€â”€ 2. ACTIVE RETREAT OVERVIEW BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 2. ACTIVE RETREAT OVERVIEW BANNER ───────────────────────────────── */}
       <div style={{
         background: 'linear-gradient(135deg, #101c13 0%, #17281b 60%, #F8FAFC 100%)',
         border: '1px solid rgba(212,175,55,0.25)',
@@ -263,7 +263,7 @@ export default function RetreatProgramBuilder({
                 fontSize: '0.72rem',
                 fontWeight: 800
               }}>
-                {selectedProgram.duration_days} Days â€¢ {selectedProgram.duration_nights} Nights
+                {selectedProgram.duration_days} Days • {selectedProgram.duration_nights} Nights
               </span>
             </div>
 
@@ -279,7 +279,7 @@ export default function RetreatProgramBuilder({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.6rem', marginTop: '0.5rem' }}>
               {selectedProgram.inclusions_en.map((inc, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#e2e8f0' }}>
-                  <span style={{ color: accentColor, fontWeight: 900 }}>âœ“</span>
+                  <span style={{ color: accentColor, fontWeight: 900 }}>✓</span>
                   <span>{inc}</span>
                 </div>
               ))}
@@ -296,7 +296,7 @@ export default function RetreatProgramBuilder({
         </div>
       </div>
 
-      {/* â”€â”€ 3. DAY-BY-DAY VIBE ORCHESTRATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 3. DAY-BY-DAY VIBE ORCHESTRATION ─────────────────────────────────── */}
       <div style={{ marginBottom: '3.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
@@ -361,7 +361,7 @@ export default function RetreatProgramBuilder({
                 {activeDay.vibe_title_en}
               </span>
               <span style={{ background: '#F8FAFC', border: '1px solid rgba(212,175,55,0.2)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)' }}>
-                ðŸ“ View: {activeDay.vibe_view}
+                📍 View: {activeDay.vibe_view}
               </span>
             </div>
 
@@ -424,7 +424,7 @@ export default function RetreatProgramBuilder({
           {/* Chronological Schedule Accordion */}
           <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(212,175,55,0.12)' }}>
             <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              ðŸ•’ Day {activeDay.day_number} Hour-by-Hour Flow
+              🕒 Day {activeDay.day_number} Hour-by-Hour Flow
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {activeDay.timeline.map((slot) => (
@@ -441,12 +441,12 @@ export default function RetreatProgramBuilder({
                   }}
                 >
                   <div style={{ minWidth: '100px', fontSize: '0.82rem', fontWeight: 800, color: activeDay.vibe_color }}>
-                    {slot.time_start} â€” {slot.time_end}
+                    {slot.time_start} — {slot.time_end}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A' }}>{slot.title_en}</span>
-                      <span style={{ fontSize: '0.72rem', color: '#D4AF37' }}>ðŸ“ {slot.location_name}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#D4AF37' }}>📍 {slot.location_name}</span>
                     </div>
                     <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'rgba(248,250,252,0.7)', lineHeight: 1.45 }}>
                       {slot.description_en}
@@ -459,7 +459,7 @@ export default function RetreatProgramBuilder({
         </div>
       </div>
 
-      {/* â”€â”€ 4. COMPLETE RETREAT CHECKOUT CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 4. COMPLETE RETREAT CHECKOUT CARD ─────────────────────────────────── */}
       <div style={{
         background: 'linear-gradient(145deg, #101c13 0%, #F1F5F9 60%, #F8FAFC 100%)',
         border: '1px solid rgba(212,175,55,0.35)',
@@ -501,7 +501,7 @@ export default function RetreatProgramBuilder({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                  ðŸ“… Desired Start Date:
+                  📅 Desired Start Date:
                 </label>
                 <input
                   type="date"
@@ -514,7 +514,7 @@ export default function RetreatProgramBuilder({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                  ðŸ‘¥ Number of Guests:
+                  👥 Number of Guests:
                 </label>
                 <select
                   value={adultsCount}
@@ -531,7 +531,7 @@ export default function RetreatProgramBuilder({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                ðŸ‘¤ Full Name:
+                👤 Full Name:
               </label>
               <input
                 type="text"
@@ -545,7 +545,7 @@ export default function RetreatProgramBuilder({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                ðŸ“± Mobile / WhatsApp (with country code):
+                📱 Mobile / WhatsApp (with country code):
               </label>
               <input
                 type="tel"
@@ -559,7 +559,7 @@ export default function RetreatProgramBuilder({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                âœï¸ Dietary / Wellness Requests (Optional):
+                ✍️ Dietary / Wellness Requests (Optional):
               </label>
               <input
                 type="text"
@@ -590,13 +590,13 @@ export default function RetreatProgramBuilder({
                 gap: '0.5rem'
               }}
             >
-              {bookingLoading ? 'Securing Itinerary...' : 'Confirm & Dispatch Retreat Reservation â†’'}
+              {bookingLoading ? 'Securing Itinerary...' : 'Confirm & Dispatch Retreat Reservation →'}
             </button>
           </form>
         </div>
       </div>
 
-      {/* â”€â”€ 5. SECTOR SWAP MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 5. SECTOR SWAP MODAL ──────────────────────────────────────────────── */}
       {swapModalSector && (
         <div style={{
           position: 'fixed',
@@ -634,7 +634,7 @@ export default function RetreatProgramBuilder({
                 onClick={() => setSwapModalSector(null)}
                 style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'rgba(248,250,252,0.6)' }}
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -695,7 +695,7 @@ export default function RetreatProgramBuilder({
         </div>
       )}
 
-      {/* â”€â”€ 6. BOOKING CONFIRMATION MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── 6. BOOKING CONFIRMATION MODAL ────────────────────────────────────── */}
       {bookingSuccessModal && (
         <div style={{
           position: 'fixed',
@@ -718,7 +718,7 @@ export default function RetreatProgramBuilder({
             textAlign: 'center',
             boxShadow: '0 30px 80px rgba(0,0,0,0.8)'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>ðŸŽ‰</div>
+            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
             <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0F172A', margin: '0 0 0.5rem' }}>
               Retreat Reservation Initiated!
             </h3>
@@ -759,7 +759,7 @@ export default function RetreatProgramBuilder({
                   boxShadow: '0 4px 15px rgba(37,211,102,0.3)'
                 }}
               >
-                <span>ðŸ’¬ Open Retreat Itinerary on WhatsApp</span>
+                <span>💬 Open Retreat Itinerary on WhatsApp</span>
               </a>
 
               <button

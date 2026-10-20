@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { CommercialItem, SectorType, CommercialKind } from '@/lib/commercial-types';
@@ -16,12 +16,12 @@ export interface DynamicSectorBookingShowcaseProps {
 }
 
 const SECTOR_LABELS: Record<SectorType, { en: string; icon: string }> = {
-  accommodation: { en: 'Stay & Eco-Lodges', icon: 'ðŸ›–' },
-  dining:        { en: 'Dining & Feasts',   icon: 'ðŸ½ï¸' },
-  products:      { en: 'Oasis Products',    icon: 'ðŸ«’' },
-  transports:    { en: 'Desert Transports', icon: 'ðŸš™' },
-  activities:    { en: 'Wellness & Lakes',  icon: 'ðŸŒŠ' },
-  tours:         { en: 'Guided Tours',      icon: 'ðŸ›ï¸' }
+  accommodation: { en: 'Stay & Eco-Lodges', icon: '🛖' },
+  dining:        { en: 'Dining & Feasts',   icon: '🍽️' },
+  products:      { en: 'Oasis Products',    icon: '🫒' },
+  transports:    { en: 'Desert Transports', icon: '🚙' },
+  activities:    { en: 'Wellness & Lakes',  icon: '🌊' },
+  tours:         { en: 'Guided Tours',      icon: '🏛️' }
 };
 
 export default function DynamicSectorBookingShowcase({
@@ -101,7 +101,7 @@ export default function DynamicSectorBookingShowcase({
             textTransform: 'uppercase',
             marginBottom: '0.6rem'
           }}>
-            âœ¦ DYNAMIC SECTOR RESERVATION ENGINE
+            ✦ DYNAMIC SECTOR RESERVATION ENGINE
           </span>
           <h2 style={{
             fontSize: 'clamp(1.8rem, 3.2vw, 2.6rem)',
@@ -147,7 +147,7 @@ export default function DynamicSectorBookingShowcase({
                 transition: 'all 0.2s'
               }}
             >
-              ðŸŒŸ All Sectors
+              🌟 All Sectors
             </button>
             {(Object.keys(SECTOR_LABELS) as SectorType[]).map(s => {
               const info = SECTOR_LABELS[s];
@@ -190,9 +190,9 @@ export default function DynamicSectorBookingShowcase({
         }}>
           {[
             { id: 'all', label: 'All Listings' },
-            { id: 'package', label: 'ðŸ“¦ Bundled Packages' },
-            { id: 'discount', label: 'ðŸ·ï¸ Special Discounts' },
-            { id: 'direct', label: 'âš¡ Direct Booking' }
+            { id: 'package', label: '📦 Bundled Packages' },
+            { id: 'discount', label: '🏷️ Special Discounts' },
+            { id: 'direct', label: '⚡ Direct Booking' }
           ].map(k => {
             const isSelected = selectedKind === k.id;
             return (
@@ -229,7 +229,7 @@ export default function DynamicSectorBookingShowcase({
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.85rem' }}>âœ¨</span>
+              <span style={{ fontSize: '0.85rem' }}>✨</span>
               <span style={{ fontSize: '0.72rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '1px' }}>
                 Filter by Oasis Vibe, Setting & Views
               </span>
@@ -254,13 +254,13 @@ export default function DynamicSectorBookingShowcase({
                   boxSizing: 'border-box'
                 }}
               />
-              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#64748b' }}>ðŸ”</span>
+              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#64748b' }}>🔍</span>
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
                   style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.75rem' }}
                 >
-                  âœ•
+                  ✕
                 </button>
               )}
             </div>
@@ -273,14 +273,14 @@ export default function DynamicSectorBookingShowcase({
             </span>
             {[
               { id: 'all', label: 'All Vibes' },
-              { id: 'sand_bath', label: 'ðŸœï¸ Sand Bath Healing' },
-              { id: 'sulfur_spring', label: 'â™¨ï¸ Hot Sulfur Spring' },
-              { id: 'salt_lake_float', label: 'ðŸŒŠ Salt Lake Float' },
-              { id: 'candlelit_desert', label: 'ðŸ•¯ï¸ Candlelit Desert' },
-              { id: 'eco_retreat', label: 'ðŸŒ¿ Eco Sanctuary' },
-              { id: 'bedouin_night', label: 'â›º Bedouin Camp' },
-              { id: 'lake_view', label: 'ðŸŒ… Sunset Lake' },
-              { id: 'deep_desert', label: 'ðŸš™ Great Sand Sea' }
+              { id: 'sand_bath', label: '🏜️ Sand Bath Healing' },
+              { id: 'sulfur_spring', label: '♨️ Hot Sulfur Spring' },
+              { id: 'salt_lake_float', label: '🌊 Salt Lake Float' },
+              { id: 'candlelit_desert', label: '🕯️ Candlelit Desert' },
+              { id: 'eco_retreat', label: '🌿 Eco Sanctuary' },
+              { id: 'bedouin_night', label: '⛺ Bedouin Camp' },
+              { id: 'lake_view', label: '🌅 Sunset Lake' },
+              { id: 'deep_desert', label: '🚙 Great Sand Sea' }
             ].map(v => (
               <button
                 key={v.id}
@@ -309,11 +309,11 @@ export default function DynamicSectorBookingShowcase({
             </span>
             {[
               { id: 'all', label: 'All Views' },
-              { id: 'lake_view', label: 'ðŸŒ… Lake View' },
-              { id: 'dune_view', label: 'ðŸœï¸ Dunes View' },
-              { id: 'oasis_garden', label: 'ðŸŒ´ Palm Grove' },
-              { id: 'mountain_view', label: 'â›°ï¸ Dakrour Mountain' },
-              { id: 'cleopatra_spring', label: 'ðŸ’§ Cleopatra Spring' }
+              { id: 'lake_view', label: '🌅 Lake View' },
+              { id: 'dune_view', label: '🏜️ Dunes View' },
+              { id: 'oasis_garden', label: '🌴 Palm Grove' },
+              { id: 'mountain_view', label: '⛰️ Dakrour Mountain' },
+              { id: 'cleopatra_spring', label: '💧 Cleopatra Spring' }
             ].map(vw => (
               <button
                 key={vw.id}
@@ -354,7 +354,7 @@ export default function DynamicSectorBookingShowcase({
                   whiteSpace: 'nowrap'
                 }}
               >
-                Reset Filters âœ•
+                Reset Filters ✕
               </button>
             )}
           </div>
@@ -445,7 +445,7 @@ export default function DynamicSectorBookingShowcase({
                     alignItems: 'center',
                     gap: '0.3rem'
                   }}>
-                    <span>{item.icon || 'âœ¦'}</span>
+                    <span>{item.icon || '✦'}</span>
                     <span style={{ textTransform: 'capitalize' }}>{item.sector}</span>
                   </div>
                 </div>
@@ -540,7 +540,7 @@ export default function DynamicSectorBookingShowcase({
                         boxShadow: item.kind === 'package' ? `0 4px 15px rgba(212, 175, 55, 0.25)` : 'none'
                       }}
                     >
-                      {item.kind === 'package' ? 'Book Package â†’' : 'Reserve â†’'}
+                      {item.kind === 'package' ? 'Book Package →' : 'Reserve →'}
                     </button>
                   </div>
                 </div>

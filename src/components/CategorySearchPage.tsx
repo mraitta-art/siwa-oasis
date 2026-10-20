@@ -2,15 +2,15 @@
 
 /**
  * CategorySearchPage
- * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- * Used by all Siwify brand sector pages (/siwa-stay, /siwa-go, /siwa-tableâ€¦)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Used by all Siwify brand sector pages (/siwa-stay, /siwa-go, /siwa-table…)
  *
  * Priority:
- *  1. Admin has configured a builder layout â†’ render DynamicHomepageRenderer
+ *  1. Admin has configured a builder layout → render DynamicHomepageRenderer
  *     (admin layout wins, vendor grid appended below)
- *  2. No admin layout â†’ render SectionAggregationPage auto-vendor grid
- *     (zero admin config required â€” live data from DB automatically)
- * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ *  2. No admin layout → render SectionAggregationPage auto-vendor grid
+ *     (zero admin config required — live data from DB automatically)
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import React, { useEffect, useState } from 'react';
@@ -97,7 +97,7 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
   'arts_culture,education_research,events_entertainment,media_content,services_professional': 'siwa-society',
 };
 
-// â”€â”€â”€ Per-sector hero background images â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Per-sector hero background images ───────────────────────────────────────
 const SECTOR_HERO: Record<string, { image: string; tagline: string; gradient: string }> = {
   'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
   'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
@@ -117,7 +117,7 @@ const DEFAULT_HERO = {
   gradient: 'linear-gradient(160deg,rgba(7,11,8,0.88) 0%,rgba(24,40,27,0.6) 60%,rgba(7,11,8,0.95) 100%)',
 };
 
-// â”€â”€â”€ Sector icon map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Sector icon map ──────────────────────────────────────────────────────────
 const SECTOR_ICON: Record<string, string> = {
   'siwa-stay': 'fa-bed',
   'siwa-go': 'fa-compass',
@@ -233,7 +233,7 @@ export default function CategorySearchPage({
   const fixedParent = parentTypes.find(type => type.id === fixedParentId);
   const fixedParentName = fixedParent?.name || label;
 
-  // â”€â”€â”€ Professional white pill filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Dark cinematic pill filter bar ──────────────────────────────────────────
   const categorySelector = (
     <section
       aria-label="Filter businesses by category"
@@ -243,14 +243,15 @@ export default function CategorySearchPage({
         gap: '0.6rem',
         flexWrap: 'wrap',
         padding: '1.25rem clamp(1rem, 3vw, 2rem)',
-        background: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0',
-        borderTop: '1px solid #E2E8F0',
+        background: 'rgba(13, 21, 15, 0.9)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.04)',
       }}
     >
       {!fixedParentId && parentTypes.length > 0 && (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'center' }}>Sector</span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'center' }}>Sector</span>
           {parentTypes.map(type => {
             const isActive = selectedParentId === type.id;
             return (
@@ -258,10 +259,10 @@ export default function CategorySearchPage({
                 key={type.id}
                 onClick={() => { setSelectedParentId(type.id); setSelectedChildId(''); }}
                 style={{
-                  background: isActive ? `${accent}18` : '#F8FAFC',
-                  border: isActive ? `1.5px solid ${accent}` : '1px solid #E2E8F0',
+                  background: isActive ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+                  border: isActive ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '50px',
-                  color: isActive ? accent : '#475569',
+                  color: isActive ? '#D4AF37' : 'rgba(248,250,252,0.65)',
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   padding: '0.42rem 0.9rem',
@@ -279,16 +280,16 @@ export default function CategorySearchPage({
               onClick={() => { setSelectedParentId(''); setSelectedChildId(''); }}
               style={{
                 background: 'transparent',
-                border: '1px solid #CBD5E1',
+                border: '1px solid rgba(255,255,255,0.06)',
                 borderRadius: '50px',
-                color: '#64748B',
+                color: 'rgba(255,255,255,0.35)',
                 fontSize: '0.65rem',
                 fontWeight: 700,
                 padding: '0.42rem 0.75rem',
                 cursor: 'pointer',
               }}
             >
-              âœ• Clear
+              ✕ Clear
             </button>
           )}
         </div>
@@ -296,16 +297,16 @@ export default function CategorySearchPage({
 
       {selectedParentId && childTypes.filter(type => type.parent_id === selectedParentId).length > 0 && (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
-          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'center' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'center' }}>
             {fixedParentId ? `${fixedParentName} type` : 'Type'}
           </span>
           <button
             onClick={() => setSelectedChildId('')}
             style={{
-              background: !selectedChildId ? `${accent}18` : '#F8FAFC',
-              border: !selectedChildId ? `1.5px solid ${accent}` : '1px solid #E2E8F0',
+              background: !selectedChildId ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+              border: !selectedChildId ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
               borderRadius: '50px',
-              color: !selectedChildId ? accent : '#475569',
+              color: !selectedChildId ? '#D4AF37' : 'rgba(248,250,252,0.55)',
               fontSize: '0.72rem',
               fontWeight: 700,
               padding: '0.42rem 0.9rem',
@@ -322,10 +323,10 @@ export default function CategorySearchPage({
                 key={type.id}
                 onClick={() => setSelectedChildId(type.id)}
                 style={{
-                  background: isActive ? `${accent}18` : '#F8FAFC',
-                  border: isActive ? `1.5px solid ${accent}` : '1px solid #E2E8F0',
+                  background: isActive ? `rgba(212,175,55,0.15)` : 'rgba(255,255,255,0.05)',
+                  border: isActive ? `1px solid rgba(212,175,55,0.45)` : '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '50px',
-                  color: isActive ? accent : '#475569',
+                  color: isActive ? '#D4AF37' : 'rgba(248,250,252,0.65)',
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   padding: '0.42rem 0.9rem',
@@ -418,7 +419,7 @@ export default function CategorySearchPage({
       .finally(() => setLoading(false));
   }, [pagePath, skipBuilderFetch]);
 
-  // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div style={{
@@ -435,7 +436,7 @@ export default function CategorySearchPage({
     );
   }
 
-  // â”€â”€ Admin builder layout â€” renders it, PLUS appends vendor grid below â”€â”€â”€â”€â”€â”€â”€
+  // ── Admin builder layout — renders it, PLUS appends vendor grid below ───────
   if (builderConfig) {
     const resolvedLayout = builderConfig.layout.map((section: any) => {
       if (section?.type === 'search_bar') {
@@ -481,7 +482,7 @@ export default function CategorySearchPage({
     );
   }
 
-  // â”€â”€ No admin layout â†’ full auto-aggregation page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── No admin layout → full auto-aggregation page ────────────────────────────
   const isPlanningCategory = ['accommodation', 'accommodations', 'food', 'restaurants', 'restaurant', 'adventure', 'activity', 'activities', 'logistics', 'transportation', 'wellness'].includes(category.toLowerCase()) || Boolean(pageSlug?.startsWith('siwa-'));
 
   return (
@@ -497,7 +498,7 @@ export default function CategorySearchPage({
         accentColor={accent}
       />
 
-      {/* â”€â”€ Cinematic per-sector hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Cinematic per-sector hero ──────────────────────────────────────── */}
       <section style={{
         position: 'relative',
         height: 'clamp(340px, 52vw, 600px)',
@@ -592,7 +593,7 @@ export default function CategorySearchPage({
           </p>
         </div>
 
-        {/* Bottom fade to main light bg */}
+        {/* Bottom fade to main dark bg */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
           height: '120px',
@@ -600,7 +601,7 @@ export default function CategorySearchPage({
         }} />
       </section>
 
-      {/* â”€â”€ RetreatProgramBuilder, AccommodationExplorer, or SmartJourneyPlanner â”€â”€ */}
+      {/* ── RetreatProgramBuilder, AccommodationExplorer, or SmartJourneyPlanner ── */}
       {pageSlug === 'siwa-retreats' || pageSlug === 'siwa-retreat' || category === 'wellness' ? (
         <>
           <RetreatProgramBuilder accentColor={accent} />
@@ -645,7 +646,7 @@ export default function CategorySearchPage({
         />
       ) : null}
 
-      {/* â”€â”€ Vendor grid with dark pill filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Vendor grid with dark pill filters ──────────────────────────────── */}
       {(pageSlug === 'siwa-stay' || category === 'accommodation') ? (
         // For siwa-stay: AccommodationExplorer above IS the full DB-driven display.
         // Only show the partner CTA strip + investment section (no duplicate vendor grid).
@@ -656,20 +657,20 @@ export default function CategorySearchPage({
           {/* Partner CTA strip */}
           <div style={{
             padding: 'clamp(2rem, 4vw, 3rem)',
-            background: 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+            background: 'linear-gradient(135deg, #101c13, #F1F5F9)',
             borderRadius: '20px',
             display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
             alignItems: 'center', justifyContent: 'space-between',
-            color: '#0F172A',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-            border: '1px solid #E2E8F0',
+            color: '#fff',
+            boxShadow: '0 0 80px rgba(212,175,55,0.06) inset',
+            border: '1px solid rgba(212,175,55,0.2)',
           }}>
             <div>
-              <div style={{ fontWeight: 900, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', marginBottom: '0.35rem', color: '#0F172A' }}>
+              <div style={{ fontWeight: 900, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', marginBottom: '0.35rem' }}>
                 Own a Lodge, Chalet, or Camp in Siwa?
               </div>
-              <p style={{ color: '#64748B', fontSize: '0.85rem', margin: 0 }}>
-                List your property on Siwify and get a cinematic minisite with direct WhatsApp bookings â€” 0% commission.
+              <p style={{ opacity: 0.7, fontSize: '0.85rem', margin: 0 }}>
+                List your property on Siwify and get a cinematic minisite with direct WhatsApp bookings — 0% commission.
               </p>
             </div>
             <a
@@ -682,7 +683,7 @@ export default function CategorySearchPage({
                 boxShadow: `0 6px 20px ${accent}55`,
               }}
             >
-              List Your Property â†’
+              List Your Property →
             </a>
           </div>
         </div>

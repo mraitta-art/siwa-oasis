@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { CommercialItem, CommercialOption, BookingPayload } from '@/lib/commercial-types';
@@ -155,7 +155,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               textTransform: 'uppercase',
               color: accentColor
             }}>
-              {item.sector.toUpperCase()} â€¢ {item.kind.toUpperCase()}
+              {item.sector.toUpperCase()} • {item.kind.toUpperCase()}
             </span>
             <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.2rem', fontWeight: 900, color: '#fff' }}>
               Reserve with {item.business_name}
@@ -172,14 +172,14 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               lineHeight: 1
             }}
           >
-            Ã—
+            ×
           </button>
         </div>
 
         {bookingSuccess ? (
           /* Confirmation & WhatsApp Dispatch Screen */
           <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>ðŸŽ‰</div>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
             <h4 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', margin: '0 0 0.5rem' }}>
               Reservation Request Prepared!
             </h4>
@@ -228,7 +228,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 marginBottom: '1rem'
               }}
             >
-              <span>ðŸ’¬ Confirm via WhatsApp Now</span>
+              <span>💬 Confirm via WhatsApp Now</span>
             </a>
 
             <button
@@ -269,7 +269,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   {item.title_en}
                 </h4>
                 <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 800, marginTop: '0.2rem' }}>
-                  {hasPrice ? `${item.price} ${item.currency || 'EGP'} / ${item.price_unit || 'night'}` : 'âœ¨ Rates Upon Request (Customized Quote)'}
+                  {hasPrice ? `${item.price} ${item.currency || 'EGP'} / ${item.price_unit || 'night'}` : '✨ Rates Upon Request (Customized Quote)'}
                 </div>
               </div>
             </div>
@@ -290,11 +290,11 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 900, color: accentColor, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.06em' }}>
-                    ðŸšŒ {item.booking_unit_type === 'seat' ? 'Scheduled Passenger Coach' : 'Private Vehicle Service'}
+                    🚌 {item.booking_unit_type === 'seat' ? 'Scheduled Passenger Coach' : 'Private Vehicle Service'}
                   </span>
                   {item.duration_approx && (
                     <span style={{ background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', color: '#475569' }}>
-                      â±ï¸ {item.duration_approx}
+                      ⏱️ {item.duration_approx}
                     </span>
                   )}
                 </div>
@@ -310,14 +310,14 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                     <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Departure:</div>
                     <div style={{ fontWeight: 800, color: '#38bdf8' }}>{item.departure_time || 'On-Demand'}</div>
                     {item.departure_station && (
-                      <div style={{ fontSize: '0.7rem', color: '#475569' }}>ðŸ“ {item.departure_station}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#475569' }}>📍 {item.departure_station}</div>
                     )}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Estimated Arrival:</div>
                     <div style={{ fontWeight: 800, color: '#4ade80' }}>{item.estimated_arrival_time || 'Determined by driver'}</div>
                     {item.arrival_station && (
-                      <div style={{ fontSize: '0.7rem', color: '#475569' }}>ðŸ {item.arrival_station}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#475569' }}>🏁 {item.arrival_station}</div>
                     )}
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.3rem' }}>
                     {item.amenities.map((amenity, idx) => (
                       <span key={idx} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.68rem', color: '#64748b' }}>
-                        âœ“ {amenity}
+                        ✓ {amenity}
                       </span>
                     ))}
                   </div>
@@ -556,7 +556,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   {hasPrice ? 'Estimated Investment' : 'Pricing & Availability'}
                 </span>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  {hasPrice ? 'No prepayment required â€¢ Direct payment in Siwa' : 'Direct custom quote sent to your WhatsApp/Phone'}
+                  {hasPrice ? 'No prepayment required • Direct payment in Siwa' : 'Direct custom quote sent to your WhatsApp/Phone'}
                 </div>
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 900, color: hasPrice ? '#10b981' : accentColor }}>
@@ -582,7 +582,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 boxShadow: `0 8px 25px rgba(212, 175, 55, 0.3)`
               }}
             >
-              {loading ? 'Processing...' : (hasPrice ? 'Reserve & Dispatch Itinerary â†’' : 'Inquire Direct & Request Quote â†’')}
+              {loading ? 'Processing...' : (hasPrice ? 'Reserve & Dispatch Itinerary →' : 'Inquire Direct & Request Quote →')}
             </button>
           </form>
         )}
