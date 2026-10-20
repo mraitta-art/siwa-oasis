@@ -387,6 +387,29 @@ export default function WhatsAppOutreachPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* CRM INVITES TRACKER */}
+          <Link
+            href="/jana/invites"
+            style={{
+              padding: '0.6rem 1.15rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#fff',
+              border: 0,
+              fontWeight: 900,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
+              textDecoration: 'none',
+            }}
+          >
+            <span>📋</span>
+            <span>CRM — Invite Tracker</span>
+          </Link>
+
           {/* MOBILE DASHBOARD ADS & BROADCAST MANAGER BUTTON */}
           <button
             type="button"

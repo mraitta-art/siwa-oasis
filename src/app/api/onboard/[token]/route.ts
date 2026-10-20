@@ -97,9 +97,9 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'This invite link has expired' }, { status: 410 });
     }
 
-    // Apply tier to business
+    // Apply tier to business + mark it as published (visible on platform)
     await execute(
-      `UPDATE businesses SET subscription_tier = ? WHERE id = ?`,
+      `UPDATE businesses SET subscription_tier = ?, published = 1 WHERE id = ?`,
       [invite.subscription_tier, invite.business_id]
     );
 
@@ -108,6 +108,47 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       `UPDATE onboard_invites SET status = 'accepted', accepted_at = NOW() WHERE token = ?`,
       [token]
     );
+
+    // Auto-create a minimal minisite layout if none exists yet
+    if (invite.business_slug) {
+      const existingLayout = await queryOne(
+        `SELECT id FROM website_configs WHERE key = ? AND type = 'minisite_layout'`,
+        [`minisite_layout_${invite.business_slug}`]
+      );
+      if (!existingLayout) {
+        const skeletonLayout = JSON.stringify({
+          version: 1,
+          sections: [
+            { id: 'hero', type: 'minisite_hero', enabled: true },
+            { id: 'services', type: 'minisite_services', enabled: true },
+            { id: 'gallery', type: 'minisite_gallery', enabled: true },
+            { id: 'contact', type: 'minisite_contact', enabled: true },
+          ],
+          tier: invite.subscription_tier,
+          onboarded_at: new Date().toISOString(),
+        });
+        await execute(
+          `INSERT INTO website_configs (key, type, value) VALUES (?, 'minisite_layout', ?)
+           ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+          [`minisite_layout_${invite.business_slug}`, skeletonLayout]
+        );
+      }
+    }
+
+    // Update CRM outreach status to 'claimed' automatically
+    try {
+      const bizRow = await queryOne(`SELECT custom_data FROM businesses WHERE id = ?`, [invite.business_id]) as any;
+      if (bizRow) {
+        let cd: any = {};
+        try { cd = typeof bizRow.custom_data === 'string' ? JSON.parse(bizRow.custom_data) : (bizRow.custom_data || {}); } catch {}
+        cd.outreach_status = 'claimed';
+        cd.onboarded_at = new Date().toISOString();
+        cd.onboard_token = token;
+        await execute(`UPDATE businesses SET custom_data = ? WHERE id = ?`, [JSON.stringify(cd), invite.business_id]);
+      }
+    } catch (crmErr) {
+      console.warn('[onboard] CRM update warning:', crmErr);
+    }
 
     return NextResponse.json({
       success:        true,
