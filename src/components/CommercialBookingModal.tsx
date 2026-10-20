@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { CommercialItem, CommercialOption, BookingPayload } from '@/lib/commercial-types';
@@ -133,7 +133,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
         borderRadius: '24px',
         maxWidth: '560px',
         width: '100%',
-        color: '#f8fafc',
+        color: '#0F172A',
         boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
         overflow: 'hidden',
         position: 'relative'
@@ -155,7 +155,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               textTransform: 'uppercase',
               color: accentColor
             }}>
-              {item.sector.toUpperCase()} • {item.kind.toUpperCase()}
+              {item.sector.toUpperCase()} â€¢ {item.kind.toUpperCase()}
             </span>
             <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.2rem', fontWeight: 900, color: '#fff' }}>
               Reserve with {item.business_name}
@@ -166,24 +166,24 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: '#64748b',
               fontSize: '1.5rem',
               cursor: 'pointer',
               lineHeight: 1
             }}
           >
-            ×
+            Ã—
           </button>
         </div>
 
         {bookingSuccess ? (
           /* Confirmation & WhatsApp Dispatch Screen */
           <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>ðŸŽ‰</div>
             <h4 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', margin: '0 0 0.5rem' }}>
               Reservation Request Prepared!
             </h4>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
               Your itinerary details for <strong>{item.title_en}</strong> have been recorded. Click below to open WhatsApp and confirm availability instantly with the host.
             </p>
             <div style={{
@@ -196,11 +196,11 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               fontSize: '0.85rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#94a3b8' }}>Guest:</span>
+                <span style={{ color: '#64748b' }}>Guest:</span>
                 <span style={{ fontWeight: 800, color: '#fff' }}>{customerName}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#94a3b8' }}>Total Estimate:</span>
+                <span style={{ color: '#64748b' }}>Total Estimate:</span>
                 <span style={{ fontWeight: 900, color: '#10b981', fontSize: '1.1rem' }}>
                   {totalPrice} {item.currency || 'EGP'}
                 </span>
@@ -228,7 +228,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 marginBottom: '1rem'
               }}
             >
-              <span>💬 Confirm via WhatsApp Now</span>
+              <span>ðŸ’¬ Confirm via WhatsApp Now</span>
             </a>
 
             <button
@@ -269,7 +269,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   {item.title_en}
                 </h4>
                 <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 800, marginTop: '0.2rem' }}>
-                  {hasPrice ? `${item.price} ${item.currency || 'EGP'} / ${item.price_unit || 'night'}` : '✨ Rates Upon Request (Customized Quote)'}
+                  {hasPrice ? `${item.price} ${item.currency || 'EGP'} / ${item.price_unit || 'night'}` : 'âœ¨ Rates Upon Request (Customized Quote)'}
                 </div>
               </div>
             </div>
@@ -290,11 +290,11 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 900, color: accentColor, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.06em' }}>
-                    🚌 {item.booking_unit_type === 'seat' ? 'Scheduled Passenger Coach' : 'Private Vehicle Service'}
+                    ðŸšŒ {item.booking_unit_type === 'seat' ? 'Scheduled Passenger Coach' : 'Private Vehicle Service'}
                   </span>
                   {item.duration_approx && (
-                    <span style={{ background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', color: '#cbd5e1' }}>
-                      ⏱️ {item.duration_approx}
+                    <span style={{ background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', color: '#475569' }}>
+                      â±ï¸ {item.duration_approx}
                     </span>
                   )}
                 </div>
@@ -307,17 +307,17 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.2rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   <div>
-                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Departure:</div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Departure:</div>
                     <div style={{ fontWeight: 800, color: '#38bdf8' }}>{item.departure_time || 'On-Demand'}</div>
                     {item.departure_station && (
-                      <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>📍 {item.departure_station}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#475569' }}>ðŸ“ {item.departure_station}</div>
                     )}
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Estimated Arrival:</div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Estimated Arrival:</div>
                     <div style={{ fontWeight: 800, color: '#4ade80' }}>{item.estimated_arrival_time || 'Determined by driver'}</div>
                     {item.arrival_station && (
-                      <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>🏁 {item.arrival_station}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#475569' }}>ðŸ {item.arrival_station}</div>
                     )}
                   </div>
                 </div>
@@ -325,8 +325,8 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 {item.amenities && item.amenities.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.3rem' }}>
                     {item.amenities.map((amenity, idx) => (
-                      <span key={idx} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.68rem', color: '#94a3b8' }}>
-                        ✓ {amenity}
+                      <span key={idx} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.15rem 0.45rem', borderRadius: '6px', fontSize: '0.68rem', color: '#64748b' }}>
+                        âœ“ {amenity}
                       </span>
                     ))}
                   </div>
@@ -338,7 +338,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
             {/* Sector-specific options tier */}
             {item.options && item.options.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
                   Select Tier / Room / Option:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
@@ -373,7 +373,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
             {/* Dates / Parameters */}
             <div style={{ display: 'grid', gridTemplateColumns: item.sector === 'accommodation' ? '1fr 1fr' : '1fr', gap: '0.75rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                   {item.sector === 'accommodation' ? 'Check-in Date' : 'Preferred Date'}
                 </label>
                 <input
@@ -384,7 +384,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    background: '#0a0d14',
+                    background: '#F8FAFC',
                     border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '10px',
                     color: '#fff',
@@ -396,7 +396,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
 
               {item.sector === 'accommodation' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                     Check-out Date
                   </label>
                   <input
@@ -407,7 +407,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      background: '#0a0d14',
+                      background: '#F8FAFC',
                       border: '1px solid rgba(255,255,255,0.12)',
                       borderRadius: '10px',
                       color: '#fff',
@@ -423,7 +423,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
             {(item.sector === 'accommodation' || item.sector === 'dining' || item.sector === 'tours' || item.sector === 'activities') ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                     Adults
                   </label>
                   <input
@@ -435,7 +435,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      background: '#0a0d14',
+                      background: '#F8FAFC',
                       border: '1px solid rgba(255,255,255,0.12)',
                       borderRadius: '10px',
                       color: '#fff',
@@ -445,7 +445,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                     Children
                   </label>
                   <input
@@ -457,7 +457,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      background: '#0a0d14',
+                      background: '#F8FAFC',
                       border: '1px solid rgba(255,255,255,0.12)',
                       borderRadius: '10px',
                       color: '#fff',
@@ -469,7 +469,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               </div>
             ) : (
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                   Quantity ({item.price_unit}s)
                 </label>
                 <input
@@ -481,7 +481,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    background: '#0a0d14',
+                    background: '#F8FAFC',
                     border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '10px',
                     color: '#fff',
@@ -495,7 +495,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
             {/* Customer Contact */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                   Your Name *
                 </label>
                 <input
@@ -507,7 +507,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    background: '#0a0d14',
+                    background: '#F8FAFC',
                     border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '10px',
                     color: '#fff',
@@ -517,7 +517,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                   WhatsApp / Phone *
                 </label>
                 <input
@@ -529,7 +529,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    background: '#0a0d14',
+                    background: '#F8FAFC',
                     border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '10px',
                     color: '#fff',
@@ -546,17 +546,17 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: '1rem',
-              background: '#0a0d14',
+              background: '#F8FAFC',
               borderRadius: '14px',
               marginBottom: '1.25rem',
               border: '1px solid rgba(255,255,255,0.06)'
             }}>
               <div>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
                   {hasPrice ? 'Estimated Investment' : 'Pricing & Availability'}
                 </span>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  {hasPrice ? 'No prepayment required • Direct payment in Siwa' : 'Direct custom quote sent to your WhatsApp/Phone'}
+                  {hasPrice ? 'No prepayment required â€¢ Direct payment in Siwa' : 'Direct custom quote sent to your WhatsApp/Phone'}
                 </div>
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 900, color: hasPrice ? '#10b981' : accentColor }}>
@@ -582,7 +582,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
                 boxShadow: `0 8px 25px rgba(212, 175, 55, 0.3)`
               }}
             >
-              {loading ? 'Processing...' : (hasPrice ? 'Reserve & Dispatch Itinerary →' : 'Inquire Direct & Request Quote →')}
+              {loading ? 'Processing...' : (hasPrice ? 'Reserve & Dispatch Itinerary â†’' : 'Inquire Direct & Request Quote â†’')}
             </button>
           </form>
         )}

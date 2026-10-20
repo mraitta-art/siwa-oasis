@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
 
     const { searchParams } = new URL(request.url);
-    const origin = searchParams.get('origin') || 'https://siwify.com';
+    const originParam = searchParams.get('origin') || '';
+    const isLocal = !originParam || originParam.includes('localhost') || originParam.includes('127.0.0.1');
+    const publicBase = isLocal ? 'https://siwify.com' : originParam;
 
     const businesses = await query<any>(`
       SELECT b.id, b.name, b.slug, b.subscription_tier, b.published, b.is_claimed, b.custom_data, b.created_at,
@@ -48,32 +50,36 @@ export async function GET(request: NextRequest) {
     `);
 
     // Also fetch minisite service controls (active/inactive per business)
-    const serviceControls = await query<any>(`
-      SELECT business_id, is_active FROM vendor_service_controls WHERE service_type = 'minisite'
-    `).catch(() => []) as any[];
-    const serviceMap: Record<string, boolean> = {};
-    for (const sc of serviceControls) {
-      serviceMap[sc.business_id] = !!sc.is_active;
+    const minisiteControls = await query<any>(`
+      SELECT key, value FROM website_configs WHERE key LIKE 'minisite_services_%'
+    `);
+    const controlMap = new Map<string, any>();
+    for (const c of minisiteControls) {
+      try {
+        const val = typeof c.value === 'string' ? JSON.parse(c.value) : c.value;
+        const bizSlug = c.key.replace('minisite_services_', '');
+        controlMap.set(bizSlug, val);
+      } catch {}
     }
 
-    const list = (businesses || []).map((biz) => {
-      let customData = biz.custom_data;
-      if (typeof customData === 'string') {
-        try { customData = JSON.parse(customData); } catch { customData = {}; }
+    const list = businesses.map((biz) => {
+      let customData: any = {};
+      try {
+        customData = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : (biz.custom_data || {});
+      } catch {
+        customData = {};
       }
 
       const contacts = extractContactFromCustomData(customData);
-      const effectiveSlug = biz.slug || biz.id;
+      const outreachStatus = customData.outreach_status || (biz.is_claimed ? 'claimed' : 'new');
+      const outreachNotes = customData.outreach_notes || '';
+      const lastContactedAt = customData.last_contacted_at || null;
 
-      // Determine minisite readiness:
-      // A business "has minisite" if it has a builder layout (minisite_config) OR its minisite service is active
-      const hasBuilderLayout = !!biz.minisite_config;
-      const hasServiceActive = serviceMap[biz.id] !== undefined ? serviceMap[biz.id] : !!biz.published;
+      const effectiveSlug = biz.slug || `biz-${biz.id}`;
+      const hasBuilderLayout = Boolean(biz.minisite_config);
+      const serviceControls = controlMap.get(effectiveSlug) || {};
+      const hasServiceActive = Object.values(serviceControls).some((s: any) => s && s.enabled !== false);
       const hasMinisite = hasBuilderLayout || hasServiceActive;
-
-      const outreachStatus = customData?.outreach_status || (biz.is_claimed ? 'claimed' : 'new');
-      const outreachNotes = customData?.outreach_notes || '';
-      const lastContactedAt = customData?.last_contacted_at || null;
 
       return {
         id: biz.id,
@@ -96,10 +102,10 @@ export async function GET(request: NextRequest) {
         outreach_status: outreachStatus,
         outreach_notes: outreachNotes,
         last_contacted_at: lastContactedAt,
-        vanityUrl: `${origin}/${effectiveSlug}`,
-        socialToolkitUrl: `${origin}/vendor/social-toolkit?slug=${effectiveSlug}`,
-        claimUrl: `${origin}/vendor/claim?slug=${effectiveSlug}`,
-        mobileDashboardUrl: `${origin}/vendor/app?slug=${effectiveSlug}`,
+        vanityUrl: `${publicBase}/${effectiveSlug}`,
+        socialToolkitUrl: `${publicBase}/vendor/social-toolkit?slug=${effectiveSlug}`,
+        claimUrl: `${publicBase}/vendor/claim?slug=${effectiveSlug}`,
+        mobileDashboardUrl: `${publicBase}/vendor/app?slug=${effectiveSlug}`,
       };
     });
 

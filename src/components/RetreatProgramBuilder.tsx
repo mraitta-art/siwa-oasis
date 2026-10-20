@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { RetreatProgram, RetreatDayProgram, RetreatTimeSlot } from '@/lib/retreat-types';
@@ -140,9 +140,9 @@ export default function RetreatProgramBuilder({
     : [];
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem 6rem', fontFamily: 'inherit', color: '#f8fafc' }}>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem 6rem', fontFamily: 'inherit', color: '#0F172A' }}>
       
-      {/* ── 1. PROGRAM SELECTOR TABS ────────────────────────────────────────── */}
+      {/* â”€â”€ 1. PROGRAM SELECTOR TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
         <div style={{
           display: 'inline-flex',
@@ -159,14 +159,14 @@ export default function RetreatProgramBuilder({
           letterSpacing: '0.1em',
           marginBottom: '0.75rem'
         }}>
-          <span>✨</span>
+          <span>âœ¨</span>
           <span>Orchestrated Experiential Programs</span>
         </div>
-        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: '#f8fafc', margin: '0 0 0.8rem', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: '#0F172A', margin: '0 0 0.8rem', letterSpacing: '-0.02em' }}>
           Siwa Vibe Retreats
         </h1>
         <p style={{ maxWidth: '680px', margin: '0 auto', fontSize: '1.05rem', color: 'rgba(248,250,252,0.7)', lineHeight: 1.6 }}>
-          A transformative multi-day journey where each day embodies a unique vibe — seamlessly integrating waterfront eco-lodges, private 4x4 dunes, healing mineral waters, and authentic candlelit banquets.
+          A transformative multi-day journey where each day embodies a unique vibe â€” seamlessly integrating waterfront eco-lodges, private 4x4 dunes, healing mineral waters, and authentic candlelit banquets.
         </p>
 
         {/* Signature Program Switcher */}
@@ -191,7 +191,7 @@ export default function RetreatProgramBuilder({
                   padding: '1rem 1.6rem',
                   borderRadius: '16px',
                   border: isSelected ? `2.5px solid ${accentColor}` : '1px solid rgba(212,175,55,0.18)',
-                  background: isSelected ? '#132016' : '#0d150f',
+                  background: isSelected ? '#F8FAFC' : '#F8FAFC',
                   boxShadow: isSelected ? '0 10px 25px rgba(212,175,55,0.18)' : 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -211,13 +211,13 @@ export default function RetreatProgramBuilder({
                   justifyContent: 'center',
                   fontSize: '1.3rem'
                 }}>
-                  {prog.duration_days === 3 ? '🛖' : '🌊'}
+                  {prog.duration_days === 3 ? 'ðŸ›–' : 'ðŸŒŠ'}
                 </div>
                 <div>
                   <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: accentColor }}>
-                    {prog.duration_days} Days / {prog.duration_nights} Nights • Save {prog.discount_percentage}%
+                    {prog.duration_days} Days / {prog.duration_nights} Nights â€¢ Save {prog.discount_percentage}%
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 900, color: '#f8fafc' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0F172A' }}>
                     {prog.title_en}
                   </div>
                 </div>
@@ -227,9 +227,9 @@ export default function RetreatProgramBuilder({
         </div>
       </div>
 
-      {/* ── 2. ACTIVE RETREAT OVERVIEW BANNER ───────────────────────────────── */}
+      {/* â”€â”€ 2. ACTIVE RETREAT OVERVIEW BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{
-        background: 'linear-gradient(135deg, #101c13 0%, #17281b 60%, #0d150f 100%)',
+        background: 'linear-gradient(135deg, #101c13 0%, #17281b 60%, #F8FAFC 100%)',
         border: '1px solid rgba(212,175,55,0.25)',
         borderRadius: '28px',
         overflow: 'hidden',
@@ -246,7 +246,7 @@ export default function RetreatProgramBuilder({
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span style={{
                 background: accentColor,
-                color: '#070b08',
+                color: '#FFFFFF',
                 padding: '0.3rem 0.8rem',
                 borderRadius: '20px',
                 fontSize: '0.72rem',
@@ -263,11 +263,11 @@ export default function RetreatProgramBuilder({
                 fontSize: '0.72rem',
                 fontWeight: 800
               }}>
-                {selectedProgram.duration_days} Days • {selectedProgram.duration_nights} Nights
+                {selectedProgram.duration_days} Days â€¢ {selectedProgram.duration_nights} Nights
               </span>
             </div>
 
-            <h2 style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)', fontWeight: 900, margin: 0, lineHeight: 1.2, color: '#f8fafc' }}>
+            <h2 style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)', fontWeight: 900, margin: 0, lineHeight: 1.2, color: '#0F172A' }}>
               {selectedProgram.title_en}
             </h2>
 
@@ -279,7 +279,7 @@ export default function RetreatProgramBuilder({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.6rem', marginTop: '0.5rem' }}>
               {selectedProgram.inclusions_en.map((inc, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#e2e8f0' }}>
-                  <span style={{ color: accentColor, fontWeight: 900 }}>✓</span>
+                  <span style={{ color: accentColor, fontWeight: 900 }}>âœ“</span>
                   <span>{inc}</span>
                 </div>
               ))}
@@ -296,11 +296,11 @@ export default function RetreatProgramBuilder({
         </div>
       </div>
 
-      {/* ── 3. DAY-BY-DAY VIBE ORCHESTRATION ─────────────────────────────────── */}
+      {/* â”€â”€ 3. DAY-BY-DAY VIBE ORCHESTRATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ marginBottom: '3.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc' }}>
+            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0F172A' }}>
               Day-by-Day Program Timeline
             </h3>
             <p style={{ margin: '0.2rem 0 0', fontSize: '0.88rem', color: 'rgba(248,250,252,0.7)' }}>
@@ -321,7 +321,7 @@ export default function RetreatProgramBuilder({
                     padding: '0.6rem 1.1rem',
                     borderRadius: '12px',
                     border: isDayActive ? `2px solid ${accentColor}` : '1px solid rgba(212,175,55,0.18)',
-                    background: isDayActive ? day.vibe_color : '#132016',
+                    background: isDayActive ? day.vibe_color : '#F8FAFC',
                     color: isDayActive ? '#ffffff' : 'rgba(248,250,252,0.75)',
                     fontSize: '0.84rem',
                     fontWeight: 800,
@@ -339,7 +339,7 @@ export default function RetreatProgramBuilder({
 
         {/* Active Day Card */}
         <div style={{
-          background: '#0d150f',
+          background: '#F8FAFC',
           border: '1px solid rgba(212,175,55,0.2)',
           borderRadius: '24px',
           padding: 'clamp(1.5rem, 4vw, 2.5rem)',
@@ -360,12 +360,12 @@ export default function RetreatProgramBuilder({
               <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: activeDay.vibe_color }}>
                 {activeDay.vibe_title_en}
               </span>
-              <span style={{ background: '#132016', border: '1px solid rgba(212,175,55,0.2)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)' }}>
-                📍 View: {activeDay.vibe_view}
+              <span style={{ background: '#F8FAFC', border: '1px solid rgba(212,175,55,0.2)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)' }}>
+                ðŸ“ View: {activeDay.vibe_view}
               </span>
             </div>
 
-            <p style={{ margin: '0.75rem 0 0', fontSize: '1.05rem', fontStyle: 'italic', fontWeight: 600, color: '#f8fafc', lineHeight: 1.5 }}>
+            <p style={{ margin: '0.75rem 0 0', fontSize: '1.05rem', fontStyle: 'italic', fontWeight: 600, color: '#0F172A', lineHeight: 1.5 }}>
               {activeDay.vibe_quote_en}
             </p>
           </div>
@@ -422,9 +422,9 @@ export default function RetreatProgramBuilder({
           </div>
 
           {/* Chronological Schedule Accordion */}
-          <div style={{ background: '#132016', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(212,175,55,0.12)' }}>
-            <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              🕒 Day {activeDay.day_number} Hour-by-Hour Flow
+          <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(212,175,55,0.12)' }}>
+            <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              ðŸ•’ Day {activeDay.day_number} Hour-by-Hour Flow
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {activeDay.timeline.map((slot) => (
@@ -434,19 +434,19 @@ export default function RetreatProgramBuilder({
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '1rem',
-                    background: '#0d150f',
+                    background: '#F8FAFC',
                     padding: '0.85rem 1rem',
                     borderRadius: '12px',
                     border: '1px solid rgba(255,255,255,0.06)'
                   }}
                 >
                   <div style={{ minWidth: '100px', fontSize: '0.82rem', fontWeight: 800, color: activeDay.vibe_color }}>
-                    {slot.time_start} — {slot.time_end}
+                    {slot.time_start} â€” {slot.time_end}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc' }}>{slot.title_en}</span>
-                      <span style={{ fontSize: '0.72rem', color: '#D4AF37' }}>📍 {slot.location_name}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A' }}>{slot.title_en}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#D4AF37' }}>ðŸ“ {slot.location_name}</span>
                     </div>
                     <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'rgba(248,250,252,0.7)', lineHeight: 1.45 }}>
                       {slot.description_en}
@@ -459,9 +459,9 @@ export default function RetreatProgramBuilder({
         </div>
       </div>
 
-      {/* ── 4. COMPLETE RETREAT CHECKOUT CARD ─────────────────────────────────── */}
+      {/* â”€â”€ 4. COMPLETE RETREAT CHECKOUT CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{
-        background: 'linear-gradient(145deg, #101c13 0%, #18281b 60%, #0d150f 100%)',
+        background: 'linear-gradient(145deg, #101c13 0%, #F1F5F9 60%, #F8FAFC 100%)',
         border: '1px solid rgba(212,175,55,0.35)',
         borderRadius: '24px',
         padding: 'clamp(1.5rem, 4vw, 2.5rem)',
@@ -472,7 +472,7 @@ export default function RetreatProgramBuilder({
             <div style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: accentColor, marginBottom: '0.4rem' }}>
               Complete Retreat Package Reservation
             </div>
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.6rem', fontWeight: 900, color: '#f8fafc' }}>
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.6rem', fontWeight: 900, color: '#0F172A' }}>
               Lock in your {selectedProgram.title_en}
             </h3>
             <p style={{ margin: 0, fontSize: '0.88rem', color: 'rgba(248,250,252,0.75)', lineHeight: 1.6 }}>
@@ -480,7 +480,7 @@ export default function RetreatProgramBuilder({
             </p>
 
             {/* Financial Breakdown */}
-            <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#0d150f', borderRadius: '16px', border: '1px solid rgba(212,175,55,0.18)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#F8FAFC', borderRadius: '16px', border: '1px solid rgba(212,175,55,0.18)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'rgba(248,250,252,0.75)' }}>
                 <span>Individual Sectors Subtotal ({adultsCount} Guests):</span>
                 <span>EGP {totalBasePrice.toLocaleString()}</span>
@@ -490,7 +490,7 @@ export default function RetreatProgramBuilder({
                 <span>- EGP {bundleDiscount.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: '0.5rem', borderTop: '1px solid rgba(212,175,55,0.25)' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>Total Estimated Package:</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>Total Estimated Package:</span>
                 <span style={{ fontSize: '1.6rem', fontWeight: 900, color: accentColor }}>EGP {finalPrice.toLocaleString()}</span>
               </div>
             </div>
@@ -501,37 +501,37 @@ export default function RetreatProgramBuilder({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                  📅 Desired Start Date:
+                  ðŸ“… Desired Start Date:
                 </label>
                 <input
                   type="date"
                   required
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#0d150f', color: '#f8fafc', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#F8FAFC', color: '#0F172A', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                  👥 Number of Guests:
+                  ðŸ‘¥ Number of Guests:
                 </label>
                 <select
                   value={adultsCount}
                   onChange={(e) => setAdultsCount(Number(e.target.value))}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#0d150f', color: '#f8fafc', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#F8FAFC', color: '#0F172A', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 >
-                  <option value={1} style={{ background: '#0d150f', color: '#f8fafc' }}>1 Solo Retreat</option>
-                  <option value={2} style={{ background: '#0d150f', color: '#f8fafc' }}>2 Guests (Standard Double)</option>
-                  <option value={3} style={{ background: '#0d150f', color: '#f8fafc' }}>3 Guests</option>
-                  <option value={4} style={{ background: '#0d150f', color: '#f8fafc' }}>4 Guests (Family/Group)</option>
+                  <option value={1} style={{ background: '#F8FAFC', color: '#0F172A' }}>1 Solo Retreat</option>
+                  <option value={2} style={{ background: '#F8FAFC', color: '#0F172A' }}>2 Guests (Standard Double)</option>
+                  <option value={3} style={{ background: '#F8FAFC', color: '#0F172A' }}>3 Guests</option>
+                  <option value={4} style={{ background: '#F8FAFC', color: '#0F172A' }}>4 Guests (Family/Group)</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                👤 Full Name:
+                ðŸ‘¤ Full Name:
               </label>
               <input
                 type="text"
@@ -539,13 +539,13 @@ export default function RetreatProgramBuilder({
                 placeholder="e.g. Sarah Jenkins"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#0d150f', color: '#f8fafc', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#F8FAFC', color: '#0F172A', fontSize: '0.85rem', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                📱 Mobile / WhatsApp (with country code):
+                ðŸ“± Mobile / WhatsApp (with country code):
               </label>
               <input
                 type="tel"
@@ -553,20 +553,20 @@ export default function RetreatProgramBuilder({
                 placeholder="+20 100 123 4567"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#0d150f', color: '#f8fafc', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#F8FAFC', color: '#0F172A', fontSize: '0.85rem', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(248,250,252,0.9)', marginBottom: '0.3rem' }}>
-                ✍️ Dietary / Wellness Requests (Optional):
+                âœï¸ Dietary / Wellness Requests (Optional):
               </label>
               <input
                 type="text"
                 placeholder="e.g. Vegetarian, quietest lake chalet"
                 value={specialNotes}
                 onChange={(e) => setSpecialNotes(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#0d150f', color: '#f8fafc', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.25)', background: '#F8FAFC', color: '#0F172A', fontSize: '0.85rem', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -579,7 +579,7 @@ export default function RetreatProgramBuilder({
                 borderRadius: '12px',
                 border: 'none',
                 background: 'linear-gradient(135deg, #d4af37 0%, #b48a28 100%)',
-                color: '#070b08',
+                color: '#FFFFFF',
                 fontSize: '1rem',
                 fontWeight: 900,
                 cursor: bookingLoading ? 'not-allowed' : 'pointer',
@@ -590,13 +590,13 @@ export default function RetreatProgramBuilder({
                 gap: '0.5rem'
               }}
             >
-              {bookingLoading ? 'Securing Itinerary...' : 'Confirm & Dispatch Retreat Reservation →'}
+              {bookingLoading ? 'Securing Itinerary...' : 'Confirm & Dispatch Retreat Reservation â†’'}
             </button>
           </form>
         </div>
       </div>
 
-      {/* ── 5. SECTOR SWAP MODAL ──────────────────────────────────────────────── */}
+      {/* â”€â”€ 5. SECTOR SWAP MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {swapModalSector && (
         <div style={{
           position: 'fixed',
@@ -622,10 +622,10 @@ export default function RetreatProgramBuilder({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0F172A' }}>
                   Swap Day {swapModalSector.dayIndex + 1} {swapModalSector.sector.toUpperCase()}
                 </h3>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'rgba(248,250,252,0.65)' }}>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
                   Choose an alternative option from verified Siwa providers.
                 </p>
               </div>
@@ -634,7 +634,7 @@ export default function RetreatProgramBuilder({
                 onClick={() => setSwapModalSector(null)}
                 style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'rgba(248,250,252,0.6)' }}
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -646,7 +646,7 @@ export default function RetreatProgramBuilder({
                     border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: '14px',
                     padding: '1rem',
-                    background: '#0d150f',
+                    background: '#F8FAFC',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '1rem',
@@ -663,7 +663,7 @@ export default function RetreatProgramBuilder({
                       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase' }}>
                         {item.business_name}
                       </div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A' }}>
                         {item.title_en}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'rgba(248,250,252,0.7)' }}>
@@ -677,7 +677,7 @@ export default function RetreatProgramBuilder({
                     onClick={() => handleSwapItem(item)}
                     style={{
                       background: '#D4AF37',
-                      color: '#070b08',
+                      color: '#FFFFFF',
                       border: 'none',
                       padding: '0.55rem 1rem',
                       borderRadius: '8px',
@@ -695,7 +695,7 @@ export default function RetreatProgramBuilder({
         </div>
       )}
 
-      {/* ── 6. BOOKING CONFIRMATION MODAL ────────────────────────────────────── */}
+      {/* â”€â”€ 6. BOOKING CONFIRMATION MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {bookingSuccessModal && (
         <div style={{
           position: 'fixed',
@@ -718,12 +718,12 @@ export default function RetreatProgramBuilder({
             textAlign: 'center',
             boxShadow: '0 30px 80px rgba(0,0,0,0.8)'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
-            <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 0.5rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>ðŸŽ‰</div>
+            <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0F172A', margin: '0 0 0.5rem' }}>
               Retreat Reservation Initiated!
             </h3>
             <div style={{
-              background: '#0d150f',
+              background: '#F8FAFC',
               border: '1px solid rgba(212,175,55,0.2)',
               padding: '0.5rem 1rem',
               borderRadius: '20px',
@@ -759,15 +759,15 @@ export default function RetreatProgramBuilder({
                   boxShadow: '0 4px 15px rgba(37,211,102,0.3)'
                 }}
               >
-                <span>💬 Open Retreat Itinerary on WhatsApp</span>
+                <span>ðŸ’¬ Open Retreat Itinerary on WhatsApp</span>
               </a>
 
               <button
                 type="button"
                 onClick={() => setBookingSuccessModal(null)}
                 style={{
-                  background: '#18281b',
-                  color: '#f8fafc',
+                  background: '#F1F5F9',
+                  color: '#0F172A',
                   border: '1px solid rgba(255,255,255,0.12)',
                   padding: '0.8rem',
                   borderRadius: '12px',

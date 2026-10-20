@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -220,7 +220,7 @@ export default function GlobalJourneyFloater() {
         {isExpanded && !isMinimized && (
           <div
             style={{
-              background: '#0d150f',
+              background: '#F8FAFC',
               border: '1.5px solid rgba(212, 175, 55, 0.35)',
               borderRadius: '20px',
               padding: '1.25rem',
@@ -232,7 +232,7 @@ export default function GlobalJourneyFloater() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1rem' }}>🏜️</span>
+                <span style={{ fontSize: '1rem' }}>ðŸœï¸</span>
                 <strong style={{ color: '#fff', fontSize: '0.9rem' }}>Your Custom Journey</strong>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -240,43 +240,43 @@ export default function GlobalJourneyFloater() {
                   type="button"
                   onClick={() => setIsMinimized(true)}
                   title="Minimize to floating bubble"
-                  style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.85rem' }}
+                  style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '0.85rem' }}
                 >
                   <i className="fas fa-compress-alt" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem' }}
+                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.9rem' }}
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
             </div>
 
-            <p style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 0.85rem' }}>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5, margin: '0 0 0.85rem' }}>
               {draft.itemsCount > 0
                 ? `You have ${draft.itemsCount} service(s) across ${draft.sectorsCount} sector(s) reserved in your journey draft.`
                 : 'Build a seamless vacation: Reserve stays, 4x4 safaris, and transfers as you browse with one single itinerary dispatch.'}
             </p>
 
             {/* Checklist of sectors */}
-            <div style={{ background: '#070b08', padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ background: '#FFFFFF', padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: draft.hasAccommodation ? '#34d399' : '#64748b' }}>
-                <span>🏨 Accommodations & Stays</span>
-                <span>{draft.hasAccommodation ? '✓ Active' : '+ Add'}</span>
+                <span>ðŸ¨ Accommodations & Stays</span>
+                <span>{draft.hasAccommodation ? 'âœ“ Active' : '+ Add'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: draft.hasTour ? '#34d399' : '#64748b' }}>
-                <span>🚙 4x4 Desert Safaris & Tours</span>
-                <span>{draft.hasTour ? '✓ Active' : '+ Add'}</span>
+                <span>ðŸš™ 4x4 Desert Safaris & Tours</span>
+                <span>{draft.hasTour ? 'âœ“ Active' : '+ Add'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: draft.hasTransport ? '#34d399' : '#64748b' }}>
-                <span>🚐 Transfers (Cairo/Alex/Local)</span>
-                <span>{draft.hasTransport ? '✓ Active' : '+ Add'}</span>
+                <span>ðŸš Transfers (Cairo/Alex/Local)</span>
+                <span>{draft.hasTransport ? 'âœ“ Active' : '+ Add'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: draft.hasDining ? '#34d399' : '#64748b' }}>
-                <span>🍽️ Bedouin Feasts & Dining</span>
-                <span>{draft.hasDining ? '✓ Active' : '+ Add'}</span>
+                <span>ðŸ½ï¸ Bedouin Feasts & Dining</span>
+                <span>{draft.hasDining ? 'âœ“ Active' : '+ Add'}</span>
               </div>
             </div>
 
@@ -291,9 +291,9 @@ export default function GlobalJourneyFloater() {
               color: isCombo ? '#6ee7b7' : '#fde68a',
             }}>
               {isCombo ? (
-                <span>🎉 <strong>15% Bundle Discount Activated!</strong></span>
+                <span>ðŸŽ‰ <strong>15% Bundle Discount Activated!</strong></span>
               ) : (
-                <span>🔥 <strong>Bundle 3+ Sectors:</strong> Unlock 15% off your entire itinerary ({draft.sectorsCount}/3 active).</span>
+                <span>ðŸ”¥ <strong>Bundle 3+ Sectors:</strong> Unlock 15% off your entire itinerary ({draft.sectorsCount}/3 active).</span>
               )}
             </div>
 
@@ -304,7 +304,7 @@ export default function GlobalJourneyFloater() {
                 style={{
                   flex: 1,
                   background: 'linear-gradient(135deg, #D4AF37 0%, #b48a28 100%)',
-                  color: '#070b08',
+                  color: '#FFFFFF',
                   padding: '0.65rem 0.75rem',
                   borderRadius: '10px',
                   fontWeight: 900,
@@ -332,13 +332,13 @@ export default function GlobalJourneyFloater() {
                   textDecoration: 'none',
                 }}
               >
-                Full Builder ↗
+                Full Builder â†—
               </Link>
             </div>
           </div>
         )}
 
-        {/* ── DRAGGABLE MINIMIZED BUBBLE OR PILL ── */}
+        {/* â”€â”€ DRAGGABLE MINIMIZED BUBBLE OR PILL â”€â”€ */}
         {isMinimized ? (
           /* Ultra-compact 48px circular bubble */
           <div
@@ -352,7 +352,7 @@ export default function GlobalJourneyFloater() {
                 setIsExpanded(true);
               }
             }}
-            title="Drag anywhere to move • Tap to expand itinerary"
+            title="Drag anywhere to move â€¢ Tap to expand itinerary"
             style={{
               width: '48px',
               height: '48px',
@@ -369,7 +369,7 @@ export default function GlobalJourneyFloater() {
               transition: isDragging ? 'none' : 'transform 0.15s ease',
             }}
           >
-            <span style={{ fontSize: '1.25rem' }}>🏜️</span>
+            <span style={{ fontSize: '1.25rem' }}>ðŸœï¸</span>
             {draft.itemsCount > 0 && (
               <span
                 style={{
@@ -437,13 +437,13 @@ export default function GlobalJourneyFloater() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '0.25rem' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '0.3px', lineHeight: 1.2 }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0F172A', letterSpacing: '0.3px', lineHeight: 1.2 }}>
                 {draft.itemsCount > 0 ? `${draft.itemsCount} Reserved in Journey` : 'Planning a Full Journey?'}
               </span>
               <span style={{ fontSize: '0.65rem', color: isCombo ? '#34d399' : '#D4AF37', fontWeight: 700 }} className="gjf-pill-text-sub">
                 {draft.itemsCount > 0
-                  ? (isCombo ? '15% Off Active • Tap to Review' : `${draft.sectorsCount}/3 Sectors • Add More for 15% Off`)
-                  : 'Combine All Services →'}
+                  ? (isCombo ? '15% Off Active â€¢ Tap to Review' : `${draft.sectorsCount}/3 Sectors â€¢ Add More for 15% Off`)
+                  : 'Combine All Services â†’'}
               </span>
             </div>
 
@@ -457,7 +457,7 @@ export default function GlobalJourneyFloater() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#94a3b8',
+                color: '#64748b',
                 fontSize: '0.7rem',
               }}
             >
@@ -476,7 +476,7 @@ export default function GlobalJourneyFloater() {
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: 'none',
-                color: '#cbd5e1',
+                color: '#475569',
                 borderRadius: '50%',
                 width: '22px',
                 height: '22px',
@@ -508,7 +508,7 @@ export default function GlobalJourneyFloater() {
                 padding: '0 0.2rem',
               }}
             >
-              ✕
+              âœ•
             </button>
           </div>
         )}

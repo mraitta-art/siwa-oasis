@@ -2,18 +2,18 @@
 
 /**
  * SectionAggregationPage
- * ─────────────────────────────────────────────────────────────────────────────
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * Universal page component used by all 10 main-site section pages.
  *
  * Behaviour:
  *  1. Tries to load an admin-configured builder layout via website_configs.
- *     If found → renders DynamicHomepageRenderer (admin layout wins).
- *  2. If no admin layout → automatically fetches and renders all vendors
+ *     If found â†’ renders DynamicHomepageRenderer (admin layout wins).
+ *  2. If no admin layout â†’ automatically fetches and renders all vendors
  *     who have live data in this section's primary DB table.
  *  3. Vendor cards link directly to /{slug}#{sectionId} on their minisite.
  *  4. Fully responsive (mobile-first, clamp sizing, CSS grid).
- *  5. Search + type filter — live client-side search + optional server refetch.
- * ─────────────────────────────────────────────────────────────────────────────
+ *  5. Search + type filter â€” live client-side search + optional server refetch.
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -21,7 +21,7 @@ import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Vendor {
   id: string;
@@ -86,11 +86,11 @@ interface SectionAggregationPageProps {
 
 
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function formatPrice(min: number | null, max: number | null, currency = 'EGP'): string {
   if (!min && !max) return '';
-  if (min && max && min !== max) return `${currency} ${min.toLocaleString()} – ${max.toLocaleString()}`;
+  if (min && max && min !== max) return `${currency} ${min.toLocaleString()} â€“ ${max.toLocaleString()}`;
   return `${currency} ${(min || max || 0).toLocaleString()}`;
 }
 
@@ -100,29 +100,29 @@ function getWhatsAppLink(phone: string | null): string | null {
   return clean ? `https://wa.me/${clean}` : null;
 }
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
+// â”€â”€ Skeleton card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SkeletonCard() {
   return (
     <div style={{
-      background: '#0d150f',
+      background: '#FFFFFF',
       borderRadius: '16px',
       overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
       animation: 'pulse 1.5s ease-in-out infinite',
-      border: '1px solid rgba(212,175,55,0.12)'
+      border: '1px solid #E2E8F0'
     }}>
-      <div style={{ height: '180px', background: '#18281b' }} />
+      <div style={{ height: '180px', background: '#F1F5F9' }} />
       <div style={{ padding: '1rem' }}>
-        <div style={{ height: '12px', background: '#18281b', borderRadius: '6px', marginBottom: '0.5rem', width: '60%' }} />
-        <div style={{ height: '10px', background: '#18281b', borderRadius: '6px', width: '40%' }} />
-        <div style={{ height: '36px', background: '#18281b', borderRadius: '8px', marginTop: '1rem' }} />
+        <div style={{ height: '12px', background: '#F1F5F9', borderRadius: '6px', marginBottom: '0.5rem', width: '60%' }} />
+        <div style={{ height: '10px', background: '#F1F5F9', borderRadius: '6px', width: '40%' }} />
+        <div style={{ height: '36px', background: '#F1F5F9', borderRadius: '8px', marginTop: '1rem' }} />
       </div>
     </div>
   );
 }
 
-// ── Vendor Card ───────────────────────────────────────────────────────────────
+// â”€â”€ Vendor Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function VendorCard({
   vendor,
@@ -144,10 +144,10 @@ function VendorCard({
   return (
     <article
       style={{
-        background: '#0d150f',
+        background: '#FFFFFF',
         borderRadius: '16px',
         overflow: 'hidden',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
@@ -164,7 +164,7 @@ function VendorCard({
       }}
     >
       {/* Cover Image */}
-      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#132016' }}>
+      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#F8FAFC' }}>
         <img
           src={coverSrc}
           alt={vendor.name}
@@ -207,9 +207,9 @@ function VendorCard({
           <div style={{
             position: 'absolute', bottom: '10px', left: '12px',
             width: '40px', height: '40px', borderRadius: '50%',
-            background: '#132016', overflow: 'hidden',
+            background: '#F8FAFC', overflow: 'hidden',
             boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(212,175,55,0.2)',
+            border: '1px solid #E2E8F0',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <img
@@ -236,7 +236,7 @@ function VendorCard({
 
       {/* Card body */}
       <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-        <div style={{ fontWeight: 800, fontSize: 'clamp(0.85rem, 1.5vw, 1rem)', color: '#f8fafc', lineHeight: 1.3 }}>
+        <div style={{ fontWeight: 800, fontSize: 'clamp(0.85rem, 1.5vw, 1rem)', color: '#0F172A', lineHeight: 1.3 }}>
           {vendor.name}
         </div>
 
@@ -250,7 +250,7 @@ function VendorCard({
         )}
 
         {price && (
-          <div style={{ fontSize: '0.75rem', color: 'rgba(248,250,252,0.55)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
             From {price}
           </div>
         )}
@@ -279,7 +279,7 @@ function VendorCard({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              title="Direct WhatsApp — 0% commission"
+              title="Direct WhatsApp â€” 0% commission"
               style={{
                 background: '#25D366', color: '#fff',
                 padding: '0.5rem 0.65rem', borderRadius: '8px',
@@ -297,7 +297,7 @@ function VendorCard({
   );
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function SectionAggregationPage({
   sectionId,
@@ -372,20 +372,20 @@ export default function SectionAggregationPage({
   useEffect(() => { fetchVendors(''); }, [fetchVendors]);
   useEffect(() => { fetchVendors(debouncedSearch); }, [debouncedSearch, fetchVendors]);
 
-  // ── Loading skeleton ─────────────────────────────────────────────────────────
+  // â”€â”€ Loading skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#070b08', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2.5px solid ${accentColor}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ── Admin builder layout overrides ───────────────────────────────────────────
+  // â”€â”€ Admin builder layout overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (builderConfig) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg, #070b08)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg, #FFFFFF)' }}>
         <DynamicHomepageRenderer
           layout={builderConfig.layout}
           settings={builderConfig.site_settings || null}
@@ -410,16 +410,16 @@ export default function SectionAggregationPage({
     );
   }
 
-  // ── Full auto-aggregation page ────────────────────────────────────────────────
+  // â”€â”€ Full auto-aggregation page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
-    <div style={{ minHeight: '100vh', background: '#070b08', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#FFFFFF', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
       `}</style>
 
-      {/* ── Universal Responsive Platform Header ─────────────────────────── */}
+      {/* â”€â”€ Universal Responsive Platform Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {!skipBuilderFetch && (
         <MarketplaceHeader
           title={pageLabel}
@@ -427,9 +427,9 @@ export default function SectionAggregationPage({
         />
       )}
 
-      {/* ── Hero Banner ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section style={{
-        background: `linear-gradient(160deg, #070b08 0%, #101c13 50%, #17281b 100%)`,
+        background: 'linear-gradient(160deg, #F8FAFC 0%, #FFFFFF 100%)',
         color: '#fff',
         padding: 'clamp(3rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem)',
         textAlign: 'center',
@@ -453,7 +453,7 @@ export default function SectionAggregationPage({
             marginBottom: '0.75rem',
             lineHeight: 1,
           }}>
-            {sectionMeta?.emoji || '🌐'}
+            {sectionMeta?.emoji || 'ðŸŒ'}
           </div>
 
           <div style={{
@@ -468,7 +468,7 @@ export default function SectionAggregationPage({
             fontSize: 'clamp(1.75rem, 4vw, 3rem)',
             fontWeight: 900, marginBottom: '1rem',
             letterSpacing: '-0.02em', lineHeight: 1.2,
-            color: '#f8fafc',
+            color: '#0F172A',
           }}>
             {pageLabel}
           </h1>
@@ -494,9 +494,9 @@ export default function SectionAggregationPage({
               maxWidth: '100%',
             }}>
               <span><strong style={{ color: resolvedAccent, fontWeight: 900 }}>{totalVendors}</strong>&nbsp;partners</span>
-              <span style={{ opacity: 0.35 }}>·</span>
+              <span style={{ opacity: 0.35 }}>Â·</span>
               <span>0% commission</span>
-              <span style={{ opacity: 0.35 }}>·</span>
+              <span style={{ opacity: 0.35 }}>Â·</span>
               <span>Direct WhatsApp</span>
             </div>
           )}
@@ -505,7 +505,7 @@ export default function SectionAggregationPage({
 
       {topContent}
 
-      {/* ── Vendor Grid ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Vendor Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <VendorGrid
         vendors={vendors}
         sectionId={sectionId}
@@ -524,7 +524,7 @@ export default function SectionAggregationPage({
   );
 }
 
-// ── Vendor Grid Sub-Component ─────────────────────────────────────────────────
+// â”€â”€ Vendor Grid Sub-Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function VendorGrid({
   vendors,
@@ -559,7 +559,7 @@ function VendorGrid({
       padding: 'clamp(2rem, 4vw, 3.5rem) clamp(1rem, 3vw, 2rem)',
     }}>
 
-      {/* ── Section header + search ─────────────────────────────────────────── */}
+      {/* â”€â”€ Section header + search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '1rem',
         alignItems: 'flex-start', justifyContent: 'space-between',
@@ -574,13 +574,13 @@ function VendorGrid({
               {sectionMeta?.emoji} {sectionMeta?.label}
             </div>
           )}
-          <div style={{ fontWeight: 800, fontSize: 'clamp(1rem, 2vw, 1.35rem)', color: '#f8fafc' }}>
+          <div style={{ fontWeight: 800, fontSize: 'clamp(1rem, 2vw, 1.35rem)', color: '#0F172A' }}>
             {loading
-              ? 'Loading partners…'
+              ? 'Loading partnersâ€¦'
               : `${totalVendors} ${totalVendors === 1 ? 'Partner' : 'Partners'} Found`}
           </div>
           {bridgeMeta && (
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>
               Main site: &nbsp;
               <a
                 href={bridgeMeta.mainSiteMirror.url}
@@ -595,25 +595,25 @@ function VendorGrid({
         {/* Search input */}
         <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 'min(220px, 100%)', maxWidth: '380px' }}>
           <style>{`
-            .sap-search-input::placeholder { color: rgba(248,250,252,0.35); }
+            .sap-search-input::placeholder { color: #94A3B8; }
           `}</style>
           <i className="fas fa-search" style={{
             position: 'absolute', left: '12px', top: '50%',
-            transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', pointerEvents: 'none',
+            transform: 'translateY(-50%)', color: '#94A3B8', fontSize: '0.8rem', pointerEvents: 'none',
           }} />
           <input
             type="search"
             value={search}
             onChange={e => onSearch(e.target.value)}
-            placeholder="Search partners…"
+            placeholder="Search partnersâ€¦"
             className="sap-search-input"
             style={{
               paddingLeft: '2.2rem', paddingRight: '1rem',
               paddingTop: '0.6rem', paddingBottom: '0.6rem',
-              borderRadius: '50px', border: '1.5px solid rgba(212,175,55,0.2)',
+              borderRadius: '50px', border: '1.5px solid #CBD5E1',
               fontSize: '0.85rem', outline: 'none', width: '100%',
-              boxSizing: 'border-box', background: '#132016',
-              color: '#f8fafc',
+              boxSizing: 'border-box', background: '#F8FAFC',
+              color: '#0F172A',
               transition: 'border-color 0.15s',
             }}
             onFocus={e => { (e.target as HTMLInputElement).style.borderColor = accentColor; }}
@@ -622,7 +622,7 @@ function VendorGrid({
         </div>
       </div>
 
-      {/* ── Grid ─────────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {loading ? (
         <div style={{
           display: 'grid',
@@ -635,14 +635,14 @@ function VendorGrid({
         /* Empty state */
         <div style={{
           textAlign: 'center', padding: 'clamp(3rem, 8vw, 6rem) 1rem',
-          background: '#0d150f', borderRadius: '20px',
+          background: '#FFFFFF', borderRadius: '20px',
           border: '2px dashed rgba(212,175,55,0.2)',
         }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{sectionMeta?.emoji || '🏔️'}</div>
-          <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#f8fafc', marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{sectionMeta?.emoji || 'ðŸ”ï¸'}</div>
+          <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F172A', marginBottom: '0.5rem' }}>
             {search ? 'No results found' : 'No partners yet'}
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.5)', maxWidth: '400px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+          <p style={{ color: '#64748B', maxWidth: '400px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
             {search
               ? `No partners match "${search}" in this section. Try a broader search.`
               : `This section doesn't have any registered partners yet. Be the first to join!`}
@@ -651,7 +651,7 @@ function VendorGrid({
             <button
               onClick={() => onSearch('')}
               style={{
-                background: accentColor, color: '#070b08',
+                background: accentColor, color: '#FFFFFF',
                 padding: '0.75rem 2rem', borderRadius: '50px',
                 fontWeight: 800, border: 'none', cursor: 'pointer',
                 fontSize: '0.875rem',
@@ -664,13 +664,13 @@ function VendorGrid({
               href="/be-a-partner"
               style={{
                 display: 'inline-block',
-                background: accentColor, color: '#070b08',
+                background: accentColor, color: '#FFFFFF',
                 padding: '0.75rem 2rem', borderRadius: '50px',
                 fontWeight: 800, textDecoration: 'none',
                 fontSize: '0.875rem',
               }}
             >
-              Become a Partner →
+              Become a Partner â†’
             </a>
           ) : null}
         </div>
@@ -695,18 +695,18 @@ function VendorGrid({
         </div>
       )}
 
-      {/* ── Partner CTA strip ───────────────────────────────────────────────── */}
+      {/* â”€â”€ Partner CTA strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showPartnerCta && vendors.length > 0 && (
         <div style={{
           marginTop: 'clamp(2.5rem, 5vw, 4rem)',
           padding: 'clamp(2rem, 4vw, 3rem)',
-          background: `linear-gradient(135deg, #101c13, #18281b)`,
+          background: `linear-gradient(135deg, #101c13, #F1F5F9)`,
           borderRadius: '20px',
           display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
           alignItems: 'center', justifyContent: 'space-between',
           color: '#fff',
-          boxShadow: '0 0 80px rgba(212,175,55,0.06) inset',
-          border: '1px solid rgba(212,175,55,0.2)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+          border: '1px solid #E2E8F0',
         }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', marginBottom: '0.35rem' }}>
@@ -726,7 +726,7 @@ function VendorGrid({
               boxShadow: `0 6px 20px ${accentColor}55`,
             }}
           >
-            Join as Partner →
+            Join as Partner â†’
           </a>
         </div>
       )}

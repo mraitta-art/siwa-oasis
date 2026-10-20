@@ -260,6 +260,18 @@ function extractSubdomain(request: NextRequest): { subdomain: string | null; isC
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 0. Public vendor onboarding, claim, and tools routes (accessible without login via invite/outreach links)
+  const isPublicVendorRoute =
+    pathname.startsWith('/vendor/claim') ||
+    pathname.startsWith('/vendor/app') ||
+    pathname.startsWith('/vendor/social-toolkit') ||
+    pathname.startsWith('/onboard') ||
+    pathname.startsWith('/api/onboard');
+
+  if (isPublicVendorRoute) {
+    return NextResponse.next();
+  }
+
   // 1. Session & Role Route Guards
   for (const [prefix, allowedRoles] of Object.entries(ROUTE_GUARDS)) {
     if (pathname.startsWith(prefix)) {
@@ -270,7 +282,7 @@ export async function middleware(request: NextRequest) {
         }
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('error', pathname.startsWith('/vendor') ? 'vendor_required' : 'admin_required');
-        loginUrl.searchParams.set('redirect', pathname);
+        loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
         return NextResponse.redirect(loginUrl);
       }
       if (pathname === '/admin') {

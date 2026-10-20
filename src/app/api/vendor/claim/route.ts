@@ -2,22 +2,65 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
-import { requireVendor } from '@/lib/auth';
+import { getCurrentUser, requireVendor, hashPassword, createToken, setSessionCookie } from '@/lib/auth';
 
 /**
  * GET /api/vendor/claim
- * Returns unclaimed business listings available to this vendor.
- * Sorted: matching type first, then all other unclaimed listings.
- *
- * POST /api/vendor/claim
- * Vendor claims a business by ID. Sets vendor_id + is_claimed = 1.
+ * - If ?slug=... is provided: PUBLIC. Returns business info for claiming.
+ * - Otherwise: requires vendor session. Returns list of all unclaimed businesses.
  */
-
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get('slug');
+
+    // ── Public Single Business Lookup for WhatsApp claim links ──
+    if (slug) {
+      const biz = await queryOne(
+        `SELECT b.id, b.name, b.slug, b.type_id, b.subscription_tier, b.is_claimed, b.vendor_id,
+                b.custom_data,
+                bt.name       AS type_name,
+                bt.icon       AS type_icon,
+                bt.icon_color AS type_color,
+                pt.name       AS parent_type_name
+         FROM businesses b
+         LEFT JOIN business_types bt ON b.type_id = bt.id
+         LEFT JOIN business_types pt ON bt.parent_id = pt.id
+         WHERE b.slug = ?
+         LIMIT 1`,
+        [slug]
+      ) as any;
+
+      if (!biz) {
+        return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      }
+
+      let phone = '';
+      try {
+        const cd = typeof biz.custom_data === 'string' ? JSON.parse(biz.custom_data) : (biz.custom_data || {});
+        phone = cd.phone || cd.contact_phone || cd.whatsapp || '';
+      } catch {}
+
+      return NextResponse.json({
+        business: {
+          id: biz.id,
+          name: biz.name,
+          slug: biz.slug,
+          type_id: biz.type_id,
+          type_name: biz.type_name || 'خدمة معتمدة',
+          type_icon: biz.type_icon || 'fa-store',
+          type_color: biz.type_color || '#D4AF37',
+          parent_type_name: biz.parent_type_name || 'سياحة وضيافة سيوة',
+          subscription_tier: biz.subscription_tier || 'free',
+          is_claimed: !!biz.is_claimed && biz.vendor_id !== 'anonymous',
+          phone,
+        }
+      });
+    }
+
+    // ── Authenticated Directory of Unclaimed Businesses ──
     const user = await requireVendor();
 
-    // Get vendor's profile to know their business type
     const profile = await queryOne(
       `SELECT p.*, b.type_id as business_type_id, bt.parent_id as business_parent_id
        FROM profiles p
@@ -31,7 +74,6 @@ export async function GET(request: NextRequest) {
     const vendorTypeId = profile?.business_type_id || null;
     const vendorParentId = profile?.business_parent_id || null;
 
-    // Fetch all unclaimed businesses with type info
     const unclaimed = await query(`
       SELECT
         b.id, b.name, b.slug, b.type_id, b.subscription_tier,
@@ -52,15 +94,14 @@ export async function GET(request: NextRequest) {
       ORDER BY b.name ASC
     `) as any[];
 
-    // Split: matching type (or parent) first, then others
     const myType: any[] = [];
     const others: any[] = [];
 
-    for (const biz of unclaimed) {
+    for (const b of unclaimed) {
       const isMatch = vendorTypeId
-        ? biz.type_id === vendorTypeId || biz.type_parent_id === vendorParentId
+        ? b.type_id === vendorTypeId || b.type_parent_id === vendorParentId
         : false;
-      (isMatch ? myType : others).push({ ...biz, isMatchingType: isMatch });
+      (isMatch ? myType : others).push({ ...b, isMatchingType: isMatch });
     }
 
     return NextResponse.json({
@@ -78,63 +119,110 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST /api/vendor/claim
+ * Claims a business listing.
+ * - Supports existing authenticated vendor session.
+ * - Supports new vendor claiming via WhatsApp invitation link with { slug, phone, password, owner_name }.
+ */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireVendor();
-    const { businessId } = await request.json();
+    const body = await request.json();
+    const { businessId, slug, phone, password, owner_name } = body;
 
-    if (!businessId) {
-      return NextResponse.json({ error: 'businessId is required' }, { status: 400 });
+    let user = await getCurrentUser();
+
+    // Find target business
+    let biz: any = null;
+    if (businessId) {
+      biz = await queryOne('SELECT * FROM businesses WHERE id = ?', [businessId]);
+    } else if (slug) {
+      biz = await queryOne('SELECT * FROM businesses WHERE slug = ?', [slug]);
     }
-
-    // Fetch the target business
-    const biz = await queryOne(
-      'SELECT id, name, vendor_id, is_claimed FROM businesses WHERE id = ?',
-      [businessId]
-    ) as any;
 
     if (!biz) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    // Only allow claiming unclaimed businesses
-    if (biz.is_claimed && biz.vendor_id !== 'anonymous') {
+    // Check if already claimed by someone else
+    if (biz.is_claimed && biz.vendor_id && biz.vendor_id !== 'anonymous' && user?.id !== biz.vendor_id) {
       return NextResponse.json({
-        error: `"${biz.name}" has already been claimed by another vendor.`,
+        error: `"${biz.name}" has already been claimed.`,
         code: 'ALREADY_CLAIMED'
       }, { status: 409 });
     }
 
-    // Check vendor doesn't already own a different business
-    const existingClaim = await queryOne(
-      'SELECT id, name FROM businesses WHERE vendor_id = ? AND is_claimed = 1 AND id != ?',
-      [user.id, businessId]
-    ) as any;
+    // If user is not yet logged in, create / link their vendor account now
+    if (!user) {
+      if (!phone || !password) {
+        return NextResponse.json({
+          error: 'يرجى إدخال رقم الهاتف وكلمة المرور لتأكيد ملكية الحساب وحمايته'
+        }, { status: 400 });
+      }
 
-    // (Allow claiming — vendor may manage multiple listings)
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const vendorEmail = `${cleanPhone}@vendor.siwify.com`;
+      const passwordHash = await hashPassword(password);
+      const displayName = owner_name || biz.name;
 
-    // Claim: set vendor_id, is_claimed = 1, link profile's business_id
+      let profile = await queryOne<any>(
+        'SELECT id, email, role FROM profiles WHERE LOWER(email) = ?',
+        [vendorEmail.toLowerCase()]
+      );
+
+      if (!profile) {
+        const newUserId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        await execute(
+          `INSERT INTO profiles (id, email, password_hash, role, display_name, business_id, subscription_tier, active, approval_status, created_at)
+           VALUES (?, ?, ?, 'vendor', ?, ?, ?, 1, 'approved', NOW())`,
+          [newUserId, vendorEmail, passwordHash, displayName, biz.id, biz.subscription_tier || 'free']
+        );
+        profile = { id: newUserId, email: vendorEmail, role: 'vendor' };
+      } else {
+        await execute(
+          `UPDATE profiles SET password_hash = ?, business_id = ?, active = 1, approval_status = 'approved' WHERE id = ?`,
+          [passwordHash, biz.id, profile.id]
+        );
+      }
+
+      user = {
+        id: profile.id,
+        email: profile.email,
+        role: 'vendor',
+        displayName: displayName,
+        businessId: biz.id,
+        subscriptionTier: biz.subscription_tier || 'free',
+      };
+
+      // Set authentication cookie so they are logged in immediately
+      const token = await createToken(user);
+      await setSessionCookie(token);
+    }
+
+    // Update business to claimed and active
     await execute(
-      `UPDATE businesses SET vendor_id = ?, is_claimed = 1, approved_by_vendor = 1 WHERE id = ?`,
-      [user.id, businessId]
+      `UPDATE businesses SET vendor_id = ?, is_claimed = 1, approved_by_vendor = 1, status = 'active' WHERE id = ?`,
+      [user.id, biz.id]
     );
 
-    // Link business to vendor's profile
+    // Link business to user profile
     await execute(
       `UPDATE profiles SET business_id = ? WHERE id = ?`,
-      [businessId, user.id]
+      [biz.id, user.id]
     );
 
     return NextResponse.json({
       success: true,
-      message: `You are now the owner of "${biz.name}". Your minisite is live!`,
-      businessId,
+      message: `مبروك! تم تأكيد وتفعيل نشاطك "${biz.name}" بنجاح.`,
+      businessId: biz.id,
       slug: biz.slug,
+      redirect: `/vendor/app?slug=${biz.slug}&claimed=1`,
     });
   } catch (e: any) {
+    console.error('[POST /api/vendor/claim] Error:', e);
     return NextResponse.json(
-      { error: e.message },
-      { status: e.message?.includes('authenticated') ? 401 : 500 }
+      { error: e.message || 'Claim failed' },
+      { status: 500 }
     );
   }
 }

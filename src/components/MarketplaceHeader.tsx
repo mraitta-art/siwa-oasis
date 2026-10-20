@@ -58,8 +58,8 @@ export default function MarketplaceHeader({
   brandImage = '',
   logoHeight = 32,
   showBrand = true,
-  backgroundColor = 'rgba(8, 14, 10, 0.94)',
-  textColor = 'rgba(248, 250, 252, 0.85)',
+  backgroundColor = 'rgba(255, 255, 255, 0.96)',
+  textColor = '#0F172A',
 }: MarketplaceHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

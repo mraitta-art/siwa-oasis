@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
@@ -25,32 +25,32 @@ export interface AccommodationExplorerProps {
   customTypes?: FilterItemOption[];
 }
 
-// ─── DEFAULT FILTER TAXONOMIES (Extensible by Admin & Live DB Items) ─────────
+// â”€â”€â”€ DEFAULT FILTER TAXONOMIES (Extensible by Admin & Live DB Items) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DEFAULT_SETTING_FILTERS: FilterItemOption[] = [
-  { id: 'all', label: 'All Settings & Views', icon: '✦' },
-  { id: 'on_lake', label: 'On Lake Shore', icon: '🌊', desc: 'Direct salt lake waterfront' },
-  { id: 'on_lake_and_pool', label: 'On Lake & Pool', icon: '🌊🏊', desc: 'Waterfront shore + fresh spring pool' },
-  { id: 'dune', label: 'Deep Sand Dunes', icon: '🏜️', desc: '100m dunes & stargazing crests' },
-  { id: 'multiple_views', label: 'Multiple Views (360°)', icon: '🌅', desc: 'Citadel, salt lakes & palm canopy' },
-  { id: 'oasis_palms', label: 'Oasis Palm Groves', icon: '🌴', desc: 'Date palm forests & private spring pools' },
+  { id: 'all', label: 'All Settings & Views', icon: 'âœ¦' },
+  { id: 'on_lake', label: 'On Lake Shore', icon: 'ðŸŒŠ', desc: 'Direct salt lake waterfront' },
+  { id: 'on_lake_and_pool', label: 'On Lake & Pool', icon: 'ðŸŒŠðŸŠ', desc: 'Waterfront shore + fresh spring pool' },
+  { id: 'dune', label: 'Deep Sand Dunes', icon: 'ðŸœï¸', desc: '100m dunes & stargazing crests' },
+  { id: 'multiple_views', label: 'Multiple Views (360Â°)', icon: 'ðŸŒ…', desc: 'Citadel, salt lakes & palm canopy' },
+  { id: 'oasis_palms', label: 'Oasis Palm Groves', icon: 'ðŸŒ´', desc: 'Date palm forests & private spring pools' },
 ];
 
 const DEFAULT_VIBE_FILTERS: FilterItemOption[] = [
-  { id: 'all', label: 'All Vibes', icon: '✨' },
-  { id: 'lake_silence', label: 'Lake Silence & Meditation', icon: '🧘' },
-  { id: 'desert_stars', label: 'Desert Stars & Stargazing', icon: '🌌' },
-  { id: 'heritage', label: 'Heritage Wisdom & Mudbrick', icon: '🏺' },
-  { id: 'salt_healing', label: 'Salt Healing & Relaxation', icon: '♨️' },
+  { id: 'all', label: 'All Vibes', icon: 'âœ¨' },
+  { id: 'lake_silence', label: 'Lake Silence & Meditation', icon: 'ðŸ§˜' },
+  { id: 'desert_stars', label: 'Desert Stars & Stargazing', icon: 'ðŸŒŒ' },
+  { id: 'heritage', label: 'Heritage Wisdom & Mudbrick', icon: 'ðŸº' },
+  { id: 'salt_healing', label: 'Salt Healing & Relaxation', icon: 'â™¨ï¸' },
 ];
 
 const DEFAULT_TYPE_FILTERS: FilterItemOption[] = [
-  { id: 'all', label: 'All Stay Types', icon: '🛖' },
-  { id: 'salt_chalet', label: 'Salt Chalets', icon: '🌊' },
-  { id: 'ecolodge', label: 'Heritage Eco-Lodges', icon: '🛖' },
-  { id: 'glamping', label: 'Glamping Domes & Tents', icon: '⛺' },
-  { id: 'heritage_suite', label: 'Citadel Mudbrick Suites', icon: '🏰' },
-  { id: 'villa', label: 'Private Villas & Compounds', icon: '🏡' },
+  { id: 'all', label: 'All Stay Types', icon: 'ðŸ›–' },
+  { id: 'salt_chalet', label: 'Salt Chalets', icon: 'ðŸŒŠ' },
+  { id: 'ecolodge', label: 'Heritage Eco-Lodges', icon: 'ðŸ›–' },
+  { id: 'glamping', label: 'Glamping Domes & Tents', icon: 'â›º' },
+  { id: 'heritage_suite', label: 'Citadel Mudbrick Suites', icon: 'ðŸ°' },
+  { id: 'villa', label: 'Private Villas & Compounds', icon: 'ðŸ¡' },
 ];
 
 export default function AccommodationExplorer({
@@ -59,7 +59,7 @@ export default function AccommodationExplorer({
   initialVibe = 'all',
   initialType = 'all',
   title = 'Explore Accommodations by Vibe, Setting & Views',
-  subtitle = 'Discover Siwa’s premier verified eco-lodges, lake chalets, and dune camps. Every card directly connects you to the provider’s dedicated minisite with direct transparent pricing.',
+  subtitle = 'Discover Siwaâ€™s premier verified eco-lodges, lake chalets, and dune camps. Every card directly connects you to the providerâ€™s dedicated minisite with direct transparent pricing.',
   customSettings,
   customVibes,
   customTypes
@@ -85,7 +85,7 @@ export default function AccommodationExplorer({
   // Active modal item for direct reservation
   const [bookingModalItem, setBookingModalItem] = useState<CommercialItem | null>(null);
 
-  // ── DB-driven data ────────────────────────────────────────────────────────
+  // â”€â”€ DB-driven data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [dbItems, setDbItems] = useState<CommercialItem[]>([]);
   const [dbLoading, setDbLoading] = useState(true);
   const [dbSettings, setDbSettings] = useState<string[]>([]);
@@ -121,7 +121,7 @@ export default function AccommodationExplorer({
     // Add DB-discovered settings not already in default list
     dbSettings.forEach(s => {
       if (s && !base.some(b => b.id === s)) {
-        base.push({ id: s, label: s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: '📍' });
+        base.push({ id: s, label: s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: 'ðŸ“' });
       }
     });
     accommodationItems.forEach(item => {
@@ -129,7 +129,7 @@ export default function AccommodationExplorer({
         base.push({
           id: item.setting_location,
           label: item.setting_location.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          icon: '📍',
+          icon: 'ðŸ“',
           desc: item.view_type || 'Custom View'
         });
       }
@@ -143,7 +143,7 @@ export default function AccommodationExplorer({
     // Add DB-discovered vibes not already in default list
     dbVibes.forEach(vt => {
       if (vt && !base.some(b => b.id === vt)) {
-        base.push({ id: vt, label: vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: '✨' });
+        base.push({ id: vt, label: vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: 'âœ¨' });
       }
     });
     accommodationItems.forEach(item => {
@@ -152,7 +152,7 @@ export default function AccommodationExplorer({
           base.push({
             id: vt,
             label: vt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            icon: '✨'
+            icon: 'âœ¨'
           });
         }
       });
@@ -166,7 +166,7 @@ export default function AccommodationExplorer({
     // Add DB-discovered types not already in default list
     dbTypes.forEach(t => {
       if (t && !base.some(b => b.id === t)) {
-        base.push({ id: t, label: t.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: '🛖' });
+        base.push({ id: t, label: t.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: 'ðŸ›–' });
       }
     });
     accommodationItems.forEach(item => {
@@ -174,7 +174,7 @@ export default function AccommodationExplorer({
         base.push({
           id: item.accommodation_type,
           label: item.accommodation_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          icon: '🛖'
+          icon: 'ðŸ›–'
         });
       }
     });
@@ -253,12 +253,12 @@ export default function AccommodationExplorer({
     setSearchQuery('');
   };
 
-  // ── Loading skeleton while fetching from DB ───────────────────────────────
+  // â”€â”€ Loading skeleton while fetching from DB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (dbLoading) {
     return (
       <section style={{
-        background: 'linear-gradient(180deg, #070b08 0%, #0d150f 50%, #101c13 100%)',
-        color: '#f8fafc',
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 50%, #101c13 100%)',
+        color: '#0F172A',
         padding: 'clamp(3rem, 6vw, 5rem) clamp(1rem, 3vw, 2.5rem)',
         borderTop: '1px solid rgba(212,175,55,0.15)',
         borderBottom: '1px solid rgba(212,175,55,0.15)',
@@ -275,7 +275,7 @@ export default function AccommodationExplorer({
           animation: 'accSpin 0.8s linear infinite',
         }} />
         <div style={{ fontSize: '0.82rem', color: 'rgba(248,250,252,0.5)', letterSpacing: '1px' }}>
-          Loading verified sanctuaries…
+          Loading verified sanctuariesâ€¦
         </div>
         {/* Skeleton cards */}
         <div style={{
@@ -286,14 +286,14 @@ export default function AccommodationExplorer({
         }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} style={{
-              background: '#0d150f', borderRadius: '20px', overflow: 'hidden',
+              background: '#F8FAFC', borderRadius: '20px', overflow: 'hidden',
               border: '1px solid rgba(212,175,55,0.12)',
             }}>
-              <div style={{ height: '220px', background: '#132016' }} />
+              <div style={{ height: '220px', background: '#F8FAFC' }} />
               <div style={{ padding: '1rem' }}>
-                <div style={{ height: '14px', background: '#18281b', borderRadius: '6px', marginBottom: '0.6rem', width: '65%' }} />
-                <div style={{ height: '11px', background: '#18281b', borderRadius: '6px', width: '42%', marginBottom: '0.9rem' }} />
-                <div style={{ height: '36px', background: '#18281b', borderRadius: '10px' }} />
+                <div style={{ height: '14px', background: '#F1F5F9', borderRadius: '6px', marginBottom: '0.6rem', width: '65%' }} />
+                <div style={{ height: '11px', background: '#F1F5F9', borderRadius: '6px', width: '42%', marginBottom: '0.9rem' }} />
+                <div style={{ height: '36px', background: '#F1F5F9', borderRadius: '10px' }} />
               </div>
             </div>
           ))}
@@ -304,8 +304,8 @@ export default function AccommodationExplorer({
 
   return (
     <section style={{
-      background: 'linear-gradient(180deg, #070b08 0%, #0d150f 50%, #101c13 100%)',
-      color: '#f8fafc',
+      background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 50%, #101c13 100%)',
+      color: '#0F172A',
       padding: 'clamp(3rem, 6vw, 5rem) clamp(1rem, 3vw, 2.5rem)',
       borderTop: '1px solid rgba(212,175,55,0.15)',
       borderBottom: '1px solid rgba(212,175,55,0.15)',
@@ -313,7 +313,7 @@ export default function AccommodationExplorer({
     }}>
       <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
 
-        {/* ── 1. HEADER SECTION ─────────────────────────────────────────────────── */}
+        {/* â”€â”€ 1. HEADER SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <div style={{
             display: 'inline-flex',
@@ -330,7 +330,7 @@ export default function AccommodationExplorer({
             textTransform: 'uppercase',
             marginBottom: '0.75rem'
           }}>
-            <span>✦</span>
+            <span>âœ¦</span>
             <span>SIWA SANCTUARY &amp; LODGE DISCOVERY</span>
           </div>
 
@@ -339,7 +339,7 @@ export default function AccommodationExplorer({
             fontWeight: 900,
             margin: '0 0 0.8rem',
             letterSpacing: '-0.02em',
-            color: '#f8fafc'
+            color: '#0F172A'
           }}>
             {title}
           </h2>
@@ -355,7 +355,7 @@ export default function AccommodationExplorer({
           </p>
         </div>
 
-        {/* ── 2. MULTI-FACETED FILTER CONTROL BOARD ───────────────────────────── */}
+        {/* â”€â”€ 2. MULTI-FACETED FILTER CONTROL BOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{
           background: 'rgba(13,21,15,0.92)',
           border: '1px solid rgba(212,175,55,0.22)',
@@ -374,7 +374,7 @@ export default function AccommodationExplorer({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔍 Search sanctuaries by name, mudbrick, pool, spring or lake..."
+              placeholder="ðŸ” Search sanctuaries by name, mudbrick, pool, spring or lake..."
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
@@ -382,7 +382,7 @@ export default function AccommodationExplorer({
                 border: '1.5px solid rgba(212,175,55,0.25)',
                 borderRadius: '16px',
                 padding: '0.75rem 1rem 0.75rem 2.8rem',
-                color: '#f8fafc',
+                color: '#0F172A',
                 fontSize: '0.86rem',
                 outline: 'none',
                 transition: 'border-color 0.2s ease',
@@ -391,7 +391,7 @@ export default function AccommodationExplorer({
               onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)'; }}
             />
             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, fontSize: '0.9rem' }}>
-              📍
+              ðŸ“
             </span>
             {searchQuery && (
               <button
@@ -409,7 +409,7 @@ export default function AccommodationExplorer({
                   fontSize: '0.85rem',
                 }}
               >
-                ✕
+                âœ•
               </button>
             )}
           </div>
@@ -420,7 +420,7 @@ export default function AccommodationExplorer({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: accentColor }}>
-                📍 Filter by Location &amp; Views (Multi-Select)
+                ðŸ“ Filter by Location &amp; Views (Multi-Select)
               </span>
               <span style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)' }}>
                 {selectedSettings.length > 0 ? `${selectedSettings.length} selected` : 'Select multiple settings'}
@@ -437,7 +437,7 @@ export default function AccommodationExplorer({
                     type="button"
                     onClick={() => toggleSettingFilter(f.id)}
                     style={{
-                      background: isActive ? 'linear-gradient(135deg, #1f3624, #2a4c33)' : '#132016',
+                      background: isActive ? 'linear-gradient(135deg, #1f3624, #2a4c33)' : '#F8FAFC',
                       border: isActive ? `1.5px solid ${accentColor}` : '1px solid rgba(212,175,55,0.18)',
                       color: isActive ? '#f8fafc' : 'rgba(248,250,252,0.75)',
                       padding: '0.55rem 1rem',
@@ -455,7 +455,7 @@ export default function AccommodationExplorer({
                     <span>{f.icon}</span>
                     <span>{f.label}</span>
                     {isActive && f.id !== 'all' && (
-                      <span style={{ fontSize: '0.65rem', color: accentColor, marginLeft: '2px' }}>✓</span>
+                      <span style={{ fontSize: '0.65rem', color: accentColor, marginLeft: '2px' }}>âœ“</span>
                     )}
                   </button>
                 );
@@ -472,7 +472,7 @@ export default function AccommodationExplorer({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86efac' }}>
-                  ✨ Experience Vibe
+                  âœ¨ Experience Vibe
                 </span>
                 <span style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.45)' }}>
                   {selectedVibes.length > 0 ? `${selectedVibes.length} active` : 'Pick any combination'}
@@ -506,7 +506,7 @@ export default function AccommodationExplorer({
                       <span>{v.icon}</span>
                       <span>{v.label}</span>
                       {isActive && v.id !== 'all' && (
-                        <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>✓</span>
+                        <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>âœ“</span>
                       )}
                     </button>
                   );
@@ -518,7 +518,7 @@ export default function AccommodationExplorer({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#fde68a' }}>
-                  🛖 Accommodation Type
+                  ðŸ›– Accommodation Type
                 </span>
                 <span style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.45)' }}>
                   {selectedTypes.length > 0 ? `${selectedTypes.length} active` : 'Select stay styles'}
@@ -552,7 +552,7 @@ export default function AccommodationExplorer({
                       <span>{t.icon}</span>
                       <span>{t.label}</span>
                       {isActive && t.id !== 'all' && (
-                        <span style={{ fontSize: '0.62rem', color: accentColor }}>✓</span>
+                        <span style={{ fontSize: '0.62rem', color: accentColor }}>âœ“</span>
                       )}
                     </button>
                   );
@@ -570,11 +570,11 @@ export default function AccommodationExplorer({
             paddingTop: '0.75rem',
             borderTop: '1px solid rgba(255,255,255,0.06)',
             fontSize: '0.76rem',
-            color: 'rgba(248,250,252,0.65)'
+            color: '#64748b'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <div>
-                Showing <strong style={{ color: '#f8fafc' }}>{filteredItems.length} verified stays</strong>
+                Showing <strong style={{ color: '#0F172A' }}>{filteredItems.length} verified stays</strong>
                 {activeFiltersCount > 0 && <span> matching your criteria</span>}
               </div>
               {/* Data source badge */}
@@ -587,7 +587,7 @@ export default function AccommodationExplorer({
                 color: dbItems.length > 0 ? '#4ade80' : accentColor,
                 letterSpacing: '0.5px',
               }}>
-                <span style={{ fontSize: '0.55rem' }}>●</span>
+                <span style={{ fontSize: '0.55rem' }}>â—</span>
                 {dbItems.length > 0 ? 'Live Data' : 'Demo Mode'}
               </div>
             </div>
@@ -607,23 +607,23 @@ export default function AccommodationExplorer({
                   cursor: 'pointer'
                 }}
               >
-                ✕ Reset all filters
+                âœ• Reset all filters
               </button>
             )}
           </div>
         </div>
 
-        {/* ── 3. ACCOMMODATION CARDS GRID ──────────────────────────────────────── */}
+        {/* â”€â”€ 3. ACCOMMODATION CARDS GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {filteredItems.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '4rem 1rem',
-            background: '#0d150f',
+            background: '#F8FAFC',
             border: '2px dashed rgba(212,175,55,0.2)',
             borderRadius: '24px'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🛖</div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 0.5rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>ðŸ›–</div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', margin: '0 0 0.5rem' }}>
               No stays match this specific filter combination
             </h3>
             <p style={{ color: 'rgba(248,250,252,0.6)', maxWidth: '420px', margin: '0 auto 1.5rem', fontSize: '0.86rem' }}>
@@ -634,7 +634,7 @@ export default function AccommodationExplorer({
               onClick={handleResetFilters}
               style={{
                 background: accentColor,
-                color: '#070b08',
+                color: '#FFFFFF',
                 padding: '0.75rem 1.75rem',
                 borderRadius: '30px',
                 fontWeight: 800,
@@ -684,7 +684,7 @@ export default function AccommodationExplorer({
               // General Info / Minisite URL (supports dedicated minisite or custom general URL)
               const generalInfoUrl = item.minisite_url || (item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#');
               const isExternalInfoUrl = generalInfoUrl.startsWith('http://') || generalInfoUrl.startsWith('https://') || generalInfoUrl.startsWith('//');
-              const infoButtonLabel = item.minisite_label || 'More About ↗';
+              const infoButtonLabel = item.minisite_label || 'More About â†—';
 
               // External price verification & comparison URL (e.g. Booking.com, TripAdvisor)
               const externalCheckUrl = item.external_check_url ||
@@ -692,7 +692,7 @@ export default function AccommodationExplorer({
                 item.comparison_links?.tripadvisor_url ||
                 item.custom_links?.find(l => l.type === 'external_ota')?.url;
               const externalCheckLabel = item.external_check_label ||
-                (item.comparison_links?.ota_name ? `Check on ${item.comparison_links.ota_name} ↗` : 'Check on Booking.com ↗');
+                (item.comparison_links?.ota_name ? `Check on ${item.comparison_links.ota_name} â†—` : 'Check on Booking.com â†—');
 
               // Benchmark price savings
               const benchmarkPrice = item.comparison_links?.ota_benchmark_price;
@@ -702,7 +702,7 @@ export default function AccommodationExplorer({
                 <article
                   key={item.id}
                   style={{
-                    background: '#0d150f',
+                    background: '#F8FAFC',
                     border: '1px solid rgba(212,175,55,0.22)',
                     borderRadius: '24px',
                     overflow: 'hidden',
@@ -713,7 +713,7 @@ export default function AccommodationExplorer({
                     position: 'relative'
                   }}
                 >
-                  {/* ── CARD TOP: PROVIDER HEADER STRIP ── */}
+                  {/* â”€â”€ CARD TOP: PROVIDER HEADER STRIP â”€â”€ */}
                   <div style={{
                     padding: '0.85rem 1.25rem',
                     background: 'linear-gradient(90deg, #101c13 0%, #152618 100%)',
@@ -735,14 +735,14 @@ export default function AccommodationExplorer({
                           color: 'inherit'
                         }}
                       >
-                        <span style={{ fontSize: '1rem' }}>🏛️</span>
+                        <span style={{ fontSize: '1rem' }}>ðŸ›ï¸</span>
                         <div>
                           <div style={{ fontSize: '0.68rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             {item.business_name}
                           </div>
                           <div style={{ fontSize: '0.62rem', color: '#4ade80', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <span>✓ Verified Provider</span>
-                            <span>•</span>
+                            <span>âœ“ Verified Provider</span>
+                            <span>â€¢</span>
                             <span style={{ textDecoration: 'underline' }}>{infoButtonLabel}</span>
                           </div>
                         </div>
@@ -758,14 +758,14 @@ export default function AccommodationExplorer({
                           color: 'inherit'
                         }}
                       >
-                        <span style={{ fontSize: '1rem' }}>🏛️</span>
+                        <span style={{ fontSize: '1rem' }}>ðŸ›ï¸</span>
                         <div>
                           <div style={{ fontSize: '0.68rem', fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             {item.business_name}
                           </div>
                           <div style={{ fontSize: '0.62rem', color: '#4ade80', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <span>✓ Verified Provider</span>
-                            <span>•</span>
+                            <span>âœ“ Verified Provider</span>
+                            <span>â€¢</span>
                             <span style={{ textDecoration: 'underline' }}>{infoButtonLabel}</span>
                           </div>
                         </div>
@@ -785,14 +785,14 @@ export default function AccommodationExplorer({
                         alignItems: 'center',
                         gap: '3px'
                       }}>
-                        <span>★</span>
+                        <span>â˜…</span>
                         <span>{item.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* ── CARD PHOTO GALLERY CAROUSEL ── */}
-                  <div style={{ position: 'relative', height: '220px', width: '100%', overflow: 'hidden', background: '#070b08' }}>
+                  {/* â”€â”€ CARD PHOTO GALLERY CAROUSEL â”€â”€ */}
+                  <div style={{ position: 'relative', height: '220px', width: '100%', overflow: 'hidden', background: '#FFFFFF' }}>
                     <img
                       src={gallery[activeIndex]}
                       alt={item.title_en}
@@ -824,7 +824,7 @@ export default function AccommodationExplorer({
                       alignItems: 'center',
                       gap: '4px'
                     }}>
-                      <span>{item.icon || '📍'}</span>
+                      <span>{item.icon || 'ðŸ“'}</span>
                       <span>{item.badge_en || 'Siwa Sanctuary'}</span>
                     </div>
 
@@ -843,7 +843,7 @@ export default function AccommodationExplorer({
                         fontSize: '0.65rem',
                         fontWeight: 800
                       }}>
-                        🏊 Spring Pool
+                        ðŸŠ Spring Pool
                       </div>
                     )}
 
@@ -873,7 +873,7 @@ export default function AccommodationExplorer({
                             lineHeight: 1
                           }}
                         >
-                          ‹
+                          â€¹
                         </button>
                         <button
                           type="button"
@@ -898,7 +898,7 @@ export default function AccommodationExplorer({
                             lineHeight: 1
                           }}
                         >
-                          ›
+                          â€º
                         </button>
 
                         {/* Dot indicators */}
@@ -927,7 +927,7 @@ export default function AccommodationExplorer({
                     )}
                   </div>
 
-                  {/* ── CARD BODY ── */}
+                  {/* â”€â”€ CARD BODY â”€â”€ */}
                   <div style={{ padding: '1.25rem 1.4rem', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.85rem' }}>
                     
                     {/* Location View Detailed Headline */}
@@ -944,13 +944,13 @@ export default function AccommodationExplorer({
                         borderRadius: '8px',
                         border: '1px solid rgba(212,175,55,0.18)'
                       }}>
-                        <span>📍</span>
+                        <span>ðŸ“</span>
                         <span>{item.view_type}</span>
                       </div>
                     )}
 
                     <div>
-                      <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc', lineHeight: 1.35 }}>
+                      <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.2rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.35 }}>
                         {item.title_en}
                       </h3>
                       <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(248,250,252,0.7)', lineHeight: 1.55 }}>
@@ -973,7 +973,7 @@ export default function AccommodationExplorer({
                                 type="button"
                                 onClick={() => setSelectedOptions(prev => ({ ...prev, [item.id]: opt }))}
                                 style={{
-                                  background: isOptActive ? 'rgba(212,175,55,0.18)' : '#132016',
+                                  background: isOptActive ? 'rgba(212,175,55,0.18)' : '#F8FAFC',
                                   border: isOptActive ? `1.5px solid ${accentColor}` : '1px solid rgba(255,255,255,0.08)',
                                   color: isOptActive ? '#f8fafc' : 'rgba(248,250,252,0.7)',
                                   padding: '0.3rem 0.65rem',
@@ -1003,7 +1003,7 @@ export default function AccommodationExplorer({
                         alignItems: 'flex-start',
                         gap: '0.6rem'
                       }}>
-                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>🔥</span>
+                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>ðŸ”¥</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#fde68a', textTransform: 'uppercase' }}>
                             {item.hot_offer.badge_label || 'Direct Booker Advantage'}
@@ -1015,7 +1015,7 @@ export default function AccommodationExplorer({
                       </div>
                     )}
 
-                    {/* ── EXTERNAL PRICE CHECK & PLATFORM DISCOUNT CALLOUT ── */}
+                    {/* â”€â”€ EXTERNAL PRICE CHECK & PLATFORM DISCOUNT CALLOUT â”€â”€ */}
                     {(externalCheckUrl || item.direct_discount_note || benchmarkPrice || item.discount_percentage) && (
                       <div style={{
                         background: 'linear-gradient(135deg, rgba(16,28,19,0.85) 0%, rgba(21,38,24,0.7) 100%)',
@@ -1047,13 +1047,13 @@ export default function AccommodationExplorer({
                                 transition: 'all 0.15s ease'
                               }}
                             >
-                              <span>🏨</span>
+                              <span>ðŸ¨</span>
                               <span>{externalCheckLabel}</span>
                             </a>
                           )}
 
                           {benchmarkPrice && (
-                            <div style={{ fontSize: '0.68rem', color: 'rgba(248,250,252,0.55)', marginLeft: 'auto' }}>
+                            <div style={{ fontSize: '0.68rem', color: '#64748b', marginLeft: 'auto' }}>
                               OTA Price: <span style={{ textDecoration: 'line-through' }}>EGP {benchmarkPrice.toLocaleString()}</span>
                             </div>
                           )}
@@ -1068,7 +1068,7 @@ export default function AccommodationExplorer({
                           color: '#4ade80',
                           fontWeight: 800
                         }}>
-                          <span>🛡️</span>
+                          <span>ðŸ›¡ï¸</span>
                           <span>
                             {item.direct_discount_note ||
                              (savings ? `Book direct on Siwify & save EGP ${savings.toLocaleString()} vs external OTAs` :
@@ -1108,7 +1108,7 @@ export default function AccommodationExplorer({
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <div style={{ fontSize: '0.66rem', color: '#fde68a', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            ✨ Transparent Direct Rates
+                            âœ¨ Transparent Direct Rates
                           </div>
                           <div style={{ fontSize: '1.15rem', fontWeight: 900, color: accentColor }}>
                             Rates Upon Request
@@ -1128,9 +1128,9 @@ export default function AccommodationExplorer({
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            background: '#132016',
+                            background: '#F8FAFC',
                             border: `1.5px solid ${accentColor}`,
-                            color: '#f8fafc',
+                            color: '#0F172A',
                             padding: '0.75rem 0.5rem',
                             borderRadius: '12px',
                             fontSize: '0.8rem',
@@ -1145,15 +1145,15 @@ export default function AccommodationExplorer({
                             boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                           }}
                         >
-                          <span>🏛️ {infoButtonLabel}</span>
+                          <span>ðŸ›ï¸ {infoButtonLabel}</span>
                         </a>
                       ) : (
                         <Link
                           href={generalInfoUrl}
                           style={{
-                            background: '#132016',
+                            background: '#F8FAFC',
                             border: `1.5px solid ${accentColor}`,
-                            color: '#f8fafc',
+                            color: '#0F172A',
                             padding: '0.75rem 0.5rem',
                             borderRadius: '12px',
                             fontSize: '0.8rem',
@@ -1168,7 +1168,7 @@ export default function AccommodationExplorer({
                             boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                           }}
                         >
-                          <span>🏛️ {infoButtonLabel}</span>
+                          <span>ðŸ›ï¸ {infoButtonLabel}</span>
                         </Link>
                       )}
 
@@ -1177,7 +1177,7 @@ export default function AccommodationExplorer({
                         onClick={() => setBookingModalItem(item)}
                         style={{
                           background: 'linear-gradient(135deg, #d4af37 0%, #b48a28 100%)',
-                          color: '#070b08',
+                          color: '#FFFFFF',
                           border: 'none',
                           padding: '0.75rem 0.5rem',
                           borderRadius: '12px',
@@ -1191,7 +1191,7 @@ export default function AccommodationExplorer({
                           boxShadow: '0 4px 15px rgba(212,175,55,0.3)'
                         }}
                       >
-                        <span>{hasPrice ? 'Reserve Direct →' : 'Inquire Direct →'}</span>
+                        <span>{hasPrice ? 'Reserve Direct â†’' : 'Inquire Direct â†’'}</span>
                       </button>
                     </div>
 

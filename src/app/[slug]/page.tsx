@@ -1,885 +1,288 @@
-import { Metadata } from 'next';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { cache } from 'react';
-import VanityBusinessClient from '@/components/VanityBusinessClient';
-import MinisiteBuilderRenderer from '@/components/MinisiteBuilderRenderer';
-import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
-import { fetchMinisiteLayout } from '@/lib/minisite-layout';
-import { query as safeQuery, normalizeCustomData } from '@/lib/db';
-import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, TRAVEL_AGENCY_CORE_SECTION_IDS } from '@/lib/section-registry';
-import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
-import { getPublishedManifest } from '@/lib/minisite-manifest';
-import { getBusinessSlugCandidates } from '@/lib/public-url';
-import { getCurrentUser } from '@/lib/auth';
+import MarketplaceHeader from '@/components/MarketplaceHeader';
+import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 
-// ISR: cache minisite pages for 120 seconds, then regenerate in background.
-export const revalidate = 120;
-export const dynamic = 'auto';
-
-/**
- * Memoized business data fetcher — deduplicates the DB query between
- * generateMetadata() and VanityBusinessPage() which both run for the same
- * page load. React cache() returns the same promise for identical args within
- * one request, so TiDB is hit only once per page render.
- */
-const fetchBusinessData = cache(async (slug: string) => {
-  const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-  const lookupCandidates = isId ? [] : [...new Set(getBusinessSlugCandidates(slug))];
-  const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
-  const nameQueryParts = lookupCandidates.map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?').join(' OR ');
-  const bizParams = isId ? [slug] : [...lookupCandidates, ...lookupCandidates, slug, ...lookupCandidates];
-
-  const rows = await safeQuery<any>(
-    isId
-      ? `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
-          t.features as tier_features, mt.settings as template_features, mt.components as template_components
-         FROM businesses b
-         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE b.id = ?`
-      : `SELECT b.*, (SELECT p.phone FROM profiles p WHERE p.business_id = b.id AND p.role = 'vendor' AND p.phone IS NOT NULL AND p.phone <> '' LIMIT 1) as vendor_phone,
-          t.features as tier_features, mt.settings as template_features, mt.components as template_components
-         FROM businesses b
-         LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-         LEFT JOIN minisite_templates mt ON b.template_id = mt.id
-         WHERE (${slugQueryParts || '0=1'}) OR (b.custom_domain = ? AND b.custom_domain_verified = 1) OR (${nameQueryParts || '0=1'})`,
-    bizParams
-  );
-  return { biz: rows[0] ?? null, isId };
-});
-
-/**
- * SERVER-SIDE SEO ENGINE & REDIRECT HANDLER
- */
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-  try {
-    const { biz, isId } = await fetchBusinessData(slug);
-
-    if (!biz) {
-      const [customPage] = await safeQuery<any>(
-        'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
-        [`website_${slug}`]
-      ).catch(() => []);
-      if (customPage) {
-        let conf: any = {};
-        try { conf = typeof customPage.config === 'string' ? JSON.parse(customPage.config) : customPage.config; } catch {}
-        const pageTitle = conf?.site_settings?.site_name || slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-        return {
-          title: `${pageTitle} — Siwify`,
-          description: conf?.site_settings?.tagline || `Explore ${pageTitle} in Siwa Oasis.`,
-        };
-      }
-      return { title: 'Page Not Found - SiWiFy.com' };
-    }
-    if (isId && biz.slug) return { title: `Redirecting to ${biz.name || 'Business'}...` };
-
-    // Normalize JSON
-    biz.custom_data = normalizeCustomData(biz.custom_data);
-    try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
-    try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
-
-    const data = biz.custom_data || {};
-    const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
-
-    // ── Rich description ──────────────────────────────────────────────
-    const rawDesc = identity.description || identity.section_blog || identity.mini_blog ||
-      data.sec_2_ambience?.section_blog || data.sec_2_ambience?.description || '';
-    const cleanDesc = rawDesc
-      ? rawDesc.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 180)
-      : `Discover the authentic ${biz.name} experience in the heart of Siwa Oasis, Egypt.`;
-
-    // ── Canonical vanity URL with UTM for social attribution ──────────
-    const canonicalUrl = `https://siwify.com/${biz.slug || slug}`;
-    const instagramUtmUrl = `${canonicalUrl}?utm_source=instagram&utm_medium=bio&utm_campaign=minisite`;
-    const tiktokUtmUrl   = `${canonicalUrl}?utm_source=tiktok&utm_medium=bio&utm_campaign=minisite`;
-
-    // ── Hero image resolution (logo → gallery hero → first gallery → fallback) ──
-    const logo = identity.business_logo || identity.logo || identity.logo_url ||
-      data.business_info?.business_logo || data.business_info?.logo ||
-      data.basic?.business_logo || data.basic?.logo;
-
-    // Find a hero gallery image from custom_data for richer OG preview
-    const heroGalleryImg = (() => {
-      for (const secKey of Object.keys(data)) {
-        const sec = data[secKey];
-        if (!sec || typeof sec !== 'object') continue;
-        const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
-        const arr = Array.isArray(gallery) ? gallery : [];
-        for (const item of arr) {
-          const url = typeof item === 'object' ? item.url : item;
-          if (url && typeof url === 'string' && url.startsWith('http') && !url.match(/\.(mp4|webm|mov)$/i)) {
-            return url;
-          }
-        }
-      }
-      return null;
-    })();
-
-    // Find first hero video for og:video (Instagram & Telegram render it)
-    const heroVideo = (() => {
-      for (const secKey of Object.keys(data)) {
-        const sec = data[secKey];
-        if (!sec || typeof sec !== 'object') continue;
-        const gallery = sec.section_gallery || sec.gallery || sec._media?.images || [];
-        const arr = Array.isArray(gallery) ? gallery : [];
-        for (const item of arr) {
-          const url = typeof item === 'object' ? item.url : item;
-          if (url && typeof url === 'string' && url.match(/\.(mp4|webm|mov)$/i)) return url;
-        }
-      }
-      return null;
-    })();
-
-    // Priority: hero gallery photo > logo > fallback landscape
-    const ogImageUrl = heroGalleryImg || logo || 'https://images.unsplash.com/photo-1596874244558-38a67f8af60e?w=1200&q=80';
-
-    // ── WhatsApp phone for direct-booking link ────────────────────────
-    const whatsappNumber = (identity.whatsapp || identity.whatsapp_number || identity.phone || biz.vendor_phone || '')
-      .replace(/[^0-9]/g, '');
-    const whatsappBookingMsg = encodeURIComponent(
-      `Hello ${biz.name}! I found your profile on SiWiFy.com and I'd like to make a direct inquiry.`
-    );
-    const whatsappLink = whatsappNumber
-      ? `https://wa.me/${whatsappNumber}?text=${whatsappBookingMsg}`
-      : null;
-
-    // ── Category / business type label ────────────────────────────────
-    const categoryLabel = identity.category || identity.type || data.basic?.category ||
-      biz.type_name || 'Siwa Oasis Business';
-
-    // ── Keywords ──────────────────────────────────────────────────────
-    const keywords = [
-      biz.name,
-      'Siwa Oasis',
-      categoryLabel,
-      'Egypt',
-      'SiWiFy',
-      identity.instagram_handle ? identity.instagram_handle.replace('@', '') : null,
-      'Direct WhatsApp Booking',
-      'Siwa Desert Safari',
-      'Siwa Accommodation',
-    ].filter(Boolean).join(', ');
-
-    // ── Build metadata object ─────────────────────────────────────────
-    const titleFull = `${biz.name} — ${categoryLabel} · Siwa Oasis`;
-
-    return {
-      title: titleFull,
-      description: cleanDesc,
-      keywords,
-      metadataBase: new URL('https://siwify.com'),
-      alternates: {
-        canonical: canonicalUrl,
-      },
-
-      // ── Open Graph (Facebook, WhatsApp, Telegram, LinkedIn) ────────
-      openGraph: {
-        siteName: 'SiWiFy.com',
-        title: `${biz.name} | ${categoryLabel} — Siwa Oasis`,
-        description: cleanDesc + (whatsappLink ? ' · Book directly on WhatsApp.' : ''),
-        type: 'website',
-        locale: 'en_US',
-        url: instagramUtmUrl,
-        images: [
-          {
-            url: ogImageUrl,
-            width: 1200,
-            height: 630,
-            alt: `${biz.name} — ${categoryLabel} in Siwa Oasis, Egypt`,
-            type: ogImageUrl.includes('cloudinary') ? 'image/jpeg' : undefined,
-          }
-        ],
-        ...(heroVideo ? { videos: [{ url: heroVideo, width: 1280, height: 720, type: 'video/mp4' }] } : {}),
-      },
-
-      // ── Twitter / X Cards ──────────────────────────────────────────
-      twitter: {
-        card: heroVideo ? 'player' : 'summary_large_image',
-        title: `${biz.name} | ${categoryLabel} — Siwa Oasis`,
-        description: cleanDesc,
-        images: [ogImageUrl],
-        ...(heroVideo ? { players: [{ playerUrl: heroVideo, streamUrl: heroVideo, width: 1280, height: 720 }] } : {}),
-        site: '@SiWiFyOasis',
-        creator: identity.twitter_handle ? `@${identity.twitter_handle.replace('@', '')}` : '@SiWiFyOasis',
-      },
-
-      // ── robots / crawlers ──────────────────────────────────────────
-      robots: {
-        index: biz.is_published !== 0,
-        follow: true,
-        googleBot: { index: biz.is_published !== 0, follow: true },
-      },
-
-      // ── Additional link-in-bio UTM variants (stored as other) ──────
-      other: {
-        'og:updated_time': new Date().toISOString(),
-        ...(whatsappLink ? { 'og:see_also': whatsappLink } : {}),
-        // TikTok bio link variant
-        'tiktok:url': tiktokUtmUrl,
-        // Schema.org microdata helpers for Google rich results
-        'application-name': 'SiWiFy.com',
-      },
-    };
-  } catch {
-    return { title: 'SiWiFy.com Minisite' };
-  }
+interface BusinessData {
+  id: string;
+  name: string;
+  slug: string;
+  type_id?: string;
+  subscription_tier?: string;
+  phone?: string;
+  custom_data?: any;
 }
 
-/**
- * VANITY URL MINISITE PAGE (Server Component)
- */
-export default async function VanityBusinessPage({
+export default function CanonicalVanityPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ view?: string; mode?: string }>;
 }) {
-  const { slug } = await params;
-  const sParams = searchParams ? await searchParams : {};
-  const forceSectional = sParams?.view === 'sectional' || sParams?.mode === 'sectional';
-  
-  // Check if it's a UUID (36 chars with dashes)
-  const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-  
-  try {
-    // Use the cached business fetcher — deduplicates with generateMetadata() which runs first.
-    // Also fetch site settings in parallel since it's independent.
-    const [{ biz: rawBiz, isId: _isId }, siteConfigRows] = await Promise.all([
-      fetchBusinessData(slug),
-      safeQuery<any>("SELECT config FROM website_configs WHERE type = 'website_main' LIMIT 1").catch(() => [] as any[]),
-    ]);
+  const [slug, setSlug] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [builderConfig, setBuilderConfig] = useState<any>(null);
+  const [business, setBusiness] = useState<BusinessData | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
-    let siteSettings: any = null;
-    try {
-      if (siteConfigRows?.[0]) {
-        const parsed = typeof siteConfigRows[0].config === 'string' ? JSON.parse(siteConfigRows[0].config) : siteConfigRows[0].config;
-        siteSettings = parsed?.site_settings || null;
-      }
-    } catch {}
-
-    const platformName = siteSettings?.site_name || 'SiWiFy.com';
-    const biz: any = rawBiz;
-
-    // UUID redirect — redirect to the canonical slug URL
-    if (isId && biz?.slug) redirect(`/${biz.slug}`);
-
-    // Canonical slug redirect — redirect if slug differs from stored slug
-    if (!isId && biz?.slug && biz.slug !== slug) {
-      redirect(`/${biz.slug}`);
-    }
-
-
-    // Service controls are optional until the local service migration is applied.
-    if (biz) {
+  useEffect(() => {
+    async function load() {
       try {
-        const [serviceControl] = await safeQuery<any>(
-          'SELECT minisite_status as service_minisite_status, services_expires_at as service_expires_at FROM vendor_service_controls WHERE business_id = ?',
-          [biz.id]
-        );
-        Object.assign(biz, serviceControl || {});
-      } catch {
-        // Keep existing minisites available while older databases are migrated.
-      }
-    }
+        const { slug: s } = await params;
+        setSlug(s);
 
-    // Parse & Normalize JSON fields
-    if (biz) {
-      biz.custom_data = normalizeCustomData(biz.custom_data);
-      try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
-      try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
-    }
-
-    // Expiration check: 30 days trial/temporary visibility window for unverified vendors
-    if (biz) {
-      const isExpired = biz.is_master !== 1 && !biz.is_trusted && biz.minisite_visible_until && new Date(biz.minisite_visible_until) < new Date();
-      if (isExpired) {
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
-            <div style={{ maxWidth: '540px', width: '100%', background: 'rgba(30, 41, 59, 0.4)', border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: '24px', padding: '3rem 2rem', textAlign: 'center', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
-                <i className="fas fa-lock" style={{ color: '#D4AF37', fontSize: '2rem' }} />
-              </div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#f8fafc', marginBottom: '1rem', letterSpacing: '-0.5px' }}>
-                Listing Under Verification
-              </h1>
-              <p style={{ color: '#94a3b8', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: '2rem' }}>
-                To ensure registry authenticity, <strong style={{ color: '#D4AF37' }}>{biz.name}</strong> is temporarily offline.
-                If you are the business owner, please log into your dashboard and complete your identity & authority verification.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.8rem 1.5rem', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#1a1000', borderRadius: '12px', fontWeight: 800, fontSize: '0.88rem', textDecoration: 'none', boxShadow: '0 4px 14px rgba(212,175,55,0.25)', transition: 'transform 0.2s' }}>
-                  Owner Login
-                </Link>
-                <Link href="/" style={{ fontSize: '0.85rem', color: '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-                  Back to {platformName} Registry
-                </Link>
-              </div>
-            </div>
-          </div>
-        );
-      }
-    }
-
-    if (!biz) {
-      // Check if a custom landing page exists in website_configs (saved as website_[slug])
-      const [customPage] = await safeQuery<any>(
-        'SELECT type FROM website_configs WHERE type = ? LIMIT 1',
-        [`website_${slug}`]
-      );
-      if (customPage) {
-        redirect(`/p/${slug}`);
-      }
-
-      return (
-        <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
-          <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '4rem' }}>404</h1>
-          <p style={{ opacity: 0.5 }}>The business &quot;{slug}&quot; was not found in our registry.</p>
-          <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return to {platformName}</Link>
-        </div>
-      );
-    }
-
-    const serviceExpired = biz.service_expires_at && new Date(biz.service_expires_at) < new Date();
-    if (biz.service_minisite_status === 'suspended' || biz.service_minisite_status === 'expired' || serviceExpired) {
-      return (
-        <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '2rem', background: '#0f172a', color: '#fff', textAlign: 'center' }}>
-          <div>
-            <i className="fas fa-pause-circle" style={{ color: '#f0c842', fontSize: '3rem', marginBottom: '1rem' }} />
-            <h1 style={{ margin: '0 0 0.75rem' }}>Minisite temporarily unavailable</h1>
-            <p style={{ color: '#cbd5e1' }}>This listing is currently being reviewed or its service is inactive.</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Fetch the entire business_type ancestor chain in a SINGLE query, then traverse in memory.
-    // Previously this was a sequential while-loop doing one DB round-trip per parent level
-    // (~3-5 queries × ~400ms each from Egypt to TiDB Cloud EU = 1.2-2s wasted).
-    const allTypeRows = await safeQuery<any>(
-      'SELECT id, name, parent_id, sections, own_sections FROM business_types',
-      []
-    );
-    const typeMap = new Map<string, any>(allTypeRows.map((t: any) => [t.id, t]));
-
-    let currentTypeId: string | null = biz.type_id;
-    const collectedSectionIds = new Set<string>();
-    let primaryTypeName = '';
-    const visited = new Set<string>();
-
-    while (currentTypeId && !visited.has(currentTypeId)) {
-      visited.add(currentTypeId);
-      const t = typeMap.get(currentTypeId);
-      if (t) {
-        if (!primaryTypeName) primaryTypeName = t.name || '';
-        const s1 = typeof t.sections === 'string' ? JSON.parse(t.sections || '[]') : t.sections || [];
-        const s2 = typeof t.own_sections === 'string' ? JSON.parse(t.own_sections || '[]') : t.own_sections || [];
-        (Array.isArray(s1) ? s1 : []).forEach((sid: string) => sid && collectedSectionIds.add(sid));
-        (Array.isArray(s2) ? s2 : []).forEach((sid: string) => sid && collectedSectionIds.add(sid));
-        currentTypeId = t.parent_id;
-      } else {
-        currentTypeId = null;
-      }
-    }
-
-    // ── MINISITE BUILDER ENGINE (Custom Builder Layout) ─────────────────
-    // If admin has configured a custom layout (or template) for this minisite,
-    // render it directly via MinisiteBuilderRenderer with governed privileges.
-    const minisiteLayout = !forceSectional ? await fetchMinisiteLayout(biz.slug || slug) : null;
-
-    if (minisiteLayout && Array.isArray(minisiteLayout.components) && minisiteLayout.components.length > 0) {
-      const user = await getCurrentUser().catch(() => null);
-      const isAdmin = ['super_admin', 'content_admin', 'sales_manager', 'support_agent'].includes(user?.role || '');
-
-      let galleryItems: any[] = [];
-      let blogPosts: any[] = [];
-      let tourProducts: any[] = [];
-
-      // In Replace mode, prefetch vendor data for injection
-      if (minisiteLayout.mode === 'replace') {
-        const [gRes, legacyBlogs, businessBlogs, tRes, expRes] = await Promise.all([
-          safeQuery<any>(
-            `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
-             FROM vendor_gallery 
-             WHERE business_id = ? AND approval_status = 'approved' AND show_on_minisite = 1`,
-            [biz.id]
-          ).catch(() => []),
-          safeQuery<any>(
-            `SELECT sb.id, sb.title, sb.content, sb.excerpt, sb.section_id, sb.show_on_main,
-                    sb.show_on_minisite, sb.status, sb.language,
-                    (SELECT c.name
-                     FROM blog_posts bp
-                     JOIN blog_categories c ON c.id = bp.category_id
-                     WHERE bp.target_type = 'business_section'
-                       AND bp.target_business_id = sb.business_id
-                       AND bp.target_section_id = sb.section_id
-                       AND bp.language = sb.language
-                       AND bp.title = sb.title
-                     ORDER BY bp.updated_at DESC
-                     LIMIT 1) AS category_name
-             FROM section_blogs sb
-             WHERE sb.business_id = ? AND sb.status = 'published' AND sb.show_on_minisite = 1
-             ORDER BY sb.published_at DESC`,
-            [biz.id]
-          ).catch(() => []),
-          safeQuery<any>(
-            `SELECT p.id, p.title, p.content, p.excerpt, p.language, p.published_at,
-                    c.name AS category_name, c.slug AS category_slug
-             FROM blog_posts p
-             LEFT JOIN blog_categories c ON c.id = p.category_id
-             WHERE p.target_type = 'business_minisite' AND p.target_business_id = ? AND p.status = 'published'
-             ORDER BY p.published_at DESC`,
-            [biz.id]
-          ).catch(() => []),
-          safeQuery<any>(
-            `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
-            [biz.id]
-          ).catch(() => []),
-          safeQuery<any>(
-            `SELECT * FROM experience_packages WHERE active = 1 AND JSON_CONTAINS(CAST(business_ids AS JSON), JSON_QUOTE(?), '$') ORDER BY created_at DESC`,
-            [String(biz.id)]
-          ).catch(() => []),
+        // 1. Try to fetch custom website config
+        const [resWebsite, resBiz] = await Promise.all([
+          fetch(`/api/jana/website?id=website_${s}`).catch(() => null),
+          fetch(`/api/businesses/${s}`).catch(() => null),
         ]);
-        galleryItems = gRes;
-        const combinedBlogs = [...businessBlogs, ...legacyBlogs].sort(
-          (left, right) => new Date(right.published_at || 0).getTime() - new Date(left.published_at || 0).getTime()
-        );
-        const seenBlogVersions = new Set<string>();
-        blogPosts = combinedBlogs.filter(blog => {
-          const versionKey = `${blog.language || 'en'}:${blog.title}:${blog.content}`;
-          if (seenBlogVersions.has(versionKey)) return false;
-          seenBlogVersions.add(versionKey);
-          return true;
-        });
-        const normalizedExpPackages = (expRes || []).map((p: any) => {
-          const pr = typeof p.pricing === 'string' ? JSON.parse(p.pricing) : (p.pricing || {});
-          return {
-            id: p.id,
-            title: p.name,
-            title_ar: pr.name_ar || p.name_ar,
-            description: p.description,
-            description_ar: pr.description_ar || p.description_ar,
-            price: pr.package_price || pr.price || pr.base_price || 0,
-            original_price: pr.base_price || 0,
-            savings_percentage: pr.savings_percentage || 0,
-            category: pr.category || pr.vendor_category || pr.package_type || 'package',
-            duration_days: pr.duration_days || 1,
-            cover_image: pr.cover_image || p.cover_image || null,
-            highlights: pr.highlights || pr.inclusions || [],
-            is_composed_bundle: pr.is_composed_bundle || false,
-            included_services: pr.included_services || [],
-            is_featured: pr.featured || p.is_featured || false,
-            currency: pr.currency || 'EGP',
-          };
-        });
-        tourProducts = [...normalizedExpPackages, ...tRes];
-      }
 
-      const businessContext = {
-        id: biz.id,
-        slug: biz.slug || slug,
-        name: biz.name,
-        type_id: biz.type_id,
-        type_name: primaryTypeName || biz.type_name || '',
-        custom_data: biz.custom_data,
-        gallery: galleryItems,
-        blogs: blogPosts,
-        tourProducts: tourProducts,
-        siteSettings,
-        vendorPhone: biz.vendor_phone,
-      };
-
-      return (
-        <>
-          <MinisiteClaimBanner
-            businessId={biz.id}
-            businessName={biz.name}
-            slug={biz.slug || slug}
-            initialClaimed={Boolean(biz.is_claimed || biz.custom_data?.claim_record)}
-          />
-          <MinisiteBuilderRenderer
-            layout={minisiteLayout}
-            business={businessContext}
-          />
-        </>
-      );
-    }
-
-    let sectionIds: string[] = Array.from(collectedSectionIds);
-    sectionIds = filterCoreSectionsForBusinessType(biz.type_id, sectionIds);
-
-    // If the business has no assigned section IDs, restore the canonical public set.
-    if (sectionIds.length === 0) {
-      sectionIds = getMinisiteSectionIds(biz.type_id, []);
-    }
-
-    // If the canonical fallback still yields nothing, include all active universal sections.
-    if (sectionIds.length === 0) {
-      sectionIds = allTypeRows
-        .filter((r: any) => r.is_universal === 1 || r.is_universal === true)
-        .map((r: any) => r.id);
-      // If still empty, fall back to DB universal sections query
-      if (sectionIds.length === 0) {
-        const universalRows = await safeQuery<any>('SELECT id FROM sections WHERE is_universal = 1 AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC');
-        sectionIds = (universalRows || []).map((r: any) => r.id);
-      }
-    }
-
-    let sections: any[] = [];
-    if (sectionIds.length > 0) {
-      const placeholders = sectionIds.map(() => '?').join(',');
-
-      // Run all independent DB queries in PARALLEL — eliminates sequential await waterfall.
-      // Previously ~4 sequential round-trips × ~400ms = ~1.6s. Now all run concurrently = ~400ms total.
-      const [rows, fieldDefs, galleryItems, blogPosts, tourProductsResult] = await Promise.all([
-        safeQuery<any>(
-          `SELECT * FROM sections WHERE (id IN (${placeholders}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
-          sectionIds
-        ),
-        // Fetch field metadata definitions to display user-friendly labels on minisite
-        safeQuery<any>(
-          `SELECT name, label, section_id, field_type, options, acl, required_feature FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
-          [biz.type_id]
-        ),
-        // Fetch approved vendor gallery items
-        safeQuery<any>(
-          `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status
-           FROM vendor_gallery
-           WHERE business_id = ? AND approval_status = 'approved' AND show_on_minisite = 1`,
-          [biz.id]
-        ),
-        // Fetch published section blog posts
-        safeQuery<any>(
-          `SELECT sb.id, sb.title, sb.content, sb.excerpt, sb.section_id, sb.show_on_main,
-                  sb.show_on_minisite, sb.status, sb.language,
-                  (SELECT c.name
-                   FROM blog_posts bp
-                   JOIN blog_categories c ON c.id = bp.category_id
-                   WHERE bp.target_type = 'business_section'
-                     AND bp.target_business_id = sb.business_id
-                     AND bp.target_section_id = sb.section_id
-                     AND bp.language = sb.language
-                     AND bp.title = sb.title
-                   ORDER BY bp.updated_at DESC
-                   LIMIT 1) AS category_name
-           FROM section_blogs sb
-           WHERE sb.business_id = ? AND sb.status = 'published' AND sb.show_on_minisite = 1
-           ORDER BY sb.published_at DESC`,
-          [biz.id]
-        ),
-        // Fetch active tour products / packages for travel operators & marketplace catalog
-        safeQuery<any>(
-          `SELECT * FROM tour_products WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1 ORDER BY is_featured DESC, created_at DESC`,
-          [biz.id]
-        ).catch(() => [] as any[]),
-      ]);
-
-      const tourProducts: any[] = tourProductsResult || [];
-
-        sections = rows.map((s: any) => {
-          const sFields = fieldDefs.filter((f: any) => f.section_id === s.id).map((f: any) => ({
-            ...f,
-            acl: (() => { try { return typeof f.acl === 'string' ? JSON.parse(f.acl) : f.acl || {}; } catch { return {}; } })()
-          }));
-          const sGallery = galleryItems.filter((g: any) => g.section_id === s.id);
-          const sBlogs = blogPosts.filter((b: any) => b.section_id === s.id);
-          const sTours = (s.id === 'sec_9_marketplace_catalog' || s.id === 'offers-packages' || s.id === 'package' || s.id === 'catalog') ? tourProducts : [];
-
-          // Resolve Typology-Level Overrides for this specific business typology (biz.type_id)
-          const rules = (() => {
-            try {
-              return typeof s.inheritance_rules === 'string'
-                ? JSON.parse(s.inheritance_rules)
-                : s.inheritance_rules || {};
-            } catch {
-              return {};
-            }
-          })();
-          const typologyRules = rules.typologies?.[biz.type_id] || {};
-          
-          // Resolve required override
-          const isRequiredOverride = typologyRules.required_override;
-          const resolvedRequired = isRequiredOverride === 'required'
-            ? true
-            : (isRequiredOverride === 'optional' ? false : s.required !== 0);
-
-          // Resolve order locked
-          const orderLocked = !!typologyRules.order_locked;
-
-          // Resolve CTA phone override
-          const resolvedCtaPhone = typologyRules.cta_phone || null;
-
-          return {
-            ...s,
-            required: resolvedRequired,
-            order_locked: orderLocked,
-            cta_phone_override: resolvedCtaPhone,
-            fields: sFields,
-            gallery: sGallery,
-            blogs: sBlogs,
-            tourProducts: sTours
-          };
-        });
-      }
-
-    // --- MULTI-LAYERED SECTION GOVERNANCE ---
-    const templateHidden = biz.template_features?.hidden_sections;
-    const customHidden = biz.custom_data?.basic?.hidden_sections || biz.custom_data?.hidden_sections;
-
-    // Check if viewing user is an authenticated admin
-    const user = await getCurrentUser().catch(() => null);
-    const isAdmin = user?.role === 'admin' || (user as any)?.is_admin === true;
-
-    // Fetch Admin Overrides & Custom Labels for this business
-    const controlsResult = await safeQuery<any>(
-      'SELECT section_id, custom_label, admin_hidden, cta_phone FROM business_section_controls WHERE business_id = ?',
-      [biz.id]
-    );
-    const sectionControls: Record<string, any> = {};
-    controlsResult.forEach(c => {
-      sectionControls[c.section_id] = c;
-    });
-
-    // Embed cta_phone into sections so VanityBusinessClient can use it
-    sections = sections.map((s: any) => ({
-      ...s,
-      cta_phone: sectionControls[s.id]?.cta_phone || null,
-    }));
-
-    const sectionComponents: Record<string, any[]> = {};
-    if (sectionIds.length > 0) {
-      // Component data is optional, but we need it before visibility filtering so dynamic
-      // section blocks are not skipped due to TDZ / initialization order issues.
-      let componentRows: any[] = [];
-      try {
-        componentRows = await safeQuery<any>(
-          `SELECT sc.id as component_id, sc.section_id, sc.component_type, sc.label as component_label, sc.config,
-                  scd.id as data_id, scd.data as data_json, scd.status as data_status, scd.title as data_title, scd.display_order as data_display_order,
-                  vs.id as service_id, vs.category as service_category, vs.service_type, vs.title as service_title,
-                  vs.description as service_description, vs.price as service_price, vs.currency as service_currency,
-                  vs.price_unit as service_price_unit, vs.capacity as service_capacity, vs.availability as service_availability
-           FROM section_components sc
-           LEFT JOIN section_component_data scd ON sc.id = scd.section_component_id AND scd.business_id = ? AND scd.status = 'published'
-           LEFT JOIN vendor_services vs ON vs.source_component_data_id = scd.id
-             AND vs.approval_status = 'published'
-             AND JSON_CONTAINS(vs.audience_scopes, JSON_QUOTE('public'), '$')
-             AND JSON_CONTAINS(vs.placements, JSON_QUOTE('minisite'), '$')
-           WHERE sc.section_id IN (${sectionIds.map(() => '?').join(',')})
-             AND (sc.component_type <> 'service_catalog' OR vs.id IS NOT NULL)
-           ORDER BY sc.section_id, sc.display_order, scd.display_order`,
-          [biz.id, ...sectionIds]
-        );
-      } catch (componentError: any) {
-        console.warn('[MINISITE COMPONENTS SKIPPED]', componentError?.message);
-      }
-
-      const componentMap: Record<string, any> = {};
-      componentRows.forEach((row: any) => {
-        if (!componentMap[row.component_id]) {
-          let config = {};
-          try {
-            config = typeof row.config === 'string' ? JSON.parse(row.config) : row.config || {};
-          } catch {
-            config = {};
+        let hasCustom = false;
+        if (resWebsite && resWebsite.ok) {
+          const cfg = await resWebsite.json();
+          const parsed = Array.isArray(cfg) ? cfg[0] : cfg;
+          if (parsed && (parsed.header_components?.length || parsed.body_components?.length || parsed.layout?.length)) {
+            setBuilderConfig(parsed);
+            hasCustom = true;
           }
-
-          componentMap[row.component_id] = {
-            id: row.component_id,
-            sectionId: row.section_id,
-            type: row.component_type,
-            label: row.component_label,
-            config,
-            instances: [] as any[]
-          };
         }
 
-        if (row.data_id) {
-          componentMap[row.component_id].instances.push({
-            id: row.data_id,
-            title: row.data_title,
-            status: row.data_status,
-            data: row.component_type === 'service_catalog' && row.service_id
-              ? {
-                  category: row.service_category,
-                  service_type: row.service_type,
-                  title: row.service_title,
-                  description: row.service_description,
-                  price: row.service_price,
-                  currency: row.service_currency,
-                  price_unit: row.service_price_unit,
-                  capacity: row.service_capacity,
-                  availability: row.service_availability,
-                }
-              : JSON.parse(row.data_json || '{}')
-          });
+        if (resBiz && resBiz.ok) {
+          const b = await resBiz.json();
+          if (b && b.id) {
+            setBusiness(b);
+          }
+        } else if (!hasCustom) {
+          setNotFound(true);
         }
-      });
-
-      Object.values(componentMap).forEach((component: any) => {
-        if (!sectionComponents[component.sectionId]) {
-          sectionComponents[component.sectionId] = [];
-        }
-        sectionComponents[component.sectionId].push(...component.instances.map((instance: any, index: number) => ({
-          id: `${component.id}-${instance.id || index}`,
-          type: component.type,
-          props: instance.data || {},
-          label: component.label,
-          title: instance.title || undefined
-        })));
-      });
-
-      // New canonical services are not tied to the legacy repeatable component
-      // editor. Add approved public minisite services to the same section feed.
-      if (sectionIds.includes('sec_9_marketplace_catalog')) {
-        const canonicalServices = await safeQuery<any>(
-          `SELECT id, category, title, description, price, currency, price_unit, capacity, availability, attributes
-           FROM vendor_services
-           WHERE business_id = ? AND approval_status = 'published'
-             AND JSON_CONTAINS(audience_scopes, JSON_QUOTE('public'), '$')
-             AND JSON_CONTAINS(placements, JSON_QUOTE('minisite'), '$')
-             AND (valid_from IS NULL OR valid_from <= CURRENT_DATE())
-             AND (valid_until IS NULL OR valid_until >= CURRENT_DATE())
-           ORDER BY updated_at DESC`,
-          [biz.id]
-        );
-        if (canonicalServices.length > 0) {
-          const publicServiceFields = await safeQuery<any>(
-            `SELECT t.category, f.name
-             FROM vendor_service_templates t
-             JOIN vendor_service_template_fields f ON f.template_id = t.id
-             WHERE t.active = TRUE AND f.active = TRUE AND f.publicly_visible = TRUE`
-          );
-          const publicFieldNamesByCategory = new Map<string, Set<string>>();
-          publicServiceFields.forEach((field: any) => {
-            if (!publicFieldNamesByCategory.has(field.category)) publicFieldNamesByCategory.set(field.category, new Set());
-            publicFieldNamesByCategory.get(field.category)?.add(field.name);
-          });
-          const serviceSectionTitle = canonicalServices.every((service: any) => service.category === 'transportation')
-            ? 'Vehicles & Transportation Services'
-            : 'Services & Facilities';
-          const serviceItems = canonicalServices.map((service: any) => {
-            const parsedAttributes = typeof service.attributes === 'string'
-              ? JSON.parse(service.attributes || '{}')
-              : service.attributes || {};
-            const attributes = parsedAttributes && typeof parsedAttributes === 'object' && !Array.isArray(parsedAttributes)
-              ? parsedAttributes
-              : {};
-            const publicFieldNames = publicFieldNamesByCategory.get(service.category) || new Set<string>();
-            const publicAttributes = Object.fromEntries(
-              Object.entries(attributes).filter(([name]) => publicFieldNames.has(name))
-            );
-            return {
-              category: attributes.vehicle_type || service.category,
-              title: service.title,
-              description: service.description,
-              price: service.price,
-              currency: service.currency,
-              price_unit: service.price_unit,
-              capacity: service.capacity,
-              availability: service.availability,
-              image: attributes.vehicle_photo_url || attributes.image || null,
-              ...publicAttributes,
-            };
-          });
-          sectionComponents.sec_9_marketplace_catalog = [
-            ...(sectionComponents.sec_9_marketplace_catalog || []),
-            {
-              id: 'canonical-transport-services',
-              type: 'service_catalog',
-              label: serviceSectionTitle,
-              props: { title: serviceSectionTitle, items: serviceItems },
-            },
-          ];
-        }
+      } catch (err) {
+        console.error('Error loading page:', err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
       }
     }
+    load();
+  }, [params]);
 
-    const seenSectionIds = new Set<string>();
-    sections = sections.filter((s: any) => {
-      if (!s || !s.id || seenSectionIds.has(s.id)) return false;
-      const sectionOptions = (() => {
-        try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
-      })();
-      if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
-      if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [], isAdmin)) return false;
-      if (Array.isArray(customHidden) && customHidden.includes(s.id) && !isAdmin) return false;
-      if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id], isAdmin)) return false;
-
-      seenSectionIds.add(s.id);
-      return true;
-    });
-
-    const publishedManifest = await getPublishedManifest(biz.id);
-    if (publishedManifest) {
-      const manifestSections = new Map(publishedManifest.sections.map(section => [section.id, section]));
-      sections = sections
-        .filter((section: any) => manifestSections.get(section.id)?.enabled !== false)
-        .map((section: any) => {
-          const manifestSection = manifestSections.get(section.id);
-          return manifestSection
-            ? { ...section, manifestContent: manifestSection.content, manifestComponents: manifestSection.components }
-            : section;
-        })
-        .sort((left: any, right: any) => (manifestSections.get(left.id)?.order ?? 9999) - (manifestSections.get(right.id)?.order ?? 9999));
-
-      publishedManifest.sections.forEach(section => {
-        if (section.content && typeof section.content === 'object') {
-          biz.custom_data[section.id] = section.content;
-        }
-        if (section.components?.length) {
-          sectionComponents[section.id] = section.components;
-        }
-      });
-    }
-
-    const templatePlan = normalizeMinisiteTemplate(
-      biz.template_id,
-      biz.template_components,
-      sections.map((section: any) => section.id)
-    );
-
-    // Build the final labels mapping using a single precedence rule across all sources.
-    const legacyLabels = biz.custom_data?.section_labels || biz.custom_data?.basic?.section_labels || {};
-    const arabicLabels = biz.custom_data?.section_labels_ar || biz.custom_data?.basic?.section_labels_ar || {};
-    const finalLabels: Record<string, string> = {};
-    const finalLabelsAr: Record<string, string> = {};
-    sections.forEach((s: any) => {
-      const label = getEffectiveSectionLabel(s.id, s.name, { ...biz.custom_data, section_labels: legacyLabels, section_labels_ar: arabicLabels }, sectionControls[s.id]);
-      finalLabels[s.id] = label;
-      const arLabel = getEffectiveSectionLabel(s.id, s.name, { ...biz.custom_data, section_labels: arabicLabels }, sectionControls[s.id]);
-      if (arLabel) {
-        finalLabelsAr[s.id] = arLabel;
-      }
-    });
-
-    // Tier-level section access control
-    const tierRanks: Record<string, number> = { free: 0, basic: 1, pro: 2, premium: 3, enterprise: 4 };
-    const currentBizTier = String(biz.subscription_tier || 'free').toLowerCase();
-    const currentBizRank = tierRanks[currentBizTier] ?? 0;
-    const isMasterOrTrusted = biz.is_master === 1 || biz.is_trusted === 1;
-
-    const lockedSections: string[] = [];
-    sections.forEach((s: any) => {
-      if (s.required_tier && !isMasterOrTrusted) {
-        const reqTier = String(s.required_tier).toLowerCase();
-        const reqRank = tierRanks[reqTier] ?? 1;
-        if (currentBizRank < reqRank) {
-          lockedSections.push(s.id);
-        }
-      }
-    });
-
-    return <VanityBusinessClient slug={slug} initialData={biz} sections={sections} sectionLabels={finalLabels} sectionLabelsAr={finalLabelsAr} sectionComponents={sectionComponents} templatePlan={templatePlan} isMasterTemplate={biz.is_master === 1} isTrusted={biz.is_trusted === 1} siteSettings={siteSettings} lockedSections={lockedSections} isAdmin={isAdmin} />;
-  } catch (e: any) {
-    console.error('[MINISITE ERROR]', slug, e?.message, e?.stack);
+  if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '10rem 2rem', background: '#0f172a', height: '100vh', color: '#fff' }}>
-        <h1 style={{ fontWeight: 900, color: '#D4AF37', fontSize: '2rem' }}>Something went wrong</h1>
-        <p style={{ opacity: 0.5 }}>{e?.message || 'Unknown error loading minisite'}</p>
-        <Link href="/" style={{ color: '#D4AF37', marginTop: '2rem', display: 'inline-block' }}>Return Home</Link>
+      <div style={{
+        minHeight: '100vh',
+        background: '#FFFFFF',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}>
+        <div style={{ width: 44, height: 44, border: '4px solid #F1F5F9', borderTop: '4px solid #D4AF37', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <div style={{ marginTop: '1rem', color: '#64748B', fontWeight: 800, fontSize: '0.8rem', letterSpacing: '2px' }}>
+          LOADING SIWIFY...
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
+
+  // ── Render Builder Layout if available ──
+  if (builderConfig) {
+    const layout = [
+      ...(builderConfig.header_components || []),
+      ...(builderConfig.body_components || []),
+      ...(builderConfig.footer_components || []),
+      ...(builderConfig.layout || []),
+    ];
+    return (
+      <div style={{ minHeight: '100vh', background: '#FFFFFF' }}>
+        <MarketplaceHeader
+          title={builderConfig.site_settings?.site_name || business?.name || slug}
+          accentColor={builderConfig.site_settings?.primary_color || '#D4AF37'}
+        />
+        <DynamicHomepageRenderer
+          layout={layout}
+          settings={builderConfig.site_settings || null}
+          pageId={slug}
+        />
+      </div>
+    );
+  }
+
+  // ── Render Minisite for verified business ──
+  if (business) {
+    const cd = business.custom_data || {};
+    const heroImage = cd.hero_image || cd.basic?.hero_image || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1400';
+    const tagline = cd.tagline || cd.basic?.tagline || 'تجربة أصيلة في واحة سيوة الساحرة';
+    const description = cd.description || cd.basic?.description || `${business.name} هو أحد مقدمي الخدمات والضيافة المعتمدين في واحة سيوة. تواصل مباشرة للحجز والاستفسار.`;
+    const whatsapp = cd.whatsapp || cd.basic?.whatsapp || business.phone || '';
+    const cleanWa = whatsapp.replace(/[^0-9]/g, '');
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#FFFFFF',
+        fontFamily: "'Noto Sans Arabic', 'Cairo', 'Inter', sans-serif",
+        color: '#0F172A',
+      }}>
+        <MarketplaceHeader title={business.name} accentColor="#D4AF37" />
+
+        {/* Hero Banner */}
+        <section style={{
+          position: 'relative',
+          height: 'clamp(320px, 45vw, 520px)',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0F172A',
+        }}>
+          <img
+            src={heroImage}
+            alt={business.name}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }}
+          />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.3) 60%, rgba(15,23,42,0.7) 100%)',
+          }} />
+          <div style={{
+            position: 'relative',
+            zIndex: 2,
+            textAlign: 'center',
+            padding: '0 1.5rem',
+            maxWidth: '800px',
+            color: '#FFFFFF',
+          }}>
+            <div style={{
+              display: 'inline-block',
+              background: 'rgba(212,175,55,0.2)',
+              border: '1px solid #D4AF37',
+              borderRadius: '50px',
+              padding: '0.35rem 1rem',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              color: '#F5E6AD',
+              marginBottom: '1rem',
+            }}>
+              ✓ نشاط معتمد في سيوة · 0% عمولة
+            </div>
+            <h1 style={{ margin: '0 0 0.75rem', fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+              {business.name}
+            </h1>
+            <p style={{ margin: '0 auto 1.5rem', fontSize: 'clamp(0.95rem, 2vw, 1.15rem)', opacity: 0.9, maxWidth: '600px' }}>
+              {tagline}
+            </p>
+            {cleanWa && (
+              <a
+                href={`https://wa.me/${cleanWa.startsWith('00') ? cleanWa.slice(2) : cleanWa.startsWith('01') ? '2' + cleanWa : cleanWa}?text=${encodeURIComponent(`مرحباً ${business.name}، أود الاستفسار عن خدماتكم وحجوزاتكم عبر سيوايفاي.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  background: '#25D366',
+                  color: '#FFFFFF',
+                  padding: '0.85rem 1.75rem',
+                  borderRadius: '50px',
+                  fontWeight: 900,
+                  fontSize: '0.95rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 6px 20px rgba(37,211,102,0.4)',
+                }}
+              >
+                <span>💬</span> تواصل واحجز عبر الواتساب مباشرة
+              </a>
+            )}
+          </div>
+        </section>
+
+        {/* Content Body */}
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+          <div style={{
+            background: '#F8FAFC',
+            borderRadius: '20px',
+            border: '1px solid #E2E8F0',
+            padding: '2rem',
+            marginBottom: '2rem',
+          }}>
+            <h2 style={{ margin: '0 0 1rem', fontSize: '1.3rem', fontWeight: 900, color: '#0F172A' }}>
+              نبذة عن النشاط والخدمات
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+              {description}
+            </p>
+          </div>
+
+          {/* Direct Claim Kicker for Unclaimed Profiles */}
+          <div style={{
+            background: '#FFFFFF',
+            border: '1.5px dashed #CBD5E1',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', marginBottom: '0.35rem' }}>
+              هل أنت صاحب هذا النشاط التجاري؟
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0 0 1rem' }}>
+              يمكنك استلام صفحتك وتعديل بياناتها واستقبال حجوزاتك مباشرة مجاناً وبدون عمولات.
+            </p>
+            <Link
+              href={`/vendor/claim?slug=${business.slug}`}
+              style={{
+                display: 'inline-block',
+                background: '#0F172A',
+                color: '#FFFFFF',
+                padding: '0.65rem 1.5rem',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                textDecoration: 'none',
+              }}
+            >
+              استلام وإدارة النشاط ➔
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // ── Fallback 404 / Exploration Page ──
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#FFFFFF',
+      fontFamily: "'Inter', 'Noto Sans Arabic', sans-serif",
+      color: '#0F172A',
+    }}>
+      <MarketplaceHeader title="Siwify" accentColor="#D4AF37" />
+      <div style={{ maxWidth: '600px', margin: '5rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🌴</div>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, margin: '0 0 0.75rem' }}>
+          واحة سيوة ترحب بك
+        </h1>
+        <p style={{ color: '#64748B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+          الصفحة المطلوبة &ldquo;{slug}&rdquo; غير متوفرة حالياً، يمكنك تصفح قطاعات سيوة وخدماتها المعتمدة:
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/siwa-stay" style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#0F172A', textDecoration: 'none', fontWeight: 700, fontSize: '0.85rem' }}>
+            🛖 الإقامة والفنادق
+          </Link>
+          <Link href="/siwa-go" style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#0F172A', textDecoration: 'none', fontWeight: 700, fontSize: '0.85rem' }}>
+            🚙 رحلات وسفاري
+          </Link>
+          <Link href="/siwa-retreats" style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#0F172A', textDecoration: 'none', fontWeight: 700, fontSize: '0.85rem' }}>
+            🌿 الاستشفاء والاستجمام
+          </Link>
+          <Link href="/" style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#0F172A', color: '#FFFFFF', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
+            الرئيسية
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }

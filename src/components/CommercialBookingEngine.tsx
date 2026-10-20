@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef } from 'react';
 import { CommercialItem, CommercialOption, CardCustomLink } from '@/lib/commercial-types';
@@ -15,23 +15,23 @@ export interface CommercialBookingEngineProps {
   showDirectBookButton?: boolean;
 }
 
-// ─── Authentic Siwa Oasis Palette (Olive, Date Roots, Palm, Golden Dunes) ──
+// â”€â”€â”€ Authentic Siwa Oasis Palette (Olive, Date Roots, Palm, Golden Dunes) â”€â”€
 const SECTOR_CONFIG: Record<string, { gradient: string; label: string; icon: string; accent: string }> = {
-  accommodation:  { gradient: 'linear-gradient(135deg, #132016 0%, #223425 100%)', label: 'Accommodation', icon: '🛖', accent: '#3fa36c' },
-  dining:         { gradient: 'linear-gradient(135deg, #24140a 0%, #4a2814 100%)', label: 'Dining',        icon: '🍽️', accent: '#e58e26' },
-  transports:     { gradient: 'linear-gradient(135deg, #18281b 0%, #28402c 100%)', label: 'Transport',     icon: '🚙', accent: '#d4af37' },
-  activities:     { gradient: 'linear-gradient(135deg, #14281c 0%, #20422d 100%)', label: 'Activity',      icon: '🌊', accent: '#4ade80' },
-  tours:          { gradient: 'linear-gradient(135deg, #2a1e0e 0%, #4d371a 100%)', label: 'Tour',          icon: '🧭', accent: '#f59e0b' },
-  products:       { gradient: 'linear-gradient(135deg, #25180f 0%, #462c19 100%)', label: 'Product',       icon: '🫒', accent: '#c8963e' },
+  accommodation:  { gradient: 'linear-gradient(135deg, #F8FAFC 0%, #223425 100%)', label: 'Accommodation', icon: 'ðŸ›–', accent: '#3fa36c' },
+  dining:         { gradient: 'linear-gradient(135deg, #24140a 0%, #4a2814 100%)', label: 'Dining',        icon: 'ðŸ½ï¸', accent: '#e58e26' },
+  transports:     { gradient: 'linear-gradient(135deg, #F1F5F9 0%, #28402c 100%)', label: 'Transport',     icon: 'ðŸš™', accent: '#d4af37' },
+  activities:     { gradient: 'linear-gradient(135deg, #14281c 0%, #20422d 100%)', label: 'Activity',      icon: 'ðŸŒŠ', accent: '#4ade80' },
+  tours:          { gradient: 'linear-gradient(135deg, #2a1e0e 0%, #4d371a 100%)', label: 'Tour',          icon: 'ðŸ§­', accent: '#f59e0b' },
+  products:       { gradient: 'linear-gradient(135deg, #25180f 0%, #462c19 100%)', label: 'Product',       icon: 'ðŸ«’', accent: '#c8963e' },
 };
 
-// ─── LINK TYPE STYLES (Oasis Dark Olive, Date Roots & Dune Gold) ─────────────
+// â”€â”€â”€ LINK TYPE STYLES (Oasis Dark Olive, Date Roots & Dune Gold) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LINK_TYPE_STYLE: Record<string, { bg: string; color: string; border: string }> = {
   platform_vendor: { bg: 'linear-gradient(135deg, #15291b, #24422b)', color: '#86efac', border: '1px solid rgba(134,239,172,0.3)' },
   external_ota:    { bg: 'linear-gradient(135deg, #1c271e, #253629)', color: '#fde68a', border: '1px solid rgba(212,175,55,0.25)' },
   direct_partner:  { bg: 'linear-gradient(135deg, #331e11, #52311b)', color: '#fde68a', border: '1px solid rgba(245,158,11,0.3)' },
   social_contact:  { bg: 'linear-gradient(135deg, #182e1f, #23472e)', color: '#86efac', border: '1px solid rgba(74,222,128,0.3)' },
-  custom:          { bg: '#1c271e', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)' },
+  custom:          { bg: '#1c271e', color: '#475569', border: '1px solid rgba(255,255,255,0.08)' },
 };
 
 export default function CommercialBookingEngine({
@@ -61,7 +61,7 @@ export default function CommercialBookingEngine({
 
   // Resolve links (admin custom_links first, then general info url, then legacy comparison_links)
   const generalInfoUrl = item.minisite_url || (item.business_slug ? `/${item.business_slug}#sec_3_facilities` : '#');
-  const infoButtonLabel = item.minisite_label || 'More About ↗';
+  const infoButtonLabel = item.minisite_label || 'More About â†—';
 
   const minisitePill: CardCustomLink[] = generalInfoUrl !== '#' ? [{
     id: `minisite_${item.business_slug || item.id}`,
@@ -70,7 +70,7 @@ export default function CommercialBookingEngine({
     type: 'platform_vendor' as const,
     badge_text: infoButtonLabel,
     accent_color: '#4ade80',
-    icon: '🏛️',
+    icon: 'ðŸ›ï¸',
     is_active: true,
     is_registered_vendor: true,
   }] : [];
@@ -83,24 +83,24 @@ export default function CommercialBookingEngine({
           url: item.comparison_links.booking_com_url, type: 'external_ota' as const,
           ota_name: item.comparison_links.ota_name ?? 'Booking.com',
           benchmark_price: item.comparison_links.ota_benchmark_price,
-          badge_text: `Booking.com`, accent_color: '#d4af37', icon: '🏨', is_active: true,
+          badge_text: `Booking.com`, accent_color: '#d4af37', icon: 'ðŸ¨', is_active: true,
         }] : []),
         ...(item.comparison_links.tripadvisor_url ? [{
           id: 'legacy_ta', title: 'TripAdvisor Traveler Rating',
           url: item.comparison_links.tripadvisor_url, type: 'external_ota' as const,
           ota_name: 'TripAdvisor', badge_text: 'TripAdvisor',
-          accent_color: '#4ade80', icon: '⭐', is_active: true,
+          accent_color: '#4ade80', icon: 'â­', is_active: true,
         }] : []),
         ...(item.comparison_links.viator_url ? [{
           id: 'legacy_viator', title: 'Viator Experience Check',
           url: item.comparison_links.viator_url, type: 'external_ota' as const,
           ota_name: 'Viator', badge_text: 'Viator',
-          accent_color: '#f59e0b', icon: '🧭', is_active: true,
+          accent_color: '#f59e0b', icon: 'ðŸ§­', is_active: true,
         }] : []),
         ...(item.comparison_links.google_reviews_url ? [{
           id: 'legacy_google', title: 'Google Maps & Location',
           url: item.comparison_links.google_reviews_url, type: 'custom' as const,
-          badge_text: 'Google Maps', accent_color: '#e58e26', icon: '📍', is_active: true,
+          badge_text: 'Google Maps', accent_color: '#e58e26', icon: 'ðŸ“', is_active: true,
         }] : []),
       ] : []);
 
@@ -118,13 +118,13 @@ export default function CommercialBookingEngine({
   const handleNext = (e: React.MouseEvent) => { e.stopPropagation(); setActiveImg(i => (i === gallery.length - 1 ? 0 : i + 1)); };
   const handleOption = (opt: CommercialOption) => { setSelectedOption(opt); onSelectOption?.(opt); };
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // ① EMBEDDED MODE — Compact Dark Olive Glass Card (Itinerary & Retreat Day Plan)
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // â‘  EMBEDDED MODE â€” Compact Dark Olive Glass Card (Itinerary & Retreat Day Plan)
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (mode === 'embedded') {
     return (
       <div style={{
-        background: 'linear-gradient(145deg, #0d150f 0%, #17241a 100%)',
+        background: 'linear-gradient(145deg, #F8FAFC 0%, #17241a 100%)',
         border: '1px solid rgba(212,175,55,0.18)',
         borderRadius: '20px',
         overflow: 'hidden',
@@ -177,8 +177,8 @@ export default function CommercialBookingEngine({
                 fontSize: '0.68rem', fontWeight: 800, color: '#e2e8f0',
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}>
-                <span>⏱️</span>
-                <span>{slotTimeStart}{slotTimeEnd ? ` – ${slotTimeEnd}` : ''}</span>
+                <span>â±ï¸</span>
+                <span>{slotTimeStart}{slotTimeEnd ? ` â€“ ${slotTimeEnd}` : ''}</span>
               </div>
             )}
 
@@ -190,13 +190,13 @@ export default function CommercialBookingEngine({
                   background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%',
                   width: '26px', height: '26px', color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>‹</button>
+                }}>â€¹</button>
                 <button type="button" onClick={handleNext} aria-label="Next image" style={{
                   position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
                   background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%',
                   width: '26px', height: '26px', color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>›</button>
+                }}>â€º</button>
               </>
             )}
 
@@ -208,7 +208,7 @@ export default function CommercialBookingEngine({
                 padding: '3px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '3px',
                 fontSize: '0.7rem', fontWeight: 900, color: '#fbbf24',
               }}>
-                ★ {item.rating}
+                â˜… {item.rating}
               </div>
             )}
           </div>
@@ -236,20 +236,20 @@ export default function CommercialBookingEngine({
                 }}
               >
                 <span>{item.business_name}</span>
-                <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>↗ Minisite</span>
+                <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>â†— Minisite</span>
               </a>
             </div>
-            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#f8fafc', lineHeight: 1.35 }}>
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.35 }}>
               {item.title_en}
             </h4>
           </div>
 
           {/* Description */}
-          <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(248,250,252,0.65)', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {item.desc_en}
           </p>
 
-          {/* ── SPECIAL TRANSPORTATION MODERN HUB ── */}
+          {/* â”€â”€ SPECIAL TRANSPORTATION MODERN HUB â”€â”€ */}
           {item.sector === 'transports' && (
             <div style={{
               background: 'linear-gradient(145deg, #132015, #1d3020)',
@@ -260,7 +260,7 @@ export default function CommercialBookingEngine({
             }}>
               {item.route_label && (
                 <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fde68a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🛣️</span><span>{item.route_label}</span>
+                  <span>ðŸ›£ï¸</span><span>{item.route_label}</span>
                 </div>
               )}
 
@@ -268,13 +268,13 @@ export default function CommercialBookingEngine({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <div style={{ background: 'rgba(46,75,49,0.4)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '10px', padding: '0.5rem 0.6rem' }}>
                   <div style={{ fontSize: '0.58rem', textTransform: 'uppercase', color: '#86efac', fontWeight: 800, marginBottom: '2px' }}>
-                    📍 DEPARTS
+                    ðŸ“ DEPARTS
                   </div>
                   <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#4ade80' }}>
                     {item.departure_time || 'Daily Schedule'}
                   </div>
                   {item.departure_station && (
-                    <div style={{ fontSize: '0.64rem', color: 'rgba(248,250,252,0.65)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#64748b', marginTop: '2px' }}>
                       {item.departure_station}
                     </div>
                   )}
@@ -282,13 +282,13 @@ export default function CommercialBookingEngine({
 
                 <div style={{ background: 'rgba(69,40,23,0.45)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '10px', padding: '0.5rem 0.6rem' }}>
                   <div style={{ fontSize: '0.58rem', textTransform: 'uppercase', color: '#fde68a', fontWeight: 800, marginBottom: '2px' }}>
-                    🏁 ARRIVES
+                    ðŸ ARRIVES
                   </div>
                   <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#D4AF37' }}>
                     {item.estimated_arrival_time || 'Siwa Center'}
                   </div>
                   {item.arrival_station && (
-                    <div style={{ fontSize: '0.64rem', color: 'rgba(248,250,252,0.65)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.64rem', color: '#64748b', marginTop: '2px' }}>
                       {item.arrival_station}
                     </div>
                   )}
@@ -297,10 +297,10 @@ export default function CommercialBookingEngine({
 
               {/* Vehicle & Capacity Pill */}
               {(item.vehicle_type || item.vehicle_capacity) && (
-                <div style={{ fontSize: '0.68rem', color: '#f8fafc', background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🚐</span>
+                <div style={{ fontSize: '0.68rem', color: '#0F172A', background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>ðŸš</span>
                   <span style={{ fontWeight: 700 }}>{item.vehicle_type}</span>
-                  {item.vehicle_capacity && <span style={{ opacity: 0.6 }}>· {item.vehicle_capacity} Seats</span>}
+                  {item.vehicle_capacity && <span style={{ opacity: 0.6 }}>Â· {item.vehicle_capacity} Seats</span>}
                 </div>
               )}
             </div>
@@ -320,9 +320,9 @@ export default function CommercialBookingEngine({
                     background: st.bg, color: st.color, border: st.border,
                     transition: 'all 0.15s ease',
                   }}>
-                    <span>{link.icon ?? '↗'}</span>
+                    <span>{link.icon ?? 'â†—'}</span>
                     <span>{link.badge_text ?? link.title}</span>
-                    {isPV && <span style={{ fontSize: '0.6rem' }}>🛡️</span>}
+                    {isPV && <span style={{ fontSize: '0.6rem' }}>ðŸ›¡ï¸</span>}
                   </a>
                 );
               })}
@@ -337,12 +337,12 @@ export default function CommercialBookingEngine({
               borderRadius: '12px', padding: '0.6rem 0.8rem',
               display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
             }}>
-              <span style={{ fontSize: '1.1rem' }}>🔥</span>
+              <span style={{ fontSize: '1.1rem' }}>ðŸ”¥</span>
               <div>
                 <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#fde68a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {item.hot_offer.badge_label ?? 'Direct Booking Advantage'}
                 </div>
-                <div style={{ fontSize: '0.73rem', color: 'rgba(248,250,252,0.85)', marginTop: '2px', lineHeight: 1.4 }}>
+                <div style={{ fontSize: '0.73rem', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}>
                   {item.hot_offer.perk_description}
                 </div>
               </div>
@@ -375,7 +375,7 @@ export default function CommercialBookingEngine({
                 <>
                   <div style={{ fontSize: '0.62rem', color: 'rgba(248,250,252,0.45)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Direct Rate</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A' }}>
                       {item.currency || 'EGP'} {currentPrice.toLocaleString()}
                     </span>
                     <span style={{ fontSize: '0.7rem', color: 'rgba(248,250,252,0.5)' }}>/{item.price_unit || 'night'}</span>
@@ -393,7 +393,7 @@ export default function CommercialBookingEngine({
                 <button type="button" onClick={onCustomiseClick} style={{
                   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '8px', padding: '0.35rem 0.7rem',
-                  fontSize: '0.7rem', fontWeight: 700, color: '#cbd5e1', cursor: 'pointer',
+                  fontSize: '0.7rem', fontWeight: 700, color: '#475569', cursor: 'pointer',
                 }}>
                   Change
                 </button>
@@ -404,7 +404,7 @@ export default function CommercialBookingEngine({
                   onClick={() => setIsModalOpen(true)}
                   style={{
                     background: `linear-gradient(135deg, ${accentColor} 0%, #c8963e 100%)`,
-                    color: '#0d150f',
+                    color: '#F8FAFC',
                     border: 'none', borderRadius: '8px',
                     padding: '0.45rem 1rem', fontSize: '0.75rem', fontWeight: 900,
                     cursor: 'pointer', boxShadow: '0 4px 14px rgba(212,175,55,0.25)',
@@ -428,14 +428,14 @@ export default function CommercialBookingEngine({
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // ② STANDALONE MODE — Full Cinematic Dark Olive & Golden Dunes Showcase Card
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // â‘¡ STANDALONE MODE â€” Full Cinematic Dark Olive & Golden Dunes Showcase Card
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   return (
     <article
       ref={cardRef}
       style={{
-        background: '#0d150f',
+        background: '#F8FAFC',
         border: '1px solid rgba(212,175,55,0.18)',
         borderRadius: '24px',
         overflow: 'hidden',
@@ -454,7 +454,7 @@ export default function CommercialBookingEngine({
         (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,175,55,0.08)';
       }}
     >
-      {/* ── ① HERO GALLERY CAROUSEL ── */}
+      {/* â”€â”€ â‘  HERO GALLERY CAROUSEL â”€â”€ */}
       <div style={{ position: 'relative', height: '260px', overflow: 'hidden', background: '#111b13' }}>
         <img
           src={gallery[activeImg]}
@@ -466,7 +466,7 @@ export default function CommercialBookingEngine({
         {/* Cinematic gradient overlay */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(to top, #0d150f 0%, rgba(13,21,15,0.4) 50%, rgba(13,21,15,0.1) 100%)',
+          background: 'linear-gradient(to top, #F8FAFC 0%, rgba(13,21,15,0.4) 50%, rgba(13,21,15,0.1) 100%)',
         }} />
 
         {/* Top Badges Bar */}
@@ -499,7 +499,7 @@ export default function CommercialBookingEngine({
               display: 'flex', alignItems: 'center', gap: '4px',
               boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
             }}>
-              <span>★</span>
+              <span>â˜…</span>
               <span>{item.rating}</span>
               {item.reviews_count && (
                 <span style={{ color: 'rgba(248,250,252,0.6)', fontSize: '0.68rem', fontWeight: 600 }}>
@@ -515,10 +515,10 @@ export default function CommercialBookingEngine({
               background: 'rgba(13,21,15,0.7)', backdropFilter: 'blur(8px)',
               border: '1px solid rgba(255,255,255,0.1)',
               padding: '3px 10px', borderRadius: '20px',
-              fontSize: '0.65rem', fontWeight: 800, color: '#cbd5e1',
+              fontSize: '0.65rem', fontWeight: 800, color: '#475569',
               display: 'flex', alignItems: 'center', gap: '4px',
             }}>
-              <span>📷</span>
+              <span>ðŸ“·</span>
               <span>{activeImg + 1}/{gallery.length}</span>
             </div>
           )}
@@ -534,7 +534,7 @@ export default function CommercialBookingEngine({
               width: '36px', height: '36px', color: '#fff', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.2rem', transition: 'all 0.2s', zIndex: 3,
-            }}>‹</button>
+            }}>â€¹</button>
             <button type="button" onClick={handleNext} aria-label="Next image" style={{
               position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
               background: 'rgba(13,21,15,0.7)', backdropFilter: 'blur(8px)',
@@ -542,7 +542,7 @@ export default function CommercialBookingEngine({
               width: '36px', height: '36px', color: '#fff', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.2rem', transition: 'all 0.2s', zIndex: 3,
-            }}>›</button>
+            }}>â€º</button>
 
             {/* Pill-dot indicator */}
             <div style={{
@@ -589,8 +589,8 @@ export default function CommercialBookingEngine({
                 gap: '5px'
               }}
             >
-              <span>🏛️ {item.business_name}</span>
-              <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>• View Minisite ↗</span>
+              <span>ðŸ›ï¸ {item.business_name}</span>
+              <span style={{ fontSize: '0.62rem', color: '#4ade80' }}>â€¢ View Minisite â†—</span>
             </a>
           </div>
           <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
@@ -598,13 +598,13 @@ export default function CommercialBookingEngine({
           </h3>
           {item.location_name && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '0.72rem', color: 'rgba(248,250,252,0.75)' }}>
-              <span>📍</span><span>{item.location_name}</span>
+              <span>ðŸ“</span><span>{item.location_name}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── ② CARD BODY ── */}
+      {/* â”€â”€ â‘¡ CARD BODY â”€â”€ */}
       <div style={{ padding: '1.4rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
 
         {/* Description */}
@@ -612,7 +612,7 @@ export default function CommercialBookingEngine({
           {item.desc_en}
         </p>
 
-        {/* ── ③ VERIFIED LINKS & BENCHMARK PRICES (Dark Olive / Date Roots) ── */}
+        {/* â”€â”€ â‘¢ VERIFIED LINKS & BENCHMARK PRICES (Dark Olive / Date Roots) â”€â”€ */}
         {resolvedLinks.length > 0 && (
           <div style={{
             background: 'linear-gradient(135deg, #111b12 0%, #19271a 100%)',
@@ -624,7 +624,7 @@ export default function CommercialBookingEngine({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.67rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                🔗 Verified Provider &amp; Market Rates
+                ðŸ”— Verified Provider &amp; Market Rates
               </span>
             </div>
 
@@ -642,15 +642,15 @@ export default function CommercialBookingEngine({
                     transition: 'all 0.18s ease',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                   }}>
-                    <span>{link.icon ?? '↗'}</span>
+                    <span>{link.icon ?? 'â†—'}</span>
                     <span>{link.badge_text ?? link.title}</span>
-                    {isPV && <span style={{ fontSize: '0.6rem' }}>🛡️</span>}
+                    {isPV && <span style={{ fontSize: '0.6rem' }}>ðŸ›¡ï¸</span>}
                     {link.benchmark_price && (
                       <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 700 }}>
                         EGP {link.benchmark_price.toLocaleString()}
                       </span>
                     )}
-                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>↗</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>â†—</span>
                   </a>
                 );
               })}
@@ -666,7 +666,7 @@ export default function CommercialBookingEngine({
                 borderRadius: '12px',
                 flexWrap: 'wrap', gap: '0.4rem',
               }}>
-                <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
+                <div style={{ fontSize: '0.72rem', color: '#475569' }}>
                   <span>{benchmarkLink.ota_name ?? 'Market'} benchmark: </span>
                   <span style={{ textDecoration: 'line-through', fontWeight: 800, color: 'rgba(248,250,252,0.45)' }}>
                     EGP {benchmarkLink.benchmark_price?.toLocaleString()}
@@ -680,7 +680,7 @@ export default function CommercialBookingEngine({
                     fontSize: '0.72rem', fontWeight: 900,
                     border: '1px solid rgba(74,222,128,0.3)',
                   }}>
-                    💰 EGP {savings.toLocaleString()}
+                    ðŸ’° EGP {savings.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -688,7 +688,7 @@ export default function CommercialBookingEngine({
           </div>
         )}
 
-        {/* ── ④ HOT OFFER CALLOUT (Date Palm Roots & Golden Dunes) ── */}
+        {/* â”€â”€ â‘£ HOT OFFER CALLOUT (Date Palm Roots & Golden Dunes) â”€â”€ */}
         {item.hot_offer && (
           <div style={{
             background: 'linear-gradient(135deg, rgba(62,36,21,0.6) 0%, rgba(94,55,32,0.4) 50%, rgba(36,54,37,0.5) 100%)',
@@ -699,12 +699,12 @@ export default function CommercialBookingEngine({
             boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(212,175,55,0.15)',
             position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ fontSize: '1.6rem', lineHeight: 1, flexShrink: 0 }}>🔥</div>
+            <div style={{ fontSize: '1.6rem', lineHeight: 1, flexShrink: 0 }}>ðŸ”¥</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#fde68a', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '3px' }}>
                 {item.hot_offer.badge_label ?? 'Direct Booking Advantage'}
               </div>
-              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#f8fafc', lineHeight: 1.35, marginBottom: '4px' }}>
+              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.35, marginBottom: '4px' }}>
                 {item.hot_offer.title}
               </div>
               <div style={{ fontSize: '0.8rem', color: '#fde68a', lineHeight: 1.5 }}>
@@ -714,7 +714,7 @@ export default function CommercialBookingEngine({
           </div>
         )}
 
-        {/* ── ⑤ MODERN TRANSPORTATION COMPLETE SPECIFICATION ── */}
+        {/* â”€â”€ â‘¤ MODERN TRANSPORTATION COMPLETE SPECIFICATION â”€â”€ */}
         {item.sector === 'transports' && (
           <div style={{
             background: 'linear-gradient(145deg, #111c13 0%, #1a2a1c 100%)',
@@ -726,7 +726,7 @@ export default function CommercialBookingEngine({
             {/* Header: Journey Type & Route */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '1rem' }}>🚌</span>
+                <span style={{ fontSize: '1rem' }}>ðŸšŒ</span>
                 <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {item.booking_unit_type === 'seat' ? 'Scheduled Passenger Coach' : 'Private Desert 4x4 Expedition'}
                 </span>
@@ -737,18 +737,18 @@ export default function CommercialBookingEngine({
                   padding: '3px 12px', borderRadius: '20px',
                   fontSize: '0.7rem', color: '#fde68a', fontWeight: 800,
                 }}>
-                  ⏱️ Journey: {item.duration_approx}
+                  â±ï¸ Journey: {item.duration_approx}
                 </span>
               )}
             </div>
 
             {item.route_label && (
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-                🛣️ {item.route_label}
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                ðŸ›£ï¸ {item.route_label}
               </div>
             )}
 
-            {/* Departure ─── Arrival Visual Transit Path */}
+            {/* Departure â”€â”€â”€ Arrival Visual Transit Path */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               {/* Departure Station */}
               <div style={{
@@ -757,13 +757,13 @@ export default function CommercialBookingEngine({
                 borderRadius: '14px', padding: '0.8rem 0.9rem',
               }}>
                 <div style={{ fontSize: '0.62rem', color: '#86efac', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em', marginBottom: '3px' }}>
-                  📍 DEPARTURE STATION
+                  ðŸ“ DEPARTURE STATION
                 </div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#4ade80' }}>
                   {item.departure_time ?? 'Scheduled Departure'}
                 </div>
                 {item.departure_station && (
-                  <div style={{ fontSize: '0.72rem', color: 'rgba(248,250,252,0.85)', marginTop: '4px', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '4px', fontWeight: 600 }}>
                     {item.departure_station}
                   </div>
                 )}
@@ -776,13 +776,13 @@ export default function CommercialBookingEngine({
                 borderRadius: '14px', padding: '0.8rem 0.9rem',
               }}>
                 <div style={{ fontSize: '0.62rem', color: '#fde68a', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em', marginBottom: '3px' }}>
-                  🏁 OASIS ARRIVAL
+                  ðŸ OASIS ARRIVAL
                 </div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#D4AF37' }}>
                   {item.estimated_arrival_time ?? 'Siwa Arrival'}
                 </div>
                 {item.arrival_station && (
-                  <div style={{ fontSize: '0.72rem', color: 'rgba(248,250,252,0.85)', marginTop: '4px', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '4px', fontWeight: 600 }}>
                     {item.arrival_station}
                   </div>
                 )}
@@ -798,13 +798,13 @@ export default function CommercialBookingEngine({
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 flexWrap: 'wrap', gap: '0.5rem',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#f8fafc' }}>
-                  <span>🚐</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#0F172A' }}>
+                  <span>ðŸš</span>
                   <span><strong style={{ color: '#D4AF37' }}>Fleet Model:</strong> {item.vehicle_type}</span>
                 </div>
                 {item.vehicle_capacity && (
                   <div style={{ fontSize: '0.72rem', color: '#a7f3d0', fontWeight: 800 }}>
-                    👥 Capacity: {item.vehicle_capacity} Seats
+                    ðŸ‘¥ Capacity: {item.vehicle_capacity} Seats
                   </div>
                 )}
               </div>
@@ -825,7 +825,7 @@ export default function CommercialBookingEngine({
                       fontSize: '0.7rem', color: '#e2e8f0', fontWeight: 600,
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                     }}>
-                      <span style={{ color: '#4ade80' }}>✓</span> {a}
+                      <span style={{ color: '#4ade80' }}>âœ“</span> {a}
                     </span>
                   ))}
                 </div>
@@ -834,7 +834,7 @@ export default function CommercialBookingEngine({
           </div>
         )}
 
-        {/* ── ⑥ SENSORY & ARCHITECTURAL DNA (Non-transport) ── */}
+        {/* â”€â”€ â‘¥ SENSORY & ARCHITECTURAL DNA (Non-transport) â”€â”€ */}
         {item.sector !== 'transports' && (item.building_material || item.view_type || item.vibe_ambience || item.menu_highlights) && (
           <div style={{
             background: 'rgba(255,255,255,0.03)',
@@ -846,31 +846,31 @@ export default function CommercialBookingEngine({
             gap: '0.5rem',
           }}>
             {item.building_material && (
-              <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: '#cbd5e1' }}>
-                <span>🏛️</span>
+              <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: '#475569' }}>
+                <span>ðŸ›ï¸</span>
                 <span><strong style={{ color: '#D4AF37' }}>Structure:</strong> {item.building_material}</span>
               </div>
             )}
             {item.view_type && (
-              <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: '#cbd5e1' }}>
-                <span>🌅</span>
+              <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: '#475569' }}>
+                <span>ðŸŒ…</span>
                 <span><strong style={{ color: '#D4AF37' }}>View:</strong> {item.view_type}</span>
               </div>
             )}
             {item.vibe_ambience && (
               <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: 'rgba(248,250,252,0.7)' }}>
-                <span>✨</span><em>{item.vibe_ambience}</em>
+                <span>âœ¨</span><em>{item.vibe_ambience}</em>
               </div>
             )}
             {item.menu_highlights && item.menu_highlights.length > 0 && (
-              <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: '#cbd5e1', gridColumn: '1 / -1' }}>
-                <span>🍽️</span><span><strong style={{ color: '#D4AF37' }}>Menu:</strong> {item.menu_highlights.join(' · ')}</span>
+              <div style={{ display: 'flex', gap: '6px', fontSize: '0.79rem', color: '#475569', gridColumn: '1 / -1' }}>
+                <span>ðŸ½ï¸</span><span><strong style={{ color: '#D4AF37' }}>Menu:</strong> {item.menu_highlights.join(' Â· ')}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* ── ⑦ EXECUTING PARTNER BADGE ── */}
+        {/* â”€â”€ â‘¦ EXECUTING PARTNER BADGE â”€â”€ */}
         {item.executing_partner && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem',
@@ -879,9 +879,9 @@ export default function CommercialBookingEngine({
             borderRadius: '14px', padding: '0.65rem 0.9rem',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+              <span style={{ fontSize: '1.1rem' }}>ðŸ›¡ï¸</span>
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#f8fafc' }}>{item.executing_partner.name}</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0F172A' }}>{item.executing_partner.name}</div>
                 <div style={{ fontSize: '0.68rem', color: '#86efac' }}>{item.executing_partner.role_title}</div>
               </div>
             </div>
@@ -896,7 +896,7 @@ export default function CommercialBookingEngine({
           </div>
         )}
 
-        {/* ── ⑧ OPTION SELECTOR ── */}
+        {/* â”€â”€ â‘§ OPTION SELECTOR â”€â”€ */}
         {item.options && item.options.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 900, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -916,7 +916,7 @@ export default function CommercialBookingEngine({
                     boxShadow: isSel ? '0 0 12px rgba(212,175,55,0.2)' : 'none',
                   }}>
                     {opt.name_en}
-                    {opt.capacity && <span style={{ fontSize: '0.65rem', marginLeft: '4px', opacity: 0.6 }}>· {opt.capacity}</span>}
+                    {opt.capacity && <span style={{ fontSize: '0.65rem', marginLeft: '4px', opacity: 0.6 }}>Â· {opt.capacity}</span>}
                   </button>
                 );
               })}
@@ -924,16 +924,16 @@ export default function CommercialBookingEngine({
           </div>
         )}
 
-        {/* ── ⑨ PACKAGE INCLUSIONS ── */}
+        {/* â”€â”€ â‘¨ PACKAGE INCLUSIONS â”€â”€ */}
         {item.inclusions && item.inclusions.length > 0 && (
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '0.9rem 1rem' }}>
             <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-              ✨ Package Inclusions:
+              âœ¨ Package Inclusions:
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.35rem' }}>
               {item.inclusions.map((inc, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: 'rgba(248,250,252,0.8)' }}>
-                  <span style={{ color: '#4ade80', fontWeight: 900, flexShrink: 0, marginTop: '1px' }}>✓</span>
+                  <span style={{ color: '#4ade80', fontWeight: 900, flexShrink: 0, marginTop: '1px' }}>âœ“</span>
                   <span>{inc}</span>
                 </div>
               ))}
@@ -941,7 +941,7 @@ export default function CommercialBookingEngine({
           </div>
         )}
 
-        {/* ── ⑩ PRICE & DIRECT BOOKING CTA ── */}
+        {/* â”€â”€ â‘© PRICE & DIRECT BOOKING CTA â”€â”€ */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginTop: 'auto', paddingTop: '1.1rem',
@@ -957,7 +957,7 @@ export default function CommercialBookingEngine({
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '1.65rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+                  <span style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
                     {item.currency || 'EGP'} {currentPrice.toLocaleString()}
                   </span>
                   <span style={{ fontSize: '0.78rem', color: 'rgba(248,250,252,0.5)', fontWeight: 600 }}>/{item.price_unit || 'night'}</span>
@@ -986,8 +986,8 @@ export default function CommercialBookingEngine({
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  background: '#132016',
-                  color: '#f8fafc',
+                  background: '#F8FAFC',
+                  color: '#0F172A',
                   border: `1.5px solid ${accentColor}`,
                   padding: '0.85rem 1.25rem',
                   borderRadius: '14px',
@@ -1001,8 +1001,8 @@ export default function CommercialBookingEngine({
                   transition: 'all 0.2s ease',
                 }}
               >
-                <span>🏛️ {infoButtonLabel}</span>
-                <span style={{ fontSize: '0.72rem', color: '#4ade80' }}>↗</span>
+                <span>ðŸ›ï¸ {infoButtonLabel}</span>
+                <span style={{ fontSize: '0.72rem', color: '#4ade80' }}>â†—</span>
               </a>
             )}
 
@@ -1011,7 +1011,7 @@ export default function CommercialBookingEngine({
               onClick={() => setIsModalOpen(true)}
               style={{
                 background: `linear-gradient(135deg, ${accentColor} 0%, #b88628 100%)`,
-                color: '#0d150f',
+                color: '#F8FAFC',
                 border: 'none',
                 padding: '0.85rem 1.6rem',
                 borderRadius: '14px',
@@ -1035,7 +1035,7 @@ export default function CommercialBookingEngine({
               }}
             >
               <span>{cfg.icon}</span>
-              <span>{hasPrice ? cfg.actionLabel : 'Inquire Direct →'}</span>
+              <span>{hasPrice ? cfg.actionLabel : 'Inquire Direct â†’'}</span>
             </button>
           </div>
         </div>

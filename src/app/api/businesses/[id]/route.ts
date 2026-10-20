@@ -12,8 +12,9 @@ export async function GET(
       SELECT b.*, t.features as tier_features 
       FROM businesses b
       LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
-      WHERE b.id = ?
-    `, [id]);
+      WHERE b.id = ? OR b.slug = ?
+      LIMIT 1
+    `, [id, id]);
     if (!biz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     
     // Parse JSON

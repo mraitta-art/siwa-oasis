@@ -104,7 +104,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const origin = request.headers.get('origin') || 'https://siwify.com';
+    const host = request.headers.get('host') || '';
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const origin = isLocal ? 'https://siwify.com' : (request.headers.get('origin') || 'https://siwify.com');
     const onboard_url = `${origin}/onboard/${token}`;
 
     return NextResponse.json({ success: true, token, onboard_url, expires_at });

@@ -244,7 +244,10 @@ export default function WhatsAppOutreachPage() {
       });
       const data = await res.json();
 
-      let finalMessage = editedMessageText;
+      let finalMessage = editedMessageText
+        .replace(/https?:\/\/localhost:\d+/g, 'https://siwify.com')
+        .replace(/https?:\/\/127\.0\.0\.1:\d+/g, 'https://siwify.com');
+
       if (data.onboard_url && dispatchMode === 'gatekeeper') {
         // Replace claim URLs in message with the regulated onboarding URL
         finalMessage = finalMessage
@@ -274,9 +277,12 @@ export default function WhatsAppOutreachPage() {
       let clean = raw.replace(/[^0-9]/g, '');
       if (clean.startsWith('00')) clean = clean.substring(2);
       if (clean.length === 11 && clean.startsWith('01')) clean = '2' + clean;
+      const cleanFallback = editedMessageText
+        .replace(/https?:\/\/localhost:\d+/g, 'https://siwify.com')
+        .replace(/https?:\/\/127\.0\.0\.1:\d+/g, 'https://siwify.com');
       const url = clean
-        ? `https://wa.me/${clean}?text=${encodeURIComponent(editedMessageText)}`
-        : `https://wa.me/?text=${encodeURIComponent(editedMessageText)}`;
+        ? `https://wa.me/${clean}?text=${encodeURIComponent(cleanFallback)}`
+        : `https://wa.me/?text=${encodeURIComponent(cleanFallback)}`;
       handleUpdateOutreachStatus(dispatchBiz.id, 'sent', undefined, true);
       window.open(url, '_blank');
       setDispatchBiz(null);
@@ -1315,9 +1321,9 @@ function QuickDirectSender({ msgLang, parentTypes, getChildTypes }: {
 
   function handleSend() {
     let clean = fullPhone.replace(/[^0-9]/g, '');
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://siwify.com';
+    const origin = 'https://siwify.com';
     const vanityUrl = `${origin}/${customSlug || 'siwa-go'}`;
-    const mobileDashboardUrl = `${origin}/jana/businesses/demo/mobile`;
+    const mobileDashboardUrl = `${origin}/vendor/app?slug=${customSlug || 'siwa-go'}`;
     const socialToolkitUrl = `${origin}/vendor/social-toolkit?slug=${customSlug || 'siwa-go'}`;
     const claimUrl = `${origin}/vendor/claim?slug=${customSlug || 'siwa-go'}&tier=${quickTier}${quickMode === 'gatekeeper' ? '&mode=gatekeeper' : ''}`;
 
