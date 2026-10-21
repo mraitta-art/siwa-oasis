@@ -62,6 +62,16 @@ interface DynamicBusinessSection {
 const MAIN_PAGE_PRESETS = [
   { id: 'discovery', label: '🏠 Homepage', url: '/' },
   { id: 'main_hero', label: '🏠 Homepage (Main)', url: '/' },
+  // ── BRAND SECTOR PAGES (Canonical Siwify Marketplace Sectors) ────────────
+  { id: 'siwa-stay_hero', label: '🛌 Siwa Stay (Hotels, Eco-Lodges & Camps)', url: '/siwa-stay' },
+  { id: 'siwa-go_hero', label: '🧭 Siwa Go (Safaris, 4x4 & Adventure)', url: '/siwa-go' },
+  { id: 'siwa-retreats_hero', label: '🧘 Siwa Retreats (Healing, Spas & Wellness)', url: '/siwa-retreats' },
+  { id: 'siwa-table_hero', label: '🍽️ Siwa Table (Dining, Dates & Gastronomy)', url: '/siwa-table' },
+  { id: 'siwa-products_hero', label: '🛍️ Siwa Products (Local Oils, Olives & Crafts)', url: '/siwa-products' },
+  { id: 'siwa-society_hero', label: '👥 Siwa Society (Culture, Community & Heritage)', url: '/siwa-society' },
+  { id: 'siwa-invest_hero', label: '💎 Siwa Invest (Investment & Heritage Opportunities)', url: '/siwa-invest' },
+  { id: 'siwa-move_hero', label: '🚗 Siwa Move (Transfers & Mobility)', url: '/siwa-move' },
+
   { id: 'accommodations_hero', label: '🏨 Accommodations & Lodges', url: '/accommodations' },
   { id: 'restaurants_hero', label: '🍴 Restaurants & Dining', url: '/restaurants' },
   { id: 'transportation_hero', label: '🚗 Transportation & 4x4', url: '/transportation' },
@@ -516,11 +526,18 @@ function HeroCarouselManagerContent() {
     return tabs;
   }, [businessSections]);
 
-  const mainPageChoices: { id: string; label: string; url: string }[] = dynamicMainPages.map(page => ({
-    id: page.siteId,
-    label: page.label,
-    url: page.url,
-  }));
+  // Combine all canonical page presets with any custom pages configured in the visual builder
+  const mainPageChoices: { id: string; label: string; url: string }[] = [...MAIN_PAGE_PRESETS];
+  dynamicMainPages.forEach(dynamicPage => {
+    if (!mainPageChoices.some(p => p.id === dynamicPage.siteId || p.url === dynamicPage.url)) {
+      mainPageChoices.push({
+        id: dynamicPage.siteId,
+        label: dynamicPage.label,
+        url: dynamicPage.url,
+      });
+    }
+  });
+
   if (mainPagePreset && !mainPageChoices.some(page => page.id === mainPagePreset)) {
     const preset = MAIN_PAGE_PRESETS.find(page => page.id === mainPagePreset);
     const slug = mainPagePreset.replace(/^page_/, '').replace(/_hero$/, '');
@@ -530,7 +547,6 @@ function HeroCarouselManagerContent() {
       url: mainPagePreset === 'discovery' || mainPagePreset === 'main_hero' ? '/' : mainPagePreset.startsWith('page_') ? `/p/${slug}` : `/${slug}`,
     });
   }
-  if (mainPageChoices.length === 0) mainPageChoices.push(MAIN_PAGE_PRESETS[0]);
 
   const getCarouselTarget = () => {
     if (targetScope === 'minisite') {
