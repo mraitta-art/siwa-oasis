@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { BRAND_SECTORS, type BrandSectorSlug } from '@/lib/brand-sectors';
 
 interface PageEntry {
   slug: string;
@@ -11,6 +12,7 @@ interface PageEntry {
   editUrl: string;
   componentCount?: number;
   isMain: boolean;
+  isSystemRoute?: boolean;
 }
 
 const ICON_MAP: Record<string, string> = {
@@ -70,8 +72,22 @@ export default function PagesManager() {
           url: row.publicPath || (isMain ? '/' : type === 'search' ? `/search/${slug}` : `/${slug}`),
           editUrl: `/jana/website?page=${slug}`,
           isMain,
+          isSystemRoute: Object.prototype.hasOwnProperty.call(BRAND_SECTORS, slug),
         };
       });
+
+      for (const slug of Object.keys(BRAND_SECTORS) as BrandSectorSlug[]) {
+        if (parsed.some(page => page.slug === slug && page.type === 'page')) continue;
+        parsed.push({
+          slug,
+          type: 'page',
+          label: slugToLabel(slug),
+          url: `/${slug}`,
+          editUrl: `/jana/website?page=${slug}`,
+          isMain: false,
+          isSystemRoute: true,
+        });
+      }
 
       // Main always first
       parsed.sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
@@ -119,6 +135,7 @@ export default function PagesManager() {
 
   const handleDelete = async (page: PageEntry) => {
     if (page.isMain) { notify('Cannot delete the main homepage', false); return; }
+    if (page.isSystemRoute) { notify('This is a built-in site route. Edit its page content in the Visual Editor instead.', false); return; }
     const id = page.type === 'search' ? `website_search_${page.slug}` : `website_${page.slug}`;
     setDeleting(page.slug);
     const res = await fetch(`/api/jana/website?id=${id}`, { method: 'DELETE' });
@@ -309,6 +326,9 @@ export default function PagesManager() {
                     <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', background: page.type === 'search' ? 'rgba(14,165,233,0.1)' : 'rgba(255,255,255,0.06)', color: page.type === 'search' ? '#38bdf8' : '#64748b' }}>
                       {page.type === 'search' ? '🔍 Search' : '📄 Content'}
                     </span>
+                    {page.isSystemRoute && (
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '20px', background: 'rgba(16,185,129,0.1)', color: '#34d399' }}>BUILT-IN ROUTE</span>
+                    )}
                   </div>
                   <div style={{ color: '#475569', fontSize: '0.78rem', fontFamily: 'monospace' }}>
                     {page.url}
@@ -325,7 +345,7 @@ export default function PagesManager() {
                     style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: '#D4AF37', padding: '0.45rem 0.85rem', borderRadius: '7px', textDecoration: 'none', fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                     ✏️ Edit
                   </Link>
-                  {!page.isMain && (
+                  {!page.isMain && !page.isSystemRoute && (
                     <button
                       onClick={() => {
                         if (confirm(`Delete page "${page.slug}"? This cannot be undone.`)) {

@@ -107,7 +107,7 @@ export default function AdvancedHeroCarousel({
         try {
           let url: string;
           const effectiveIsDynamic = isDynamic && carouselName !== 'discovery';
-          if (effectiveIsDynamic) {
+          if (effectiveIsDynamic && carouselName) {
             const params = new URLSearchParams();
             params.set('siteId', carouselName);
             params.set('investment', includeDynamicOptions.investment !== false ? 'true' : 'false');

@@ -41,7 +41,7 @@ export default function VendorServicesPage() {
         <div>
           <div style={{ color: '#f0c842', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase' }}>Current plan</div>
           <h2 style={{ margin: '0.35rem 0', fontSize: '1.5rem' }}>{business.tier || business.subscription_tier || 'Free / Heritage'}</h2>
-          <div style={{ color: '#cbd5e1', fontSize: '0.8rem' }}>Minisite: {business.is_published || business.published ? 'Published' : 'Pending approval'}</div>
+          <div style={{ color: '#cbd5e1', fontSize: '0.8rem' }}>Public profile listing: {business.is_published || business.published ? 'Visible' : 'Not listed'}</div>
         </div>
         <Link href="/vendor/upgrade" style={{ alignSelf: 'center', background: '#f0c842', color: '#1a1000', padding: '0.7rem 1rem', borderRadius: '10px', fontWeight: 900, textDecoration: 'none' }}>Explore upgrades</Link>
         <Link href="/vendor/templates" style={{ alignSelf: 'center', color: '#f0c842', fontWeight: 800, textDecoration: 'none' }}>Choose a template</Link>

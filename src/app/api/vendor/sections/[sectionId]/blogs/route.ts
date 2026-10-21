@@ -61,6 +61,7 @@ export async function POST(
       return Response.json({ error: 'No business linked to this account' }, { status: 404 });
     }
 
+    const { sectionId } = await params;
     const { title, content, excerpt, show_on_main, show_on_minisite, cover_image_url } = await request.json();
 
     if (!title || !content) {

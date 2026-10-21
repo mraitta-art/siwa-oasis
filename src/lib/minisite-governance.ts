@@ -220,7 +220,7 @@ export function getBusinessTier(business: any): MinisiteTier {
   // Admin-level overrides
   if (tierCode.includes('admin') || tierCode.includes('master')) return 'admin';
 
-  // Premium tier codes — vip, gold, pro, premium, plus
+  // Premium tier codes — vip, gold, pro, premium, enterprise
   if (
     tierCode.includes('premium') ||
     tierCode.includes('pro') ||
@@ -298,14 +298,30 @@ export function validateMinisiteLayout(
 ): any[] {
   if (!Array.isArray(components)) return [];
   const allowedSet = new Set<string>(allowedTypes);
+  const ids = new Set<string>();
 
   return components
     .filter((comp) => comp && typeof comp.type === 'string' && allowedSet.has(comp.type))
-    .map((comp, idx) => ({
-      id: comp.id || `comp_${idx}_${Date.now()}`,
-      type: comp.type as MinisiteComponentType,
-      order: typeof comp.order === 'number' ? comp.order : idx,
-      props: typeof comp.props === 'object' && comp.props !== null ? comp.props : {},
-    }))
+    .map((comp, idx) => {
+      const requestedId = typeof comp.id === 'string' ? comp.id.trim() : '';
+      let id = requestedId;
+      if (!id || ids.has(id)) {
+        id = `comp_${idx}`;
+        let suffix = 1;
+        while (ids.has(id)) id = `comp_${idx}_${suffix++}`;
+      }
+      ids.add(id);
+      return {
+        id,
+        type: comp.type as MinisiteComponentType,
+        order: typeof comp.order === 'number' && Number.isFinite(comp.order) ? comp.order : idx,
+        props:
+          typeof comp.props === 'object' &&
+          comp.props !== null &&
+          !Array.isArray(comp.props)
+            ? comp.props
+            : {},
+      };
+    })
     .sort((a, b) => a.order - b.order);
 }

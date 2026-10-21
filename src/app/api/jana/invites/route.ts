@@ -53,12 +53,15 @@ export async function GET(_request: NextRequest) {
         b.is_claimed,
         b.published,
         b.custom_data,
-        wc.value AS minisite_config
+        wc.config AS minisite_config,
+        EXISTS (
+          SELECT 1 FROM minisite_vendor_handoffs h
+          WHERE h.business_id = oi.business_id AND h.status = 'published'
+        ) AS has_published_minisite
       FROM onboard_invites oi
       LEFT JOIN businesses b ON b.id = oi.business_id
       LEFT JOIN website_configs wc
-        ON wc.key = CONCAT('minisite_layout_', oi.business_slug)
-        AND wc.type = 'minisite_layout'
+        ON wc.type = CONCAT('minisite_layout_', LOWER(COALESCE(NULLIF(oi.business_slug, ''), b.slug, oi.business_id)))
       ORDER BY oi.created_at DESC
     `);
 
@@ -70,7 +73,7 @@ export async function GET(_request: NextRequest) {
 
       const whatsapp = customData?.basic?.whatsapp || customData?.whatsapp || customData?.sec_1_identity?.whatsapp || '';
       const phone = customData?.basic?.phone || customData?.phone || '';
-      const hasMinisite = !!inv.minisite_config;
+      const hasMinisite = Boolean(inv.minisite_config || inv.has_published_minisite);
 
       // Auto-expire if past expires_at
       const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date() && inv.status === 'pending';

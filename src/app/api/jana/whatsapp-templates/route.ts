@@ -792,15 +792,15 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    const config = await queryOne(
-      `SELECT value FROM website_configs WHERE key = ? AND type = 'whatsapp_templates'`,
+    const config = await queryOne<{ config: string | WhatsAppTemplateItem[] }>(
+      'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
       [TEMPLATES_CONFIG_KEY]
-    ) as any;
+    );
 
     let templates: WhatsAppTemplateItem[] = DEFAULT_TEMPLATES;
-    if (config?.value) {
+    if (config?.config) {
       try {
-        const parsed = JSON.parse(config.value);
+        const parsed = typeof config.config === 'string' ? JSON.parse(config.config) : config.config;
         if (Array.isArray(parsed) && parsed.length > 0) {
           templates = parsed;
         }
@@ -825,23 +825,11 @@ export async function POST(request: NextRequest) {
 
     const jsonStr = JSON.stringify(templates);
 
-    // Save into website_configs
-    const existing = await queryOne(
-      `SELECT id FROM website_configs WHERE key = ? AND type = 'whatsapp_templates'`,
-      [TEMPLATES_CONFIG_KEY]
+    await execute(
+      `INSERT INTO website_configs (type, config) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE config = VALUES(config)`,
+      [TEMPLATES_CONFIG_KEY, jsonStr]
     );
-
-    if (existing) {
-      await execute(
-        `UPDATE website_configs SET value = ?, updated_at = NOW() WHERE key = ? AND type = 'whatsapp_templates'`,
-        [jsonStr, TEMPLATES_CONFIG_KEY]
-      );
-    } else {
-      await execute(
-        `INSERT INTO website_configs (\`key\`, type, value, created_at, updated_at) VALUES (?, 'whatsapp_templates', ?, NOW(), NOW())`,
-        [TEMPLATES_CONFIG_KEY, jsonStr]
-      );
-    }
 
     return NextResponse.json({ success: true, count: templates.length });
   } catch (err: any) {

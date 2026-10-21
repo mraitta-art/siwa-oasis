@@ -53,25 +53,43 @@ export default function AutomatedMinisiteHero({
   settings = {},
   onSectionNavigate,
 }: AutomatedMinisiteHeroProps) {
-  // Admin-saved carousel override: if admin saved slides for this business via
-  // /jana/hero-carousel, those take priority over the auto-generated slides.
+  // Prefer the minisite-wide admin carousel, then the active section's carousel.
   const [adminSlides, setAdminSlides] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (!businessId) return;
     const sectionId = activeSectionId || activeSections[0]?.id || '';
-    const siteId = sectionId ? `biz_${businessId}_tab_${sectionId}_hero` : `biz_${businessId}_hero`;
+    const siteIds = [
+      `biz_${businessId}_hero`,
+      ...(sectionId ? [`biz_${businessId}_tab_${sectionId}_hero`] : []),
+    ];
     setAdminSlides(null);
-    fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        const fetched: any[] = data?.slides || [];
-        // Only use admin slides if the admin actually saved something
-        if (fetched.length > 0) {
-          setAdminSlides(fetched);
+    let cancelled = false;
+
+    const loadSlides = async () => {
+      for (const siteId of siteIds) {
+        const response = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
+        if (!response.ok) {
+          console.error(`Failed to load minisite hero carousel ${siteId}: ${response.status}`);
+          continue;
         }
-      })
-      .catch(() => {/* fall back to auto-generated slides silently */});
+
+        const data = await response.json();
+        const fetched: any[] = Array.isArray(data?.slides) ? data.slides : [];
+        if (fetched.length > 0) {
+          if (!cancelled) setAdminSlides(fetched);
+          return;
+        }
+      }
+    };
+
+    loadSlides().catch(error => {
+      console.error('Failed to load minisite hero carousel:', error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [businessId, activeSectionId, activeSections]);
 
   const slides = useMemo(() => {
@@ -233,7 +251,7 @@ export default function AutomatedMinisiteHero({
 
     // 3. Only explicitly selected media becomes a slide. Empty sections do not
     // create synthetic hero slides or pad the carousel with unrelated text.
-    let curatedSlides = [...uniqueMediaSlides];
+    const curatedSlides = [...uniqueMediaSlides];
 
     const finalLimit = tierFeatures.maxSlides || 10;
     const explicitAdminMedia = (adminSlides || []).filter((slide: any) =>

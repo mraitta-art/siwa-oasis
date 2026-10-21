@@ -575,7 +575,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="vs-profile-type">
               <span className={`vs-pub-badge ${vendor.isPublished ? 'live' : 'draft'}`}>
                 <i className={`fas fa-circle`} style={{ fontSize: '0.4rem' }} />
-                {vendor.isPublished ? 'Live' : 'Draft'}
+                {vendor.isPublished ? 'Listed' : 'Not listed'}
               </span>
             </div>
           </div>

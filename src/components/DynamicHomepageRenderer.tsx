@@ -25,6 +25,9 @@ import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
 import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
 import { sitePathFromPageId } from '@/lib/site-blog-paths';
+import SectionAggregationPage from '@/components/SectionAggregationPage';
+import CategoryInvestmentSection from '@/components/CategoryInvestmentSection';
+import { BRAND_SECTORS, type BrandSectorSlug } from '@/lib/brand-sectors';
 
 // ── Section Context for above-the-fold immediate rendering ────────────────────
 const SectionIndexContext = React.createContext<{ isFirst: boolean }>({ isFirst: false });
@@ -90,10 +93,11 @@ interface SectionProps {
   siteSettings?: any;
   pageId?: string;
   pagePath?: string;
+  sectorDirectoryTopContent?: React.ReactNode;
 }
 
 
-const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: SectionProps) => {
+const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDirectoryTopContent }: SectionProps) => {
   // Guard: skip sections with null/undefined type
   if (!type || typeof type !== 'string') return null;
 
@@ -158,6 +162,37 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: Sectio
       const accent = props?.accent || '#D4AF37';
       return (
         <CategoryPageHero category={cat} label={label} title={title} accent={accent} />
+      );
+    }
+
+    case 'brand_sector_hero': {
+      const accent = props?.accent || siteSettings?.primary_color || '#D4AF37';
+      return (
+        <section
+          style={{
+            minHeight: 'clamp(420px, 72vh, 760px)',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '5rem 1.5rem',
+            textAlign: 'center',
+            backgroundImage: `${props?.gradient || 'linear-gradient(160deg,rgba(7,11,8,0.88),rgba(7,11,8,0.65),rgba(7,11,8,0.95))'}, url("${props?.image || ''}")`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+          }}
+        >
+          <div style={{ maxWidth: 900, position: 'relative', zIndex: 1 }}>
+            <div style={{ color: accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase', marginBottom: '1.25rem' }}>
+              {props?.label || ''}
+            </div>
+            <h1 style={{ color: '#fff', fontSize: 'clamp(2rem, 5.5vw, 4.5rem)', fontWeight: 900, lineHeight: 1.1, margin: '0 0 1rem', textShadow: '0 4px 32px rgba(0,0,0,0.5)' }}>
+              {props?.title || ''}
+            </h1>
+            {props?.subtitle && <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 'clamp(1rem, 2vw, 1.3rem)', margin: '0 auto 1rem', maxWidth: 680 }}>{props.subtitle}</p>}
+            {props?.description && <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', lineHeight: 1.65, margin: '0 auto', maxWidth: 640 }}>{props.description}</p>}
+          </div>
+        </section>
       );
     }
 
@@ -330,6 +365,42 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath }: Sectio
         </AnimatedSection>
       );
 
+    case 'sector_directory': {
+      const sector = typeof pageId === 'string' && Object.prototype.hasOwnProperty.call(BRAND_SECTORS, pageId)
+        ? BRAND_SECTORS[pageId as BrandSectorSlug]
+        : null;
+      return (
+        <AnimatedSection>
+          <SectionAggregationPage
+            sectionId={String(props?.sectionId || sector?.sectionId || 'sec_1_identity')}
+            pageConfigId={`__embedded_${pageId}`}
+            pageLabel={String(props?.title || props?.label || sector?.label || pageId)}
+            description={String(props?.description || props?.subtitle || sector?.description || '')}
+            accentColor={String(props?.accentColor || siteSettings?.primary_color || sector?.accent || '#D4AF37')}
+            ctaLabel={String(props?.ctaLabel || `Explore ${sector?.label || pageId}`)}
+            showPartnerCta={props?.showPartnerCta !== false}
+            skipBuilderFetch
+            categoryFilter={String(props?.categoryFilter || props?.category || sector?.category || pageId)}
+            topContent={sectorDirectoryTopContent}
+          />
+        </AnimatedSection>
+      );
+    }
+
+    case 'sector_investment': {
+      const sector = typeof pageId === 'string' && Object.prototype.hasOwnProperty.call(BRAND_SECTORS, pageId)
+        ? BRAND_SECTORS[pageId as BrandSectorSlug]
+        : null;
+      return (
+        <AnimatedSection>
+          <CategoryInvestmentSection
+            typeId={String(props?.category || sector?.category || pageId)}
+            label={String(props?.label || props?.title || sector?.label || pageId)}
+          />
+        </AnimatedSection>
+      );
+    }
+
     // ─── SMART JOURNEY PLANNER ────────────────────────────
 
     case 'journey_collection':
@@ -490,7 +561,7 @@ function logDuplicateSectionIds(layout: any[]) {
 }
 
 // ── Main renderer ─────────────────────────────────────────────────────────────
-export default function DynamicHomepageRenderer({ layout, settings, pageId = 'main', pagePath }: { layout: any[], settings: any, pageId?: string, pagePath?: string }) {
+export default function DynamicHomepageRenderer({ layout, settings, pageId = 'main', pagePath, sectorDirectoryTopContent }: { layout: any[], settings: any, pageId?: string, pagePath?: string; sectorDirectoryTopContent?: React.ReactNode }) {
   React.useEffect(() => {
     logDuplicateSectionIds(layout);
   }, [layout]);
@@ -513,6 +584,7 @@ export default function DynamicHomepageRenderer({ layout, settings, pageId = 'ma
                   siteSettings={settings}
                   pageId={pageId}
                   pagePath={pagePath}
+                  sectorDirectoryTopContent={sectorDirectoryTopContent}
                 />
               </SectionIndexContext.Provider>
             </div>

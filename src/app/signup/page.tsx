@@ -136,6 +136,7 @@ export default function VendorSignup() {
   /* ── business selection ─────────────── */
   const [businesses,       setBusinesses]       = useState<Business[]>([]);
   const [businessId,       setBusinessId]       = useState<string>('');
+  const [invitedBusinessId, setInvitedBusinessId] = useState('');
   const [busLoading,       setBusLoading]       = useState(false);
   const [registerMode,     setRegisterMode]     = useState<'select'|'new'>('select');
   const [newBusinessName,  setNewBusinessName]  = useState<string>('');
@@ -154,7 +155,17 @@ export default function VendorSignup() {
     fetch('/api/signup/types')
       .then(r => r.json())
       .then((data: BizType[]) => {
-        if (Array.isArray(data)) setAllTypes(data);
+        if (!Array.isArray(data)) return;
+        setAllTypes(data);
+        const params = new URLSearchParams(window.location.search);
+        const invitedTypeId = params.get('typeId') || '';
+        const invitedId = params.get('businessId') || '';
+        if (invitedId) setInvitedBusinessId(invitedId);
+        const invitedType = data.find(type => type.id === invitedTypeId && !type.is_parent);
+        if (invitedType) {
+          setChildId(invitedType.id);
+          setParentId(invitedType.parent_id || null);
+        }
       })
       .catch(() => {/* silent */});
   }, []);
@@ -178,12 +189,15 @@ export default function VendorSignup() {
       .then((data: Business[]) => {
         const list = Array.isArray(data) ? data : [];
         setBusinesses(list);
+        if (invitedBusinessId && list.some(business => business.id === invitedBusinessId)) {
+          setBusinessId(invitedBusinessId);
+        }
         // Auto-switch to Register New Name when category has no businesses yet
-        if (list.length === 0) setRegisterMode('new');
+        if (list.length === 0 && !invitedBusinessId) setRegisterMode('new');
       })
-      .catch(() => { setBusinesses([]); setRegisterMode('new'); })
+      .catch(() => { setBusinesses([]); if (!invitedBusinessId) setRegisterMode('new'); })
       .finally(() => setBusLoading(false));
-  }, [childId]);
+  }, [childId, invitedBusinessId]);
 
   /* ── blur-time email uniqueness check ───────────────── */
   const checkEmailUnique = async () => {

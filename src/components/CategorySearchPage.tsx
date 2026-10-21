@@ -14,6 +14,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import SectionAggregationPage from '@/components/SectionAggregationPage';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
@@ -21,6 +22,7 @@ import CategoryInvestmentSection from '@/components/CategoryInvestmentSection';
 import SmartJourneyPlanner from '@/components/SmartJourneyPlanner';
 import RetreatProgramBuilder from '@/components/RetreatProgramBuilder';
 import AccommodationExplorer from '@/components/AccommodationExplorer';
+import { BRAND_SECTOR_HERO } from '@/lib/brand-sectors';
 
 
 interface BusinessType {
@@ -98,19 +100,6 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
 };
 
 // ─── Per-sector hero background images ───────────────────────────────────────
-const SECTOR_HERO: Record<string, { image: string; tagline: string; gradient: string }> = {
-  'siwa-stay':       { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: 'Rest beneath Siwa\'s ancient sky', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-go':         { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-table':      { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(251,113,133,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-retreats':   { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(52,211,153,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-retreat':    { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(52,211,153,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-products':   { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(245,158,11,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-move':       { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(56,189,248,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-invest':     { image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1400', tagline: 'Invest in the next Siwa story', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-society':    { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(167,139,250,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-  'siwa-experiences':{ image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
-};
-
 const DEFAULT_HERO = {
   image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400',
   tagline: 'Discover the magic of Siwa Oasis',
@@ -161,7 +150,7 @@ export default function CategorySearchPage({
     `${category}s`
   );
 
-  const heroConfig = SECTOR_HERO[pageSlug || ''] || DEFAULT_HERO;
+  const heroConfig = BRAND_SECTOR_HERO[pageSlug || ''] || DEFAULT_HERO;
   const sectorIcon = SECTOR_ICON[pageSlug || ''] || 'fa-sun';
 
   useEffect(() => {
@@ -174,7 +163,7 @@ export default function CategorySearchPage({
         ]);
 
         const parentsData = parentsResponse.ok ? await parentsResponse.json() : [];
-        let allParents: BusinessType[] = Array.isArray(parentsData) ? parentsData : [];
+        const allParents: BusinessType[] = Array.isArray(parentsData) ? parentsData : [];
 
         let allowedParentIds: string[] | null = null;
         if (visibilityResponse && visibilityResponse.ok) {
@@ -445,12 +434,21 @@ export default function CategorySearchPage({
       if (section?.type === 'category_commercial_tabs') {
         return { ...section, props: { ...(section.props || {}), category: selectedTypeId } };
       }
+      if (section?.type === 'sector_directory') {
+        return { ...section, props: { ...(section.props || {}), categoryFilter: selectedTypeId } };
+      }
       return section;
     });
 
-    const finalLayout = pageSlug === 'siwa-retreats' && !resolvedLayout.some((s: any) => s?.type === 'retreat_program_builder')
-      ? [{ id: 'sec_retreat_builder', type: 'retreat_program_builder', props: { accentColor: accent } }, ...resolvedLayout]
-      : resolvedLayout;
+    const isSectorLayoutManaged = builderConfig.site_settings?.sector_layout_managed === true;
+    const visibleLayout = resolvedLayout.filter((section: any) =>
+      (section?.type !== 'sector_directory' || builderConfig.site_settings?.show_sector_directory !== false)
+      && (section?.type !== 'sector_investment' || builderConfig.site_settings?.show_sector_investment !== false)
+    );
+    const finalLayout = (pageSlug === 'siwa-retreats' || pageSlug === 'siwa-retreat')
+      && !visibleLayout.some((s: any) => s?.type === 'retreat_program_builder')
+      ? [{ id: 'sec_retreat_builder', type: 'retreat_program_builder', props: { accentColor: accent } }, ...visibleLayout]
+      : visibleLayout;
 
     return (
       <div style={{ minHeight: '100vh', background: '#FFFFFF' }}>
@@ -462,22 +460,31 @@ export default function CategorySearchPage({
           layout={finalLayout}
           settings={builderConfig?.site_settings || { primary_color: accent }}
           pageId={pagePath}
+          sectorDirectoryTopContent={categorySelector}
         />
 
-        {/* Live vendor section grid appended below the builder layout */}
-        <SectionAggregationPage
-          sectionId={resolvedSection}
-          pageConfigId={`__embedded_${pagePath}`}
-          pageLabel={label}
-          description={description}
-          accentColor={accent}
-          ctaLabel={`Explore ${label}`}
-          showPartnerCta
-          skipBuilderFetch
-          categoryFilter={selectedTypeId}
-          topContent={categorySelector}
-        />
-        <CategoryInvestmentSection typeId={selectedTypeId} label={selectedTypeName} />
+        {/* Legacy layouts keep these live sections until saved in the block editor. */}
+        {!isSectorLayoutManaged
+          && builderConfig.site_settings?.show_sector_directory !== false
+          && !finalLayout.some((section: any) => section?.type === 'sector_directory') && (
+          <SectionAggregationPage
+            sectionId={resolvedSection}
+            pageConfigId={`__embedded_${pagePath}`}
+            pageLabel={label}
+            description={description}
+            accentColor={accent}
+            ctaLabel={`Explore ${label}`}
+            showPartnerCta
+            skipBuilderFetch
+            categoryFilter={selectedTypeId}
+            topContent={categorySelector}
+          />
+        )}
+        {!isSectorLayoutManaged
+          && builderConfig.site_settings?.show_sector_investment !== false
+          && !finalLayout.some((section: any) => section?.type === 'sector_investment') && (
+          <CategoryInvestmentSection typeId={selectedTypeId} label={selectedTypeName} />
+        )}
       </div>
     );
   }
@@ -673,7 +680,7 @@ export default function CategorySearchPage({
                 List your property on Siwify and get a cinematic minisite with direct WhatsApp bookings — 0% commission.
               </p>
             </div>
-            <a
+            <Link
               href="/be-a-partner"
               style={{
                 background: accent, color: '#fff',
@@ -684,7 +691,7 @@ export default function CategorySearchPage({
               }}
             >
               List Your Property →
-            </a>
+            </Link>
           </div>
         </div>
       ) : (

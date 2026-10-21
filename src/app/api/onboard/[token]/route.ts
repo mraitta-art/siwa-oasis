@@ -109,32 +109,6 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       [token]
     );
 
-    // Auto-create a minimal minisite layout if none exists yet
-    if (invite.business_slug) {
-      const existingLayout = await queryOne(
-        `SELECT id FROM website_configs WHERE key = ? AND type = 'minisite_layout'`,
-        [`minisite_layout_${invite.business_slug}`]
-      );
-      if (!existingLayout) {
-        const skeletonLayout = JSON.stringify({
-          version: 1,
-          sections: [
-            { id: 'hero', type: 'minisite_hero', enabled: true },
-            { id: 'services', type: 'minisite_services', enabled: true },
-            { id: 'gallery', type: 'minisite_gallery', enabled: true },
-            { id: 'contact', type: 'minisite_contact', enabled: true },
-          ],
-          tier: invite.subscription_tier,
-          onboarded_at: new Date().toISOString(),
-        });
-        await execute(
-          `INSERT INTO website_configs (key, type, value) VALUES (?, 'minisite_layout', ?)
-           ON DUPLICATE KEY UPDATE value = VALUES(value)`,
-          [`minisite_layout_${invite.business_slug}`, skeletonLayout]
-        );
-      }
-    }
-
     // Update CRM outreach status to 'claimed' automatically
     try {
       const bizRow = await queryOne(`SELECT custom_data FROM businesses WHERE id = ?`, [invite.business_id]) as any;

@@ -149,7 +149,8 @@ function BlogEditorContent() {
     formData.target_section_id &&
     !sectionOptions.some(section => section.id === formData.target_section_id)
   );
-  const availableSectionCount = sectionOptions.filter(section => section.available[formData.language]).length;
+  const availabilityLanguage = formData.language === 'ar' ? 'ar' : 'en';
+  const availableSectionCount = sectionOptions.filter(section => section.available[availabilityLanguage]).length;
   const selectedSiteBlogLocation = siteBlogLocations.find(page => page.path === formData.target_page_slug);
   const visibleChildTypes = childTypes.filter(type => type.parent_id === selectedParentType);
   const visibleBusinesses = businesses.filter(business =>

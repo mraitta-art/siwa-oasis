@@ -125,6 +125,19 @@ export const BRAND_SECTORS = {
   },
 } as const;
 
+export const BRAND_SECTOR_HERO: Record<string, { image: string; tagline: string; gradient: string }> = {
+  'siwa-stay': { image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1400', tagline: "Rest beneath Siwa's ancient sky", gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-go': { image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400', tagline: 'Explore the great Siwa desert', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-table': { image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1400', tagline: 'Savour the flavours of the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(251,113,133,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-retreats': { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(52,211,153,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-retreat': { image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1400', tagline: 'Restore your body. Reconnect with the earth.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(52,211,153,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-products': { image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1400', tagline: 'Made in Siwa. Grown in Siwa.', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(245,158,11,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-move': { image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1400', tagline: 'Move freely across the oasis', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(56,189,248,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-invest': { image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1400', tagline: 'Invest in the next Siwa story', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(212,175,55,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-society': { image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1400', tagline: 'Culture, community, and craft', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(167,139,250,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+  'siwa-experiences': { image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1400', tagline: 'Every moment, extraordinary', gradient: 'linear-gradient(160deg,rgba(7,11,8,0.85) 0%,rgba(249,115,22,0.25) 60%,rgba(7,11,8,0.92) 100%)' },
+};
+
 export type BrandSectorSlug = keyof typeof BRAND_SECTORS;
 
 export const HOME_BRAND_SECTOR_SLUGS = [

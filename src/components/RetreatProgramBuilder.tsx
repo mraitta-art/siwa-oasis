@@ -667,7 +667,9 @@ export default function RetreatProgramBuilder({
                         {item.title_en}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'rgba(248,250,252,0.7)' }}>
-                        {item.currency} {item.price.toLocaleString()} /{item.price_unit}
+                        {item.price != null
+                          ? `${item.currency} ${item.price.toLocaleString()} /${item.price_unit}`
+                          : 'Rates upon request'}
                       </div>
                     </div>
                   </div>

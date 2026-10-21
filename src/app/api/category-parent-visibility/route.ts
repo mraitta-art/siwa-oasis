@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const CONFIG_KEY = 'category_parent_visibility';
 
 // Default parent visibility rules for sectors/pages
-export const DEFAULT_PAGE_PARENT_VISIBILITY: Record<string, string[]> = {
+const DEFAULT_PAGE_PARENT_VISIBILITY: Record<string, string[]> = {
   'siwa-products': ['food', 'crafts', 'agriculture_industry'],
   'siwa-stay': ['accommodation'],
   'siwa-go': ['adventure', 'logistics'],

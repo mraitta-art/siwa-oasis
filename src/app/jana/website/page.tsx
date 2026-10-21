@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { BRAND_SECTORS, BRAND_SECTOR_HERO, type BrandSectorSlug } from '@/lib/brand-sectors';
 
 interface PaletteItem {
   zone: string;
@@ -16,12 +17,15 @@ interface PaletteItem {
 // ── Component catalogue — SYNCED with DynamicHomepageRenderer ─────────────────
 const PALETTE: PaletteItem[] = [
   // ── Header zone ──
+  { zone: 'header', key: 'brand_sector_hero', name: 'Public Page Hero', icon: '🌄', manager: null, color: '#D4AF37', desc: 'Edit the existing title, message, and image on a Siwa public sector page' },
   { zone: 'header', key: 'hero_carousel',  name: 'Hero Carousel',           icon: '🎬', manager: '/jana/hero-carousel',  color: '#D4AF37', desc: 'Full-screen cinematic slideshow' },
   { zone: 'header', key: 'search_bar',     name: 'Search Bar (Compact)',    icon: '🔍', manager: '/jana/search-engines', color: '#0ea5e9', desc: 'Compact header search widget' },
 
   // ── Body zone ──
   { zone: 'body',   key: 'accommodation_explorer', name: 'Accommodation Explorer', icon: '🛖', manager: '/admin/commercial-links', color: '#287a55', desc: 'Explore stays by Vibe, Setting (Lake, Pool, Dunes) & Minisite links' },
   { zone: 'body',   key: 'retreat_program_builder', name: 'Retreat Program Builder', icon: '🧘', manager: '/jana/packages',  color: '#58765a', desc: 'Interactive Siwa Retreat Program Builder with dynamic days & options' },
+  { zone: 'body',   key: 'sector_directory', name: 'Business & Retreat Directory', icon: '🏪', manager: null, color: '#10b981', desc: 'Live businesses, retreats, and offers for this sector' },
+  { zone: 'body',   key: 'sector_investment', name: 'Investment & Partnerships', icon: '💎', manager: null, color: '#ec4899', desc: 'Approved investment opportunities for this sector' },
   { zone: 'body',   key: 'reservation_accommodation', name: 'Accommodation Booking', icon: '🏨', manager: '/admin/commercial-links', color: '#287a55', desc: 'Direct booking cards & OTA arbitrage for stays & lodges' },
   { zone: 'body',   key: 'reservation_dining', name: 'Dining Booking Module', icon: '🍽️', manager: '/admin/commercial-links', color: '#b4533c', desc: 'Restaurant & desert dining reservation cards with perks' },
   { zone: 'body',   key: 'reservation_transportation', name: 'Transportation Booking', icon: '🚌', manager: '/admin/commercial-links', color: '#a15d2b', desc: 'Bus seats, 4x4 Land Cruiser & mobility passes' },
@@ -74,7 +78,7 @@ const ZONE_COLORS: Record<string, string> = { header: '#D4AF37', body: '#10b981'
 
 type Zone = 'header' | 'body' | 'footer';
 interface Slot { id: string; key: string; zone: Zone; label: string; engine_id?: string; carousel_id?: string; props?: Record<string, any>; }
-interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; publicPath: string; }
+interface PageMeta { slug: string; saved: boolean; type: 'page' | 'search'; publicPath: string; isSystemRoute?: boolean; }
 type Mode = 'PAGES' | 'TEMPLATES';
 
 interface BuilderSiteSettings {
@@ -101,6 +105,9 @@ interface BuilderSiteSettings {
   footer_text_color: string;
   footer_muted_color: string;
   watermark_text: string;
+  show_sector_directory?: boolean;
+  show_sector_investment?: boolean;
+  sector_layout_managed?: boolean;
 }
 
 const DEFAULT_SITE_SETTINGS: BuilderSiteSettings = {
@@ -127,7 +134,84 @@ const DEFAULT_SITE_SETTINGS: BuilderSiteSettings = {
   footer_text_color: '#f8fafc',
   footer_muted_color: '#94a3b8',
   watermark_text: 'SIWIFY',
+  show_sector_directory: true,
+  show_sector_investment: true,
 };
+
+function getDefaultSectorSlots(slug: string): Slot[] | null {
+  if (!Object.prototype.hasOwnProperty.call(BRAND_SECTORS, slug)) return null;
+
+  const sector = BRAND_SECTORS[slug as BrandSectorSlug];
+  const hero = BRAND_SECTOR_HERO[slug];
+  const slots: Slot[] = [{
+    id: `${slug}_hero`,
+    key: 'brand_sector_hero',
+    zone: 'header',
+    label: `${sector.label} Hero`,
+    props: {
+      label: sector.label,
+      title: sector.title,
+      subtitle: hero?.tagline || sector.description,
+      description: sector.description,
+      image: hero?.image || ('image_url' in sector ? sector.image_url : ''),
+      gradient: hero?.gradient || '',
+      accent: sector.accent,
+    },
+  }];
+
+  if (slug === 'siwa-retreat' || slug === 'siwa-retreats') {
+    slots.push(
+      { id: `${slug}_retreat_program`, key: 'retreat_program_builder', zone: 'body', label: 'Retreat Program Builder', props: { accentColor: sector.accent } },
+      { id: `${slug}_journey_planner`, key: 'smart_journey_planner', zone: 'body', label: 'Retreat Journey Planner', props: { mode: 'retreatment', category: sector.category, subtitle: sector.label } },
+    );
+  } else if (slug === 'siwa-stay') {
+    slots.push(
+      { id: `${slug}_accommodation_explorer`, key: 'accommodation_explorer', zone: 'body', label: 'Accommodation Explorer', props: { accentColor: sector.accent } },
+      { id: `${slug}_journey_planner`, key: 'smart_journey_planner', zone: 'body', label: 'Accommodation Journey Planner', props: { mode: 'accommodation', category: sector.category, subtitle: sector.label } },
+    );
+  } else {
+    const plannerMode = slug === 'siwa-go' || slug === 'siwa-experiences'
+      ? 'safaris'
+      : slug === 'siwa-move'
+        ? 'transport'
+        : slug === 'siwa-table'
+          ? 'dining'
+          : 'all';
+    slots.push({
+      id: `${slug}_journey_planner`,
+      key: 'smart_journey_planner',
+      zone: 'body',
+      label: `${sector.label} Journey Planner`,
+      props: { mode: plannerMode, category: sector.category, subtitle: sector.label },
+    });
+  }
+
+  slots.push(
+    {
+      id: `${slug}_directory`,
+      key: 'sector_directory',
+      zone: 'body',
+      label: `${sector.label} Business Directory`,
+      props: {
+        sectionId: sector.sectionId,
+        categoryFilter: sector.category,
+        label: sector.label,
+        description: sector.description,
+        ctaLabel: `Explore ${sector.label}`,
+        showPartnerCta: true,
+      },
+    },
+    {
+      id: `${slug}_investment`,
+      key: 'sector_investment',
+      zone: 'body',
+      label: `${sector.label} Investment & Partnerships`,
+      props: { category: sector.category, label: sector.label },
+    },
+  );
+
+  return slots;
+}
 
 export default function MultiPageSiteBuilder() {
   const [mode, setMode]                 = useState<Mode>('PAGES');
@@ -201,27 +285,19 @@ export default function MultiPageSiteBuilder() {
             saved: true,
             type: 'page' as const,
             publicPath: p.publicPath || (slug === 'main' ? '/' : `/${slug}`),
+            isSystemRoute: Object.prototype.hasOwnProperty.call(BRAND_SECTORS, slug),
           };
         }
       }) : [];
 
-      const CANONICAL_SECTOR_SLUGS = [
-        'siwa-retreats',
-        'siwa-stay',
-        'siwa-go',
-        'siwa-table',
-        'siwa-products',
-        'siwa-invest',
-        'siwa-society',
-      ];
-
-      CANONICAL_SECTOR_SLUGS.forEach(secSlug => {
+      (Object.keys(BRAND_SECTORS) as BrandSectorSlug[]).forEach(secSlug => {
         if (!fetchedPages.some(page => page.slug === secSlug && page.type === 'page')) {
           fetchedPages.push({
             slug: secSlug,
             saved: false,
             type: 'page' as const,
             publicPath: `/${secSlug}`,
+            isSystemRoute: true,
           });
         }
       });
@@ -231,6 +307,10 @@ export default function MultiPageSiteBuilder() {
       }
       fetchedPages.sort((left, right) => Number(right.slug === 'main') - Number(left.slug === 'main'));
       setPages(fetchedPages);
+      const requestedPage = new URLSearchParams(window.location.search).get('page');
+      if (requestedPage && fetchedPages.some(page => page.slug === requestedPage && page.type === 'page')) {
+        setCurrentPage(requestedPage);
+      }
     }).catch(error => {
       notify(error.message || 'Failed to load configured pages', 'error');
       setPages([{ slug: 'main', saved: false, type: 'page', publicPath: '/' }]);
@@ -271,11 +351,30 @@ export default function MultiPageSiteBuilder() {
       }).then(data => {
         if (requestId !== pageLoadRequestRef.current) return;
         const t = data[0];
-        if (!t) {
-          setSlots([]);
+        const initialSectorSlots = getDefaultSectorSlots(currentPage);
+        const configuredComponents = t ? [
+          ...(t.header_components || []),
+          ...(t.body_components || []),
+          ...(t.footer_components || []),
+        ] : [];
+        const sector = Object.prototype.hasOwnProperty.call(BRAND_SECTORS, currentPage)
+          ? BRAND_SECTORS[currentPage as BrandSectorSlug]
+          : null;
+        if (sector) {
+          setSiteSettings(s => ({
+            ...s,
+            site_name: sector.label,
+            tagline: sector.description,
+            primary_color: sector.accent,
+            ...(t?.site_settings || {}),
+          }));
+        } else if (t?.site_settings) {
+          setSiteSettings(s => ({ ...s, ...t.site_settings }));
+        }
+        if (configuredComponents.length === 0) {
+          setSlots(initialSectorSlots || []);
           return;
         }
-        if (t.site_settings) setSiteSettings(s => ({ ...s, ...t.site_settings }));
 
         const allLoaded = [
           ...(t.header_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'header' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
@@ -283,7 +382,17 @@ export default function MultiPageSiteBuilder() {
           ...(t.footer_components || []).map((c: any) => ({ id: c.id, key: c.type, zone: 'footer' as Zone, label: c.name || c.type, engine_id: c.props?.engine_id, carousel_id: c.props?.carousel_id, props: c.props })),
         ];
 
-        setSlots(allLoaded);
+        const isLegacySectorLayout = sector && t.site_settings?.sector_layout_managed !== true;
+        if (isLegacySectorLayout) {
+          const hasConfiguredHeader = allLoaded.some(slot => slot.zone === 'header');
+          const migrationSlots = (initialSectorSlots || []).filter(slot =>
+            (slot.zone === 'body' || (slot.zone === 'header' && !hasConfiguredHeader))
+            && !allLoaded.some(loaded => loaded.zone === slot.zone && loaded.key === slot.key)
+          );
+          setSlots([...allLoaded, ...migrationSlots]);
+        } else {
+          setSlots(allLoaded);
+        }
       }).catch(error => {
         if (requestId !== pageLoadRequestRef.current) return;
         setSlots([]);
@@ -338,7 +447,7 @@ export default function MultiPageSiteBuilder() {
       return [...others, ...zSlots];
     });
   };
-  const updateSlotProp = (id: string, field: string, value: string) => {
+  const updateSlotProp = (id: string, field: string, value: string | boolean) => {
     setSlots(prev => prev.map(s => s.id !== id ? s : { ...s, [field]: value, props: { ...(s.props || {}), [field]: value } }));
   };
 
@@ -360,7 +469,11 @@ export default function MultiPageSiteBuilder() {
             header_components: slotsFor('header').map(toComp),
             body_components:   slotsFor('body').map(toComp),
             footer_components: slotsFor('footer').map(toComp),
-            site_settings: { ...siteSettings, public_path: currentPageData?.publicPath || (currentPage === 'main' ? '/' : `/p/${currentPage}`) },
+            site_settings: {
+              ...siteSettings,
+              ...(Object.prototype.hasOwnProperty.call(BRAND_SECTORS, currentPage) ? { sector_layout_managed: true } : {}),
+              public_path: currentPageData?.publicPath || (currentPage === 'main' ? '/' : `/p/${currentPage}`),
+            },
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -418,6 +531,11 @@ export default function MultiPageSiteBuilder() {
   // ── Delete page ─────────────────────────────────────────────────────────
   const deletePage = async () => {
     if (!deleteTarget) return;
+    if (pages.find(p => p.slug === deleteTarget)?.isSystemRoute) {
+      notify('Built-in site routes cannot be deleted from the page builder.', 'error');
+      setShowDeleteModal(false);
+      return;
+    }
     setDeleting(true);
     try {
       const pg = pages.find(p => p.slug === deleteTarget);
@@ -439,6 +557,11 @@ export default function MultiPageSiteBuilder() {
   const renamePage = async () => {
     const newSlug = renameValue.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     if (!newSlug || newSlug === renameTarget) { setShowRenameModal(false); return; }
+    if (pages.find(p => p.slug === renameTarget)?.isSystemRoute) {
+      notify('Built-in site routes cannot be renamed.', 'error');
+      setShowRenameModal(false);
+      return;
+    }
     if (pages.find(p => p.slug === newSlug)) { notify('⚠️ Name already taken!', 'error'); return; }
     const pg = pages.find(p => p.slug === renameTarget);
     if (pg?.saved) {
@@ -650,6 +773,14 @@ export default function MultiPageSiteBuilder() {
               <label style={settingLabelStyle}><input type="checkbox" checked={siteSettings.show_watermark} onChange={e=>setSiteSettings(s=>({...s,show_watermark:e.target.checked}))} /> Show watermark</label>
               <input aria-label="Watermark text" value={siteSettings.watermark_text} onChange={e=>setSiteSettings(s=>({...s,watermark_text:e.target.value}))} placeholder="Watermark text" style={{...fieldStyle('100%'),width:'100%'}} />
             </div>
+            {Object.prototype.hasOwnProperty.call(BRAND_SECTORS, currentPage) && (
+              <div style={{ display:'grid', gap:'0.5rem' }}>
+                <strong style={{ fontSize:'0.62rem', color:'#64748b' }}>PUBLIC PAGE CONTENT</strong>
+                <label style={settingLabelStyle}><input type="checkbox" checked={siteSettings.show_sector_directory !== false} onChange={e=>setSiteSettings(s=>({...s,show_sector_directory:e.target.checked}))} /> Show live directory and category filters</label>
+                <label style={settingLabelStyle}><input type="checkbox" checked={siteSettings.show_sector_investment !== false} onChange={e=>setSiteSettings(s=>({...s,show_sector_investment:e.target.checked}))} /> Show investment section</label>
+                <span style={{ color:'#64748b', fontSize:'0.62rem', lineHeight:1.5 }}>Listings are live database content; edit their approved business data in the relevant admin managers.</span>
+              </div>
+            )}
           </div>
         </details>
       )}
@@ -730,7 +861,7 @@ export default function MultiPageSiteBuilder() {
                           page.publicPath
                         } target="_blank" rel="noopener noreferrer" title="Preview"
                           style={iconBtn('#fff')}>👁</a>
-                        {page.slug !== 'main' && <>
+                        {page.slug !== 'main' && !page.isSystemRoute && <>
                           <button title="Rename" onClick={()=>{setRenameTarget(page.slug);setRenameValue(page.slug);setShowRenameModal(true);}} style={iconBtn('#fff')}>✏️</button>
                           <button title="Delete" onClick={()=>{setDeleteTarget(page.slug);setShowDeleteModal(true);}} style={iconBtn('#ef4444','#ef444420','#ef444440')}>🗑</button>
                         </>}
@@ -873,6 +1004,26 @@ export default function MultiPageSiteBuilder() {
                           <input aria-label={`${slot.label} heading`} value={slot.props?.title || ''} onChange={e=>updateSlotProp(slot.id,'title',e.target.value)} placeholder="Use component default heading" style={{...fieldStyle('100%'),width:'100%'}} />
                           <textarea aria-label={`${slot.label} subtitle`} value={slot.props?.subtitle || ''} onChange={e=>updateSlotProp(slot.id,'subtitle',e.target.value)} placeholder="Subtitle or short description" style={settingTextareaStyle} />
                           {slot.key === 'text_section' && <textarea aria-label="Section content" value={slot.props?.content || ''} onChange={e=>updateSlotProp(slot.id,'content',e.target.value)} placeholder="Section content" style={{...settingTextareaStyle,minHeight:100}} />}
+                          {slot.key === 'brand_sector_hero' && <>
+                            <input aria-label="Hero label" value={slot.props?.label || ''} onChange={e=>updateSlotProp(slot.id,'label',e.target.value)} placeholder="Hero label" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <textarea aria-label="Hero description" value={slot.props?.description || ''} onChange={e=>updateSlotProp(slot.id,'description',e.target.value)} placeholder="Hero description" style={settingTextareaStyle} />
+                            <input aria-label="Hero image URL" value={slot.props?.image || ''} onChange={e=>updateSlotProp(slot.id,'image',e.target.value)} placeholder="Hero image URL" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input aria-label="Hero accent color" value={slot.props?.accent || ''} onChange={e=>updateSlotProp(slot.id,'accent',e.target.value)} placeholder="#D4AF37" style={{...fieldStyle('100%'),width:'100%'}} />
+                          </>}
+                          {slot.key === 'sector_directory' && <>
+                            <input aria-label="Directory label" value={slot.props?.label || ''} onChange={e=>updateSlotProp(slot.id,'label',e.target.value)} placeholder="Directory label" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <textarea aria-label="Directory description" value={slot.props?.description || ''} onChange={e=>updateSlotProp(slot.id,'description',e.target.value)} placeholder="Directory description" style={settingTextareaStyle} />
+                            <input aria-label="Directory category filter" value={slot.props?.categoryFilter || ''} onChange={e=>updateSlotProp(slot.id,'categoryFilter',e.target.value)} placeholder="Category filter" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input aria-label="Directory call to action" value={slot.props?.ctaLabel || ''} onChange={e=>updateSlotProp(slot.id,'ctaLabel',e.target.value)} placeholder="Card button label" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:'0.7rem',color:'#475569'}}>
+                              <input type="checkbox" checked={slot.props?.showPartnerCta !== false} onChange={e=>updateSlotProp(slot.id,'showPartnerCta',e.target.checked)} />
+                              Show partner registration CTA
+                            </label>
+                          </>}
+                          {slot.key === 'sector_investment' && <>
+                            <input aria-label="Investment section label" value={slot.props?.label || ''} onChange={e=>updateSlotProp(slot.id,'label',e.target.value)} placeholder="Investment section label" style={{...fieldStyle('100%'),width:'100%'}} />
+                            <input aria-label="Investment category filter" value={slot.props?.category || ''} onChange={e=>updateSlotProp(slot.id,'category',e.target.value)} placeholder="Category filter" style={{...fieldStyle('100%'),width:'100%'}} />
+                          </>}
                           {slot.key === 'cta_section' && <>
                             <textarea aria-label="Call to action description" value={slot.props?.description || ''} onChange={e=>updateSlotProp(slot.id,'description',e.target.value)} placeholder="Description" style={settingTextareaStyle} />
                             <input aria-label="Call to action button label" value={slot.props?.link_text || ''} onChange={e=>updateSlotProp(slot.id,'link_text',e.target.value)} placeholder="Button label" style={{...fieldStyle('100%'),width:'100%'}} />

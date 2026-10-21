@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import { MinisiteLayout, MinisiteLayoutComponent } from '@/lib/minisite-layout';
@@ -30,6 +30,52 @@ export default function MinisiteBuilderRenderer({
 }: MinisiteBuilderRendererProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [heroCarouselImage, setHeroCarouselImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHeroCarouselImage(null);
+
+    const loadHeroImage = async () => {
+      const siteIds = [
+        `biz_${business.id}_hero`,
+        `biz_${business.id}_tab_sec_1_identity_hero`,
+      ];
+
+      for (const siteId of siteIds) {
+        const response = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
+        if (!response.ok) {
+          console.error(`Failed to load minisite hero carousel ${siteId}: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        const imageSlide = Array.isArray(data?.slides)
+          ? data.slides.find(
+              (slide: any) =>
+                slide?.type === 'image' &&
+                typeof slide.mediaUrl === 'string' &&
+                slide.mediaUrl.length > 0
+            )
+          : null;
+
+        if (imageSlide) {
+          if (!cancelled) setHeroCarouselImage(imageSlide.mediaUrl);
+          return;
+        }
+      }
+
+      if (!cancelled) setHeroCarouselImage(null);
+    };
+
+    loadHeroImage().catch(error => {
+      console.error('Failed to load minisite hero image:', error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [business.id]);
 
   const mode = layout.mode || 'replace';
   const siteSettings = layout.site_settings || {};
@@ -45,15 +91,49 @@ export default function MinisiteBuilderRenderer({
     ...(rawData.sec_1_identity || {}),
     ...(rawData.business_info || {}),
   };
+  const customGallery = Object.entries(rawData).flatMap(([sectionId, sectionData]) => {
+    if (!sectionData || typeof sectionData !== 'object') return [];
+    const metadata = rawData.section_content_meta?.[sectionId] || {};
+    if (metadata.galleryStatus !== undefined && metadata.galleryStatus !== 'approved') return [];
+    if (metadata.galleryOnMinisite === false) return [];
+    const section = sectionData as Record<string, any>;
+    const gallery = section.section_gallery;
+    const legacyGallery = section._media?.images;
+    const items = Array.isArray(gallery) ? gallery : gallery ? [gallery] : [];
+    const legacyItems = Array.isArray(legacyGallery) ? legacyGallery : [];
+    return [...items, ...legacyItems]
+      .map((item: any, index: number) => {
+        const url = typeof item === 'string' ? item : item?.url;
+        if (typeof url !== 'string' || !url.trim()) return null;
+        return {
+          ...(typeof item === 'object' && item ? item : {}),
+          id: item?.id || `${sectionId}-custom-${index}`,
+          url: url.trim(),
+          caption: item?.caption || '',
+        };
+      })
+      .filter(Boolean);
+  });
+  const galleryItems = [...(business.gallery || []), ...customGallery].filter(
+    (item, index, items) =>
+      items.findIndex(
+        candidate =>
+          candidate.url?.trim().replace(/\/$/, '').toLowerCase() ===
+          item.url?.trim().replace(/\/$/, '').toLowerCase()
+      ) === index
+  );
   const logoUrl =
     siteSettings.logo_override ||
     identity.business_logo ||
     identity.logo ||
+    identity.logo_url ||
     rawData.logo_url ||
     '';
   const coverUrl =
     siteSettings.cover_override ||
     identity.cover_image ||
+    identity.hero_image ||
+    identity.cover_image_url ||
     rawData.cover_image ||
     'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=1600&auto=format&fit=crop';
   const phone = business.vendorPhone || identity.phone || identity.mobile || '';
@@ -78,7 +158,10 @@ export default function MinisiteBuilderRenderer({
               identity.description?.substring(0, 180) ||
               business.type_name ||
               '';
-        const heroCover = mode === 'untied' ? props.coverImage || coverUrl : coverUrl;
+        const heroCover =
+          mode === 'untied'
+            ? props.coverImage || coverUrl
+            : heroCarouselImage || coverUrl;
         const heroLogo = mode === 'untied' ? props.logoUrl || logoUrl : logoUrl;
         const ctaBtnText = props.ctaText || (phone ? 'Direct WhatsApp' : 'Get in Touch');
         const ctaBtnLink =
@@ -207,14 +290,14 @@ export default function MinisiteBuilderRenderer({
         const subtitle = props.subtitle || 'Authentic atmosphere captured from the oasis.';
 
         // Replace mode uses approved gallery items; untied uses props.images
-        const galleryItems =
+        const sectionGalleryItems =
           mode === 'untied'
             ? Array.isArray(props.images)
               ? props.images.map((url: string, idx: number) => ({ id: idx, url, caption: '' }))
               : []
-            : business.gallery || [];
+            : galleryItems;
 
-        if (galleryItems.length === 0) return null;
+        if (sectionGalleryItems.length === 0) return null;
 
         return (
           <section
@@ -250,7 +333,7 @@ export default function MinisiteBuilderRenderer({
                 gap: '1.25rem',
               }}
             >
-              {galleryItems.slice(0, 12).map((item: any, idx: number) => (
+              {sectionGalleryItems.slice(0, 12).map((item: any, idx: number) => (
                 <div
                   key={item.id || idx}
                   onClick={() => setSelectedImage(item.url)}
@@ -777,7 +860,7 @@ export default function MinisiteBuilderRenderer({
       // 6. VENDOR PRIVATE CAROUSEL
       // ──────────────────────────────────────────────
       case 'vendor_carousel': {
-        const carouselName = `minisite_${business.slug}_hero`;
+        const carouselName = `biz_${business.id}_hero`;
         return (
           <section key={comp.id} style={{ position: 'relative' }}>
             <AdvancedHeroCarousel

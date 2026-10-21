@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
-import { query, queryOne, execute } from '@/lib/db';
+import { query, queryOne, execute, transaction } from '@/lib/db';
 import {
   COMPONENT_META,
   DEFAULT_TIER_RULES,
@@ -12,16 +12,17 @@ import {
   validateMinisiteLayout,
 } from '@/lib/minisite-governance';
 import {
-  deleteMinisiteLayout,
   fetchMinisiteLayout,
   fetchMinisiteTemplateLayout,
   GOVERNANCE_KEY,
+  MINISITE_LAYOUT_KEY,
   MinisiteLayout,
-  saveMinisiteLayout,
 } from '@/lib/minisite-layout';
 import { invalidateCache } from '@/lib/cache';
+import { saveMinisiteDraft } from '@/lib/minisite-drafts';
 
 function getErrorStatus(error: any) {
+  if (Number.isInteger(error?.status)) return error.status;
   const message = String(error?.message || '');
   if (message === 'Not authenticated') return 401;
   if (message.toLowerCase().includes('access required')) return 403;
@@ -174,8 +175,12 @@ export async function GET(request: NextRequest) {
     let isFromTemplate = false;
     if (!layout && business.type_id) {
       const templateLayout = await fetchMinisiteTemplateLayout(business.type_id);
-      if (templateLayout) {
-        layout = templateLayout;
+      const templateComponents = validateMinisiteLayout(
+        templateLayout?.components || [],
+        allowedComponents
+      );
+      if (templateLayout && templateComponents.length > 0) {
+        layout = { ...templateLayout, components: templateComponents };
         isFromTemplate = true;
       }
     }
@@ -316,34 +321,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Slug parameter is required' }, { status: 400 });
     }
 
-    // Lookup business to enforce tier rules
-    const business = await queryOne<any>(
-      'SELECT id, slug, type_id, subscription_tier, is_master FROM businesses WHERE slug = ? OR id = ? LIMIT 1',
-      [slug, slug]
-    );
+    const saved = await saveMinisiteDraft({
+      businessId: body.businessId || slug,
+      layout: {
+        mode: body.mode,
+        components: body.components,
+        site_settings: body.site_settings,
+      },
+      createdBy: admin.id || 'admin',
+    });
 
-    if (!business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
-    }
-
-    const tier: MinisiteTier = getBusinessTier(business);
-    const allowed = await getTierRules(tier);
-
-    // Validate and strip non-allowed components
-    const validatedComponents = validateMinisiteLayout(body.components, allowed);
-
-    const layoutPayload: MinisiteLayout = {
-      mode: body.mode === 'untied' ? 'untied' : 'replace',
-      components: validatedComponents,
-      site_settings: body.site_settings || {},
-      updated_at: new Date().toISOString(),
-      updated_by: admin.id || 'admin',
-    };
-
-    await saveMinisiteLayout(business.slug || slug, layoutPayload, admin.id);
-    invalidateCache.websiteSettings();
     try {
-      revalidatePath(`/${business.slug || slug}`);
+      revalidatePath(`/${saved.slug}`);
       revalidatePath('/[slug]', 'page');
     } catch (e) {
       console.warn('[revalidatePath warning]', e);
@@ -351,8 +340,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      layout: layoutPayload,
-      strippedCount: (body.components?.length || 0) - validatedComponents.length,
+      ...saved,
+      status: 'draft',
     });
   } catch (error: any) {
     console.error('[API minisite-layout POST] Error:', error);
@@ -362,7 +351,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
 
@@ -370,10 +359,42 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Slug parameter is required' }, { status: 400 });
     }
 
-    await deleteMinisiteLayout(slug);
+    const business = await queryOne<{ id: string; slug: string }>(
+      'SELECT id, slug FROM businesses WHERE slug = ? OR id = ? LIMIT 1',
+      [slug, slug]
+    );
+    await transaction(async connection => {
+      if (business) {
+        const [activeRows] = await connection.execute(
+          `SELECT id FROM minisite_vendor_handoffs
+           WHERE business_id = ? AND status IN
+             ('draft', 'sent', 'delivered', 'read', 'followup_due', 'replied', 'changes_requested', 'accepted', 'published')`,
+          [business.id]
+        );
+        await connection.execute(
+          `UPDATE minisite_vendor_handoffs
+           SET status = 'expired', token_hash = NULL, token_expires_at = NULL
+           WHERE business_id = ? AND status IN
+             ('draft', 'sent', 'delivered', 'read', 'followup_due', 'replied', 'changes_requested', 'accepted', 'published')`,
+          [business.id]
+        );
+        for (const row of activeRows as Array<{ id: string }>) {
+          await connection.execute(
+            `INSERT INTO minisite_vendor_handoff_events (handoff_id, event_type, payload, actor_id)
+             VALUES (?, 'layout_reset', ?, ?)`,
+            [row.id, JSON.stringify({ slug }), admin.id]
+          );
+        }
+      }
+      await connection.execute(
+        'DELETE FROM website_configs WHERE type = ?',
+        [MINISITE_LAYOUT_KEY(business?.slug || slug)]
+      );
+    });
+    invalidateCache.websiteSettings();
     invalidateCache.websiteSettings();
     try {
-      revalidatePath(`/${slug}`);
+      revalidatePath(`/${business?.slug || slug}`);
       revalidatePath('/[slug]', 'page');
     } catch (e) {
       console.warn('[revalidatePath warning]', e);

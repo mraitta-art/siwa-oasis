@@ -297,7 +297,7 @@ export default async function VanitySectionPage({
       cta_phone: sectionControls[s.id]?.cta_phone || null,
     }));
 
-    let sectionComponents: Record<string, any[]> = {};
+    const sectionComponents: Record<string, any[]> = {};
     if (sectionIds.length > 0) {
       let componentRows: any[] = [];
       try {
@@ -434,7 +434,21 @@ export default async function VanitySectionPage({
     });
 
     // Tier-level section access control
-    const tierRanks: Record<string, number> = { free: 0, basic: 1, pro: 2, premium: 3, enterprise: 4 };
+    const tierRanks: Record<string, number> = {
+      free: 0,
+      basic: 1,
+      standard: 1,
+      starter: 1,
+      silver: 1,
+      plus: 1,
+      pro: 3,
+      vip: 3,
+      gold: 3,
+      premium: 3,
+      elite: 3,
+      enterprise: 3,
+      admin: 4,
+    };
     const currentBizTier = String(biz.subscription_tier || 'free').toLowerCase();
     const currentBizRank = tierRanks[currentBizTier] ?? 0;
     const isMasterOrTrusted = biz.is_master === 1 || biz.is_trusted === 1;

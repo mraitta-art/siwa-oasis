@@ -38,6 +38,7 @@ yarn-error.log*
 .env.deploy
 .env.railway
 .env.*
+!.env.example
 
 # vercel
 .vercel
@@ -76,5 +77,7 @@ service-account.json
 # database backups (can be large and contain sensitive data)
 *.sql
 !migrations/037_dynamic_transportation_services.sql
+!migrations/041_minisite_vendor_handoffs.sql
+!migrations/042_crm_contact_groups.sql
 database_backups/
 *.dump

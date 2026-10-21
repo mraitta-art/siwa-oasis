@@ -27,6 +27,21 @@ function extractContactFromCustomData(customData: any): { whatsapp: string; phon
   };
 }
 
+function hasConfiguredMinisiteLayout(value: unknown): boolean {
+  try {
+    const layout = typeof value === 'string' ? JSON.parse(value) : value;
+    return Boolean(
+      layout &&
+      typeof layout === 'object' &&
+      'components' in layout &&
+      Array.isArray(layout.components) &&
+      layout.components.length > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
@@ -41,26 +56,18 @@ export async function GET(request: NextRequest) {
              b.type_id,
              bt.name as type_name, bt.icon as type_icon, bt.parent_id as parent_type_id,
              parent_bt.name as parent_type_name, parent_bt.icon as parent_type_icon,
-             wc.value as minisite_config
+             wc.config as minisite_config,
+             EXISTS (
+               SELECT 1 FROM minisite_vendor_handoffs h
+               WHERE h.business_id = b.id AND h.status = 'published'
+             ) AS has_published_minisite
       FROM businesses b
       LEFT JOIN business_types bt ON b.type_id = bt.id
       LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
-      LEFT JOIN website_configs wc ON wc.key = CONCAT('minisite_layout_', b.slug) AND wc.type = 'minisite_layout'
+      LEFT JOIN website_configs wc
+        ON wc.type = CONCAT('minisite_layout_', LOWER(COALESCE(NULLIF(b.slug, ''), b.id)))
       ORDER BY b.created_at DESC
     `);
-
-    // Also fetch minisite service controls (active/inactive per business)
-    const minisiteControls = await query<any>(`
-      SELECT key, value FROM website_configs WHERE key LIKE 'minisite_services_%'
-    `);
-    const controlMap = new Map<string, any>();
-    for (const c of minisiteControls) {
-      try {
-        const val = typeof c.value === 'string' ? JSON.parse(c.value) : c.value;
-        const bizSlug = c.key.replace('minisite_services_', '');
-        controlMap.set(bizSlug, val);
-      } catch {}
-    }
 
     const list = businesses.map((biz) => {
       let customData: any = {};
@@ -74,12 +81,10 @@ export async function GET(request: NextRequest) {
       const outreachStatus = customData.outreach_status || (biz.is_claimed ? 'claimed' : 'new');
       const outreachNotes = customData.outreach_notes || '';
       const lastContactedAt = customData.last_contacted_at || null;
-
       const effectiveSlug = biz.slug || `biz-${biz.id}`;
-      const hasBuilderLayout = Boolean(biz.minisite_config);
-      const serviceControls = controlMap.get(effectiveSlug) || {};
-      const hasServiceActive = Object.values(serviceControls).some((s: any) => s && s.enabled !== false);
-      const hasMinisite = hasBuilderLayout || hasServiceActive;
+      const hasBuilderLayout = hasConfiguredMinisiteLayout(biz.minisite_config);
+      const hasPublishedMinisite = Boolean(biz.has_published_minisite);
+      const hasMinisite = hasBuilderLayout || hasPublishedMinisite;
 
       return {
         id: biz.id,
@@ -95,7 +100,7 @@ export async function GET(request: NextRequest) {
         published: !!biz.published,
         is_claimed: !!biz.is_claimed,
         has_minisite: hasMinisite,
-        minisite_status: hasBuilderLayout ? 'builder_layout' : (hasServiceActive ? 'active' : 'inactive'),
+        minisite_status: hasPublishedMinisite ? 'published' : (hasBuilderLayout ? 'builder_layout' : 'inactive'),
         whatsapp: contacts.whatsapp,
         phone: contacts.phone,
         has_whatsapp: !!(contacts.whatsapp || contacts.phone),

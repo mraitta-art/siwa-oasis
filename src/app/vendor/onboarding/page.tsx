@@ -19,7 +19,7 @@ const STEPS = [
   { n: 1, icon: '🏪', label: 'Identity',  sub: 'Name, tagline, description' },
   { n: 2, icon: '📍', label: 'Contact',   sub: 'Phone, location, hours' },
   { n: 3, icon: '📸', label: 'Gallery',   sub: 'Upload your best photos' },
-  { n: 4, icon: '🚀', label: 'Publish',   sub: 'Review & go live' },
+  { n: 4, icon: '🚀', label: 'Listing',   sub: 'Review & list profile' },
 ];
 
 export default function VendorOnboardingPage() {
@@ -393,7 +393,7 @@ export default function VendorOnboardingPage() {
               </div>
             )}
 
-            {/* ── STEP 4: Publish ── */}
+            {/* ── STEP 4: Public profile listing ── */}
             {step === 4 && (
               <div className="space-y-5">
                 {/* Summary */}
@@ -424,24 +424,24 @@ export default function VendorOnboardingPage() {
                     <div className="h-full rounded-full" style={{ width: `${totalPct()}%`, background: 'linear-gradient(90deg,#D4AF37,#f0c842)' }} />
                   </div>
                   {totalPct() < 60 && (
-                    <p className="text-xs text-amber-600 font-semibold mt-2">💡 Complete more sections for a better minisite. You can still publish now and update later.</p>
+                    <p className="text-xs text-amber-600 font-semibold mt-2">💡 Complete more sections for a better minisite. You can list your profile now and update it later.</p>
                   )}
                 </div>
 
-                {/* Publish CTA */}
+                {/* Public listing CTA */}
                 {!published ? (
                   <button
                     onClick={handlePublish}
                     disabled={publishing}
                     className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-amber-500 hover:from-amber-500 hover:to-[#D4AF37] text-white font-extrabold text-lg rounded-2xl transition shadow-lg shadow-amber-200 disabled:opacity-50"
                   >
-                    {publishing ? '⏳ Publishing...' : '🚀 Launch My Minisite!'}
+                    {publishing ? '⏳ Updating listing...' : '🚀 List My Business Profile'}
                   </button>
                 ) : (
                   <div className="bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-5 text-center">
                     <div className="text-4xl mb-2">🎉</div>
-                    <h3 className="font-extrabold text-emerald-800 text-lg mb-1">You're Live!</h3>
-                    <p className="text-emerald-600 text-sm font-semibold mb-4">Your minisite is published on Siwa Oasis</p>
+                    <h3 className="font-extrabold text-emerald-800 text-lg mb-1">Your profile is listed</h3>
+                    <p className="text-emerald-600 text-sm font-semibold mb-4">Your business profile is discoverable on Siwa Oasis.</p>
                     {business?.slug && (
                       <Link href={`/${business.slug}`} target="_blank" className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-2xl transition">
                         <i className="fas fa-external-link-alt text-xs"></i>

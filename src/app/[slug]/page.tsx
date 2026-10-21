@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
+import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
+import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 
 interface BusinessData {
   id: string;
@@ -24,6 +26,7 @@ export default function CanonicalVanityPage({
   const [loading, setLoading] = useState(true);
   const [builderConfig, setBuilderConfig] = useState<any>(null);
   const [business, setBusiness] = useState<BusinessData | null>(null);
+  const [publishedMinisite, setPublishedMinisite] = useState<{ layout: MinisiteLayout; business: BusinessContext } | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -33,9 +36,10 @@ export default function CanonicalVanityPage({
         setSlug(s);
 
         // 1. Try to fetch custom website config
-        const [resWebsite, resBiz] = await Promise.all([
+        const [resWebsite, resBiz, resMinisite] = await Promise.all([
           fetch(`/api/jana/website?id=website_${s}`).catch(() => null),
           fetch(`/api/businesses/${s}`).catch(() => null),
+          fetch(`/api/public/minisite/${encodeURIComponent(s)}`).catch(() => null),
         ]);
 
         let hasCustom = false;
@@ -46,6 +50,15 @@ export default function CanonicalVanityPage({
             setBuilderConfig(parsed);
             hasCustom = true;
           }
+        }
+
+        if (resMinisite?.ok) {
+          const published = await resMinisite.json();
+          if (published.layout && published.business) {
+            setPublishedMinisite(published);
+          }
+        } else if (resMinisite) {
+          console.error('Failed to load published minisite:', await resMinisite.text());
         }
 
         if (resBiz && resBiz.ok) {
@@ -86,30 +99,17 @@ export default function CanonicalVanityPage({
     );
   }
 
-  // ── Render Builder Layout if available ──
-  if (builderConfig) {
-    const layout = [
-      ...(builderConfig.header_components || []),
-      ...(builderConfig.body_components || []),
-      ...(builderConfig.footer_components || []),
-      ...(builderConfig.layout || []),
-    ];
+  if (publishedMinisite) {
     return (
-      <div style={{ minHeight: '100vh', background: '#FFFFFF' }}>
-        <MarketplaceHeader
-          title={builderConfig.site_settings?.site_name || business?.name || slug}
-          accentColor={builderConfig.site_settings?.primary_color || '#D4AF37'}
-        />
-        <DynamicHomepageRenderer
-          layout={layout}
-          settings={builderConfig.site_settings || null}
-          pageId={slug}
-        />
-      </div>
+      <MinisiteBuilderRenderer
+        layout={publishedMinisite.layout}
+        business={publishedMinisite.business}
+      />
     );
   }
 
-  // ── Render Minisite for verified business ──
+  // Business slugs belong to the minisite renderer; general website pages must
+  // not shadow a business minisite that happens to share the same slug.
   if (business) {
     const cd = business.custom_data || {};
     const heroImage = cd.hero_image || cd.basic?.hero_image || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1400';
@@ -247,6 +247,29 @@ export default function CanonicalVanityPage({
             </Link>
           </div>
         </section>
+      </div>
+    );
+  }
+
+  // ── Render standalone website pages only when no business owns the slug ──
+  if (builderConfig) {
+    const layout = [
+      ...(builderConfig.header_components || []),
+      ...(builderConfig.body_components || []),
+      ...(builderConfig.footer_components || []),
+      ...(builderConfig.layout || []),
+    ];
+    return (
+      <div style={{ minHeight: '100vh', background: '#FFFFFF' }}>
+        <MarketplaceHeader
+          title={builderConfig.site_settings?.site_name || slug}
+          accentColor={builderConfig.site_settings?.primary_color || '#D4AF37'}
+        />
+        <DynamicHomepageRenderer
+          layout={layout}
+          settings={builderConfig.site_settings || null}
+          pageId={slug}
+        />
       </div>
     );
   }

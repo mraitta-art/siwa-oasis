@@ -12,6 +12,7 @@ import {
   MinisiteLayout,
   MinisiteLayoutComponent,
 } from '@/lib/minisite-governance-client';
+import { ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT } from '@/lib/minisite-admin-publication';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,22 @@ export default function MinisiteBuilderStudio() {
   );
 }
 
+const ACTIVE_HANDOFF_STATUSES = new Set([
+  'draft',
+  'sent',
+  'delivered',
+  'read',
+  'followup_due',
+  'replied',
+  'changes_requested',
+  'accepted',
+  'published',
+]);
+
+function getLatestActiveHandoff(handoffs: any[] = []) {
+  return handoffs.find(handoff => ACTIVE_HANDOFF_STATUSES.has(handoff.status)) || null;
+}
+
 function MinisiteBuilderStudioContent() {
   const searchParams = useSearchParams();
   const initialSlug = searchParams.get('slug') || '';
@@ -40,6 +57,9 @@ function MinisiteBuilderStudioContent() {
   const [selectedSlug, setSelectedSlug] = useState<string>(initialSlug);
   const [businessInfo, setBusinessInfo] = useState<any>(null);
   const [siteContext, setSiteContext] = useState<any>(null);
+  const [vendorWhatsapp, setVendorWhatsapp] = useState('');
+  const [handoffId, setHandoffId] = useState('');
+  const [handoffStatus, setHandoffStatus] = useState('');
   const [allowedComponents, setAllowedComponents] = useState<MinisiteComponentType[]>([]);
   const [lang, setLang] = useState<'en' | 'ar'>('en');
 
@@ -136,6 +156,8 @@ function MinisiteBuilderStudioContent() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [showGovernanceModal, setShowGovernanceModal] = useState(false);
+  const [showAdminPublishModal, setShowAdminPublishModal] = useState(false);
+  const [adminPublishAcknowledged, setAdminPublishAcknowledged] = useState(false);
   const [governanceRules, setGovernanceRules] = useState<Record<MinisiteTier, MinisiteComponentType[]>>({
     free: [],
     standard: [],
@@ -159,7 +181,7 @@ function MinisiteBuilderStudioContent() {
     try {
       const res = await fetch('/api/jana/minisite-layout?overview=1');
       let data = res.ok ? await res.json() : null;
-      let existingList = data?.existingLayouts || [];
+      const existingList = data?.existingLayouts || [];
       let availableList = data?.availableForBuilder || [];
 
       // Fallback if overview query returned 0 businesses
@@ -230,20 +252,46 @@ function MinisiteBuilderStudioContent() {
 
     fetch(`/api/jana/minisite-layout?slug=${selectedSlug}`)
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.error) {
           setMessage({ text: data.error, type: 'error' });
           return;
         }
         setBusinessInfo(data.business);
         setSiteContext(data.siteContext || null);
+        setVendorWhatsapp(data.siteContext?.phone || data.business?.phone || '');
         setAllowedComponents(data.allowedComponents || []);
 
-        if (data.layout) {
+        let savedDraftLayout: MinisiteLayout | null = null;
+        try {
+          const listResponse = await fetch(`/api/jana/minisite-handoffs?businessId=${encodeURIComponent(data.business.id)}`);
+          if (listResponse.ok) {
+            const listData = await listResponse.json();
+            const latest = getLatestActiveHandoff(listData.handoffs);
+            if (latest?.id) {
+              setHandoffId(latest.id);
+              setHandoffStatus(latest.status || '');
+              const draftResponse = await fetch(`/api/jana/minisite-handoffs?handoffId=${encodeURIComponent(latest.id)}`);
+              if (draftResponse.ok) {
+                const draftData = await draftResponse.json();
+                savedDraftLayout = draftData.layout || null;
+                setVendorWhatsapp(latest.vendor_phone || data.siteContext?.phone || data.business?.phone || '');
+              }
+            } else {
+              setHandoffId('');
+              setHandoffStatus('');
+            }
+          }
+        } catch (handoffError) {
+          console.error('Failed to load saved minisite draft:', handoffError);
+        }
+
+        const initialLayout = savedDraftLayout || data.layout;
+        if (initialLayout) {
           setIsExistingLayout(true);
-          setMode(data.layout.mode || 'replace');
-          setComponents(data.layout.components || []);
-          setSiteSettings(data.layout.site_settings || {});
+          setMode(initialLayout.mode || 'replace');
+          setComponents(initialLayout.components || []);
+          setSiteSettings(initialLayout.site_settings || {});
         } else {
           // Default initial layout tailored to THIS business's data
           setIsExistingLayout(false);
@@ -261,6 +309,29 @@ function MinisiteBuilderStudioContent() {
       .catch((err) => setMessage({ text: err.message, type: 'error' }))
       .finally(() => setLoading(false));
   }, [selectedSlug]);
+
+  useEffect(() => {
+    if (!businessInfo?.id) return;
+    fetch(`/api/jana/minisite-handoffs?businessId=${encodeURIComponent(businessInfo.id)}`)
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load vendor handoff status');
+        const latest = getLatestActiveHandoff(data.handoffs);
+        setHandoffId(latest?.id || '');
+        setHandoffStatus(latest?.status || '');
+      })
+      .catch(error => console.error('Failed to load minisite handoff:', error));
+  }, [businessInfo?.id]);
+
+  const refreshHandoffStatus = async () => {
+    if (!businessInfo?.id) return;
+    const response = await fetch(`/api/jana/minisite-handoffs?businessId=${encodeURIComponent(businessInfo.id)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to refresh handoff status');
+    const latest = getLatestActiveHandoff(data.handoffs);
+    setHandoffId(latest?.id || '');
+    setHandoffStatus(latest?.status || '');
+  };
 
   // Open governance modal & load rules
   const handleOpenGovernance = () => {
@@ -296,6 +367,10 @@ function MinisiteBuilderStudioContent() {
 
   // Add Component to Canvas with site-specific pre-populated properties
   const handleAddComponent = (type: MinisiteComponentType) => {
+    if (!allowedComponents.includes(type)) {
+      setMessage({ text: `${COMPONENT_META[type].label} is not available for this business tier.`, type: 'error' });
+      return;
+    }
     const siteDefaults = getSiteDefaultsForComp(type, siteContext, businessInfo);
     const newComp: MinisiteLayoutComponent = {
       id: `${type}_${Date.now()}`,
@@ -303,8 +378,9 @@ function MinisiteBuilderStudioContent() {
       order: components.length,
       props: siteDefaults,
     };
-    setComponents([...components, newComp]);
+    setComponents((current) => [...current, newComp]);
     setSelectedCompId(newComp.id);
+    setMessage({ text: `${COMPONENT_META[type].label} added to the layout. Save the draft to keep your changes.`, type: 'success' });
   };
 
   // Reset a specific component back to this site's current database defaults
@@ -336,34 +412,111 @@ function MinisiteBuilderStudioContent() {
     if (selectedCompId === id) setSelectedCompId(null);
   };
 
-  // Save layout
-  const handleSaveLayout = async () => {
-    if (!selectedSlug) return;
+  // Save a non-public layout revision for preview and vendor review.
+  const saveCurrentDraft = async () => {
+    if (!selectedSlug || !businessInfo?.id) return null;
     setSaving(true);
     setMessage(null);
 
     try {
-      const payload: MinisiteLayout = {
-        mode,
-        components,
-        site_settings: siteSettings,
-      };
-
-      const res = await fetch(`/api/jana/minisite-layout?slug=${selectedSlug}`, {
+      const res = await fetch('/api/jana/minisite-handoffs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          action: 'save_draft',
+          businessId: businessInfo.id,
+          vendorPhone: vendorWhatsapp,
+          layout: { mode, components, site_settings: siteSettings },
+        }),
       });
-
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save');
-
+      if (!res.ok) throw new Error(data.error || 'Failed to save draft');
+      setHandoffId(data.handoffId);
+      setHandoffStatus('draft');
       setMessage({
-        text: `Layout published successfully! ${
-          data.strippedCount > 0 ? `(${data.strippedCount} non-tier items removed)` : ''
+        text: `Draft saved as revision ${data.revision}. It is not live.${
+          data.strippedCount > 0 ? ` ${data.strippedCount} non-tier items were removed.` : ''
         }`,
         type: 'success',
       });
+      return data.handoffId as string;
+    } catch (err: any) {
+      setMessage({ text: err.message, type: 'error' });
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveLayout = async () => {
+    await saveCurrentDraft();
+  };
+
+  const handleSendReview = async () => {
+    const draftId = await saveCurrentDraft();
+    if (!draftId) return;
+    setSaving(true);
+    try {
+      const response = await fetch('/api/jana/minisite-handoffs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_invitation', handoffId: draftId, vendorPhone: vendorWhatsapp }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'WhatsApp invitation was not sent');
+      setHandoffStatus('sent');
+      setMessage({ text: 'WhatsApp review invitation accepted by the provider. Delivery updates will appear in the handoff CRM.', type: 'success' });
+    } catch (err: any) {
+      setMessage({ text: err.message, type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublishAccepted = async () => {
+    if (!handoffId || handoffStatus !== 'accepted') return;
+    setSaving(true);
+    try {
+      const response = await fetch('/api/jana/minisite-handoffs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish', handoffId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'The accepted revision could not be published');
+      setHandoffStatus('published');
+      setMessage({ text: 'Vendor-approved revision is now live.', type: 'success' });
+      await loadOverview();
+    } catch (err: any) {
+      setMessage({ text: err.message, type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublishAdminPrepared = async () => {
+    if (!adminPublishAcknowledged) return;
+    const draftId = await saveCurrentDraft();
+    if (!draftId) return;
+
+    setSaving(true);
+    try {
+      const response = await fetch('/api/jana/minisite-handoffs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'publish_admin',
+          handoffId: draftId,
+          ownershipAcknowledged: true,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'The admin-prepared layout could not be published.');
+      setHandoffStatus('published');
+      setShowAdminPublishModal(false);
+      setAdminPublishAcknowledged(false);
+      setMessage({ text: `Admin-approved minisite revision ${data.revision} is now live.`, type: 'success' });
+      await loadOverview();
     } catch (err: any) {
       setMessage({ text: err.message, type: 'error' });
     } finally {
@@ -1607,8 +1760,31 @@ function MinisiteBuilderStudioContent() {
               gap: '0.4rem',
             }}
           >
-            <i className="fas fa-external-link-alt" /> Preview Live
+            <i className="fas fa-external-link-alt" /> View Live Site
           </a>
+
+          {handoffId && (
+            <a
+              href={`/jana/minisite-builder/preview?handoffId=${encodeURIComponent(handoffId)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                padding: '0.55rem 1rem',
+                borderRadius: '10px',
+                border: '1px solid #7c3aed',
+                background: '#f5f3ff',
+                color: '#6d28d9',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              <i className="fas fa-eye" /> Preview Saved Draft
+            </a>
+          )}
 
           <button
             onClick={handleSaveLayout}
@@ -1629,10 +1805,66 @@ function MinisiteBuilderStudioContent() {
             }}
           >
             <i className="fas fa-cloud-arrow-up" style={{ color: '#D4AF37' }} />
-            {saving ? 'Publishing...' : 'Publish Layout'}
+            {saving ? 'Saving...' : 'Save Draft'}
           </button>
         </div>
       </header>
+
+      <section style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem', padding: '0.9rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#fff' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
+          Vendor WhatsApp
+          <input
+            type="tel"
+            value={vendorWhatsapp}
+            onChange={event => setVendorWhatsapp(event.target.value)}
+            placeholder="+20..."
+            aria-label="Vendor WhatsApp number"
+            style={{ width: 190, padding: '0.5rem 0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem' }}
+          />
+        </label>
+        <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
+          Handoff status: <strong style={{ color: handoffStatus === 'accepted' ? '#15803d' : '#334155' }}>{handoffStatus || 'not started'}</strong>
+        </span>
+        <Link href="/jana/minisite-handoffs" style={{ fontSize: '0.76rem', color: '#2563eb', fontWeight: 800, textDecoration: 'none' }}>
+          Open Handoff CRM
+        </Link>
+        <button
+          type="button"
+          onClick={() => refreshHandoffStatus().catch(error => setMessage({ text: error.message || 'Unable to refresh status', type: 'error' }))}
+          style={{ padding: '0.45rem 0.7rem', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff', color: '#334155', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}
+        >
+          Refresh status
+        </button>
+        <button
+          type="button"
+          onClick={handleSendReview}
+          disabled={saving || !selectedSlug || !vendorWhatsapp.trim()}
+          style={{ marginLeft: 'auto', padding: '0.6rem 1rem', border: 0, borderRadius: '9px', background: saving ? '#94a3b8' : '#15803d', color: '#fff', fontWeight: 900, cursor: saving ? 'wait' : 'pointer' }}
+        >
+          {saving ? 'Working…' : 'Send Vendor Review via WhatsApp'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAdminPublishAcknowledged(false);
+            setShowAdminPublishModal(true);
+          }}
+          disabled={saving || !selectedSlug || components.length === 0}
+          title={components.length > 0 ? 'Publish the admin-prepared layout after confirming responsibility' : 'Add at least one layout component before publishing'}
+          style={{ padding: '0.6rem 1rem', border: 0, borderRadius: '9px', background: saving || components.length === 0 ? '#cbd5e1' : '#7c3aed', color: '#fff', fontWeight: 900, cursor: saving || components.length === 0 ? 'not-allowed' : 'pointer' }}
+        >
+          Publish Admin-Approved Layout
+        </button>
+        <button
+          type="button"
+          onClick={handlePublishAccepted}
+          disabled={saving || handoffStatus !== 'accepted'}
+          title={handoffStatus === 'accepted' ? 'Publish this vendor-accepted revision' : 'Vendor acceptance is required before publishing'}
+          style={{ padding: '0.6rem 1rem', border: 0, borderRadius: '9px', background: handoffStatus === 'accepted' ? '#1d4ed8' : '#cbd5e1', color: '#fff', fontWeight: 900, cursor: handoffStatus === 'accepted' ? 'pointer' : 'not-allowed' }}
+        >
+          Publish Accepted Revision
+        </button>
+      </section>
 
       {/* Quick Content Bridges Toolbar */}
       <div
@@ -1726,7 +1958,7 @@ function MinisiteBuilderStudioContent() {
           </Link>
 
           <Link
-            href="/jana/whatsapp-outreach"
+            href="/jana/minisite-handoffs"
             target="_blank"
             style={{
               padding: '0.5rem 0.85rem',
@@ -1743,7 +1975,7 @@ function MinisiteBuilderStudioContent() {
             }}
           >
             <i className="fab fa-whatsapp" style={{ color: '#4ade80' }} />
-            {lang === 'ar' ? '📲 تفعيل الواتساب' : '📲 WhatsApp Hub'}
+            {lang === 'ar' ? '📲 مراجعة البائعين' : '📲 Vendor Review CRM'}
           </Link>
         </div>
       </div>
@@ -2082,6 +2314,16 @@ function MinisiteBuilderStudioContent() {
             </p>
           </div>
 
+          {loading ? (
+            <div role="status" style={{ padding: '1rem', borderRadius: '10px', background: '#f8fafc', color: '#64748b', fontSize: '0.8rem', fontWeight: 700 }}>
+              <i className="fas fa-circle-notch fa-spin" style={{ marginRight: '0.5rem' }} />
+              Loading this minisite&apos;s components and tier rules...
+            </div>
+          ) : message?.type === 'error' ? (
+            <div role="alert" style={{ padding: '1rem', borderRadius: '10px', background: '#fef2f2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>
+              {message.text}
+            </div>
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {(Object.keys(COMPONENT_META) as MinisiteComponentType[]).map((type) => {
               const meta = COMPONENT_META[type];
@@ -2152,6 +2394,7 @@ function MinisiteBuilderStudioContent() {
               );
             })}
           </div>
+          )}
         </aside>
 
         {/* ── CENTER: CANVAS / REORDER LIST ─────────── */}
@@ -2193,7 +2436,12 @@ function MinisiteBuilderStudioContent() {
             )}
           </div>
 
-          {components.length === 0 ? (
+          {loading ? (
+            <div role="status" style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
+              <i className="fas fa-circle-notch fa-spin" style={{ marginRight: '0.5rem', color: '#D4AF37' }} />
+              Loading the selected minisite...
+            </div>
+          ) : components.length === 0 ? (
             <div
               style={{
                 border: '2px dashed #cbd5e1',
@@ -2654,13 +2902,13 @@ function MinisiteBuilderStudioContent() {
                   <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#fdf2f8', border: '1px solid #fbcfe8', marginTop: '0.5rem' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#9d174d', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
                       <i className="fas fa-film" style={{ marginRight: '6px', color: '#ec4899' }} />
-                      HERO CAROUSEL FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
+                      MAIN HERO CAROUSEL FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
                     </div>
                     <p style={{ fontSize: '0.72rem', color: '#db2777', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
-                      This carousel is isolated to <strong>minisite_{selectedSlug}_hero</strong>. Slides managed separately per business — no cross-business data mixing.
+                      This carousel is saved to <strong>biz_{businessInfo.id}_hero</strong> and used by the minisite's main hero. Section-specific carousels remain separate.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <Link href={`/jana/hero-carousel?carouselName=minisite_${selectedSlug}_hero`} target="_blank"
+                      <Link href={`/jana/hero-carousel?targetScope=minisite&businessId=${businessInfo.id}&minisiteTab=main`} target="_blank"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#ec4899', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
                         <i className="fas fa-images" /> Manage Carousel Slides
                       </Link>
@@ -2865,6 +3113,76 @@ function MinisiteBuilderStudioContent() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {showAdminPublishModal && (
+        <div
+          role="presentation"
+          onClick={() => {
+            if (!saving) setShowAdminPublishModal(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10001,
+            background: 'rgba(15, 23, 42, 0.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-publish-title"
+            onClick={event => event.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 620,
+              borderRadius: 18,
+              background: '#fff',
+              padding: '1.75rem',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h2 id="admin-publish-title" style={{ margin: 0, color: '#0f172a', fontSize: '1.3rem', fontWeight: 900 }}>
+              Publish admin-approved minisite
+            </h2>
+            <p style={{ color: '#475569', lineHeight: 1.65, fontSize: '0.9rem' }}>
+              This publishes the current layout for <strong>{businessInfo?.name || selectedSlug}</strong> immediately. Vendor acceptance is not required for this admin action.
+            </p>
+            <p style={{ color: '#475569', lineHeight: 1.65, fontSize: '0.85rem' }}>
+              The vendor’s separate responsibility and content-rights confirmation is recorded through mobile review and is not implied by this admin approval.
+            </p>
+            <label style={{ display: 'flex', gap: '0.7rem', alignItems: 'flex-start', padding: '1rem', borderRadius: 12, border: '1px solid #cbd5e1', background: '#f8fafc', color: '#1e293b', fontSize: '0.85rem', lineHeight: 1.6, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={adminPublishAcknowledged}
+                onChange={event => setAdminPublishAcknowledged(event.target.checked)}
+                style={{ marginTop: 4 }}
+              />
+              <span>{ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT}</span>
+            </label>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.7rem', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowAdminPublishModal(false)}
+                disabled={saving}
+                style={{ padding: '0.65rem 1rem', border: '1px solid #cbd5e1', borderRadius: 9, background: '#fff', color: '#334155', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePublishAdminPrepared}
+                disabled={saving || !adminPublishAcknowledged}
+                style={{ padding: '0.65rem 1rem', border: 0, borderRadius: 9, background: saving || !adminPublishAcknowledged ? '#cbd5e1' : '#7c3aed', color: '#fff', fontWeight: 900, cursor: saving || !adminPublishAcknowledged ? 'not-allowed' : 'pointer' }}
+              >
+                {saving ? 'Publishing…' : 'Acknowledge & Publish'}
+              </button>
+            </div>
+          </section>
         </div>
       )}
     </div>

@@ -119,7 +119,8 @@ const NAV_GROUPS = [
       { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
       { name: 'Dispatch Engine', path: '/jana/dispatch', icon: 'fa-paper-plane' },
-      { name: 'WhatsApp Outreach & Reactivation', path: '/jana/whatsapp-outreach', icon: 'fa-paper-plane', badge: 'OUTREACH' },
+      { name: 'Vendor Acquisition Outreach (WhatsApp)', path: '/jana/whatsapp-outreach', icon: 'fa-paper-plane', badge: 'OUTREACH' },
+      { name: 'CRM Contacts & Groups', path: '/jana/crm', icon: 'fa-address-book', badge: 'CRM' },
     ]
   },
   {
@@ -150,6 +151,7 @@ const NAV_GROUPS = [
         badge: 'NEW',
         children: [
           { name: 'Minisite Builder Hub', path: '/jana/minisite-builder', icon: 'fa-store' },
+          { name: 'Review, WhatsApp & Publish', path: '/jana/minisite-handoffs', icon: 'fa-handshake' },
           { name: 'Typology Templates', path: '/jana/page-builder/templates', icon: 'fa-layer-group' },
           { name: 'Forms & Sections', path: '/jana/business-forms', icon: 'fa-file-signature' },
           { name: 'Business Content & CMS', path: '/jana/content', icon: 'fa-photo-film' },

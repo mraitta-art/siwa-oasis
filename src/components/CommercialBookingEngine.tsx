@@ -1035,7 +1035,7 @@ export default function CommercialBookingEngine({
               }}
             >
               <span>{cfg.icon}</span>
-              <span>{hasPrice ? cfg.actionLabel : 'Inquire Direct →'}</span>
+              <span>{hasPrice ? 'Book Now →' : 'Inquire Direct →'}</span>
             </button>
           </div>
         </div>

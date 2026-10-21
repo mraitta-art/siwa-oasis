@@ -62,38 +62,6 @@ export async function fetchMinisiteLayout(slug: string): Promise<MinisiteLayout 
   }
 }
 
-export async function saveMinisiteLayout(
-  slug: string,
-  layout: MinisiteLayout,
-  adminId: string = 'admin'
-): Promise<void> {
-  if (!slug) throw new Error('Business slug is required');
-
-  const key = MINISITE_LAYOUT_KEY(slug);
-  const payload: MinisiteLayout = {
-    mode: layout.mode === 'untied' ? 'untied' : 'replace',
-    components: Array.isArray(layout.components) ? layout.components : [],
-    site_settings: layout.site_settings || {},
-    updated_at: new Date().toISOString(),
-    updated_by: adminId,
-  };
-
-  const serialized = JSON.stringify(payload);
-
-  await execute(
-    `INSERT INTO website_configs (type, config)
-     VALUES (?, ?)
-     ON DUPLICATE KEY UPDATE config = VALUES(config)`,
-    [key, serialized]
-  );
-}
-
-export async function deleteMinisiteLayout(slug: string): Promise<void> {
-  if (!slug) return;
-  const key = MINISITE_LAYOUT_KEY(slug);
-  await execute('DELETE FROM website_configs WHERE type = ?', [key]);
-}
-
 export async function fetchMinisiteTemplateLayout(typeId: string): Promise<MinisiteLayout | null> {
   if (!typeId) return null;
   try {

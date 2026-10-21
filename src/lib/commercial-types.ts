@@ -152,7 +152,13 @@ export interface ComparisonLinks {
   tripadvisor_url?: string;
   viator_url?: string;
   google_reviews_url?: string;
+  amazon_url?: string;
+  gift_shop_url?: string;
+  bus_agency_url?: string;
+  getyourguide_url?: string;
   ota_benchmark_price?: number;
+  supermarket_benchmark_price?: number;
+  retail_price?: number;
   ota_name?: string; // e.g. 'Booking.com' | 'TripAdvisor' | 'Viator'
 }
 

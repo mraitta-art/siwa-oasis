@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     const discountPercent = uniqueExperienceIds.length >= 3 ? Number(catalog.bundle_discount_percent) || 0 : 0;
     const discountAmount = Math.round(estimatedPrice * discountPercent / 100);
     const finalPrice = Math.max(0, estimatedPrice - discountAmount);
-    const localizedName = (item: { name_en?: string; name_ar?: string } | null) => item
+    const localizedName = (item: { id: string; name_en?: string; name_ar?: string } | null) => item
       ? (interfaceLanguage === 'ar' ? item.name_ar : item.name_en) || item.id
       : 'None';
 
@@ -238,7 +238,7 @@ export async function POST(req: NextRequest) {
 
     // Build Formatted WhatsApp Dispatch Message for Visitor / Admin / Vendors
     const experiencesList = experienceSnapshots
-      .map(item => `• ${encodeURIComponent(item!.title || item!.id)}`)
+      .map(item => `• ${encodeURIComponent(item?.title || item?.id || 'Experience')}`)
       .join('%0A');
 
     const formattedWhatsAppSummary = 
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
       `🛏️ *Stay Style:* ${encodeURIComponent(stayTitle)}%0A` +
       `🚙 *Transport:* ${encodeURIComponent(transportTitle)}%0A` +
       `🍽️ *Dining:* ${encodeURIComponent(mealTitle)}%0A` +
-      `🗣️ *Guide Language:* ${encodeURIComponent(guide_language)}%0A` +
+      `🗣️ *Guide Language:* ${encodeURIComponent(String(guide_language || 'English'))}%0A` +
       `----------------------------------------%0A` +
       `🎯 *Selected Experiences:*%0A${experiencesList}%0A` +
       `----------------------------------------%0A` +

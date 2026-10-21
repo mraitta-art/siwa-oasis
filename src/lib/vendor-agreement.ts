@@ -1,6 +1,11 @@
 export const VENDOR_AGREEMENT_VERSION = '2026-10-08-v1';
 export const VENDOR_AGREEMENT_EFFECTIVE_DATE = '2026-10-08';
 
+export const VENDOR_MINISITE_RESPONSIBILITY_ACKNOWLEDGMENT = {
+  en: 'I confirm that I am authorized to manage this business minisite. The business is responsible for managing its information and keeping it accurate, and owns or has the required rights to the business data and content displayed here.',
+  ar: 'أؤكد أنني مخول بإدارة الموقع المصغر لهذا النشاط. والنشاط مسؤول عن إدارة معلوماته والحفاظ على دقتها، كما أنه يملك بيانات ومحتوى النشاط المعروض هنا أو لديه الحقوق اللازمة لاستخدامهما.',
+} as const;
+
 export const VENDOR_AGREEMENT_SECTIONS = [
   {
     title: '1. Business authority and accurate information',

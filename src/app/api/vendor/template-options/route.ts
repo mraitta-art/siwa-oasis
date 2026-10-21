@@ -37,11 +37,26 @@ export async function PUT(request: NextRequest) {
     const { templateId } = await request.json();
     if (!templateId) return NextResponse.json({ error: 'templateId is required' }, { status: 400 });
     const candidates = await query<any>(
-      `SELECT mt.id FROM minisite_templates mt
-       JOIN businesses b ON b.id = ? LEFT JOIN business_types bt ON bt.id = b.type_id
-       WHERE mt.id = ? AND (mt.category_id IS NULL OR mt.category_id = bt.parent_id)`, [user.businessId, templateId]
+      `SELECT mt.id, mt.tier,
+              EXISTS(
+                SELECT 1 FROM minisite_template_tier_access a
+                WHERE a.template_id = mt.id AND a.tier_id = b.subscription_tier
+              ) AS tier_eligible
+       FROM minisite_templates mt
+       JOIN businesses b ON b.id = ?
+       LEFT JOIN business_types bt ON bt.id = b.type_id
+       WHERE mt.id = ? AND (mt.category_id IS NULL OR mt.category_id = bt.parent_id)`,
+      [user.businessId, templateId]
     );
-    if (!candidates[0]) return NextResponse.json({ error: 'This template is not available for your business category.' }, { status: 403 });
+    if (!candidates[0]) {
+      return NextResponse.json({ error: 'This template is not available for your business category.' }, { status: 403 });
+    }
+    if (
+      String(candidates[0].tier).toLowerCase() !== 'free' &&
+      Number(candidates[0].tier_eligible) !== 1
+    ) {
+      return NextResponse.json({ error: 'This template is not available for your subscription tier.' }, { status: 403 });
+    }
     await execute('UPDATE businesses SET template_id = ?, updated_at = NOW() WHERE id = ?', [templateId, user.businessId]);
     try {
       await execute('UPDATE vendor_template_trials SET selected_template_id = ? WHERE business_id = ?', [templateId, user.businessId]);

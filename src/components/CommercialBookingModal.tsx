@@ -89,7 +89,7 @@ export default function CommercialBookingModal({ item, onClose, accentColor = '#
         quantity: quantity,
         selected_option_id: selectedOption?.id,
         selected_option_name: selectedOption?.name_en,
-        unit_price: item.price,
+        unit_price: item.price ?? 0,
         total_price: totalPrice,
         currency: item.currency || 'EGP'
       };

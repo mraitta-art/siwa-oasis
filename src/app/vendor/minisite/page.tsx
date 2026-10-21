@@ -272,7 +272,7 @@ export default function VendorMinisitePage() {
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: settings?.is_published ? '#22c55e' : '#f59e0b', boxShadow: settings?.is_published ? '0 0 8px rgba(34,197,94,0.6)' : 'none' }} />
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 900, color: settings?.is_published ? '#166534' : '#92400e' }}>
-                {settings?.is_published ? 'Minisite is Published & Live' : 'Minisite is in Draft Mode'}
+                {settings?.is_published ? 'Business profile is publicly listed' : 'Business profile is not listed'}
               </div>
               {settings?.slug && (
                 <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -289,7 +289,7 @@ export default function VendorMinisitePage() {
             disabled={publishing}
             style={{ padding: '0.55rem 1.25rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: settings?.is_published ? '#dc2626' : '#16a34a', color: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
           >
-            {publishing ? 'Updating...' : settings?.is_published ? 'Unpublish to Draft' : '🚀 Publish Live Now'}
+            {publishing ? 'Updating...' : settings?.is_published ? 'Hide Public Profile' : 'List Public Profile'}
           </button>
         </div>
 

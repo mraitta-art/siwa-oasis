@@ -526,7 +526,7 @@ export default function CustomizeJourneyPage() {
                     >
                       <div className="relative h-36 overflow-hidden sm:h-40">
                         <Image
-                          src={exp.image}
+                          src={exp.image || 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80'}
                           alt=""
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"

@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 /**
  * POST /api/vendor/minisite/publish
  * Body: { published: boolean }
- * Toggles is_published flag on the vendor's business.
+ * Toggles public directory visibility for the vendor's business profile.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         [user.id]
       ) as any[];
       if (Number(contacts[0]?.count || 0) < 3) {
-        return NextResponse.json({ error: 'Add at least three named mobile contacts before publishing your free minisite.', requiredContacts: 3 }, { status: 400 });
+        return NextResponse.json({ error: 'Add at least three named mobile contacts before listing your free business profile publicly.', requiredContacts: 3 }, { status: 400 });
       }
     }
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       is_published: !!published,
-      message: published ? 'Minisite is now live!' : 'Minisite unpublished',
+      message: published ? 'Business profile is now publicly listed.' : 'Business profile listing is disabled.',
     });
   } catch (error: any) {
     console.error('[vendor/minisite/publish]', error);

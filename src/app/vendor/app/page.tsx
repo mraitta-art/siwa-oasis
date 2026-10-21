@@ -1,5 +1,7 @@
 'use client';
 
+import VendorCRMAnnouncements from '@/components/VendorCRMAnnouncements';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -180,6 +182,8 @@ export default function VendorAppHubPage() {
         <PWAInstallPrompt />
 
         {/* ─── LIVE NEWS RIBBON & OFFICIAL BROADCAST (إذا كان مفعلاً من الإدارة) ─── */}
+        {biz?.id && <VendorCRMAnnouncements businessId={biz.id} />}
+
         {adNotice && (
           <div style={{
             background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(20,29,47,0.95) 100%)',

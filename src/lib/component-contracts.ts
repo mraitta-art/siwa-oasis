@@ -13,6 +13,7 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
     defaults: { autoPlay: true, showIndicators: true, showArrows: true, showProgress: true },
   },
   category_hero: { allowed: ['category', 'label', 'accent', 'description', ...COMMON_TEXT] },
+  brand_sector_hero: { allowed: ['label', 'description', 'image', 'gradient', 'accent', ...COMMON_TEXT] },
   category_commercial_tabs: { allowed: ['category', ...COMMON_TEXT] },
   search_bar: { allowed: ['engine_id', 'engineId', 'defaultCategory', ...COMMON_TEXT] },
   blog: { allowed: [...COMMON_TEXT, 'maxPosts', 'blogLayout'] },
@@ -25,7 +26,8 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
   category_showcase: { allowed: [...COMMON_TEXT] },
   experience_categories: { allowed: [...COMMON_TEXT] },
   journey_collection: { allowed: [...COMMON_TEXT] },
-  smart_journey_planner: { allowed: [...COMMON_TEXT] },
+  smart_journey_planner: { allowed: [...COMMON_TEXT, 'mode', 'category'] },
+  accommodation_explorer: { allowed: [...COMMON_TEXT, 'accentColor', 'initialSetting', 'initialVibe', 'initialType'] },
   ecosystem_map: { allowed: [...COMMON_TEXT] },
   local_products: { allowed: [...COMMON_TEXT] },
   storytelling_section: { allowed: [...COMMON_TEXT] },
@@ -48,6 +50,10 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
     allowed: [...COMMON_TEXT, 'initialProgramId', 'program_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
     defaults: { initialProgramId: 'retreat_silence_3days' },
   },
+  sector_directory: {
+    allowed: [...COMMON_TEXT, 'sectionId', 'categoryFilter', 'category', 'label', 'description', 'ctaLabel', 'showPartnerCta', 'accentColor'],
+  },
+  sector_investment: { allowed: [...COMMON_TEXT, 'category', 'label'] },
   reservation_accommodation: {
     allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
     defaults: { sector: 'accommodation', defaultKind: 'all' },
