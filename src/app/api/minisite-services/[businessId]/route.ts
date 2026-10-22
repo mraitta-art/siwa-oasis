@@ -14,7 +14,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ bus
       qrEnabled: control ? !!control.qr_enabled && control.minisite_status === 'active' && !expired : true,
       minisiteStatus: expired ? 'expired' : (control?.minisite_status || 'active'),
     });
-  } catch {
-    return NextResponse.json({ qrEnabled: true, minisiteStatus: 'active' });
+  } catch (error) {
+    console.error('Failed to load minisite service controls:', error);
+    return NextResponse.json(
+      { error: 'Unable to verify minisite QR availability.' },
+      { status: 503 }
+    );
   }
 }

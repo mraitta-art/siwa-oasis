@@ -25,6 +25,7 @@
 CREATE TABLE profiles (
   id VARCHAR(36) PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(32) DEFAULT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('super_admin','content_admin','sales_manager','support_agent','salesman','vendor','public') NOT NULL DEFAULT 'vendor',
   display_name VARCHAR(255),
@@ -32,6 +33,7 @@ CREATE TABLE profiles (
   subscription_tier VARCHAR(50) DEFAULT 'free',
   business_id VARCHAR(36) DEFAULT NULL,
   active BOOLEAN DEFAULT TRUE,
+  approval_status VARCHAR(30) NOT NULL DEFAULT 'approved',
   metadata JSON DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

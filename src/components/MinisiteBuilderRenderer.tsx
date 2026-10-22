@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
+import MinisiteQRCode from '@/components/MinisiteQRCode';
 import { MinisiteLayout, MinisiteLayoutComponent } from '@/lib/minisite-layout';
 
 export interface BusinessContext {
@@ -22,25 +23,28 @@ export interface BusinessContext {
 export interface MinisiteBuilderRendererProps {
   layout: MinisiteLayout;
   business: BusinessContext;
+  showQRCode?: boolean;
 }
 
 export default function MinisiteBuilderRenderer({
   layout,
   business,
+  showQRCode = false,
 }: MinisiteBuilderRendererProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [heroCarouselImage, setHeroCarouselImage] = useState<string | null>(null);
+  const [heroCarouselSlides, setHeroCarouselSlides] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    setHeroCarouselImage(null);
+    setHeroCarouselSlides([]);
 
-    const loadHeroImage = async () => {
+    const loadHeroSlides = async () => {
       const siteIds = [
         `biz_${business.id}_hero`,
         `biz_${business.id}_tab_sec_1_identity_hero`,
       ];
+      const slides: any[] = [];
 
       for (const siteId of siteIds) {
         const response = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
@@ -50,26 +54,58 @@ export default function MinisiteBuilderRenderer({
         }
 
         const data = await response.json();
-        const imageSlide = Array.isArray(data?.slides)
-          ? data.slides.find(
-              (slide: any) =>
-                slide?.type === 'image' &&
-                typeof slide.mediaUrl === 'string' &&
-                slide.mediaUrl.length > 0
-            )
-          : null;
+        if (Array.isArray(data?.slides)) {
+          slides.push(...data.slides.map((slide: any) => ({
+            ...slide,
+            title: '',
+            subtitle: '',
+            caption: '',
+            ctaLink: undefined,
+            ctaText: undefined,
+            showCaption: false,
+          })));
+        }
+        if (slides.length > 0) break;
+      }
 
-        if (imageSlide) {
-          if (!cancelled) setHeroCarouselImage(imageSlide.mediaUrl);
-          return;
+      const rawData = business.custom_data || {};
+      const sectionMetadata = rawData.section_content_meta || {};
+      for (const [sectionId, sectionData] of Object.entries(rawData)) {
+        if (!sectionData || typeof sectionData !== 'object') continue;
+        const metadata = sectionMetadata[sectionId] || {};
+        if (metadata.galleryStatus && metadata.galleryStatus !== 'approved') continue;
+        if (metadata.galleryOnMinisite === false) continue;
+        const section = sectionData as Record<string, any>;
+        const gallery = Array.isArray(section.section_gallery)
+          ? section.section_gallery
+          : section.section_gallery ? [section.section_gallery] : [];
+        for (const item of gallery) {
+          const mediaUrl = typeof item === 'string' ? item : item?.url;
+          if (typeof mediaUrl !== 'string' || !mediaUrl.trim()) continue;
+          if (item?.approval_status && item.approval_status !== 'approved') continue;
+          if (item?.show_on_minisite === false || item?.show_on_minisite === 0) continue;
+          slides.push({
+            id: item?.id || `${sectionId}-${slides.length}`,
+            type: 'image',
+            mediaUrl: mediaUrl.trim(),
+            title: '',
+            subtitle: '',
+            showCaption: false,
+          });
         }
       }
 
-      if (!cancelled) setHeroCarouselImage(null);
+      const uniqueSlides = slides.filter((slide, index, all) =>
+        ['image', 'video', 'youtube', 'embed', 'branded'].includes(slide?.type) &&
+        typeof slide.mediaUrl === 'string' &&
+        slide.mediaUrl.trim() &&
+        all.findIndex(candidate => candidate?.mediaUrl === slide.mediaUrl) === index
+      );
+      if (!cancelled) setHeroCarouselSlides(uniqueSlides);
     };
 
-    loadHeroImage().catch(error => {
-      console.error('Failed to load minisite hero image:', error);
+    loadHeroSlides().catch(error => {
+      console.error('Failed to load minisite hero carousel:', error);
     });
 
     return () => {
@@ -158,10 +194,7 @@ export default function MinisiteBuilderRenderer({
               identity.description?.substring(0, 180) ||
               business.type_name ||
               '';
-        const heroCover =
-          mode === 'untied'
-            ? props.coverImage || coverUrl
-            : heroCarouselImage || coverUrl;
+        const heroCover = mode === 'untied' ? props.coverImage || coverUrl : coverUrl;
         const heroLogo = mode === 'untied' ? props.logoUrl || logoUrl : logoUrl;
         const ctaBtnText = props.ctaText || (phone ? 'Direct WhatsApp' : 'Get in Touch');
         const ctaBtnLink =
@@ -173,7 +206,8 @@ export default function MinisiteBuilderRenderer({
             key={comp.id}
             style={{
               position: 'relative',
-              minHeight: 'clamp(380px, 55vh, 600px)',
+              height: 'clamp(380px, 55vh, 600px)',
+              overflow: 'hidden',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -185,7 +219,20 @@ export default function MinisiteBuilderRenderer({
               textAlign: 'center',
             }}
           >
-            <div style={{ maxWidth: '850px', width: '100%', margin: '0 auto' }}>
+            {mode === 'replace' && heroCarouselSlides.length > 0 && (
+              <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+                <AdvancedHeroCarousel
+                  slides={heroCarouselSlides}
+                  height="100%"
+                  autoPlay
+                  autoPlayInterval={6000}
+                  showIndicators={heroCarouselSlides.length > 1}
+                  showArrows={heroCarouselSlides.length > 1}
+                  showProgress={heroCarouselSlides.length > 1}
+                />
+              </div>
+            )}
+            <div style={{ position: 'relative', zIndex: 2, maxWidth: '850px', width: '100%', margin: '0 auto' }}>
               {heroLogo && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <img
@@ -339,6 +386,7 @@ export default function MinisiteBuilderRenderer({
                   onClick={() => setSelectedImage(item.url)}
                   style={{
                     position: 'relative',
+                    zIndex: 2,
                     aspectRatio: '4/3',
                     borderRadius: 16,
                     overflow: 'hidden',
@@ -866,7 +914,7 @@ export default function MinisiteBuilderRenderer({
             <AdvancedHeroCarousel
               height="clamp(420px, 60vh, 680px)"
               carouselName={carouselName}
-              isDynamic={true}
+              isDynamic={false}
               autoPlay={props.autoPlay !== false}
               autoPlayInterval={props.autoPlayInterval || 6000}
               showIndicators={props.showIndicators !== false}
@@ -1249,6 +1297,12 @@ export default function MinisiteBuilderRenderer({
         {Array.isArray(layout.components) &&
           layout.components.map((comp) => renderComponent(comp))}
       </main>
+
+      {showQRCode && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <MinisiteQRCode businessName={business.name} slug={business.slug} businessId={business.id} />
+        </div>
+      )}
 
       {/* Optional Platform Footer */}
       {siteSettings.show_platform_footer !== false && (

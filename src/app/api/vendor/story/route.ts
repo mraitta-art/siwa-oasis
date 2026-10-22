@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, normalizeCustomData } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { preserveVendorContact } from '@/lib/vendor-contact-lock';
 import { filterCoreSectionsForBusinessType, resolveSectionId } from '@/lib/section-registry';
 
 /**
@@ -250,9 +251,10 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    const protectedData = preserveVendorContact(currentData, merged);
     await execute(
       'UPDATE businesses SET custom_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [JSON.stringify(merged), user.businessId]
+      [JSON.stringify(protectedData), user.businessId]
     );
 
     return NextResponse.json({ success: true, message: 'Story updated and live!' });

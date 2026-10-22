@@ -10,7 +10,7 @@ Vendor/category templates and sectional manifests continue to configure content 
 
 ## Database
 
-Apply `migrations/041_minisite_vendor_handoffs.sql` and `migrations/042_crm_contact_groups.sql` to the application database before using these features. The second migration creates imported-contact groups, tracked WhatsApp campaigns, and vendor-targeted announcements.
+Apply `migrations/041_minisite_vendor_handoffs.sql`, `migrations/042_crm_contact_groups.sql`, and `migrations/043_vendor_profile_contact_and_approval.sql` to the application database before using these features. The third migration adds the vendor profile phone and approval fields required to link a vendor to the invited WhatsApp number. The second migration creates imported-contact groups, tracked WhatsApp campaigns, and vendor-targeted announcements.
 
 ## WhatsApp Business Platform
 

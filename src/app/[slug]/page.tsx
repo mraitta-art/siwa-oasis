@@ -5,6 +5,7 @@ import Link from 'next/link';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
+import MinisiteQRCode from '@/components/MinisiteQRCode';
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 
 interface BusinessData {
@@ -104,6 +105,7 @@ export default function CanonicalVanityPage({
       <MinisiteBuilderRenderer
         layout={publishedMinisite.layout}
         business={publishedMinisite.business}
+        showQRCode
       />
     );
   }
@@ -247,6 +249,9 @@ export default function CanonicalVanityPage({
             </Link>
           </div>
         </section>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <MinisiteQRCode businessName={business.name} slug={business.slug} businessId={business.id} />
+        </div>
       </div>
     );
   }

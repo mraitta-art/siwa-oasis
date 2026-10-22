@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import YouTubeFacade, { extractYouTubeId } from './YouTubeFacade';
 import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';
 
@@ -162,7 +162,10 @@ export default function AdvancedHeroCarousel({
   const subtitleSize = visualSettings.subtitleSize ? `${visualSettings.subtitleSize}rem` : 'clamp(1.1rem, 2.5vw, 1.6rem)';
 
   // Per-slide overrides computed inline (after slide is selected below)
-  const validSlides = slides.filter(s => s.type === 'branded' || (s.mediaUrl && s.mediaUrl.length > 0));
+  const validSlides = useMemo(
+    () => slides.filter(s => s.type === 'branded' || (s.mediaUrl && s.mediaUrl.length > 0)),
+    [slides]
+  );
 
   // Navigation helpers — accept `userInitiated` to control whether we should scroll to a target section
   const goToNext = useCallback((userInitiated = false) => {

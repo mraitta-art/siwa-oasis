@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, queryOne } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+import { query, queryOne, execute } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { preserveVendorContact } from '@/lib/vendor-contact-lock';
+import { invalidateCache } from '@/lib/cache';
+import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,8 +99,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * PATCH /api/vendor/business
- * Allows vendor to update limited fields of their own business
- * (WhatsApp, phone, description, social links stored in custom_data).
+ * Allows vendors to update public business content while keeping contact number and slug fixed.
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -106,22 +109,45 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { custom_data, phone, whatsapp, description } = body;
+    const { custom_data, phone, whatsapp, description, name } = body;
 
     const businessId = (user as any).businessId;
     if (!businessId) {
       return NextResponse.json({ error: 'No business linked to this account' }, { status: 404 });
+    }
+    if (phone !== undefined || whatsapp !== undefined) {
+      return NextResponse.json({ error: 'The business contact number is fixed to the WhatsApp invitation. Contact SiWiFy to request a change.' }, { status: 403 });
     }
 
     // Only allow updating safe vendor-editable fields
     const updates: string[] = [];
     const params: any[] = [];
 
-    if (phone !== undefined) { updates.push('phone = ?'); params.push(phone); }
+    let oldBusinessName: string | null = null;
+    let businessSlug: string | null = null;
+    if (name !== undefined) {
+      const business = await queryOne<any>('SELECT name, slug FROM businesses WHERE id = ?', [businessId]);
+      if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      oldBusinessName = business.name || '';
+      businessSlug = business.slug || businessId;
+    }
+
     if (description !== undefined) { updates.push('description = ?'); params.push(description); }
+    if (name !== undefined) {
+      const businessName = typeof name === 'string' ? name.trim() : '';
+      if (!businessName || businessName.length > 255) {
+        return NextResponse.json({ error: 'Enter a business name between 1 and 255 characters.' }, { status: 400 });
+      }
+      updates.push('name = ?');
+      params.push(businessName);
+    }
     if (custom_data !== undefined) {
+      const current = await queryOne<any>('SELECT custom_data FROM businesses WHERE id = ?', [businessId]);
+      const currentData = current?.custom_data
+        ? (typeof current.custom_data === 'string' ? JSON.parse(current.custom_data) : current.custom_data)
+        : {};
       updates.push('custom_data = ?');
-      params.push(JSON.stringify(custom_data));
+      params.push(JSON.stringify(preserveVendorContact(currentData, custom_data)));
     }
 
     if (updates.length === 0) {
@@ -129,7 +155,34 @@ export async function PATCH(request: NextRequest) {
     }
 
     params.push(businessId);
-    await query(`UPDATE businesses SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, params);
+    await execute(`UPDATE businesses SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, params);
+
+    if (name !== undefined && businessSlug && oldBusinessName !== name.trim()) {
+      const layoutRow = await queryOne<any>(
+        'SELECT config FROM website_configs WHERE type = ? LIMIT 1',
+        [MINISITE_LAYOUT_KEY(businessSlug)]
+      );
+      if (layoutRow?.config) {
+        const config = typeof layoutRow.config === 'string' ? JSON.parse(layoutRow.config) : layoutRow.config;
+        if (Array.isArray(config?.components)) {
+          let changed = false;
+          config.components = config.components.map((component: any) => {
+            if (component.type !== 'vendor_hero' || component.props?.title !== oldBusinessName) return component;
+            changed = true;
+            return { ...component, props: { ...component.props, title: name.trim() } };
+          });
+          if (changed) {
+            await execute('UPDATE website_configs SET config = ? WHERE type = ?', [
+              JSON.stringify(config),
+              MINISITE_LAYOUT_KEY(businessSlug),
+            ]);
+          }
+        }
+      }
+      invalidateCache.websiteSettings();
+      revalidatePath(`/${businessSlug}`);
+      revalidatePath('/[slug]', 'page');
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

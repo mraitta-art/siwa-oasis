@@ -79,5 +79,6 @@ service-account.json
 !migrations/037_dynamic_transportation_services.sql
 !migrations/041_minisite_vendor_handoffs.sql
 !migrations/042_crm_contact_groups.sql
+!migrations/043_vendor_profile_contact_and_approval.sql
 database_backups/
 *.dump
