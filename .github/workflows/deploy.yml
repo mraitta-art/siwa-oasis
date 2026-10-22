@@ -27,7 +27,3 @@ jobs:
 
       - name: Lint public minisite API
         run: npx eslint 'src/app/api/public/minisite/[slug]/route.ts'
-
-      - name: Build application
-        run: npm run build
-        timeout-minutes: 30
