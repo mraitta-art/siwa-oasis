@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getJwtSecret } from '@/lib/jwt-secret';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_for_development');
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 const PLATFORM_ROOT_DOMAINS = new Set(['siwify.com', 'www.siwify.com', 'localhost', '127.0.0.1']);
 
@@ -210,8 +210,11 @@ const ROUTE_GUARDS: Record<string, string[]> = {
 async function verifySession(request: NextRequest): Promise<{ role: string } | null> {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
+  const jwtSecret = getJwtSecret();
+  if (!jwtSecret) return null;
+
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecret);
     return { role: (payload as any).role };
   } catch {
     return null;

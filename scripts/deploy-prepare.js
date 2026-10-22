@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 /**
  * Deployment Preparation Script
@@ -18,8 +17,6 @@ const filesToInclude = [
   'package-lock.json',
   'tsconfig.json',
   'next.config.ts',
-  '.env',
-  '.env.example',
   'server.js',
   '.next',
   'schema.sql',
@@ -27,6 +24,39 @@ const filesToInclude = [
 ];
 
 console.log('🏗️  Preparing deployment bundle...');
+
+function isExcludedDeploymentPath(sourcePath) {
+  const name = path.basename(sourcePath).toLowerCase();
+  return (
+    /^\.env/.test(name) ||
+    ['.npmrc', '.netrc', '.pypirc', '.aws', '.ssh', '.git'].includes(name) ||
+    /\.(pem|key|p8|p12|pfx|jks)$/i.test(name) ||
+    /^(secrets?|credentials?|private[-_.]?key|id_(rsa|dsa|ecdsa|ed25519)|service[-_.]?account)(?:[._-].*)?$/.test(name)
+  );
+}
+
+function copyDeploymentPath(sourcePath, destinationPath) {
+  if (isExcludedDeploymentPath(sourcePath)) return false;
+
+  const stat = fs.lstatSync(sourcePath);
+  // Do not follow symlinks: they may point to machine-local secrets or files
+  // outside the project tree.
+  if (stat.isSymbolicLink()) return false;
+
+  if (stat.isDirectory()) {
+    fs.mkdirSync(destinationPath, { recursive: true });
+    for (const entry of fs.readdirSync(sourcePath)) {
+      copyDeploymentPath(
+        path.join(sourcePath, entry),
+        path.join(destinationPath, entry)
+      );
+    }
+  } else if (stat.isFile()) {
+    fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
+    fs.copyFileSync(sourcePath, destinationPath);
+  }
+  return true;
+}
 
 // 1. Clear previous bundle
 if (fs.existsSync(bundleDir)) {
@@ -40,19 +70,11 @@ filesToInclude.forEach(entry => {
   if (!fs.existsSync(srcPath)) return;
   
   const destPath = path.join(bundleDir, entry);
-  
-  // Use shell command for recursive copy to be safe on various systems
-  if (process.platform === 'win32') {
-    if (fs.lstatSync(srcPath).isDirectory()) {
-      execSync(`xcopy /E /I /Y "${srcPath}" "${destPath}"`, { stdio: 'ignore' });
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
+  if (copyDeploymentPath(srcPath, destPath)) {
+    console.log(`  ✅ Included: ${entry}`);
   } else {
-    execSync(`cp -R "${srcPath}" "${destPath}"`);
+    console.log(`  ⏭️  Skipped local environment/secret path: ${entry}`);
   }
-  
-  console.log(`  ✅ Included: ${entry}`);
 });
 
 // Clean up cache and local uploads in bundle to reduce size and avoid conflict

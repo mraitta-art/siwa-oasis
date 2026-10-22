@@ -2,8 +2,8 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { query as safeQuery, queryOne, execute } from '@/lib/db';
+import { getJwtSecret } from '@/lib/jwt-secret';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_for_development');
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 
 export interface SessionUser {
@@ -27,17 +27,25 @@ export async function comparePassword(password: string, hash: string): Promise<b
 
 /** Create a signed JWT */
 export async function createToken(user: SessionUser): Promise<string> {
+  const jwtSecret = getJwtSecret();
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET must be configured with at least 32 non-placeholder characters');
+  }
+
   return new SignJWT({ ...user })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(jwtSecret);
 }
 
 /** Verify and decode a JWT */
 export async function verifyToken(token: string): Promise<SessionUser | null> {
+  const jwtSecret = getJwtSecret();
+  if (!jwtSecret) return null;
+
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecret);
     return payload as unknown as SessionUser;
   } catch {
     return null;
