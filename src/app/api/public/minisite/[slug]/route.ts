@@ -60,17 +60,22 @@ export async function GET(
         [business.id]
       ),
       query<any>(
-        `SELECT id, title, content, excerpt, cover_image
+        `SELECT id, title, content, excerpt, featured_image_url AS cover_image
          FROM section_blogs
          WHERE business_id = ? AND status = 'published' AND show_on_minisite = 1
          ORDER BY published_at DESC`,
         [business.id]
       ),
       query<any>(
-        `SELECT id, title, price, duration, image_url, category, description, is_featured
-         FROM tour_products
-         WHERE (vendor_business_id = ? OR vendor_business_id IS NULL) AND is_active = 1
-         ORDER BY is_featured DESC, created_at DESC`,
+        `SELECT tp.id, tp.name AS title,
+                COALESCE(tp.base_price_usd, tp.base_price_egp) AS price,
+                COALESCE(tp.duration_days, tp.duration_hours) AS duration,
+                tp.image_url, COALESCE(tcc.name, tp.catalog_cat_id) AS category,
+                tp.description, tp.is_featured
+         FROM tour_products tp
+         LEFT JOIN tour_catalog_categories tcc ON tcc.id = tp.catalog_cat_id
+         WHERE (tp.vendor_business_id = ? OR tp.vendor_business_id IS NULL) AND tp.is_active = 1
+         ORDER BY tp.is_featured DESC, tp.created_at DESC`,
         [business.id]
       ),
     ]);
