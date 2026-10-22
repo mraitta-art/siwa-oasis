@@ -82,3 +82,4 @@ service-account.json
 !migrations/043_vendor_profile_contact_and_approval.sql
 database_backups/
 *.dump
+.env*
