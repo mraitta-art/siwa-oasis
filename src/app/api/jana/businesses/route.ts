@@ -29,11 +29,13 @@ export async function GET(request: NextRequest) {
         SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
            bt.parent_id as parent_type_id, bt.default_template_id as child_default_template_id,
            parent_bt.name as parent_type_name, parent_bt.default_template_id as parent_default_template_id,
+           t.name as tier_name, t.features as tier_features,
                p.email as vendor_email, p.display_name as vendor_name
         FROM businesses b
         LEFT JOIN business_types bt ON b.type_id = bt.id
          LEFT JOIN business_types parent_bt ON parent_bt.id = bt.parent_id
         LEFT JOIN profiles p ON b.vendor_id = p.id
+        LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
         WHERE b.id = ? OR b.slug = ?
       `, [id, id]);
       

@@ -2,9 +2,53 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { invalidateCache } from '@/lib/cache';
+import { parseBizSiteId, resolveSlideQuota } from '@/lib/slide-quota';
 
 const MAX_CAROUSEL_CONFIG_BYTES = 3 * 1024 * 1024;
 const VALID_SLIDE_TYPES = new Set(['image', 'youtube', 'video', 'branded', 'embed']);
+
+/**
+ * Governance rule check: a biz_* carousel may not exceed the tier's
+ * maxSlides policy (subscription_tiers.features.maxSlides).
+ * Returns null when the write is allowed, otherwise a ready-to-send
+ * 409 body explaining WHY it was rejected and HOW to activate more slides.
+ */
+async function checkBizCarouselQuota(siteId: string, proposedCount: number) {
+  const businessId = parseBizSiteId(siteId);
+  if (!businessId) return null; // main-website / readymade targets are not tier-bound
+
+  const biz = await query<any>(
+    `SELECT b.name, b.subscription_tier, t.name as tier_name, t.features as tier_features
+       FROM businesses b
+       LEFT JOIN subscription_tiers t ON t.id = b.subscription_tier
+      WHERE b.id = ? LIMIT 1`,
+    [businessId]
+  );
+  if (!biz || biz.length === 0) return null; // unknown business — don't block admin flows
+
+  const business = biz[0];
+  let features: Record<string, any> = {};
+  try {
+    features = typeof business.tier_features === 'string'
+      ? JSON.parse(business.tier_features)
+      : (business.tier_features || {});
+  } catch { features = {}; }
+
+  const quota = resolveSlideQuota(
+    business.subscription_tier || 'free',
+    business.tier_name || business.subscription_tier || 'Free',
+    features,
+  );
+
+  if (proposedCount <= quota.effectiveMax) return null;
+
+  return {
+    error: `Slide save rejected: the "${quota.tierName}" plan allows max ${quota.effectiveMax} slides (attempted ${proposedCount}). To activate: raise maxSlides in Tier Manager (jana → Tiers) or upgrade this business's plan.`,
+    code: 'SLIDE_QUOTA_EXCEEDED',
+    quota,
+    currentCount: proposedCount,
+  };
+}
 
 function authorizationError(error: unknown) {
   const message = error instanceof Error ? error.message : 'Admin access required';
@@ -125,6 +169,18 @@ export async function POST(request: NextRequest) {
     
     const config = JSON.stringify({ slides, deletedDynamicIds, siteId });
     
+    // Governance rule: block net slide additions that push a vendor minisite
+    // past its tier's maxSlides. Deletes / reorders (count not increasing)
+    // are always allowed, even for legacy sets already above the cap.
+    const { config: existingConfig } = await loadCarouselConfig(siteId);
+    const existingCount = Array.isArray(existingConfig?.slides) ? existingConfig.slides.length : 0;
+    if (slides.length > existingCount) {
+      const quotaBlock = await checkBizCarouselQuota(siteId, slides.length);
+      if (quotaBlock) {
+        return NextResponse.json(quotaBlock, { status: 409 });
+      }
+    }
+
     // Insert or update
     await execute(
       `INSERT INTO website_configs (type, config, updated_at) 

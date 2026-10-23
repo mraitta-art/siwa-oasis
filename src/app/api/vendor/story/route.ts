@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 6. Fetch Tier Features
-    const tierResult = (await query('SELECT features FROM subscription_tiers WHERE id = ?', [biz.subscription_tier])) as any[];
+    const tierResult = (await query('SELECT features, name FROM subscription_tiers WHERE id = ?', [biz.subscription_tier])) as any[];
     const tierFeatures = tierResult.length > 0 ? (typeof tierResult[0].features === 'string' ? JSON.parse(tierResult[0].features) : tierResult[0].features) : {};
 
     // Section availability comes from the business type assignment, never from plans.
@@ -177,6 +177,11 @@ export async function GET(req: NextRequest) {
         parent: parentType? { id: parentType.id, name: parentType.name, icon: parentType.icon, color: parentType.icon_color } : null,
       },
       tierFeatures,
+      tierQuota: {
+        tierId: biz.subscription_tier,
+        tierName: tierResult[0]?.name || biz.subscription_tier,
+        maxSlides: (typeof tierFeatures?.maxSlides === 'number' ? tierFeatures.maxSlides : null),
+      },
       structure: filteredStructure,
       sectionControls: Object.fromEntries(
         Object.entries(sectionControls).filter(([sectionId]) => allowedSectionIds.has(resolveSectionId(String(sectionId || ''))))

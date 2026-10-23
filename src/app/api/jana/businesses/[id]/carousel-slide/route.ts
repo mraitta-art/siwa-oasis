@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
+import { resolveSlideQuota } from '@/lib/slide-quota';
 
 /**
  * Vendor Minisite Social Carousel Slide Appender
@@ -69,6 +70,35 @@ export async function POST(
     };
 
     const updatedSlides = [...existingSlides, newSlide].map((s, idx) => ({ ...s, displayOrder: idx }));
+
+    // Governance rule: tier maxSlides quota must be respected on append too.
+    const tierRows = await query<any>(
+      `SELECT b.subscription_tier, t.name as tier_name, t.features as tier_features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON t.id = b.subscription_tier
+        WHERE b.id = ? LIMIT 1`,
+      [businessId]
+    );
+    if (tierRows && tierRows.length > 0) {
+      let features: Record<string, any> = {};
+      try {
+        features = typeof tierRows[0].tier_features === 'string' ? JSON.parse(tierRows[0].tier_features) : (tierRows[0].tier_features || {});
+      } catch { features = {}; }
+      const quota = resolveSlideQuota(
+        tierRows[0].subscription_tier || 'free',
+        tierRows[0].tier_name || tierRows[0].subscription_tier || 'Free',
+        features,
+      );
+      if (updatedSlides.length > quota.effectiveMax) {
+        return NextResponse.json({
+          error: `Slide rejected: the "${quota.tierName}" plan allows max ${quota.effectiveMax} hero slides. To activate: upgrade the plan or raise maxSlides in Tier Manager.`,
+          code: 'SLIDE_QUOTA_EXCEEDED',
+          quota,
+          currentCount: existingSlides.length,
+        }, { status: 409 });
+      }
+    }
+
     const newConfig = JSON.stringify({
       slides: updatedSlides,
       deletedDynamicIds,

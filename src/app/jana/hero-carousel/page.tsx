@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLang } from '@/context/LangContext';
 import CarouselSocialMediaModal, { SocialImportedSlide } from '@/components/CarouselSocialMediaModal';
+import { resolveSlideQuota, buildQuotaCopy } from '@/lib/slide-quota';
 
 interface CarouselSlide {
   id: string;
@@ -434,6 +435,14 @@ function HeroCarouselManagerContent() {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const slideLoadRequestRef = useRef(0);
 
+  // ── Governance quota state (tier maxSlides) ──────────────────────────────
+  const [slideQuota, setSlideQuota] = useState<{
+    tierId: string;
+    tierName: string;
+    policyMax: number | null;
+    maxAllowed: number;
+  } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -712,9 +721,9 @@ function HeroCarouselManagerContent() {
 
   const [formData, setFormData] = useState<Partial<CarouselSlide>>(defaultFormData);
 
-  const showMsg = (type: string, text: string) => {
+  const showMsg = (type: string, text: string, ms: number = 6000) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 6000);
+    setTimeout(() => setMessage({ type: '', text: '' }), ms);
   };
 
   useEffect(() => {
@@ -771,6 +780,69 @@ function HeroCarouselManagerContent() {
   }, [siteId]);
 
   useEffect(() => { loadAllSlides(true); }, [loadAllSlides]);
+
+  // ── Load the tier policy (maxSlides) for the selected vendor minisite ──────
+  useEffect(() => {
+    if (targetScope !== 'minisite' || !businessId) { setSlideQuota(null); return; }
+    let mounted = true;
+    (async () => {
+      try {
+        const bizRes = await fetch(`/api/jana/businesses?id=${encodeURIComponent(businessId)}`);
+        if (!bizRes.ok) return;
+        const bizRaw = await bizRes.json();
+        const biz = Array.isArray(bizRaw) ? bizRaw[0] : bizRaw;
+        if (!biz) return;
+
+        let features: Record<string, any> = {};
+        try {
+          features = typeof biz.tier_features === 'string' ? JSON.parse(biz.tier_features) : (biz.tier_features || {});
+        } catch { features = {}; }
+        let tierName = biz.tier_name || '';
+        const tierId = biz.subscription_tier || 'free';
+
+        if (!tierName || features.maxSlides === undefined) {
+          const tiersRes = await fetch('/api/jana/tiers');
+          if (tiersRes.ok) {
+            const tiers = await tiersRes.json();
+            const match = (Array.isArray(tiers) ? tiers : []).find((t: any) => t.id === tierId);
+            if (match) {
+              tierName = tierName || match.name || tierId;
+              if (features.maxSlides === undefined) {
+                try { features = typeof match.features === 'string' ? JSON.parse(match.features) : (match.features || {}); } catch { features = {}; }
+              }
+            }
+          }
+        }
+
+        const info = resolveSlideQuota(tierId, tierName || tierId, features);
+        if (mounted) {
+          setSlideQuota({ tierId, tierName: info.tierName, policyMax: info.policyMax, maxAllowed: info.effectiveMax });
+        }
+      } catch { /* no business context — no quota applies */ }
+    })();
+    return () => { mounted = false; };
+  }, [targetScope, businessId, siteId]);
+
+  /**
+   * THE RULE GATE — every slide-adding action passes through here.
+   * The button is NEVER disabled: clicking always answers with a notifier that
+   * explains WHY the action was rejected and HOW to activate more slides.
+   */
+  const gateSlideAdd = (proposedCount: number, actionLabel: string): boolean => {
+    if (!slideQuota || proposedCount <= slideQuota.maxAllowed) return true;
+    const copy = buildQuotaCopy(
+      { effectiveMax: slideQuota.maxAllowed, policyMax: slideQuota.policyMax, tierId: slideQuota.tierId, tierName: slideQuota.tierName },
+      allSlides.length,
+      proposedCount,
+      actionLabel,
+    );
+    showMsg('error', [
+      copy.headline, '', copy.rule, '', copy.count, '',
+      copy.activateTitle, copy.activateAdmin, copy.activateVendor, '', copy.note,
+    ].join('\n'), 16000);
+    setTimeout(() => loadAllSlides(), 300); // resync so counts stay truthful
+    return false;
+  };
 
   // Save the FULL carousel config (all slides the admin sees), along with deletedDynamicIds
   const saveSlideConfig = async (slides: CarouselSlide[], deletedIds: string[] = deletedDynamicIds) => {
@@ -876,6 +948,8 @@ function HeroCarouselManagerContent() {
       textAlign: 'center',
     }));
 
+    if (!gateSlideAdd(generated.length, '(generate starters)')) return;
+
     setSaving(true);
     setAllSlides(generated);
     const ok = await saveSlideConfig(generated);
@@ -973,6 +1047,7 @@ function HeroCarouselManagerContent() {
   const handleQuickUploadNewSlide = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    if (!gateSlideAdd(allSlides.length + files.length, '(quick upload)')) { e.target.value = ''; return; }
     setSaving(true);
     try {
       const newCreatedSlides: CarouselSlide[] = [];
@@ -1048,6 +1123,8 @@ function HeroCarouselManagerContent() {
       const ytId = extractYouTubeId(formData.mediaUrl || '');
       if (!ytId) { showMsg('error', 'Invalid YouTube URL. Paste the full video URL.'); return; }
     }
+    // Adding a NEW slide (not editing an existing one) must pass the tier quota gate.
+    if (!editingId && !gateSlideAdd(allSlides.length + 1, '(add custom slide)')) return;
 
     setSaving(true);
     try {
@@ -1119,6 +1196,7 @@ function HeroCarouselManagerContent() {
   };
 
   const handleAddSocialSlideDirectly = async (socialSlide: SocialImportedSlide) => {
+    if (!gateSlideAdd(allSlides.length + 1, '(social import)')) return;
     const newSlide: CarouselSlide = {
       ...socialSlide,
       id: `slide_social_${Date.now()}`,
@@ -1178,7 +1256,7 @@ function HeroCarouselManagerContent() {
             </a>
             <button
               type="button"
-              onClick={() => setShowSocialModal(true)}
+              onClick={() => { if (gateSlideAdd(allSlides.length + 1, '(social import)')) setShowSocialModal(true); }}
               style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: '#ffffff',
@@ -1203,8 +1281,18 @@ function HeroCarouselManagerContent() {
               </button>
               <input type="file" accept="image/*,video/*" multiple onChange={handleQuickUploadNewSlide} disabled={saving || loading} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: saving || loading ? 'not-allowed' : 'pointer' }} />
             </div>
+            {slideQuota && (
+              <Link
+                href="/jana/tiers"
+                title={isArabic ? 'قاعدة الباقة — انقر لإدارة الحدود' : 'Tier rule — click to manage limits'}
+                style={{ alignSelf: 'center', fontSize: '0.72rem', fontWeight: 900, padding: '0.35rem 0.7rem', borderRadius: '999px', textDecoration: 'none', whiteSpace: 'nowrap', background: allSlides.length >= slideQuota.maxAllowed ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', color: allSlides.length >= slideQuota.maxAllowed ? '#dc2626' : '#059669', border: `1px solid ${allSlides.length >= slideQuota.maxAllowed ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}` }}
+              >
+                <i className="fas fa-shield-halved" style={{ marginRight: '0.35rem' }} />
+                {allSlides.length}/{slideQuota.maxAllowed} · {slideQuota.tierName}
+              </Link>
+            )}
             {!showForm && (
-              <button onClick={() => { resetForm(); setShowForm(true); }} style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(15,23,42,0.15)' }}>
+              <button onClick={() => { if (gateSlideAdd(allSlides.length + 1, '(add custom slide)')) { resetForm(); setShowForm(true); } }} style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(15,23,42,0.15)' }}>
                 + {t('Add Custom Slide', 'إضافة شريحة مخصصة')}
               </button>
             )}
@@ -1498,7 +1586,22 @@ function HeroCarouselManagerContent() {
         {/* Message */}
         {message.text && (
           <div style={{ padding: '1rem 1.5rem', borderRadius: '10px', marginBottom: '1.5rem', background: message.type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', border: `1px solid ${message.type === 'error' ? '#ef4444' : '#10b981'}`, color: message.type === 'error' ? '#fca5a5' : '#6ee7b7', fontWeight: 700 }}>
-            {message.text}
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <i className={`fas ${message.type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}`} style={{ marginTop: '0.2rem', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ whiteSpace: 'pre-line', lineHeight: 1.75, fontSize: '0.82rem' }}>{message.text}</div>
+                {message.type === 'error' && slideQuota && /not accepted/i.test(message.text) && (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <Link href="/jana/tiers" style={{ background: '#d97706', color: '#fff', padding: '0.45rem 0.9rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 900, textDecoration: 'none' }}>
+                      🛠 {isArabic ? 'إدارة الباقات وحدّ الشرائح' : 'Open Tier Manager'}
+                    </Link>
+                    <Link href="/jana/businesses" style={{ background: 'rgba(255,255,255,0.08)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)', padding: '0.45rem 0.9rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 900, textDecoration: 'none' }}>
+                      🏢 {isArabic ? 'تغيير باقة النشاط' : 'Change Business Plan'}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -1912,6 +2015,14 @@ function HeroCarouselManagerContent() {
               Add slides or generate curated starter slides to activate the full-screen cinematic slideshow on that page!
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {slideQuota && (
+                <div style={{ width: '100%', textAlign: 'center', marginBottom: '0.35rem', fontSize: '0.75rem', fontWeight: 900, color: '#059669' }}>
+                  <i className="fas fa-shield-halved" style={{ marginRight: '0.35rem' }} />
+                  {isArabic
+                    ? `حدّ الباقة: ${slideQuota.maxAllowed} شريحة (${slideQuota.tierName}) — الأزرار تعمل دائماً، والنقر يوضح السبب وطريقة التفعيل`
+                    : `Tier limit: ${slideQuota.maxAllowed} slides (${slideQuota.tierName}) — buttons always work; clicking one past the limit explains why and how to activate more`}
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <button
                   style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#ffffff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
@@ -1938,7 +2049,13 @@ function HeroCarouselManagerContent() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 700 }}>{allSlides.length} slides · exactly as they appear on the homepage</span>
+              <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 700 }}>{allSlides.length}{slideQuota ? ` / ${slideQuota.maxAllowed}` : ''} slides · exactly as they appear on the homepage
+                {slideQuota && allSlides.length >= slideQuota.maxAllowed && (
+                  <span style={{ marginLeft: '0.6rem', color: '#dc2626', fontWeight: 900 }}>
+                    · <i className="fas fa-shield-halved" style={{ marginRight: '0.3rem' }} />{isArabic ? `وصلت حدّ باقة ${slideQuota.tierName} — انقر أي زر للإطلاع على طريقة التفعيل` : `${slideQuota.tierName} tier limit reached — click any button to see how to activate more`}
+                  </span>
+                )}
+              </span>
             </div>
 
             {/* ⚠️ Warning if slide #1 is YouTube/video */}
