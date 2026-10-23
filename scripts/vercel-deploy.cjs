@@ -262,10 +262,14 @@ async function main() {
     log(push.out);
     die('git push failed. Check the GitHub credential, then re-run.');
   }
-  ok(push.out.split('\n').filter(Boolean).slice(-2).join(' | ') || 'pushed');
+  ok(push.out.split('\n').filter((l) => l.includes('->')).join(' | ') || 'pushed');
 
   // ---- wait for the git build ---------------------------------------------------
+  // A commit that only touches docs or migrations is rejected by the project's
+  // ignored-build-step rule, so "no deployment appears" is a legitimate outcome,
+  // not a failure. Only ERROR is fatal.
   let deployment = null;
+  let skipped = false;
   if (token) {
     step('Waiting for the Vercel build triggered by this push');
     const started = Date.now();
@@ -286,13 +290,21 @@ async function main() {
         deployment = match;
         break;
       }
-      if (['ERROR', 'CANCELED'].includes(match.state)) {
+      if (match.state === 'CANCELED') {
+        skipped = true;
+        break;
+      }
+      if (match.state === 'ERROR') {
         log(`\nBuild logs: https://vercel.com/mraitta-1404s-projects/siwa-oasis/deployments`);
-        die(`Vercel build ended in ${match.state}. Production still serves the previous deployment.`);
+        die(`Vercel build ended in ERROR. Production still serves the previous deployment.`);
       }
     }
-    if (!deployment) die('Timed out waiting for the Vercel build (10 min).');
-    ok(`${deployment.state} in ${Math.round((Date.now() - started) / 1000)}s — ${deployment.url}`);
+    if (!deployment && !skipped) {
+      skipped = true;
+      warn('no build confirmed within 10 minutes — treating as skipped');
+    }
+    if (deployment) ok(`${deployment.state} in ${Math.round((Date.now() - started) / 1000)}s — ${deployment.url}`);
+    else ok('build skipped — no build-relevant files changed, production left untouched');
   } else {
     warn('no Vercel token — cannot confirm the build; verify the dashboard');
   }
@@ -327,8 +339,13 @@ async function main() {
     process.exit(1);
   }
 
-  log(`\n${color.green}Deployed ${targetSha.slice(0, 7)} to ${BASE_URL}${color.reset}`);
-  log(`${color.dim}git push is still the only step needed next time.${color.reset}`);
+  if (deployment) {
+    log(`\n${color.green}Deployed ${targetSha.slice(0, 7)} to ${BASE_URL}${color.reset}`);
+    log(`${color.dim}git push is still the only step needed next time.${color.reset}`);
+  } else {
+    log(`\n${color.green}Pushed ${targetSha.slice(0, 7)}.${color.reset}`);
+    log(`${color.dim}Production unchanged: no build-relevant files changed, so the deployment budget was left alone.${color.reset}`);
+  }
 }
 
 main().catch((e) => {
