@@ -2,6 +2,24 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Deploy to Vercel (one click)",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"scripts/vercel-deploy.cjs"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "Budget-aware deploy: gates, commit, push to the Vercel-watched repo, wait for the build, then verify production.",
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			}
+		},
+		{
 			"label": "Build SIWA production release",
 			"type": "shell",
 			"command": "npm",

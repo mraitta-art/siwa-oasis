@@ -35,6 +35,8 @@
     "secure": "node scripts/security-check.js",
     "deploy": "node scripts/security-check.js && node scripts/live-deploy.js --once",
     "deploy:safe": "node scripts/security-check.js && node scripts/live-deploy.js --once",
+    "deploy:vercel": "node scripts/vercel-deploy.cjs",
+    "deploy:vercel:dry": "node scripts/vercel-deploy.cjs --dry-run",
     "backup:media": "node scripts/backup-media.js",
     "restore:media": "node scripts/restore-media.js"
   },
