@@ -263,6 +263,9 @@ async function main() {
     die('git push failed. Check the GitHub credential, then re-run.');
   }
   ok(push.out.split('\n').filter((l) => l.includes('->')).join(' | ') || 'pushed');
+  // Pushes travel through upstream's push URLs, so the local origin/main tracking
+  // ref would otherwise lag and make `git status` report a phantom "ahead N".
+  git(['fetch', '--quiet', '--no-tags', 'origin']);
 
   // ---- wait for the git build ---------------------------------------------------
   // A commit that only touches docs or migrations is rejected by the project's
