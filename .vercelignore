@@ -13,6 +13,7 @@ scripts/
 scratch/
 data/
 migrations/
+.vercel-tmp/
 
 # Local DB files
 *.sql
