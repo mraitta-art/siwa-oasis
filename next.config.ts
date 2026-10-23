@@ -71,6 +71,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Uploaded media is addressed by UUID or timestamp, so the bytes behind a
+        // URL never change. Without this, public/ files default to
+        // "max-age=0, must-revalidate" and every view costs a CDN round trip.
+        source: '/uploads/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
         source: '/:file(icon\\.svg|apple-touch-icon\\.png|favicon\\.ico|manifest\\.json)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
