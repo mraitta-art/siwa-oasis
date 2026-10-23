@@ -80,6 +80,12 @@ service-account.json
 !migrations/041_minisite_vendor_handoffs.sql
 !migrations/042_crm_contact_groups.sql
 !migrations/043_vendor_profile_contact_and_approval.sql
+!migrations/044_vendor_service_levels.sql
+!migrations/045_outreach_templates.sql
+!migrations/046_businesses_publish_flags.sql
+!migrations/047_vendor_crm_tables.sql
 database_backups/
 *.dump
 .env*
+# local Vercel CLI helper scripts
+/.vercel-tmp/

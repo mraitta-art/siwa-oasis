@@ -50,10 +50,11 @@ jana_errors.log
 server_log.txt
 ts_errors*.txt
 
-# Local env backups
-.env.local.backup
-.env.deploy
-.env.railway
+# Local env files: Vercel CLI uploads what this file allows, and .gitignore is
+# ignored once .vercelignore exists, so secrets must be excluded here explicitly.
+.env
+.env.*
+!.env.example
 
 # Node
 node_modules/
