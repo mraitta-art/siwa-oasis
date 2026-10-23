@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, queryOne } from '@/lib/db';
 
@@ -97,11 +98,70 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'This invite link has expired' }, { status: 410 });
     }
 
-    // Apply tier to business + mark it as published (visible on platform)
+    // Apply tier to business + mark it as published (visible on platform).
+    // service_level = 'template' pins this vendor to Level 1 (self-serve) of the
+    // 3-level vendor minisite system; the tier falls back to 'free' when the
+    // invite carries no explicit tier.
     await execute(
-      `UPDATE businesses SET subscription_tier = ?, published = 1 WHERE id = ?`,
-      [invite.subscription_tier, invite.business_id]
+      `UPDATE businesses
+       SET subscription_tier = ?, service_level = 'template', published = 1
+       WHERE id = ?`,
+      [invite.subscription_tier || 'free', invite.business_id]
     );
+
+    // 3-Level Vendor System (Level 1): auto-assign the default minisite template
+    // for the business type and record the initial level assignment. Defensive so a
+    // missing minisite_templates / vendor_level_transitions table never blocks a claim.
+    try {
+      const bizForLevel = await queryOne<any>(
+        `SELECT id, type_id, service_level FROM businesses WHERE id = ?`,
+        [invite.business_id]
+      );
+      if (bizForLevel) {
+        let assignedTemplateId: string | null = null;
+        if (bizForLevel.type_id) {
+          const defaultTemplate = await queryOne<any>(
+            `SELECT id FROM minisite_templates
+             WHERE category_id = ?
+             ORDER BY created_at ASC LIMIT 1`,
+            [bizForLevel.type_id]
+          );
+          assignedTemplateId = defaultTemplate?.id ?? null;
+          if (assignedTemplateId) {
+            await execute(
+              `UPDATE businesses SET template_id = ? WHERE id = ? AND (template_id IS NULL OR template_id = '')`,
+              [assignedTemplateId, invite.business_id]
+            );
+          }
+        }
+
+        // Audit trail: from_level NULL marks the very first assignment. Only insert
+        // once per business so re-claimed/expired-token flows stay idempotent.
+        const existingTransition = await queryOne<any>(
+          `SELECT id FROM vendor_level_transitions WHERE business_id = ? LIMIT 1`,
+          [invite.business_id]
+        );
+        if (!existingTransition) {
+          await execute(
+            `INSERT INTO vendor_level_transitions
+               (id, business_id, from_level, to_level, triggered_by, trigger_type, reason, metadata)
+             VALUES (?, ?, NULL, 'template', NULL, 'manual', ?, ?)`,
+            [
+              randomUUID(),
+              invite.business_id,
+              'Initial template level assignment on profile claim',
+              JSON.stringify({
+                source: 'onboard_claim',
+                token,
+                assigned_template_id: assignedTemplateId,
+              }),
+            ]
+          );
+        }
+      }
+    } catch (levelErr: any) {
+      console.warn('[onboard] vendor level assignment warning:', levelErr?.message || levelErr);
+    }
 
     // Mark invite as accepted
     await execute(

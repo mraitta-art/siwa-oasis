@@ -120,6 +120,8 @@ const NAV_GROUPS = [
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
       { name: 'Dispatch Engine', path: '/jana/dispatch', icon: 'fa-paper-plane' },
       { name: 'Vendor Acquisition Outreach (WhatsApp)', path: '/jana/whatsapp-outreach', icon: 'fa-paper-plane', badge: 'OUTREACH' },
+      { name: 'Template Outreach (3-Level System)', path: '/jana/outreach', icon: 'fa-envelope-open-text', badge: 'LEVEL 1' },
+      { name: 'Approval Packages (3-Level System)', path: '/jana/approval-packages', icon: 'fa-clipboard-check', badge: 'LEVEL 2' },
       { name: 'CRM Contacts & Groups', path: '/jana/crm', icon: 'fa-address-book', badge: 'CRM' },
     ]
   },
@@ -346,6 +348,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/packages')) return { title: 'Product & Offers', tip: 'Create and manage sellable experience packages, offers, and visitor packages.' };
     if (pathname.includes('/auctions')) return { title: 'Auctions', tip: 'Manage auction listings for exclusive experiences and investment opportunities.' };
     if (pathname.includes('/dispatch')) return { title: 'Dispatch', tip: 'Send notifications, announcements, and messages to vendors and visitors.' };
+    if (pathname.startsWith('/jana/outreach')) return { title: 'Template Outreach', tip: 'Level 1 of the 3-level vendor system: per-category outreach templates and batch sending to unclaimed vendors.' };
     if (pathname.includes('/benefits')) return { title: 'Benefits', tip: 'Configure and manage vendor tier benefits and perks.' };
     // Tools
     if (pathname.includes('/form-builder-enhanced')) return { title: 'Enhanced Form Builder', tip: 'Advanced drag-and-drop form builder with conditional logic and validation.' };

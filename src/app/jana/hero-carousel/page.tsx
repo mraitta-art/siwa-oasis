@@ -35,6 +35,28 @@ interface CarouselSlide {
   isOverride?: boolean;
 }
 
+interface MediaUploadResponse {
+  error?: string;
+  url?: string;
+  localUrl?: string;
+}
+
+async function parseMediaUploadResponse(response: Response): Promise<MediaUploadResponse | null> {
+  try {
+    const data: unknown = await response.json();
+    return data && typeof data === 'object' ? data as MediaUploadResponse : null;
+  } catch {
+    return null;
+  }
+}
+
+function mediaUploadError(response: Response, data: MediaUploadResponse | null): string {
+  if (response.status === 413) {
+    return 'The hosting platform rejected this file because it is too large. Try a smaller file.';
+  }
+  return data?.error || `Media upload failed (HTTP ${response.status}).`;
+}
+
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const patterns = [
@@ -757,16 +779,35 @@ function HeroCarouselManagerContent() {
       displayOrder: idx
     }));
 
-    const res = await fetch('/api/jana/hero-carousel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        slides: slidesToSave, 
-        deletedDynamicIds: deletedIds, 
-        siteId
-      }),
-    });
-    return res.ok;
+    try {
+      const res = await fetch('/api/jana/hero-carousel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slides: slidesToSave,
+          deletedDynamicIds: deletedIds,
+          siteId
+        }),
+      });
+      if (res.ok) return true;
+
+      const responseText = await res.text();
+      let responseData: { error?: string } = {};
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        // Serverless platform errors may return HTML instead of the API JSON response.
+      }
+      const message = res.status === 413
+        ? 'Carousel save is too large. Re-upload images so they use persistent media storage, then try again.'
+        : responseData.error || `Could not save carousel (HTTP ${res.status}).`;
+      showMsg('error', message);
+      return false;
+    } catch (error) {
+      console.error('Failed to save hero carousel:', error);
+      showMsg('error', 'Could not reach the carousel save service. Check your connection and try again.');
+      return false;
+    }
   };
 
   const handleDelete = async (slide: CarouselSlide) => {
@@ -794,7 +835,6 @@ function HeroCarouselManagerContent() {
       showMsg('success', `"${slide.title}" removed from carousel.`);
       loadAllSlides();
     } else {
-      showMsg('error', 'Failed to save changes');
       loadAllSlides(); // revert
     }
   };
@@ -843,8 +883,6 @@ function HeroCarouselManagerContent() {
     if (ok) {
       showMsg('success', `✨ Generated ${generated.length} starter slides for ${currentTarget.title}!`);
       loadAllSlides();
-    } else {
-      showMsg('error', 'Failed to save starter slides');
     }
   };
 
@@ -857,13 +895,15 @@ function HeroCarouselManagerContent() {
     const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
     setAllSlides(reordered);
     // For reorder we only need to save the manual slides (auto slides keep their own order from DB)
-    await saveSlideConfig(reordered);
+    const saved = await saveSlideConfig(reordered);
+    if (!saved) loadAllSlides();
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setSaving(true);
+    let pendingPreviewUrl: string | null = null;
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -871,6 +911,7 @@ function HeroCarouselManagerContent() {
         
         // 1. Instant client preview so user sees it right away
         const clientPreviewUrl = URL.createObjectURL(file);
+        pendingPreviewUrl = clientPreviewUrl;
         const derivedTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         
         setShowForm(true);
@@ -888,20 +929,28 @@ function HeroCarouselManagerContent() {
         fd.append('sectionName', currentTarget.tabLabel ? `Hero ${currentTarget.tabLabel}` : 'Hero');
         
         const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
-        const data = await res.json();
+        const data = await parseMediaUploadResponse(res);
 
         if (!res.ok) {
-          const message = data?.error || 'Upload failed. Check file type or auth.';
+          const message = mediaUploadError(res, data);
+          URL.revokeObjectURL(clientPreviewUrl);
+          pendingPreviewUrl = null;
+          setFormData(prev => prev.mediaUrl === clientPreviewUrl ? { ...prev, mediaUrl: '' } : prev);
           showMsg('error', message);
           continue;
         }
 
-        const fileUrl = data.url || data.localUrl || clientPreviewUrl;
-        if (!fileUrl) {
-          showMsg('error', 'Upload succeeded but no URL was returned.');
+        const fileUrl = data?.url || data?.localUrl || '';
+        if (!fileUrl || /^(data|blob):/i.test(fileUrl)) {
+          URL.revokeObjectURL(clientPreviewUrl);
+          pendingPreviewUrl = null;
+          setFormData(prev => prev.mediaUrl === clientPreviewUrl ? { ...prev, mediaUrl: '' } : prev);
+          showMsg('error', 'The upload did not return a persistent media URL. Please try again.');
           continue;
         }
 
+        URL.revokeObjectURL(clientPreviewUrl);
+        pendingPreviewUrl = null;
         setFormData(prev => ({
           ...prev,
           mediaUrl: fileUrl,
@@ -910,6 +959,10 @@ function HeroCarouselManagerContent() {
         showMsg('success', `✅ ${isVideo ? 'Video' : 'Image'} ready! Click "+ Add to Carousel" (or "Update Slide") below to save.`);
       }
     } catch (err: any) {
+      if (pendingPreviewUrl) {
+        URL.revokeObjectURL(pendingPreviewUrl);
+        setFormData(prev => prev.mediaUrl === pendingPreviewUrl ? { ...prev, mediaUrl: '' } : prev);
+      }
       showMsg('error', err?.message || 'Upload failed');
     } finally {
       setSaving(false);
@@ -934,37 +987,39 @@ function HeroCarouselManagerContent() {
         fd.append('sectionName', currentTarget.tabLabel ? `Hero ${currentTarget.tabLabel}` : 'Hero');
 
         const res = await fetch('/api/jana/media/upload', { method: 'POST', body: fd });
-        const data = await res.json();
+        const data = await parseMediaUploadResponse(res);
 
         if (!res.ok) {
-          showMsg('error', data?.error || 'Upload failed');
+          showMsg('error', mediaUploadError(res, data));
           continue;
         }
 
-        const fileUrl = data.url || data.localUrl || '';
-        if (fileUrl) {
-          newCreatedSlides.push({
-            id: `slide_${Date.now()}_${i}`,
-            title: derivedTitle,
-            subtitle: `Welcome to ${currentTarget.title}`,
-            caption: currentTarget.title,
-            mediaUrl: fileUrl,
-            type: isVideo ? 'video' : 'image',
-            ctaText: 'Explore',
-            ctaLink: previewHref,
-            displayOrder: allSlides.length + newCreatedSlides.length,
-            _source: 'manual',
-            imageFit: 'cover',
-            imagePosition: 'center',
-            bgColor: '#000000',
-            overlayOpacity: 0.4,
-            animation: 'kenburns',
-            titleColor: '#FFFFFF',
-            titleSize: 0,
-            subtitleSize: 0,
-            textAlign: 'center',
-          });
+        const fileUrl = data?.url || data?.localUrl || '';
+        if (!fileUrl || /^(data|blob):/i.test(fileUrl)) {
+          showMsg('error', 'The upload did not return a persistent media URL. Please try again.');
+          continue;
         }
+        newCreatedSlides.push({
+          id: `slide_${Date.now()}_${i}`,
+          title: derivedTitle,
+          subtitle: `Welcome to ${currentTarget.title}`,
+          caption: currentTarget.title,
+          mediaUrl: fileUrl,
+          type: isVideo ? 'video' : 'image',
+          ctaText: 'Explore',
+          ctaLink: previewHref,
+          displayOrder: allSlides.length + newCreatedSlides.length,
+          _source: 'manual',
+          imageFit: 'cover',
+          imagePosition: 'center',
+          bgColor: '#000000',
+          overlayOpacity: 0.4,
+          animation: 'kenburns',
+          titleColor: '#FFFFFF',
+          titleSize: 0,
+          subtitleSize: 0,
+          textAlign: 'center',
+        });
       }
 
       if (newCreatedSlides.length > 0) {
@@ -974,8 +1029,6 @@ function HeroCarouselManagerContent() {
         if (ok) {
           showMsg('success', `✨ Added ${newCreatedSlides.length} new slide(s) to ${currentTarget.title}!`);
           loadAllSlides();
-        } else {
-          showMsg('error', 'Failed to save slide config');
         }
       }
     } catch (err: any) {
@@ -1035,9 +1088,10 @@ function HeroCarouselManagerContent() {
         setShowForm(false);
         setEditingId(null);
         loadAllSlides();
-      } else {
-        showMsg('error', 'Failed to save — check your connection and try again.');
       }
+    } catch (error) {
+      console.error('Failed to save hero carousel slide:', error);
+      showMsg('error', error instanceof Error ? error.message : 'Could not save the slide.');
     } finally {
       setSaving(false);
     }
@@ -1079,8 +1133,6 @@ function HeroCarouselManagerContent() {
     if (ok) {
       showMsg('success', `✨ Added social media slide "${socialSlide.title}" to ${currentTarget.title}!`);
       loadAllSlides();
-    } else {
-      showMsg('error', 'Failed to save slide');
     }
   };
 
@@ -1158,6 +1210,38 @@ function HeroCarouselManagerContent() {
             )}
           </div>
         </div>
+
+        {/* Slide source guidance — WHY a carousel set can be hidden (minisite scope only) */}
+        {targetScope === 'minisite' && businessId && (
+          <details style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '14px', padding: '0.9rem 1.1rem', marginBottom: '1.5rem' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 900, color: '#1e40af', fontSize: '0.85rem' }}>
+              <i className="fas fa-circle-info" style={{ marginRight: '6px' }} />
+              {t('Priority & warnings: how the minisite hero picks its slides', 'الأولوية والتحذيرات: كيف يختار هيرو الموقع شرائحه')}
+            </summary>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: '#1e3a8a', lineHeight: 1.7 }}>
+              <div style={{ fontWeight: 900, marginBottom: '0.25rem' }}>
+                {t('The hero reads exactly ONE source, in this order:', 'الهيرو يقرأ مصدراً واحداً فقط، بهذا الترتيب:')}
+              </div>
+              <div><strong>P1</strong> — {t('Main minisite carousel', 'العرض الدوّار الرئيسي للموقع')} <code>biz_{businessId}_hero</code>: {t('wins as soon as it has one slide.', 'يفوز بمجرد وجود شريحة واحدة.')}</div>
+              <div><strong>P2</strong> — {t('Identity tab carousel', 'عرض تبويب الهوية')} <code>biz_{businessId}_tab_sec_1_identity_hero</code>: {t('used only while P1 is empty; hidden when P1 gets its first slide.', 'يُستخدم فقط عندما يكون P1 فارغاً؛ ويُخفى عند إضافة أول شريحة إلى P1.')}</div>
+              <div><strong>P3</strong> — {t('Section gallery photos', 'صور معرض الأقسام')}: {t('only seed the hero when no carousel exists. Media Studio uploads land here, not in the carousel.', 'تُستخدم فقط عند عدم وجود أي عرض دوّار. رفع الصور من استوديو الوسائط يذهب هنا وليس إلى العرض الدوّار.')}</div>
+              <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', color: '#92400e', borderRadius: '8px', padding: '0.5rem 0.65rem', margin: '0.6rem 0', fontWeight: 700 }}>
+                <i className="fas fa-triangle-exclamation" style={{ marginRight: '6px' }} />
+                {t('Sets are never merged: adding the first slide to P1 hides the whole P2 set on the live page.', 'لا يتم دمج المجموعات أبداً: إضافة أول شريحة إلى P1 تخفي مجموعة P2 بالكامل على الصفحة المباشرة.')}
+              </div>
+              <div style={{ fontWeight: 900, marginBottom: '0.25rem' }}>{t('Follow in this order:', 'اتبع هذا الترتيب:')}</div>
+              <div>1. {t('Add/edit slides here for the selected source only.', 'أضف/عدّل الشرائح هنا للمصدر المحدد فقط.')}</div>
+              <div>2. {t('For a second, independent carousel: Minisite Builder → Hero Carousel block → Detach To Fresh Slide Set.', 'لعرض دوّار ثانٍ مستقل: منشئ الموقع → كتلة العرض الدوّار → فصل إلى مجموعة شرائح جديدة.')}</div>
+              <div>3. {t('Social imports append to the same source selected above.', 'عمليات استيراد التواصل الاجتماعي تُضاف إلى نفس المصدر المحدد أعلاه.')}</div>
+              <div style={{ marginTop: '0.6rem' }}>
+                <a href={`/jana/minisite-builder?slug=${businesses.find(b => b.id === businessId)?.slug || businessId}`} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#1e40af', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                  <i className="fas fa-tools" /> {t('Open Minisite Builder', 'فتح منشئ الموقع')}
+                </a>
+              </div>
+            </div>
+          </details>
+        )}
 
         {/* Dynamic Carousel Target Scope Toolbar */}
         <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
@@ -1876,8 +1960,12 @@ function HeroCarouselManagerContent() {
                       [next[0], next[1]] = [next[1], next[0]];
                       const reordered = next.map((s, i) => ({ ...s, displayOrder: i }));
                       setAllSlides(reordered);
-                      await saveSlideConfig(reordered);
-                      showMsg('success', '✅ Fixed! YouTube slide moved to position 2. Fast image is now first.');
+                      const saved = await saveSlideConfig(reordered);
+                      if (saved) {
+                        showMsg('success', '✅ Fixed! YouTube slide moved to position 2. Fast image is now first.');
+                      } else {
+                        loadAllSlides();
+                      }
                     }}
                     style={{ background: '#f59e0b', color: '#0f172a', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
                   >

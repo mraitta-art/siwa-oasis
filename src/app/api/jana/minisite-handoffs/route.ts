@@ -8,6 +8,7 @@ import { getPublicAppUrl } from '@/lib/public-url';
 import { getBusinessTier, getTierRules, validateMinisiteLayout } from '@/lib/minisite-governance';
 import { MINISITE_LAYOUT_KEY, type MinisiteLayout } from '@/lib/minisite-layout';
 import { saveMinisiteDraft } from '@/lib/minisite-drafts';
+import { applyVendorServiceLevel } from '@/lib/vendor-service-levels';
 import {
   ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT,
   ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT_VERSION,
@@ -232,6 +233,28 @@ export async function POST(request: NextRequest) {
         [messageId, handoffId]
       );
       await addEvent(handoffId, 'whatsapp_sent', { message_id: messageId, recipient: phone }, admin.id);
+
+      // 3-Level Vendor System (Level 2): a team-prepared package going out to a vendor
+      // promotes the business to 'curated'. Level 1 batch-outreach handoffs carry
+      // layout.outreach.template_id and stay on 'template' until the vendor claims them.
+      const handoffLayout = parseJson(handoff.layout, {});
+      if (!handoffLayout?.outreach?.template_id) {
+        const levelChange = await applyVendorServiceLevel({
+          businessId: handoff.business_id,
+          toLevel: 'curated',
+          triggeredBy: admin.id,
+          triggerType: 'admin_promotion',
+          reason: 'Curated minisite package sent to the vendor for review',
+          metadata: { handoff_id: handoffId, revision: handoff.revision, source: 'minisite_package_sent' },
+        });
+        if (levelChange.changed) {
+          await addEvent(handoffId, 'level_curated', {
+            from_level: levelChange.fromLevel,
+            to_level: levelChange.toLevel,
+          }, admin.id);
+        }
+      }
+
       return NextResponse.json({ success: true, status: 'sent', messageId, expiresAt: expiresAt.toISOString() });
     }
 
@@ -323,6 +346,19 @@ export async function POST(request: NextRequest) {
         );
       });
 
+      // Publishing a team-prepared minisite is the Level 2 service itself, even when
+      // the vendor has not been sent a review link yet.
+      if (!layout?.outreach?.template_id) {
+        await applyVendorServiceLevel({
+          businessId: handoff.business_id,
+          toLevel: 'curated',
+          triggeredBy: admin.id,
+          triggerType: 'admin_promotion',
+          reason: 'Curated minisite published by the Siwa team',
+          metadata: { handoff_id: handoffId, revision: handoff.revision, source: 'minisite_admin_published' },
+        });
+      }
+
       invalidateCache.websiteSettings();
       revalidatePath(`/${publicSlug}`);
       revalidatePath('/[slug]', 'page');
@@ -411,7 +447,9 @@ export async function POST(request: NextRequest) {
     if (action === 'update_status') {
       const handoffId = String(body.handoffId || '');
       const status = String(body.status || '');
-      if (!['followup_due', 'replied'].includes(status)) {
+      // changes_requested is also written by the packages board when an admin logs the
+      // vendor's reply; the handoff itself has no other path that sets it.
+      if (!['followup_due', 'replied', 'changes_requested'].includes(status)) {
         return NextResponse.json({ error: 'Unsupported CRM status' }, { status: 400 });
       }
       const handoff = await queryOne<any>('SELECT id, status FROM minisite_vendor_handoffs WHERE id = ? LIMIT 1', [handoffId]);

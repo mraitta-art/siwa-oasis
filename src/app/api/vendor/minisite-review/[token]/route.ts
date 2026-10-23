@@ -6,6 +6,7 @@ import { execute, query, queryOne, transaction } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
 import { getBusinessTier, getTierRules, validateMinisiteLayout } from '@/lib/minisite-governance';
 import { MINISITE_LAYOUT_KEY, type MinisiteLayout } from '@/lib/minisite-layout';
+import { applyVendorServiceLevel } from '@/lib/vendor-service-levels';
 import {
   getVendorAgreementText,
   VENDOR_AGREEMENT_VERSION,
@@ -56,6 +57,20 @@ export async function GET(
     }
     if (['failed', 'published', 'expired'].includes(handoff.status)) {
       return NextResponse.json({ error: 'This review link is no longer active. Please contact SiWiFy.' }, { status: 410 });
+    }
+    // Package lifecycle: the first vendor open moves the invitation sent -> read.
+    // Tracking only, so a failure here must never hide the minisite from the vendor.
+    if (handoff.status === 'sent') {
+      try {
+        await execute(`UPDATE minisite_vendor_handoffs SET status = 'read' WHERE id = ? AND status = 'sent'`, [handoff.id]);
+        await execute(
+          `INSERT INTO minisite_vendor_handoff_events (handoff_id, event_type, payload)
+           VALUES (?, 'vendor_viewed', ?)`,
+          [handoff.id, JSON.stringify({ user_agent: String(_request.headers.get('user-agent') || '').slice(0, 300) })]
+        );
+      } catch (trackError: any) {
+        console.warn('[vendor/minisite-review GET] view tracking:', trackError?.message || trackError);
+      }
     }
     const [gallery, blogs, products] = await Promise.all([
       query<any>(
@@ -276,6 +291,18 @@ export async function POST(
          WHERE id = ?`,
         [profile.id, `+${phone}`, JSON.stringify(updatedCustomData), lockedBusiness.id]
       );
+      // 3-Level Vendor System (Level 2): accepting the team-prepared minisite is what
+      // makes this vendor curated. Runs in this transaction so the level and the
+      // vendor decision are recorded together, and never blocks the acceptance itself.
+      await applyVendorServiceLevel({
+        businessId: lockedBusiness.id,
+        toLevel: 'curated',
+        triggeredBy: profile.id,
+        triggerType: 'auto_upgrade',
+        reason: 'Vendor reviewed and accepted the curated minisite package',
+        metadata: { handoff_id: handoff.id, revision: currentHandoff.revision, source: 'vendor_acceptance' },
+        connection,
+      });
       await connection.execute(
         `UPDATE minisite_vendor_handoffs
          SET status = 'expired', token_hash = NULL, token_expires_at = NULL

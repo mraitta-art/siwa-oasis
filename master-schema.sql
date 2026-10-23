@@ -6,6 +6,7 @@
 --   Part 1: Core Platform (18 tables + seeds)
 --   Part 2: Blog System (7 tables + seeds)  
 --   Part 3: Component Library (3 tables + seeds)
+--   Part 4: 3-Level Vendor Minisite Foundation (2 tables + 1 view + CRM links)
 --
 -- INSTRUCTIONS:
 --   1. Create your database in cPanel/phpMyAdmin first
@@ -32,11 +33,13 @@ CREATE TABLE profiles (
   avatar_url TEXT,
   subscription_tier VARCHAR(50) DEFAULT 'free',
   business_id VARCHAR(36) DEFAULT NULL,
+  portal_account_id VARCHAR(36) DEFAULT NULL,
   active BOOLEAN DEFAULT TRUE,
   approval_status VARCHAR(30) NOT NULL DEFAULT 'approved',
   metadata JSON DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_profiles_portal_account (portal_account_id)
 );
 
 -- 2. LOCATIONS (Geography Engine)
@@ -173,9 +176,14 @@ CREATE TABLE businesses (
   type_id VARCHAR(100) NOT NULL,
   location_id VARCHAR(100) DEFAULT NULL,
   vendor_id VARCHAR(36) DEFAULT NULL,
+  account_manager_id VARCHAR(36) DEFAULT NULL,
   subscription_tier VARCHAR(50) DEFAULT 'free',
+  service_level VARCHAR(20) DEFAULT 'template'
+    CHECK (service_level IN ('template', 'curated', 'managed')),
   status ENUM('active','inactive','hidden','pending') DEFAULT 'active',
   published BOOLEAN DEFAULT TRUE,
+  is_published TINYINT(1) NOT NULL DEFAULT 0,
+  vendor_phone VARCHAR(32) DEFAULT NULL,
   approved_by_vendor BOOLEAN DEFAULT FALSE,
   views INT DEFAULT 0,
   custom_data JSON DEFAULT NULL,
@@ -188,6 +196,8 @@ CREATE TABLE businesses (
   active TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_businesses_service_level (service_level),
+  INDEX idx_businesses_account_manager (account_manager_id),
   FOREIGN KEY (type_id) REFERENCES business_types(id),
   FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
   FOREIGN KEY (vendor_id) REFERENCES profiles(id) ON DELETE SET NULL
@@ -780,3 +790,249 @@ INSERT IGNORE INTO component_library (name, type, category, config, description,
    'layout', 'right'
  ),
  'Minimal blog sidebar with essential widgets only', TRUE);
+
+
+-- ============================================================
+-- PART 4: 3-LEVEL VENDOR MINISITE FOUNDATION
+-- (vendor_portal_accounts, vendor_level_transitions,
+--  unified_vendor_view, CRM foreign keys)
+-- Mirrors migrations/044_vendor_service_levels.sql
+-- ============================================================
+
+-- 4.1 VENDOR PORTAL ACCOUNTS (created by vendor outreach, claimed later)
+-- Columns originate from migrations/017_vendor_notification_system.sql;
+-- profile_id and idx_vpa_profile_id are added by migration 044.
+CREATE TABLE IF NOT EXISTS vendor_portal_accounts (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  vendor_email VARCHAR(255) UNIQUE NOT NULL,
+  vendor_name VARCHAR(255),
+  business_name VARCHAR(255) NOT NULL,
+  business_type_id VARCHAR(100),
+  profile_id VARCHAR(36) DEFAULT NULL,
+
+  -- Authentication
+  password_hash VARCHAR(255),
+  portal_token VARCHAR(500),
+  token_expires_at TIMESTAMP NULL,
+
+  -- Business Details
+  phone VARCHAR(20),
+  website VARCHAR(500),
+  location VARCHAR(255),
+  description MEDIUMTEXT,
+  profile_image_url VARCHAR(500),
+
+  -- Profile Status
+  status ENUM(
+    'invited',          -- Invitation sent, not claimed
+    'claimed',          -- Vendor claimed profile
+    'setup_started',    -- Setup in progress
+    'active',           -- Profile complete and active
+    'premium_featured', -- Featured listing active
+    'premium_package'   -- Premium package active
+  ) DEFAULT 'invited',
+
+  claimed_at TIMESTAMP NULL,
+  setup_completed_at TIMESTAMP NULL,
+
+  -- Profile Completion
+  profile_complete BOOLEAN DEFAULT FALSE,
+  profile_completeness_percent INT DEFAULT 0,
+
+  -- Request Stats
+  total_requests INT DEFAULT 0,
+  unique_visitors INT DEFAULT 0,
+  notification_count INT DEFAULT 0,
+  response_count INT DEFAULT 0,
+
+  -- Engagement
+  last_login TIMESTAMP NULL,
+  last_viewed_requests TIMESTAMP NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_vendor_email (vendor_email),
+  INDEX idx_status (status),
+  INDEX idx_claimed_at (claimed_at),
+  INDEX idx_business_name (business_name),
+  INDEX idx_portal_token (portal_token),
+  INDEX idx_vpa_profile_id (profile_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- 4.2 VENDOR LEVEL TRANSITIONS (audit trail for template/curated/managed changes)
+-- from_level is NULL for the very first assignment of a level.
+CREATE TABLE IF NOT EXISTS vendor_level_transitions (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  business_id VARCHAR(36) NOT NULL,
+  from_level VARCHAR(20) NULL,
+  to_level VARCHAR(20) NOT NULL,
+  triggered_by VARCHAR(36) NULL,
+  trigger_type VARCHAR(30) DEFAULT 'manual',
+  reason TEXT NULL,
+  metadata TEXT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_vlt_business (business_id),
+  INDEX idx_vlt_created (created_at),
+  INDEX idx_vlt_triggered_by (triggered_by),
+  -- NULL from_level evaluates to UNKNOWN and therefore passes, which is intended.
+  CONSTRAINT chk_vlt_from_level CHECK (from_level IN ('template', 'curated', 'managed')),
+  CONSTRAINT chk_vlt_to_level CHECK (to_level IN ('template', 'curated', 'managed')),
+  CONSTRAINT chk_vlt_trigger_type CHECK (trigger_type IN ('manual', 'auto_upgrade', 'auto_downgrade', 'admin_promotion')),
+  CONSTRAINT fk_vlt_business
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+  CONSTRAINT fk_vlt_triggered_by
+    FOREIGN KEY (triggered_by) REFERENCES profiles(id) ON DELETE SET NULL
+);
+-- No explicit CHARSET/COLLATE on purpose: the table inherits the database default so its
+-- foreign keys to businesses/profiles share the collation of those core tables.
+
+-- 4.3 CRM FOREIGN KEYS for the vendor link columns
+-- (circular by design: profiles <-> vendor_portal_accounts, both nullable + SET NULL)
+ALTER TABLE businesses
+  ADD CONSTRAINT fk_businesses_account_manager
+    FOREIGN KEY (account_manager_id) REFERENCES profiles(id) ON DELETE SET NULL;
+
+ALTER TABLE vendor_portal_accounts
+  ADD CONSTRAINT fk_vpa_profile
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE SET NULL;
+
+ALTER TABLE profiles
+  ADD CONSTRAINT fk_profiles_portal_account
+    FOREIGN KEY (portal_account_id) REFERENCES vendor_portal_accounts(id) ON DELETE SET NULL;
+
+-- 4.4 UNIFIED VENDOR VIEW (single queryable vendor entity for CRM)
+-- Branch (a): vendors with a login profile + their portal account + primary business.
+-- Branch (b): portal accounts that were never linked to a profile (invited only).
+-- Extra businesses of a vendor are queried from businesses.vendor_id.
+CREATE OR REPLACE VIEW unified_vendor_view AS
+SELECT
+  COALESCE(vpa.id, p.id)                                              AS vendor_id,
+  p.id                                                                AS profile_id,
+  vpa.id                                                              AS portal_account_id,
+  COALESCE(NULLIF(TRIM(p.display_name), ''), vpa.vendor_name, b.name)  AS vendor_name,
+  COALESCE(p.email, vpa.vendor_email)                                 AS email,
+  COALESCE(p.phone, vpa.phone)                                        AS phone,
+  b.id                                                                AS business_id,
+  COALESCE(b.name, vpa.business_name)                                 AS business_name,
+  COALESCE(b.type_id, vpa.business_type_id)                           AS business_type_id,
+  bt.name                                                             AS business_type_name,
+  COALESCE(b.service_level, 'template')                               AS service_level,
+  COALESCE(b.subscription_tier, p.subscription_tier)                  AS subscription_tier,
+  p.approval_status                                                   AS approval_status,
+  vpa.status                                                          AS portal_status,
+  vpa.claimed_at                                                      AS claimed_at,
+  b.account_manager_id                                                AS account_manager_id,
+  am.display_name                                                     AS account_manager_name,
+  am.email                                                            AS account_manager_email,
+  COALESCE(vpa.last_login, vpa.last_viewed_requests, p.updated_at)     AS last_activity_at,
+  p.created_at                                                        AS created_at
+FROM profiles p
+LEFT JOIN vendor_portal_accounts vpa ON vpa.profile_id = p.id
+LEFT JOIN businesses b ON b.id = p.business_id
+LEFT JOIN business_types bt ON bt.id = b.type_id
+LEFT JOIN profiles am ON am.id = b.account_manager_id
+WHERE p.role = 'vendor' OR vpa.id IS NOT NULL
+
+UNION ALL
+
+SELECT
+  vpa.id,
+  NULL,
+  vpa.id,
+  COALESCE(NULLIF(TRIM(vpa.vendor_name), ''), vpa.business_name),
+  vpa.vendor_email,
+  vpa.phone,
+  NULL,
+  vpa.business_name,
+  vpa.business_type_id,
+  bt.name,
+  'template',
+  NULL,
+  NULL,
+  vpa.status,
+  vpa.claimed_at,
+  NULL,
+  NULL,
+  NULL,
+  COALESCE(vpa.last_login, vpa.last_viewed_requests, vpa.updated_at),
+  vpa.created_at
+FROM vendor_portal_accounts vpa
+LEFT JOIN business_types bt ON bt.id = vpa.business_type_id
+WHERE vpa.profile_id IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM profiles p2 WHERE p2.portal_account_id = vpa.id
+  );
+
+
+-- ============================================================
+-- PART 5: TEMPLATE OUTREACH (Level 1 of the 3-Level Vendor System)
+-- outreach_templates powers the batch outreach flow: pick a business
+-- type, personalize the active template for every unclaimed business
+-- of that type (and/or its child types), record the sends as
+-- minisite_vendor_handoffs rows + a crm_whatsapp_campaigns tracker.
+-- Mirrors migrations/045_outreach_templates.sql
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS outreach_templates (
+  id VARCHAR(36) PRIMARY KEY,
+  business_type_id VARCHAR(36) NOT NULL COMMENT 'business_types.id this template targets',
+  target_scope VARCHAR(20) DEFAULT 'both'
+    COMMENT 'parent_only = the type itself, children_only = its child types, both = all'
+    CHECK(target_scope IN ('parent_only', 'children_only', 'both')),
+  template_name VARCHAR(255) NOT NULL,
+  message_subject_en TEXT NULL,
+  message_subject_ar TEXT NULL,
+  message_body_en TEXT NULL,
+  message_body_ar TEXT NULL,
+  included_features TEXT NULL COMMENT 'JSON array of free features highlighted as {featureList}',
+  cta_type VARCHAR(30) DEFAULT 'claim_profile'
+    CHECK(cta_type IN ('claim_profile', 'preview_minisite', 'register')),
+  minisite_template_id VARCHAR(36) NULL COMMENT 'minisite_templates.id pre-attached to generated drafts',
+  is_active TINYINT(1) DEFAULT 1,
+  created_by VARCHAR(36) NULL COMMENT 'profiles.id of the admin who created the template',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_outreach_templates_type (business_type_id),
+  INDEX idx_outreach_templates_active (is_active)
+);
+-- No foreign keys on purpose: business_type_id / minisite_template_id are logical
+-- references (business_types.id is VARCHAR(100) in the core schema), mirroring
+-- onboard_invites so type/template renames never block outreach rows.
+
+
+-- ============================================================
+-- PART 6: VENDOR CRM TRAIL
+-- vendor_lifecycle_events is the audit trail behind every vendor action
+-- (level changes, claims, account-manager assignments); vendor_messages
+-- is the in-portal inbox. Both used to exist only behind
+-- POST /api/jana/vendor-lifecycle/setup, so a fresh deployment lost the
+-- audit trail until an admin happened to call it.
+-- Mirrors migrations/047_vendor_crm_tables.sql
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vendor_lifecycle_events (
+  id VARCHAR(36) PRIMARY KEY,
+  vendor_id VARCHAR(36) NOT NULL,
+  business_id VARCHAR(36),
+  action VARCHAR(50) NOT NULL,
+  reason TEXT,
+  performed_by VARCHAR(36),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_vle_vendor_id (vendor_id)
+);
+
+CREATE TABLE IF NOT EXISTS vendor_messages (
+  id VARCHAR(36) PRIMARY KEY,
+  vendor_id VARCHAR(36) NOT NULL,
+  business_id VARCHAR(36),
+  subject VARCHAR(255),
+  body TEXT NOT NULL,
+  type VARCHAR(50) DEFAULT 'info',
+  action_trigger VARCHAR(50),
+  read_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_vm_vendor_id (vendor_id),
+  INDEX idx_vm_business_id (business_id)
+);
+

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
@@ -33,65 +33,95 @@ export default function MinisiteBuilderRenderer({
 }: MinisiteBuilderRendererProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [heroCarouselSlides, setHeroCarouselSlides] = useState<any[]>([]);
+  const [brandHeroSlides, setBrandHeroSlides] = useState<any[]>([]);
+  const [carouselSlides, setCarouselSlides] = useState<Record<string, any[]>>({});
+
+  // Slide resolution is centralized here so every carousel key is fetched at
+  // most once per page render. The previous flow pre-fetched the brand-hero
+  // key unconditionally on mount AND let vendor_carousel blocks re-fetch the
+  // same key inside AdvancedHeroCarousel.
+  const brandHeroKey = `biz_${business.id}_hero`;
+  const brandHeroFallbackKey = `biz_${business.id}_tab_sec_1_identity_hero`;
+  const mode = layout.mode || 'replace';
+
+  let needsBrandHero = false;
+  const instanceKeys: string[] = [];
+  for (const comp of layout.components || []) {
+    if (comp.type === 'vendor_hero' && mode === 'replace') needsBrandHero = true;
+    if (comp.type !== 'vendor_carousel') continue;
+    const carouselId = typeof comp.props?.carouselId === 'string' ? comp.props.carouselId.trim() : '';
+    if (!carouselId || carouselId === brandHeroKey) {
+      // Legacy block sharing the brand-hero key — served by the brand loader.
+      needsBrandHero = true;
+    } else {
+      instanceKeys.push(carouselId);
+    }
+  }
+  const uniqueInstanceKeys = Array.from(new Set(instanceKeys));
+  const instanceKeysSignature = uniqueInstanceKeys.slice().sort().join('|');
 
   useEffect(() => {
     let cancelled = false;
-    setHeroCarouselSlides([]);
+    setBrandHeroSlides([]);
+    setCarouselSlides({});
 
-    const loadHeroSlides = async () => {
-      const siteIds = [
-        `biz_${business.id}_hero`,
-        `biz_${business.id}_tab_sec_1_identity_hero`,
-      ];
-      const slides: any[] = [];
+    const fetchSlides = async (siteId: string): Promise<any[]> => {
+      const response = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
+      if (!response.ok) {
+        console.error(`Failed to load minisite hero carousel ${siteId}: ${response.status}`);
+        return [];
+      }
+      const data = await response.json();
+      return Array.isArray(data?.slides) ? data.slides : [];
+    };
 
-      for (const siteId of siteIds) {
-        const response = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(siteId)}`);
-        if (!response.ok) {
-          console.error(`Failed to load minisite hero carousel ${siteId}: ${response.status}`);
-          continue;
-        }
+    const loadSlides = async () => {
+      // 1. Per-instance carousel blocks: exactly one fetch per unique key.
+      const loaded: Record<string, any[]> = {};
+      await Promise.all(uniqueInstanceKeys.map(async siteId => {
+        loaded[siteId] = await fetchSlides(siteId);
+      }));
+      if (cancelled) return;
+      setCarouselSlides(loaded);
 
-        const data = await response.json();
-        if (Array.isArray(data?.slides)) {
-          slides.push(...data.slides.map((slide: any) => ({
-            ...slide,
-            title: '',
-            subtitle: '',
-            caption: '',
-            ctaLink: undefined,
-            ctaText: undefined,
-            showCaption: false,
-          })));
-        }
-        if (slides.length > 0) break;
+      // 2. Brand hero backdrop: main slides, then identity-tab slides, then
+      //    approved section galleries. Later sources run only when the
+      //    earlier ones come back empty.
+      if (!needsBrandHero) return;
+      let slides = await fetchSlides(brandHeroKey);
+      if (slides.length === 0) {
+        slides = await fetchSlides(brandHeroFallbackKey);
       }
 
-      const rawData = business.custom_data || {};
-      const sectionMetadata = rawData.section_content_meta || {};
-      for (const [sectionId, sectionData] of Object.entries(rawData)) {
-        if (!sectionData || typeof sectionData !== 'object') continue;
-        const metadata = sectionMetadata[sectionId] || {};
-        if (metadata.galleryStatus && metadata.galleryStatus !== 'approved') continue;
-        if (metadata.galleryOnMinisite === false) continue;
-        const section = sectionData as Record<string, any>;
-        const gallery = Array.isArray(section.section_gallery)
-          ? section.section_gallery
-          : section.section_gallery ? [section.section_gallery] : [];
-        for (const item of gallery) {
-          const mediaUrl = typeof item === 'string' ? item : item?.url;
-          if (typeof mediaUrl !== 'string' || !mediaUrl.trim()) continue;
-          if (item?.approval_status && item.approval_status !== 'approved') continue;
-          if (item?.show_on_minisite === false || item?.show_on_minisite === 0) continue;
-          slides.push({
-            id: item?.id || `${sectionId}-${slides.length}`,
-            type: 'image',
-            mediaUrl: mediaUrl.trim(),
-            title: '',
-            subtitle: '',
-            showCaption: false,
-          });
+      // Section-gallery photos are only a fallback for businesses without a
+      // configured carousel. Merging them into an existing carousel made every
+      // new section upload compete with (and visually displace) the real slides.
+      if (slides.length === 0) {
+        const rawData = business.custom_data || {};
+        const sectionMetadata = rawData.section_content_meta || {};
+        for (const [sectionId, sectionData] of Object.entries(rawData)) {
+          if (!sectionData || typeof sectionData !== 'object') continue;
+          const metadata = sectionMetadata[sectionId] || {};
+          if (metadata.galleryStatus && metadata.galleryStatus !== 'approved') continue;
+          if (metadata.galleryOnMinisite === false) continue;
+          const section = sectionData as Record<string, any>;
+          const gallery = Array.isArray(section.section_gallery)
+            ? section.section_gallery
+            : section.section_gallery ? [section.section_gallery] : [];
+          for (const item of gallery) {
+            const mediaUrl = typeof item === 'string' ? item : item?.url;
+            if (typeof mediaUrl !== 'string' || !mediaUrl.trim()) continue;
+            if (item?.approval_status && item.approval_status !== 'approved') continue;
+            if (item?.show_on_minisite === false || item?.show_on_minisite === 0) continue;
+            slides.push({
+              id: item?.id || `${sectionId}-${slides.length}`,
+              type: 'image',
+              mediaUrl: mediaUrl.trim(),
+              title: '',
+              subtitle: '',
+              showCaption: false,
+            });
+          }
         }
       }
 
@@ -101,19 +131,38 @@ export default function MinisiteBuilderRenderer({
         slide.mediaUrl.trim() &&
         all.findIndex(candidate => candidate?.mediaUrl === slide.mediaUrl) === index
       );
-      if (!cancelled) setHeroCarouselSlides(uniqueSlides);
+      if (!cancelled) setBrandHeroSlides(uniqueSlides);
     };
 
-    loadHeroSlides().catch(error => {
+    loadSlides().catch(error => {
       console.error('Failed to load minisite hero carousel:', error);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [business.id]);
+    // instanceKeys/needsBrandHero re-derive from layout; the signature deps
+    // summarize them so this runs once per distinct key set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [business.id, instanceKeysSignature, needsBrandHero]);
 
-  const mode = layout.mode || 'replace';
+  // The vendor_hero backdrop paints its own headline over the slides, so
+  // per-slide captions are stripped here only; standalone carousel blocks
+  // keep them. Memoized so the child's effect sees a stable identity.
+  const heroBackdropSlides = useMemo(
+    () =>
+      brandHeroSlides.map(slide => ({
+        ...slide,
+        title: '',
+        subtitle: '',
+        caption: '',
+        ctaLink: undefined,
+        ctaText: undefined,
+        showCaption: false,
+      })),
+    [brandHeroSlides]
+  );
+
   const siteSettings = layout.site_settings || {};
   const primaryColor = siteSettings.primary_color || '#D4AF37';
   const bgColor = siteSettings.bg_color || '#090e17';
@@ -219,16 +268,16 @@ export default function MinisiteBuilderRenderer({
               textAlign: 'center',
             }}
           >
-            {mode === 'replace' && heroCarouselSlides.length > 0 && (
+            {mode === 'replace' && heroBackdropSlides.length > 0 && (
               <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
                 <AdvancedHeroCarousel
-                  slides={heroCarouselSlides}
+                  slides={heroBackdropSlides}
                   height="100%"
                   autoPlay
                   autoPlayInterval={6000}
-                  showIndicators={heroCarouselSlides.length > 1}
-                  showArrows={heroCarouselSlides.length > 1}
-                  showProgress={heroCarouselSlides.length > 1}
+                  showIndicators={heroBackdropSlides.length > 1}
+                  showArrows={heroBackdropSlides.length > 1}
+                  showProgress={heroBackdropSlides.length > 1}
                 />
               </div>
             )}
@@ -908,12 +957,27 @@ export default function MinisiteBuilderRenderer({
       // 6. VENDOR PRIVATE CAROUSEL
       // ──────────────────────────────────────────────
       case 'vendor_carousel': {
-        const carouselName = `biz_${business.id}_hero`;
+        // Each carousel block can own its slide set; legacy layouts without a
+        // carouselId keep the shared brand-hero key for backward compatibility.
+        const carouselName =
+          typeof props.carouselId === 'string' && props.carouselId.trim()
+            ? props.carouselId.trim()
+            : `biz_${business.id}_hero`;
+        // Slides are pre-resolved by the parent effect (one fetch per key),
+        // so the carousel never fetches again on mount. Nothing renders while
+        // a key is unresolved — matching the previous loading behavior.
+        const blockSlides =
+          carouselName === brandHeroKey
+            ? brandHeroSlides
+            : carouselSlides[carouselName];
+        if (!Array.isArray(blockSlides) || blockSlides.length === 0) {
+          return null;
+        }
         return (
           <section key={comp.id} style={{ position: 'relative' }}>
             <AdvancedHeroCarousel
+              slides={blockSlides}
               height="clamp(420px, 60vh, 680px)"
-              carouselName={carouselName}
               isDynamic={false}
               autoPlay={props.autoPlay !== false}
               autoPlayInterval={props.autoPlayInterval || 6000}

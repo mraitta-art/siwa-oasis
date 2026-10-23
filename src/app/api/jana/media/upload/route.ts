@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { safeMediaSegment, saveUploadedBuffer } from '@/lib/media-storage';
-import { db, queryOne, execute } from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const fileEntry = formData.get('file');
+    const file = fileEntry instanceof File ? fileEntry : null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -53,6 +54,18 @@ export async function POST(request: NextRequest) {
     const safeBizName = safeMediaSegment(bizName, 'general');
     const safeSectionName = safeMediaSegment(sectionName, 'misc');
     const cloudFolder = `siwa-oasis/businesses/${safeBizName}/${safeSectionName}`;
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const hasCloudinaryConfig = Boolean(
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+    );
+    if (isServerless && !hasCloudinaryConfig) {
+      return NextResponse.json(
+        { error: 'Persistent image storage is not configured. Ask the administrator to configure Cloudinary before uploading carousel media.' },
+        { status: 503 }
+      );
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -65,52 +78,59 @@ export async function POST(request: NextRequest) {
         'SELECT url, localUrl FROM admin_media_uploads WHERE file_hash = ? LIMIT 1',
         [fileHash]
       );
-      if (existing) {
+      const reusableUrl = typeof existing?.url === 'string' &&
+        !/^data:/i.test(existing.url) &&
+        (!isServerless || existing.url.startsWith('https://'))
+        ? existing.url
+        : !isServerless && typeof existing?.localUrl === 'string' && !/^data:/i.test(existing.localUrl)
+          ? existing.localUrl
+          : '';
+      if (reusableUrl) {
         return NextResponse.json({
           success: true,
-          url: existing.url || existing.localUrl,
-          localUrl: existing.localUrl,
+          url: reusableUrl,
+          localUrl: reusableUrl,
           isDuplicate: true,
           message: 'This file already exists in media library. Returning existing URL.',
           folder: cloudFolder,
-          source: existing.url?.startsWith('http') ? 'cloudinary' : 'local'
+          source: reusableUrl.startsWith('http') ? 'cloudinary' : 'local'
         });
       }
-    } catch (hashErr: any) {
-      console.log('[INFO] File hash check skipped:', hashErr.message);
+    } catch (hashErr) {
+      console.warn('[MEDIA UPLOAD] File hash check failed:', hashErr);
     }
 
     let finalUrl = '';
 
-    // 1. Try Cloudinary (Shared/public storage)
-    if (process.env.CLOUDINARY_CLOUD_NAME) {
+    if (hasCloudinaryConfig) {
       try {
         const result: any = await uploadToCloudinary(buffer, file.name, cloudFolder);
         finalUrl = result?.secure_url || '';
-      } catch (cloudErr: any) {
-        console.error('[CLOUDINARY ERROR - FALLBACK TO DATA/LOCAL]', cloudErr);
+        if (!finalUrl) throw new Error('Cloudinary did not return a persistent media URL.');
+      } catch (cloudErr) {
+        console.error('[CLOUDINARY UPLOAD FAILED]', cloudErr);
+        if (isServerless) {
+          return NextResponse.json(
+            { error: 'The image could not be saved to persistent storage. Please retry; if the problem continues, contact support.' },
+            { status: 502 }
+          );
+        }
       }
     }
 
-    // 2. Save local copy when running on Node with filesystem support
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/\s+/g, '-').toLowerCase();
-    const filename = `${timestamp}-${originalName}`;
     let localResultUrl = '';
-    try {
-      const localResult = saveUploadedBuffer(buffer, filename, `jana-media/${safeBizName}/${safeSectionName}`);
-      localResultUrl = localResult.url;
-    } catch (fsErr) {
-      console.warn('[FS SAVE SKIPPED IN SERVERLESS]', fsErr);
-    }
-
-    // 3. If no Cloudinary URL and running in Serverless / Vercel, use Base64 data URL to guarantee instant display
     if (!finalUrl) {
-      const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || !process.env.SIWA_MEDIA_ROOT);
-      if (isServerless && buffer.length <= 15 * 1024 * 1024) {
-        finalUrl = `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
-      } else {
-        finalUrl = localResultUrl || `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+      const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-').toLowerCase()}`;
+      try {
+        const localResult = saveUploadedBuffer(buffer, filename, `jana-media/${safeBizName}/${safeSectionName}`);
+        localResultUrl = localResult.url;
+        finalUrl = localResult.url;
+      } catch (fsErr) {
+        console.error('[LOCAL MEDIA STORAGE FAILED]', fsErr);
+        return NextResponse.json(
+          { error: 'The uploaded file could not be saved. Configure persistent media storage and try again.' },
+          { status: 503 }
+        );
       }
     }
 
@@ -122,15 +142,15 @@ export async function POST(request: NextRequest) {
          ON DUPLICATE KEY UPDATE created_at = NOW()`,
         [fileHash, finalUrl, localResultUrl || finalUrl, file.name, file.size, file.type, cloudFolder]
       );
-    } catch (dbErr: any) {
-      console.log('[INFO] File hash storage skipped:', dbErr.message);
+    } catch (dbErr) {
+      console.warn('[MEDIA UPLOAD] File hash storage failed:', dbErr);
     }
 
     return NextResponse.json({
       success: true,
       url: finalUrl,
       localUrl: localResultUrl || finalUrl,
-      filename: filename,
+      filename: file.name,
       size: file.size,
       type: file.type,
       source: finalUrl.startsWith('http') ? 'cloudinary' : 'local',

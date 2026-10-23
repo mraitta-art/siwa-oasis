@@ -96,8 +96,23 @@ export default function AdvancedHeroCarousel({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const fetchedRef = useRef(false);
+  // Last slides array applied from props, so a parent re-render with the same
+  // array identity does not reset the active slide (see fetch effect below).
+  const appliedSlidesRef = useRef<Slide[] | null>(null);
   // Track which YouTube players are allowed to init (only current ± 1)
   const [activeYtRange, setActiveYtRange] = useState<Set<number>>(new Set([0, 1]));
+
+  // Honor reduced-motion preference for heavy background animations
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setPrefersReducedMotion(media.matches);
+    sync();
+    media.addEventListener?.('change', sync);
+    return () => media.removeEventListener?.('change', sync);
+  }, []);
 
   // Auto-fetch slides if a carouselName is provided (only once)
   useEffect(() => {
@@ -148,11 +163,13 @@ export default function AdvancedHeroCarousel({
       }
       fetchSlides();
       fetchedRef.current = true;
-    } else if (initialSlides.length > 0) {
+    } else if (initialSlides.length > 0 && appliedSlidesRef.current !== initialSlides) {
+      appliedSlidesRef.current = initialSlides;
       setSlides(initialSlides);
-      // Smart start for pre-supplied slides too
-      const fastIdx = initialSlides.findIndex(s => s.type !== 'youtube' && s.type !== 'video');
-      if (fastIdx > 0) setCurrentSlide(fastIdx);
+      // Respect the admin-defined order for pre-supplied slides (e.g. minisite
+      // hero). Smart-start used to silently skip a YouTube/video placed first,
+      // which made the next image look like it had replaced the video.
+      setCurrentSlide(0);
       setLoading(false);
     }
   }, [carouselName, initialSlides, isDynamic, includeDynamicOptions]);
@@ -317,6 +334,7 @@ export default function AdvancedHeroCarousel({
               muted={Boolean(isMuted)}
               canInitYT={activeYtRange.has(index)}
               watermarkText={visualSettings.watermarkText}
+              reduceMotion={prefersReducedMotion}
             />
             <div style={{
               position: 'absolute', inset: 0,
@@ -515,9 +533,40 @@ export default function AdvancedHeroCarousel({
 
       {showArrows && validSlides.length > 1 && (
         <>
-          <button onClick={(e) => { e.stopPropagation(); goToPrev(true); }} style={{ position: 'absolute', left: '1rem', top: '50%', zIndex: 20, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', borderRadius: '999px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>‹</button>
-          <button onClick={(e) => { e.stopPropagation(); goToNext(true); }} style={{ position: 'absolute', right: '1rem', top: '50%', zIndex: 20, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', borderRadius: '999px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>›</button>
+          <button type="button" aria-label="Previous slide" onClick={(e) => { e.stopPropagation(); goToPrev(true); }} style={{ position: 'absolute', left: '1rem', top: '50%', zIndex: 20, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', borderRadius: '999px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>‹</button>
+          <button type="button" aria-label="Next slide" onClick={(e) => { e.stopPropagation(); goToNext(true); }} style={{ position: 'absolute', right: '1rem', top: '50%', zIndex: 20, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', borderRadius: '999px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>›</button>
         </>
+      )}
+
+      {showProgress && validSlides.length > 1 && (
+        <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'rgba(255,255,255,0.18)', zIndex: 20 }}>
+          <div style={{ width: `${progress}%`, height: '100%', background: '#D4AF37', transition: 'width 80ms linear' }} />
+        </div>
+      )}
+
+      {showIndicators && validSlides.length > 1 && (
+        <div style={{ position: 'absolute', bottom: '1.15rem', left: '50%', transform: 'translateX(-50%)', zIndex: 30, display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+          {validSlides.map((s, idx) => (
+            <button
+              key={s.id}
+              type="button"
+              aria-label={`Slide ${idx + 1}${s.title ? `: ${s.title}` : ''}`}
+              aria-current={idx === currentSlide ? 'true' : undefined}
+              onClick={(e) => { e.stopPropagation(); goToSlide(idx); }}
+              style={{
+                width: idx === currentSlide ? '22px' : '8px',
+                height: '8px',
+                borderRadius: '999px',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                background: idx === currentSlide ? '#D4AF37' : 'rgba(255,255,255,0.45)',
+                transition: 'all 0.25s ease',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+              }}
+            />
+          ))}
+        </div>
       )}
 
       <div style={{
@@ -525,6 +574,8 @@ export default function AdvancedHeroCarousel({
         display: 'flex', gap: '0.5rem', alignItems: 'center'
       }}>
         <button
+          type="button"
+          aria-label={isPaused ? 'Resume slideshow' : 'Pause slideshow'}
           onClick={togglePause}
           style={{
             background: isPaused ? 'rgba(255,255,255,0.12)' : 'rgba(15, 23, 42, 0.35)',
@@ -543,6 +594,8 @@ export default function AdvancedHeroCarousel({
 
         {slide.type === 'youtube' && (
           <button
+            type="button"
+            aria-label={isMuted ? 'Unmute video' : 'Mute video'}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMuted(!isMuted); }}
             style={{
               background: 'rgba(15,23,42,0.35)', border: '1px solid rgba(255,255,255,0.18)',
@@ -578,7 +631,7 @@ export default function AdvancedHeroCarousel({
   );
 }
 
-function SlideMedia({ slide, animation, isActive, muted, canInitYT = true, watermarkText }: { slide: Slide; animation: string; isActive: boolean; muted: boolean; canInitYT?: boolean; watermarkText?: string }) {
+function SlideMedia({ slide, animation, isActive, muted, canInitYT = true, watermarkText, reduceMotion = false }: { slide: Slide; animation: string; isActive: boolean; muted: boolean; canInitYT?: boolean; watermarkText?: string; reduceMotion?: boolean }) {
   if (slide.type === 'youtube') {
     const ytId = extractYouTubeId(slide.mediaUrl || '');
     if (!ytId) return <div style={{ position: 'absolute', inset: 0, background: '#000' }} />;
@@ -727,7 +780,7 @@ function SlideMedia({ slide, animation, isActive, muted, canInitYT = true, water
       position: 'absolute', inset: 0, backgroundImage: `url(${slide.mediaUrl})`,
       backgroundSize: bgSize, backgroundPosition: bgPos, backgroundRepeat: 'no-repeat',
       backgroundColor: slide.bgColor || '#000',
-      animation: isActive && animation === 'kenburns' ? 'kenburns-advanced 20s infinite' : 'none'
+      animation: isActive && animation === 'kenburns' && !reduceMotion ? 'kenburns-advanced 20s infinite' : 'none'
     }} />
   );
 }

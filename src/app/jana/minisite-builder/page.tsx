@@ -33,6 +33,119 @@ export default function MinisiteBuilderStudio() {
   );
 }
 
+/**
+ * Hero backdrop slide-source guidance.
+ * Explains WHICH slide set the published backdrop is using, WHY another set
+ * can be invisible, and the exact steps admins should follow.
+ */
+function HeroSourcePriorityPanel({ businessId }: { businessId: string }) {
+  const mainKey = `biz_${businessId}_hero`;
+  const identityKey = `biz_${businessId}_tab_sec_1_identity_hero`;
+  const [counts, setCounts] = useState<{ main: number; identity: number } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const readCount = async (key: string) => {
+      try {
+        const res = await fetch(`/api/jana/hero-carousel?siteId=${encodeURIComponent(key)}`);
+        if (!res.ok) return 0;
+        const data = await res.json();
+        return Array.isArray(data?.slides) ? data.slides.length : 0;
+      } catch {
+        return 0;
+      }
+    };
+    Promise.all([readCount(mainKey), readCount(identityKey)]).then(([main, identity]) => {
+      if (!cancelled) setCounts({ main, identity });
+    });
+    return () => { cancelled = true; };
+  }, [mainKey, identityKey]);
+
+  const main = counts?.main ?? null;
+  const identity = counts?.identity ?? null;
+  const activeIndex = main === null || identity === null ? -1 : main > 0 ? 0 : identity > 0 ? 1 : 2;
+  const activeLabel = activeIndex === -1 ? 'Checking…' : activeIndex === 0 ? 'P1 — Main minisite carousel' : activeIndex === 1 ? 'P2 — Identity tab carousel (legacy fallback)' : 'P3 — Section gallery photos';
+
+  const rows = [
+    { id: 'P1', label: 'Main minisite carousel', key: mainKey, count: main, note: 'Wins as soon as it has at least one slide.' },
+    { id: 'P2', label: 'Identity tab carousel', key: identityKey, count: identity, note: 'Used only while P1 is empty. Hidden the moment P1 gets its first slide.' },
+    { id: 'P3', label: 'Section gallery photos', key: 'custom_data.section_gallery', count: null as number | null, note: 'Only seeds the backdrop when no carousel exists. Media Studio uploads land here — not in the carousel.' },
+  ];
+
+  const warnHiddenIdentity = main !== null && identity !== null && main > 0 && identity > 0;
+  const warnLegacyFallback = main !== null && identity !== null && main === 0 && identity > 0;
+  const warnNoCarousel = main === 0 && identity === 0;
+
+  return (
+    <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#f0f9ff', border: '1px solid #bae6fd', marginTop: '0.5rem' }}>
+      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#075985', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
+        <i className="fas fa-layer-group" style={{ marginRight: '6px', color: '#0284c7' }} />
+        HERO BACKDROP — SLIDE SOURCE PRIORITY
+      </div>
+      <p style={{ fontSize: '0.72rem', color: '#0c4a6e', margin: '0 0 0.6rem', lineHeight: 1.5 }}>
+        <strong>Why:</strong> the backdrop reads exactly <strong>one</strong> source in the order below. Sets are never merged, so adding slides to a higher-priority source hides the lower one.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.6rem' }}>
+        {rows.map((row, index) => {
+          const isActive = index === activeIndex;
+          return (
+            <div key={row.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', padding: '0.4rem 0.55rem', borderRadius: '8px', background: isActive ? '#e0f2fe' : '#ffffff', border: `1px solid ${isActive ? '#38bdf8' : '#e2e8f0'}` }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isActive ? '#ffffff' : '#475569', background: isActive ? '#0284c7' : '#e2e8f0', borderRadius: '5px', padding: '2px 6px', flexShrink: 0 }}>{row.id}</span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0f172a' }}>
+                  {row.label}
+                  <span style={{ fontWeight: 600, color: '#64748b' }}> — {row.count === null ? 'n/a' : `${row.count} slide${row.count === 1 ? '' : 's'}`}{isActive ? ' · ACTIVE' : ''}</span>
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#475569', lineHeight: 1.45 }}>{row.note}</div>
+                <code style={{ fontSize: '0.62rem', color: '#0369a1', wordBreak: 'break-all' }}>{row.key}</code>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0c4a6e', marginBottom: '0.35rem' }}>Live source: {activeLabel}</div>
+
+      {warnHiddenIdentity && (
+        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#b45309', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '0.45rem 0.6rem', marginBottom: '0.5rem', lineHeight: 1.5 }}>
+          <i className="fas fa-triangle-exclamation" style={{ marginRight: '6px' }} />
+          The Identity-tab set exists but is hidden because Main has slides (P1 wins). Edits to the identity tab will not appear on the live page until you move them or empty Main.
+        </div>
+      )}
+      {warnLegacyFallback && (
+        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1e40af', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: '8px', padding: '0.45rem 0.6rem', marginBottom: '0.5rem', lineHeight: 1.5 }}>
+          <i className="fas fa-circle-info" style={{ marginRight: '6px' }} />
+          The backdrop is running on the legacy Identity-tab fallback. The first slide added to Main takes over the hero and this entire set stops appearing.
+        </div>
+      )}
+      {warnNoCarousel && (
+        <div style={{ fontSize: '0.7rem', color: '#334155', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.45rem 0.6rem', marginBottom: '0.5rem', lineHeight: 1.5 }}>
+          No carousel slides yet — approved section-gallery photos are seeding the backdrop. Add real slides to take control.
+        </div>
+      )}
+
+      <div style={{ fontSize: '0.7rem', color: '#0c4a6e', background: '#ffffff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '0.45rem 0.6rem', marginBottom: '0.6rem', lineHeight: 1.6 }}>
+        <strong>Follow in this order:</strong>
+        <div>1. Manage slides for the ACTIVE source above (slides, order, autoplay live there).</div>
+        <div>2. Need a second, independent carousel on the page? Add a <strong>Hero Carousel</strong> block and press <strong>Detach To Fresh Slide Set</strong>.</div>
+        <div>3. Uploading photos in Media Studio feeds galleries only — it never replaces carousel slides.</div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <Link href={`/jana/hero-carousel?targetScope=minisite&businessId=${businessId}`} target="_blank"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#0284c7', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+          <i className="fas fa-images" /> Manage P1 Main Slides
+        </Link>
+        <Link href={`/jana/hero-carousel?targetScope=minisite&businessId=${businessId}&minisiteTab=sec_1_identity`} target="_blank"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#0369a1', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+          <i className="fas fa-id-badge" /> Manage P2 Identity Slides
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 const ACTIVE_HANDOFF_STATUSES = new Set([
   'draft',
   'sent',
@@ -102,11 +215,17 @@ function MinisiteBuilderStudioContent() {
           subtitle: lang === 'ar' ? 'عروض وباقات خاصة مع حجز مباشر عبر الواتساب.' : 'Exclusive promotional rates with instant booking.',
           packages: bizProducts.slice(0, 6),
         };
-      case 'vendor_carousel':
+      case 'vendor_carousel': {
+        const ownerBizId = bInfo?.id || ctx?.id || selectedSlug || 'new';
         return {
-          title: lang === 'ar' ? `جولة سينمائية في ${bizName}` : `Cinematic Tour of ${bizName}`,
-          subtitle: lang === 'ar' ? 'استكشف أجمل المشاهد والتفاصيل.' : 'Explore breathtaking highlights and spaces.',
+          carouselId: `biz_${ownerBizId}_tab_carousel_${Date.now()}_hero`,
+          autoPlay: true,
+          autoPlayInterval: 6000,
+          showIndicators: true,
+          showArrows: true,
+          showProgress: true,
         };
+      }
       case 'vendor_blog':
         return {
           title: lang === 'ar' ? 'أحدث القصص والمقالات' : 'Stories & Insights',
@@ -2778,6 +2897,11 @@ function MinisiteBuilderStudioContent() {
                   </div>
                 )}
 
+                {/* vendor_hero → Slide source priorities (why + warnings + instructions) */}
+                {selectedComp.type === 'vendor_hero' && businessInfo?.id && (
+                  <HeroSourcePriorityPanel businessId={businessInfo.id} />
+                )}
+
                 {/* vendor_gallery → Gallery management for this specific business */}
                 {selectedComp.type === 'vendor_gallery' && businessInfo?.id && (
                   <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #D4AF37', marginTop: '0.5rem' }}>
@@ -2898,27 +3022,88 @@ function MinisiteBuilderStudioContent() {
                 )}
 
                 {/* vendor_carousel → Hero carousel management for this specific business */}
-                {selectedComp.type === 'vendor_carousel' && businessInfo?.id && (
+                {selectedComp.type === 'vendor_carousel' && businessInfo?.id && (() => {
+                  const rawCarouselId = typeof selectedComp.props?.carouselId === 'string' ? selectedComp.props.carouselId.trim() : '';
+                  const effectiveKey = rawCarouselId || `biz_${businessInfo.id}_hero`;
+                  const hasBrandHeroBlock = components.some((c) => c.type === 'vendor_hero');
+                  const duplicateCarousel = components.some((c) =>
+                    c.id !== selectedComp.id &&
+                    c.type === 'vendor_carousel' &&
+                    (typeof c.props?.carouselId === 'string' && c.props.carouselId.trim()
+                      ? c.props.carouselId.trim()
+                      : `biz_${businessInfo.id}_hero`) === effectiveKey
+                  );
+                  const sharesBrandHero = duplicateCarousel || (!rawCarouselId && hasBrandHeroBlock);
+                  const tabPart = effectiveKey.includes('_tab_')
+                    ? effectiveKey.split('_tab_')[1].replace(/_hero$/, '')
+                    : 'main';
+                  const updateCarouselProps = (patch: Record<string, unknown>) => {
+                    setComponents(components.map((c) =>
+                      c.id === selectedComp.id
+                        ? { ...c, props: { ...(c.props || {}), ...patch } }
+                        : c
+                    ));
+                  };
+                  return (
                   <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#fdf2f8', border: '1px solid #fbcfe8', marginTop: '0.5rem' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#9d174d', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
                       <i className="fas fa-film" style={{ marginRight: '6px', color: '#ec4899' }} />
-                      MAIN HERO CAROUSEL FOR: {(businessInfo?.name || selectedSlug).toUpperCase()}
+                      SLIDES SOURCE: {effectiveKey}
+                    </div>
+                    {sharesBrandHero && (
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#b45309', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '0.45rem 0.6rem', marginBottom: '0.6rem' }}>
+                        <i className="fas fa-triangle-exclamation" style={{ marginRight: '6px' }} />
+                        {duplicateCarousel
+                          ? 'Another carousel block uses this same slide set. Use “Detach” below to give this block independent slides.'
+                          : 'This block shares its slide set with the Brand Hero backdrop. Use “Detach” below to give it independent slides.'}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '0.7rem', color: '#831843', background: '#fce7f3', border: '1px solid #fbcfe8', borderRadius: '8px', padding: '0.45rem 0.6rem', marginBottom: '0.6rem', lineHeight: 1.55 }}>
+                      <strong>FOLLOW IN THIS ORDER:</strong>
+                      <div>1. Decide ownership: use <strong>Detach</strong> so this block owns its slides, or accept that every block sharing this key shows identical slides.</div>
+                      <div>2. Manage slides for the key shown above — slides, order and autoplay all live there.</div>
+                      <div>3. Only then import reels/videos; imports append to this same key.</div>
                     </div>
                     <p style={{ fontSize: '0.72rem', color: '#db2777', margin: '0 0 0.75rem', lineHeight: 1.5 }}>
-                      This carousel is saved to <strong>biz_{businessInfo.id}_hero</strong> and used by the minisite's main hero. Section-specific carousels remain separate.
+                      The Brand Hero backdrop uses <strong>biz_{businessInfo.id}_hero</strong>; this block uses <strong>{effectiveKey}</strong>. Title/Subtitle fields above are not rendered by carousel blocks.
                     </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 0.75rem', marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#9d174d' }}>
+                        <input type="checkbox" checked={selectedComp.props?.autoPlay !== false} onChange={(e) => updateCarouselProps({ autoPlay: e.target.checked })} /> Autoplay
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#9d174d' }}>
+                        <input type="checkbox" checked={selectedComp.props?.showArrows !== false} onChange={(e) => updateCarouselProps({ showArrows: e.target.checked })} /> Arrows
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#9d174d' }}>
+                        <input type="checkbox" checked={selectedComp.props?.showIndicators !== false} onChange={(e) => updateCarouselProps({ showIndicators: e.target.checked })} /> Dots
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#9d174d' }}>
+                        <input type="checkbox" checked={selectedComp.props?.showProgress !== false} onChange={(e) => updateCarouselProps({ showProgress: e.target.checked })} /> Progress
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#9d174d' }}>
+                        Interval (ms)
+                        <input type="number" min={3000} max={15000} step={500} value={Number(selectedComp.props?.autoPlayInterval) || 6000} onChange={(e) => updateCarouselProps({ autoPlayInterval: Math.min(15000, Math.max(3000, Number(e.target.value) || 6000)) })} style={{ width: '5.5rem', padding: '0.2rem 0.35rem', borderRadius: '6px', border: '1px solid #f9a8d4' }} />
+                      </label>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <Link href={`/jana/hero-carousel?targetScope=minisite&businessId=${businessInfo.id}&minisiteTab=main`} target="_blank"
+                      <Link href={`/jana/hero-carousel?targetScope=minisite&businessId=${businessInfo.id}&minisiteTab=${encodeURIComponent(tabPart)}`} target="_blank"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#ec4899', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
-                        <i className="fas fa-images" /> Manage Carousel Slides
+                        <i className="fas fa-images" /> Manage These Slides
                       </Link>
+                      <button type="button" onClick={() => updateCarouselProps({ carouselId: `biz_${businessInfo.id}_tab_carousel_${Date.now()}_hero` })}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#9d174d', color: '#fff', fontSize: '0.75rem', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                        <i className="fas fa-plus" /> Detach To Fresh Slide Set
+                      </button>
                       <Link href={`/vendor/social-toolkit?slug=${selectedSlug}`} target="_blank"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#9d174d', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: '#be185d', color: '#fff', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
                         <i className="fas fa-video" /> Sync Reels &amp; Videos
                       </Link>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           ) : (
