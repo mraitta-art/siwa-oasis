@@ -12,9 +12,11 @@
  *   R4  No secrets in the commit ..... .env files and private keys are never committed.
  *   R5  Source-upload ceiling ........ 100 MB cap on uploaded source. public/ fails at
  *                                      90 MB, warns at 70 MB.
- *   R6  Egress guard ................. Fast Data Transfer is 100 GB/month and one large
- *                                      hero image can retire it; changed media over 1.5 MB
- *                                      is reported (that is what sets the monthly cliff).
+ *   R6  Media weight guard ........... Image bytes are served by Cloudinary, not Vercel, so this
+ *                                      is not an egress gate. It still flags media over 1.5 MB
+ *                                      because those files ship with every build and slow the
+ *                                      upload; anything genuinely served from Vercel costs
+ *                                      Fast Data Transfer (100 GB/month).
  *   R7  Push once, to the watched repo  Vercel only builds mraitta-art/siwa-oasis. A bare
  *                                      `git push` already mirrors the fork, so never run a
  *                                      CLI deploy alongside it.
@@ -185,7 +187,7 @@ async function main() {
     .map((f) => ({ f, mb: fs.statSync(path.join(ROOT, f)).size / (1024 * 1024) }))
     .filter((x) => x.mb > LARGE_ASSET_MB);
   if (heavy.length) {
-    warn(`${heavy.length} media file(s) over ${LARGE_ASSET_MB} MB in this deploy — each one sets the monthly egress cliff:`);
+    warn(`${heavy.length} media file(s) over ${LARGE_ASSET_MB} MB in this deploy — they ship with every build:`);
     for (const x of heavy) info(`${x.mb.toFixed(2)} MB  ${x.f}`);
   } else {
     ok('no oversized media in this change');
