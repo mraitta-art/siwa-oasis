@@ -35,6 +35,24 @@ const LIMITS: Record<'instagram' | 'facebook' | 'tiktok', number> = {
   tiktok: 80,
 };
 
+/**
+ * Adds the attribution tag the tap beacon already understands
+ * (`/slug?tap=whatsapp&src=ig`). Every link we hand the vendor is tagged, so the
+ * platform that actually delivered a visitor is measurable without a schema change.
+ */
+export function tagMinisiteUrl(url: string, src: string): string {
+  const base = String(url || '').trim();
+  const tag = String(src || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
+  if (!base || !tag) return base;
+  try {
+    const parsed = new URL(base);
+    parsed.searchParams.set('src', tag);
+    return parsed.toString();
+  } catch {
+    return `${base}${base.includes('?') ? '&' : '?'}src=${tag}`;
+  }
+}
+
 /** Shortens the headline so the URL always fits inside the platform limit. */
 function fit(headline: string, url: string, limit: number): string {
   const separator = ' · ';
@@ -55,11 +73,18 @@ export function buildPromoKit(options: {
   if (!url) return [];
 
   const headline = language === 'ar' ? `${name} · سيوة` : `${name} · Siwa Oasis`;
-  const instagramText = fit(headline, url, LIMITS.instagram);
-  const tiktokText = fit(headline, url, LIMITS.tiktok);
+  // One tag per destination: without it every channel looks identical in the numbers.
+  const tagged = {
+    google: tagMinisiteUrl(url, 'google'),
+    instagram: tagMinisiteUrl(url, 'ig'),
+    facebook: tagMinisiteUrl(url, 'fb'),
+    tiktok: tagMinisiteUrl(url, 'tt'),
+  };
+  const instagramText = fit(headline, tagged.instagram, LIMITS.instagram);
+  const tiktokText = fit(headline, tagged.tiktok, LIMITS.tiktok);
   const facebookText = language === 'ar'
-    ? fit(`${name} · سيوة · احجز مباشرة عبر SiWiFy`, url, LIMITS.facebook)
-    : fit(`${name} · Siwa Oasis · Book direct on SiWiFy`, url, LIMITS.facebook);
+    ? fit(`${name} · سيوة · احجز مباشرة عبر SiWiFy`, tagged.facebook, LIMITS.facebook)
+    : fit(`${name} · Siwa Oasis · Book direct on SiWiFy`, tagged.facebook, LIMITS.facebook);
 
   return [
     {
@@ -67,7 +92,7 @@ export function buildPromoKit(options: {
       label: language === 'ar' ? 'ملف جوجل (حقل الموقع)' : 'Google profile (Website field)',
       field: 'website',
       limit: null,
-      value: url,
+      value: tagged.google,
       deepLink: DEEP_LINKS.google,
       note: language === 'ar'
         ? 'الموقع ← تعديل الملف ← حقل «الموقع الإلكتروني». استخدم رابط الموقع الرسمي للنشاط.'
@@ -105,6 +130,82 @@ export function buildPromoKit(options: {
       note: language === 'ar'
         ? 'تعديل الملف ← البايو ← الصق النص (الحد 80 حرفًا).'
         : 'Edit profile → Bio → paste (80 characters max).',
+    },
+  ];
+}
+
+export interface PromoShareCaption {
+  id: 'post' | 'story' | 'status' | 'reply';
+  label: string;
+  labelAr: string;
+  place: string;
+  text: string;
+  tag: string;
+}
+
+/**
+ * Captions the vendor can paste without writing anything.
+ *
+ * These are not bios — they are posts, stories, WhatsApp statuses and the reply
+ * a captain sends when a tourist asks "how much?". Each carries its own `src`
+ * tag so the scoreboard can say which surface produced the visit.
+ */
+export function buildShareKit(options: {
+  businessName: string;
+  minisiteUrl: string;
+  language?: PromoLanguage;
+}): PromoShareCaption[] {
+  const name = String(options.businessName || '').trim();
+  const url = String(options.minisiteUrl || '').trim();
+  const language = options.language || 'en';
+  if (!url) return [];
+
+  const ar = language === 'ar';
+  const postUrl = tagMinisiteUrl(url, 'post');
+  const storyUrl = tagMinisiteUrl(url, 'story');
+  const statusUrl = tagMinisiteUrl(url, 'status');
+  const replyUrl = tagMinisiteUrl(url, 'wa');
+
+  return [
+    {
+      id: 'post',
+      label: 'Instagram / Facebook post',
+      labelAr: 'منشور إنستغرام / فيسبوك',
+      place: ar ? 'كنبت أو تعليق المنشور' : 'Post caption, or first comment',
+      tag: 'post',
+      text: ar
+        ? `${name} — في قلب سيوة.\nالخدمات والأسعار ورقم الواتساب في صفحتنا:\n${postUrl}\n\n#سيوة #واحة_سيوة #Siwa #SiwaOasis`
+        : `${name} — in the heart of Siwa.\nServices, prices and our WhatsApp in one page:\n${postUrl}\n\n#Siwa #SiwaOasis #Egypt`,
+    },
+    {
+      id: 'story',
+      label: 'Story sticker / text',
+      labelAr: 'استوري (نص أو ستيكر)',
+      place: ar ? 'نص الاستوري أو رابط الستيكر' : 'Story text, or the link sticker',
+      tag: 'story',
+      text: ar
+        ? `${name} · سيوة\nاحجز من هنا ← ${storyUrl}`
+        : `${name} · Siwa\nBook here → ${storyUrl}`,
+    },
+    {
+      id: 'status',
+      label: 'WhatsApp status',
+      labelAr: 'حالة واتساب',
+      place: ar ? 'حالة واتساب (تظهر لكل جهات الاتصال)' : 'WhatsApp status (all contacts see it)',
+      tag: 'status',
+      text: ar
+        ? `${name} في سيوة — الخدمات والأسعار في الصفحة:\n${statusUrl}`
+        : `${name} in Siwa — services and prices on one page:\n${statusUrl}`,
+    },
+    {
+      id: 'reply',
+      label: 'Reply to a tourist',
+      labelAr: 'رد على سائح',
+      place: ar ? 'الصقه عندما يسأل أحد عن السعر' : 'Paste it when someone asks about prices',
+      tag: 'wa',
+      text: ar
+        ? `أهلاً بك في سيوة. كل الخدمات والأسعار في صفحتي، ويمكنك الحجز مباشرة من هنا:\n${replyUrl}`
+        : `Welcome to Siwa. All services and prices are on my page, and you can book directly here:\n${replyUrl}`,
     },
   ];
 }

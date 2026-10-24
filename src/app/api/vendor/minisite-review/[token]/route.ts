@@ -437,7 +437,9 @@ export async function POST(
       status: 'published',
       businessId: handoff.business_id,
       slug: user.publicSlug,
-      redirect: `/vendor/app?slug=${encodeURIComponent(user.publicSlug)}&welcome=1`,
+      // The vendor just claimed the page: land on the activation package (share kit,
+      // QR, scoreboard) before the general dashboard, so the first screen is useful.
+      redirect: `/vendor/welcome?slug=${encodeURIComponent(user.publicSlug)}&fresh=1`,
     });
   } catch (error: any) {
     console.error('[vendor/minisite-review POST]', error);

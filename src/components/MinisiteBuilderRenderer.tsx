@@ -1364,7 +1364,7 @@ export default function MinisiteBuilderRenderer({
 
       {showQRCode && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1rem' }}>
-          <MinisiteQRCode businessName={business.name} slug={business.slug} businessId={business.id} />
+          <MinisiteQRCode businessName={business.name} slug={business.slug} businessId={business.id} src="qr" />
         </div>
       )}
 

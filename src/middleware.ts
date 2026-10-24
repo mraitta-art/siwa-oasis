@@ -264,8 +264,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 0. Public vendor onboarding, claim, and tools routes (accessible without login via invite/outreach links)
+  // The minisite review page is gated by its own 40–60 char token: the recipient has
+  // no account yet, so a login redirect here would break every WhatsApp invitation.
   const isPublicVendorRoute =
     pathname.startsWith('/vendor/claim') ||
+    pathname.startsWith('/vendor/minisite-review') ||
     pathname.startsWith('/vendor/app') ||
     pathname.startsWith('/vendor/social-toolkit') ||
     pathname.startsWith('/onboard') ||

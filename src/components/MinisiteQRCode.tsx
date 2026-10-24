@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { tagMinisiteUrl } from '@/lib/promo-kit';
 
 interface MinisiteQRCodeProps {
   businessName: string;
@@ -9,9 +10,11 @@ interface MinisiteQRCodeProps {
   slug?: string;
   businessId?: string;
   compact?: boolean;
+  /** Attribution tag encoded in the QR itself, so scans are measurable. */
+  src?: string;
 }
 
-export default function MinisiteQRCode({ businessName, targetUrl, slug, businessId, compact = false }: MinisiteQRCodeProps) {
+export default function MinisiteQRCode({ businessName, targetUrl, slug, businessId, compact = false, src }: MinisiteQRCodeProps) {
   const [resolvedUrl, setResolvedUrl] = useState(targetUrl || '');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [qrEnabled, setQrEnabled] = useState(!businessId);
@@ -19,9 +22,10 @@ export default function MinisiteQRCode({ businessName, targetUrl, slug, business
 
   useEffect(() => {
     let cancelled = false;
-    const pageUrl = targetUrl || (slug
+    const baseUrl = targetUrl || (slug
       ? `${window.location.origin}/${encodeURIComponent(slug)}`
       : window.location.href.split(/[?#]/)[0]);
+    const pageUrl = src ? tagMinisiteUrl(baseUrl, src) : baseUrl;
     setResolvedUrl(pageUrl);
     setQrCodeUrl('');
     setError('');
@@ -66,7 +70,7 @@ export default function MinisiteQRCode({ businessName, targetUrl, slug, business
     return () => {
       cancelled = true;
     };
-  }, [businessId, slug, targetUrl]);
+  }, [businessId, slug, targetUrl, src]);
 
   if (error) return <p role="status" style={{ color: '#b91c1c', textAlign: 'center' }}>{error}</p>;
   if (!qrEnabled || !resolvedUrl || !qrCodeUrl) return null;

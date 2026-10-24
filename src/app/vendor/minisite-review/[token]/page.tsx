@@ -3,6 +3,7 @@
 import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import MinisiteBuilderRenderer from '@/components/MinisiteBuilderRenderer';
+import VendorValueBrief from '@/components/VendorValueBrief';
 import { VENDOR_AGREEMENT_SECTIONS, VENDOR_PLEDGE_ACKNOWLEDGMENT } from '@/lib/vendor-agreement';
 import { VENDOR_CONSENT_VERSION, VENDOR_OPTIONAL_CONSENTS, VENDOR_SOCIAL_FIELDS } from '@/lib/vendor-consents';
 import type { MinisiteLayout } from '@/lib/minisite-layout';
@@ -77,7 +78,7 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to activate your SIWIFY page.');
-      window.location.assign(data.redirect || `/vendor/app?slug=${encodeURIComponent(payload?.business.slug || '')}`);
+      window.location.assign(data.redirect || `/vendor/welcome?slug=${encodeURIComponent(payload?.business.slug || '')}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to activate your SIWIFY page.');
       setBusy(false);
@@ -119,6 +120,17 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
 
       <section style={{ ...cardStyle, padding: 0, overflow: 'hidden', marginBottom: 20 }}>
         <MinisiteBuilderRenderer layout={payload.handoff.layout} business={payload.business} />
+      </section>
+
+      <section style={{ ...cardStyle, marginBottom: 20 }}>
+        <h2 style={{ marginTop: 0, fontSize: 18, color: '#0f172a' }}>
+          {isArabic ? 'ما تكسبه من سيوايفاي' : 'What you gain from SiWiFy'}
+        </h2>
+        <VendorValueBrief
+          language={isArabic ? 'ar' : 'en'}
+          variant="compact"
+          businessName={payload.business.name}
+        />
       </section>
 
       <section style={{ ...cardStyle, marginBottom: 20 }}>
@@ -223,7 +235,7 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
         {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
         {isPublished ? (
           <p role="status" style={{ color: '#166534', fontWeight: 700 }}>
-            {isArabic ? 'تم تفعيل صفحتك. جارٍ فتح لوحة التحكم…' : 'Your page is active. Opening your dashboard…'}
+            {isArabic ? 'تم تفعيل صفحتك. جارٍ فتح حزمة المشاركة…' : 'Your page is active. Opening your share package…'}
           </p>
         ) : (
           <button type="button" disabled={busy} onClick={acceptInvitation} style={primaryButton}>

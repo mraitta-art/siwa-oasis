@@ -7,9 +7,9 @@
  * withdrawn without touching the acceptance record itself.
  */
 
-export const VENDOR_CONSENT_VERSION = '2026-10-24-v1';
+export const VENDOR_CONSENT_VERSION = '2026-10-24-v2';
 
-export type VendorConsentId = 'social_links' | 'google_place_data';
+export type VendorConsentId = 'social_links' | 'google_place_data' | 'content_repost';
 
 export interface VendorConsentDefinition {
   id: VendorConsentId;
@@ -33,6 +33,13 @@ export const VENDOR_OPTIONAL_CONSENTS: VendorConsentDefinition[] = [
     titleAr: 'بيانات ملف جوجل',
     body: 'Show the public rating, review count, opening hours and photos from my Google Maps business profile on my SiWiFy page. This is read-only public data; SiWiFy does not reply to reviews or post to Google on my behalf.',
     bodyAr: 'عرض التقييم العام وعدد المراجعات وساعات العمل والصور من ملف نشاطي على خرائط جوجل في صفحتي على SiWiFy. هذه بيانات عامة للقراءة فقط، ولا ترد SiWiFy على المراجعات أو تنشر على جوجل نيابة عني.',
+  },
+  {
+    id: 'content_repost',
+    title: 'Reshare my public content',
+    titleAr: 'إعادة نشر محتواي العام',
+    body: 'SiWiFy may reshare the photos, videos and page link that already appear on my public minisite from SiWiFy own social accounts, crediting my business by name. SiWiFy never accesses my private accounts, never posts on my behalf, and stops resharing when I withdraw this. Posts already published are removed on request.',
+    bodyAr: 'يجوز لسيوايفاي إعادة نشر الصور والفيديوهات ورابط الصفحة التي تظهر بالفعل على موقعي المصغر العام من خلال حسابات سيوايفاي على منصات التواصل، مع ذكر اسم نشاطي. لا تصل سيوايفاي إلى حساباتي الخاصة ولا تنشر نيابة عني، وتتوقف عن إعادة النشر عند سحب هذا الإذن، وتُزال المنشورات السابقة بناءً على طلبي.',
   },
 ];
 
