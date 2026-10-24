@@ -13,6 +13,7 @@ import {
   ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT,
   ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT_VERSION,
 } from '@/lib/minisite-admin-publication';
+import { versionRole, readVersionMeta, type VersionTrack } from '@/lib/minisite-versions';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,14 +122,40 @@ export async function GET(request: NextRequest) {
     const rows = await query<any>(
       `SELECT h.id, h.business_id, h.revision, h.status, h.vendor_phone, h.whatsapp_error,
               h.agreement_version, h.accepted_name, h.accepted_at, h.changes_requested_note,
-              h.created_at, h.updated_at, b.name AS business_name, b.slug AS business_slug
+              h.layout, h.created_at, h.updated_at, b.name AS business_name, b.slug AS business_slug
        FROM minisite_vendor_handoffs h
        LEFT JOIN businesses b ON b.id = h.business_id
        ${businessId ? 'WHERE h.business_id = ?' : ''}
        ORDER BY h.updated_at DESC LIMIT 300`,
       businessId ? [businessId] : []
     );
-    return NextResponse.json({ handoffs: rows });
+    // Ship a lightweight projection: role + the free/paid meta live inside the
+    // layout JSON, so we extract only what the Versions chooser needs and drop
+    // the (potentially large) layout blob from the list response.
+    const handoffs = rows.map((h: any) => {
+      const meta = readVersionMeta(parseJson(h.layout, {}));
+      return {
+        id: h.id,
+        business_id: h.business_id,
+        revision: h.revision,
+        status: h.status,
+        role: versionRole(h.status),
+        track: meta.track,
+        registration_paid: meta.registration_paid,
+        registration_ref: meta.registration_ref,
+        vendor_phone: h.vendor_phone,
+        whatsapp_error: h.whatsapp_error,
+        agreement_version: h.agreement_version,
+        accepted_name: h.accepted_name,
+        accepted_at: h.accepted_at,
+        changes_requested_note: h.changes_requested_note,
+        created_at: h.created_at,
+        updated_at: h.updated_at,
+        business_name: h.business_name,
+        business_slug: h.business_slug,
+      };
+    });
+    return NextResponse.json({ handoffs });
   } catch (error: any) {
     return responseError(error);
   }
@@ -460,6 +487,192 @@ export async function POST(request: NextRequest) {
       await execute('UPDATE minisite_vendor_handoffs SET status = ? WHERE id = ?', [status, handoffId]);
       await addEvent(handoffId, status, { note: String(body.note || '').slice(0, 500) }, admin.id);
       return NextResponse.json({ success: true, status });
+    }
+
+    if (action === 'publish_version') {
+      // Promote ANY working revision to the single live (governed public) version.
+      // With the generated-baseline model this is exactly how a PAID version
+      // "replaces the free one": the public view switches from the auto-generated
+      // free layout to this published layout, and any previously published version
+      // is archived to 'expired' (recoverable). Payment is tracked in layout.meta,
+      // never a gate.
+      const handoffId = String(body.handoffId || '');
+      if (!handoffId) return NextResponse.json({ error: 'handoffId is required' }, { status: 400 });
+
+      const handoff = await queryOne<any>(
+        `SELECT h.id, h.business_id, h.revision, h.status, h.layout, b.slug, b.name
+           FROM minisite_vendor_handoffs h JOIN businesses b ON b.id = h.business_id
+          WHERE h.id = ? LIMIT 1`,
+        [handoffId]
+      );
+      if (!handoff) return NextResponse.json({ error: 'Version not found' }, { status: 404 });
+      if (handoff.status === 'published') {
+        return NextResponse.json({ error: 'This version is already the live one.' }, { status: 409 });
+      }
+      if (handoff.status === 'expired') {
+        return NextResponse.json({ error: 'Restore this archived version before publishing it.' }, { status: 409 });
+      }
+
+      const layout = parseJson(handoff.layout, null);
+      if (!layout || !Array.isArray(layout.components) || layout.components.length === 0) {
+        return NextResponse.json({ error: 'This version has no publishable layout components.' }, { status: 400 });
+      }
+
+      const business = await queryOne<any>(
+        'SELECT id, slug, type_id, subscription_tier, is_master FROM businesses WHERE id = ? LIMIT 1',
+        [handoff.business_id]
+      );
+      if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+
+      const allowed = await getTierRules(getBusinessTier(business));
+      const components = validateMinisiteLayout(layout.components, allowed);
+      if (components.length === 0) {
+        return NextResponse.json({ error: 'No components in this version are allowed for the business tier.' }, { status: 400 });
+      }
+
+      const publishedAt = new Date().toISOString();
+      const registrationPaid = body.registrationPaid === true;      // tracked, non-blocking
+      const registrationRef = String(body.registrationRef || '').slice(0, 255) || null;
+      // Admin designates this version's track. 'paid' unlocks the multi-section
+      // (sectional database) experience at /{slug}/{section}; 'free' keeps the
+      // minisite a single flat page. Stored in layout.meta (no schema change).
+      const track: VersionTrack = body.track === 'free' ? 'free' : 'paid';
+
+      // The track + payment snapshot are stamped into the layout JSON so no
+      // schema change is required.
+      const publishedLayout: MinisiteLayout = {
+        mode: layout.mode === 'untied' ? 'untied' : 'replace',
+        components,
+        site_settings: layout.site_settings || {},
+        updated_at: publishedAt,
+        updated_by: admin.id,
+      } as MinisiteLayout;
+      (publishedLayout as any).meta = {
+        track,
+        registration_paid: registrationPaid,
+        registration_ref: registrationRef,
+        replaced: 'free_baseline',
+        published_at: publishedAt,
+      };
+      const publicSlug = handoff.slug || handoff.business_id;
+
+      await transaction(async connection => {
+        const [updateResult] = await connection.execute(
+          `UPDATE minisite_vendor_handoffs
+             SET status = 'published', layout = ?, token_hash = NULL, token_expires_at = NULL
+           WHERE id = ? AND business_id = ? AND status NOT IN ('published','expired')`,
+          [JSON.stringify(publishedLayout), handoffId, handoff.business_id]
+        );
+        if (!(updateResult as { affectedRows?: number }).affectedRows) {
+          const conflict = new Error('This version changed before it could be published.');
+          Object.assign(conflict, { status: 409 });
+          throw conflict;
+        }
+        // Recoverable archive of the superseded version (paid or free).
+        await connection.execute(
+          `UPDATE minisite_vendor_handoffs
+             SET status = 'expired', token_hash = NULL, token_expires_at = NULL
+           WHERE business_id = ? AND status = 'published' AND id <> ?`,
+          [handoff.business_id, handoffId]
+        );
+        await connection.execute(
+          `INSERT INTO website_configs (type, config) VALUES (?, ?)
+           ON DUPLICATE KEY UPDATE config = VALUES(config)`,
+          [MINISITE_LAYOUT_KEY(publicSlug), JSON.stringify(publishedLayout)]
+        );
+        await connection.execute(
+          `INSERT INTO minisite_vendor_handoff_events (handoff_id, event_type, payload, actor_id)
+           VALUES (?, 'version_published', ?, ?)`,
+          [handoffId, JSON.stringify({
+            revision: handoff.revision,
+            business_name: handoff.name,
+            track,
+            change: `${track === 'paid' ? 'PAID (sectioned)' : 'FREE (flat)'} version published; previous live version archived (recoverable)`,
+            registration_paid: registrationPaid,
+            registration_ref: registrationRef,
+            published_at: publishedAt,
+          }), admin.id]
+        );
+      });
+
+      // Only a PAID (sectioned) publication is the team-curated service itself; a
+      // FREE (flat) publication is a lightweight listing and does not promote level.
+      if (track === 'paid' && !layout?.outreach?.template_id) {
+        await applyVendorServiceLevel({
+          businessId: handoff.business_id,
+          toLevel: 'curated',
+          triggeredBy: admin.id,
+          triggerType: 'admin_promotion',
+          reason: 'Paid minisite version published (unlocked the sectional system)',
+          metadata: { handoff_id: handoffId, revision: handoff.revision, source: 'minisite_paid_published', registration_paid: registrationPaid },
+        });
+      }
+
+      invalidateCache.websiteSettings();
+      revalidatePath(`/${publicSlug}`);
+      revalidatePath('/[slug]', 'page');
+      return NextResponse.json({ success: true, status: 'published', slug: publicSlug, revision: handoff.revision, registrationPaid });
+    }
+
+    if (action === 'revert_to_free') {
+      // Un-publish the live paid version so the public page falls back to the FREE
+      // generated baseline. The paid revision is archived to 'expired' (recoverable).
+      // We must also clear the legacy website_configs mirror, otherwise the public
+      // route would keep rendering the last paid layout instead of the free baseline.
+      const handoffId = String(body.handoffId || '');
+      const handoff = await queryOne<any>(
+        'SELECT id, business_id, revision, status FROM minisite_vendor_handoffs WHERE id = ? LIMIT 1',
+        [handoffId]
+      );
+      if (!handoff) return NextResponse.json({ error: 'Version not found' }, { status: 404 });
+      if (handoff.status !== 'published') {
+        return NextResponse.json({ error: 'Only the live version can be reverted to free.' }, { status: 409 });
+      }
+      const business = await queryOne<any>('SELECT slug FROM businesses WHERE id = ? LIMIT 1', [handoff.business_id]);
+      const publicSlug = business?.slug || handoff.business_id;
+      await execute(
+        `UPDATE minisite_vendor_handoffs SET status = 'expired', token_hash = NULL, token_expires_at = NULL WHERE id = ?`,
+        [handoffId]
+      );
+      await execute('DELETE FROM website_configs WHERE type = ?', [MINISITE_LAYOUT_KEY(publicSlug)]);
+      await addEvent(handoffId, 'version_reverted_free', {
+        revision: handoff.revision,
+        change: 'live paid version archived; public view reverts to the free generated baseline',
+      }, admin.id);
+      invalidateCache.websiteSettings();
+      revalidatePath(`/${publicSlug}`);
+      revalidatePath('/[slug]', 'page');
+      return NextResponse.json({ success: true, status: 'expired', revertedTo: 'free_baseline', slug: publicSlug });
+    }
+
+    if (action === 'archive_version') {
+      // Recoverable archive of a NON-live revision => 'expired'. The live version is
+      // archived only implicitly (on republish) or explicitly via revert_to_free.
+      const handoffId = String(body.handoffId || '');
+      const handoff = await queryOne<any>('SELECT id, status FROM minisite_vendor_handoffs WHERE id = ? LIMIT 1', [handoffId]);
+      if (!handoff) return NextResponse.json({ error: 'Version not found' }, { status: 404 });
+      if (handoff.status === 'published') {
+        return NextResponse.json({ error: 'The live version is archived when you publish another or use "Revert to free".' }, { status: 409 });
+      }
+      if (handoff.status === 'expired') {
+        return NextResponse.json({ error: 'This version is already archived.' }, { status: 409 });
+      }
+      await execute(`UPDATE minisite_vendor_handoffs SET status = 'expired', token_hash = NULL, token_expires_at = NULL WHERE id = ?`, [handoffId]);
+      await addEvent(handoffId, 'version_archived', { from_status: handoff.status, to_status: 'expired' }, admin.id);
+      return NextResponse.json({ success: true, status: 'expired' });
+    }
+
+    if (action === 'restore_version') {
+      // Restore an archived ('expired') revision back to a private working draft.
+      const handoffId = String(body.handoffId || '');
+      const handoff = await queryOne<any>('SELECT id, status FROM minisite_vendor_handoffs WHERE id = ? LIMIT 1', [handoffId]);
+      if (!handoff) return NextResponse.json({ error: 'Version not found' }, { status: 404 });
+      if (handoff.status !== 'expired') {
+        return NextResponse.json({ error: 'Only an archived version can be restored.' }, { status: 409 });
+      }
+      await execute(`UPDATE minisite_vendor_handoffs SET status = 'draft' WHERE id = ?`, [handoffId]);
+      await addEvent(handoffId, 'version_restored', { from_status: handoff.status, to_status: 'draft' }, admin.id);
+      return NextResponse.json({ success: true, status: 'draft' });
     }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });

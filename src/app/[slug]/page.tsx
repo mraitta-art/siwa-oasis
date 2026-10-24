@@ -6,6 +6,7 @@ import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
+import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteSectionTabs';
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 
 interface BusinessData {
@@ -29,6 +30,7 @@ export default function CanonicalVanityPage({
   const [business, setBusiness] = useState<BusinessData | null>(null);
   const [publishedMinisite, setPublishedMinisite] = useState<{ layout: MinisiteLayout; business: BusinessContext } | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [sectionNav, setSectionNav] = useState<SectionTabItem[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -55,6 +57,7 @@ export default function CanonicalVanityPage({
 
         if (resMinisite?.ok) {
           const published = await resMinisite.json();
+          if (Array.isArray(published.sectionNav)) setSectionNav(published.sectionNav);
           if (published.layout && published.business) {
             setPublishedMinisite(published);
           }
@@ -101,12 +104,16 @@ export default function CanonicalVanityPage({
   }
 
   if (publishedMinisite) {
+    const homeSlug = publishedMinisite.business?.slug || slug;
     return (
-      <MinisiteBuilderRenderer
-        layout={publishedMinisite.layout}
-        business={publishedMinisite.business}
-        showQRCode
-      />
+      <>
+        <MinisiteSectionTabs slug={homeSlug} items={sectionNav} />
+        <MinisiteBuilderRenderer
+          layout={publishedMinisite.layout}
+          business={publishedMinisite.business}
+          showQRCode
+        />
+      </>
     );
   }
 
@@ -128,6 +135,8 @@ export default function CanonicalVanityPage({
         color: '#0F172A',
       }}>
         <MarketplaceHeader title={business.name} accentColor="#D4AF37" />
+        <MinisiteSectionTabs slug={business.slug} items={sectionNav} />
+        <MinisiteSectionTabs slug={business.slug} items={sectionNav} />
 
         {/* Hero Banner */}
         <section style={{

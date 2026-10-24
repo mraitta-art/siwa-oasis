@@ -13,6 +13,40 @@ import { LangProvider, useLang } from '@/context/LangContext';
    ───────────────────────────────────────────────────────── */
 const NAV_GROUPS = [
   {
+    id: 'vendor_acquisition',
+    title: 'VENDOR ACQUISITION (BizDev Stage)',
+    subtitle: 'Hunt → Build → Pitch → Follow-up → Decide — one pipeline',
+    icon: 'fa-user-plus',
+    accent: '#d4af37',
+    collapsible: true,
+    defaultCollapsed: false,
+    items: [
+      { name: 'BizDev Overview', path: '/jana/vendor-acquisition', icon: 'fa-user-plus', exact: true, badge: 'HOME' },
+      { name: 'Pipeline Board (Review · Publish)', path: '/jana/minisite-handoffs', icon: 'fa-diagram-project', badge: 'CRM' },
+      {
+        name: 'Build Studio',
+        path: '/jana/minisite-builder',
+        icon: 'fa-store',
+        children: [
+          { name: 'Build Home & Sections', path: '/jana/minisite-builder', icon: 'fa-house-chimney' },
+          { name: 'Minisite Carousels', path: '/jana/hero-carousel?targetScope=minisite', icon: 'fa-images' },
+          { name: 'Typology Templates', path: '/jana/page-builder/templates', icon: 'fa-layer-group' },
+        ]
+      },
+      {
+        name: 'Outreach & Pitch',
+        path: '/jana/outreach',
+        icon: 'fa-paper-plane',
+        children: [
+          { name: 'Template Outreach (L1)', path: '/jana/outreach', icon: 'fa-envelope-open-text' },
+          { name: 'WhatsApp Outreach', path: '/jana/whatsapp-outreach', icon: 'fa-whatsapp' },
+        ]
+      },
+      { name: 'Approval Packages (L2)', path: '/jana/approval-packages', icon: 'fa-clipboard-check' },
+      { name: 'CRM Contacts & Follow-up', path: '/jana/crm', icon: 'fa-address-book' },
+    ]
+  },
+  {
     id: 'basics',
     title: 'FOUNDATION & INITIALIZATION',
     subtitle: 'Define data schema, sections, components & rules',
@@ -119,10 +153,6 @@ const NAV_GROUPS = [
       { name: 'Benefits', path: '/jana/benefits', icon: 'fa-gift' },
       { name: 'Auctions', path: '/jana/auctions', icon: 'fa-gavel', badge: 'NEW' },
       { name: 'Dispatch Engine', path: '/jana/dispatch', icon: 'fa-paper-plane' },
-      { name: 'Vendor Acquisition Outreach (WhatsApp)', path: '/jana/whatsapp-outreach', icon: 'fa-paper-plane', badge: 'OUTREACH' },
-      { name: 'Template Outreach (3-Level System)', path: '/jana/outreach', icon: 'fa-envelope-open-text', badge: 'LEVEL 1' },
-      { name: 'Approval Packages (3-Level System)', path: '/jana/approval-packages', icon: 'fa-clipboard-check', badge: 'LEVEL 2' },
-      { name: 'CRM Contacts & Groups', path: '/jana/crm', icon: 'fa-address-book', badge: 'CRM' },
     ]
   },
   {
@@ -146,20 +176,7 @@ const NAV_GROUPS = [
           { name: 'Global Platform Carousel', path: '/jana/hero-carousel?targetScope=main', icon: 'fa-images' },
         ]
       },
-      {
-        name: 'Minisite Builder & Studio',
-        path: '/jana/minisite-builder',
-        icon: 'fa-store',
-        badge: 'NEW',
-        children: [
-          { name: 'Minisite Builder Hub', path: '/jana/minisite-builder', icon: 'fa-store' },
-          { name: 'Review, WhatsApp & Publish', path: '/jana/minisite-handoffs', icon: 'fa-handshake' },
-          { name: 'Typology Templates', path: '/jana/page-builder/templates', icon: 'fa-layer-group' },
-          { name: 'Forms & Sections', path: '/jana/business-forms', icon: 'fa-file-signature' },
-          { name: 'Business Content & CMS', path: '/jana/content', icon: 'fa-photo-film' },
-          { name: 'Minisite Dynamic Carousels', path: '/jana/hero-carousel?targetScope=minisite', icon: 'fa-images' },
-        ]
-      },
+      // Minisite workflow consolidated into the VENDOR ACQUISITION (BizDev Stage) tab
       {
         name: 'Blog Suite',
         path: '/jana/blog',
@@ -177,7 +194,7 @@ const NAV_GROUPS = [
         icon: 'fa-search',
         children: [
           { name: 'Search Pages', path: '/jana/search-pages', icon: 'fa-filter-list' },
-          { name: 'Search & Compare', path: '/jana/search-compare', icon: 'fa-sliders' },
+          { name: 'Search & Compare', path: '/compare', icon: 'fa-sliders' },
         ]
       },
       { name: 'Responsive Preview', path: '/jana/mobile', icon: 'fa-mobile-alt' },
@@ -192,7 +209,7 @@ const NAV_GROUPS = [
     collapsible: true,
     defaultCollapsed: false,
     items: [
-      { name: 'Operations Dashboard', path: '/admin/analytics', icon: 'fa-gauge-high', badge: 'OPS' },
+      { name: 'Operations Dashboard', path: '/jana', icon: 'fa-gauge-high', badge: 'OPS', exact: true },
       { name: 'Visitor Analytics', path: '/jana/analytics', icon: 'fa-chart-area', badge: 'LIVE' },
       { name: 'Vendor Analytics', path: '/admin/analytics/vendor-performance', icon: 'fa-chart-simple' },
       { name: 'Investment Opportunities', path: '/admin/investment-opportunities', icon: 'fa-hand-holding-dollar' },
@@ -300,6 +317,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // Contextual guidance based on current page
   const getPageGuide = () => {
     if (pathname === '/jana') return { title: 'Dashboard', tip: 'Overview of your marketplace ecosystem.' };
+    if (pathname === '/jana/vendor-acquisition') return { title: 'Vendor Acquisition — BizDev Stage', tip: 'Hunt → Build → Pitch → Follow-up → Decide. One serialized pipeline for prospecting vendors.' };
     if (pathname === '/jana/journey-commerce') return { title: 'Journey & Commerce Center', tip: 'Private workspace for visitor journeys, business products, approvals, and dispatch.' };
     // Foundation
     if (pathname.includes('/governance')) return { title: 'Blueprint Architect', tip: 'Guided blueprint flow: Identity, Modules, Fields, Governance.' };

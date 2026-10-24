@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db';
 import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
+import { resolveSectionNav } from '@/lib/vanity-section-nav';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,9 +95,13 @@ export async function GET(
       site_settings: layout?.site_settings || {},
     };
 
+    // Section "tabs" (cases) the minisite can offer — populated sections only.
+    const sectionNav = await resolveSectionNav(business);
+
     return NextResponse.json({
       layout: publicLayout,
       layoutSource: hasCustomLayout ? 'published' : 'generated',
+      sectionNav,
       business: {
         id: business.id,
         slug: business.slug || business.id,

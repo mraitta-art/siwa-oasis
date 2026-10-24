@@ -184,6 +184,12 @@ export default async function VanitySectionPage({
     const user = await getCurrentUser().catch(() => null);
     const isAdmin = user?.role === 'admin' || (user as any)?.is_admin === true;
 
+    // Sectional "case" pages are open to every minisite (free and paid).
+    // Per-section feature access is still enforced downstream via lockedSections
+    // (section.required_tier vs the business tier) and the approval/visibility
+    // filters — so free vendors can navigate case-to-case, but tier-gated
+    // sections render as locked rather than redirecting away.
+
     // Fetch sections directly from DB by traversing the typology hierarchy
     let currentTypeId: string | null = biz.type_id;
     const collectedSectionIds = new Set<string>();

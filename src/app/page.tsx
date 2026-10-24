@@ -15,6 +15,7 @@ import Link from 'next/link';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MarketplaceHeader, { type NavLink } from '@/components/MarketplaceHeader';
 import { getWebsiteTemplate } from '@/lib/cache';
+import { optimizeImageUrlsDeep } from '@/lib/image-url';
 
 // ISR: serve cached page for 120 seconds, then regenerate in background
 // Significantly reduces Vercel Serverless Function GB-Hours and database queries
@@ -173,12 +174,16 @@ export default async function Home() {
   // Fetch from the cached layer (in-memory TTL cache + React cache deduplication)
   const config = await getWebsiteTemplate('main');
 
-  const settings: SiteSettings | null = config?.site_settings || null;
+  // Render-time delivery optimisation: Cloudinary URLs pick up f_auto/q_auto/w_1600
+  // here, so stored content and the admin editors keep the original URL.
+  const template = optimizeImageUrlsDeep(config);
+
+  const settings: SiteSettings | null = template?.site_settings || null;
 
   const rawSaved = [
-    ...(config?.header_components || []),
-    ...(config?.body_components || []),
-    ...(config?.footer_components || []),
+    ...(template?.header_components || []),
+    ...(template?.body_components || []),
+    ...(template?.footer_components || []),
   ];
 
   const layout: LayoutSection[] = rawSaved;

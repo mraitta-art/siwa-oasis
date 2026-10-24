@@ -55,12 +55,17 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
 /** Set session cookie */
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
+  // Honor COOKIE_DOMAIN (e.g. .siwify.com in production) so the session is
+  // shared across the apex and *.siwify.com minisite subdomains — mirrors the
+  // login route. When unset (local dev) it stays host-only on localhost.
+  const cookieDomain = process.env.COOKIE_DOMAIN?.trim();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   });
 }
 

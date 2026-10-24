@@ -13,6 +13,7 @@ import {
   MinisiteLayoutComponent,
 } from '@/lib/minisite-governance-client';
 import { ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT } from '@/lib/minisite-admin-publication';
+import VersionsPanel from './VersionsPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -1928,6 +1929,15 @@ function MinisiteBuilderStudioContent() {
           </button>
         </div>
       </header>
+
+      {businessInfo?.id && (
+        <VersionsPanel
+          businessId={String(businessInfo.id)}
+          businessName={businessInfo?.name}
+          activeHandoffId={handoffId}
+          lang={lang}
+        />
+      )}
 
       <section style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem', padding: '0.9rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#fff' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
