@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import VendorOfferingStoryStudioModal from '@/components/VendorOfferingStoryStudioModal';
+import VendorBrandLinksCard from '@/components/VendorBrandLinksCard';
+import VendorAirbnbKitCard from '@/components/VendorAirbnbKitCard';
+import VendorTrialCard from '@/components/VendorTrialCard';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface BusinessData {
@@ -656,6 +659,12 @@ export default function VendorDashboardPage() {
             </div>
           )}
         </div>
+
+        <VendorTrialCard />
+
+        <VendorBrandLinksCard />
+
+        <VendorAirbnbKitCard />
 
         {/* ─── Hero ─── */}
         <div className="vd-hero">

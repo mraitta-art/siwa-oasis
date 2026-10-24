@@ -12,8 +12,11 @@ import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteLocationMap from '@/components/MinisiteLocationMap';
 import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
 import MinisiteContributions from '@/components/MinisiteContributions';
+import MinisiteGoogleReviews from '@/components/MinisiteGoogleReviews';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
+import { BRAND_MARK_URL } from '@/lib/brand-assets';
+import { consentAllows } from '@/lib/vendor-consents';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -300,6 +303,21 @@ export default function VanityBusinessClient({
     } catch { /* ignore */ }
   }, [slug, initialData?.id]);
 
+  // Mutual-visibility evidence: a click arriving from a social app proves the
+  // vendor published the minisite link in that profile. Fire-and-forget.
+  useEffect(() => {
+    if (isMasterTemplate || !slug) return;
+    const referrer = document.referrer || '';
+    const utm = new URLSearchParams(window.location.search).get('utm_source') || '';
+    if (!/instagram|instagr\.am|facebook|fb\.me|tiktok/i.test(`${referrer} ${utm}`)) return;
+    fetch('/api/pledge/referral', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, referrer, utmSource: utm }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [slug, isMasterTemplate]);
+
   // Fetch live marketplace packages, tours, and discounts for this business
   useEffect(() => {
     if (initialData?.id) {
@@ -473,8 +491,17 @@ export default function VanityBusinessClient({
   const dynamicTiktok = identity.tiktok_handle || data.tiktok_handle || '';
   const dynamicWechat = identity.wechat_id || data.wechat_id || '';
 
+  // Consent-gated public surfaces. Legacy businesses without a ledger keep
+  // publishing whatever they already had; see consentAllows().
+  const showSocialLinks = consentAllows(data.consents, 'social_links')
+    && Boolean(identity.instagram_handle || identity.facebook_link || identity.tiktok_handle || identity.wechat_id);
+  const googlePlace = consentAllows(data.consents, 'google_place_data')
+    && data.google_place && typeof data.google_place === 'object'
+    ? data.google_place
+    : null;
+
   const platformName = liveSettings?.site_name || siteSettings?.site_name || 'SiWiFy.com';
-  const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || '';
+  const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || BRAND_MARK_URL;
 
   // Filter out hero_carousel from template components: AutomatedMinisiteHero handles the business-specific hero
   const serializedTemplateComponents = (templatePlan?.components || []).filter(c => c.type !== 'hero_carousel');
@@ -1911,7 +1938,7 @@ export default function VanityBusinessClient({
                   </div>
 
                   {/* 🌍 SOCIAL CONNECT */}
-                  {(identity.instagram_handle || identity.facebook_link || identity.tiktok_handle || identity.wechat_id) && (
+                  {showSocialLinks && (
                     <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #f1f5f9' }}>
                       <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '2px', marginBottom: '1.5rem' }}>SOCIAL CONNECT</div>
                       <div style={{ display: 'flex', gap: '1rem' }}>
@@ -1938,6 +1965,8 @@ export default function VanityBusinessClient({
                       </div>
                     </div>
                   )}
+
+                  <MinisiteGoogleReviews place={googlePlace} lang={minisiteLang === 'ar' ? 'ar' : 'en'} variant="sidebar" />
 
                   <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '12px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2223,7 +2252,7 @@ export default function VanityBusinessClient({
                 </div>
 
                 {/* Social Connect */}
-                {(identity.instagram_handle || identity.facebook_link || identity.tiktok_handle || identity.wechat_id) && (
+                {showSocialLinks && (
                   <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                       {identity.instagram_handle && (
@@ -2249,6 +2278,8 @@ export default function VanityBusinessClient({
                     </div>
                   </div>
                 )}
+
+                <MinisiteGoogleReviews place={googlePlace} lang={minisiteLang === 'ar' ? 'ar' : 'en'} variant="inline" />
               </div>
             </div>
 

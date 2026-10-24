@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import BrandLoader from '@/components/BrandLoader';
 
 /* ─── Types ── */
 interface Section {
@@ -345,9 +346,15 @@ export default function VendorOnboardingPage() {
                   onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files); }}
                   onClick={() => fileRef.current?.click()}
                 >
-                  <div className="text-4xl mb-3">{uploading ? '⏳' : '📸'}</div>
-                  <h3 className="font-extrabold text-slate-700 mb-1">{uploading ? 'Uploading...' : 'Drag & Drop Photos Here'}</h3>
-                  <p className="text-sm text-slate-400 font-semibold">or click to browse</p>
+                  {uploading ? (
+                    <BrandLoader size={64} label="Uploading photos" sublabel="Slow connection? Keep this page open" />
+                  ) : (
+                    <>
+                      <div className="text-4xl mb-3">📸</div>
+                      <h3 className="font-extrabold text-slate-700 mb-1">Drag & Drop Photos Here</h3>
+                      <p className="text-sm text-slate-400 font-semibold">or click to browse</p>
+                    </>
+                  )}
                   <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleUpload(e.target.files)} />
                 </div>
 

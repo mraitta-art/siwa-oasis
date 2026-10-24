@@ -43,6 +43,8 @@ const NAV_GROUPS = [
         ]
       },
       { name: 'Approval Packages (L2)', path: '/jana/approval-packages', icon: 'fa-clipboard-check' },
+      { name: 'Growth Playbook & Signals', path: '/jana/growth', icon: 'fa-chart-line', badge: 'NEW' },
+      { name: 'Prospect Intake (name + phone)', path: '/jana/prospects', icon: 'fa-address-card', badge: 'INTAKE' },
       { name: 'CRM Contacts & Follow-up', path: '/jana/crm', icon: 'fa-address-book' },
     ]
   },

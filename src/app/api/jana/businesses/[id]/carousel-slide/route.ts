@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
 import { resolveSlideQuota } from '@/lib/slide-quota';
+import { evaluateVendorTrial, readVendorTrial, resolveTrialQuota } from '@/lib/vendor-trial';
+
+function parseJson(value: unknown): Record<string, any> {
+  if (typeof value !== 'string') return (value as Record<string, any>) || {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Vendor Minisite Social Carousel Slide Appender
@@ -73,7 +83,7 @@ export async function POST(
 
     // Governance rule: tier maxSlides quota must be respected on append too.
     const tierRows = await query<any>(
-      `SELECT b.subscription_tier, t.name as tier_name, t.features as tier_features
+      `SELECT b.subscription_tier, b.custom_data, t.name as tier_name, t.features as tier_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON t.id = b.subscription_tier
         WHERE b.id = ? LIMIT 1`,
@@ -96,6 +106,29 @@ export async function POST(
           quota,
           currentCount: existingSlides.length,
         }, { status: 409 });
+      }
+
+      // Free period: one slide may be tried, and nothing new once it has ended.
+      // Existing slides stay where they are — only the append is refused.
+      const trial = evaluateVendorTrial(readVendorTrial(parseJson(tierRows[0].custom_data)));
+      if (trial.status !== 'none') {
+        if (!trial.can_edit) {
+          return NextResponse.json({
+            error: 'Your free period has ended, so new carousel slides are paused. Slides you already have stay visible.',
+            code: 'TRIAL_ENDED',
+          }, { status: 409 });
+        }
+        const trialSlides = resolveTrialQuota(features).slides;
+        if (trialSlides != null && existingSlides.length >= trialSlides) {
+          return NextResponse.json({
+            error: trialSlides === 1
+              ? 'Your free period includes one carousel slide. Delete it to try another — or keep it and let photos carry the rest of the page.'
+              : `Your free period includes ${trialSlides} carousel slides. Delete one to add another.`,
+            code: 'SLIDE_TRIAL_ALLOWANCE',
+            limit: trialSlides,
+            currentCount: existingSlides.length,
+          }, { status: 409 });
+        }
       }
     }
 

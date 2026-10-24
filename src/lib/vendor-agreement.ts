@@ -1,5 +1,10 @@
-export const VENDOR_AGREEMENT_VERSION = '2026-10-08-v1';
-export const VENDOR_AGREEMENT_EFFECTIVE_DATE = '2026-10-08';
+export const VENDOR_AGREEMENT_VERSION = '2026-10-24-v1';
+export const VENDOR_AGREEMENT_EFFECTIVE_DATE = '2026-10-24';
+
+export const VENDOR_PLEDGE_ACKNOWLEDGMENT = {
+  en: 'The free plan is provided in exchange for one visible link to my SiWiFy minisite from a profile I control — preferably the website field of my Google Maps business profile, and my Instagram, Facebook or TikTok profile. SiWiFy prepares the link and text for me, never asks for my passwords, and never posts on my behalf. If the link is not found within 30 days, my minisite stays online but Featured placement, priority ranking and the verified-partner badge pause until a link is detected again.',
+  ar: 'تُقدَّم الخطة المجانية مقابل رابط ظاهر واحد لموقعي المصغر على SiWiFy من حساب أتحكم فيه، ويفضَّل حقل الموقع الإلكتروني في ملف نشاطي على خرائط جوجل، وحسابي على إنستغرام أو فيسبوك أو تيك توك. تُعِدّ SiWiFy الرابط والنص لي، ولا تطلب كلمات المرور ولا تنشر نيابة عني. وإذا لم يُعثر على الرابط خلال 30 يومًا، يبقى موقعي المصغر متاحًا، وتتوقف ميزة الظهور المميز والأولوية في الترتيب وشارة الشريك الموثّق حتى يُكتشف رابط مرة أخرى.',
+} as const;
 
 export const VENDOR_MINISITE_RESPONSIBILITY_ACKNOWLEDGMENT = {
   en: 'I confirm that I am authorized to manage this business minisite. The business is responsible for managing its information and keeping it accurate, and owns or has the required rights to the business data and content displayed here.',
@@ -42,6 +47,12 @@ export const VENDOR_AGREEMENT_SECTIONS = [
     titleAr: '٦. مراجعة الحساب وإنهاء المشاركة',
     body: 'SiWiFy may pause publication or restrict an account while reviewing a complaint, verification issue, security concern, or suspected policy breach. You may request correction or removal of your listing through the vendor team. Ending participation does not cancel obligations already owed to customers or rights and duties that must continue by law.',
     bodyAr: 'يجوز لـ SiWiFy إيقاف النشر مؤقتًا أو تقييد الحساب أثناء مراجعة شكوى أو مشكلة تحقق أو مسألة أمنية أو اشتباه في مخالفة السياسات. ويمكنك طلب تصحيح ملفك أو إزالته عبر فريق البائعين. ولا ينهي إيقاف المشاركة الالتزامات القائمة تجاه العملاء أو الحقوق والواجبات التي يستمر سريانها بموجب القانون.',
+  },
+  {
+    title: '7. Mutual visibility pledge (free plan)',
+    titleAr: '٧. تعهد الظهور المتبادل (الخطة المجانية)',
+    body: 'The free plan is provided in exchange for one visible link to your SiWiFy minisite from a profile you control — preferably the website field of your Google Maps business profile, and your Instagram, Facebook or TikTok profile. SiWiFy prepares the exact link and text and links you straight to the platform edit screen; it never asks for your passwords and never posts on your behalf. Where a platform lets SiWiFy read the value back, the link is verified automatically; otherwise a visit that reaches your minisite from that profile counts as evidence. You have 30 days to publish the link. If no link is found after that period, your minisite remains online and your content is untouched, but discovery benefits (Featured placement, priority ranking and the verified-partner badge) pause until a link is detected again. Booking platforms such as Booking.com, Airbnb or Expedia are excluded because their listing rules do not permit external links.',
+    bodyAr: 'تُقدَّم الخطة المجانية مقابل رابط ظاهر واحد لموقعك المصغر على SiWiFy من حساب تتحكم فيه، ويفضَّل حقل الموقع الإلكتروني في ملف نشاطك على خرائط جوجل، وحسابك على إنستغرام أو فيسبوك أو تيك توك. تُعِدّ SiWiFy الرابط والنص بدقة وتنقلك مباشرة إلى شاشة التعديل في المنصة، ولا تطلب كلمات المرور ولا تنشر نيابة عنك. وحيث تتيح المنصة لـ SiWiFy قراءة القيمة، يُتحقق من الرابط تلقائيًا، وفي غير ذلك تُعدّ الزيارة التي تصل إلى موقعك المصغر من ذلك الحساب دليلًا على وجود الرابط. لديك 30 يومًا لنشر الرابط. وإذا لم يُعثر على رابط بعد تلك المدة، يبقى موقعك المصغر متاحًا ولا يُمس محتواك، لكن مزايا الاكتشاف (الظهور المميز والأولوية في الترتيب وشارة الشريك الموثّق) تتوقف حتى يُكتشف رابط مرة أخرى. وتُستثنى منصات الحجز مثل Booking.com وAirbnb وExpedia لأن قواعد ملفاتها لا تسمح بالروابط الخارجية.',
   },
 ] as const;
 

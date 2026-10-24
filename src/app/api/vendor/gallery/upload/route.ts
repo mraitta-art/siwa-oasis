@@ -5,6 +5,44 @@ import crypto from 'crypto';
 
 export const config = { api: { bodyParser: false } };
 
+/**
+ * "Try one" gate for video: the free period includes a single uploaded video,
+ * so a second one is refused before anything is uploaded or billed. YouTube
+ * embeds and photos stay open, which is what most vendors actually need.
+ * Fails open — a lookup problem must never block an upload.
+ */
+async function videoAllowance(user: any): Promise<{ allowed: boolean; message?: string }> {
+  try {
+    const tierRow = await queryOne<any>(
+      `SELECT t.features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON t.id = b.subscription_tier
+        WHERE b.id = ? LIMIT 1`,
+      [user.businessId]
+    );
+    const features = typeof tierRow?.features === 'string' ? JSON.parse(tierRow.features) : tierRow?.features || {};
+    const limit = Number(features?.max_videos);
+    if (!Number.isFinite(limit) || limit <= 0) return { allowed: true };
+
+    const countRow = await queryOne<any>(
+      `SELECT COUNT(*) AS total FROM vendor_gallery
+        WHERE vendor_id IN (SELECT id FROM profiles WHERE business_id = ?)
+          AND mime_type LIKE 'video/%'`,
+      [user.businessId]
+    );
+    if ((Number(countRow?.total) || 0) < limit) return { allowed: true };
+
+    return {
+      allowed: false,
+      message: limit === 1
+        ? 'Your free period includes one uploaded video. Delete it to try another, or use a YouTube embed instead — those are available too.'
+        : `Your plan includes ${limit} uploaded videos. Delete one to add another.`,
+    };
+  } catch {
+    return { allowed: true };
+  }
+}
+
 // Auto-run column migration once
 let columnsMigrated = false;
 async function ensureColumns() {
@@ -69,6 +107,13 @@ export async function POST(request: Request) {
         { error: `File too large. ${resourceType === 'video' ? 'Video' : 'Image'} limit is ${limitMB}MB on your current plan. Upgrade to upload larger files.` },
         { status: 413 }
       );
+    }
+
+    if (resourceType === 'video') {
+      const gate = await videoAllowance(user);
+      if (!gate.allowed) {
+        return Response.json({ error: gate.message, code: 'VIDEO_ALLOWANCE_EXCEEDED' }, { status: 409 });
+      }
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());

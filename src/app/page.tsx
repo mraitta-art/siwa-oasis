@@ -16,6 +16,7 @@ import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MarketplaceHeader, { type NavLink } from '@/components/MarketplaceHeader';
 import { getWebsiteTemplate } from '@/lib/cache';
 import { optimizeImageUrlsDeep } from '@/lib/image-url';
+import { BRAND_MARK_URL, BRAND_LOCKUP_URL } from '@/lib/brand-assets';
 
 // ISR: serve cached page for 120 seconds, then regenerate in background
 // Significantly reduces Vercel Serverless Function GB-Hours and database queries
@@ -216,8 +217,8 @@ export default async function Home() {
           brandIcon={settings?.header_brand_icon === undefined ? 'fa-sun' : settings.header_brand_icon}
           backgroundColor={settings?.header_background_color || 'rgba(8, 14, 10, 0.94)'}
           textColor={settings?.header_text_color || 'rgba(248, 250, 252, 0.88)'}
-          brandImage={settings?.logo_url || ''}
-          logoHeight={settings?.logo_height || 32}
+          brandImage={settings?.logo_url || BRAND_MARK_URL}
+          logoHeight={settings?.logo_height || 34}
         />
       )}
 
@@ -236,11 +237,16 @@ export default async function Home() {
       {settings?.show_footer !== false && <footer style={{ borderTop: '1px solid rgba(15, 23, 42, 0.08)', padding: '4rem 1.25rem 3rem', background: settings?.footer_background_color || '#ffffff', color: settings?.footer_text_color || '#0f172a' }}>
          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
             <div>
-               {settings?.logo_url ? (
-                 <img src={settings.logo_url} alt={settings.site_name} style={{ height: `${(settings.logo_height || 40) * 1.2}px`, marginBottom: '1.25rem', objectFit: 'contain' }} />
-               ) : (
-                 <div style={{ fontWeight: 900, letterSpacing: '6px', fontSize: '1.1rem', color: settings?.footer_text_color || '#0f172a', marginBottom: '1.25rem' }}>{settings?.header_brand_label ?? 'SIWIFY'}</div>
-               )}
+               <img
+                 src={settings?.logo_url || BRAND_LOCKUP_URL}
+                 alt={settings?.site_name || 'SiWiFy.com'}
+                 style={{
+                   height: settings?.logo_url ? `${(settings.logo_height || 40) * 1.2}px` : '88px',
+                   width: 'auto',
+                   marginBottom: '1.25rem',
+                   objectFit: 'contain',
+                 }}
+               />
                {footerTagline && <p style={{ color: settings?.footer_muted_color || '#475569', fontSize: '0.82rem', maxWidth: '300px', lineHeight: 1.8 }}>{footerTagline}</p>}
             </div>
 

@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { BRAND_SECTORS, BRAND_SECTOR_HERO, type BrandSectorSlug } from '@/lib/brand-sectors';
+import BrandLoader from '@/components/BrandLoader';
+import { BRAND_MARK_URL } from '@/lib/brand-assets';
 
 interface PaletteItem {
   zone: string;
@@ -223,6 +225,7 @@ export default function MultiPageSiteBuilder() {
   const [slots, setSlots]               = useState<Slot[]>([]);
   const [activeZone, setActiveZone]     = useState<Zone>('body');
   const [saving, setSaving]             = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [pageLoading, setPageLoading]   = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [dynamicComponents, setDynamic] = useState<PaletteItem[]>([]);
@@ -612,13 +615,17 @@ export default function MultiPageSiteBuilder() {
   return (
     <div style={{ height: '100vh', background: '#0a0f1e', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', -apple-system, sans-serif", overflow: 'hidden' }}>
 
+      {logoUploading && <BrandLoader overlay size={92} label="Uploading logo" sublabel="Keep this tab open" />}
+
       {/* ═══════════════════════ TOP BAR ══════════════════════════════════ */}
       <div style={{ background: 'linear-gradient(90deg,#020617,#0f172a)', color: '#fff', padding: isCompact ? '0 0.5rem' : '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: isCompact ? '0.35rem' : '1rem', borderBottom: '1px solid rgba(212,175,55,0.12)', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', flexShrink: 0, zIndex: 100 }}>
 
         {/* Left: brand + mode */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isCompact ? '0.4rem' : '1.25rem', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ width: isCompact ? 30 : 34, height: isCompact ? 30 : 34, background: 'linear-gradient(135deg,#D4AF37,#F5E6AD)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#1a1a2e', fontSize: '0.9rem', boxShadow: '0 0 18px rgba(212,175,55,0.4)', flexShrink: 0 }}>S</div>
+            <div style={{ width: isCompact ? 30 : 34, height: isCompact ? 30 : 34, background: '#0b1120', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 18px rgba(212,175,55,0.4)', flexShrink: 0, overflow: 'hidden' }}>
+              <img src={BRAND_MARK_URL} alt="SiWiFy" style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
+            </div>
             <div style={{ display: isCompact ? 'none' : 'block' }}>
               <div style={{ fontWeight: 900, fontSize: '0.8rem', letterSpacing: '-0.2px' }}>
                 {mode === 'TEMPLATES' ? 'MINISITE GOVERNANCE' : 'PORTAL ARCHITECT'}
@@ -703,12 +710,15 @@ export default function MultiPageSiteBuilder() {
                 ☁ Upload
                 <input type="file" hidden accept="image/*" onChange={async e=>{
                   const file=e.target.files?.[0]; if(!file) return;
-                  notify('Uploading…','info');
+                  e.target.value='';
+                  setLogoUploading(true);
                   try{
                     const fd=new FormData(); fd.append('file',file); fd.append('businessName','Platform'); fd.append('sectionName','branding');
                     const r=await fetch('/api/upload',{method:'POST',body:fd}); const d=await r.json();
                     if(d.url){setSiteSettings(s=>({...s,logo_url:d.url}));notify('✅ Logo updated');}
+                    else notify('❌ Upload failed','error');
                   }catch{notify('❌ Upload failed','error');}
+                  finally{setLogoUploading(false);}
                 }}/>
               </label>
             </Field>

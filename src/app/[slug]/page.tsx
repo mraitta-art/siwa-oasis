@@ -6,6 +6,7 @@ import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
+import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteSectionTabs';
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 
@@ -107,6 +108,7 @@ export default function CanonicalVanityPage({
     const homeSlug = publishedMinisite.business?.slug || slug;
     return (
       <>
+        <MinisiteTapTracker slug={homeSlug} />
         <MinisiteSectionTabs slug={homeSlug} items={sectionNav} />
         <MinisiteBuilderRenderer
           layout={publishedMinisite.layout}
@@ -137,6 +139,7 @@ export default function CanonicalVanityPage({
         <MarketplaceHeader title={business.name} accentColor="#D4AF37" />
         <MinisiteSectionTabs slug={business.slug} items={sectionNav} />
         <MinisiteSectionTabs slug={business.slug} items={sectionNav} />
+        <MinisiteTapTracker slug={business.slug} />
 
         {/* Hero Banner */}
         <section style={{

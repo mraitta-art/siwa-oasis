@@ -3,7 +3,8 @@
 import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import MinisiteBuilderRenderer from '@/components/MinisiteBuilderRenderer';
-import { VENDOR_AGREEMENT_SECTIONS } from '@/lib/vendor-agreement';
+import { VENDOR_AGREEMENT_SECTIONS, VENDOR_PLEDGE_ACKNOWLEDGMENT } from '@/lib/vendor-agreement';
+import { VENDOR_CONSENT_VERSION, VENDOR_OPTIONAL_CONSENTS, VENDOR_SOCIAL_FIELDS } from '@/lib/vendor-consents';
 import type { MinisiteLayout } from '@/lib/minisite-layout';
 
 interface ReviewPayload {
@@ -29,6 +30,16 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const [consents, setConsents] = useState<Record<string, boolean>>({
+    social_links: false,
+    google_place_data: false,
+  });
+  const [social, setSocial] = useState<Record<string, string>>({
+    instagram_handle: '',
+    facebook_link: '',
+    tiktok_handle: '',
+  });
+  const [googleProfileUrl, setGoogleProfileUrl] = useState('');
 
   useEffect(() => {
     if (navigator.language.toLowerCase().startsWith('ar')) setLanguage('ar');
@@ -37,6 +48,14 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Unable to load the invitation.');
         setPayload(data);
+        const customData = (data?.business?.custom_data || {}) as Record<string, any>;
+        const identity = (customData.identity || {}) as Record<string, string>;
+        setSocial({
+          instagram_handle: identity.instagram_handle || '',
+          facebook_link: identity.facebook_link || '',
+          tiktok_handle: identity.tiktok_handle || '',
+        });
+        if (typeof customData.google_profile_url === 'string') setGoogleProfileUrl(customData.google_profile_url);
       })
       .catch(cause => setError(cause.message || 'Unable to load the invitation.'));
   }, [token]);
@@ -48,7 +67,13 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
       const response = await fetch(`/api/vendor/minisite-review/${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'accept', language }),
+        body: JSON.stringify({
+          action: 'accept',
+          language,
+          consents,
+          social,
+          googleProfileUrl,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to activate your SIWIFY page.');
@@ -96,12 +121,92 @@ export default function VendorMinisiteReviewPage({ params }: { params: Promise<{
         <MinisiteBuilderRenderer layout={payload.handoff.layout} business={payload.business} />
       </section>
 
+      <section style={{ ...cardStyle, marginBottom: 20 }}>
+        <h2 style={{ marginTop: 0, fontSize: 18, color: '#0f172a' }}>
+          {isArabic ? 'روابطك وبيانات جوجل (اختياري)' : 'Your links & Google data (optional)'}
+        </h2>
+        <p style={{ marginTop: 0, color: '#475569', fontSize: 13, lineHeight: 1.7 }}>
+          {isArabic
+            ? 'هذه الإذونات منفصلة عن الاتفاقية وليست إلزامية. يمكنك منحها أو سحبها لاحقًا من لوحة التحكم.'
+            : 'These permissions are separate from the agreement and are not required. You can grant or withdraw each one later from your dashboard.'}
+        </p>
+
+        {VENDOR_OPTIONAL_CONSENTS.map(consent => (
+          <div key={consent.id} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(consents[consent.id])}
+                onChange={event => setConsents(current => ({ ...current, [consent.id]: event.target.checked }))}
+                style={{ marginTop: 3, width: 18, height: 18, accentColor: '#0f766e' }}
+              />
+              <span>
+                <strong style={{ color: '#0f172a' }}>{isArabic ? consent.titleAr : consent.title}</strong>
+                <span style={{ display: 'block', color: '#64748b', fontSize: 12, lineHeight: 1.6, marginTop: 2 }}>
+                  {isArabic ? consent.bodyAr : consent.body}
+                </span>
+              </span>
+            </label>
+
+            {consent.id === 'social_links' && consents.social_links && (
+              <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                {VENDOR_SOCIAL_FIELDS.map(field => (
+                  <label key={field.key} style={fieldLabelStyle}>
+                    {field.label}
+                    <input
+                      value={social[field.key] || ''}
+                      onChange={event => setSocial(current => ({ ...current, [field.key]: event.target.value }))}
+                      placeholder={field.placeholder}
+                      style={inputStyle}
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {consent.id === 'google_place_data' && consents.google_place_data && (
+              <label style={{ ...fieldLabelStyle, marginTop: 12 }}>
+                {isArabic ? 'رابط ملفك على خرائط جوجل' : 'Your Google Maps profile link'}
+                <input
+                  value={googleProfileUrl}
+                  onChange={event => setGoogleProfileUrl(event.target.value)}
+                  placeholder="https://maps.app.goo.gl/..."
+                  style={inputStyle}
+                />
+                <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 500 }}>
+                  {isArabic
+                    ? 'نقرأ البيانات العامة فقط (التقييم، عدد المراجعات، ساعات العمل).'
+                    : 'We read public data only (rating, review count, opening hours). Nothing is posted to your Google profile.'}
+                </span>
+              </label>
+            )}
+          </div>
+        ))}
+        <p style={{ margin: 0, color: '#94a3b8', fontSize: 11 }}>
+          {isArabic ? 'إصدار الإذن' : 'Consent version'} {VENDOR_CONSENT_VERSION}
+        </p>
+      </section>
+
       <section style={cardStyle}>
         <p style={{ marginTop: 0, color: '#334155', lineHeight: 1.7 }}>
           {isArabic
             ? 'بالضغط على «موافق وتفعيل صفحتي»، تؤكد أنك مخول بإدارة هذا النشاط، وتوافق على بيانات الصفحة المعروضة واتفاقية مشاركة البائعين في SiWiFy.'
             : 'By tapping “Accept & activate my SIWIFY page,” you confirm you are authorized to manage this business, approve the page shown above, and accept the SiWiFy Vendor Participation Agreement.'}
         </p>
+
+        <div style={{ marginBottom: 18, padding: 14, background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #0f766e', borderRadius: 10 }}>
+          <strong style={{ display: 'block', marginBottom: 6, color: '#0f172a' }}>
+            {isArabic ? 'التزام الظهور المتبادل (الخطة المجانية)' : 'Mutual visibility (free plan)'}
+          </strong>
+          <p style={{ margin: 0, color: '#475569', lineHeight: 1.65, fontSize: 13 }}>
+            {isArabic ? VENDOR_PLEDGE_ACKNOWLEDGMENT.ar : VENDOR_PLEDGE_ACKNOWLEDGMENT.en}
+          </p>
+          <p style={{ margin: '8px 0 0', color: '#0f766e', fontWeight: 700, fontSize: 12 }}>
+            {isArabic
+              ? 'لا نطلب كلمات المرور أبدًا، ولن يُحذف موقعك إذا لم يظهر الرابط.'
+              : 'We never ask for passwords, and your minisite is never deleted if the link is missing.'}
+          </p>
+        </div>
         <details style={{ marginBottom: 18 }}>
           <summary style={{ cursor: 'pointer', color: '#475569', fontWeight: 700 }}>
             {isArabic ? `عرض اتفاقية البائعين (${payload.agreementVersion})` : `View vendor agreement (${payload.agreementVersion})`}
@@ -137,3 +242,5 @@ const pageStyle: React.CSSProperties = { minHeight: '100vh', background: '#f1f5f
 const cardStyle: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,.05)' };
 const primaryButton: React.CSSProperties = { display: 'block', width: '100%', border: 0, borderRadius: 10, padding: '15px 18px', background: '#0f766e', color: '#fff', fontWeight: 900, fontSize: 16, cursor: 'pointer' };
 const linkStyle: React.CSSProperties = { color: '#0f766e', fontWeight: 700 };
+const inputStyle: React.CSSProperties = { display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, color: '#0f172a', background: '#fff' };
+const fieldLabelStyle: React.CSSProperties = { display: 'grid', gap: 2, fontSize: 12, fontWeight: 700, color: '#475569' };

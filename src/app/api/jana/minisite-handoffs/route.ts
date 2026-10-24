@@ -1,14 +1,13 @@
-import { createHash, randomBytes } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
 import { execute, query, queryOne, transaction } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
-import { getPublicAppUrl } from '@/lib/public-url';
 import { getBusinessTier, getTierRules, validateMinisiteLayout } from '@/lib/minisite-governance';
 import { MINISITE_LAYOUT_KEY, type MinisiteLayout } from '@/lib/minisite-layout';
 import { saveMinisiteDraft } from '@/lib/minisite-drafts';
 import { applyVendorServiceLevel } from '@/lib/vendor-service-levels';
+import { sendMinisiteInvitation } from '@/lib/minisite-invitation';
 import {
   ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT,
   ADMIN_MINISITE_PUBLICATION_ACKNOWLEDGMENT_VERSION,
@@ -32,13 +31,6 @@ function parseJson(value: any, fallback: any = {}) {
   } catch {
     return fallback;
   }
-}
-
-function normalizePhone(value: unknown) {
-  let digits = String(value || '').replace(/\D/g, '');
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith('01')) digits = `2${digits}`;
-  return digits;
 }
 
 async function addEvent(handoffId: string, eventType: string, payload: object, actorId?: string) {
@@ -178,111 +170,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'send_invitation') {
-      const handoffId = String(body.handoffId || '');
-      const handoff = await queryOne<any>(
-        `SELECT h.*, b.name AS business_name, b.slug AS business_slug
-         FROM minisite_vendor_handoffs h JOIN businesses b ON b.id = h.business_id WHERE h.id = ?`,
-        [handoffId]
-      );
-      if (!handoff) return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
-      if (['accepted', 'published'].includes(handoff.status)) {
-        return NextResponse.json({ error: 'This revision has already been accepted or published.' }, { status: 409 });
-      }
-
-      const phone = normalizePhone(body.vendorPhone || handoff.vendor_phone);
-      if (!phone || phone.length < 8 || phone.length > 15) {
-        return NextResponse.json({ error: 'Enter the vendor WhatsApp number in international format.' }, { status: 400 });
-      }
-      const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-      const templateName = process.env.WHATSAPP_MINISITE_REVIEW_TEMPLATE;
-      const apiVersion = process.env.WHATSAPP_API_VERSION;
-      const languageCode = process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en_US';
-      if (!accessToken || !phoneNumberId || !templateName || !apiVersion) {
-        return NextResponse.json({
-          error: 'WhatsApp Business API is not configured. Set WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_MINISITE_REVIEW_TEMPLATE, and WHATSAPP_API_VERSION.',
-        }, { status: 503 });
-      }
-
-      const token = randomBytes(32).toString('base64url');
-      const tokenHash = createHash('sha256').update(token).digest('hex');
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const reviewUrl = `${getPublicAppUrl().replace(/\/$/, '')}/vendor/minisite-review/${token}`;
-      await execute(
-        `UPDATE minisite_vendor_handoffs SET status = 'draft', vendor_phone = ?, token_hash = ?,
-           token_expires_at = ?, whatsapp_message_id = NULL, whatsapp_error = NULL
-         WHERE id = ?`,
-        [phone, tokenHash, expiresAt, handoffId]
-      );
-
-      let providerResponse: any;
       try {
-        const response = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: phone,
-            type: 'template',
-            template: {
-              name: templateName,
-              language: { code: languageCode },
-              components: [{
-                type: 'body',
-                parameters: [
-                  { type: 'text', text: String(handoff.business_name).slice(0, 255) },
-                  { type: 'text', text: reviewUrl },
-                ],
-              }],
-            },
-          }),
-          signal: AbortSignal.timeout(15000),
+        const result = await sendMinisiteInvitation({
+          handoffId: String(body.handoffId || ''),
+          vendorPhone: body.vendorPhone,
+          adminId: admin.id,
         });
-        providerResponse = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const message = providerResponse?.error?.message || `WhatsApp provider returned HTTP ${response.status}`;
-          throw new Error(message);
-        }
+        return NextResponse.json({ success: true, status: 'sent', ...result });
       } catch (error: any) {
-        await execute(
-          `UPDATE minisite_vendor_handoffs SET status = 'failed', token_hash = NULL, token_expires_at = NULL, whatsapp_error = ? WHERE id = ?`,
-          [String(error?.message || 'WhatsApp send failed').slice(0, 2000), handoffId]
-        );
-        await addEvent(handoffId, 'send_failed', { message: String(error?.message || 'WhatsApp send failed').slice(0, 500) }, admin.id);
+        if (Number.isInteger(error?.status)) {
+          return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         throw error;
       }
-
-      const messageId = providerResponse?.messages?.[0]?.id;
-      if (!messageId) throw new Error('WhatsApp accepted the request without returning a message ID.');
-      await execute(
-        `UPDATE minisite_vendor_handoffs SET status = 'sent', whatsapp_message_id = ?, whatsapp_error = NULL WHERE id = ?`,
-        [messageId, handoffId]
-      );
-      await addEvent(handoffId, 'whatsapp_sent', { message_id: messageId, recipient: phone }, admin.id);
-
-      // 3-Level Vendor System (Level 2): a team-prepared package going out to a vendor
-      // promotes the business to 'curated'. Level 1 batch-outreach handoffs carry
-      // layout.outreach.template_id and stay on 'template' until the vendor claims them.
-      const handoffLayout = parseJson(handoff.layout, {});
-      if (!handoffLayout?.outreach?.template_id) {
-        const levelChange = await applyVendorServiceLevel({
-          businessId: handoff.business_id,
-          toLevel: 'curated',
-          triggeredBy: admin.id,
-          triggerType: 'admin_promotion',
-          reason: 'Curated minisite package sent to the vendor for review',
-          metadata: { handoff_id: handoffId, revision: handoff.revision, source: 'minisite_package_sent' },
-        });
-        if (levelChange.changed) {
-          await addEvent(handoffId, 'level_curated', {
-            from_level: levelChange.fromLevel,
-            to_level: levelChange.toLevel,
-          }, admin.id);
-        }
-      }
-
-      return NextResponse.json({ success: true, status: 'sent', messageId, expiresAt: expiresAt.toISOString() });
     }
 
     if (action === 'publish_admin') {

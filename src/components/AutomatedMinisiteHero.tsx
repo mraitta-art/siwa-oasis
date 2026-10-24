@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 import { resolveSectionId } from '@/lib/section-registry';
+import { BRAND_MARK_URL } from '@/lib/brand-assets';
 
 interface AutomatedMinisiteHeroProps {
   businessId?: string;
@@ -295,7 +296,7 @@ export default function AutomatedMinisiteHero({
   const visual = customData.visual_dna || {};
 
   const brandName = settings.site_name || 'SiWiFy.com';
-  const brandLogo = settings.logo_url;
+  const brandLogo = settings.logo_url || BRAND_MARK_URL;
   const watermarkText = settings.watermark_text || brandName;
   const showPlatformAnchor = settings.show_platform_anchor !== false;
   const showWatermark = !tierFeatures.remove_watermark && settings.show_watermark !== false;

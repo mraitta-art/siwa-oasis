@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
+import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
@@ -471,20 +472,23 @@ export default async function VanitySectionPage({
     });
 
     return (
-      <VanityBusinessClient 
-        slug={slug} 
-        initialData={biz} 
-        sections={sections} 
-        sectionLabels={finalLabels} 
-        sectionLabelsAr={finalLabelsAr} 
-        sectionComponents={sectionComponents} 
-        templatePlan={templatePlan} 
-        isMasterTemplate={biz.is_master === 1} 
-        isTrusted={biz.is_trusted === 1} 
-        siteSettings={siteSettings}
-        initialActiveTab={section}
-        lockedSections={lockedSections}
-      />
+      <>
+        <MinisiteTapTracker slug={slug} />
+        <VanityBusinessClient 
+          slug={slug} 
+          initialData={biz} 
+          sections={sections} 
+          sectionLabels={finalLabels} 
+          sectionLabelsAr={finalLabelsAr} 
+          sectionComponents={sectionComponents} 
+          templatePlan={templatePlan} 
+          isMasterTemplate={biz.is_master === 1} 
+          isTrusted={biz.is_trusted === 1} 
+          siteSettings={siteSettings}
+          initialActiveTab={section}
+          lockedSections={lockedSections}
+        />
+      </>
     );
   } catch (e: any) {
     console.error('[MINISITE SECTION ERROR]', slug, section, e?.message);

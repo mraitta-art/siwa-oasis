@@ -3,6 +3,39 @@ import { query, execute, normalizeCustomData } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { preserveVendorContact } from '@/lib/vendor-contact-lock';
 import { filterCoreSectionsForBusinessType, resolveSectionId } from '@/lib/section-registry';
+import { countYoutubeLinks } from '@/lib/vendor-trial';
+
+/**
+ * "Try one" gate for YouTube: the free period includes a single embed. Counted
+ * across the whole profile, so deleting the old link is how you try another.
+ * Fails open — a lookup problem must never block a save.
+ */
+async function youtubeAllowance(businessId: string | null, merged: Record<string, any>) {
+  if (!businessId) return { ok: true as const };
+  try {
+    const rows = (await query(
+      `SELECT t.features
+         FROM businesses b
+         LEFT JOIN subscription_tiers t ON t.id = b.subscription_tier
+        WHERE b.id = ? LIMIT 1`,
+      [businessId]
+    )) as any[];
+    const raw = rows[0]?.features;
+    const features = typeof raw === 'string' ? JSON.parse(raw) : raw || {};
+    const limit = Number(features?.max_youtube);
+    if (!Number.isFinite(limit) || limit <= 0) return { ok: true as const };
+    if (countYoutubeLinks(merged) <= limit) return { ok: true as const };
+
+    return {
+      ok: false as const,
+      message: limit === 1
+        ? 'Your free period includes one YouTube video. Remove the extra link to save — or delete the current one if you want to try a different video.'
+        : `Your plan includes ${limit} YouTube videos. Remove the extra links to save.`,
+    };
+  } catch {
+    return { ok: true as const };
+  }
+}
 
 /**
  * VENDOR STORYTELLER API
@@ -213,6 +246,14 @@ export async function POST(req: NextRequest) {
 
     // Merge new section field data
     const merged = { ...currentData, ...(data || {}) };
+
+    const youtubeGate = await youtubeAllowance(user.businessId, merged);
+    if (!youtubeGate.ok) {
+      return NextResponse.json(
+        { error: youtubeGate.message, code: 'YOUTUBE_ALLOWANCE_EXCEEDED' },
+        { status: 409 }
+      );
+    }
 
     // Any vendor edit requires a fresh admin review before it is public again.
     if (data?.['investment-opportunity']) {

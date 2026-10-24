@@ -12,6 +12,15 @@ import {
   VENDOR_AGREEMENT_VERSION,
   type VendorAgreementLanguage,
 } from '@/lib/vendor-agreement';
+import {
+  VENDOR_CONSENT_VERSION,
+  VENDOR_OPTIONAL_CONSENTS,
+  buildConsentLedger,
+  extractGooglePlaceId,
+  sanitizeSocialInput,
+} from '@/lib/vendor-consents';
+import { VENDOR_PLEDGE_VERSION, buildVendorPledge } from '@/lib/vendor-pledge';
+import { buildVendorTrial, readVendorTrial, resolveTrialDays } from '@/lib/vendor-trial';
 
 function tokenDigest(token: string) {
   return createHash('sha256').update(token).digest('hex');
@@ -112,6 +121,8 @@ export async function GET(
         layout: parseJson(handoff.layout),
       },
       agreementVersion: VENDOR_AGREEMENT_VERSION,
+      consentVersion: VENDOR_CONSENT_VERSION,
+      optionalConsents: VENDOR_OPTIONAL_CONSENTS,
     });
   } catch (error: any) {
     console.error('[vendor/minisite-review GET]', error);
@@ -167,6 +178,16 @@ export async function POST(
     const agreementHash = createHash('sha256')
       .update(getVendorAgreementText(acceptedLanguage), 'utf8')
       .digest('hex');
+
+    // Optional, revocable permissions — never bundled into the agreement itself.
+    const socialInput = sanitizeSocialInput(body.social);
+    const googleProfileUrl =
+      typeof body.googleProfileUrl === 'string' ? body.googleProfileUrl.trim().slice(0, 500) : '';
+    const consentLedger = buildConsentLedger(
+      body.consents && typeof body.consents === 'object' ? body.consents : undefined,
+      'minisite_acceptance',
+      acceptedAt
+    );
     const phone = String(handoff.vendor_phone || '').replace(/\D/g, '');
     if (phone.length < 8 || phone.length > 15) {
       return NextResponse.json({ error: 'The invitation has no valid WhatsApp contact. Please contact SiWiFy.' }, { status: 409 });
@@ -276,6 +297,22 @@ export async function POST(
         subscriptionTier: profile.subscription_tier || lockedBusiness.subscription_tier || 'free',
       };
       const customData = parseJson(lockedBusiness.custom_data);
+
+      // The free period starts the moment the vendor takes the minisite: the
+      // full service, timed by the tier policy an admin controls. Never restarts
+      // an existing period, so a re-sent invitation cannot extend it by accident.
+      let trialDays = resolveTrialDays(null);
+      try {
+        const [tierRows] = await connection.execute(
+          'SELECT features FROM subscription_tiers WHERE id = ? LIMIT 1',
+          [lockedBusiness.subscription_tier || 'free']
+        );
+        trialDays = resolveTrialDays(parseJson((tierRows as any[])[0]?.features));
+      } catch (error: any) {
+        console.warn('[minisite-review] trial days fell back to default:', error?.message || error);
+      }
+      const trial = readVendorTrial(customData) || buildVendorTrial({ days: trialDays, via: 'minisite_acceptance', at: acceptedAt });
+
       const updatedCustomData = {
         ...customData,
         whatsapp: `+${phone}`,
@@ -283,6 +320,19 @@ export async function POST(
           ...(customData.basic || {}),
           whatsapp: `+${phone}`,
         },
+        identity: {
+          ...(customData.identity || {}),
+          ...socialInput,
+        },
+        consents: {
+          ...(customData.consents || {}),
+          ...consentLedger,
+        },
+        // Accepted together with the agreement (section 7) and stored separately,
+        // because its verification evidence changes over time.
+        pledge: buildVendorPledge({ slug: publicSlug, via: 'minisite_acceptance', at: acceptedAt }),
+        trial,
+        ...(googleProfileUrl ? { google_profile_url: googleProfileUrl } : {}),
       };
       await connection.execute(
         `UPDATE businesses
@@ -350,6 +400,12 @@ export async function POST(
             agreement_version: VENDOR_AGREEMENT_VERSION,
             agreement_language: acceptedLanguage,
             agreement_hash: agreementHash,
+            consent_version: VENDOR_CONSENT_VERSION,
+            consents_granted: Object.keys(consentLedger),
+            social_links_captured: Object.keys(socialInput),
+            google_profile_provided: Boolean(googleProfileUrl),
+            pledge_version: VENDOR_PLEDGE_VERSION,
+            pledge_accepted_at: acceptedAt.toISOString(),
             accepted_at: acceptedAt.toISOString(),
             accepted_ip: acceptedIp,
           }),
@@ -357,6 +413,20 @@ export async function POST(
       );
       return { user: sessionUser, publicSlug };
     });
+
+    // Best effort: a pasted Maps link usually carries the ChIJ place id that the
+    // read-only Google sync needs. Never blocks the acceptance itself.
+    const resolvedPlaceId = extractGooglePlaceId(googleProfileUrl);
+    if (resolvedPlaceId) {
+      try {
+        await execute('UPDATE businesses SET google_place_id = ? WHERE id = ?', [
+          resolvedPlaceId,
+          handoff.business_id,
+        ]);
+      } catch (placeError: any) {
+        console.warn('[vendor/minisite-review POST] google_place_id:', placeError?.message || placeError);
+      }
+    }
 
     await setSessionCookie(await createToken(user.user));
     invalidateCache.websiteSettings();

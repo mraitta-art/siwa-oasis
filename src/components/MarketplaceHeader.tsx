@@ -149,16 +149,22 @@ export default function MarketplaceHeader({
               }}
             >
               {brandImage
-                ? <img
-                    src={brandImage}
-                    alt=""
-                    style={{
-                      height: `clamp(16px, ${Math.max(16, Math.min(120, logoHeight))}px, 120px)`,
-                      width: 'auto',
-                      maxWidth: 180,
-                      objectFit: 'contain',
-                    }}
-                  />
+                ? <>
+                    <img
+                      src={brandImage}
+                      alt=""
+                      style={{
+                        height: `clamp(16px, ${Math.max(16, Math.min(120, logoHeight))}px, 120px)`,
+                        width: 'auto',
+                        maxWidth: 180,
+                        objectFit: 'contain',
+                        filter: light
+                          ? 'drop-shadow(0 1px 1px rgba(15, 23, 42, 0.22))'
+                          : 'drop-shadow(0 0 9px rgba(212, 175, 55, 0.35))',
+                      }}
+                    />
+                    {brandLabel && <span>{brandLabel}</span>}
+                  </>
                 : <>
                     {brandIcon && <i className={`fas ${brandIcon}`} style={{ color: accentColor, fontSize: '0.95rem' }} />}
                     {brandLabel && <span>{brandLabel}</span>}
