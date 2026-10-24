@@ -1156,11 +1156,17 @@ export default function VanityBusinessClient({
                         if (!secData && !sectionHasDefinedFields) return null;
                         const fieldEntries: Array<{ key: string; val: any; matchedField: any }> = [];
                         const seen = new Set<string>();
+                        // Admin per-minisite field visibility (custom_data.field_visibility).
+                        // 'hide_field' drops the whole card (label + value); 'hide_value' keeps
+                        // the label but blanks the value. The raw value always stays in
+                        // custom_data, so the section blog can still interpolate it as a token.
+                        const fv: Record<string, string> = (biz.custom_data?.field_visibility?.[section.id]) || {};
 
                         if (Array.isArray(section.fields)) {
                           section.fields.forEach((field: any) => {
                             const key = field?.name;
                             if (!key || seen.has(key)) return;
+                            if (fv[key] === 'hide_field') return;
                             seen.add(key);
                             const val = secData?.[key];
                             fieldEntries.push({ key, val, matchedField: field });
@@ -1187,6 +1193,7 @@ export default function VanityBusinessClient({
                               key === 'block_order'
                             )
                               return;
+                            if (fv[key] === 'hide_field') return;
                             seen.add(key);
                             const val = secData[key];
                             const matchedField = section.fields?.find((f: any) => f.name === key);
@@ -1203,6 +1210,15 @@ export default function VanityBusinessClient({
                               const rawDisplayName = matchedField?.label || key.replace(/_/g, ' ');
                               const isArabic = minisiteLang === 'ar';
                               const displayName = isArabic && matchedField?.label_ar ? matchedField.label_ar : rawDisplayName;
+
+                              if (fv[key] === 'hide_value') {
+                                return (
+                                  <div key={uniqueKey} style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9', minWidth: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
+                                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.5rem', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#cbd5e1' }}>—</div>
+                                  </div>
+                                );
+                              }
 
                               const isValueMasked = maskedFields.includes(key) || maskedFields.includes(`${section.id}.${key}`);
                               if (isValueMasked) {

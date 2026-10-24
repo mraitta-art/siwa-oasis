@@ -145,6 +145,42 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
     } catch (e) { console.error(e); }
   }
 
+  // ── Admin per-minisite field visibility (stored in custom_data.field_visibility) ──
+  // 'hide_field'  -> remove label + value from the minisite body
+  // 'hide_value'  -> keep the label but blank the value (raw value still saved for blog tokens)
+  const fvMap: Record<string, Record<string, string>> = biz?.custom_data?.field_visibility || {};
+
+  function applyVisibilityTo(sectionId: string, changes: Record<string, 'show' | 'hide_field' | 'hide_value'>) {
+    setBiz((prev: any) => {
+      const cd = { ...(prev.custom_data || {}) };
+      const fv: Record<string, any> = { ...(cd.field_visibility || {}) };
+      const sec = { ...(fv[sectionId] || {}) };
+      Object.entries(changes).forEach(([name, mode]) => {
+        if (mode === 'show') delete sec[name];
+        else sec[name] = mode;
+      });
+      if (Object.keys(sec).length === 0) delete fv[sectionId];
+      else fv[sectionId] = sec;
+      cd.field_visibility = fv;
+      return { ...prev, custom_data: cd };
+    });
+  }
+
+  function setFieldVisibility(sectionId: string, fieldName: string, mode: 'show' | 'hide_field' | 'hide_value') {
+    applyVisibilityTo(sectionId, { [fieldName]: mode });
+  }
+
+  function setSectionFieldsBulk(sectionId: string, mode: 'show' | 'hide_field' | 'hide_value') {
+    const changes: Record<string, any> = {};
+    fields.filter((f: any) => f.section_id === sectionId).forEach((f: any) => { changes[f.name] = mode; });
+    applyVisibilityTo(sectionId, changes);
+  }
+
+  const bulkBtn = (bg: string): React.CSSProperties => ({
+    padding: '0.2rem 0.45rem', background: bg, color: '#fff', border: 'none',
+    borderRadius: '6px', fontSize: '0.58rem', fontWeight: 800, cursor: 'pointer',
+  });
+
   if (loading) return (
     <div style={{ background: '#f8fafc', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
@@ -252,6 +288,40 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
                                  <input type="checkbox" checked={ctrl.admin_disabled === 1} onChange={() => toggleAdminControl(s.id, 'admin_disabled')} />
                                  Disable Vendor Editing
                                </label>
+                               {/* Field visibility on the minisite body (admin) */}
+                               {(() => {
+                                 const sectionFields = fields.filter((f: any) => f.section_id === s.id);
+                                 if (sectionFields.length === 0) return null;
+                                 return (
+                                   <div style={{ marginTop: '0.55rem', paddingTop: '0.5rem', borderTop: '1px dashed #f1f5f9' }}>
+                                     <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.35rem' }}>🧩 FIELD VISIBILITY ON MINISITE</div>
+                                     <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
+                                       <button type="button" onClick={() => setSectionFieldsBulk(s.id, 'hide_field')} style={bulkBtn('#ef4444')}>Hide all fields</button>
+                                       <button type="button" onClick={() => setSectionFieldsBulk(s.id, 'hide_value')} style={bulkBtn('#f59e0b')}>Hide all values</button>
+                                       <button type="button" onClick={() => setSectionFieldsBulk(s.id, 'show')} style={bulkBtn('#10b981')}>Show all</button>
+                                     </div>
+                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', maxHeight: '190px', overflowY: 'auto' }}>
+                                       {sectionFields.map((f: any) => {
+                                         const mode = (fvMap[s.id] || {})[f.name] || 'show';
+                                         return (
+                                           <label key={f.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.68rem', color: '#334155' }}>
+                                             <span title={f.name} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.label || f.name}</span>
+                                             <select
+                                               value={mode}
+                                               onChange={(e) => setFieldVisibility(s.id, f.name, e.target.value as 'show' | 'hide_field' | 'hide_value')}
+                                               style={{ fontSize: '0.62rem', padding: '0.15rem 0.3rem', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+                                             >
+                                               <option value="show">Show</option>
+                                               <option value="hide_value">Hide value</option>
+                                               <option value="hide_field">Hide field</option>
+                                             </select>
+                                           </label>
+                                         );
+                                       })}
+                                     </div>
+                                   </div>
+                                 );
+                               })()}
                                {/* CTA Phone Override */}
                                <div style={{ marginTop: '0.25rem' }}>
                                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>
