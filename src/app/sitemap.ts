@@ -7,6 +7,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://siwify.com';
   const now = new Date();
 
+  // Only routes that actually exist. `/explore` and `/stories` were listed here
+  // but never built, so every crawl of this file produced two soft 404s.
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -15,22 +17,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/explore`,
+      url: `${baseUrl}/categories`,
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/stories`,
+      url: `${baseUrl}/siwa-stay`,
       lastModified: now,
-      changeFrequency: 'daily',
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/siwa-go`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/siwa-retreats`,
+      lastModified: now,
+      changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${baseUrl}/blog`,
       lastModified: now,
       changeFrequency: 'daily',
-      priority: 0.8,
+      priority: 0.7,
     },
   ];
 

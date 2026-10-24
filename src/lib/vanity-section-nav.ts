@@ -74,8 +74,11 @@ export async function resolveSectionNav(business: any): Promise<SectionNavItem[]
   ).catch(() => []);
   if (!defs.length) return [];
 
+  // Only columns that exist on business_section_controls. Selecting a column
+  // this table does not have (approval_status / show_on_minisite) made the
+  // whole query throw and silently dropped every admin override.
   const controls = await query<any>(
-    'SELECT section_id, custom_label, admin_hidden, admin_disabled, approval_status, show_on_minisite FROM business_section_controls WHERE business_id = ?',
+    'SELECT section_id, custom_label, admin_hidden, admin_disabled FROM business_section_controls WHERE business_id = ?',
     [business.id],
   ).catch(() => []);
   const controlMap: Record<string, any> = Object.fromEntries(controls.map((c: any) => [c.section_id, c]));

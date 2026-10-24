@@ -94,6 +94,36 @@ const nextConfig: NextConfig = {
         destination: '/jana/studio',
         permanent: true,
       },
+      // ── Traffic recovery map ──────────────────────────────────────────────
+      // These slugs already collect search and shared traffic but resolve to no
+      // business, so they used to render an exploration page with HTTP 200.
+      // 301 them instead of leaving visitors and crawlers at a dead end.
+      // Delete an entry the moment that slug becomes a real business.
+      {
+        source: '/ibrahim-roshdy',
+        destination: '/ibrahim-roushdy',
+        permanent: true,
+      },
+      {
+        source: '/sonosi',
+        destination: '/categories',
+        permanent: true,
+      },
+      {
+        source: '/ahmad-abdelmasoud',
+        destination: '/categories',
+        permanent: true,
+      },
+      {
+        source: '/explore',
+        destination: '/categories',
+        permanent: true,
+      },
+      {
+        source: '/stories',
+        destination: '/blog',
+        permanent: true,
+      },
     ];
   },
 };
