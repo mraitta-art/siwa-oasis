@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { headers } from 'next/headers';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
@@ -13,6 +12,7 @@ import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
 import { query, queryOne, normalizeCustomData } from '@/lib/db';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
 import { resolveSectionNav } from '@/lib/vanity-section-nav';
+import { currentLocale, languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 
 export const dynamic = 'force-dynamic';
 
@@ -217,13 +217,9 @@ function heroImageFor(business: any, gallery: any[], cd: any) {
 }
 
 async function resolveLang(langParam?: string): Promise<Lang> {
-  if (langParam === 'ar' || langParam === 'en') return langParam;
-  try {
-    const accept = (await headers()).get('accept-language') || '';
-    return /^\s*ar\b/i.test(accept) ? 'ar' : 'en';
-  } catch {
-    return 'en';
-  }
+  // `x-siwa-locale` is set by middleware for /ar/... and /en/... URLs; the query
+  // parameter and Accept-Language stay as fallbacks for links that predate them.
+  return currentLocale(langParam);
 }
 
 export async function generateMetadata({
@@ -269,23 +265,44 @@ export async function generateMetadata({
       `${business.name} — ${typeName} in Siwa Oasis. See photos, services and contact directly on WhatsApp. No commission.`;
 
     const image = heroImageFor(business, gallery, cd);
+    const locale = await currentLocale();
+    const ar = locale === 'ar';
+    const publicPath = `/${business.slug || slug}`;
+    const canonical = localeUrl(base, (await pathLocale()) ?? 'en', publicPath);
+
+    // Indexability gate for prospect pages: no claim, no photo, no copy means
+    // there is nothing here worth indexing, and publishing hundreds of those is
+    // how a directory teaches Google to ignore the pages that do have content.
+    // QR and WhatsApp links keep working either way.
+    const isThin = !Number(business.is_claimed) && gallery.length === 0 && description.length < 80;
+
+    const title = ar
+      ? `${business.name} — ${typeName} في واحة سيوة | Siwify`
+      : `${business.name} · ${typeName} | Siwify`;
+    const metaDescription = ar
+      ? `${business.name} في واحة سيوة — صور وخدمات وتواصل مباشر عبر واتساب بدون عمولة.`
+      : description;
 
     return {
-      title: `${business.name} · ${typeName} | Siwify`,
-      description,
-      alternates: { canonical: `${base}/${business.slug || slug}` },
+      title,
+      description: metaDescription,
+      alternates: {
+        canonical,
+        languages: languageAlternates(base, publicPath),
+      },
+      robots: isThin ? { index: false, follow: true } : { index: true, follow: true },
       openGraph: {
-        title: `${business.name} · ${typeName}`,
-        description,
-        url: `${base}/${business.slug || slug}`,
+        title: ar ? `${business.name} — ${typeName}` : `${business.name} · ${typeName}`,
+        description: metaDescription,
+        url: canonical,
         siteName: 'Siwify',
         type: 'website',
         images: [{ url: image, width: 1200, height: 630, alt: business.name }],
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${business.name} · ${typeName}`,
-        description,
+        title: ar ? `${business.name} — ${typeName}` : `${business.name} · ${typeName}`,
+        description: metaDescription,
         images: [image],
       },
     };
@@ -515,7 +532,7 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
 
         <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <Link
-            href={`?lang=${ar ? 'en' : 'ar'}`}
+            href={ar ? `/${initialSlug}` : `/ar/${initialSlug}`}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
@@ -626,6 +643,11 @@ export default async function CanonicalVanityPage({
         `${business.name} — ${typeName} in Siwa Oasis.`;
       const image = heroImageFor(business, mini.storefront.gallery, cd);
       const publicSlug = business.slug || slug;
+      // An /ar address should render Arabic chrome, not only an Arabic title.
+      const layout =
+        lang === 'ar'
+          ? { ...mini.layout, site_settings: { ...((mini.layout as any)?.site_settings || {}), lang: 'ar' } }
+          : mini.layout;
 
       return (
         <>
@@ -634,7 +656,7 @@ export default async function CanonicalVanityPage({
           <MinisiteTapTracker slug={publicSlug} />
           <MinisiteSectionTabs slug={publicSlug} items={mini.sectionNav} />
           <MinisiteBuilderRenderer
-            layout={mini.layout}
+            layout={layout}
             business={mini.storefront}
             showQRCode
           />

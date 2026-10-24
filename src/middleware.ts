@@ -263,6 +263,33 @@ function extractSubdomain(request: NextRequest): { subdomain: string | null; isC
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Locale-prefixed URLs (/ar/..., /en/...) render the same route tree with the
+  // language carried in a request header. Arabic used to be an invisible
+  // ?lang= parameter, so no crawler ever saw a second-language URL — this gives
+  // it a real address without forking every route into a [locale] segment.
+  const [, firstSegment] = pathname.split('/');
+  if (firstSegment === 'ar' || firstSegment === 'en') {
+    const rest = pathname.slice(firstSegment.length + 1) || '/';
+    const isInternal = /^\/(api|_next|jana|admin|vendor|login|logout)(\/|$)/.test(rest);
+    if (!isInternal) {
+      const url = request.nextUrl.clone();
+      url.pathname = rest;
+      const forwarded = new Headers(request.headers);
+      forwarded.set('x-siwa-locale', firstSegment);
+      return NextResponse.rewrite(url, { request: { headers: forwarded } });
+    }
+  }
+
+  // Legacy ?lang=ar|en links (old share cards and QR codes) become permanent
+  // locale URLs, so the language survives in the address bar and in the index.
+  const legacyLang = request.nextUrl.searchParams.get('lang');
+  if ((legacyLang === 'ar' || legacyLang === 'en') && !pathname.startsWith('/api') && !pathname.startsWith('/_next')) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${legacyLang}${pathname === '/' ? '' : pathname}`;
+    url.searchParams.delete('lang');
+    return NextResponse.redirect(url, 308);
+  }
+
   // 0. Public vendor onboarding, claim, and tools routes (accessible without login via invite/outreach links)
   // The minisite review page is gated by its own 40–60 char token: the recipient has
   // no account yet, so a login redirect here would break every WhatsApp invitation.
