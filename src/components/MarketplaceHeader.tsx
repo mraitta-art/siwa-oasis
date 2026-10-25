@@ -34,7 +34,6 @@ export const CANONICAL_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
   { href: '/siwa', label: 'Directory', icon: 'fa-compass' },
   { href: '/categories', label: 'Categories', icon: 'fa-layer-group' },
-  { href: '/blog', label: 'Journal', icon: 'fa-book-open' },
   { href: '/be-a-partner', label: 'List your business', icon: 'fa-store' },
 ];
 

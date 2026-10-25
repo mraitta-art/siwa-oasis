@@ -199,14 +199,37 @@ const SUBDOMAIN_ROUTES: Record<string, string> = {
   'join': '/be-a-partner',
 };
 
+const ADMIN_ROLES = ['super_admin', 'content_admin', 'sales_manager', 'support_agent'];
+
 // Unified role-based route protection table
 const ROUTE_GUARDS: Record<string, string[]> = {
-  '/admin':      ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
-  '/api/admin':  ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
-  '/jana':       ['super_admin', 'content_admin', 'sales_manager', 'support_agent'],
+  '/admin':      ADMIN_ROLES,
+  '/api/admin':  ADMIN_ROLES,
+  '/jana':       ADMIN_ROLES,
   '/vendor':     ['vendor', 'super_admin', 'content_admin', 'sales_manager'],
   '/salesman':   ['super_admin', 'sales_manager', 'salesman'],
 };
+
+/**
+ * Writes under the dashboard namespace that are not admin-only. Media upload is
+ * used by /vendor/media, and claiming is vendor onboarding; everything else in
+ * here changes CMS or customer data. "public" means no session at all.
+ */
+const JANA_WRITE_ROLES: Record<string, string[]> = {
+  '/api/jana/media/upload': ['vendor'],
+  '/api/jana/businesses/claim': ['public'],
+};
+
+/**
+ * Dashboard reads that answer with customer or operator data rather than
+ * published content. Public pages never call these.
+ */
+const JANA_PRIVATE_READS = [
+  '/api/jana/requests',
+  '/api/jana/page-builder/admin',
+  '/api/jana/tiers',
+  '/api/jana/field-definitions',
+];
 
 async function verifySession(request: NextRequest): Promise<{ role: string } | null> {
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -347,6 +370,23 @@ async function routeRequest(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // Login-only pages that are otherwise ordinary routes. This is checked
+  // against the locale-stripped path, and before the locale rewrite below,
+  // because that rewrite returns early: an exact "/blog" test would let
+  // /ar/blog through to the same page.
+  const isBlogShell = rest === '/blog';
+  const isAccountPage = rest === '/account' || rest.startsWith('/account/');
+  if (isBlogShell || isAccountPage) {
+    const session = await verifySession(request);
+    const allowed = !!session && (isAccountPage || ADMIN_ROLES.includes(session.role));
+    if (!allowed) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('error', 'admin_required');
+      if (isAccountPage) loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   if (localeHeader || marketHeader) {
     const isInternal = /^\/(api|_next|jana|admin|vendor|login|logout)(\/|$)/.test(rest);
     if (!isInternal) {
@@ -401,6 +441,25 @@ async function routeRequest(request: NextRequest) {
         return NextResponse.redirect(new URL('/jana', request.url));
       }
       break;
+    }
+  }
+
+  // 2. Dashboard APIs
+  // A quarter of the /api/jana routes (tiers, field definitions, page-builder
+  // writes, AI generation, paste-import) never called requireAdmin(). Checking
+  // the method here closes the whole family at one point, including routes
+  // added later, without relying on every handler remembering to ask.
+  if (pathname.startsWith('/api/jana/')) {
+    const isRead = request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS';
+    const isPrivateRead = JANA_PRIVATE_READS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+    const extraRoles = JANA_WRITE_ROLES[pathname] || [];
+    const needsSession = isRead ? isPrivateRead : !extraRoles.includes('public');
+    if (needsSession) {
+      const session = await verifySession(request);
+      const allowed = !!session && (ADMIN_ROLES.includes(session.role) || extraRoles.includes(session.role));
+      if (!allowed) {
+        return NextResponse.json({ error: 'Unauthorized. Valid session required.' }, { status: 401 });
+      }
     }
   }
 

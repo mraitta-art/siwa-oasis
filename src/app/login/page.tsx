@@ -156,12 +156,6 @@ function LoginContent() {
                   </button>
                 ))}
               </div>
-              <a
-                href="/api/auth/backdoor"
-                style={{ display: 'block', marginTop: '0.75rem', textAlign: 'center', padding: '0.55rem', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none', border: '1.5px solid #fcd34d' }}
-              >
-                ⚡ Instant Super Admin Access (No Password)
-              </a>
             </div>
           )}
         </div>

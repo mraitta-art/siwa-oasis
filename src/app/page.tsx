@@ -90,16 +90,14 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
   { href: '/siwa', label: 'Directory', icon: 'fa-compass' },
   { href: '/categories', label: 'Categories', icon: 'fa-layer-group' },
-  { href: '/blog', label: 'Journal', icon: 'fa-book-open' },
   { href: '/be-a-partner', label: 'List your business', icon: 'fa-store' },
 ];
 
-const DEFAULT_NAV_TEXT = ['Home | /', '{{market}}', '{{categories}}', 'Journal | /blog', 'List your business | /be-a-partner'].join('\n');
+const DEFAULT_NAV_TEXT = ['Home | /', '{{market}}', '{{categories}}', 'List your business | /be-a-partner'].join('\n');
 
 const DEFAULT_FOOTER_LINKS: FooterLink[] = [
   { group: 'EXPLORE', label: 'Directory', href: '/siwa' },
   { group: 'EXPLORE', label: 'All categories', href: '/categories' },
-  { group: 'EXPLORE', label: 'Journal', href: '/blog' },
   { group: 'PARTNERS', label: 'Vendor portal', href: '/login' },
   { group: 'PARTNERS', label: 'List your business', href: '/signup' },
 ];
@@ -107,7 +105,6 @@ const DEFAULT_FOOTER_LINKS: FooterLink[] = [
 const DEFAULT_FOOTER_TEXT = [
   'EXPLORE | {{market}}',
   'EXPLORE | All categories | /categories',
-  'EXPLORE | Journal | /blog',
   'PARTNERS | Vendor portal | /login',
   'PARTNERS | List your business | /signup',
 ].join('\n');

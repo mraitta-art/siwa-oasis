@@ -232,6 +232,7 @@ const NAV_GROUPS = [
       { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },
       { name: 'Audit Logs', path: '/jana/audit', icon: 'fa-history' },
       { name: 'System Setup', path: '/jana/setup', icon: 'fa-screwdriver-wrench' },
+      { name: 'Change My Password', path: '/account/password', icon: 'fa-key' },
       { name: 'Demo Automation', path: '/jana/demo-automation', icon: 'fa-robot' },
     ]
   }

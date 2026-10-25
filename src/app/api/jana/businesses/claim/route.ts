@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
       customData = {};
     }
 
-    // Record claim & acceptance details
+    // A claim is a request, not a takeover. This used to set is_published,
+    // is_verified_partner and a 30-day VIP pass, and to overwrite vendor_phone,
+    // so anyone who knew a slug could claim a business and redirect its calls.
+    // The submitted details are recorded for review; the dashboard decides.
     const claimRecord = {
       claimed_at: new Date().toISOString(),
       vendor_phone: vendorPhone || biz.vendor_phone,
@@ -37,24 +40,18 @@ export async function POST(request: NextRequest) {
       vendor_name: vendorName || biz.name,
       agreed_bio_link: agreeBioLink !== false,
       agreed_social_sync: agreeSocialSync !== false,
-      verification_status: 'verified_partner',
-      vip_pass_expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30-day VIP pass
+      verification_status: 'pending',
     };
 
     customData.claim_record = claimRecord;
-    customData.social_bridge_enabled = true;
-    customData.is_verified_partner = true;
+    customData.claim_pending = true;
 
-    // Update business status to active / published and attach claim data
     await execute(
-      `UPDATE businesses 
-       SET is_published = 1, 
-           custom_data = ?, 
-           vendor_phone = COALESCE(?, vendor_phone)
+      `UPDATE businesses
+       SET custom_data = ?
        WHERE id = ?`,
       [
         JSON.stringify(customData),
-        vendorPhone || null,
         biz.id
       ]
     );
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Business claimed and activated successfully!',
+      message: 'Claim received. An admin will review and activate your listing.',
       business: {
         id: biz.id,
         name: biz.name,
