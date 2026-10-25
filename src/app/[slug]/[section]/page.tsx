@@ -7,7 +7,9 @@ import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
-import { getBusinessSlugCandidates } from '@/lib/public-url';
+import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
+import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
+import { DEFAULT_MARKET_SLUG, pathMarketSlug } from '@/lib/markets';
 import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +53,14 @@ export async function generateMetadata({
 
     if (!biz) return { title: 'Business Not Found - SiWiFy.com' };
 
+    // A section URL names its market as well, so a section cannot be read out of
+    // a business that lives somewhere else — /el-alamein/x/photos must not
+    // publish the Siwa property's gallery or titles.
+    const urlMarket = await pathMarketSlug();
+    if (urlMarket && biz.market_id && String(biz.market_id) !== urlMarket) {
+      return { title: 'Business Not Found - SiWiFy.com' };
+    }
+
     biz.custom_data = normalizeCustomData(biz.custom_data);
     const data = biz.custom_data || {};
     const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
@@ -80,14 +90,24 @@ export async function generateMetadata({
     const rawDesc = blogRow?.excerpt || data[section]?.description || data[section]?.section_news || identity.description || `Explore ${sectionLabel} offered by ${biz.name} in Siwa Oasis.`;
     const cleanDesc = String(rawDesc).substring(0, 160).replace(/<[^>]*>/g, '');
 
+    const marketSlug = String(biz.market_id || urlMarket || DEFAULT_MARKET_SLUG);
+    const publicPath = `/${marketSlug}/${biz.slug || slug}/${section}`;
+    const locale = (await pathLocale()) ?? 'en';
+    const base = getPublicAppUrl().replace(/\/$/, '');
+    const canonical = localeUrl(base, locale, publicPath);
+
     return {
       title: `${biz.name} — ${sectionLabel} | Siwa Oasis Registry`,
       description: cleanDesc,
+      alternates: {
+        canonical,
+        languages: languageAlternates(base, publicPath),
+      },
       openGraph: {
         title: `${biz.name} — ${sectionLabel}`,
         description: cleanDesc,
         type: 'website',
-        url: `https://siwify.com/${biz.slug || slug}/${section}`,
+        url: canonical,
         images: [{ url: ogImage, width: 1200, height: 630 }]
       }
     };
@@ -108,6 +128,10 @@ export default async function VanitySectionPage({
   const { slug, section } = await params;
   
   const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+
+  // The URL's market scopes the lookup here too: a slug is only unique inside a
+  // market, and /el-alamein/gagal-hotel/photos is not the Siwa property.
+  const urlMarket = await pathMarketSlug();
   
   try {
     let siteSettings: any = null;
@@ -131,7 +155,9 @@ export default async function VanitySectionPage({
          WHERE b.id = ?`,
         [slug]
       );
-      if (bizById?.slug) redirect(`/${bizById.slug}/${section}`);
+      if (bizById?.slug) {
+        redirect(`/${bizById.market_id || urlMarket || DEFAULT_MARKET_SLUG}/${bizById.slug}/${section}`);
+      }
     } else {
       const lookupCandidates = [...new Set(getBusinessSlugCandidates(slug))];
       const slugQueryParts = lookupCandidates.map(() => 'b.slug = ?').join(' OR ');
@@ -147,8 +173,13 @@ export default async function VanitySectionPage({
         [...params, slug, ...lookupCandidates]
       );
       biz = row ?? null;
+      // Wrong market in the address: send it to the real one instead of serving
+      // another market's content under this URL.
+      if (biz && urlMarket && biz.market_id && String(biz.market_id) !== urlMarket) {
+        redirect(`/${biz.market_id}/${biz.slug || slug}/${section}`);
+      }
       if (biz?.slug && biz.slug !== slug) {
-        redirect(`/${biz.slug}/${section}`);
+        redirect(`/${biz.market_id || urlMarket || DEFAULT_MARKET_SLUG}/${biz.slug}/${section}`);
       }
     }
 
@@ -170,15 +201,20 @@ export default async function VanitySectionPage({
       redirect(`/${slug}`);
     }
 
+    // Every "back to the minisite" redirect keeps the market in the address,
+    // otherwise the business page is asked for a listing it cannot place.
+    const marketSlug = String(biz.market_id || urlMarket || DEFAULT_MARKET_SLUG);
+    const businessPath = `/${marketSlug}/${biz.slug || slug}`;
+
     // Expiration check
     const isExpired = biz.is_master !== 1 && !biz.is_trusted && biz.minisite_visible_until && new Date(biz.minisite_visible_until) < new Date();
     if (isExpired) {
-      redirect(`/${slug}`);
+      redirect(businessPath);
     }
 
     const serviceExpired = biz.service_expires_at && new Date(biz.service_expires_at) < new Date();
     if (biz.service_minisite_status === 'suspended' || biz.service_minisite_status === 'expired' || serviceExpired) {
-      redirect(`/${slug}`);
+      redirect(businessPath);
     }
 
     // Check if viewing user is an authenticated admin
@@ -492,6 +528,6 @@ export default async function VanitySectionPage({
     );
   } catch (e: any) {
     console.error('[MINISITE SECTION ERROR]', slug, section, e?.message);
-    redirect(`/${slug}`);
+    redirect(urlMarket ? `/${urlMarket}/${slug}` : `/${slug}`);
   }
 }

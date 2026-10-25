@@ -10,6 +10,7 @@ interface Business {
   id: string; name: string; slug: string; type_id: string; type_name: string; type_icon: string;
   type_icon_color: string; status: string; subscription_tier: string; vendor_email: string | null;
   vendor_id: string | null; approved_by_vendor: boolean; views: number; template_name?: string;
+  market_id?: string | null;
 }
 
 export default function BusinessRegistryPage() {
@@ -32,10 +33,14 @@ export default function BusinessRegistryPage() {
   const [vendors, setVendors] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
+  const [markets, setMarkets] = useState<any[]>([]);
+  const [developments, setDevelopments] = useState<any[]>([]);
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newBiz, setNewBiz] = useState({
     name: '',
     type_id: '',
+    market_id: 'siwa',
+    development_id: '',
     subscription_tier: 'free',
     vendor_id: '',
     template_id: '',
@@ -56,6 +61,17 @@ export default function BusinessRegistryPage() {
     loadBusinesses(); 
     fetchMetadata();
   }, []);
+
+  // Compounds belong to one market, so the list reloads when the market changes.
+  useEffect(() => {
+    if (!newBiz.market_id) { setDevelopments([]); return; }
+    let cancelled = false;
+    fetch(`/api/developments?market=${encodeURIComponent(newBiz.market_id)}`)
+      .then((r) => (r.ok ? r.json() : { developments: [] }))
+      .then((data) => { if (!cancelled) setDevelopments(data.developments || []); })
+      .catch(() => { if (!cancelled) setDevelopments([]); });
+    return () => { cancelled = true; };
+  }, [newBiz.market_id]);
 
   async function bulkAction(updates: any) {
     if (selectedIds.length === 0) return;
@@ -110,16 +126,18 @@ export default function BusinessRegistryPage() {
 
   async function fetchMetadata() {
     try {
-      const [tRes, sRes, vRes, tmplRes] = await Promise.all([
+      const [tRes, sRes, vRes, tmplRes, mRes] = await Promise.all([
         fetch('/api/jana/types'),
         fetch('/api/jana/tiers'),
         fetch('/api/jana/vendors'),
         fetch('/api/jana/templates'),
+        fetch('/api/markets'),
       ]);
       if (tRes.ok) setTypes(await tRes.json());
       if (sRes.ok) setTiers(await sRes.json());
       if (vRes.ok) setVendors(await vRes.json());
       if (tmplRes.ok) setTemplates(await tmplRes.json());
+      if (mRes.ok) setMarkets((await mRes.json()).markets || []);
     } catch (e) { console.error(e); }
   }
 
@@ -237,6 +255,7 @@ export default function BusinessRegistryPage() {
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
 
   const selectableBusinessTypes = types
+    .filter((type: any) => !type.market_id || type.market_id === newBiz.market_id)
     .filter((type: any) => !type.is_parent && type.parent_id && type.id !== 'SECTION_TEMPLATE' && type.active !== false && Number(type.active) !== 0)
     .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
   const selectableTypesByParent = new Map<string, any[]>();
@@ -271,6 +290,26 @@ export default function BusinessRegistryPage() {
         <div style={{ background: '#fffbeb', border: '2px solid #D4AF37', borderRadius: '12px', padding: '1.5rem', marginTop: '1rem' }}>
           <h4 style={{ margin: '0 0 1rem 0', color: '#92400e' }}><i className="fas fa-magic"></i> Register New Business Entity</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            {/* 0. Market — every listing lives in exactly one */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>0. MARKET *</label>
+              <select
+                className="form-control"
+                value={newBiz.market_id}
+                onChange={e => {
+                  setNewBiz({ ...newBiz, market_id: e.target.value, development_id: '', type_id: '', template_id: '' });
+                  setSelectedParentId('');
+                  setFilteredTemplates([]);
+                }}
+              >
+                {(markets.length ? markets : [{ slug: 'siwa', nameEn: 'Siwa Oasis' }]).map((m: any) => (
+                  <option key={m.slug} value={m.slug}>{m.nameEn || m.slug}</option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.62rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                Address will be /{newBiz.market_id}/{(newBiz.name || 'business-name').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}
+              </div>
+            </div>
             {/* Name */}
             <div>
               <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS NAME *</label>
@@ -325,6 +364,24 @@ export default function BusinessRegistryPage() {
                   <option key={type.id} value={type.id}>
                     {type.name}
                   </option>
+                ))}
+              </select>
+            </div>
+            {/* 3. Compound / development (optional) */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>
+                3. INSIDE A COMPOUND (OPTIONAL)
+              </label>
+              <select
+                className="form-control"
+                value={newBiz.development_id}
+                onChange={e => setNewBiz({ ...newBiz, development_id: e.target.value })}
+                disabled={!developments.length}
+                style={{ background: developments.length ? '#fff' : '#f1f5f9' }}
+              >
+                <option value="">{developments.length ? '-- None: stands on its own --' : '-- No compounds in this market yet --'}</option>
+                {developments.map((d: any) => (
+                  <option key={d.id} value={d.id}>{d.nameEn || d.name_ar || d.slug}</option>
                 ))}
               </select>
             </div>
@@ -448,6 +505,7 @@ export default function BusinessRegistryPage() {
               <th style={{ width: '40px' }}><input type="checkbox" checked={selectedIds.length === businesses.length && businesses.length > 0} onChange={toggleSelectAll} /></th>
               <th>Business Entity</th>
               <th>Typology</th>
+              <th>Market</th>
               <th>Template</th>
               <th>Status / Tier</th>
               <th>Vendor Link</th>
@@ -477,6 +535,11 @@ export default function BusinessRegistryPage() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <i className={b.type_icon} style={{ color: b.type_icon_color }}></i>
                     {b.type_name}
+                  </span>
+                </td>
+                <td>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1e293b', background: '#eef2ff', border: '1px solid #c7d2fe', padding: '2px 8px', borderRadius: '6px' }}>
+                    {b.market_id || 'siwa'}
                   </span>
                 </td>
                 <td>

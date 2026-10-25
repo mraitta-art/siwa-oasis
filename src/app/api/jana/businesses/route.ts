@@ -174,7 +174,7 @@ export async function PUT(request: NextRequest) {
     // RULE 1: If type_id is being changed, ensure the new type is a child type
     if (updates.type_id) {
       const selectedType = await queryOne(
-        'SELECT id, name, is_parent, parent_id FROM business_types WHERE id = ?',
+        'SELECT id, name, is_parent, parent_id, market_id FROM business_types WHERE id = ?',
         [updates.type_id]
       ) as any;
       if (!selectedType) {
@@ -186,6 +186,16 @@ export async function PUT(request: NextRequest) {
           rule: 'PARENT_TYPE_NO_REGISTRATION'
         }, { status: 400 });
       }
+      // Rule 2: the typology must be offered in the market the listing lives in.
+      const targetMarket = updates.market_id
+        || (await queryOne('SELECT market_id FROM businesses WHERE id = ?', [id]) as any)?.market_id
+        || 'siwa';
+      if (selectedType.market_id && String(selectedType.market_id) !== String(targetMarket)) {
+        return NextResponse.json({
+          error: `"${selectedType.name}" is not offered in ${targetMarket}.`,
+          rule: 'TYPE_NOT_IN_MARKET'
+        }, { status: 400 });
+      }
     }
 
     const sets: string[] = [];
@@ -194,7 +204,7 @@ export async function PUT(request: NextRequest) {
       'name', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
-      'active', 'location_id', 'custom_domain'
+      'active', 'location_id', 'market_id', 'development_id', 'custom_domain'
     ];
     const boolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed', 'active'];
 
@@ -294,7 +304,7 @@ export async function PATCH(request: NextRequest) {
       'name', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
-      'active', 'location_id', 'custom_domain'
+      'active', 'location_id', 'market_id', 'development_id', 'custom_domain'
     ];
     const patchBoolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed', 'active'];
 

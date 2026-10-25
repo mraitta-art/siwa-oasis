@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { query } from '@/lib/db';
+import { listMarkets } from '@/lib/markets';
 
 export const revalidate = 3600; // revalidate hourly
 
@@ -61,19 +62,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const businesses = await query(
-      `SELECT slug, updated_at FROM businesses WHERE status = 'active' AND slug IS NOT NULL LIMIT 500`
+    // Each live market owns a front door. Dark markets are omitted: a URL that
+    // answers 404 has no business in a sitemap.
+    const markets = await listMarkets({ activeOnly: true });
+    const marketRoutes: MetadataRoute.Sitemap = markets.flatMap((market) =>
+      withArabic(`/${market.slug}`, 'daily', 0.8, now)
     );
+
+    // `market_id` arrives with the markets migration. Until it is applied the
+    // column-aware query comes back empty, so fall back to the flat listing
+    // rather than silently dropping every business from the sitemap.
+    let businesses = await query(
+      `SELECT slug, market_id, updated_at FROM businesses WHERE status = 'active' AND slug IS NOT NULL LIMIT 500`
+    );
+    if (!businesses || businesses.length === 0) {
+      businesses = await query(
+        `SELECT slug, updated_at FROM businesses WHERE status = 'active' AND slug IS NOT NULL LIMIT 500`
+      );
+    }
     const businessRoutes: MetadataRoute.Sitemap = (businesses || []).flatMap((b: any) =>
       withArabic(
-        `/${b.slug}`,
+        // A listing is addressed inside its market: /siwa/gagal-hotel,
+        // /el-alamein/gagal-hotel. The slug alone is ambiguous by design.
+        `/${b.market_id || 'siwa'}/${b.slug}`,
         'weekly',
         0.7,
         b.updated_at ? new Date(b.updated_at) : now
       )
     );
 
-    return [...staticRoutes, ...businessRoutes];
+    return [...staticRoutes, ...marketRoutes, ...businessRoutes];
   } catch {
     return staticRoutes;
   }

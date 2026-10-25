@@ -13,6 +13,9 @@ import { query, queryOne, normalizeCustomData } from '@/lib/db';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
 import { resolveSectionNav } from '@/lib/vanity-section-nav';
 import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
+import { DEFAULT_MARKET_SLUG, getMarketBySlug, marketName, pathMarketSlug } from '@/lib/markets';
+import { isMarketSegment } from '@/lib/market-routes';
+import MarketHome from '@/components/MarketHome';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,15 +68,24 @@ function waNumber(raw: string) {
 }
 
 async function findBusiness(slug: string) {
+  // The URL names the market, and a slug is only unique inside one. Without
+  // this check /el-alamein/gagal-hotel would serve the Siwa property, because
+  // the lookup itself is by slug. A row with no market_id (before the markets
+  // migration) is left alone rather than made invisible.
+  const urlMarket = await pathMarketSlug();
+  const belongs = (row: any) =>
+    !row || !urlMarket || !row.market_id || String(row.market_id) === urlMarket;
+
   try {
     if (UUID_RE.test(slug)) {
-      return await queryOne<any>(
+      const row = await queryOne<any>(
         `SELECT b.*, t.features AS tier_features
          FROM businesses b
          LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
          WHERE b.id = ? LIMIT 1`,
         [slug]
       );
+      return belongs(row) ? row : null;
     }
 
     const candidates = [...new Set(getBusinessSlugCandidates(slug))];
@@ -84,7 +96,7 @@ async function findBusiness(slug: string) {
       .map(() => 'LOWER(REPLACE(REPLACE(TRIM(b.name), " ", "-"), "_", "-")) = ?')
       .join(' OR ');
 
-    return await queryOne<any>(
+    const row = await queryOne<any>(
       `SELECT b.*, t.features AS tier_features
        FROM businesses b
        LEFT JOIN subscription_tiers t ON b.subscription_tier = t.id
@@ -92,6 +104,7 @@ async function findBusiness(slug: string) {
        LIMIT 1`,
       [...candidates, slug, ...candidates]
     );
+    return belongs(row) ? row : null;
   } catch {
     return null;
   }
@@ -234,6 +247,24 @@ export async function generateMetadata({
   const { slug } = await params;
   const base = siteBase();
 
+  // A market front door is not a business page: it answers with the market's own
+  // title, canonical and hreflang instead of a business lookup that cannot match.
+  if (isMarketSegment(slug)) {
+    const market = await getMarketBySlug(slug);
+    if (!market || !market.active) {
+      return { title: 'Not found | Siwify', robots: { index: false, follow: false } };
+    }
+    const locale = (await pathLocale()) ?? market.defaultLocale;
+    const publicPath = `/${market.slug}`;
+    const canonical = localeUrl(base, locale, publicPath);
+    const label = marketName(market, locale);
+    return {
+      title: `${label} | Siwify`,
+      alternates: { canonical, languages: languageAlternates(base, publicPath) },
+      openGraph: { title: label, url: canonical, siteName: 'Siwify', type: 'website' },
+    };
+  }
+
   const business = await findBusiness(slug);
   if (business) {
     const cd = normalizeCustomData(business.custom_data);
@@ -271,7 +302,11 @@ export async function generateMetadata({
     const image = heroImageFor(business, gallery, cd);
     const locale = (await pathLocale()) ?? 'en';
     const ar = locale === 'ar';
-    const publicPath = `/${business.slug || slug}`;
+    const marketSlug = String((business as any).market_id || (await pathMarketSlug()) || DEFAULT_MARKET_SLUG);
+    // A listing is addressed inside its market: /siwa/gagal-hotel. The bare slug
+    // still resolves (old QR codes and links), but it is not the canonical form and
+    // the same name in another market is a different address, not a collision.
+    const publicPath = `/${marketSlug}/${business.slug || slug}`;
     const canonical = localeUrl(base, locale, publicPath);
 
     // Indexability gate for prospect pages: no claim, no photo, no copy means
@@ -631,10 +666,17 @@ export default async function CanonicalVanityPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<{ lang?: string; category?: string }>;
 }) {
   const { slug } = await params;
-  const { lang: langParam } = await searchParams;
+  const { lang: langParam, category } = await searchParams;
+
+  // /{market} is the market's front door. The route tree is flat, so the slug
+  // decides: a market segment renders the market, anything else is a listing.
+  if (isMarketSegment(slug)) {
+    return <MarketHome marketSlug={slug} category={category} />;
+  }
+
   const lang = await resolveLang(langParam);
 
   const business = await findBusiness(slug);

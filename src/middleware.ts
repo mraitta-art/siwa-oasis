@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { getJwtSecret } from '@/lib/jwt-secret';
+import { MARKET_HEADER, isMarketSegment } from '@/lib/market-routes';
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 const PLATFORM_ROOT_DOMAINS = new Set(['siwify.com', 'www.siwify.com', 'localhost', '127.0.0.1']);
@@ -310,19 +311,37 @@ function withPublicCache(request: NextRequest, response: NextResponse) {
 async function routeRequest(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Locale-prefixed URLs (/ar/..., /en/...) render the same route tree with the
-  // language carried in a request header. Arabic used to be an invisible
-  // ?lang= parameter, so no crawler ever saw a second-language URL — this gives
-  // it a real address without forking every route into a [locale] segment.
-  const [, firstSegment] = pathname.split('/');
-  if (firstSegment === 'ar' || firstSegment === 'en') {
-    const rest = pathname.slice(firstSegment.length + 1) || '/';
+  // Two optional prefixes are stripped here, in this order: locale, then
+  // market. The route tree stays flat, so /{slug} and /{slug}/{section} keep
+  // serving every shape and no new dynamic segment can collide with another
+  // (/{market}/{business} and /{business}/{section} look identical to Next).
+  //
+  //   /ar/siwa/gagal-hotel -> /gagal-hotel   locale: ar, market: siwa
+  //   /el-alamein/gagal     -> /gagal        market: el-alamein
+  //
+  // A market prefix only counts when something follows it: `/siwa` alone is
+  // the market's front door, not a business that happens to be called "siwa".
+  const segments = pathname.split('/').filter(Boolean);
+  let localeHeader: string | null = null;
+  let marketHeader: string | null = null;
+
+  if (segments[0] === 'ar' || segments[0] === 'en') {
+    localeHeader = segments.shift() as string;
+  }
+
+  if (segments.length > 1 && isMarketSegment(segments[0])) {
+    marketHeader = segments.shift() as string;
+  }
+
+  if (localeHeader || marketHeader) {
+    const rest = `/${segments.join('/')}`;
     const isInternal = /^\/(api|_next|jana|admin|vendor|login|logout)(\/|$)/.test(rest);
     if (!isInternal) {
       const url = request.nextUrl.clone();
       url.pathname = rest;
       const forwarded = new Headers(request.headers);
-      forwarded.set('x-siwa-locale', firstSegment);
+      if (localeHeader) forwarded.set('x-siwa-locale', localeHeader);
+      if (marketHeader) forwarded.set(MARKET_HEADER, marketHeader);
       return NextResponse.rewrite(url, { request: { headers: forwarded } });
     }
   }

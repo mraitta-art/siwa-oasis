@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { execute, queryOne } from '@/lib/db';
 import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
 import { normalizeBusinessSlug } from '@/lib/public-url';
+import { DEFAULT_MARKET_SLUG, getMarketBySlug } from '@/lib/markets';
 
 export function normalizeBusinessName(name: string) {
   return String(name ?? '').replace(/\s+/g, ' ').trim();
@@ -49,6 +50,12 @@ export interface CreateBusinessInput {
   id?: string;
   name: string;
   type_id: string;
+  /** Marketplace the listing belongs to. Defaults to Siwa, the only live one. */
+  market_id?: string | null;
+  /** Place inside that market; defaults to the market's own city. */
+  location_id?: string | null;
+  /** Resort or compound the listing sits inside (a shop in a development). */
+  development_id?: string | null;
   subscription_tier?: string;
   vendor_id?: string | null;
   template_id?: string | null;
@@ -71,6 +78,9 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   let {
     name,
     type_id: typeId,
+    market_id: marketId = DEFAULT_MARKET_SLUG,
+    location_id: locationId = null,
+    development_id: developmentId = null,
     subscription_tier: subscriptionTier = 'free',
     vendor_id: vendorId = null,
     template_id: templateId = null,
@@ -94,6 +104,19 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   if (!typeId) throw new Error('Business type (typology) is required');
   if (vendorId === '') vendorId = null;
   if (templateId === '') templateId = null;
+  if (developmentId === '') developmentId = null;
+
+  // Every listing belongs to exactly one market. The registry is the authority,
+  // so a typo in an import cannot quietly create a fourth market.
+  const market = String(marketId || DEFAULT_MARKET_SLUG).trim().toLowerCase();
+  const marketRow = await getMarketBySlug(market);
+  if (!marketRow) {
+    const error = new Error(`Unknown market "${marketId}". Create the market before listing inside it.`);
+    (error as any).rule = 'UNKNOWN_MARKET';
+    throw error;
+  }
+  if (!locationId) locationId = marketRow.locationId;
+  if (locationId === '') locationId = null;
 
   if (cloneFromId) {
     const sourceBusiness = await queryOne(
@@ -116,10 +139,17 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   }
 
   const selectedType = await queryOne(
-    'SELECT id, name, is_parent, parent_id, default_template_id FROM business_types WHERE id = ?',
+    'SELECT id, name, is_parent, parent_id, default_template_id, market_id FROM business_types WHERE id = ?',
     [typeId]
   ) as any;
   if (!selectedType) throw new Error(`Business type "${typeId}" not found.`);
+  // A category tagged with a market (salt lakes, tuk-tuk, Siwan kitchen) is not
+  // offered anywhere else. Shared categories stay NULL and work in every market.
+  if (selectedType.market_id && String(selectedType.market_id) !== market) {
+    const error = new Error(`"${selectedType.name}" is not offered in ${marketRow.nameEn}. Pick a category that exists in that market.`);
+    (error as any).rule = 'TYPE_NOT_IN_MARKET';
+    throw error;
+  }
   if (selectedType.is_parent || !selectedType.parent_id) {
     const error = new Error(`"${selectedType.name}" is a parent/category type. Select a specific child typology.`);
     (error as any).rule = 'PARENT_TYPE_NO_REGISTRATION';
@@ -200,9 +230,11 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   }
 
   const baseSlug = buildBusinessSlug(canonicalName);
+  // Slugs are unique inside a market, not globally: /siwa/gagal-hotel and
+  // /el-alamein/gagal-hotel are two properties that share a name.
   let slug = baseSlug;
   let counter = 1;
-  while (await queryOne('SELECT id FROM businesses WHERE slug = ? LIMIT 1', [slug])) {
+  while (await queryOne('SELECT id FROM businesses WHERE market_id = ? AND slug = ? LIMIT 1', [market, slug])) {
     slug = `${baseSlug}-${counter++}`;
   }
 
@@ -220,9 +252,9 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   const persistedData = { ...normalizedCustomData, source_provenance: provenance };
 
   await execute(
-    `INSERT INTO businesses (id, name, slug, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, canonicalName, slug, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
+    `INSERT INTO businesses (id, name, slug, market_id, location_id, development_id, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, canonicalName, slug, market, locationId, developmentId, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
       JSON.stringify(persistedData), status, status === 'active' ? 1 : 0, masterValue, sharedValue, claimedValue]
   );
 
@@ -234,5 +266,5 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     }
   }
 
-  return { id, name: canonicalName, slug, type_id: typeId, vendor_id: vendorId, is_master: masterValue, is_claimed: claimedValue };
+  return { id, name: canonicalName, slug, market_id: market, location_id: locationId, development_id: developmentId, type_id: typeId, vendor_id: vendorId, is_master: masterValue, is_claimed: claimedValue };
 }
