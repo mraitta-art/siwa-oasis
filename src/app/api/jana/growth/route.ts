@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, query, queryOne } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
-import { getPublicMinisiteUrl } from '@/lib/public-url';
+import { getBusinessPublicUrl } from '@/lib/public-url';
 import { evaluateVendorTrial, readVendorTrial } from '@/lib/vendor-trial';
 import { evaluateVendorPledge, readVendorPledge } from '@/lib/vendor-pledge';
 
@@ -183,7 +183,7 @@ export async function GET() {
         id: b.id,
         slug: b.slug,
         name: b.name,
-        url: getPublicMinisiteUrl(b.slug),
+        url: getBusinessPublicUrl(b),
         tier: b.tier || 'free',
         service_level: b.service_level || 'template',
         phone: b.vendor_phone,
@@ -394,7 +394,7 @@ export async function POST(request: NextRequest) {
         if (match) channelCounts.set(match[1], (channelCounts.get(match[1]) || 0) + 1);
       }
 
-      const url = getPublicMinisiteUrl(business.slug);
+      const url = getBusinessPublicUrl(business);
       const text = buildDigestMessage({
         name: business.name,
         views,

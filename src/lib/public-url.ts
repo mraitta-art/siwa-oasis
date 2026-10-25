@@ -40,3 +40,40 @@ export function getPublicAppUrl() {
 export function getPublicMinisiteUrl(slug: string) {
   return `${getPublicAppUrl().replace(/\/$/, '')}/${slug}`;
 }
+
+/**
+ * Where a listing answers: the short address or the one inside its market.
+ *
+ * 'root' is the platform default because it is what the vendor-facing stack has
+ * always printed (QR codes, prospect outreach, welcome emails). 'market' exists
+ * for listings that should read as part of their district. Both shapes resolve
+ * either way, so switching only changes which one the platform advertises.
+ */
+export type UrlStyle = 'root' | 'market';
+
+interface AddressableBusiness {
+  slug?: string | null;
+  id?: string | null;
+  market_id?: string | null;
+  marketId?: string | null;
+  url_style?: string | null;
+}
+
+export function urlStyleOf(business: AddressableBusiness | null | undefined): UrlStyle {
+  return String(business?.url_style || '').toLowerCase() === 'market' ? 'market' : 'root';
+}
+
+/** The canonical path of a listing: '/villa-name' or '/hurghada/villa-name'. */
+export function businessPublicPath(business: AddressableBusiness, fallbackMarket = 'siwa'): string {
+  const slug = String(business?.slug || business?.id || '').replace(/^\/+|\/+$/g, '');
+  if (!slug) return '/';
+  if (urlStyleOf(business) === 'market') {
+    return `/${business.market_id || business.marketId || fallbackMarket}/${slug}`;
+  }
+  return `/${slug}`;
+}
+
+/** Absolute URL for anything a human will read or scan. */
+export function getBusinessPublicUrl(business: AddressableBusiness, fallbackMarket = 'siwa'): string {
+  return `${getPublicAppUrl().replace(/\/$/, '')}${businessPublicPath(business, fallbackMarket)}`;
+}

@@ -1,6 +1,6 @@
 import { execute, queryOne } from '@/lib/db';
 import { extractGooglePlaceId, hasConsent } from '@/lib/vendor-consents';
-import { getPublicMinisiteUrl } from '@/lib/public-url';
+import { getBusinessPublicUrl } from '@/lib/public-url';
 import { minisiteMatchesUrl, readVendorPledge } from '@/lib/vendor-pledge';
 
 /**
@@ -232,7 +232,7 @@ export async function syncBusinessGooglePlace(
   // website field points at the minisite — free verification on every sync.
   const pledge = readVendorPledge(customData);
   if (pledge) {
-    const minisiteUrl = pledge.minisite_url || getPublicMinisiteUrl(business.slug || '');
+    const minisiteUrl = pledge.minisite_url || (business.slug ? getBusinessPublicUrl(business) : '');
     nextCustomData.pledge = {
       ...pledge,
       google_website_url: lookup.snapshot.website_uri || null,
@@ -428,7 +428,7 @@ export async function verifyPledgeGoogleLink(businessId: string): Promise<Pledge
     return { ok: false, reason: 'no_pledge', message: 'This business has not accepted the visibility pledge yet.' };
   }
 
-  const minisiteUrl = pledge.minisite_url || (business.slug ? getPublicMinisiteUrl(business.slug) : '');
+  const minisiteUrl = pledge.minisite_url || (business.slug ? getBusinessPublicUrl(business) : '');
   const now = new Date().toISOString();
 
   if (!isGooglePlacesConfigured()) {

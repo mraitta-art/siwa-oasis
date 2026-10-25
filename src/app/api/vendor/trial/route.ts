@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { execute, queryOne } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
 import { parseCustomData } from '@/lib/google-places';
-import { getPublicMinisiteUrl } from '@/lib/public-url';
+import { getBusinessPublicUrl } from '@/lib/public-url';
 import { VENDOR_SERVICE_CATALOG } from '@/lib/vendor-services';
 import {
   VENDOR_TRIAL_VERSION,
@@ -102,7 +102,7 @@ function shapeBusiness(
   return {
     businessId: business.id,
     slug: business.slug,
-    minisiteUrl: business.slug ? getPublicMinisiteUrl(business.slug) : '',
+    minisiteUrl: business.slug ? getBusinessPublicUrl(business) : '',
     trialVersion: VENDOR_TRIAL_VERSION,
     trial: evaluated,
     defaultDays: resolveTrialDays(features),

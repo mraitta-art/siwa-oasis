@@ -92,11 +92,24 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
   async function saveBusiness() {
     setSaving(true);
     try {
-      await fetch('/api/jana/businesses', {
+      const res = await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name_ar: biz.name_ar || null, custom_data: biz.custom_data })
+        // url_style travels with the identity: the server re-checks the slug's
+        // namespace, because moving an address can orphan a printed QR code.
+        body: JSON.stringify({
+          id,
+          name_ar: biz.name_ar || null,
+          url_style: biz.url_style === 'market' ? 'market' : 'root',
+          custom_data: biz.custom_data,
+        })
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || 'Could not save. That address may be taken elsewhere.');
+        setSaving(false);
+        return;
+      }
       alert('Business DNA updated successfully!');
     } catch (e) { console.error(e); }
     setSaving(false);
@@ -221,6 +234,28 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
                   outline: 'none',
                 }}
               />
+            </div>
+            {/* The address, never the geography: market_id and location_id stay
+                put either way. Root is the default because it is what a QR code
+                already prints; both shapes resolve. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>
+                PUBLIC ADDRESS
+              </span>
+              <select
+                value={biz.url_style === 'market' ? 'market' : 'root'}
+                onChange={(e) => setBiz({ ...biz, url_style: e.target.value })}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.85rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  outline: 'none',
+                }}
+              >
+                <option value="root">siwify.com/{biz.slug || 'slug'}</option>
+                <option value="market">siwify.com/{biz.market_id || 'siwa'}/{biz.slug || 'slug'}</option>
+              </select>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>

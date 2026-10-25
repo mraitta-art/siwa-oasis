@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { query } from '@/lib/db';
 import { listMarkets } from '@/lib/markets';
+import { businessPublicPath } from '@/lib/public-url';
 
 export const revalidate = 3600; // revalidate hourly
 
@@ -69,7 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // column-aware query comes back empty, so fall back to the flat listing
     // rather than silently dropping every business from the sitemap.
     let businesses = await query(
-      `SELECT slug, market_id, updated_at FROM businesses WHERE status = 'active' AND slug IS NOT NULL LIMIT 500`
+      `SELECT slug, market_id, url_style, updated_at FROM businesses WHERE status = 'active' AND slug IS NOT NULL LIMIT 500`
     );
     if (!businesses || businesses.length === 0) {
       businesses = await query(
@@ -78,9 +79,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     const businessRoutes: MetadataRoute.Sitemap = (businesses || []).flatMap((b: any) =>
       withArabic(
-        // A listing is addressed inside its market: /siwa/gagal-hotel,
-        // /el-alamein/gagal-hotel. The slug alone is ambiguous by design.
-        `/${b.market_id || 'siwa'}/${b.slug}`,
+        // Each listing is listed at the address it answers at: the short form,
+        // or the form inside its market. Listing both would be asking a crawler
+        // to index a page that only exists to point at another one.
+        businessPublicPath(b),
         'weekly',
         0.7,
         b.updated_at ? new Date(b.updated_at) : now

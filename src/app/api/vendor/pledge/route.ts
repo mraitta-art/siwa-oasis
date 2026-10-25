@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { execute, queryOne } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
 import { isGooglePlacesConfigured, parseCustomData, verifyPledgeGoogleLink } from '@/lib/google-places';
-import { getPublicMinisiteUrl } from '@/lib/public-url';
+import { getBusinessPublicUrl } from '@/lib/public-url';
 import { buildPromoKit } from '@/lib/promo-kit';
 import {
   VENDOR_PLEDGE_VERSION,
@@ -39,7 +39,7 @@ async function resolveBusiness(request: NextRequest) {
 
 function shapePledge(business: any, language: 'en' | 'ar', googleSetup: Record<string, any> | null) {
   const customData = parseCustomData(business.custom_data);
-  const minisiteUrl = business.slug ? getPublicMinisiteUrl(business.slug) : '';
+  const minisiteUrl = business.slug ? getBusinessPublicUrl(business) : '';
   const pledge = evaluateVendorPledge(readVendorPledge(customData));
   return {
     businessId: business.id,
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
   if (!business) return NextResponse.json({ error: 'Business not found.' }, { status: 404 });
 
   const language = request.nextUrl.searchParams.get('lang') === 'ar' ? 'ar' : 'en';
-  const minisiteUrl = business.slug ? getPublicMinisiteUrl(business.slug) : '';
+  const minisiteUrl = business.slug ? getBusinessPublicUrl(business) : '';
   const googleSetup = await buildGoogleSetup(business, minisiteUrl);
   return NextResponse.json(shapePledge(business, language, googleSetup));
 }
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
   }
 
   const refreshed = updated || business;
-  const minisiteUrl = refreshed.slug ? getPublicMinisiteUrl(refreshed.slug) : '';
+  const minisiteUrl = refreshed.slug ? getBusinessPublicUrl(refreshed) : '';
 
   return NextResponse.json({
     success: true,

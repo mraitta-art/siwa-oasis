@@ -3,6 +3,7 @@ import { execute, queryOne } from '@/lib/db';
 import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
 import { normalizeBusinessSlug } from '@/lib/public-url';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug } from '@/lib/markets';
+import { isReservedSlug } from '@/lib/market-routes';
 
 export function normalizeBusinessName(name: string) {
   return String(name ?? '').replace(/\s+/g, ' ').trim();
@@ -289,11 +290,24 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   }
 
   const baseSlug = buildBusinessSlug(canonicalName);
-  // Slugs are unique inside a market, not globally: /siwa/gagal-hotel and
-  // /el-alamein/gagal-hotel are two properties that share a name.
+  // The namespace follows the address. A 'root' listing answers at /{slug}, and a
+  // QR code carries no market, so its slug has to be free across the whole
+  // platform. A 'market' listing answers at /{market}/{slug}, where the market is
+  // part of the address: /siwa/gagal-hotel and /el-alamein/gagal-hotel are two
+  // properties that share a name, not a collision.
+  const urlStyle = String((input as any).url_style ?? (input as any).urlStyle ?? 'root') === 'market' ? 'market' : 'root';
+  if (urlStyle === 'root' && isReservedSlug(baseSlug)) {
+    const error = new Error(`"${baseSlug}" is a reserved address. Choose a different name or set a custom slug.`);
+    (error as any).rule = 'SLUG_RESERVED';
+    throw error;
+  }
+  const slugTaken = async (candidate: string) =>
+    urlStyle === 'root'
+      ? queryOne('SELECT id FROM businesses WHERE slug = ? LIMIT 1', [candidate])
+      : queryOne('SELECT id FROM businesses WHERE market_id = ? AND slug = ? LIMIT 1', [market, candidate]);
   let slug = baseSlug;
   let counter = 1;
-  while (await queryOne('SELECT id FROM businesses WHERE market_id = ? AND slug = ? LIMIT 1', [market, slug])) {
+  while (await slugTaken(slug)) {
     slug = `${baseSlug}-${counter++}`;
   }
 
@@ -311,10 +325,10 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   const persistedData = { ...normalizedCustomData, source_provenance: provenance };
 
   await execute(
-    `INSERT INTO businesses (id, name, name_ar, slug, market_id, location_id, development_id, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO businesses (id, name, name_ar, slug, market_id, location_id, development_id, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed, url_style)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, canonicalName, arabicName || null, slug, market, locationId, developmentId, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
-      JSON.stringify(persistedData), status, status === 'active' ? 1 : 0, masterValue, sharedValue, claimedValue]
+      JSON.stringify(persistedData), status, status === 'active' ? 1 : 0, masterValue, sharedValue, claimedValue, urlStyle]
   );
 
   if (actorId) {

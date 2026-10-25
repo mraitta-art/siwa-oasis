@@ -10,7 +10,7 @@ import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteS
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
 import { query, queryOne, normalizeCustomData, stripCustomDataSecrets } from '@/lib/db';
-import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
+import { businessPublicPath, getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
 import { resolveSectionNav } from '@/lib/vanity-section-nav';
 import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug, marketName, pathMarketSlug } from '@/lib/markets';
@@ -317,10 +317,10 @@ export async function generateMetadata({
     const locale = (await pathLocale()) ?? 'en';
     const ar = locale === 'ar';
     const marketSlug = String((business as any).market_id || (await pathMarketSlug()) || DEFAULT_MARKET_SLUG);
-    // A listing is addressed inside its market: /siwa/gagal-hotel. The bare slug
-    // still resolves (old QR codes and links), but it is not the canonical form and
-    // the same name in another market is a different address, not a collision.
-    const publicPath = `/${marketSlug}/${business.slug || slug}`;
+    // The address follows the listing's own choice: `url_style = 'root'` answers at
+    // /villa-name (what every QR code already prints), 'market' at /hurghada/villa.
+    // Both resolve either way — this only decides which one a crawler keeps.
+    const publicPath = businessPublicPath(business, marketSlug);
     const canonical = localeUrl(base, locale, publicPath);
 
     // Indexability gate for prospect pages: no claim, no photo, no copy means
@@ -470,7 +470,7 @@ function BusinessJsonLd({
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: business.name,
-    url: `${siteBase()}/${business.slug || business.id}`,
+    url: `${siteBase()}${businessPublicPath(business)}`,
     description,
     address: {
       '@type': 'PostalAddress',
@@ -721,7 +721,7 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1rem' }}>
         <MinisiteQRCode
           businessName={name}
-          slug={business.slug || initialSlug}
+          targetUrl={`${siteBase()}${businessPublicPath(business)}`}
           businessId={business.id}
           src="qr"
         />

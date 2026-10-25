@@ -1,4 +1,5 @@
 import { query, normalizeCustomData } from '@/lib/db';
+import { businessPublicPath } from '@/lib/public-url';
 import {
   resolveSectionId,
   filterCoreSectionsForBusinessType,
@@ -94,7 +95,6 @@ export async function resolveSectionNav(business: any): Promise<SectionNavItem[]
   const galleryMap: Record<string, number> = Object.fromEntries(gallery.map((r: any) => [r.section_id, Number(r.n || 0)]));
   const blogMap: Record<string, number> = Object.fromEntries(blogs.map((r: any) => [r.section_id, Number(r.n || 0)]));
 
-  const slug = business.slug || business.id;
   const out: SectionNavItem[] = [];
   const seen = new Set<string>();
 
@@ -117,7 +117,7 @@ export async function resolveSectionNav(business: any): Promise<SectionNavItem[]
     if (!hasOwnData && !hasGallery && !hasBlog) continue;
 
     seen.add(id);
-    out.push({ id, label: getEffectiveSectionLabel(id, def.name, customData, ctrl), href: `/${slug}/${id}` });
+    out.push({ id, label: getEffectiveSectionLabel(id, def.name, customData, ctrl), href: `${businessPublicPath(business)}/${id}` });
   }
 
   out.sort((a, b) => secNum(a.id) - secNum(b.id) || a.label.localeCompare(b.label));

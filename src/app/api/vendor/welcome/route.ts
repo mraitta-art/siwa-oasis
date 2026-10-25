@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { query, queryOne } from '@/lib/db';
 import { parseCustomData } from '@/lib/google-places';
-import { getPublicMinisiteUrl } from '@/lib/public-url';
+import { getBusinessPublicUrl } from '@/lib/public-url';
 import { buildPromoKit, buildShareKit, tagMinisiteUrl } from '@/lib/promo-kit';
 import { countYoutubeLinks, evaluateVendorTrial, readVendorTrial, resolveTrialQuota } from '@/lib/vendor-trial';
 import { evaluateVendorPledge, readVendorPledge } from '@/lib/vendor-pledge';
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     const customData = parseCustomData(business.custom_data);
     const slug = String(business.slug || business.id);
-    const minisiteUrl = getPublicMinisiteUrl(slug);
+    const minisiteUrl = getBusinessPublicUrl({ ...business, slug });
 
     // Tier policy drives the trial clock and the meters, exactly as the acceptance route does.
     let features: Record<string, any> | null = null;

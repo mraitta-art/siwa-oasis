@@ -4,6 +4,34 @@ import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
 import { createBusinessEntity } from '@/lib/business-creation';
 import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
+import { isReservedSlug } from '@/lib/market-routes';
+
+/**
+ * A listing's public URL must never move by accident. Renaming a business used
+ * to rewrite its slug in the same statement, which quietly killed every QR code
+ * already printed with the old address. A slug now changes only when an admin
+ * sends one explicitly, and only into a namespace where it is still free.
+ */
+async function planSlugChange(id: string, requested: string, nextStyle?: string) {
+  const next = slugify(requested);
+  if (!next) return { error: 'Slug cannot be empty', status: 400 };
+  if (isReservedSlug(next)) return { error: `"${next}" is already a route. Pick another slug.`, status: 400 };
+
+  const current = await queryOne('SELECT slug, market_id, url_style FROM businesses WHERE id = ?', [id]) as any;
+  const style = String(nextStyle || current?.url_style || 'root') === 'market' ? 'market' : 'root';
+  const clash = style === 'market'
+    ? await queryOne('SELECT id FROM businesses WHERE market_id = ? AND slug = ? AND id <> ? LIMIT 1', [current?.market_id, next, id])
+    : await queryOne('SELECT id FROM businesses WHERE slug = ? AND id <> ? LIMIT 1', [next, id]);
+  if (clash) {
+    return {
+      error: style === 'market'
+        ? `"${next}" is already used inside this market.`
+        : `"${next}" is already the address of a listing in another market.`,
+      status: 409,
+    };
+  }
+  return { slug: next, previous: current?.slug as string | undefined };
+}
 
 function slugify(text: string): string {
   return text
@@ -219,7 +247,7 @@ export async function PUT(request: NextRequest) {
       'name', 'name_ar', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
-      'active', 'location_id', 'market_id', 'development_id', 'custom_domain'
+      'active', 'location_id', 'market_id', 'development_id', 'custom_domain', 'url_style'
     ];
     const boolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed', 'active'];
 
@@ -254,13 +282,17 @@ export async function PUT(request: NextRequest) {
       if (dbColumns.includes(key)) {
         sets.push(`${key} = ?`);
         params.push(boolFields.includes(key) ? (value ? 1 : 0) : value);
-
-        // Also update slug if name is changed
-        if (key === 'name' && typeof value === 'string') {
-          sets.push(`slug = ?`);
-          params.push(slugify(value));
-        }
       }
+    }
+
+    // The slug is deliberately not derived from the name here: see planSlugChange.
+    let slugNote = '';
+    if (typeof updates.slug === 'string' && updates.slug.trim()) {
+      const plan = await planSlugChange(id, updates.slug, updates.url_style);
+      if ('error' in plan) return NextResponse.json({ error: plan.error }, { status: plan.status as number });
+      sets.push('slug = ?');
+      params.push(plan.slug);
+      slugNote = ` slug: ${plan.previous} -> ${plan.slug}`;
     }
 
     if (customDataToSave !== undefined) {
@@ -283,7 +315,7 @@ export async function PUT(request: NextRequest) {
 
     try {
       await execute('INSERT INTO audit_log (id, user_id, user_email, user_role, action, details) VALUES (?, ?, ?, ?, ?, ?)', [
-        crypto.randomUUID(), user.id, user.email, user.role, 'update_business', `Updated business: ${id}`
+        crypto.randomUUID(), user.id, user.email, user.role, 'update_business', `Updated business: ${id}${slugNote}`
       ]);
     } catch (e) {
        console.warn('Audit Logging skipped for update_business');
@@ -319,7 +351,7 @@ export async function PATCH(request: NextRequest) {
       'name', 'name_ar', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
-      'active', 'location_id', 'market_id', 'development_id', 'custom_domain'
+      'active', 'location_id', 'market_id', 'development_id', 'custom_domain', 'url_style'
     ];
     const patchBoolFields = ['is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed', 'active'];
 
@@ -327,12 +359,17 @@ export async function PATCH(request: NextRequest) {
       if (patchDbColumns.includes(key)) {
         sets.push(`${key} = ?`);
         params.push(patchBoolFields.includes(key) ? (value ? 1 : 0) : value);
-
-        if (key === 'name' && typeof value === 'string') {
-          sets.push(`slug = ?`);
-          params.push(slugify(value));
-        }
       }
+    }
+
+    // Same rule as PUT: a rename leaves the address alone.
+    let slugNote = '';
+    if (typeof updates.slug === 'string' && updates.slug.trim()) {
+      const plan = await planSlugChange(id, updates.slug, updates.url_style);
+      if ('error' in plan) return NextResponse.json({ error: plan.error }, { status: plan.status as number });
+      sets.push('slug = ?');
+      params.push(plan.slug);
+      slugNote = `slug: ${plan.previous} -> ${plan.slug}`;
     }
 
     // Deep merge custom_data
@@ -423,7 +460,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Business DNA merged successfully' });
+    return NextResponse.json({ success: true, message: 'Business DNA merged successfully', ...(slugNote ? { slug_change: slugNote } : {}) });
   } catch (e: any) {
     console.error('PATCH business error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });

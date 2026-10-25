@@ -669,6 +669,7 @@ function VillaForm({
     subscription_tier: tiers[0]?.id || 'free',
     phone: '',
     status: 'active',
+    url_style: 'root',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -712,6 +713,7 @@ function VillaForm({
           subscription_tier: form.subscription_tier,
           phone: form.phone,
           status: form.status,
+          url_style: form.url_style,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -859,6 +861,20 @@ function VillaForm({
               <option value="free">Free</option>
             )}
           </select>
+        </div>
+        <div>
+          <label style={LABEL}>PUBLIC ADDRESS</label>
+          <select
+            className="form-control"
+            value={form.url_style}
+            onChange={(e) => setForm({ ...form, url_style: e.target.value })}
+          >
+            <option value="root">{'siwify.com/{slug} — short address (default)'}</option>
+            <option value="market">{`siwify.com/${market}/{slug} — inside the market`}</option>
+          </select>
+          <div style={HINT}>
+            The address only: the listing stays filed in this market either way.
+          </div>
         </div>
         <div>
           <label style={LABEL}>PHONE / WHATSAPP</label>

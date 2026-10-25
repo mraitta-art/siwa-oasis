@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryOne, execute } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
-import { getPublicMinisiteUrl, getPublicAppUrl } from '@/lib/public-url';
+import { getBusinessPublicUrl, getPublicAppUrl } from '@/lib/public-url';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -199,7 +199,9 @@ export async function GET(
     }
 
     const publicAppUrl = getPublicAppUrl().replace(/\/$/, '');
-    const minisiteUrl = getPublicMinisiteUrl(biz.slug || biz.id);
+    // The address this business chose, not the one we assume: a root listing
+    // prints /villa-name, a market listing prints /hurghada/villa-name.
+    const minisiteUrl = getBusinessPublicUrl(biz);
     const barcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(minisiteUrl)}&color=000000&bgcolor=ffffff`;
     const loginUrl = `${publicAppUrl}/login`;
     const trialExpiresAt = new Date(trialConfig.expiresAt);
