@@ -21,6 +21,26 @@ interface MarketRow {
   launchNotes: string | null;
   listings: number;
   compounds: number;
+  places: number;
+}
+
+/**
+ * A container is either somebody's project or a settlement that already exists.
+ * The page they render is the same; only these words change.
+ */
+const CONTAINER_KINDS = [
+  { id: 'compound', label: 'COMPOUND', hint: 'a project by a developer' },
+  { id: 'town', label: 'TOWN', hint: 'a settlement with schools, shops and cafés' },
+  { id: 'village', label: 'VILLAGE', hint: 'a smaller settlement' },
+  { id: 'resort', label: 'RESORT', hint: 'a hospitality destination' },
+] as const;
+
+function isPlaceKind(kind: string): boolean {
+  return kind === 'town' || kind === 'village';
+}
+
+function kindLabel(kind: string): string {
+  return CONTAINER_KINDS.find((entry) => entry.id === kind)?.label || 'COMPOUND';
 }
 
 interface CompoundRow {
@@ -30,6 +50,7 @@ interface CompoundRow {
   slug: string;
   nameAr: string;
   nameEn: string;
+  kind: string;
   developerName: string | null;
   deliveryYear: number | null;
   status: string;
@@ -580,17 +601,21 @@ function MarketForm({
 
 function CompoundForm({
   market,
+  kind = 'compound',
   draft,
   onClose,
   onSaved,
 }: {
   market: string;
+  /** Preset when the form is opened from a TOWN / RESORT button. */
+  kind?: string;
   draft?: CompoundRow | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const editing = Boolean(draft?.id);
   const [form, setForm] = useState({
+    kind: draft?.kind || kind,
     nameEn: draft?.nameEn || '',
     nameAr: draft?.nameAr || '',
     developerName: draft?.developerName || '',
@@ -598,6 +623,10 @@ function CompoundForm({
     status: draft?.status || 'under_construction',
     pageBusinessId: draft?.pageBusinessId || '',
   });
+  // A town has no developer, no delivery date and no construction status. Those
+  // fields are hidden rather than emptied, so the record keeps whatever a
+  // reclassified project already had.
+  const placeLike = isPlaceKind(form.kind);
   const [candidates, setCandidates] = useState<{ id: string; name: string; name_ar: string | null }[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -630,11 +659,11 @@ function CompoundForm({
         ),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Could not save the compound');
+      if (!res.ok) throw new Error(data.error || 'Could not save it');
       onSaved();
       onClose();
     } catch (e: any) {
-      setError(e.message || 'Could not save the compound');
+      setError(e.message || 'Could not save it');
     } finally {
       setSaving(false);
     }
@@ -651,7 +680,11 @@ function CompoundForm({
       }}
     >
       <h5 style={{ margin: '0 0 0.75rem 0', color: '#92400e' }}>
-        <i className="fas fa-city"></i> {editing ? 'EDIT' : 'NEW'} COMPOUND IN {market}
+        <i className={`fas ${placeLike ? 'fa-map-location-dot' : 'fa-city'}`}></i>{' '}
+        {editing ? 'EDIT' : 'NEW'} {kindLabel(form.kind)} IN {market}
+        <span style={{ marginLeft: '0.5rem', fontWeight: 600, color: '#b45309' }}>
+          — {CONTAINER_KINDS.find((entry) => entry.id === form.kind)?.hint}
+        </span>
       </h5>
       <div
         style={{
@@ -661,11 +694,25 @@ function CompoundForm({
         }}
       >
         <div>
+          <label style={LABEL}>TYPE</label>
+          <select
+            className="form-control"
+            value={form.kind}
+            onChange={(e) => setForm({ ...form, kind: e.target.value })}
+          >
+            {CONTAINER_KINDS.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.label} — {entry.hint}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
           <label style={LABEL}>NAME (ENGLISH) *</label>
           <input
             className="form-control"
             value={form.nameEn}
-            placeholder="Marassi"
+            placeholder={placeLike ? 'El Hammam' : 'Marassi'}
             onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
           />
         </div>
@@ -674,10 +721,12 @@ function CompoundForm({
           <input
             className="form-control"
             value={form.nameAr}
-            placeholder="مراسي"
+            placeholder={placeLike ? 'الحمام' : 'مراسي'}
             onChange={(e) => setForm({ ...form, nameAr: e.target.value })}
           />
         </div>
+        {!placeLike && (
+          <>
         <div>
           <label style={LABEL}>DEVELOPER</label>
           <input
@@ -708,6 +757,8 @@ function CompoundForm({
             <option value="sold_out">sold_out</option>
           </select>
         </div>
+          </>
+        )}
         <div>
           <label style={LABEL}>PAGE BUSINESS</label>
           <select
@@ -731,7 +782,7 @@ function CompoundForm({
       )}
       <div style={{ marginTop: '0.8rem', display: 'flex', gap: '0.6rem' }}>
         <button className="btn btn-primary" onClick={submit} disabled={saving || !form.nameEn}>
-          {saving ? 'SAVING…' : editing ? 'SAVE CHANGES' : 'CREATE COMPOUND'}
+          {saving ? 'SAVING…' : editing ? 'SAVE CHANGES' : `CREATE ${kindLabel(form.kind)}`}
         </button>
         <button className="btn btn-outline" onClick={onClose}>
           CANCEL
@@ -1286,7 +1337,7 @@ export default function MarketsHierarchyPage() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [marketForm, setMarketForm] = useState<MarketRow | 'new' | null>(null);
-  const [compoundFor, setCompoundFor] = useState<string | null>(null);
+  const [compoundFor, setCompoundFor] = useState<{ market: string; kind: string } | null>(null);
   const [compoundEdit, setCompoundEdit] = useState<CompoundRow | null>(null);
   const [villaFor, setVillaFor] = useState<{ market: string; compoundId: string } | null>(null);
   const [view, setView] = useState<'markets' | 'geography'>('markets');
@@ -1701,6 +1752,7 @@ export default function MarketsHierarchyPage() {
                 <Badge tone={market.active ? 'live' : 'dark'}>{market.active ? 'LIVE' : 'DARK'}</Badge>
                 <Badge tone="muted">{market.listings} listings</Badge>
                 <Badge tone="muted">{market.compounds} compounds</Badge>
+                {market.places > 0 && <Badge tone="muted">{market.places} places</Badge>}
                 <Badge tone="muted">{market.revenueModel}</Badge>
 
                 <div style={{ flex: 1 }}></div>
@@ -1731,10 +1783,20 @@ export default function MarketsHierarchyPage() {
                   style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }}
                   onClick={() => {
                     setOpen({ ...open, [market.slug]: true });
-                    setCompoundFor(market.slug);
+                    setCompoundFor({ market: market.slug, kind: 'compound' });
                   }}
                 >
                   <i className="fas fa-city"></i> COMPOUND
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  style={{ color: '#0f766e', borderColor: '#14b8a6' }}
+                  onClick={() => {
+                    setOpen({ ...open, [market.slug]: true });
+                    setCompoundFor({ market: market.slug, kind: 'town' });
+                  }}
+                >
+                  <i className="fas fa-map-location-dot"></i> TOWN
                 </button>
                 <button
                   className="btn btn-xs btn-outline"
@@ -1761,20 +1823,21 @@ export default function MarketsHierarchyPage() {
 
               {isOpen && (
                 <div style={{ marginTop: '0.9rem', paddingLeft: '1.1rem', borderLeft: '2px dashed #e2e8f0' }}>
-                  {compoundFor === market.slug && (
+                  {compoundFor?.market === market.slug && (
                     <CompoundForm
                       market={market.slug}
+                      kind={compoundFor.kind}
                       onClose={() => setCompoundFor(null)}
                       onSaved={() => {
-                        notify('Compound created', 'success');
+                        notify(`${kindLabel(compoundFor?.kind || 'compound')} created`, 'success');
                         load();
                       }}
                     />
                   )}
 
-                  {marketCompounds.length === 0 && standalone.length === 0 && compoundFor !== market.slug && (
+                  {marketCompounds.length === 0 && standalone.length === 0 && compoundFor?.market !== market.slug && (
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8', padding: '0.5rem 0' }}>
-                      No supply yet. Add a compound, or a villa that stands on its own.
+                      No supply yet. Add a compound, a town, or a villa that stands on its own.
                     </div>
                   )}
 
@@ -1792,15 +1855,27 @@ export default function MarketsHierarchyPage() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <i className="fas fa-city" style={{ color: '#8b5cf6' }}></i>
+                          <i
+                            className={`fas ${isPlaceKind(compound.kind) ? 'fa-map-location-dot' : 'fa-city'}`}
+                            style={{ color: isPlaceKind(compound.kind) ? '#0f766e' : '#8b5cf6' }}
+                          ></i>
                           <strong style={{ fontSize: '0.85rem' }}>{compound.nameEn}</strong>
+                          <Badge tone="muted">{kindLabel(compound.kind)}</Badge>
                           <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
                             {compound.slug}
-                            {compound.developerName ? ` · ${compound.developerName}` : ''}
-                            {compound.deliveryYear ? ` · ${compound.deliveryYear}` : ''}
+                            {!isPlaceKind(compound.kind) && compound.developerName
+                              ? ` · ${compound.developerName}`
+                              : ''}
+                            {!isPlaceKind(compound.kind) && compound.deliveryYear
+                              ? ` · ${compound.deliveryYear}`
+                              : ''}
                           </span>
-                          <Badge tone={compound.active ? 'muted' : 'dark'}>{compound.status}</Badge>
-                          <Badge tone="muted">{inside.length} villas</Badge>
+                          {!isPlaceKind(compound.kind) && (
+                            <Badge tone={compound.active ? 'muted' : 'dark'}>{compound.status}</Badge>
+                          )}
+                          <Badge tone="muted">
+                            {inside.length} {isPlaceKind(compound.kind) ? 'listings' : 'villas'}
+                          </Badge>
                           <div style={{ flex: 1 }}></div>
                           <button
                             className="btn btn-xs btn-outline"
@@ -1835,7 +1910,7 @@ export default function MarketsHierarchyPage() {
                             draft={compound}
                             onClose={() => setCompoundEdit(null)}
                             onSaved={() => {
-                              notify('Compound updated', 'success');
+                              notify('Container updated', 'success');
                               load();
                             }}
                           />

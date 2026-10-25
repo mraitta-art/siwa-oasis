@@ -378,11 +378,18 @@ export async function generateMetadata({
       const hasSupply = facets.some((facet) => facet.listings > 0);
       const publicPath = `/${compoundMarket}/${compound.slug}`;
       const canonical = localeUrl(base, locale, publicPath);
+      // The classifier reaches the search result too: calling a town a project
+      // is the sentence a visitor would notice first.
+      const kindWordAr =
+        { compound: 'مشروع', town: 'بلدة', village: 'قرية', resort: 'منتجع' }[compound.kind] || 'مكان';
+      const kindWordEn =
+        { compound: 'a project', town: 'a town', village: 'a village', resort: 'a resort' }[compound.kind] ||
+        'a place';
       return {
         title: `${label} | Siwify`,
         description: ar
-          ? `${label} — مشروع في ${market ? market.nameAr : compoundMarket}، مع كل الوحدات والأنشطة المتاحة بداخله.`
-          : `${label} — a project in ${market ? market.nameEn : compoundMarket}, with every unit and business inside it.`,
+          ? `${label} — ${kindWordAr} في ${market ? market.nameAr : compoundMarket}، مع كل الوحدات والأنشطة المتاحة بداخله.`
+          : `${label} — ${kindWordEn} in ${market ? market.nameEn : compoundMarket}, with every unit and business inside it.`,
         alternates: { canonical, languages: languageAlternates(base, publicPath) },
         // Same thin-content rule as a listing: a compound with nothing published
         // inside it is a directory page with no directory.

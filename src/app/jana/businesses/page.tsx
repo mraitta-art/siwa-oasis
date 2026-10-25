@@ -366,10 +366,10 @@ export default function BusinessRegistryPage() {
                 ))}
               </select>
             </div>
-            {/* 3. Compound / development (optional) */}
+            {/* 3. Container (optional): a compound, a town or a village */}
             <div>
               <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>
-                3. INSIDE A COMPOUND (OPTIONAL)
+                3. INSIDE A COMPOUND / TOWN (OPTIONAL)
               </label>
               <select
                 className="form-control"
@@ -378,9 +378,11 @@ export default function BusinessRegistryPage() {
                 disabled={!developments.length}
                 style={{ background: developments.length ? '#fff' : '#f1f5f9' }}
               >
-                <option value="">{developments.length ? '-- None: stands on its own --' : '-- No compounds in this market yet --'}</option>
+                <option value="">{developments.length ? '-- None: stands on its own --' : '-- No compounds or towns in this market yet --'}</option>
                 {developments.map((d: any) => (
-                  <option key={d.id} value={d.id}>{d.nameEn || d.name_ar || d.slug}</option>
+                  <option key={d.id} value={d.id}>
+                    {d.nameEn || d.name_ar || d.slug} ({d.kind || 'compound'})
+                  </option>
                 ))}
               </select>
             </div>

@@ -1,9 +1,11 @@
 /**
  * Admin reads and writes for the market hierarchy.
  *
- * One tree: a market row owns compounds (`developments`), and a compound holds
- * listings (`businesses`). Only the listing renders publicly, so "add a villa"
- * always means a business row — the compound decides where it is presented.
+ * One tree: a market row owns containers (`developments`) — compounds and
+ * towns — and a container holds listings (`businesses`). Only the listing
+ * renders publicly, so "add a villa" always means a business row — the
+ * container decides where it is presented. `kind` is what separates a
+ * developer's project from a settlement that already existed.
  *
  * Geography is part of creating a market, not a separate chore. `locations`
  * already models country -> governorate -> city, and Egypt with its 27
@@ -23,6 +25,7 @@ import {
   listMarkets,
 } from '@/lib/markets';
 import { isReservedSlug } from '@/lib/market-routes';
+import { DEVELOPMENT_KINDS, isPlaceKind, normalizeKind } from '@/lib/developments';
 
 /** A validation failure the API turns into a 4xx instead of a 500. */
 export class AdminDataError extends Error {
@@ -53,6 +56,8 @@ export interface MarketAdmin {
   launchNotes: string | null;
   listings: number;
   compounds: number;
+  /** Towns, villages and resorts: containers that are not somebody's project. */
+  places: number;
 }
 
 export interface CompoundAdmin {
@@ -62,6 +67,8 @@ export interface CompoundAdmin {
   slug: string;
   nameAr: string;
   nameEn: string;
+  /** compound | town | village | resort. */
+  kind: string;
   developerName: string | null;
   deliveryYear: number | null;
   status: string;
@@ -234,6 +241,7 @@ function toMarketAdmin(row: any): MarketAdmin {
     launchNotes: row.launch_notes ? String(row.launch_notes) : null,
     listings: Number(row.listings) || 0,
     compounds: Number(row.compounds) || 0,
+    places: Number(row.places) || 0,
   };
 }
 
@@ -246,7 +254,10 @@ export async function listMarketsAdmin(): Promise<MarketAdmin[]> {
               m.active, m.launch_notes,
               l.path AS location_path, l.name_en AS location_name_en,
               (SELECT COUNT(*) FROM businesses b WHERE b.market_id = m.slug) AS listings,
-              (SELECT COUNT(*) FROM developments d WHERE d.market_id = m.slug AND d.active = 1) AS compounds
+              (SELECT COUNT(*) FROM developments d WHERE d.market_id = m.slug AND d.active = 1
+                 AND d.kind = 'compound') AS compounds,
+              (SELECT COUNT(*) FROM developments d WHERE d.market_id = m.slug AND d.active = 1
+                 AND d.kind <> 'compound') AS places
        FROM markets m
        LEFT JOIN locations l ON l.id = m.location_id
        ORDER BY m.active DESC, m.name_en`
@@ -264,6 +275,7 @@ export async function listMarketsAdmin(): Promise<MarketAdmin[]> {
       launchNotes: null,
       listings: 0,
       compounds: 0,
+      places: 0,
     }));
   }
 }
@@ -272,7 +284,7 @@ export async function listMarketsAdmin(): Promise<MarketAdmin[]> {
 export async function listCompoundsAdmin(): Promise<CompoundAdmin[]> {
   try {
     const rows = await query(
-      `SELECT d.id, d.market_id, d.location_id, d.slug, d.name_ar, d.name_en,
+      `SELECT d.id, d.market_id, d.location_id, d.slug, d.name_ar, d.name_en, d.kind,
               d.developer_name, d.delivery_year, d.status, d.active, d.page_business_id,
               (SELECT COUNT(*) FROM businesses b WHERE b.development_id = d.id) AS listings
        FROM developments d
@@ -285,6 +297,7 @@ export async function listCompoundsAdmin(): Promise<CompoundAdmin[]> {
       slug: String(row.slug),
       nameAr: String(row.name_ar ?? row.slug),
       nameEn: String(row.name_en ?? row.slug),
+      kind: normalizeKind(row.kind),
       developerName: row.developer_name ? String(row.developer_name) : null,
       deliveryYear:
         row.delivery_year === null || row.delivery_year === undefined ? null : Number(row.delivery_year),
@@ -593,7 +606,7 @@ function slugify(value: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/** Create a compound inside a market, inheriting the market's city by default. */
+/** Create a container inside a market, inheriting the market's city by default. */
 export async function createCompound(input: any): Promise<{ id: string; slug: string }> {
   const marketSlug = normalizeSlug(input?.market ?? input?.marketId);
   const market = await getMarketBySlug(marketSlug);
@@ -605,9 +618,10 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
     );
   }
 
+  const kind = normalizeKind(input?.kind);
   const nameEn = String(input?.nameEn || '').trim();
   const nameAr = String(input?.nameAr || '').trim() || nameEn;
-  if (!nameEn) throw new AdminDataError('A compound needs an English name.');
+  if (!nameEn) throw new AdminDataError(`A ${kind} needs an English name.`);
 
   // The optional page business. It must already sit in the same market, or the
   // compound would publish another market's listing as its own front page.
@@ -625,11 +639,33 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
     }
   }
 
-  const baseSlug = slugify(nameEn) || 'compound';
+  const baseSlug = slugify(nameEn) || kind;
   let compoundSlug = baseSlug;
   let counter = 1;
   while (await queryOne('SELECT id FROM developments WHERE slug = ? LIMIT 1', [compoundSlug])) {
     compoundSlug = `${baseSlug}-${counter++}`;
+  }
+
+  // A town usually already exists as a geography row. When its slug matches a
+  // place inside this market, the container takes that row, so the page and the
+  // source of truth for coordinates agree. The container still wins the URL at
+  // /{market}/{slug}: a place page and a town page cannot both answer there.
+  let locationId = input?.locationId ? String(input.locationId) : market.locationId;
+  if (!input?.locationId && isPlaceKind(kind) && market.locationId) {
+    const city = (await queryOne('SELECT path FROM locations WHERE id = ? LIMIT 1', [
+      market.locationId,
+    ])) as any;
+    const cityPath = city?.path ? String(city.path) : '';
+    if (cityPath) {
+      const place = (await queryOne(
+        `SELECT id FROM locations
+          WHERE slug = ? AND active = 1
+            AND (path = ? OR path LIKE CONCAT(?, '/%'))
+          LIMIT 1`,
+        [compoundSlug, cityPath, cityPath]
+      )) as any;
+      if (place?.id) locationId = String(place.id);
+    }
   }
 
   const status = DEVELOPMENT_STATUSES.includes(String(input?.status))
@@ -646,16 +682,17 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
   const id = crypto.randomUUID();
 
   await execute(
-    `INSERT INTO developments (id, market_id, location_id, slug, name_ar, name_en,
+    `INSERT INTO developments (id, market_id, location_id, slug, name_ar, name_en, kind,
                                developer_name, lat, lng, delivery_year, status, active, page_business_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       market.slug,
-      input?.locationId ? String(input.locationId) : market.locationId,
+      locationId,
       compoundSlug,
       nameAr,
       nameEn,
+      kind,
       input?.developerName ? String(input.developerName) : null,
       lat,
       lng,
@@ -679,6 +716,7 @@ export async function updateCompound(id: string, patch: any): Promise<void> {
   const columns: Record<string, string> = {
     nameAr: 'name_ar',
     nameEn: 'name_en',
+    kind: 'kind',
     developerName: 'developer_name',
     deliveryYear: 'delivery_year',
     status: 'status',
@@ -697,6 +735,12 @@ export async function updateCompound(id: string, patch: any): Promise<void> {
     if (column === 'status') {
       if (!DEVELOPMENT_STATUSES.includes(String(value))) {
         throw new AdminDataError('Unknown compound status.');
+      }
+      value = String(value);
+    }
+    if (column === 'kind') {
+      if (!(DEVELOPMENT_KINDS as readonly string[]).includes(String(value))) {
+        throw new AdminDataError('Unknown container kind.');
       }
       value = String(value);
     }

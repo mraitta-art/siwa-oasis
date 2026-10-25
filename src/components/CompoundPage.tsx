@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { normalizeCustomData, queryOne, stripCustomDataSecrets } from '@/lib/db';
 import {
   getDevelopmentFacets,
+  isPlaceKind,
   listDevelopmentListings,
   listUnits,
   type Development,
@@ -29,6 +30,14 @@ const STATUS: Record<Development['status'], { ar: string; en: string }> = {
   sold_out: { ar: 'مباع بالكامل', en: 'Sold out' },
 };
 
+/** The classifier, in the visitor's language. */
+const KIND: Record<string, { ar: string; en: string }> = {
+  compound: { ar: 'مجمع', en: 'Compound' },
+  town: { ar: 'بلدة', en: 'Town' },
+  village: { ar: 'قرية', en: 'Village' },
+  resort: { ar: 'منتجع', en: 'Resort' },
+};
+
 const LABEL = {
   ar: {
     back: '← كل المشروعات',
@@ -48,6 +57,26 @@ const LABEL = {
   },
 };
 
+/** A town or a village is a place, so the page stops calling it a project. */
+const PLACE_LABEL = {
+  ar: {
+    back: '← رجوع إلى المدينة',
+    about: 'عن هذه البلدة',
+    available: 'الوحدات المتاحة',
+    empty: 'لا توجد أنشطة منشورة هنا بعد.',
+    open: 'افتح الصفحة',
+    rooms: 'غرف',
+  },
+  en: {
+    back: '← Back to the market',
+    about: 'About this area',
+    available: 'Available units',
+    empty: 'No businesses are published in this area yet.',
+    open: 'Open the page',
+    rooms: 'BR',
+  },
+};
+
 export default async function CompoundPage({
   compound,
   marketSlug,
@@ -58,7 +87,11 @@ export default async function CompoundPage({
   lang: 'ar' | 'en';
 }) {
   const ar = lang === 'ar';
-  const t = LABEL[ar ? 'ar' : 'en'];
+  // A town has no developer or delivery date, and calling it a project reads
+  // wrong to the visitor who typed its name. Only the words change; the page,
+  // the categories and the URL stay the same.
+  const place = isPlaceKind(compound.kind);
+  const t = place ? PLACE_LABEL[ar ? 'ar' : 'en'] : LABEL[ar ? 'ar' : 'en'];
   const href = (path: string) => (ar ? `/ar${path}` : path);
 
   const [facets, listings, units, pageBusiness] = await Promise.all([
@@ -116,9 +149,14 @@ export default async function CompoundPage({
   );
 
   const chips = [
-    compound.developerName,
-    compound.deliveryYear ? String(compound.deliveryYear) : null,
-    STATUS[compound.status][ar ? 'ar' : 'en'],
+    (KIND[compound.kind] || KIND.compound)[ar ? 'ar' : 'en'],
+    ...(place
+      ? []
+      : [
+          compound.developerName,
+          compound.deliveryYear ? String(compound.deliveryYear) : null,
+          STATUS[compound.status][ar ? 'ar' : 'en'],
+        ]),
   ].filter(Boolean) as string[];
 
   return (

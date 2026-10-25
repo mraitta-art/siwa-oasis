@@ -13,6 +13,26 @@
 
 import { query } from '@/lib/db';
 
+/**
+ * What a container is, not where it sits.
+ *
+ * A compound is somebody's project; a town is a settlement that already exists
+ * and happens to hold schools, shops and cafés. Both need the same page, so both
+ * are `developments` rows and only this classifier differs.
+ */
+export const DEVELOPMENT_KINDS = ['compound', 'town', 'village', 'resort'] as const;
+export type DevelopmentKind = (typeof DEVELOPMENT_KINDS)[number];
+
+/** Kinds that describe a place rather than a developer's project. */
+export function isPlaceKind(kind: string): boolean {
+  return kind === 'town' || kind === 'village';
+}
+
+export function normalizeKind(value: unknown): DevelopmentKind {
+  const text = String(value ?? '').trim().toLowerCase();
+  return (DEVELOPMENT_KINDS as readonly string[]).includes(text) ? (text as DevelopmentKind) : 'compound';
+}
+
 export interface Development {
   id: string;
   marketId: string;
@@ -20,6 +40,7 @@ export interface Development {
   slug: string;
   nameAr: string;
   nameEn: string;
+  kind: DevelopmentKind;
   developerName: string | null;
   lat: number | null;
   lng: number | null;
@@ -72,6 +93,7 @@ function toDevelopment(row: any): Development {
     slug: String(row.slug),
     nameAr: String(row.name_ar ?? row.name_en ?? row.slug),
     nameEn: String(row.name_en ?? row.name_ar ?? row.slug),
+    kind: normalizeKind(row.kind),
     developerName: row.developer_name ? String(row.developer_name) : null,
     lat: row.lat === null || row.lat === undefined ? null : Number(row.lat),
     lng: row.lng === null || row.lng === undefined ? null : Number(row.lng),
@@ -83,17 +105,23 @@ function toDevelopment(row: any): Development {
   };
 }
 
-const DEVELOPMENT_COLUMNS = `id, market_id, location_id, slug, name_ar, name_en,
+const DEVELOPMENT_COLUMNS = `id, market_id, location_id, slug, name_ar, name_en, kind,
   developer_name, lat, lng, delivery_year, status, page_business_id`;
 
-/** Active developments in one market, for the market's project index. */
-export async function listDevelopments(marketSlug: string): Promise<Development[]> {
+/**
+ * Active containers in one market, for the market's project index.
+ *
+ * `kind` narrows the list when a caller wants projects only; a market page that
+ * separates compounds from towns passes the classifier instead of filtering in
+ * the browser, where the two would eventually drift.
+ */
+export async function listDevelopments(marketSlug: string, kind?: DevelopmentKind): Promise<Development[]> {
   try {
     const rows = await query(
       `SELECT ${DEVELOPMENT_COLUMNS} FROM developments
-       WHERE active = 1 AND market_id = ?
+       WHERE active = 1 AND market_id = ?${kind ? ' AND kind = ?' : ''}
        ORDER BY name_en`,
-      [marketSlug]
+      kind ? [marketSlug, kind] : [marketSlug]
     );
     return (rows || []).map(toDevelopment);
   } catch {
