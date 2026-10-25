@@ -275,8 +275,12 @@ export interface MarketListing {
   id: string;
   slug: string;
   name: string;
+  /** Arabic display name when an admin wrote one; null means "use name". */
+  nameAr: string | null;
   typeId: string | null;
   typeName: string | null;
+  /** Arabic typology name; null means "use typeName". */
+  typeNameAr: string | null;
   parentTypeId: string | null;
   isTrusted: boolean;
   coverImage: string | null;
@@ -309,8 +313,8 @@ export async function listMarketListings(
   const limit = clampLimit(options.limit, 24);
 
   const rows = await query(
-    `SELECT b.id, b.slug, b.name, b.type_id, b.is_trusted, b.custom_data,
-            bt.name AS type_name, bt.parent_id
+    `SELECT b.id, b.slug, b.name, b.name_ar, b.type_id, b.is_trusted, b.custom_data,
+            bt.name AS type_name, bt.name_ar AS type_name_ar, bt.parent_id
      FROM businesses b
      LEFT JOIN business_types bt ON bt.id = b.type_id
      WHERE b.market_id = ? AND b.status = 'active'
@@ -329,8 +333,10 @@ export async function listMarketListings(
       id: String(row.id),
       slug: String(row.slug || row.id),
       name: String(row.name),
+      nameAr: row.name_ar ? String(row.name_ar) : null,
       typeId: row.type_id ? String(row.type_id) : null,
       typeName: row.type_name ? String(row.type_name) : null,
+      typeNameAr: row.type_name_ar ? String(row.type_name_ar) : null,
       parentTypeId: row.parent_id ? String(row.parent_id) : null,
       isTrusted: Number(row.is_trusted) === 1,
       coverImage: firstImage(customData),

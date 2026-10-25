@@ -34,6 +34,41 @@ interface DuplicateGroup {
   count: number;
 }
 
+/**
+ * The Arabic half of a typology, shown beside every English name.
+ *
+ * A missing one is not hidden: the Arabic markets print the English name until
+ * an admin writes this field, so the gap has to be visible on the screen where
+ * it can be fixed.
+ */
+function ArabicTag({ value }: { value?: string | null }) {
+  const text = String(value || '').trim();
+  if (!text) {
+    return (
+      <span
+        style={{
+          fontSize: '0.58rem',
+          fontWeight: 900,
+          letterSpacing: '0.5px',
+          color: '#b91c1c',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          padding: '1px 6px',
+          borderRadius: 999,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        NO ARABIC
+      </span>
+    );
+  }
+  return (
+    <span dir="rtl" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
+      {text}
+    </span>
+  );
+}
+
 export default function BusinessTypesPage() {
   const { notify } = useAdmin();
   const [types, setTypes] = useState<BizType[]>([]);
@@ -117,6 +152,10 @@ export default function BusinessTypesPage() {
   const parents = types
     .filter(t => (t.is_parent || Number(t.is_parent) === 1) && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
     .sort((a, b) => a.name.localeCompare(b.name));
+  // The Arabic markets fall back to English until these are filled, so the gap
+  // is counted here instead of being discovered on a live page.
+  const liveTypes = types.filter(t => t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0);
+  const missingArabic = liveTypes.filter(t => !String(t.name_ar || '').trim()).length;
   const getChildren = (pid: string) => types.filter(t => t.parent_id === pid);
 
   const openEditor = (type: Partial<BizType> | null) => {
@@ -316,6 +355,11 @@ export default function BusinessTypesPage() {
         <div>
           <h3><i className="fas fa-sitemap"></i> Typology Architect</h3>
           <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>Define the hierarchical structure of your marketplace entities.</p>
+          <p style={{ margin: '0.4rem 0 0', fontSize: '0.75rem', fontWeight: 700, color: missingArabic ? '#b91c1c' : '#15803d' }}>
+            {missingArabic
+              ? `${missingArabic} of ${liveTypes.length} typologies have no Arabic name — Arabic pages print the English one until they do.`
+              : `All ${liveTypes.length} typologies carry an Arabic name.`}
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => openEditor(null)}>
           <i className="fas fa-plus"></i> NEW TYPOLOGY
@@ -400,6 +444,7 @@ export default function BusinessTypesPage() {
                    <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                          <div style={{ fontWeight: 800, color: '#1a1a2e' }}>{p.name}</div>
+                         <ArabicTag value={p.name_ar} />
                          <span className="badge badge-primary" style={{ fontSize: '0.55rem', background: '#1a1a2e' }}>MASTER FOUNDATION</span>
                       </div>
                       <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>ID: {p.id} • Biological Parent Category</div>
@@ -418,7 +463,10 @@ export default function BusinessTypesPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                          <i className={ch.icon} style={{ color: ch.icon_color, fontSize: '1rem' }}></i>
                          <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{ch.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{ch.name}</span>
+                              <ArabicTag value={ch.name_ar} />
+                            </div>
                             <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>ID: {ch.id} • Child Typology</div>
                          </div>
                       </div>

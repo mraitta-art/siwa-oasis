@@ -208,14 +208,19 @@ export default async function MarketHome({
                 <div style={{ height: 140, background: listing.coverImage ? `url(${listing.coverImage}) center/cover` : `linear-gradient(135deg, ${accent}33, rgba(15,23,42,0.9))` }} />
                 <div style={{ padding: '0.9rem 1rem 1.1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: accent }}>{listing.typeName || (ar ? 'نشاط' : 'Business')}</span>
+                    {/* `||` not `??`: an admin can save the Arabic field empty. */}
+                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: accent }}>
+                      {(ar ? listing.typeNameAr || listing.typeName : listing.typeName) || (ar ? 'نشاط' : 'Business')}
+                    </span>
                     {listing.isTrusted && (
                       <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '1px 6px', borderRadius: 999 }}>
                         {ar ? 'موثّق' : 'VERIFIED'}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '1rem', lineHeight: 1.4 }}>{listing.name}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1rem', lineHeight: 1.4 }}>
+                    {(ar ? listing.nameAr || listing.name : listing.name)}
+                  </div>
                   <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: accent, fontWeight: 800 }}>
                     {ar ? 'افتح الموقع ←' : 'Open minisite →'}
                   </div>

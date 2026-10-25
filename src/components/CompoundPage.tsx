@@ -258,10 +258,10 @@ export default async function CompoundPage({
                     }}
                   >
                     <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>
-                      {ar ? listing.nameAr : listing.name}
+                      {ar ? listing.nameAr || listing.name : listing.name}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.25rem' }}>
-                      {listing.typeName}
+                      {ar ? listing.typeNameAr || listing.typeName : listing.typeName}
                     </div>
                   </Link>
                 ))}

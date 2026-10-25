@@ -144,7 +144,10 @@ async function loadWebsiteConfig(slug: string) {
 async function loadMinisite(business: any) {
   try {
     const typeRow = business.type_id
-      ? await queryOne<{ name: string }>('SELECT name FROM business_types WHERE id = ?', [business.type_id])
+      ? await queryOne<{ name: string; name_ar: string | null }>(
+          'SELECT name, name_ar FROM business_types WHERE id = ?',
+          [business.type_id]
+        )
       : null;
 
     const published = await queryOne<any>(
@@ -222,7 +225,9 @@ async function loadMinisite(business: any) {
 
     const sectionNav: SectionTabItem[] = await resolveSectionNav(business);
 
-    return { layout: publicLayout, storefront, sectionNav };
+    // Carried beside the storefront rather than inside it: the renderer's
+    // contract stays untouched, and only the metadata needs the second name.
+    return { layout: publicLayout, storefront, sectionNav, typeNameAr: typeRow?.name_ar || null };
   } catch {
     return null;
   }
@@ -284,7 +289,10 @@ export async function generateMetadata({
     const cd = normalizeCustomData(business.custom_data);
     const identity = { ...(cd?.business_info || {}), ...(cd?.sec_1_identity || {}), ...(cd?.basic || {}) };
     const typeRow = business.type_id
-      ? await queryOne<{ name: string }>('SELECT name FROM business_types WHERE id = ?', [business.type_id]).catch(() => null)
+      ? await queryOne<{ name: string; name_ar: string | null }>(
+          'SELECT name, name_ar FROM business_types WHERE id = ?',
+          [business.type_id]
+        ).catch(() => null)
       : null;
 
     let gallery: any[] = [];
@@ -299,7 +307,13 @@ export async function generateMetadata({
       gallery = [];
     }
 
-    const typeName = displayType(typeRow?.name) || 'Siwa';
+    const locale = (await pathLocale()) ?? 'en';
+    const ar = locale === 'ar';
+    // The Arabic page prints the Arabic typology and the Arabic name. `||` and
+    // not `??`: an admin can save the Arabic field empty, and a blank chip is
+    // worse than an English one.
+    const typeName = displayType(ar ? typeRow?.name_ar || typeRow?.name : typeRow?.name) || 'Siwa';
+    const businessName = String((ar ? (business as any).name_ar || business.name : business.name) || business.name);
     const description =
       String(
         identity.tagline ||
@@ -311,11 +325,9 @@ export async function generateMetadata({
         .replace(/<[^>]*>/g, ' ')
         .trim()
         .slice(0, 158) ||
-      `${business.name} — ${typeName} in Siwa Oasis. See photos, services and contact directly on WhatsApp. No commission.`;
+      `${businessName} — ${typeName} in Siwa Oasis. See photos, services and contact directly on WhatsApp. No commission.`;
 
     const image = heroImageFor(business, gallery, cd);
-    const locale = (await pathLocale()) ?? 'en';
-    const ar = locale === 'ar';
     const marketSlug = String((business as any).market_id || (await pathMarketSlug()) || DEFAULT_MARKET_SLUG);
     // The address follows the listing's own choice: `url_style = 'root'` answers at
     // /villa-name (what every QR code already prints), 'market' at /hurghada/villa.
@@ -330,10 +342,10 @@ export async function generateMetadata({
     const isThin = !Number(business.is_claimed) && gallery.length === 0 && description.length < 80;
 
     const title = ar
-      ? `${business.name} — ${typeName} في واحة سيوة | Siwify`
-      : `${business.name} · ${typeName} | Siwify`;
+      ? `${businessName} — ${typeName} في واحة سيوة | Siwify`
+      : `${businessName} · ${typeName} | Siwify`;
     const metaDescription = ar
-      ? `${business.name} في واحة سيوة — صور وخدمات وتواصل مباشر عبر واتساب بدون عمولة.`
+      ? `${businessName} في واحة سيوة — صور وخدمات وتواصل مباشر عبر واتساب بدون عمولة.`
       : description;
 
     return {
@@ -763,7 +775,17 @@ export default async function CanonicalVanityPage({
     const mini = await loadMinisite(business);
 
     if (mini) {
-      const typeName = displayType(mini.storefront.type_name);
+      // The Arabic address prints the Arabic typology and the Arabic name, with
+      // the English ones behind them so a page can never render blank.
+      const arabic = lang === 'ar';
+      const typeName = displayType(
+        arabic ? mini.typeNameAr || mini.storefront.type_name : mini.storefront.type_name
+      );
+      // The hero prints `business.name`, so the Arabic address hands it the
+      // Arabic one instead of an English title over Arabic chrome.
+      const storefront = arabic
+        ? { ...mini.storefront, name: business.name_ar || mini.storefront.name }
+        : mini.storefront;
       const description =
         String(
           cd?.tagline ||
@@ -776,12 +798,12 @@ export default async function CanonicalVanityPage({
           .replace(/<[^>]*>/g, ' ')
           .trim()
           .slice(0, 158) ||
-        `${business.name} — ${typeName} in Siwa Oasis.`;
+        `${storefront.name} — ${typeName} in Siwa Oasis.`;
       const image = heroImageFor(business, mini.storefront.gallery, cd);
       const publicSlug = business.slug || slug;
       // An /ar address should render Arabic chrome, not only an Arabic title.
       const layout =
-        lang === 'ar'
+        arabic
           ? { ...mini.layout, site_settings: { ...((mini.layout as any)?.site_settings || {}), lang: 'ar' } }
           : mini.layout;
 
@@ -793,7 +815,7 @@ export default async function CanonicalVanityPage({
           <MinisiteSectionTabs slug={publicSlug} items={mini.sectionNav} />
           <MinisiteBuilderRenderer
             layout={layout}
-            business={mini.storefront}
+            business={storefront}
             showQRCode
           />
         </>

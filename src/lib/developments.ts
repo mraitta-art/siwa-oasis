@@ -68,6 +68,8 @@ export interface DevelopmentListing {
   nameAr: string;
   typeId: string;
   typeName: string;
+  /** Arabic typology name; null means "use typeName". */
+  typeNameAr: string | null;
   parentTypeId: string | null;
 }
 
@@ -190,7 +192,8 @@ export async function listDevelopmentListings(
 
   try {
     const rows = await query(
-      `SELECT b.id, b.slug, b.name, b.name_ar, b.type_id, bt.name AS type_name, bt.parent_id
+      `SELECT b.id, b.slug, b.name, b.name_ar, b.type_id,
+              bt.name AS type_name, bt.name_ar AS type_name_ar, bt.parent_id
        FROM businesses b
        JOIN business_types bt ON bt.id = b.type_id
        WHERE b.development_id = ? AND b.status = 'active'${facetFilter}
@@ -207,6 +210,7 @@ export async function listDevelopmentListings(
       nameAr: String(row.name_ar || row.name),
       typeId: String(row.type_id),
       typeName: String(row.type_name ?? row.type_id),
+      typeNameAr: row.type_name_ar ? String(row.type_name_ar) : null,
       parentTypeId: row.parent_id ? String(row.parent_id) : null,
     }));
   } catch {
