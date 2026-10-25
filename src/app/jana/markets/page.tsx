@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
 
@@ -149,28 +149,67 @@ function governorateFromPath(governorates: GovernorateOption[], path: string | n
   return match?.id || '';
 }
 
+/** A market can own a city, a town or a coastal area. Districts and
+ *  neighbourhoods below that belong to listings, not to a market. */
+const MARKET_PLACE_TYPES = ['city', 'town', 'area'];
+
+interface GeoIndex {
+  byId: Map<string, GeoNodeRow>;
+  byPath: Map<string, GeoNodeRow>;
+  countries: GeoNodeRow[];
+}
+
+/** One pass over the tree the page already loaded, so every level of the
+ *  cascade is answered without another request. */
+function indexGeoTree(tree: GeoNodeRow[]): GeoIndex {
+  const byId = new Map<string, GeoNodeRow>();
+  const byPath = new Map<string, GeoNodeRow>();
+  const walk = (nodes: GeoNodeRow[]) => {
+    for (const node of nodes) {
+      byId.set(node.id, node);
+      byPath.set(node.path, node);
+      walk(node.children || []);
+    }
+  };
+  walk(tree);
+  return { byId, byPath, countries: tree.filter((node) => node.type === 'country') };
+}
+
 function MarketForm({
   initial,
   governorates,
+  geoTree,
   onClose,
   onSaved,
 }: {
   initial: MarketRow | 'new';
   governorates: GovernorateOption[];
+  geoTree: GeoNodeRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const isNew = initial === 'new';
   const seed = isNew ? null : (initial as MarketRow);
-  const initialGovernorateId = governorateFromPath(governorates, seed?.locationPath || null);
+  const geo = useMemo(() => indexGeoTree(geoTree), [geoTree]);
+
+  // Seed the cascade from the stored path (`eg/matrouh/el-alamein`) so an edit
+  // opens on the market's real place instead of on the first option.
+  const seedSegments = String(seed?.locationPath || '').split('/').filter(Boolean);
+  const seedCountryId =
+    geo.byPath.get(seedSegments[0] || '')?.id ||
+    (geo.countries.length === 1 ? geo.countries[0].id : '');
+  const seedGovernorateId =
+    geo.byPath.get(seedSegments.slice(0, 2).join('/'))?.id ||
+    governorateFromPath(governorates, seed?.locationPath || null);
 
   const [form, setForm] = useState({
     slug: seed?.slug || '',
     nameEn: seed?.nameEn || '',
     nameAr: seed?.nameAr || '',
     host: seed?.host || '',
-    governorateId: initialGovernorateId,
-    createCity: true,
+    countryId: seedCountryId,
+    governorateId: seedGovernorateId,
+    placeId: seed?.locationId || '',
     lat: '',
     lng: '',
     defaultLocale: seed?.defaultLocale || 'ar',
@@ -183,11 +222,38 @@ function MarketForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const governorate = governorates.find((option) => option.id === form.governorateId);
-  const cityIdPreview =
-    governorate && form.slug ? `${governorate.id.split('-').pop()}-${form.slug}` : null;
-  const cityPathPreview = governorate && form.slug ? `${governorate.path}/${form.slug}` : null;
-  const governorateChanged = form.governorateId !== initialGovernorateId;
+  const countryNode = geo.byId.get(form.countryId);
+  const governorateNode = geo.byId.get(form.governorateId);
+  const governoratePath =
+    governorateNode?.path ||
+    governorates.find((option) => option.id === form.governorateId)?.path ||
+    null;
+
+  // Without a country the governorate list stays unfiltered, which keeps the
+  // form usable before the geography tree has been seeded.
+  const governorateList: GovernorateOption[] = countryNode
+    ? (countryNode.children || []).filter((node) => node.type === 'governorate' && node.active)
+    : governorates;
+
+  const placeNodes = (governorateNode?.children || []).filter(
+    (node) => MARKET_PLACE_TYPES.includes(node.type) && node.active
+  );
+  // Keep the market's current row in the list even if it sits at a level this
+  // form would not offer, so editing never shows a blank selection.
+  const seedPlace = seed?.locationId ? geo.byId.get(seed.locationId) : undefined;
+  const placeChoices =
+    seedPlace && !placeNodes.some((node) => node.id === seedPlace.id)
+      ? [seedPlace, ...placeNodes]
+      : placeNodes;
+
+  const cityPathPreview = form.placeId
+    ? geo.byId.get(form.placeId)?.path || null
+    : governoratePath && form.slug
+      ? `${governoratePath}/${form.slug}`
+      : null;
+  const locationChanged =
+    form.governorateId !== seedGovernorateId ||
+    (form.placeId || '') !== (seed?.locationId || '');
 
   const submit = async () => {
     setSaving(true);
@@ -204,13 +270,15 @@ function MarketForm({
         themeAccent: form.themeAccent,
         active: form.active,
         launchNotes: form.launchNotes,
-        createCity: form.createCity,
       };
 
       // Only re-run geography when the operator actually moved the market, so
-      // editing a name never rewrites a location row.
-      if (isNew || governorateChanged || !seed?.locationId) {
-        payload.governorateId = form.governorateId;
+      // editing a name never rewrites a location row. An existing place travels
+      // as `locationId`; otherwise the server creates or reuses the city row
+      // from the slug under the chosen governorate.
+      if (isNew || locationChanged || !seed?.locationId) {
+        if (form.placeId) payload.locationId = form.placeId;
+        else if (form.governorateId) payload.governorateId = form.governorateId;
       }
       if (form.lat !== '') payload.lat = Number(form.lat);
       if (form.lng !== '') payload.lng = Number(form.lng);
@@ -239,7 +307,7 @@ function MarketForm({
   };
 
   const disabled =
-    saving || !form.nameEn || !form.nameAr || (isNew && (!form.slug || !form.governorateId));
+    saving || !form.nameEn || !form.nameAr || !form.governorateId || (isNew && !form.slug);
 
   return (
     <div
@@ -256,8 +324,8 @@ function MarketForm({
         {isNew ? 'NEW MARKET' : `EDIT ${seed?.nameEn}`}
       </h4>
       <p style={{ margin: '0 0 1rem 0', fontSize: '0.72rem', color: '#64748b' }}>
-        Country → governorate → city is created for you. Egypt and its governorates are already
-        seeded; this form adds the city row and links it in both directions.
+        Country → governorate → city or area. Each step filters the next, so you can drill down to
+        the exact place; pick an existing row or let the form create it from the slug.
       </p>
 
       <div
@@ -306,41 +374,76 @@ function MarketForm({
         </div>
 
         <div>
-          <label style={LABEL}>GOVERNORATE *</label>
+          <label style={LABEL}>COUNTRY *</label>
           <select
             className="form-control"
-            value={form.governorateId}
-            onChange={(e) => setForm({ ...form, governorateId: e.target.value })}
+            value={form.countryId}
+            disabled={geo.countries.length === 0}
+            onChange={(e) =>
+              setForm({ ...form, countryId: e.target.value, governorateId: '', placeId: '' })
+            }
           >
-            <option value="">— select a governorate —</option>
-            {governorates.map((option) => (
+            <option value="">— select a country —</option>
+            {geo.countries.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.nameEn} · {option.nameAr}
               </option>
             ))}
           </select>
           <div style={HINT}>
-            {governorates.length === 0
-              ? 'No governorate rows found. Run the geography migration first.'
-              : cityPathPreview
-                ? `City path: ${cityPathPreview}`
-                : 'Parent of the city row this market creates.'}
+            {geo.countries.length === 0
+              ? 'No country row found yet — the governorates below are unfiltered.'
+              : 'Filters the governorates below.'}
           </div>
         </div>
 
         <div>
-          <label style={LABEL}>CITY ROW</label>
+          <label style={LABEL}>GOVERNORATE *</label>
           <select
             className="form-control"
-            value={form.createCity ? 'create' : 'reuse'}
-            disabled={!form.governorateId}
-            onChange={(e) => setForm({ ...form, createCity: e.target.value === 'create' })}
+            value={form.governorateId}
+            disabled={governorateList.length === 0}
+            onChange={(e) => setForm({ ...form, governorateId: e.target.value, placeId: '' })}
           >
-            <option value="create">Create if missing (recommended)</option>
-            <option value="reuse">Only attach an existing city row</option>
+            <option value="">— select a governorate —</option>
+            {governorateList.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.nameEn} · {option.nameAr}
+              </option>
+            ))}
           </select>
           <div style={HINT}>
-            {cityIdPreview ? `Insert id: eg-…-${form.slug}` : 'Idempotent — an existing path is reused.'}
+            {governorateList.length === 0
+              ? 'Pick a country first, or run the geography migration.'
+              : 'Parent of the city row this market creates.'}
+          </div>
+        </div>
+
+        <div>
+          <label style={LABEL}>CITY / AREA *</label>
+          <select
+            className="form-control"
+            value={form.placeId}
+            disabled={!form.governorateId}
+            onChange={(e) => setForm({ ...form, placeId: e.target.value })}
+          >
+            <option value="">
+              {form.slug ? `+ create "${form.slug}" under this governorate` : '+ create from the slug'}
+            </option>
+            {placeChoices.map((option) => {
+              const taken = Boolean(option.marketId) && option.marketId !== seed?.slug;
+              return (
+                <option key={option.id} value={option.id} disabled={taken}>
+                  {option.nameEn} · {option.nameAr} ({option.type})
+                  {taken ? ` — taken by ${option.marketId}` : ''}
+                </option>
+              );
+            })}
+          </select>
+          <div style={HINT}>
+            {cityPathPreview
+              ? `Location path: ${cityPathPreview}`
+              : 'Pick an existing city, town or coastal area — or let the form create the row.'}
           </div>
         </div>
 
@@ -1529,6 +1632,7 @@ export default function MarketsHierarchyPage() {
         <MarketForm
           initial={marketForm}
           governorates={governorates}
+          geoTree={geoTree}
           onClose={() => setMarketForm(null)}
           onSaved={() => {
             notify(marketForm === 'new' ? 'Market created' : 'Market updated', 'success');

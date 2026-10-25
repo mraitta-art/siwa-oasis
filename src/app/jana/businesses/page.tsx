@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DynamicForm from '@/components/DynamicForm';
 import { useAdmin } from '@/context/AdminContext';
 import WhatsAppInviteModal from '@/components/WhatsAppInviteModal';
+import MarketSelect from '@/components/jana/MarketSelect';
 
 interface Business {
   id: string; name: string; slug: string; type_id: string; type_name: string; type_icon: string;
@@ -33,13 +34,12 @@ export default function BusinessRegistryPage() {
   const [vendors, setVendors] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
-  const [markets, setMarkets] = useState<any[]>([]);
   const [developments, setDevelopments] = useState<any[]>([]);
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newBiz, setNewBiz] = useState({
     name: '',
     type_id: '',
-    market_id: 'siwa',
+    market_id: '',
     development_id: '',
     subscription_tier: 'free',
     vendor_id: '',
@@ -126,18 +126,16 @@ export default function BusinessRegistryPage() {
 
   async function fetchMetadata() {
     try {
-      const [tRes, sRes, vRes, tmplRes, mRes] = await Promise.all([
+      const [tRes, sRes, vRes, tmplRes] = await Promise.all([
         fetch('/api/jana/types'),
         fetch('/api/jana/tiers'),
         fetch('/api/jana/vendors'),
         fetch('/api/jana/templates'),
-        fetch('/api/markets'),
       ]);
       if (tRes.ok) setTypes(await tRes.json());
       if (sRes.ok) setTiers(await sRes.json());
       if (vRes.ok) setVendors(await vRes.json());
       if (tmplRes.ok) setTemplates(await tmplRes.json());
-      if (mRes.ok) setMarkets((await mRes.json()).markets || []);
     } catch (e) { console.error(e); }
   }
 
@@ -226,6 +224,10 @@ export default function BusinessRegistryPage() {
   };
 
   async function submitRegistration() {
+    if (!newBiz.market_id) {
+      alert('Pick a market first — every listing lives in exactly one.');
+      return;
+    }
     setIsSyncing(true);
     try {
       const res = await fetch('/api/jana/businesses', {
@@ -293,21 +295,18 @@ export default function BusinessRegistryPage() {
             {/* 0. Market — every listing lives in exactly one */}
             <div>
               <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>0. MARKET *</label>
-              <select
-                className="form-control"
+              <MarketSelect
                 value={newBiz.market_id}
-                onChange={e => {
-                  setNewBiz({ ...newBiz, market_id: e.target.value, development_id: '', type_id: '', template_id: '' });
+                onChange={(slug) => {
+                  setNewBiz({ ...newBiz, market_id: slug, development_id: '', type_id: '', template_id: '' });
                   setSelectedParentId('');
                   setFilteredTemplates([]);
                 }}
-              >
-                {(markets.length ? markets : [{ slug: 'siwa', nameEn: 'Siwa Oasis' }]).map((m: any) => (
-                  <option key={m.slug} value={m.slug}>{m.nameEn || m.slug}</option>
-                ))}
-              </select>
+              />
               <div style={{ fontSize: '0.62rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                Address will be /{newBiz.market_id}/{(newBiz.name || 'business-name').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}
+                {newBiz.market_id
+                  ? `Address will be /${newBiz.market_id}/${(newBiz.name || 'business-name').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`
+                  : 'The registry, live and dark — or add a market without leaving this form.'}
               </div>
             </div>
             {/* Name */}

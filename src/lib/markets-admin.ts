@@ -204,6 +204,13 @@ async function resolveCityLocation(options: {
 /** Keep `locations.market_id` pointing back at the market that owns the city. */
 async function linkLocationToMarket(locationId: string | null, marketSlug: string): Promise<void> {
   if (!locationId) return;
+  // Release the row the market used to own before claiming the new one. Without
+  // this a moved market keeps its old city marked as taken, so that place can
+  // never be picked again from the market form's location list.
+  await execute('UPDATE locations SET market_id = NULL WHERE market_id = ? AND id <> ?', [
+    marketSlug,
+    locationId,
+  ]);
   await execute('UPDATE locations SET market_id = ? WHERE id = ?', [marketSlug, locationId]);
 }
 
