@@ -55,9 +55,10 @@ export async function generateMetadata({
 
     // A section URL names its market as well, so a section cannot be read out of
     // a business that lives somewhere else — /el-alamein/x/photos must not
-    // publish the Siwa property's gallery or titles.
+    // publish the Siwa property's gallery or titles. A row without a recorded
+    // market reads as the default one; there is no unguarded case left.
     const urlMarket = await pathMarketSlug();
-    if (urlMarket && biz.market_id && String(biz.market_id) !== urlMarket) {
+    if (urlMarket && String(biz.market_id || DEFAULT_MARKET_SLUG) !== urlMarket) {
       return { title: 'Business Not Found - SiWiFy.com' };
     }
 
@@ -175,8 +176,8 @@ export default async function VanitySectionPage({
       biz = row ?? null;
       // Wrong market in the address: send it to the real one instead of serving
       // another market's content under this URL.
-      if (biz && urlMarket && biz.market_id && String(biz.market_id) !== urlMarket) {
-        redirect(`/${biz.market_id}/${biz.slug || slug}/${section}`);
+      if (biz && urlMarket && String(biz.market_id || DEFAULT_MARKET_SLUG) !== urlMarket) {
+        redirect(`/${biz.market_id || DEFAULT_MARKET_SLUG}/${biz.slug || slug}/${section}`);
       }
       if (biz?.slug && biz.slug !== slug) {
         redirect(`/${biz.market_id || urlMarket || DEFAULT_MARKET_SLUG}/${biz.slug}/${section}`);

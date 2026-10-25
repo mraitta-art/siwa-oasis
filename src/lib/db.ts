@@ -256,6 +256,27 @@ export async function transaction<T>(fn: (conn: mysql.PoolConnection) => Promise
   }
 }
 
+/**
+ * Field names that must never reach a rendered page, however they were stored.
+ *
+ * `temp_credentials` held a plaintext vendor password and was published in the
+ * HTML of three live minisites, because the denylist below only protects the
+ * keys someone remembered to add. Matching the shape instead of the name means
+ * a future `auth_token` or `api_key` cannot leak by omission.
+ */
+const SECRET_FIELD = /(password|passwd|secret|credential|api[_-]?key|private[_-]?key|access[_-]?token|refresh[_-]?token|auth[_-]?token)/i;
+
+function stripSecretFields(value: any, depth = 0): any {
+  if (depth > 6 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((entry) => stripSecretFields(entry, depth + 1));
+  const clean: Record<string, any> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (SECRET_FIELD.test(key)) continue;
+    clean[key] = stripSecretFields(entry, depth + 1);
+  }
+  return clean;
+}
+
 /** Consolidates legacy custom_data section keys into new core keys */
 export function normalizeCustomData(rawCustomData: any): any {
   if (!rawCustomData) return {};
@@ -266,6 +287,8 @@ export function normalizeCustomData(rawCustomData: any): any {
     c = {};
   }
 
+  c = stripSecretFields(c || {});
+
   // Admin-only operational metadata must never be exposed to public or vendor views.
   const adminOnlyKeys = [
     'source_provenance',
@@ -273,7 +296,8 @@ export function normalizeCustomData(rawCustomData: any): any {
     'duplicate_review',
     'import_analysis',
     'google_contribution',
-    'admin_only'
+    'admin_only',
+    'temp_credentials'
   ];
 
   const publicData: Record<string, any> = Object.fromEntries(

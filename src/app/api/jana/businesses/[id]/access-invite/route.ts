@@ -101,7 +101,12 @@ export async function GET(
     }
 
     const reqUrl = new URL(req.url);
-    const trialConfig = resolveTrialConfig(customData?.temp_credentials || profileMetadata, reqUrl);
+    // The trial window and access flags may sit under the legacy
+    // `temp_credentials` key or the current `access` one. Passwords are no longer
+    // read from here: the only stored copy is `profiles.metadata`, which no
+    // public view can reach.
+    const accessRecord = customData?.temp_credentials || customData?.access || {};
+    const trialConfig = resolveTrialConfig({ ...profileMetadata, ...accessRecord }, reqUrl);
 
     // Resolve Contact Phone (e.g. from basic info or profile)
     const phone = biz.vendor_phone || customData?.basic?.phone || customData?.phone || '';
@@ -113,23 +118,23 @@ export async function GET(
 
     // Check if we already have an active vendor profile and existing temp password
     const hasVendorProfile = biz.vendor_id && biz.vendor_id !== 'anonymous' && biz.profile_id;
-    const existingTempPassword = customData?.temp_credentials?.temp_password || profileMetadata?.temp_password;
+    const existingTempPassword = profileMetadata?.temp_password;
 
     if (hasVendorProfile && existingTempPassword) {
-      username = biz.vendor_email || customData?.temp_credentials?.username;
+      username = biz.vendor_email || profileMetadata?.username || accessRecord.username;
       tempPassword = existingTempPassword;
     } else if (hasVendorProfile && !existingTempPassword) {
       // Vendor exists, but no recorded temp password -> generate one and update password_hash
-      username = biz.vendor_email;
+      username = biz.vendor_email || profileMetadata?.username || accessRecord.username;
       tempPassword = generateRandomPassword();
       const hash = await bcrypt.hash(tempPassword, 10);
-      const updatedMeta = { ...profileMetadata, temp_password: tempPassword, temp_password_created_at: new Date().toISOString() };
+      const updatedMeta = { ...profileMetadata, username, temp_password: tempPassword, temp_password_created_at: new Date().toISOString() };
       
       await execute('UPDATE profiles SET password_hash = ?, metadata = ? WHERE id = ?', [hash, JSON.stringify(updatedMeta), profileId]);
 
-      customData.temp_credentials = {
-        username,
-        temp_password: tempPassword,
+      // Operational record only. The password stays in profiles.metadata.
+      delete customData.temp_credentials;
+      customData.access = {
         trial_unit: trialConfig.unit,
         trial_value: trialConfig.value,
         trial_started_at: trialConfig.startedAt,
@@ -153,6 +158,7 @@ export async function GET(
       profileId = uuidv4();
       
       const newMetadata = {
+        username,
         temp_password: tempPassword,
         created_by_admin: true,
         temp_password_created_at: new Date().toISOString()
@@ -174,9 +180,9 @@ export async function GET(
         ]
       );
 
-      customData.temp_credentials = {
-        username,
-        temp_password: tempPassword,
+      // Operational record only. The password stays in profiles.metadata.
+      delete customData.temp_credentials;
+      customData.access = {
         trial_unit: trialConfig.unit,
         trial_value: trialConfig.value,
         trial_started_at: trialConfig.startedAt,

@@ -70,11 +70,11 @@ function waNumber(raw: string) {
 async function findBusiness(slug: string) {
   // The URL names the market, and a slug is only unique inside one. Without
   // this check /el-alamein/gagal-hotel would serve the Siwa property, because
-  // the lookup itself is by slug. A row with no market_id (before the markets
-  // migration) is left alone rather than made invisible.
+  // the lookup itself is by slug. A row with no recorded market reads as the
+  // default one, so no listing stays reachable from a market that cannot own it.
   const urlMarket = await pathMarketSlug();
   const belongs = (row: any) =>
-    !row || !urlMarket || !row.market_id || String(row.market_id) === urlMarket;
+    !row || !urlMarket || String(row.market_id || DEFAULT_MARKET_SLUG) === urlMarket;
 
   try {
     if (UUID_RE.test(slug)) {
