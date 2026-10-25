@@ -51,8 +51,17 @@ export async function GET(request: NextRequest) {
 
     const includeType = searchParams.get('includeType') === 'true';
     const typeFilter = searchParams.get('type');
+    const marketFilter = searchParams.get('market');
+    // A picker wants names, not whole records: `light` skips custom_data so a
+    // market with hundreds of listings still answers with a small payload.
+    const light = searchParams.get('light') === '1';
 
-    let queryStr = `
+    let queryStr = light
+      ? `
+      SELECT b.id, b.slug, b.name, b.name_ar, b.market_id, b.development_id, b.type_id, b.status
+      FROM businesses b
+    `
+      : `
       SELECT b.*, bt.name as type_name, bt.icon as type_icon, bt.icon_color as type_icon_color,
              bt.parent_id as parent_type_id, parent_bt.name as parent_type_name,
              ${includeType ? 'bt.sections as type_sections, bt.own_sections as type_own_sections,' : ''}
@@ -64,7 +73,6 @@ export async function GET(request: NextRequest) {
       LEFT JOIN profiles p ON b.vendor_id = p.id
       LEFT JOIN minisite_templates mt ON b.template_id = mt.id
     `;
-    
     const queryParams: any[] = [];
     
     if (typeFilter) {
@@ -80,6 +88,13 @@ export async function GET(request: NextRequest) {
       } else {
         queryStr += ` WHERE 1=0 `;
       }
+    }
+
+    // Compounds and pickers scope to one market; the screen never needs the
+    // whole platform to answer "which listings live here".
+    if (marketFilter) {
+      queryStr += queryStr.includes(' WHERE ') ? ` AND b.market_id = ? ` : ` WHERE b.market_id = ? `;
+      queryParams.push(marketFilter);
     }
     
     queryStr += ` ORDER BY b.created_at DESC `;
@@ -201,7 +216,7 @@ export async function PUT(request: NextRequest) {
     const sets: string[] = [];
     const params: any[] = [];
     const dbColumns = [
-      'name', 'type_id', 'subscription_tier', 'status', 'published',
+      'name', 'name_ar', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
       'active', 'location_id', 'market_id', 'development_id', 'custom_domain'
@@ -301,7 +316,7 @@ export async function PATCH(request: NextRequest) {
     const sets: string[] = [];
     const params: any[] = [];
     const patchDbColumns = [
-      'name', 'type_id', 'subscription_tier', 'status', 'published',
+      'name', 'name_ar', 'type_id', 'subscription_tier', 'status', 'published',
       'vendor_id', 'approved_by_vendor', 'template_id',
       'is_standalone', 'is_recommended', 'is_trusted', 'is_featured', 'is_master', 'is_shared', 'is_claimed',
       'active', 'location_id', 'market_id', 'development_id', 'custom_domain'

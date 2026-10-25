@@ -8,10 +8,15 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin();
     const data = await request.json();
     
-    // Supported tables for bulk import
+    // Supported tables for bulk import.
+    //
+    // `locations` is deliberately absent. This loop clears a table before
+    // inserting, and geography is no longer standalone data: a market stores its
+    // city's id and every listing inherits that row, so a delete-and-replace
+    // would orphan addresses across the whole platform. Places are created and
+    // edited one at a time in /jana/markets → Geography, which validates them.
     const tables = [
       'profiles',
-      'locations',
       'business_types',
       'sections',
       'field_definitions',

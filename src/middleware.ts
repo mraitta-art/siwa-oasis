@@ -7,6 +7,48 @@ import { MARKET_HEADER, isMarketSegment, LEGACY_HUB_TARGETS } from '@/lib/market
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 const PLATFORM_ROOT_DOMAINS = new Set(['siwify.com', 'www.siwify.com', 'localhost', '127.0.0.1']);
 
+/* ─── Market segments the static list does not know yet ───────────────
+ * Middleware runs on the edge with no database driver, so a market used to
+ * cost a code change plus a deploy. `MARKET_SEGMENTS` stays the fast path and
+ * the fallback; an unknown first segment is resolved once per cache window
+ * from /api/market-segments, which reads the `markets` table.
+ */
+const SEGMENT_CACHE_TTL = 2 * 60 * 1000;
+let segmentCache: { slugs: Set<string>; at: number } | null = null;
+
+/** Never probe for a prefix Next itself owns. */
+const INTERNAL_SEGMENTS = new Set(['api', '_next', 'jana', 'admin', 'vendor', 'login', 'logout']);
+
+async function extraMarketSegments(request: NextRequest): Promise<Set<string>> {
+  if (segmentCache && Date.now() - segmentCache.at < SEGMENT_CACHE_TTL) return segmentCache.slugs;
+
+  const none = new Set<string>();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+    const response = await fetch(new URL('/api/market-segments', request.nextUrl.origin), {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!response.ok) throw new Error(`segment probe answered ${response.status}`);
+
+    const payload = await response.json();
+    const slugs = new Set<string>(
+      Array.isArray(payload?.segments)
+        ? payload.segments.filter((slug: unknown) => typeof slug === 'string')
+        : []
+    );
+    segmentCache = { slugs, at: Date.now() };
+    return slugs;
+  } catch {
+    // A probe failure must never break routing: the static list still answers.
+    segmentCache = { slugs: none, at: Date.now() };
+    return none;
+  }
+}
+
 /* ─── SEO-Optimized Subdomain Routing Table ────────────────────────── */
 const SUBDOMAIN_ROUTES: Record<string, string> = {
   // ── Main Oasis Portals
@@ -229,6 +271,9 @@ const JANA_PRIVATE_READS = [
   '/api/jana/page-builder/admin',
   '/api/jana/tiers',
   '/api/jana/field-definitions',
+  '/api/jana/markets',
+  '/api/jana/developments',
+  '/api/jana/locations',
 ];
 
 async function verifySession(request: NextRequest): Promise<{ role: string } | null> {
@@ -352,7 +397,16 @@ async function routeRequest(request: NextRequest) {
     localeHeader = segments.shift() as string;
   }
 
-  if (segments.length > 1 && isMarketSegment(segments[0])) {
+  // A market prefix only counts when something follows it, and it may be a
+  // segment this build has never heard of — a market created from the dashboard
+  // since the last deploy. The static list answers first, so the seeded markets
+  // never pay for the probe.
+  let isMarketPrefix = segments.length > 1 && isMarketSegment(segments[0]);
+  if (segments.length > 1 && !isMarketPrefix && !INTERNAL_SEGMENTS.has(segments[0])) {
+    const extra = await extraMarketSegments(request);
+    isMarketPrefix = extra.has(segments[0]);
+  }
+  if (isMarketPrefix) {
     marketHeader = segments.shift() as string;
   }
 

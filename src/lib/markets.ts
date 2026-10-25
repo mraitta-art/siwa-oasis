@@ -123,6 +123,16 @@ async function loadMarkets(): Promise<Market[]> {
   return SEED_MARKETS;
 }
 
+/**
+ * Drop the in-process cache. A dashboard write must be visible on the next
+ * request instead of waiting out the TTL, otherwise activating a market looks
+ * like it silently failed.
+ */
+export function invalidateMarketCache(): void {
+  cachedRows = null;
+  cachedAt = 0;
+}
+
 export async function listMarkets(options: { activeOnly?: boolean } = {}): Promise<Market[]> {
   const rows = await loadMarkets();
   return options.activeOnly === false ? rows : rows.filter((market) => market.active);
@@ -220,6 +230,8 @@ function clampLimit(value: number | undefined, fallback: number) {
 export interface MarketCategoryFacet {
   id: string;
   name: string;
+  /** Arabic name when an editor wrote one; null means "use `name`". */
+  nameAr: string | null;
   icon: string | null;
   /** Parent category blurb, when an editor has written one. */
   description: string | null;
@@ -235,6 +247,7 @@ export async function listMarketCategories(marketSlug: string, limit = 12): Prom
   const rows = await query(
     `SELECT COALESCE(bt.parent_id, bt.id) AS id,
             COALESCE(pt.name, bt.name) AS name,
+            COALESCE(pt.name_ar, bt.name_ar) AS name_ar,
             COALESCE(pt.icon, bt.icon) AS icon,
             MAX(COALESCE(pt.description, bt.description)) AS description,
             COUNT(*) AS listings
@@ -242,7 +255,7 @@ export async function listMarketCategories(marketSlug: string, limit = 12): Prom
      JOIN business_types bt ON bt.id = b.type_id
      LEFT JOIN business_types pt ON pt.id = bt.parent_id
      WHERE b.market_id = ? AND b.status = 'active'
-     GROUP BY id, name, icon
+     GROUP BY id, name, name_ar, icon
      ORDER BY listings DESC, name
      LIMIT ${clampLimit(limit, 12)}`,
     [marketSlug]
@@ -251,6 +264,7 @@ export async function listMarketCategories(marketSlug: string, limit = 12): Prom
   return (rows as any[]).map((row) => ({
     id: String(row.id),
     name: String(row.name ?? row.id),
+    nameAr: row.name_ar ? String(row.name_ar) : null,
     icon: row.icon ? String(row.icon) : null,
     description: row.description ? String(row.description) : null,
     listings: Number(row.listings) || 0,
@@ -268,7 +282,8 @@ export interface MarketListing {
   coverImage: string | null;
 }
 
-function firstImage(customData: any): string | null {
+/** The one place a listing's cover image is guessed from stored custom_data. */
+export function firstImage(customData: any): string | null {
   if (!customData || typeof customData !== 'object') return null;
   return (
     customData.cover_image ||

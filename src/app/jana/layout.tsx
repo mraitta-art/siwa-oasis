@@ -227,6 +227,7 @@ const NAV_GROUPS = [
     collapsible: true,
     defaultCollapsed: true,
     items: [
+      { name: 'Markets & Expansion', path: '/jana/markets', icon: 'fa-sitemap' },
       { name: 'Data Manager', path: '/jana/data-manager', icon: 'fa-database' },
       { name: 'Moderation', path: '/jana/moderation', icon: 'fa-user-shield' },
       { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },

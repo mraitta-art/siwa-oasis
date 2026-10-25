@@ -95,7 +95,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
       await fetch('/api/jana/businesses', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, custom_data: biz.custom_data })
+        body: JSON.stringify({ id, name_ar: biz.name_ar || null, custom_data: biz.custom_data })
       });
       alert('Business DNA updated successfully!');
     } catch (e) { console.error(e); }
@@ -201,6 +201,27 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
             <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.75rem', color: '#1e293b' }}>
               Edit Business DNA: <span style={{ color: '#D4AF37' }}>{biz.name}</span>
             </h1>
+            {/* Arabic is optional and admin-entered: the column allows NULL and
+                every public reader falls back to the English name. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.6rem' }}>
+              <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>
+                ARABIC NAME
+              </span>
+              <input
+                dir="rtl"
+                value={biz.name_ar || ''}
+                placeholder="الاسم بالعربية"
+                onChange={(e) => setBiz({ ...biz, name_ar: e.target.value })}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.85rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  minWidth: 260,
+                  outline: 'none',
+                }}
+              />
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <Link href={`/jana/businesses/${id}/contact-dashboard`} className="btn btn-outline" style={{ borderColor: '#D4AF37', color: '#D4AF37' }}>

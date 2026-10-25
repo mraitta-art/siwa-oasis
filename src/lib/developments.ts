@@ -25,19 +25,26 @@ export interface Development {
   lng: number | null;
   deliveryYear: number | null;
   status: 'announced' | 'under_construction' | 'delivered' | 'sold_out';
+  /** Business that serves as this compound's page, when one is linked. */
+  pageBusinessId: string | null;
 }
 
 export interface DevelopmentFacet {
   /** Parent category id — the tab. */
   parentTypeId: string;
   parentTypeName: string;
+  /** Arabic parent name when an editor wrote one; null means "use parentTypeName". */
+  parentTypeNameAr: string | null;
   listings: number;
 }
 
 export interface DevelopmentListing {
   id: string;
   slug: string;
+  /** English name, unchanged: existing callers keep working. */
   name: string;
+  /** Arabic name when an admin wrote one, otherwise the English name. */
+  nameAr: string;
   typeId: string;
   typeName: string;
   parentTypeId: string | null;
@@ -72,11 +79,12 @@ function toDevelopment(row: any): Development {
     status: (['announced', 'under_construction', 'delivered', 'sold_out'].includes(String(row.status))
       ? String(row.status)
       : 'announced') as Development['status'],
+    pageBusinessId: row.page_business_id ? String(row.page_business_id) : null,
   };
 }
 
 const DEVELOPMENT_COLUMNS = `id, market_id, location_id, slug, name_ar, name_en,
-  developer_name, lat, lng, delivery_year, status`;
+  developer_name, lat, lng, delivery_year, status, page_business_id`;
 
 /** Active developments in one market, for the market's project index. */
 export async function listDevelopments(marketSlug: string): Promise<Development[]> {
@@ -117,18 +125,20 @@ export async function getDevelopmentFacets(developmentId: string): Promise<Devel
     const rows = await query(
       `SELECT COALESCE(bt.parent_id, bt.id) AS parent_type_id,
               COALESCE(pt.name, bt.name) AS parent_type_name,
+              COALESCE(pt.name_ar, bt.name_ar) AS parent_type_name_ar,
               COUNT(*) AS listings
        FROM businesses b
        JOIN business_types bt ON bt.id = b.type_id
        LEFT JOIN business_types pt ON pt.id = bt.parent_id
        WHERE b.development_id = ? AND b.status = 'active'
-       GROUP BY parent_type_id, parent_type_name
+       GROUP BY parent_type_id, parent_type_name, parent_type_name_ar
        ORDER BY listings DESC, parent_type_name`,
       [developmentId]
     );
     return (rows || []).map((row: any) => ({
       parentTypeId: String(row.parent_type_id),
       parentTypeName: String(row.parent_type_name ?? row.parent_type_id),
+      parentTypeNameAr: row.parent_type_name_ar ? String(row.parent_type_name_ar) : null,
       listings: Number(row.listings),
     }));
   } catch {
@@ -152,11 +162,11 @@ export async function listDevelopmentListings(
 
   try {
     const rows = await query(
-      `SELECT b.id, b.slug, b.name, b.type_id, bt.name AS type_name, bt.parent_id
+      `SELECT b.id, b.slug, b.name, b.name_ar, b.type_id, bt.name AS type_name, bt.parent_id
        FROM businesses b
        JOIN business_types bt ON bt.id = b.type_id
        WHERE b.development_id = ? AND b.status = 'active'${facetFilter}
-       ORDER BY b.name
+       ORDER BY COALESCE(NULLIF(b.name_ar, ''), b.name)
        LIMIT ${limit}`,
       params
     );
@@ -164,6 +174,9 @@ export async function listDevelopmentListings(
       id: String(row.id),
       slug: String(row.slug),
       name: String(row.name),
+      // `||` not `??`: the column is nullable and an admin may have saved an
+      // empty string, and an empty title is worse than an English one.
+      nameAr: String(row.name_ar || row.name),
       typeId: String(row.type_id),
       typeName: String(row.type_name ?? row.type_id),
       parentTypeId: row.parent_id ? String(row.parent_id) : null,

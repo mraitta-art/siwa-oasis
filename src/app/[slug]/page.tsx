@@ -15,7 +15,11 @@ import { resolveSectionNav } from '@/lib/vanity-section-nav';
 import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug, marketName, pathMarketSlug } from '@/lib/markets';
 import { isMarketSegment } from '@/lib/market-routes';
+import { getDevelopmentBySlug, getDevelopmentFacets } from '@/lib/developments';
 import MarketHome from '@/components/MarketHome';
+import CompoundPage from '@/components/CompoundPage';
+import ZonePage from '@/components/ZonePage';
+import { getZone } from '@/lib/zones';
 
 export const dynamic = 'force-dynamic';
 
@@ -257,7 +261,9 @@ export async function generateMetadata({
 
   // A market front door is not a business page: it answers with the market's own
   // title, canonical and hreflang instead of a business lookup that cannot match.
-  if (isMarketSegment(slug)) {
+  // A market created since the last deploy is absent from the static segment
+  // list, so the registry decides as well.
+  if (isMarketSegment(slug) || (await getMarketBySlug(slug))) {
     const market = await getMarketBySlug(slug);
     if (!market || !market.active) {
       return { title: 'Not found | Siwify', robots: { index: false, follow: false } };
@@ -357,6 +363,35 @@ export async function generateMetadata({
     };
   }
 
+  // A compound answers at /{market}/{compound}. It is not a listing, so the
+  // business lookup above cannot match it; and it is resolved after the business
+  // and CMS branches, so no address that works today can change owner.
+  const compoundMarket = await pathMarketSlug();
+  if (compoundMarket) {
+    const compound = await getDevelopmentBySlug(compoundMarket, slug);
+    if (compound) {
+      const market = await getMarketBySlug(compoundMarket);
+      const locale = (await pathLocale()) ?? market?.defaultLocale ?? 'en';
+      const ar = locale === 'ar';
+      const label = ar ? compound.nameAr || compound.nameEn : compound.nameEn || compound.nameAr;
+      const facets = await getDevelopmentFacets(compound.id);
+      const hasSupply = facets.some((facet) => facet.listings > 0);
+      const publicPath = `/${compoundMarket}/${compound.slug}`;
+      const canonical = localeUrl(base, locale, publicPath);
+      return {
+        title: `${label} | Siwify`,
+        description: ar
+          ? `${label} — مشروع في ${market ? market.nameAr : compoundMarket}، مع كل الوحدات والأنشطة المتاحة بداخله.`
+          : `${label} — a project in ${market ? market.nameEn : compoundMarket}, with every unit and business inside it.`,
+        alternates: { canonical, languages: languageAlternates(base, publicPath) },
+        // Same thin-content rule as a listing: a compound with nothing published
+        // inside it is a directory page with no directory.
+        robots: hasSupply ? { index: true, follow: true } : { index: false, follow: true },
+        openGraph: { title: label, url: canonical, siteName: 'Siwify', type: 'website' },
+      };
+    }
+  }
+
   const cfg = await loadWebsiteConfig(slug);
   if (cfg) {
     const name = cfg.site_settings?.site_name || slug.replace(/[-_]+/g, ' ');
@@ -377,6 +412,32 @@ export async function generateMetadata({
         alternateLocale: locale === 'ar' ? ['en_US'] : ['ar_EG'],
       },
     };
+  }
+
+  // A zone answers at /{market}/{zone}. Resolved after every branch the page
+  // resolves, so metadata and markup can never disagree about who owns a slug.
+  const zoneMarket = await pathMarketSlug();
+  if (zoneMarket) {
+    const zone = await getZone(zoneMarket, slug);
+    if (zone) {
+      const market = await getMarketBySlug(zoneMarket);
+      const locale = (await pathLocale()) ?? market?.defaultLocale ?? 'en';
+      const ar = locale === 'ar';
+      const label = ar ? zone.nameAr || zone.nameEn : zone.nameEn || zone.nameAr;
+      const publicPath = `/${zoneMarket}/${zone.slug}`;
+      const canonical = localeUrl(base, locale, publicPath);
+      return {
+        title: `${label} | Siwify`,
+        description: ar
+          ? `${label} — الأنشطة والخدمات المنشورة في هذه المنطقة.`
+          : `${label} — the businesses and services published in this area.`,
+        alternates: { canonical, languages: languageAlternates(base, publicPath) },
+        // Same thin-content rule as a listing or a compound: a place with nothing
+        // published in it is a directory page with no directory.
+        robots: zone.listings > 0 ? { index: true, follow: true } : { index: false, follow: true },
+        openGraph: { title: label, url: canonical, siteName: 'Siwify', type: 'website' },
+      };
+    }
   }
 
   return { title: 'Not found | Siwify', robots: { index: false, follow: true } };
@@ -681,7 +742,8 @@ export default async function CanonicalVanityPage({
 
   // /{market} is the market's front door. The route tree is flat, so the slug
   // decides: a market segment renders the market, anything else is a listing.
-  if (isMarketSegment(slug)) {
+  // A market created since the last deploy is resolved from the registry.
+  if (isMarketSegment(slug) || (await getMarketBySlug(slug))) {
     return <MarketHome marketSlug={slug} category={category} />;
   }
 
@@ -759,6 +821,35 @@ export default async function CanonicalVanityPage({
         />
       </div>
     );
+  }
+
+  // A compound is resolved last, after the listing and CMS branches, so no URL
+  // that resolves today can change hands tomorrow.
+  const compoundSlug = await pathMarketSlug();
+  if (compoundSlug) {
+    const compound = await getDevelopmentBySlug(compoundSlug, slug);
+    if (compound) {
+      // The path decides the language; when it declares none, the market's own
+      // default does. El Alamein is seeded default_locale = 'ar', so its bare
+      // address already answers in Arabic — the Arabic page cannot be missing.
+      const market = await getMarketBySlug(compoundSlug);
+      const compoundLang =
+        langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? market?.defaultLocale ?? lang);
+      return <CompoundPage compound={compound} marketSlug={compoundSlug} lang={compoundLang} />;
+    }
+  }
+
+  // A zone answers at /{market}/{zone}, after the compound and for the same
+  // reason: a place may only win an address nothing else wanted.
+  const zoneMarket = await pathMarketSlug();
+  if (zoneMarket) {
+    const zone = await getZone(zoneMarket, slug);
+    if (zone) {
+      const market = await getMarketBySlug(zoneMarket);
+      const zoneLang =
+        langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? market?.defaultLocale ?? lang);
+      return <ZonePage zone={zone} marketSlug={zoneMarket} lang={zoneLang} />;
+    }
   }
 
   // Unknown slug: a real 404 (the old version answered 200 with an exploration

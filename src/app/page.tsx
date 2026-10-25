@@ -282,7 +282,7 @@ export default async function Home() {
     locale,
     market: { slug: market.slug, name },
     markets: markets.map(m => ({ slug: m.slug, name: marketName(m, locale) })),
-    categories: categories.map(c => ({ id: c.id, name: c.name, listings: c.listings })),
+    categories: categories.map(c => ({ id: c.id, name: ar ? c.nameAr || c.name : c.name, listings: c.listings })),
   };
 
   const themeCSS = buildThemeCSS(settings);
@@ -456,7 +456,9 @@ export default async function Home() {
                   gap: '0.75rem',
                 }}
               >
-                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text)' }}>{c.name}</span>
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text)' }}>
+                  {ar ? c.nameAr || c.name : c.name}
+                </span>
                 <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0F172A', background: accent, borderRadius: 999, padding: '0.15rem 0.5rem' }}>
                   {c.listings}
                 </span>

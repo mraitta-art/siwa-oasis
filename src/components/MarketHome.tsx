@@ -9,6 +9,7 @@ import {
 } from '@/lib/markets';
 import { marketCopy } from '@/lib/market-copy';
 import { pathLocale } from '@/lib/site-locale';
+import { listMarketZones } from '@/lib/zones';
 
 /**
  * /{market} — the front door of one marketplace.
@@ -43,9 +44,10 @@ export default async function MarketHome({
   const otherName = marketName(market, ar ? 'en' : 'ar');
   const copy = marketCopy(market, locale);
 
-  const [categories, listings] = await Promise.all([
+  const [categories, listings, zones] = await Promise.all([
     listMarketCategories(market.slug, 12),
     listMarketListings(market.slug, { parentTypeId: category, limit: 24 }),
+    listMarketZones(market.slug),
   ]);
 
   const activeCategory = category && categories.some((c) => c.id === category) ? category : null;
@@ -132,10 +134,41 @@ export default async function MarketHome({
                     border: `1px solid ${active ? accent : 'rgba(212,175,55,0.3)'}`,
                   }}
                 >
-                  {c.name} <span style={{ opacity: 0.65 }}>{c.listings}</span>
+                  {(ar ? c.nameAr || c.name : c.name)}{' '}
+                  <span style={{ opacity: 0.65 }}>{c.listings}</span>
                 </Link>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {/* A zone is a door of its own: /{market}/{zone}. It only appears once an
+          admin has filed listings under a district, town or area. */}
+      {zones.length > 0 && (
+        <section style={{ maxWidth: 1120, margin: '0 auto', padding: '0 1.5rem 1rem' }}>
+          <div style={{ fontSize: '0.66rem', letterSpacing: '3px', fontWeight: 900, opacity: 0.45, marginBottom: '0.5rem' }}>
+            {ar ? 'تصفّح حسب المنطقة' : 'BROWSE BY AREA'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {zones.map((zone) => (
+              <Link
+                key={zone.id}
+                href={`${base}/${zone.slug}`}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  padding: '0.5rem 0.95rem',
+                  borderRadius: 999,
+                  color: 'rgba(255,255,255,0.85)',
+                  border: '1px dashed rgba(255,255,255,0.25)',
+                }}
+              >
+                {(ar ? zone.nameAr || zone.nameEn : zone.nameEn || zone.nameAr)}{' '}
+                <span style={{ opacity: 0.6 }}>{zone.listings}</span>
+              </Link>
+            ))}
           </div>
         </section>
       )}

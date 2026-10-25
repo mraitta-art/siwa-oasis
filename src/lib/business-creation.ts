@@ -49,6 +49,9 @@ export function buildCanonicalBusinessCustomData(name: string, customData: Recor
 export interface CreateBusinessInput {
   id?: string;
   name: string;
+  /** Arabic display name. Optional: the column allows NULL and readers fall back. */
+  name_ar?: string | null;
+  nameAr?: string | null;
   type_id: string;
   /** Marketplace the listing belongs to. Defaults to Siwa, the only live one. */
   market_id?: string | null;
@@ -77,6 +80,7 @@ export interface CreateBusinessInput {
 export async function createBusinessEntity(input: CreateBusinessInput) {
   let {
     name,
+    name_ar: nameAr = '',
     type_id: typeId,
     market_id: marketId = DEFAULT_MARKET_SLUG,
     location_id: locationId = null,
@@ -101,6 +105,10 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
 
   const canonicalName = normalizeBusinessName(name);
   if (!canonicalName) throw new Error('Name is required');
+  // Arabic is stored, never derived: writing the English name into name_ar would
+  // look like a translation that simply was not done. The slug still comes from
+  // the English name, because an Arabic name has no latin form.
+  const arabicName = String((input as any).nameAr ?? nameAr ?? '').trim();
   if (!typeId) throw new Error('Business type (typology) is required');
   if (vendorId === '') vendorId = null;
   if (templateId === '') templateId = null;
@@ -117,6 +125,57 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   }
   if (!locationId) locationId = marketRow.locationId;
   if (locationId === '') locationId = null;
+
+  // A listing is filed inside its own market's geography: the market's city, or
+  // anything below it. The dashboard only offers that subtree, and this is the
+  // half that holds when a request does not come from the dashboard.
+  if (locationId && locationId !== marketRow.locationId) {
+    const place = (await queryOne('SELECT id, path, market_id FROM locations WHERE id = ? LIMIT 1', [
+      locationId,
+    ])) as any;
+    if (!place) {
+      throw new Error(`Location "${locationId}" not found.`);
+    }
+
+    const city = marketRow.locationId
+      ? ((await queryOne('SELECT path FROM locations WHERE id = ? LIMIT 1', [
+          marketRow.locationId,
+        ])) as any)
+      : null;
+    const cityPath = city?.path ? String(city.path) : null;
+    const placePath = String(place.path || place.id);
+
+    const insideCity =
+      !cityPath || placePath === cityPath || placePath.startsWith(`${cityPath}/`);
+    const ownedByMarket = Boolean(place.market_id) && String(place.market_id) === market;
+
+    if (!insideCity && !ownedByMarket) {
+      const error = new Error(
+        `"${placePath}" is not inside the ${market} market's geography, so a ${market} listing cannot use it.`
+      );
+      (error as any).rule = 'LOCATION_NOT_IN_MARKET';
+      throw error;
+    }
+  }
+
+  // A compound belongs to one market, so a listing cannot be filed inside one
+  // from a different city — /el-alamein/marassi must never hold a Siwa villa.
+  if (developmentId) {
+    const compound = (await queryOne(
+      'SELECT id, market_id, name_en, name_ar FROM developments WHERE id = ? LIMIT 1',
+      [developmentId]
+    )) as any;
+    if (!compound) {
+      throw new Error(`Compound "${developmentId}" not found.`);
+    }
+    if (String(compound.market_id) !== market) {
+      const error = new Error(
+        `"${compound.name_en || compound.name_ar}" sits in ${compound.market_id}, so a ${market} listing cannot be filed inside it.`
+      );
+      (error as any).rule = 'DEVELOPMENT_NOT_IN_MARKET';
+      throw error;
+    }
+  }
 
   if (cloneFromId) {
     const sourceBusiness = await queryOne(
@@ -252,9 +311,9 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   const persistedData = { ...normalizedCustomData, source_provenance: provenance };
 
   await execute(
-    `INSERT INTO businesses (id, name, slug, market_id, location_id, development_id, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, canonicalName, slug, market, locationId, developmentId, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
+    `INSERT INTO businesses (id, name, name_ar, slug, market_id, location_id, development_id, type_id, subscription_tier, vendor_id, template_id, is_standalone, custom_data, status, published, is_master, is_shared, is_claimed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, canonicalName, arabicName || null, slug, market, locationId, developmentId, typeId, subscriptionTier, vendorId, templateId, isStandalone ? 1 : 0,
       JSON.stringify(persistedData), status, status === 'active' ? 1 : 0, masterValue, sharedValue, claimedValue]
   );
 
@@ -266,5 +325,5 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     }
   }
 
-  return { id, name: canonicalName, slug, market_id: market, location_id: locationId, development_id: developmentId, type_id: typeId, vendor_id: vendorId, is_master: masterValue, is_claimed: claimedValue };
+  return { id, name: canonicalName, name_ar: arabicName || null, slug, market_id: market, location_id: locationId, development_id: developmentId, type_id: typeId, vendor_id: vendorId, is_master: masterValue, is_claimed: claimedValue };
 }

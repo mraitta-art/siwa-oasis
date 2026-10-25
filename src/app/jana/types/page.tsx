@@ -7,6 +7,15 @@ interface BizType {
   id: string; name: string; icon: string; icon_color: string; description: string;
   is_parent: boolean; parent_id: string | null; sections: string[]; own_sections: string[];
   active: boolean; default_template_id?: string | null;
+  /** Second name; readers fall back to `name`, so it is always optional. */
+  name_ar?: string | null;
+  /** NULL means "offered in every market". */
+  market_id?: string | null;
+}
+
+interface MarketOption {
+  slug: string;
+  nameEn: string;
 }
 
 const COMMON_ICONS = [
@@ -30,6 +39,7 @@ export default function BusinessTypesPage() {
   const [types, setTypes] = useState<BizType[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [markets, setMarkets] = useState<MarketOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -48,6 +58,7 @@ export default function BusinessTypesPage() {
     loadTypes(); 
     loadSections();
     loadTemplates();
+    loadMarkets();
     checkForDuplicates();
   }, []);
 
@@ -91,6 +102,18 @@ export default function BusinessTypesPage() {
     }
   }
 
+  async function loadMarkets() {
+    try {
+      const res = await fetch('/api/jana/markets');
+      if (res.ok) {
+        const data = await res.json();
+        setMarkets(Array.isArray(data?.markets) ? data.markets : []);
+      }
+    } catch (e) {
+      setMarkets([]);
+    }
+  }
+
   const parents = types
     .filter(t => (t.is_parent || Number(t.is_parent) === 1) && t.id !== 'SECTION_TEMPLATE' && t.active !== false && Number(t.active) !== 0)
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -103,7 +126,8 @@ export default function BusinessTypesPage() {
     } else {
       setEditingType({
         id: '', name: '', icon: 'fas fa-building', icon_color: '#8b5cf6',
-        description: '', is_parent: false, parent_id: '', sections: [], own_sections: [], active: true
+        description: '', is_parent: false, parent_id: '', sections: [], own_sections: [], active: true,
+        name_ar: '', market_id: ''
       });
       setIsNew(true);
     }
@@ -555,6 +579,38 @@ export default function BusinessTypesPage() {
                     generateId(e.target.value);
                   }} 
                 />
+              </div>
+
+              <div className="form-group" style={{ marginTop: '1rem' }}>
+                <label className="form-label">Arabic Name</label>
+                <input
+                  type="text" className="form-control" dir="rtl" placeholder="مثال: فيلا"
+                  value={editingType.name_ar || ''}
+                  onChange={e => setEditingType({ ...editingType, name_ar: e.target.value })}
+                />
+                <small style={{ color: '#64748b', fontSize: '0.72rem' }}>
+                  Optional. An Arabic-market page shows this instead of the English name.
+                </small>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '1rem' }}>
+                <label className="form-label">Market scope</label>
+                <select
+                  className="form-control"
+                  value={editingType.market_id || ''}
+                  onChange={e => setEditingType({ ...editingType, market_id: e.target.value })}
+                >
+                  <option value="">Shared — offered in every market</option>
+                  {markets.map(market => (
+                    <option key={market.slug} value={market.slug}>
+                      {market.nameEn} only
+                    </option>
+                  ))}
+                </select>
+                <small style={{ color: '#64748b', fontSize: '0.72rem' }}>
+                  A market-scoped typology is hidden everywhere else — this is how a Siwa-only
+                  category (salt lake, Siwan kitchen) stays out of El Alamein.
+                </small>
               </div>
 
               <div className="form-group" style={{ marginTop: '1rem' }}>
