@@ -221,6 +221,8 @@ export interface MarketCategoryFacet {
   id: string;
   name: string;
   icon: string | null;
+  /** Parent category blurb, when an editor has written one. */
+  description: string | null;
   listings: number;
 }
 
@@ -234,6 +236,7 @@ export async function listMarketCategories(marketSlug: string, limit = 12): Prom
     `SELECT COALESCE(bt.parent_id, bt.id) AS id,
             COALESCE(pt.name, bt.name) AS name,
             COALESCE(pt.icon, bt.icon) AS icon,
+            MAX(COALESCE(pt.description, bt.description)) AS description,
             COUNT(*) AS listings
      FROM businesses b
      JOIN business_types bt ON bt.id = b.type_id
@@ -249,6 +252,7 @@ export async function listMarketCategories(marketSlug: string, limit = 12): Prom
     id: String(row.id),
     name: String(row.name ?? row.id),
     icon: row.icon ? String(row.icon) : null,
+    description: row.description ? String(row.description) : null,
     listings: Number(row.listings) || 0,
   }));
 }

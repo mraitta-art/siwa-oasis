@@ -1,28 +1,43 @@
 /**
- * Homepage — Server Component (SSR + ISR)
+ * Homepage — the front door of the platform (Server Component).
  *
- * Converted from 'use client' + useEffect to a server component so data is
- * fetched at render time on the server. Users see content immediately on
- * first byte instead of waiting for a client-side fetch waterfall.
+ * This page used to be nothing: the body came from the dashboard template and
+ * that template's component list is empty, so the whole site's front door was a
+ * header, a footer and 618 characters of text with no <h1>. Everything a visitor
+ * could click took them to a Siwa-named sector hub that had no listings.
  *
- * Caching: revalidate = 30 seconds (ISR). After the first request, Vercel
- * serves the cached HTML until it expires, then regenerates in the background.
- * Admin publishes trigger cache invalidation via the existing invalidateCache hook.
+ * It now renders the market itself. Markets, categories and listings are read
+ * from the database on every request, so opening El Alamein or Ras El Hekma is a
+ * row change and not a page change. The dashboard keeps its slot below: anything
+ * an editor adds to the website template still renders, it just no longer has to
+ * carry the front door on its own.
+ *
+ * Caching: the page reads request headers (locale), so it renders per request.
+ * Middleware gives public HTML a 5 minute shared-cache window, and the database
+ * reads behind it are themselves cached for a minute.
  */
 
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MarketplaceHeader, { type NavLink } from '@/components/MarketplaceHeader';
 import { getWebsiteTemplate } from '@/lib/cache';
 import { optimizeImageUrlsDeep } from '@/lib/image-url';
 import { BRAND_MARK_URL, BRAND_LOCKUP_URL } from '@/lib/brand-assets';
-
-// ISR: serve cached page for 120 seconds, then regenerate in background
-// Significantly reduces Vercel Serverless Function GB-Hours and database queries
-export const revalidate = 120;
-// Remove force-dynamic so Next.js can cache the page output
-export const dynamic = 'auto';
+import {
+  DEFAULT_MARKET_SLUG,
+  getMarketBySlug,
+  listMarketCategories,
+  listMarketListings,
+  listMarkets,
+  marketName,
+  pathMarketSlug,
+  type Market,
+} from '@/lib/markets';
+import { marketCopy } from '@/lib/market-copy';
+import { pathLocale, type SiteLocale } from '@/lib/site-locale';
+import { expandNavTokens, type NavContext } from '@/lib/site-nav';
 
 interface LayoutSection {
   id: string;
@@ -66,24 +81,36 @@ interface FooterLink {
   href: string;
 }
 
-const DEFAULT_FOOTER_LINKS: FooterLink[] = [
-  { group: 'EXPLORE', label: 'The Collection', href: '/search/vibe' },
-  { group: 'EXPLORE', label: 'Heritage DNA', href: '#discovery' },
-  { group: 'PARTNERS & GOVERNANCE', label: 'Vendor Portal', href: '/login' },
-  { group: 'PARTNERS & GOVERNANCE', label: 'Become a Partner', href: '/signup' },
-  { group: 'PARTNERS & GOVERNANCE', label: 'Heritage Investment', href: '/investment-opportunities' },
-];
-
+/**
+ * Fallbacks. The dashboard's `nav_links_text` wins whenever it holds a value,
+ * so these only show on a template that has never been edited — and they are
+ * deliberately short because the tokens do the work.
+ */
 const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
-  { href: '/siwa-stay', label: 'Siwa Stay', icon: 'fa-hotel' },
-  { href: '/siwa-table', label: 'Siwa Table', icon: 'fa-utensils' },
-  { href: '/siwa-go', label: 'Siwa Go', icon: 'fa-compass' },
-  { href: '/siwa-retreats', label: 'Siwa Retreats', icon: 'fa-spa' },
-  { href: '/siwa-products', label: 'Siwa Products', icon: 'fa-store' },
-  { href: '/siwa-invest', label: 'Siwa Invest', icon: 'fa-chart-line' },
-  { href: '/siwa-society', label: 'Siwa Society', icon: 'fa-people-group' },
+  { href: '/siwa', label: 'Directory', icon: 'fa-compass' },
+  { href: '/categories', label: 'Categories', icon: 'fa-layer-group' },
+  { href: '/blog', label: 'Journal', icon: 'fa-book-open' },
+  { href: '/be-a-partner', label: 'List your business', icon: 'fa-store' },
 ];
+
+const DEFAULT_NAV_TEXT = ['Home | /', '{{market}}', '{{categories}}', 'Journal | /blog', 'List your business | /be-a-partner'].join('\n');
+
+const DEFAULT_FOOTER_LINKS: FooterLink[] = [
+  { group: 'EXPLORE', label: 'Directory', href: '/siwa' },
+  { group: 'EXPLORE', label: 'All categories', href: '/categories' },
+  { group: 'EXPLORE', label: 'Journal', href: '/blog' },
+  { group: 'PARTNERS', label: 'Vendor portal', href: '/login' },
+  { group: 'PARTNERS', label: 'List your business', href: '/signup' },
+];
+
+const DEFAULT_FOOTER_TEXT = [
+  'EXPLORE | {{market}}',
+  'EXPLORE | All categories | /categories',
+  'EXPLORE | Journal | /blog',
+  'PARTNERS | Vendor portal | /login',
+  'PARTNERS | List your business | /signup',
+].join('\n');
 
 function parseLinks(value: string | undefined, defaults: string): string[] {
   return (value === undefined ? defaults : value).split(/\r?\n/).map(line => line.trim()).filter(Boolean);
@@ -93,8 +120,9 @@ function isSafeLink(href: string) {
   return (href.startsWith('/') && !href.startsWith('//')) || href.startsWith('#') || /^https:\/\//i.test(href);
 }
 
-function getNavLinks(settings: SiteSettings | null): NavLink[] {
-  const lines = parseLinks(settings?.nav_links_text, DEFAULT_NAV_LINKS.map(link => `${link.label} | ${link.href}`).join('\n'));
+function getNavLinks(settings: SiteSettings | null, ctx: NavContext): NavLink[] {
+  const fallback = settings?.nav_links_text ?? DEFAULT_NAV_TEXT;
+  const lines = parseLinks(expandNavTokens(fallback, ctx), DEFAULT_NAV_LINKS.map(link => `${link.label} | ${link.href}`).join('\n'));
   return lines.flatMap(line => {
     const [label, ...hrefParts] = line.split('|').map(part => part.trim());
     const href = hrefParts.join('|');
@@ -103,8 +131,9 @@ function getNavLinks(settings: SiteSettings | null): NavLink[] {
   });
 }
 
-function getFooterLinks(settings: SiteSettings | null): FooterLink[] {
-  const lines = parseLinks(settings?.footer_links_text, DEFAULT_FOOTER_LINKS.map(link => `${link.group} | ${link.label} | ${link.href}`).join('\n'));
+function getFooterLinks(settings: SiteSettings | null, ctx: NavContext): FooterLink[] {
+  const fallback = settings?.footer_links_text ?? DEFAULT_FOOTER_TEXT;
+  const lines = parseLinks(expandNavTokens(fallback, ctx), DEFAULT_FOOTER_LINKS.map(link => `${link.group} | ${link.label} | ${link.href}`).join('\n'));
   return lines.flatMap(line => {
     const [group, label, ...hrefParts] = line.split('|').map(part => part.trim());
     const href = hrefParts.join('|');
@@ -125,10 +154,23 @@ function isLight(hex: string | undefined): boolean {
 }
 
 // ── Dynamically generate :root CSS overrides from settings ───────────────────
+/**
+ * These values end up inside a <style> block, which React cannot escape for us.
+ * Dashboard colours are hex or rgb() in practice, so anything else falls back
+ * rather than being pasted into the stylesheet.
+ */
+function safeColor(value: string | undefined, fallback: string): string {
+  if (!value) return fallback;
+  const trimmed = value.trim();
+  return /^#[0-9a-f]{3,8}$/i.test(trimmed) || /^rgba?\([0-9.,\s%]+\)$/i.test(trimmed) || /^[a-z]{3,20}$/i.test(trimmed)
+    ? trimmed
+    : fallback;
+}
+
 function buildThemeCSS(s: SiteSettings | null): string {
-  const bg  = s?.bg_color    || '#f7f5f2';
-  const pri = s?.primary_color || '#475569';
-  const nav = s?.nav_bg_color  || '#ffffff';
+  const bg  = safeColor(s?.bg_color, '#f7f5f2');
+  const pri = safeColor(s?.primary_color, '#475569');
+  const nav = safeColor(s?.nav_bg_color, '#ffffff');
   const light = isLight(bg);
 
   if (light) {
@@ -168,6 +210,43 @@ function buildThemeCSS(s: SiteSettings | null): string {
   }
 }
 
+/** The market this front door speaks for. */
+async function currentMarket(): Promise<{ market: Market; locale: SiteLocale }> {
+  const [locale, requested] = await Promise.all([pathLocale(), pathMarketSlug()]);
+  const resolvedLocale: SiteLocale = locale ?? 'en';
+  const wanted = (await getMarketBySlug(requested ?? DEFAULT_MARKET_SLUG))
+    ?? (await getMarketBySlug(DEFAULT_MARKET_SLUG));
+  // A dark market has no front door. Falling back keeps the root reachable
+  // instead of 404-ing the site's own homepage.
+  const market: Market = wanted && wanted.active ? wanted : (await getMarketBySlug(DEFAULT_MARKET_SLUG))!;
+  return { market, locale: resolvedLocale };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { market, locale } = await currentMarket();
+  const name = marketName(market, locale);
+  const path = locale === 'ar' ? '/ar' : '/';
+  const title = locale === 'ar'
+    ? `${name} — دليل الأنشطة الموثّقة | Siwify`
+    : `${name} — verified local businesses, direct | Siwify`;
+  const description = marketCopy(market, locale);
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `https://siwify.com${path}`,
+      languages: {
+        en: 'https://siwify.com',
+        ar: 'https://siwify.com/ar',
+        'x-default': 'https://siwify.com',
+      },
+    },
+    openGraph: { title, description, url: `https://siwify.com${path}`, type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
+  };
+}
+
 /**
  * Server Component — data is fetched during SSR, no client waterfall.
  */
@@ -181,24 +260,56 @@ export default async function Home() {
 
   const settings: SiteSettings | null = template?.site_settings || null;
 
-  const rawSaved = [
+  const layout: LayoutSection[] = [
     ...(template?.header_components || []),
     ...(template?.body_components || []),
     ...(template?.footer_components || []),
   ];
 
-  const layout: LayoutSection[] = rawSaved;
+  const { market, locale } = await currentMarket();
+  const ar = locale === 'ar';
+
+  const [markets, categories, listings] = await Promise.all([
+    listMarkets({ activeOnly: true }),
+    listMarketCategories(market.slug, 8),
+    listMarketListings(market.slug, { limit: 6 }),
+  ]);
+
+  const name = marketName(market, locale);
+  const otherName = marketName(market, ar ? 'en' : 'ar');
+  const accent = market.themeAccent || '#D4AF37';
+  const base = ar ? `/ar/${market.slug}` : `/${market.slug}`;
+  const inventory = categories.reduce((sum, c) => sum + c.listings, 0);
+
+  const navContext: NavContext = {
+    locale,
+    market: { slug: market.slug, name },
+    markets: markets.map(m => ({ slug: m.slug, name: marketName(m, locale) })),
+    categories: categories.map(c => ({ id: c.id, name: c.name, listings: c.listings })),
+  };
 
   const themeCSS = buildThemeCSS(settings);
   const primary  = settings?.primary_color || '#FFB700';
-  const footerLinks = getFooterLinks(settings);
+  const footerLinks = getFooterLinks(settings, navContext);
   const footerGroups = Array.from(new Set(footerLinks.map(link => link.group)));
   const footerTagline = settings?.footer_tagline === undefined
-    ? 'The Gold Standard of Siwa Oasis Experiences. Authenticity verified through architectural heritage.'
+    ? 'A marketplace for verified local businesses. Independent owners, direct contact, no middleman.'
     : settings.footer_tagline;
   const footerCopyright = settings?.footer_copyright === undefined
     ? 'SIWIFY • ALL RIGHTS RESERVED.'
     : settings.footer_copyright;
+
+  const steps = ar
+    ? [
+        ['أنشئ موقعك المصغّر', 'سجّل نشاطك وأضف الصور والأسعار في دقائق.'],
+        ['انشر', 'صفحتك تصبح جزءًا من دليل السوق، بلغتين.'],
+        ['استقبل التواصل', 'الزائر يراسلك على واتساب مباشرة.'],
+      ]
+    : [
+        ['Create your minisite', 'Register the business and add photos and prices in minutes.'],
+        ['Publish', 'Your page joins the market directory, in both languages.'],
+        ['Get contacted', 'Visitors reach you on WhatsApp, not through us.'],
+      ];
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -212,7 +323,7 @@ export default async function Home() {
           title={settings?.site_name || 'SiWiFy'}
           accentColor={primary}
           activePath="/"
-          navLinks={getNavLinks(settings)}
+          navLinks={getNavLinks(settings, navContext)}
           brandLabel={settings?.header_brand_label ?? 'SIWIFY'}
           brandIcon={settings?.header_brand_icon === undefined ? 'fa-sun' : settings.header_brand_icon}
           backgroundColor={settings?.header_background_color || 'rgba(8, 14, 10, 0.94)'}
@@ -222,7 +333,256 @@ export default async function Home() {
         />
       )}
 
-      {/* 🔮 DYNAMIC ORCHESTRATOR RENDERING — SSR data passed as props */}
+      {/* ── HERO — the market, not a slideshow ───────────────────────────── */}
+      <section
+        dir={ar ? 'rtl' : 'ltr'}
+        style={{
+          background: `linear-gradient(135deg, #0F172A 0%, #1B2436 55%, ${accent}2E 100%)`,
+          color: '#FFFFFF',
+          borderBottom: `1px solid ${accent}44`,
+        }}
+      >
+        <div style={{ maxWidth: 1120, margin: '0 auto', padding: '3.25rem 1.5rem 2.75rem' }}>
+          <div style={{ fontSize: '0.68rem', letterSpacing: '4px', fontWeight: 900, color: accent }}>
+            {ar ? 'سوق' : 'MARKETPLACE'} · {market.currency}
+          </div>
+
+          <h1 style={{ margin: '0.6rem 0 0.2rem', fontSize: 'clamp(2.1rem, 5vw, 3.4rem)', fontWeight: 900, lineHeight: 1.12 }}>
+            {name}
+          </h1>
+          <div style={{ opacity: 0.45, fontSize: '0.95rem', marginBottom: '1rem' }}>{otherName}</div>
+
+          <p style={{ margin: 0, maxWidth: 620, fontSize: '1rem', lineHeight: 1.8, opacity: 0.82 }}>
+            {marketCopy(market, locale)}
+          </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginTop: '1.6rem' }}>
+            <Link
+              href={base}
+              style={{
+                background: accent,
+                color: '#0F172A',
+                textDecoration: 'none',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                padding: '0.8rem 1.3rem',
+                borderRadius: 10,
+              }}
+            >
+              {ar ? `تصفّح ${inventory} نشاطًا →` : `Browse ${inventory} ${inventory === 1 ? 'business' : 'businesses'} →`}
+            </Link>
+            <Link
+              href={ar ? '/ar/be-a-partner' : '/be-a-partner'}
+              style={{
+                color: '#FFFFFF',
+                textDecoration: 'none',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                padding: '0.8rem 1.3rem',
+                borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.28)',
+              }}
+            >
+              {ar ? 'أضف نشاطك مجانًا' : 'List your business — free'}
+            </Link>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.75rem', marginTop: '2.2rem', fontSize: '0.75rem', fontWeight: 800, opacity: 0.7 }}>
+            <span>{inventory} {ar ? 'نشاط منشور' : 'live listings'}</span>
+            <span>{categories.length} {ar ? 'تصنيف' : 'categories'}</span>
+            <span>{ar ? 'الدفع بالجنيه' : `Priced in ${market.currency}`}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── OTHER MARKETS — only when there is more than one ─────────────── */}
+      {markets.length > 1 && (
+        <section dir={ar ? 'rtl' : 'ltr'} style={{ maxWidth: 1120, margin: '0 auto', padding: '2.5rem 1.5rem 0' }}>
+          <h2 style={{ margin: '0 0 1rem', fontSize: '0.68rem', letterSpacing: '3px', fontWeight: 900, color: 'var(--text-light)' }}>
+            {ar ? 'أسواق أخرى' : 'OTHER MARKETS'}
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.85rem' }}>
+            {markets.filter(m => m.slug !== market.slug).map(m => (
+              <Link
+                key={m.slug}
+                href={ar ? `/ar/${m.slug}` : `/${m.slug}`}
+                style={{
+                  textDecoration: 'none',
+                  color: 'var(--text)',
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: '1rem 1.1rem',
+                  fontWeight: 800,
+                }}
+              >
+                {marketName(m, locale)}
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-light)', marginTop: '0.2rem' }}>
+                  {m.currency}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── CATEGORY DOORS — built from live supply ──────────────────────── */}
+      <section dir={ar ? 'rtl' : 'ltr'} style={{ maxWidth: 1120, margin: '0 auto', padding: '2.75rem 1.5rem 0' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--text)' }}>
+            {ar ? 'تصفّح حسب التصنيف' : 'Browse by category'}
+          </h2>
+          <Link href={base} style={{ color: 'var(--text-light)', fontSize: '0.78rem', fontWeight: 800, textDecoration: 'none' }}>
+            {ar ? 'الكل →' : 'All →'}
+          </Link>
+        </div>
+
+        {categories.length === 0 ? (
+          <div style={{ border: '1px dashed var(--border)', borderRadius: 12, padding: '1.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            {ar ? 'لا توجد أنشطة منشورة بعد.' : 'No businesses published yet.'}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '0.85rem' }}>
+            {categories.map(c => (
+              <Link
+                key={c.id}
+                href={`${base}?category=${encodeURIComponent(c.id)}`}
+                style={{
+                  textDecoration: 'none',
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: '1.1rem 1.15rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                }}
+              >
+                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text)' }}>{c.name}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0F172A', background: accent, borderRadius: 999, padding: '0.15rem 0.5rem' }}>
+                  {c.listings}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── NEWEST LISTINGS ──────────────────────────────────────────────── */}
+      {listings.length > 0 && (
+        <section dir={ar ? 'rtl' : 'ltr'} style={{ maxWidth: 1120, margin: '0 auto', padding: '2.75rem 1.5rem 0' }}>
+          <h2 style={{ margin: '0 0 1rem', fontSize: '1.15rem', fontWeight: 900, color: 'var(--text)' }}>
+            {ar ? `أحدث الأنشطة في ${name}` : `Newest in ${name}`}
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
+            {listings.map(listing => (
+              <Link
+                key={listing.id}
+                href={`${base}/${listing.slug}`}
+                style={{
+                  textDecoration: 'none',
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  color: 'var(--text)',
+                }}
+              >
+                <div
+                  style={{
+                    height: 132,
+                    background: listing.coverImage
+                      ? `url(${listing.coverImage}) center/cover`
+                      : `linear-gradient(135deg, ${accent}55, #0F172A)`,
+                  }}
+                />
+                <div style={{ padding: '0.9rem 1rem 1.05rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 900, color: '#8a6d16' }}>
+                      {listing.typeName || (ar ? 'نشاط' : 'Business')}
+                    </span>
+                    {listing.isTrusted && (
+                      <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'rgba(34,197,94,0.15)', color: '#15803d', padding: '1px 6px', borderRadius: 999 }}>
+                        {ar ? 'موثّق' : 'VERIFIED'}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '1rem', lineHeight: 1.4 }}>{listing.name}</div>
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.74rem', fontWeight: 800, color: '#8a6d16' }}>
+                    {ar ? 'افتح الموقع ←' : 'Open minisite →'}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── HOW IT WORKS ─────────────────────────────────────────────────── */}
+      <section dir={ar ? 'rtl' : 'ltr'} style={{ maxWidth: 1120, margin: '0 auto', padding: '3rem 1.5rem 0' }}>
+        <h2 style={{ margin: '0 0 1rem', fontSize: '1.15rem', fontWeight: 900, color: 'var(--text)' }}>
+          {ar ? 'كيف يعمل' : 'How it works'}
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1rem' }}>
+          {steps.map(([title, body], index) => (
+            <div key={title} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '1.15rem 1.2rem' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#8a6d16', letterSpacing: '2px', marginBottom: '0.5rem' }}>
+                0{index + 1}
+              </div>
+              <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--text)', marginBottom: '0.35rem' }}>{title}</div>
+              <div style={{ fontSize: '0.84rem', lineHeight: 1.7, color: 'var(--text-muted)' }}>{body}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── PARTNER BAND ─────────────────────────────────────────────────── */}
+      <section dir={ar ? 'rtl' : 'ltr'} style={{ maxWidth: 1120, margin: '0 auto', padding: '2.75rem 1.5rem 0' }}>
+        <div
+          style={{
+            background: `linear-gradient(120deg, ${accent}22, var(--card) 70%)`,
+            border: `1px solid ${accent}55`,
+            borderRadius: 16,
+            padding: '1.75rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.25rem',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--text)', marginBottom: '0.3rem' }}>
+              {ar ? 'أصحاب الأنشطة في ' + name : `Own a business in ${name}?`}
+            </div>
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: 560, lineHeight: 1.7 }}>
+              {ar
+                ? 'صفحة كاملة بنطاقك أو رابط خاص، بالعربية والإنجليزية، بدون عمولة على الحجوزات.'
+                : 'A full page on your own link, in Arabic and English, with no commission on bookings.'}
+            </div>
+          </div>
+          <Link
+            href={ar ? '/ar/be-a-partner' : '/be-a-partner'}
+            style={{
+              background: '#0F172A',
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              fontWeight: 900,
+              fontSize: '0.84rem',
+              padding: '0.8rem 1.35rem',
+              borderRadius: 10,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {ar ? 'ابدأ الآن' : 'Get started'}
+          </Link>
+        </div>
+      </section>
+
+      {/* 🔮 DASHBOARD SECTIONS — editors can still append their own blocks */}
       {layout.length > 0 ? (
         <DynamicHomepageRenderer layout={layout} settings={settings} pageId="main" />
       ) : null}
@@ -234,7 +594,7 @@ export default async function Home() {
         </div>
       )}
 
-      {settings?.show_footer !== false && <footer style={{ borderTop: '1px solid rgba(15, 23, 42, 0.08)', padding: '4rem 1.25rem 3rem', background: settings?.footer_background_color || '#ffffff', color: settings?.footer_text_color || '#0f172a' }}>
+      {settings?.show_footer !== false && <footer style={{ borderTop: '1px solid rgba(15, 23, 42, 0.08)', padding: '4rem 1.25rem 3rem', marginTop: '3rem', background: settings?.footer_background_color || '#ffffff', color: settings?.footer_text_color || '#0f172a' }}>
          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
             <div>
                <img

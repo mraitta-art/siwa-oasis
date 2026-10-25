@@ -7,6 +7,7 @@ import {
   marketName,
   type Market,
 } from '@/lib/markets';
+import { marketCopy } from '@/lib/market-copy';
 import { pathLocale } from '@/lib/site-locale';
 
 /**
@@ -18,21 +19,8 @@ import { pathLocale } from '@/lib/site-locale';
  * a category tree and a renderer, and share nothing else.
  */
 
-const COPY: Record<Market['revenueModel'], { ar: string; en: string }> = {
-  tourism_whatsapp: {
-    ar: 'إقامة، رحلات، مطاعم وحرف — تواصل مباشر مع أصحابها على واتساب.',
-    en: 'Stays, trips, food and crafts — talk to the owners directly on WhatsApp.',
-  },
-  realestate_lead: {
-    ar: 'مشروعات ومنتجعات ومكاتب بيع — أسعار، خطط سداد وطلبات معاينة.',
-    en: 'Developments, resorts and brokers — prices, payment plans and viewing requests.',
-  },
-  directory_lead: {
-    ar: 'دليل الأنشطة والخدمات في المنطقة، مع بيانات تواصل موثقة.',
-    en: 'A directory of local businesses and services, with verified contact details.',
-  },
-};
-
+// The revenue-model line a market speaks in lives in market-copy.ts, shared
+// with the homepage.
 function accentFor(market: Market) {
   return market.themeAccent || '#D4AF37';
 }
@@ -53,7 +41,7 @@ export default async function MarketHome({
   const accent = accentFor(market);
   const name = marketName(market, locale);
   const otherName = marketName(market, ar ? 'en' : 'ar');
-  const copy = COPY[market.revenueModel];
+  const copy = marketCopy(market, locale);
 
   const [categories, listings] = await Promise.all([
     listMarketCategories(market.slug, 12),
@@ -62,6 +50,15 @@ export default async function MarketHome({
 
   const activeCategory = category && categories.some((c) => c.id === category) ? category : null;
   const base = ar ? `/ar/${market.slug}` : `/${market.slug}`;
+
+  // A parent category may carry its own blurb (business_types.description).
+  // Stubs like "Master lodging category" say nothing, so only copy with a few
+  // words behind it is shown.
+  const activeFacet = categories.find((c) => c.id === activeCategory) || null;
+  const categoryBlurb =
+    activeFacet?.description && activeFacet.description.trim().split(/\s+/).length > 6
+      ? activeFacet.description.trim()
+      : null;
 
   return (
     <main
@@ -96,7 +93,7 @@ export default async function MarketHome({
         </h1>
         <div style={{ opacity: 0.5, fontSize: '0.95rem', marginBottom: '0.9rem' }}>{otherName}</div>
         <p style={{ margin: 0, maxWidth: 620, fontSize: '1rem', lineHeight: 1.8, opacity: 0.8 }}>
-          {ar ? copy.ar : copy.en}
+          {copy}
         </p>
       </section>
 
@@ -144,6 +141,11 @@ export default async function MarketHome({
       )}
 
       <section style={{ maxWidth: 1120, margin: '0 auto', padding: '1rem 1.5rem 4rem' }}>
+        {categoryBlurb && (
+          <p style={{ margin: '0 0 1.25rem', maxWidth: 680, fontSize: '0.92rem', lineHeight: 1.8, opacity: 0.75 }}>
+            {categoryBlurb}
+          </p>
+        )}
         {listings.length === 0 ? (
           <div style={{ border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 14, padding: '2.5rem 1.5rem', textAlign: 'center', opacity: 0.75 }}>
             <div style={{ fontWeight: 800, marginBottom: '0.35rem' }}>

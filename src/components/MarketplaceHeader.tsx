@@ -23,15 +23,19 @@ interface MarketplaceHeaderProps {
   textColor?: string;
 }
 
+/**
+ * Fallback links for pages that do not pass their own.
+ *
+ * These used to be the Siwa-named sector hubs, so any page that forgot to pass
+ * navLinks pointed its header at seven dead ends. They are the addresses a
+ * visitor can act on now; the homepage builds a live list from the database.
+ */
 export const CANONICAL_NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home', icon: 'fa-house' },
-  { href: '/siwa-stay', label: 'Siwa Stay', icon: 'fa-hotel' },
-  { href: '/siwa-table', label: 'Siwa Table', icon: 'fa-utensils' },
-  { href: '/siwa-go', label: 'Siwa Go', icon: 'fa-compass' },
-  { href: '/siwa-retreats', label: 'Siwa Retreats', icon: 'fa-spa' },
-  { href: '/siwa-products', label: 'Siwa Products', icon: 'fa-store' },
-  { href: '/siwa-invest', label: 'Siwa Invest', icon: 'fa-chart-line' },
-  { href: '/siwa-society', label: 'Siwa Society', icon: 'fa-people-group' },
+  { href: '/siwa', label: 'Directory', icon: 'fa-compass' },
+  { href: '/categories', label: 'Categories', icon: 'fa-layer-group' },
+  { href: '/blog', label: 'Journal', icon: 'fa-book-open' },
+  { href: '/be-a-partner', label: 'List your business', icon: 'fa-store' },
 ];
 
 function isLightBackground(color: string | undefined): boolean {

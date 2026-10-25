@@ -6,10 +6,13 @@ import Link from 'next/link';
  * This one is honest, bilingual, and routes the visitor somewhere useful.
  */
 export default function NotFound() {
+  // The sector hubs these used to point at were retired: they answered 200
+  // with an empty grid and now 308 to the same category doors listed here, so
+  // linking to them from a 404 would be a redirect chain on every click.
   const hubs = [
-    { href: '/siwa-stay', ar: 'الإقامة والفنادق', en: 'Stays & Hotels' },
-    { href: '/siwa-go', ar: 'رحلات وسفاري', en: 'Trips & Safari' },
-    { href: '/siwa-retreats', ar: 'الاستشفاء والاستجمام', en: 'Wellness & Retreats' },
+    { href: '/siwa', ar: 'دليل الأنشطة', en: 'Directory' },
+    { href: '/siwa?category=accommodation', ar: 'الإقامة', en: 'Stays' },
+    { href: '/siwa?category=adventure', ar: 'رحلات وسفاري', en: 'Trips' },
     { href: '/categories', ar: 'كل القطاعات', en: 'All categories' },
   ];
 

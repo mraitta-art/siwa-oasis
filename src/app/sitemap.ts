@@ -37,6 +37,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Only routes that actually exist. `/explore` and `/stories` were listed here
   // but never built, so every crawl of this file produced two soft 404s.
+  //
+  // The Siwa-named sector hubs (/siwa-stay, /siwa-go, /siwa-retreats) were listed
+  // here too. They now 308 to the market's category doors, and a sitemap must
+  // advertise destinations, not redirects — the market route below covers them.
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: BASE,
@@ -50,9 +54,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 0.9,
     },
-    ...withArabic('/siwa-stay', 'weekly', 0.9, now),
-    ...withArabic('/siwa-go', 'weekly', 0.9, now),
-    ...withArabic('/siwa-retreats', 'weekly', 0.9, now),
+    ...withArabic('/be-a-partner', 'monthly', 0.6, now),
     {
       url: `${BASE}/blog`,
       lastModified: now,

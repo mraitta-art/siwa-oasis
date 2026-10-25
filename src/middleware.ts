@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { getJwtSecret } from '@/lib/jwt-secret';
-import { MARKET_HEADER, isMarketSegment } from '@/lib/market-routes';
+import { MARKET_HEADER, isMarketSegment, LEGACY_HUB_TARGETS } from '@/lib/market-routes';
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'siwa_session';
 const PLATFORM_ROOT_DOMAINS = new Set(['siwify.com', 'www.siwify.com', 'localhost', '127.0.0.1']);
@@ -333,8 +333,21 @@ async function routeRequest(request: NextRequest) {
     marketHeader = segments.shift() as string;
   }
 
+  const rest = `/${segments.join('/')}`;
+
+  // Retired sector hubs answer with the category door they were imitating.
+  // This runs before the locale rewrite below on purpose: /ar/siwa-stay has to
+  // land on the Arabic door, not be rewritten to /siwa-stay and then redirected
+  // in English. 308 keeps the method and tells crawlers the move is permanent.
+  const retiredHub = LEGACY_HUB_TARGETS[rest.toLowerCase()];
+  if (retiredHub) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${localeHeader === 'ar' ? '/ar' : ''}/${retiredHub.market}`;
+    url.search = `?category=${encodeURIComponent(retiredHub.category)}`;
+    return NextResponse.redirect(url, 308);
+  }
+
   if (localeHeader || marketHeader) {
-    const rest = `/${segments.join('/')}`;
     const isInternal = /^\/(api|_next|jana|admin|vendor|login|logout)(\/|$)/.test(rest);
     if (!isInternal) {
       const url = request.nextUrl.clone();
@@ -423,6 +436,17 @@ async function routeRequest(request: NextRequest) {
     const targetRoute = SUBDOMAIN_ROUTES[subdomain];
 
     if (targetRoute) {
+      // An alias host whose target hub has been retired (siwastay.siwify.com,
+      // siwatransport.siwify.com, ...) goes to the same category door the
+      // public path redirects to, so the host and the path never disagree.
+      const retiredAlias = LEGACY_HUB_TARGETS[targetRoute];
+      if (retiredAlias) {
+        const rewriteUrl = request.nextUrl.clone();
+        rewriteUrl.pathname = `/${retiredAlias.market}`;
+        rewriteUrl.search = `?category=${encodeURIComponent(retiredAlias.category)}`;
+        return NextResponse.rewrite(rewriteUrl);
+      }
+
       // Loop protection: if already at target route, pass through directly
       if (pathname === targetRoute || (targetRoute !== '/' && pathname.startsWith(targetRoute))) {
         return NextResponse.next();

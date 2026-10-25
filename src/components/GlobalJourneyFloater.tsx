@@ -299,7 +299,11 @@ export default function GlobalJourneyFloater() {
 
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Link
-                href="/siwa-stay#smart-journey-planner"
+                // /siwa-stay is retired and 308s to the market's category door,
+                // so the planner anchor is gone. Point at the directory the
+                // visitor is already browsing; this component has no market
+                // context and Siwa is the live one.
+                href="/siwa"
                 onClick={() => setIsExpanded(false)}
                 style={{
                   flex: 1,
