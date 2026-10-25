@@ -340,6 +340,36 @@ export async function PATCH(request: NextRequest) {
     const existing = await queryOne('SELECT custom_data FROM businesses WHERE id = ?', [id]) as any;
     if (!existing) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
 
+    // A place must belong to the listing's own market, exactly as on create: a
+    // Siwa shop cannot be filed inside an El Alamein town by a stale form.
+    if ('location_id' in updates && updates.location_id) {
+      const context = (await queryOne(
+        `SELECT b.market_id, l.path AS city_path
+           FROM businesses b
+           LEFT JOIN markets m ON m.slug = b.market_id
+           LEFT JOIN locations l ON l.id = m.location_id
+          WHERE b.id = ? LIMIT 1`,
+        [id]
+      )) as any;
+      const place = (await queryOne('SELECT id, path, market_id FROM locations WHERE id = ? LIMIT 1', [
+        updates.location_id,
+      ])) as any;
+      if (!place) return NextResponse.json({ error: 'That place does not exist.' }, { status: 404 });
+
+      const cityPath = context?.city_path ? String(context.city_path) : '';
+      const placePath = String(place.path || place.id);
+      const insideCity =
+        Boolean(cityPath) && (placePath === cityPath || placePath.startsWith(`${cityPath}/`));
+      const ownedByMarket =
+        Boolean(place.market_id) && String(place.market_id) === String(context?.market_id);
+      if (!insideCity && !ownedByMarket) {
+        return NextResponse.json(
+          { error: `"${placePath}" is not inside the ${context?.market_id} market's geography.` },
+          { status: 400 }
+        );
+      }
+    }
+
     let currentData: Record<string, any> = {};
     try {
       currentData = typeof existing.custom_data === 'string' ? JSON.parse(existing.custom_data) : existing.custom_data || {};

@@ -622,6 +622,9 @@ function CompoundForm({
     deliveryYear: draft?.deliveryYear ? String(draft.deliveryYear) : '',
     status: draft?.status || 'under_construction',
     pageBusinessId: draft?.pageBusinessId || '',
+    // Editable, because a container that should stop answering at its URL must
+    // be hideable without deleting the listings filed inside it.
+    active: draft ? draft.active : true,
   });
   // A town has no developer, no delivery date and no construction status. Those
   // fields are hidden rather than emptied, so the record keeps whatever a
@@ -774,6 +777,17 @@ function CompoundForm({
             ))}
           </select>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <input
+            id={`container-active-${market}`}
+            type="checkbox"
+            checked={form.active}
+            onChange={(e) => setForm({ ...form, active: e.target.checked })}
+          />
+          <label htmlFor={`container-active-${market}`} style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280' }}>
+            VISIBLE (uncheck to hide the page)
+          </label>
+        </div>
       </div>
       {error && (
         <div style={{ marginTop: '0.6rem', color: '#b91c1c', fontSize: '0.78rem', fontWeight: 700 }}>
@@ -788,6 +802,376 @@ function CompoundForm({
           CANCEL
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The inventory of one container.
+ *
+ * A chalet is not a business: it is a `units` row under this page, so a project
+ * can show forty chalets without forty minisites. The Arabic title is the
+ * required one, because it is the only name the /ar page can print.
+ */
+function UnitsPanel({
+  developmentId,
+  currency,
+  onChanged,
+}: {
+  developmentId: string;
+  currency: string;
+  onChanged: () => void;
+}) {
+  const [units, setUnits] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    titleAr: '',
+    titleEn: '',
+    unitType: '',
+    listingKind: 'rent_night',
+    bedrooms: '',
+    areaSqm: '',
+    price: '',
+    status: 'available',
+  });
+  // A unit is edited in place: the row opens its own inputs and saves through
+  // the same PATCH endpoint, so nothing on this page is create-only.
+  const [editing, setEditing] = useState<any>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/jana/units?development=${encodeURIComponent(developmentId)}`, {
+        cache: 'no-store',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setUnits(Array.isArray(data.units) ? data.units : []);
+    } catch {
+      setUnits([]);
+    }
+  }, [developmentId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function add() {
+    if (!form.titleAr.trim()) {
+      setError('An Arabic title is required — the English one is optional.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/jana/units', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ developmentId, ...form, currency }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not add the unit');
+      setForm({ ...form, titleAr: '', titleEn: '', bedrooms: '', areaSqm: '', price: '' });
+      setOpen(false);
+      await load();
+      onChanged();
+    } catch (e: any) {
+      setError(e.message || 'Could not add the unit');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function patch(id: string, changes: Record<string, any>): Promise<boolean> {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/jana/units', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...changes }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not update the unit');
+      }
+      await load();
+      return true;
+    } catch (e: any) {
+      setError(e.message || 'Could not update the unit');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: string) {
+    if (!confirm('Delete this unit? Its page entry disappears immediately.')) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/jana/units?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      await load();
+      onChanged();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: '0.6rem', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem', background: '#fff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: '0.8rem', color: '#0f172a' }}>
+          <i className="fas fa-door-open" style={{ color: '#0369a1', marginRight: '0.35rem' }}></i>
+          INVENTORY · {units.length} unit{units.length === 1 ? '' : 's'}
+        </strong>
+        <div style={{ flex: 1 }}></div>
+        <button className="btn btn-xs btn-outline" onClick={() => setOpen(!open)}>
+          <i className={`fas ${open ? 'fa-xmark' : 'fa-plus'}`}></i> {open ? 'CLOSE' : 'ADD UNIT'}
+        </button>
+      </div>
+
+      {open && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '0.6rem',
+            marginTop: '0.7rem',
+            padding: '0.7rem',
+            background: '#f8fafc',
+            borderRadius: '8px',
+          }}
+        >
+          <div>
+            <label style={LABEL}>TITLE (ARABIC) *</label>
+            <input className="form-control" dir="rtl" value={form.titleAr} placeholder="شاليه" onChange={(e) => setForm({ ...form, titleAr: e.target.value })} />
+          </div>
+          <div>
+            <label style={LABEL}>TITLE (ENGLISH)</label>
+            <input className="form-control" value={form.titleEn} placeholder="Chalet" onChange={(e) => setForm({ ...form, titleEn: e.target.value })} />
+          </div>
+          <div>
+            <label style={LABEL}>TYPE</label>
+            <input className="form-control" value={form.unitType} placeholder="chalet" onChange={(e) => setForm({ ...form, unitType: e.target.value })} />
+          </div>
+          <div>
+            <label style={LABEL}>LISTING</label>
+            <select className="form-control" value={form.listingKind} onChange={(e) => setForm({ ...form, listingKind: e.target.value })}>
+              <option value="rent_night">rent / night</option>
+              <option value="rent_month">rent / month</option>
+              <option value="sale">sale</option>
+            </select>
+          </div>
+          <div>
+            <label style={LABEL}>BEDROOMS</label>
+            <input className="form-control" value={form.bedrooms} onChange={(e) => setForm({ ...form, bedrooms: e.target.value.replace(/[^0-9]/g, '') })} />
+          </div>
+          <div>
+            <label style={LABEL}>AREA (m²)</label>
+            <input className="form-control" value={form.areaSqm} onChange={(e) => setForm({ ...form, areaSqm: e.target.value.replace(/[^0-9.]/g, '') })} />
+          </div>
+          <div>
+            <label style={LABEL}>PRICE ({currency})</label>
+            <input className="form-control" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value.replace(/[^0-9.]/g, '') })} />
+          </div>
+        </div>
+      )}
+
+      {open && (
+        <div style={{ marginTop: '0.6rem', display: 'flex', gap: '0.6rem' }}>
+          <button className="btn btn-primary" onClick={add} disabled={busy || !form.titleAr.trim()}>
+            {busy ? 'SAVING…' : 'ADD UNIT'}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ marginTop: '0.5rem', color: '#b91c1c', fontSize: '0.75rem', fontWeight: 700 }}>{error}</div>
+      )}
+
+      {units.length === 0 ? (
+        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.6rem' }}>
+          No units yet. Add the chalets or apartments this page can offer.
+        </div>
+      ) : (
+        <div style={{ marginTop: '0.6rem', display: 'grid', gap: '0.4rem' }}>
+          {units.map((unit) => (
+            <div key={unit.id} style={{ display: 'grid', gap: '0.4rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  flexWrap: 'wrap',
+                  padding: '0.5rem 0.65rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                }}
+              >
+                <strong dir="rtl">{unit.titleAr}</strong>
+                {unit.titleEn && unit.titleEn !== unit.titleAr && (
+                  <span style={{ color: '#64748b' }}>{unit.titleEn}</span>
+                )}
+                <span style={{ color: '#94a3b8' }}>
+                  {unit.unitType ? `${unit.unitType} · ` : ''}
+                  {unit.listingKind}
+                  {unit.bedrooms ? ` · ${unit.bedrooms} BR` : ''}
+                  {unit.price ? ` · ${Number(unit.price).toLocaleString('en-US')} ${unit.currency}` : ''}
+                </span>
+                <div style={{ flex: 1 }}></div>
+                <select
+                  className="form-control"
+                  style={{ width: 120 }}
+                  value={unit.status}
+                  disabled={busy}
+                  onChange={(e) => patch(unit.id, { status: e.target.value })}
+                >
+                  <option value="available">available</option>
+                  <option value="reserved">reserved</option>
+                  <option value="sold">sold</option>
+                  <option value="rented">rented</option>
+                  <option value="inactive">inactive</option>
+                </select>
+                <button
+                  className="btn btn-xs btn-outline"
+                  disabled={busy}
+                  onClick={() =>
+                    setEditing(
+                      editing?.id === unit.id
+                        ? null
+                        : {
+                            id: unit.id,
+                            titleAr: unit.titleAr || '',
+                            titleEn: unit.titleEn || '',
+                            unitType: unit.unitType || '',
+                            listingKind: unit.listingKind || 'rent_night',
+                            bedrooms: unit.bedrooms == null ? '' : String(unit.bedrooms),
+                            areaSqm: unit.areaSqm == null ? '' : String(unit.areaSqm),
+                            price: unit.price == null ? '' : String(unit.price),
+                          }
+                    )
+                  }
+                >
+                  <i className={`fas ${editing?.id === unit.id ? 'fa-xmark' : 'fa-pen'}`}></i>
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                  disabled={busy}
+                  onClick={() => remove(unit.id)}
+                >
+                  <i className="fas fa-trash"></i>
+                </button>
+              </div>
+
+              {editing?.id === unit.id && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: '0.6rem',
+                    padding: '0.7rem',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div>
+                    <label style={LABEL}>TITLE (ARABIC) *</label>
+                    <input
+                      className="form-control"
+                      dir="rtl"
+                      value={editing.titleAr}
+                      onChange={(e) => setEditing({ ...editing, titleAr: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={LABEL}>TITLE (ENGLISH)</label>
+                    <input
+                      className="form-control"
+                      value={editing.titleEn}
+                      onChange={(e) => setEditing({ ...editing, titleEn: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={LABEL}>TYPE</label>
+                    <input
+                      className="form-control"
+                      value={editing.unitType}
+                      onChange={(e) => setEditing({ ...editing, unitType: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={LABEL}>LISTING</label>
+                    <select
+                      className="form-control"
+                      value={editing.listingKind}
+                      onChange={(e) => setEditing({ ...editing, listingKind: e.target.value })}
+                    >
+                      <option value="rent_night">rent / night</option>
+                      <option value="rent_month">rent / month</option>
+                      <option value="sale">sale</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={LABEL}>BEDROOMS</label>
+                    <input
+                      className="form-control"
+                      value={editing.bedrooms}
+                      onChange={(e) =>
+                        setEditing({ ...editing, bedrooms: e.target.value.replace(/[^0-9]/g, '') })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label style={LABEL}>AREA (m²)</label>
+                    <input
+                      className="form-control"
+                      value={editing.areaSqm}
+                      onChange={(e) =>
+                        setEditing({ ...editing, areaSqm: e.target.value.replace(/[^0-9.]/g, '') })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label style={LABEL}>PRICE ({unit.currency})</label>
+                    <input
+                      className="form-control"
+                      value={editing.price}
+                      onChange={(e) =>
+                        setEditing({ ...editing, price: e.target.value.replace(/[^0-9.]/g, '') })
+                      }
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <button
+                      className="btn btn-primary"
+                      disabled={busy || !String(editing.titleAr).trim()}
+                      onClick={async () => {
+                        const saved = await patch(editing.id, {
+                          titleAr: String(editing.titleAr).trim(),
+                          titleEn: String(editing.titleEn).trim() || null,
+                          unitType: String(editing.unitType).trim() || null,
+                          listingKind: editing.listingKind,
+                          bedrooms: editing.bedrooms === '' ? null : editing.bedrooms,
+                          areaSqm: editing.areaSqm === '' ? null : editing.areaSqm,
+                          price: editing.price === '' ? null : editing.price,
+                        });
+                        if (saved) {
+                          setEditing(null);
+                          onChanged();
+                        }
+                      }}
+                    >
+                      {busy ? 'SAVING…' : 'SAVE UNIT'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1340,6 +1724,7 @@ export default function MarketsHierarchyPage() {
   const [compoundFor, setCompoundFor] = useState<{ market: string; kind: string } | null>(null);
   const [compoundEdit, setCompoundEdit] = useState<CompoundRow | null>(null);
   const [villaFor, setVillaFor] = useState<{ market: string; compoundId: string } | null>(null);
+  const [unitsFor, setUnitsFor] = useState<string | null>(null);
   const [view, setView] = useState<'markets' | 'geography'>('markets');
   const [geoTree, setGeoTree] = useState<GeoNodeRow[]>([]);
   const [geoOptions, setGeoOptions] = useState<GeoOptionRow[]>([]);
@@ -1860,6 +2245,9 @@ export default function MarketsHierarchyPage() {
                             style={{ color: isPlaceKind(compound.kind) ? '#0f766e' : '#8b5cf6' }}
                           ></i>
                           <strong style={{ fontSize: '0.85rem' }}>{compound.nameEn}</strong>
+                          {compound.nameAr && compound.nameAr !== compound.nameEn && (
+                            <span style={{ fontSize: '0.8rem', color: '#475569' }}>{compound.nameAr}</span>
+                          )}
                           <Badge tone="muted">{kindLabel(compound.kind)}</Badge>
                           <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
                             {compound.slug}
@@ -1888,6 +2276,13 @@ export default function MarketsHierarchyPage() {
                           </button>
                           <button
                             className="btn btn-xs btn-outline"
+                            style={{ color: '#0369a1', borderColor: '#7dd3fc' }}
+                            onClick={() => setUnitsFor(unitsFor === compound.id ? null : compound.id)}
+                          >
+                            <i className="fas fa-door-open"></i> UNITS
+                          </button>
+                          <button
+                            className="btn btn-xs btn-outline"
                             style={{ color: '#0f766e', borderColor: '#5eead4' }}
                             onClick={() =>
                               setCompoundEdit(compoundEdit?.id === compound.id ? null : compound)
@@ -1913,6 +2308,14 @@ export default function MarketsHierarchyPage() {
                               notify('Container updated', 'success');
                               load();
                             }}
+                          />
+                        )}
+
+                        {unitsFor === compound.id && (
+                          <UnitsPanel
+                            developmentId={compound.id}
+                            currency={market.currency}
+                            onChanged={() => load()}
                           />
                         )}
 

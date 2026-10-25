@@ -219,6 +219,60 @@ export async function listGeoOptions(): Promise<GeoOption[]> {
   return flattenGeo(await listGeoTree());
 }
 
+export interface PlaceOption {
+  id: string;
+  path: string;
+  type: GeoType;
+  /** 1 = directly under the market's city. */
+  depth: number;
+  nameAr: string;
+  nameEn: string;
+}
+
+/**
+ * The places a listing may be filed at inside one market.
+ *
+ * Everything below the market's own city, at any depth, because a shop can sit
+ * in a town, a district or a neighbourhood. The city itself is left out: a
+ * `NULL` location already means "inherits the city", and two ways to say the
+ * same thing is how a directory starts disagreeing with itself.
+ */
+export async function listMarketPlaces(marketSlug: string): Promise<PlaceOption[]> {
+  const market = (await queryOne('SELECT location_id FROM markets WHERE slug = ? LIMIT 1', [
+    marketSlug,
+  ])) as any;
+  if (!market?.location_id) return [];
+
+  const city = (await queryOne('SELECT path FROM locations WHERE id = ? LIMIT 1', [
+    String(market.location_id),
+  ])) as any;
+  const cityPath = city?.path ? String(city.path) : '';
+  if (!cityPath) return [];
+
+  const cityDepth = cityPath.split('/').filter(Boolean).length;
+  const tree = await listGeoTree();
+  const places: PlaceOption[] = [];
+
+  const walk = (nodes: GeoNode[]) => {
+    for (const node of nodes) {
+      if (node.active && node.path !== cityPath && node.path.startsWith(`${cityPath}/`)) {
+        places.push({
+          id: node.id,
+          path: node.path,
+          type: node.type,
+          depth: node.path.split('/').filter(Boolean).length - cityDepth,
+          nameAr: node.nameAr,
+          nameEn: node.nameEn,
+        });
+      }
+      walk(node.children);
+    }
+  };
+
+  walk(tree);
+  return places.sort((a, b) => a.depth - b.depth || a.nameEn.localeCompare(b.nameEn));
+}
+
 async function requireRow(id: string) {
   const row = (await queryOne(
     'SELECT id, parent_id, type, slug, path FROM locations WHERE id = ? LIMIT 1',

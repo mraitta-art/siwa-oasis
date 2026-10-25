@@ -16,12 +16,26 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
   const [tier, setTier] = useState<any>(null);
   const [adminControls, setAdminControls] = useState<Record<string, any>>({});
   const [journeyModules, setJourneyModules] = useState<string[]>([]);
+  const [places, setPlaces] = useState<{ id: string; path: string; type: string; depth: number; nameAr: string; nameEn: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (id) loadData();
   }, [id]);
+
+  // The places of the listing's own market, so geography can be corrected here
+  // without leaving the editor. The API validates the subtree again on save.
+  useEffect(() => {
+    const market = biz?.market_id;
+    if (!market) { setPlaces([]); return; }
+    let cancelled = false;
+    fetch(`/api/jana/places?market=${encodeURIComponent(market)}`)
+      .then((r) => (r.ok ? r.json() : { places: [] }))
+      .then((data) => { if (!cancelled) setPlaces(Array.isArray(data.places) ? data.places : []); })
+      .catch(() => { if (!cancelled) setPlaces([]); });
+    return () => { cancelled = true; };
+  }, [biz?.market_id]);
 
   async function loadData() {
     setLoading(true);
@@ -101,6 +115,7 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
           id,
           name_ar: biz.name_ar || null,
           url_style: biz.url_style === 'market' ? 'market' : 'root',
+          location_id: biz.location_id || null,
           custom_data: biz.custom_data,
         })
       });
@@ -255,6 +270,36 @@ export default function BusinessEditPage({ params }: { params: Promise<{ id: str
               >
                 <option value="root">siwify.com/{biz.slug || 'slug'}</option>
                 <option value="market">siwify.com/{biz.market_id || 'siwa'}/{biz.slug || 'slug'}</option>
+              </select>
+            </div>
+            {/* The place inside the market: a listing filed in a town is listed on
+                that town's page, a listing left empty belongs to the city. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px' }}>
+                PLACE
+              </span>
+              <select
+                value={biz.location_id || ''}
+                onChange={(e) => setBiz({ ...biz, location_id: e.target.value })}
+                disabled={!places.length}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.85rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  outline: 'none',
+                  background: places.length ? '#fff' : '#f1f5f9',
+                }}
+              >
+                <option value="">
+                  {places.length ? 'the market city (default)' : 'no places under this market yet'}
+                </option>
+                {places.map((place) => (
+                  <option key={place.id} value={place.id}>
+                    {'· '.repeat(Math.max(0, place.depth - 1))}
+                    {place.nameEn}{place.nameAr ? ` — ${place.nameAr}` : ''} ({place.type})
+                  </option>
+                ))}
               </select>
             </div>
           </div>

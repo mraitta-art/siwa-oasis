@@ -35,11 +35,14 @@ export default function BusinessRegistryPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
   const [developments, setDevelopments] = useState<any[]>([]);
+  const [places, setPlaces] = useState<{ id: string; path: string; type: string; depth: number; nameAr: string; nameEn: string }[]>([]);
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newBiz, setNewBiz] = useState({
     name: '',
+    name_ar: '',
     type_id: '',
     market_id: '',
+    location_id: '',
     development_id: '',
     subscription_tier: 'free',
     vendor_id: '',
@@ -70,6 +73,18 @@ export default function BusinessRegistryPage() {
       .then((r) => (r.ok ? r.json() : { developments: [] }))
       .then((data) => { if (!cancelled) setDevelopments(data.developments || []); })
       .catch(() => { if (!cancelled) setDevelopments([]); });
+    return () => { cancelled = true; };
+  }, [newBiz.market_id]);
+
+  // Geography is loaded per market: a town in El Alamein is not a valid place
+  // for a Siwa listing, and the server enforces the same rule on write.
+  useEffect(() => {
+    if (!newBiz.market_id) { setPlaces([]); return; }
+    let cancelled = false;
+    fetch(`/api/jana/places?market=${encodeURIComponent(newBiz.market_id)}`)
+      .then((r) => (r.ok ? r.json() : { places: [] }))
+      .then((data) => { if (!cancelled) setPlaces(Array.isArray(data.places) ? data.places : []); })
+      .catch(() => { if (!cancelled) setPlaces([]); });
     return () => { cancelled = true; };
   }, [newBiz.market_id]);
 
@@ -233,7 +248,13 @@ export default function BusinessRegistryPage() {
       const res = await fetch('/api/jana/businesses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBiz),
+        // `location_id` is the place inside the market; empty means the city.
+        body: JSON.stringify({
+          ...newBiz,
+          name_ar: newBiz.name_ar.trim() || null,
+          location_id: newBiz.location_id || null,
+          development_id: newBiz.development_id || null,
+        }),
       });
       if (res.ok) {
         const newBusiness = await res.json();
@@ -298,7 +319,7 @@ export default function BusinessRegistryPage() {
               <MarketSelect
                 value={newBiz.market_id}
                 onChange={(slug) => {
-                  setNewBiz({ ...newBiz, market_id: slug, development_id: '', type_id: '', template_id: '' });
+                  setNewBiz({ ...newBiz, market_id: slug, location_id: '', development_id: '', type_id: '', template_id: '' });
                   setSelectedParentId('');
                   setFilteredTemplates([]);
                 }}
@@ -314,6 +335,17 @@ export default function BusinessRegistryPage() {
               <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>BUSINESS NAME *</label>
               <input className="form-control" placeholder="e.g. Great Sand Sea Expedition"
                 value={newBiz.name} onChange={e => setNewBiz({...newBiz, name: e.target.value})} />
+            </div>
+            {/* Arabic name — stored, never derived, and printed on every /ar page */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>ARABIC NAME</label>
+              <input
+                className="form-control"
+                dir="rtl"
+                placeholder="الاسم بالعربية"
+                value={newBiz.name_ar}
+                onChange={e => setNewBiz({ ...newBiz, name_ar: e.target.value })}
+              />
             </div>
             {/* 1. Parent Category */}
             <div>
@@ -385,6 +417,34 @@ export default function BusinessRegistryPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            {/* 3b. Place inside the market (optional) */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>
+                3b. PLACE INSIDE THE MARKET (OPTIONAL)
+              </label>
+              <select
+                className="form-control"
+                value={newBiz.location_id}
+                onChange={e => setNewBiz({ ...newBiz, location_id: e.target.value })}
+                disabled={!places.length}
+                style={{ background: places.length ? '#fff' : '#f1f5f9' }}
+              >
+                <option value="">
+                  {places.length ? '-- Inherits the market city --' : '-- No places under this market yet: add one in GEOGRAPHY --'}
+                </option>
+                {places.map((place) => (
+                  <option key={place.id} value={place.id}>
+                    {'· '.repeat(Math.max(0, place.depth - 1))}
+                    {place.nameEn}{place.nameAr ? ` — ${place.nameAr}` : ''} ({place.type})
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.62rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                {newBiz.location_id
+                  ? `Filed at ${places.find((p) => p.id === newBiz.location_id)?.path || 'the chosen place'} — it appears on that place's page.`
+                  : 'Left empty, the listing belongs to the city itself.'}
+              </div>
             </div>
             {/* Template — auto-resolves from tier when not set */}
             <div>
