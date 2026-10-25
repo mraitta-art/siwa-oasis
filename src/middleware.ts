@@ -261,6 +261,53 @@ function extractSubdomain(request: NextRequest): { subdomain: string | null; isC
 }
 
 export async function middleware(request: NextRequest) {
+  const response = await routeRequest(request);
+  return withPublicCache(request, response);
+}
+
+/**
+ * Paths whose responses carry user state or no HTML worth caching. Everything
+ * outside this list is a public page and may be cached at the CDN.
+ */
+const NO_CACHE_PREFIXES = [
+  '/api',
+  '/_next',
+  '/admin',
+  '/jana',
+  '/vendor',
+  '/login',
+  '/logout',
+  '/signup',
+  '/visitor',
+  '/visitors',
+  '/onboard',
+  '/dashboard',
+  '/uploads',
+  '/media',
+];
+
+/**
+ * The root layout reads the locale header, which makes every page render on
+ * demand. Vercel only keeps HTML off the function path when the response says
+ * it may be cached, so public pages hand it a 5 minute window.
+ *
+ * The cache key is the requested URL, and locale lives in that URL (`/ar/x` vs
+ * `/x`), so the two languages never share an entry and no Vary is needed.
+ */
+function withPublicCache(request: NextRequest, response: NextResponse) {
+  if (request.method !== 'GET') return response;
+  if (response.status >= 300) return response;
+
+  const { pathname } = request.nextUrl;
+  if (NO_CACHE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+    return response;
+  }
+
+  response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  return response;
+}
+
+async function routeRequest(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Locale-prefixed URLs (/ar/..., /en/...) render the same route tree with the

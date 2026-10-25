@@ -7,24 +7,14 @@ import { headers } from 'next/headers';
  * saw a second-language URL. Middleware now rewrites `/ar/...` and `/en/...` to
  * the canonical route and passes the locale in a request header, which keeps
  * one route tree while giving every language a real, linkable, crawlable address.
+ *
+ * Only the path decides the language. `Accept-Language` deliberately does not:
+ * public HTML is now served from a CDN cache keyed by URL, so a response that
+ * changed per visitor would be handed to the next one.
  */
 export type SiteLocale = 'en' | 'ar';
 
 export const SITE_LOCALES: SiteLocale[] = ['en', 'ar'];
-
-/** Which language this request should be rendered in. */
-export async function currentLocale(langParam?: string | null): Promise<SiteLocale> {
-  try {
-    const h = await headers();
-    const fromPath = h.get('x-siwa-locale');
-    if (fromPath === 'ar' || fromPath === 'en') return fromPath;
-    if (langParam === 'ar' || langParam === 'en') return langParam;
-    const accept = h.get('accept-language') || '';
-    return /^\s*ar\b/i.test(accept) ? 'ar' : 'en';
-  } catch {
-    return 'en';
-  }
-}
 
 /**
  * Which language the URL itself declares, or null when it declares none.

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import BrandSectorPage from '@/components/BrandSectorPage';
-import SectorArticle from '@/components/SectorArticle';
+import SectorHub from '@/components/SectorHub';
 import { sectorMetadata } from '@/lib/sector-seo';
 
 export const dynamic = 'force-dynamic';
@@ -10,10 +9,5 @@ export function generateMetadata(): Promise<Metadata> {
 }
 
 export default function SiwaGoPage() {
-  return (
-    <>
-      <BrandSectorPage slug="siwa-go" />
-      <SectorArticle slug="siwa-go" />
-    </>
-  );
+  return <SectorHub slug="siwa-go" />;
 }

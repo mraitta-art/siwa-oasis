@@ -12,7 +12,7 @@ import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
 import { query, queryOne, normalizeCustomData } from '@/lib/db';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
 import { resolveSectionNav } from '@/lib/vanity-section-nav';
-import { currentLocale, languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
+import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 
 export const dynamic = 'force-dynamic';
 
@@ -217,9 +217,13 @@ function heroImageFor(business: any, gallery: any[], cd: any) {
 }
 
 async function resolveLang(langParam?: string): Promise<Lang> {
-  // `x-siwa-locale` is set by middleware for /ar/... and /en/... URLs; the query
-  // parameter and Accept-Language stay as fallbacks for links that predate them.
-  return currentLocale(langParam);
+  // `x-siwa-locale` is set by middleware for /ar/... and /en/... URLs. The query
+  // parameter stays as a fallback for a link that slipped past the redirect,
+  // but Accept-Language no longer picks the language: the address does, so the
+  // document's lang/dir and its content can never disagree.
+  const fromPath = await pathLocale();
+  if (fromPath) return fromPath;
+  return langParam === 'ar' ? 'ar' : 'en';
 }
 
 export async function generateMetadata({
@@ -265,10 +269,10 @@ export async function generateMetadata({
       `${business.name} — ${typeName} in Siwa Oasis. See photos, services and contact directly on WhatsApp. No commission.`;
 
     const image = heroImageFor(business, gallery, cd);
-    const locale = await currentLocale();
+    const locale = (await pathLocale()) ?? 'en';
     const ar = locale === 'ar';
     const publicPath = `/${business.slug || slug}`;
-    const canonical = localeUrl(base, (await pathLocale()) ?? 'en', publicPath);
+    const canonical = localeUrl(base, locale, publicPath);
 
     // Indexability gate for prospect pages: no claim, no photo, no copy means
     // there is nothing here worth indexing, and publishing hundreds of those is
@@ -297,6 +301,8 @@ export async function generateMetadata({
         url: canonical,
         siteName: 'Siwify',
         type: 'website',
+        locale: ar ? 'ar_EG' : 'en_US',
+        alternateLocale: ar ? ['en_US'] : ['ar_EG'],
         images: [{ url: image, width: 1200, height: 630, alt: business.name }],
       },
       twitter: {
@@ -311,11 +317,22 @@ export async function generateMetadata({
   const cfg = await loadWebsiteConfig(slug);
   if (cfg) {
     const name = cfg.site_settings?.site_name || slug.replace(/[-_]+/g, ' ');
+    const locale = (await pathLocale()) ?? 'en';
     return {
       title: `${name} | Siwify`,
       description: String(cfg.site_settings?.site_description || '').slice(0, 158) || `${name} on Siwify.`,
-      alternates: { canonical: `${base}/${slug}` },
-      openGraph: { title: name, url: `${base}/${slug}`, siteName: 'Siwify', type: 'website' },
+      alternates: {
+        canonical: localeUrl(base, locale, `/${slug}`),
+        languages: languageAlternates(base, `/${slug}`),
+      },
+      openGraph: {
+        title: name,
+        url: localeUrl(base, locale, `/${slug}`),
+        siteName: 'Siwify',
+        type: 'website',
+        locale: locale === 'ar' ? 'ar_EG' : 'en_US',
+        alternateLocale: locale === 'ar' ? ['en_US'] : ['ar_EG'],
+      },
     };
   }
 

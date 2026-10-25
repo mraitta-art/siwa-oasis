@@ -3,7 +3,7 @@ import { query } from '@/lib/db';
 import { getPublicAppUrl } from '@/lib/public-url';
 import { BRAND_SECTORS, getBrandRouteForType } from '@/lib/brand-sectors';
 import { SECTOR_COPY, type SectorHubSlug } from '@/lib/sector-content';
-import { currentLocale, localeUrl } from '@/lib/site-locale';
+import { localeUrl, pathLocale } from '@/lib/site-locale';
 
 /**
  * The readable half of a sector hub.
@@ -35,7 +35,7 @@ async function loadSectorBusinesses(slug: SectorHubSlug) {
 export default async function SectorArticle({ slug }: { slug: SectorHubSlug }) {
   const copy = SECTOR_COPY[slug];
   const sector = BRAND_SECTORS[slug];
-  const ar = (await currentLocale()) === 'ar';
+  const ar = (await pathLocale()) === 'ar';
   const text = ar ? copy.ar : copy;
   const base = getPublicAppUrl().replace(/\/$/, '');
   const businesses = await loadSectorBusinesses(slug);
@@ -101,6 +101,18 @@ export default async function SectorArticle({ slug }: { slug: SectorHubSlug }) {
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
         <p style={{ margin: '0 0 0.6rem', fontSize: '0.68rem', fontWeight: 900, letterSpacing: '2.4px', color: '#b08d1f', textTransform: 'uppercase' }}>
           {sector.label} · Siwa Oasis
+        </p>
+        {/* The other language is a real address, so it gets a link rather than
+            an automatic redirect that would hide one of the two URLs. */}
+        <p style={{ margin: '0 0 0.7rem', fontSize: '0.85rem' }}>
+          <Link
+            href={ar ? `/${slug}` : `/ar/${slug}`}
+            hrefLang={ar ? 'en' : 'ar'}
+            lang={ar ? 'en' : 'ar'}
+            style={{ color: '#b08d1f', fontWeight: 800, textDecoration: 'none' }}
+          >
+            {ar ? 'Read this page in English' : 'اقرأ هذه الصفحة بالعربية'}
+          </Link>
         </p>
         <h1 style={{ margin: '0 0 1.1rem', fontSize: 'clamp(1.6rem, 3.6vw, 2.3rem)', fontWeight: 900, color: '#0f172a', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
           {text.heading}

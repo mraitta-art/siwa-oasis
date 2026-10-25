@@ -3,6 +3,7 @@ import './globals.css';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import GlobalJourneyFloater from '@/components/GlobalJourneyFloater';
 import { BRAND_OG_IMAGE_URL, BRAND_ICON_512_URL } from '@/lib/brand-assets';
+import { pathLocale } from '@/lib/site-locale';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://siwify.com'),
@@ -66,9 +67,15 @@ export const viewport = {
   themeColor: '#0a0f1e',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The document language follows the URL, not Accept-Language: `/ar/...` is the
+  // only Arabic address, and the dashboards (never rewritten under /ar) must not
+  // inherit `dir="rtl"` from a visitor's browser settings. Reading a request
+  // header here makes every route dynamic — see the build output for the count.
+  const locale = (await pathLocale()) ?? 'en';
+
   return (
-    <html lang="en">
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <head>
         <meta name="google-site-verification" content="aVaJnjKee5G26q8GlEFhvJL3eOtWUO0lj1yPNZ-7J7I" />
         <meta name="msapplication-TileColor" content="#0a0f1e" />
