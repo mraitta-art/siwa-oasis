@@ -9,7 +9,7 @@ import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteSectionTabs';
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
-import { query, queryOne, normalizeCustomData } from '@/lib/db';
+import { query, queryOne, normalizeCustomData, stripCustomDataSecrets } from '@/lib/db';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
 import { resolveSectionNav } from '@/lib/vanity-section-nav';
 import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
@@ -76,6 +76,14 @@ async function findBusiness(slug: string) {
   const belongs = (row: any) =>
     !row || !urlMarket || String(row.market_id || DEFAULT_MARKET_SLUG) === urlMarket;
 
+  // Strip credentials from the row itself before anyone sees it. The renderer
+  // filters what it displays, but this record is also handed to client
+  // components, and their props are serialised into the page.
+  const clean = (row: any) => {
+    if (row) row.custom_data = stripCustomDataSecrets(row.custom_data);
+    return belongs(row) ? row : null;
+  };
+
   try {
     if (UUID_RE.test(slug)) {
       const row = await queryOne<any>(
@@ -85,7 +93,7 @@ async function findBusiness(slug: string) {
          WHERE b.id = ? LIMIT 1`,
         [slug]
       );
-      return belongs(row) ? row : null;
+      return clean(row);
     }
 
     const candidates = [...new Set(getBusinessSlugCandidates(slug))];
@@ -104,7 +112,7 @@ async function findBusiness(slug: string) {
        LIMIT 1`,
       [...candidates, slug, ...candidates]
     );
-    return belongs(row) ? row : null;
+    return clean(row);
   } catch {
     return null;
   }

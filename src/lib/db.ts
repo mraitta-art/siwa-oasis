@@ -277,6 +277,24 @@ function stripSecretFields(value: any, depth = 0): any {
   return clean;
 }
 
+/**
+ * Drops credential-shaped fields from a stored custom_data document.
+ *
+ * Call this on the row itself, not just on the rendered projection: a page that
+ * hands the whole `business` record to a client component serialises
+ * custom_data into the payload no matter what the renderer chose to show.
+ * Keeps the caller's representation (string in, string out).
+ */
+export function stripCustomDataSecrets(rawCustomData: any): any {
+  if (!rawCustomData) return rawCustomData;
+  if (typeof rawCustomData !== 'string') return stripSecretFields(rawCustomData);
+  try {
+    return JSON.stringify(stripSecretFields(JSON.parse(rawCustomData)));
+  } catch {
+    return rawCustomData;
+  }
+}
+
 /** Consolidates legacy custom_data section keys into new core keys */
 export function normalizeCustomData(rawCustomData: any): any {
   if (!rawCustomData) return {};
