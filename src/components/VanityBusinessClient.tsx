@@ -10,7 +10,6 @@ import InteractiveEcosystemMap from '@/components/InteractiveEcosystemMap';
 import DynamicComponentRenderer from '@/components/DynamicComponentRenderer';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteLocationMap from '@/components/MinisiteLocationMap';
-import MinisiteClaimBanner from '@/components/MinisiteClaimBanner';
 import MinisiteContributions from '@/components/MinisiteContributions';
 import MinisiteGoogleReviews from '@/components/MinisiteGoogleReviews';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
@@ -540,12 +539,9 @@ export default function VanityBusinessClient({
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem', direction: isRTL ? 'rtl' : 'ltr' }}>
-      <MinisiteClaimBanner
-        businessId={biz.id}
-        businessName={bizName}
-        slug={slug}
-        initialClaimed={Boolean(biz.is_claimed || biz.custom_data?.claim_record)}
-      />
+      {/* Owner instructions, notifications and platform ads live ONLY in the
+          private vendor dashboard (/jana/businesses/<id>/mobile). The public
+          minisite shows the business — not its back office. */}
       {serializedTemplateComponents.length > 0 && (
         <div data-minisite-template={templatePlan?.templateId}>
           {serializedTemplateComponents.map(component => (

@@ -515,42 +515,10 @@ function BusinessJsonLd({
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
 }
 
-function ClaimStrip({ business, lang }: { business: any; lang: Lang }) {
-  const ar = lang === 'ar';
-  return (
-    <div
-      style={{
-        background: '#0F172A',
-        color: '#FFFFFF',
-        padding: '0.75rem 1.25rem',
-        display: 'flex',
-        gap: '0.9rem',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        fontFamily: "'Cairo', 'Noto Sans Arabic', 'Inter', sans-serif",
-        fontSize: '0.8rem',
-      }}
-    >
-      <span style={{ opacity: 0.85, fontWeight: 700 }}>
-        {ar ? 'هل أنت صاحب هذا النشاط؟' : 'Is this your business?'}
-      </span>
-      <Link
-        href={`/vendor/claim?slug=${encodeURIComponent(business.slug || business.id)}`}
-        style={{
-          background: '#D4AF37',
-          color: '#0F172A',
-          fontWeight: 900,
-          padding: '0.4rem 1rem',
-          borderRadius: 8,
-          textDecoration: 'none',
-        }}
-      >
-        {ar ? 'استلم الصفحة مجاناً' : 'Claim this page — free'}
-      </Link>
-    </div>
-  );
-}
+// Owner prompts ("claim this page" strips and cards) no longer render on the
+// public minisite. Onboarding reaches owners through the WhatsApp links we send
+// (/vendor/claim?slug=…), and instructions/ads live only in the private
+// dashboard — customers see the business, not its back office.
 
 function BilingualLanding({ business, lang, initialSlug }: { business: any; lang: Lang; initialSlug: string }) {
   const ar = lang === 'ar';
@@ -711,35 +679,20 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
         <div
           style={{
             background: '#FFFFFF',
-            border: '1.5px dashed #CBD5E1',
+            border: '1px solid #E2E8F0',
             borderRadius: 16,
             padding: '1.5rem',
             textAlign: 'center',
           }}
         >
           <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.35rem' }}>
-            {ar ? 'هل أنت صاحب هذا النشاط التجاري؟' : 'Do you own this business?'}
+            {ar ? 'صفحة رسمية على منصة SiWiFy' : 'An official SiWiFy page'}
           </div>
-          <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0 0 1rem' }}>
+          <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>
             {ar
-              ? 'استلم صفحتك، عدّل بياناتك، واستقبل حجوزاتك مباشرة — مجاناً وبدون عمولات.'
-              : 'Claim the page, edit your details and receive bookings directly — free, no commission.'}
+              ? 'احجز مباشرة عبر واتساب — بدون وسيط وبدون عمولات.'
+              : 'Book directly on WhatsApp — no middleman, no commission.'}
           </p>
-          <Link
-            href={`/vendor/claim?slug=${encodeURIComponent(business.slug || initialSlug)}`}
-            style={{
-              display: 'inline-block',
-              background: '#0F172A',
-              color: '#FFFFFF',
-              padding: '0.65rem 1.5rem',
-              borderRadius: 10,
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              textDecoration: 'none',
-            }}
-          >
-            {ar ? 'استلام وإدارة النشاط' : 'Claim and manage'}
-          </Link>
         </div>
       </section>
 
@@ -831,7 +784,6 @@ export default async function CanonicalVanityPage({
       return (
         <>
           <BusinessJsonLd business={business} name={businessName} typeName={typeName} image={image} description={description} />
-          {!Number(business.is_claimed) && <ClaimStrip business={business} lang={lang} />}
           <MinisiteTapTracker slug={publicSlug} />
           <MinisiteSectionTabs slug={publicSlug} items={sectionNav} lang={lang} />
           <MinisiteBuilderRenderer

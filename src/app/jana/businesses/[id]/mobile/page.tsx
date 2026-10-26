@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { VENDOR_VALUE_INTRO, VENDOR_VALUE_FREE, VENDOR_VALUE_UPGRADE } from '@/lib/vendor-value-copy';
 
 /* ─── i18n ─────────────────────────────────────────────────── */
 const T = {
@@ -159,6 +160,8 @@ export default function FreeVendorMobileDashboard() {
   const [mobileAd, setMobileAd] = useState<any>(null);
   // Track which stages the user has "tapped" (optimistic progress)
   const [tappedStages, setTappedStages] = useState<Set<number>>(new Set());
+  // The private benefits/upgrade panel starts collapsed — it is an offer, not a wall.
+  const [showValue, setShowValue] = useState(false);
 
   const t = T[lang];
   const isRTL = lang === 'ar';
@@ -324,6 +327,51 @@ export default function FreeVendorMobileDashboard() {
       </div>
 
       <div style={{ padding: '1.25rem' }}>
+
+        {/* ── PRIVATE VALUE & UPGRADE PANEL ──
+            What the vendor gets, and how to grow — told ONLY here, inside their
+            own dashboard. The public minisite never carries owner instructions. */}
+        <div style={{ marginBottom: '1.25rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '18px', overflow: 'hidden' }}>
+          <button
+            onClick={() => setShowValue(v => !v)}
+            style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 0, cursor: 'pointer', padding: '0.9rem 1rem', color: '#D4AF37', fontWeight: 900, fontSize: '0.8rem', fontFamily: 'inherit' }}
+          >
+            <span>{isRTL ? '🎁 مزاياك مع SiWiFy — وكيف ترقّي لما تحتاج أكثر' : '🎁 Your SiWiFy benefits — and how to upgrade'}</span>
+            <span>{showValue ? '▲' : '▼'}</span>
+          </button>
+          {showValue && (
+            <div style={{ padding: '0 1rem 1.1rem' }}>
+              <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '0 0 0.8rem', lineHeight: 1.7 }}>
+                {isRTL ? VENDOR_VALUE_INTRO.ar : VENDOR_VALUE_INTRO.en}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                {VENDOR_VALUE_FREE.map((item, i) => (
+                  <div key={i} style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 12, padding: '0.6rem 0.75rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', marginBottom: 2 }}>{isRTL ? (item.titleAr || item.title) : item.title}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#cbd5e1', lineHeight: 1.6 }}>{isRTL ? (item.bodyAr || item.body) : item.body}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#D4AF37', margin: '0 0 0.5rem' }}>
+                {isRTL ? '⬆️ الترقية — لما تحس إن الموقع بقى صغير عليك:' : '⬆️ Upgrade — when the site starts feeling small:'}
+              </div>
+              {VENDOR_VALUE_UPGRADE.slice(0, 4).map((item, i) => (
+                <div key={i} style={{ borderLeft: isRTL ? 'none' : '3px solid #D4AF37', borderRight: isRTL ? '3px solid #D4AF37' : 'none', background: 'rgba(212,175,55,0.06)', borderRadius: 12, padding: '0.55rem 0.75rem', marginBottom: '0.45rem' }}>
+                  <div style={{ fontSize: '0.73rem', fontWeight: 900, color: '#F5E6AD', marginBottom: 2 }}>{isRTL ? (item.titleAr || item.title) : item.title}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: 1.6 }}>{isRTL ? (item.bodyAr || item.body) : item.body}</div>
+                </div>
+              ))}
+              <a
+                href={`https://wa.me/201000000000?text=${encodeURIComponent(isRTL ? `مرحباً، أرغب في ترقية حساب ${business.name}` : `Hello, I would like to upgrade ${business.name}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'block', textAlign: 'center', marginTop: '0.9rem', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #D4AF37, #f59e0b)', color: '#0a0f1e', fontWeight: 900, fontSize: '0.8rem', textDecoration: 'none' }}
+              >
+                {isRTL ? '💬 أطلب الترقية عبر واتساب' : '💬 Request upgrade on WhatsApp'}
+              </a>
+            </div>
+          )}
+        </div>
 
         {/* ── MINISITE STATUS BANNER ── */}
         <div style={{

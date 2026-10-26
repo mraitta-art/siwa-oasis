@@ -334,11 +334,16 @@ export async function POST(request: NextRequest) {
     // 6. Real send: campaign tracker + one handoff (draft -> sent) per vendor
     const groupId = await ensureOutreachGroup(admin.id);
     const campaignId = randomUUID();
+    // Arabic-first delivery: our vendors are Egyptian owners reading on WhatsApp.
+    // When the template carries an Arabic body, that is the text that physically
+    // lands on their phone; English is the fallback, never the default.
+    const sendArabic = Boolean(String(template.message_body_ar || '').trim());
+    const sendText = sendArabic ? String(template.message_body_ar) : String(template.message_body_en || '');
     await execute(
       `INSERT INTO crm_whatsapp_campaigns
          (id, group_id, template_name, language_code, message_text, status, created_by)
-       VALUES (?, ?, ?, 'en', ?, 'queued', ?)`,
-      [campaignId, groupId, template.template_name.slice(0, 255), template.message_body_en || template.message_body_ar || '', admin.id]
+       VALUES (?, ?, ?, ?, ?, 'queued', ?)`,
+      [campaignId, groupId, template.template_name.slice(0, 255), sendArabic ? 'ar' : 'en', sendText, admin.id]
     );
 
     // Optional minisite template components attached to generated drafts.
