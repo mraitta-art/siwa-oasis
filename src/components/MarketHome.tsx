@@ -78,7 +78,10 @@ export default async function MarketHome({
             Siwify
           </Link>
           <Link
-            href={ar ? '/ar/be-a-partner' : '/be-a-partner'}
+            // Straight to the registration form, carrying the market: a developer
+            // on this door is joining this marketplace, and `lang` keeps the form
+            // in the language the page is already written in.
+            href={`/signup?market=${encodeURIComponent(market.slug)}&lang=${ar ? 'ar' : 'en'}`}
             style={{ color: accent, textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem', border: `1px solid ${accent}55`, padding: '0.45rem 0.9rem', borderRadius: 8 }}
           >
             {ar ? 'أضف نشاطك' : 'List your business'}

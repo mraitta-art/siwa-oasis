@@ -205,6 +205,47 @@ export function marketTypeScope(marketSlug: string): { sql: string; params: stri
 }
 
 /**
+ * The marketplace a vendor-registration request is joining.
+ *
+ * `/signup` has no market in its address, so the request has to name one: an
+ * explicit `?market=`, then the typology an invitation link carried, then the
+ * hostname, then Siwa. Order matters — an invitation to a specific category is
+ * a stronger statement than whatever domain the page happened to load from,
+ * and a dark market's host still points at the right row.
+ *
+ * Every value is checked against the registry, so a fabricated slug resolves
+ * to Siwa instead of inventing a fourth market.
+ */
+export async function resolveSignupMarket(input: {
+  market?: string | null;
+  typeId?: string | null;
+  host?: string | null;
+} = {}): Promise<string> {
+  const explicit = String(input.market || '')
+    .trim()
+    .toLowerCase();
+  if (explicit) {
+    const row = await getMarketBySlug(explicit);
+    if (row) return row.slug;
+  }
+
+  if (input.typeId) {
+    const type = await query(
+      'SELECT market_id FROM business_types WHERE id = ? LIMIT 1',
+      [String(input.typeId).trim()]
+    );
+    const scoped = (type as any[])[0]?.market_id;
+    if (scoped) {
+      const row = await getMarketBySlug(String(scoped));
+      if (row) return row.slug;
+    }
+  }
+
+  const byHost = await getMarketForHost(input.host);
+  return byHost.slug;
+}
+
+/**
  * The market the current URL named, or null for a legacy flat URL.
  * Server components only: this reads request headers.
  */

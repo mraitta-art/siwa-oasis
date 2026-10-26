@@ -11,11 +11,14 @@ import { VENDOR_AGREEMENT_SECTIONS, VENDOR_AGREEMENT_VERSION, type VendorAgreeme
 interface BizType {
   id: string;
   name: string;
+  name_ar?: string | null;
   icon: string;
   icon_color: string;
   description: string;
   is_parent: boolean;
   parent_id: string | null;
+  /** The market that owns this category; null means every market offers it. */
+  market_id?: string | null;
 }
 
 interface Business {
@@ -133,6 +136,14 @@ export default function VendorSignup() {
   const [parentId,    setParentId]    = useState<string | null>(null);   // selected parent
   const [childId,     setChildId]     = useState<string | null>(null);   // selected child type
 
+  /* ── which marketplace this registration is for ──────────── */
+  // `/signup` carries no market in its path, so the server decides it (query
+  // string, invitation, then hostname) and tells us. Everything the vendor does
+  // here — the categories shown, the listing created — belongs to that market.
+  const [market,       setMarket]       = useState('siwa');
+  const [marketName,   setMarketName]   = useState('Siwa Oasis');
+  const [marketNameAr, setMarketNameAr] = useState<string | null>(null);
+
   /* ── business selection ─────────────── */
   const [businesses,       setBusinesses]       = useState<Business[]>([]);
   const [businessId,       setBusinessId]       = useState<string>('');
@@ -152,15 +163,29 @@ export default function VendorSignup() {
 
   /* ── load types once ─────────────────── */
   useEffect(() => {
-    fetch('/api/signup/types')
+    const params = new URLSearchParams(window.location.search);
+    const invitedTypeId = params.get('typeId') || '';
+    const invitedId = params.get('businessId') || '';
+    const requestedMarket = params.get('market') || '';
+    if (invitedId) setInvitedBusinessId(invitedId);
+
+    const query = new URLSearchParams();
+    if (requestedMarket) query.set('market', requestedMarket);
+    if (invitedTypeId) query.set('typeId', invitedTypeId);
+
+    fetch(`/api/signup/types${query.toString() ? `?${query}` : ''}`)
       .then(r => r.json())
-      .then((data: BizType[]) => {
-        if (!Array.isArray(data)) return;
+      .then((payload: any) => {
+        // The route answers with the market it resolved plus its categories;
+        // older deployments answered with the bare array.
+        const data: BizType[] = Array.isArray(payload) ? payload : (Array.isArray(payload?.types) ? payload.types : []);
+        if (!Array.isArray(payload)) {
+          if (payload?.market && payload.market !== 'all') setMarket(String(payload.market));
+          if (payload?.market_name) setMarketName(String(payload.market_name));
+          if (payload?.market_name_ar) setMarketNameAr(String(payload.market_name_ar));
+        }
+        if (data.length === 0) return;
         setAllTypes(data);
-        const params = new URLSearchParams(window.location.search);
-        const invitedTypeId = params.get('typeId') || '';
-        const invitedId = params.get('businessId') || '';
-        if (invitedId) setInvitedBusinessId(invitedId);
         const invitedType = data.find(type => type.id === invitedTypeId && !type.is_parent);
         if (invitedType) {
           setChildId(invitedType.id);
@@ -287,6 +312,9 @@ export default function VendorSignup() {
           businessId:      registerMode === 'select' ? businessId : undefined,
           newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
+          // Which marketplace the new listing is filed in. The server resolves
+          // the same way this page did and refuses a category from another one.
+          market,
           termsAccepted,
           termsVersion: VENDOR_AGREEMENT_VERSION,
           termsLanguage: language,
@@ -467,7 +495,9 @@ export default function VendorSignup() {
             <div className="form-step animate-in">
               <div className="step-header">
                 <h1 className="step-title">{t('createAccount', 'Create Your Account')}</h1>
-                <p className="step-sub">{t('joinMarketplace', 'Join the digital marketplace of Siwa Oasis')}</p>
+                <p className="step-sub">{isArabic
+                  ? `انضم إلى السوق الرقمي لـ ${marketNameAr || marketName}`
+                  : `Join the digital marketplace of ${marketName}`}</p>
               </div>
 
               <div className="field-group">
@@ -845,7 +875,9 @@ export default function VendorSignup() {
                         autoFocus
                       />
                     </div>
-                    <span className="field-hint">{t('publicVendorName', 'This will be your public vendor name on Siwa Oasis.')}</span>
+                    <span className="field-hint">{isArabic
+                      ? `سيظهر هذا الاسم للزوار في ${marketNameAr || marketName}.`
+                      : `This will be your public vendor name on ${marketName}.`}</span>
                   </div>
                 </div>
               )}

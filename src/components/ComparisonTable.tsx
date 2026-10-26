@@ -5,10 +5,13 @@ import Link from 'next/link';
 
 interface ComparisonField {
   label: string;
+  /** Arabic question, when an editor wrote one. */
+  labelAr?: string | null;
   value: any;
   rawValue: any;
   type: string;
   isSearchable?: boolean;
+  isComparable?: boolean;
 }
 
 interface ComparisonSection {
@@ -21,6 +24,8 @@ interface ComparisonBusiness {
   id: string;
   name: string;
   slug?: string;
+  /** Where the listing actually lives, market prefix included. */
+  publicPath?: string;
   typeName: string;
   typeIcon: string;
   sections: Record<string, ComparisonSection>;
@@ -44,6 +49,7 @@ export default function ComparisonTable({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [comparisonType, setComparisonType] = useState<string>('');
+  const [fieldCount, setFieldCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchComparison = async () => {
@@ -69,6 +75,7 @@ export default function ComparisonTable({
         setBusinesses(data.businesses);
         setSections(data.sections);
         setComparisonType(data.comparisonType || '');
+        setFieldCount(Number(data.fieldCount || 0));
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -149,11 +156,17 @@ export default function ComparisonTable({
             >
               <div className="flex items-center gap-3 mb-3">
                 {biz.typeIcon && (
-                  <img
-                    src={biz.typeIcon}
-                    alt={biz.typeName}
-                    className="w-8 h-8 rounded"
-                  />
+                  // A typology's icon is a FontAwesome class, not a picture; the old
+                  // <img src="fas fa-hotel"> rendered a broken thumbnail on every card.
+                  /^https?:\/\//.test(biz.typeIcon) ? (
+                    <img
+                      src={biz.typeIcon}
+                      alt={biz.typeName}
+                      className="w-8 h-8 rounded"
+                    />
+                  ) : (
+                    <i className={`${biz.typeIcon} text-xl text-amber-600`} aria-hidden="true"></i>
+                  )
                 )}
                 <div>
                   <h3 className="font-bold text-gray-900 text-lg">{biz.name}</h3>
@@ -161,7 +174,7 @@ export default function ComparisonTable({
                 </div>
               </div>
               <Link
-                href={`/${biz.slug || biz.id}`}
+                href={biz.publicPath || `/${biz.slug || biz.id}`}
                 target="_blank"
                 className="text-xs text-amber-600 hover:text-amber-800 font-semibold"
               >
@@ -173,6 +186,15 @@ export default function ComparisonTable({
       </div>
 
       {/* Sections */}
+      {fieldCount === 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+          <p className="text-gray-600">
+            Nothing is marked comparable on these listings yet. An editor turns on
+            “Shows in comparisons” for a field in the form builder before its value
+            can be lined up beside another listing's.
+          </p>
+        </div>
+      )}
       <div className="space-y-8">
         {sections.map(section => {
           // Check if any business has data for this section

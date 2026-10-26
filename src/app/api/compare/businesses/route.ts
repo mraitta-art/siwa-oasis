@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryOne, query } from '@/lib/db';
+import { sectionAppliesToMarket } from '@/lib/section-registry';
+import { businessPublicPath } from '@/lib/public-url';
 
 /**
  * POST /api/compare/businesses
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     // 1. Fetch all businesses with their basic info
     const placeholders = businessIds.map(() => '?').join(',');
     const businesses: any[] = await query(
-      `SELECT b.id, b.name, b.slug, b.type_id, b.custom_data, bt.name as type_name, bt.icon
+      `SELECT b.id, b.name, b.slug, b.type_id, b.market_id, b.url_style, b.custom_data, bt.name as type_name, bt.icon
        FROM businesses b
        LEFT JOIN business_types bt ON b.type_id = bt.id
        WHERE b.id IN (${placeholders}) AND b.active = 1`,
@@ -91,7 +93,7 @@ export async function POST(request: NextRequest) {
     // 3. Get comparable sections
     // Strategy: If same type, get all sections for that type
     //           If mixed types, only get universal/common sections (Vibe, Experience, Investment Opportunity)
-    let sectionQuery = `SELECT s.id, s.name, s.icon, s.is_universal 
+    let sectionQuery = `SELECT s.id, s.name, s.name_ar, s.icon, s.is_universal, s.options 
                         FROM sections s 
                         WHERE s.active = 1`;
     let sectionParams: any[] = [];
@@ -113,20 +115,31 @@ export async function POST(request: NextRequest) {
     }
 
     sectionQuery += ` ORDER BY s.display_order ASC`;
-    const sections: any[] = await query(sectionQuery, sectionParams);
+    const rawSections: any[] = await query(sectionQuery, sectionParams);
+    // Comparison only ever lines a market's own pages up beside each other, so a
+    // section another market switched on for itself is not offered as a column.
+    const marketsInPlay = [...new Set(businesses.map(b => String(b.market_id || '')).filter(Boolean))];
+    const sections: any[] = rawSections.filter(section =>
+      marketsInPlay.length === 0 || marketsInPlay.some(market => sectionAppliesToMarket(section, market))
+    );
 
-    // 3. Get comparable fields (mark as is_comparable, is_searchable, etc.)
+    // 3. Get comparable fields
+    // `form_fields` records the flag as `searchable` and has no `is_filterable`; the
+    // old names made this whole query throw, so a comparison never returned a field.
+    // Only a field an editor marked `is_comparable` becomes a row: a price per night
+    // and a price per m² are not the same number and must not be lined up.
     const fieldsQuery = `
       SELECT DISTINCT 
-        ff.id, ff.section_id, ff.name, ff.label, ff.field_type,
-        ff.is_searchable, ff.is_filterable,
-        s.name as section_name
+        ff.id, ff.section_id, ff.name, ff.label, ff.label_ar, ff.field_type,
+        ff.searchable AS is_searchable, ff.is_comparable,
+        s.name as section_name, s.name_ar as section_name_ar
       FROM form_fields ff
       LEFT JOIN sections s ON ff.section_id = s.id
       WHERE ff.section_id IN (${sections.map(() => '?').join(',')})
+        AND ff.is_comparable = 1
       ORDER BY ff.section_id, ff.sort_order ASC
     `;
-    const fields: any[] = await query(fieldsQuery, sections.map(s => s.id));
+    const fields: any[] = sections.length ? await query(fieldsQuery, sections.map(s => s.id)) : [];
 
     // 4. Extract section data from each business
     const formattedBusinesses = businesses.map(biz => {
@@ -166,11 +179,12 @@ export async function POST(request: NextRequest) {
 
             fieldValues[field.name] = {
               label: field.label || field.name,
+              labelAr: field.label_ar || null,
               value: displayValue,
               rawValue: value,
               type: field.field_type,
               isSearchable: field.is_searchable,
-              isFilterable: field.is_filterable,
+              isComparable: field.is_comparable,
             };
           }
 
@@ -185,6 +199,9 @@ export async function POST(request: NextRequest) {
           id: biz.id,
           name: biz.name,
           slug: biz.slug,
+          // The address is built server-side: a listing's URL style (flat or
+          // market-prefixed) is a property of the row, not of this endpoint.
+          publicPath: businessPublicPath(biz),
           typeName: biz.type_name,
           typeIcon: biz.icon,
           sections: sectionsData,
@@ -195,6 +212,7 @@ export async function POST(request: NextRequest) {
           id: biz.id,
           name: biz.name,
           slug: biz.slug,
+          publicPath: businessPublicPath(biz),
           typeName: biz.type_name,
           typeIcon: biz.icon,
           sections: {},
@@ -209,6 +227,7 @@ export async function POST(request: NextRequest) {
       sections: sections.map(s => ({
         id: s.id,
         name: s.name,
+        nameAr: s.name_ar || null,
         icon: s.icon,
       })),
       fieldCount: fields.length,

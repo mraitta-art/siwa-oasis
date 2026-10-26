@@ -39,6 +39,10 @@ const NAV_GROUPS = [
     title: 'Sales & Journeys',
     items: [
       { name: 'Journey Requests', href: '/vendor/journey-requests', faIcon: 'fa-route', badge: 'REQ' },
+      // A developer or broker owns units (price, plan, handover); only the market
+      // desk could type them until now, so the page had no way to say anything
+      // about its own inventory.
+      { name: 'Project & Inventory', href: '/vendor/inventory', faIcon: 'fa-building', badge: 'NEW' },
       { name: 'Packages & Catalog', href: '/vendor/packages', faIcon: 'fa-box-open' },
       { name: 'Package Studio', href: '/vendor/package-studio', faIcon: 'fa-wand-magic-sparkles', badge: 'PRO' },
     ],

@@ -399,6 +399,13 @@ const QUICK_ACTIONS = [
     hoverBg: 'linear-gradient(135deg, rgba(249,115,22,0.05), rgba(234,88,12,0.03))',
   },
   {
+    icon: 'fa-building', label: 'Project & Inventory', desc: 'List a project and its units, plans and handover dates',
+    href: '/vendor/inventory',
+    iconBg: 'rgba(15,76,129,0.1)', iconColor: '#0F4C81',
+    bg: '#f7fbff', border: 'rgba(15,76,129,0.15)',
+    hoverBg: 'linear-gradient(135deg, rgba(15,76,129,0.05), rgba(37,99,235,0.03))',
+  },
+  {
     icon: 'fa-chart-bar', label: 'Investments', desc: 'List local capital opportunities',
     href: '/vendor/investment-opportunities',
     iconBg: 'rgba(236,72,153,0.1)', iconColor: '#ec4899',

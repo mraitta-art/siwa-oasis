@@ -359,10 +359,12 @@ export default function TemplateOutreachPage() {
 
   async function loadBizTypes() {
     try {
-      const res = await fetch('/api/signup/types');
+      // `market=all`: this picker filters an audience, it is not an intake form,
+      // so it must keep seeing categories another market owns.
+      const res = await fetch('/api/signup/types?market=all');
       if (res.ok) {
         const data = await res.json();
-        setBizTypes(Array.isArray(data) ? data : []);
+        setBizTypes(Array.isArray(data) ? data : Array.isArray(data?.types) ? data.types : []);
       }
     } catch (e) {
       console.error('Failed to load business types', e);

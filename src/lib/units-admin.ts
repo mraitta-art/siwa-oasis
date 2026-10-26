@@ -11,9 +11,11 @@
 import crypto from 'crypto';
 import { dayOnly, execute, query, queryOne } from '@/lib/db';
 import { AdminDataError } from '@/lib/markets-admin';
+import { UNIT_FINISHING_OPTIONS, UNIT_KINDS, UNIT_STATUSES } from '@/lib/unit-terms';
 
-export const UNIT_KINDS = ['rent_night', 'rent_month', 'sale'] as const;
-export const UNIT_STATUSES = ['available', 'reserved', 'sold', 'rented', 'inactive'] as const;
+// The vocabulary is shared with the forms and the public card, and re-exported
+// here so every existing caller keeps working.
+export { UNIT_KINDS, UNIT_STATUSES, UNIT_FINISHING_OPTIONS };
 
 /** Unit types whose bedroom count is not optional: a tenant asks before booking. */
 const RESIDENTIAL_TYPES = new Set([
@@ -43,9 +45,40 @@ export function unitGaps(unit: any): string[] {
   return gaps;
 }
 
+/**
+ * What a buyer would still have to phone about.
+ *
+ * `unitGaps()` blocks publication; this does not. A sale unit with no payment
+ * plan is a real unit at a real price, and refusing to save it would push the
+ * vendor to invent a number. So the form says "the page will show nothing for
+ * this" and lets them decide.
+ */
+export function unitAdvisories(unit: any): string[] {
+  const kind = String(unit?.listing_kind ?? unit?.listingKind ?? '').trim();
+  const notes: string[] = [];
+  const value = (...keys: string[]) =>
+    keys.map((key) => unit?.[key]).find((entry) => entry !== null && entry !== undefined && entry !== '');
+
+  if (kind === 'sale') {
+    if (!value('price_per_sqm', 'pricePerSqm') && !value('area_sqm', 'areaSqm')) {
+      notes.push('a price per m² or an area, so buyers can compare projects');
+    }
+    if (!value('down_payment_pct', 'downPaymentPct') && !value('installment_years', 'installmentYears')) {
+      notes.push('a payment plan (down payment and years)');
+    }
+    if (!value('delivery_year', 'deliveryYear')) notes.push('the handover year');
+  }
+  if (kind === 'rent_month' && !value('deposit') && !value('deposit_months', 'depositMonths')) {
+    notes.push('the deposit, in cash or in months');
+  }
+  return notes;
+}
+
 export interface UnitAdmin {
   id: string;
   developmentId: string | null;
+  /** The broker or developer whose card this is, when one claimed it. */
+  businessId: string | null;
   marketId: string;
   slug: string;
   titleAr: string;
@@ -57,6 +90,14 @@ export interface UnitAdmin {
   areaSqm: number | null;
   price: number | null;
   currency: string;
+  /** Comparison figure a buyer divides by: price over area. */
+  pricePerSqm: number | null;
+  /** The payment plan, as the two numbers that describe it. */
+  downPaymentPct: number | null;
+  installmentYears: number | null;
+  deliveryYear: number | null;
+  finishing: string | null;
+  furnished: boolean | null;
   deposit: number | null;
   /** Rentals that quote the deposit in months instead of cash. */
   depositMonths: number | null;
@@ -89,6 +130,7 @@ function toUnit(row: any): UnitAdmin {
   return {
     id: String(row.id),
     developmentId: row.development_id ? String(row.development_id) : null,
+    businessId: row.business_id ? String(row.business_id) : null,
     marketId: String(row.market_id || 'siwa'),
     slug: String(row.slug),
     titleAr: String(row.title_ar ?? ''),
@@ -100,6 +142,13 @@ function toUnit(row: any): UnitAdmin {
     areaSqm: numberOrNull(row.area_sqm),
     price: numberOrNull(row.price),
     currency: String(row.currency || 'EGP'),
+    pricePerSqm: numberOrNull(row.price_per_sqm),
+    downPaymentPct: numberOrNull(row.down_payment_pct),
+    installmentYears: numberOrNull(row.installment_years),
+    deliveryYear: numberOrNull(row.delivery_year),
+    finishing: row.finishing ? String(row.finishing) : null,
+    furnished:
+      row.furnished === null || row.furnished === undefined ? null : Boolean(Number(row.furnished)),
     deposit: numberOrNull(row.deposit),
     depositMonths: numberOrNull(row.deposit_months),
     minStayNights: numberOrNull(row.min_stay_nights),
@@ -129,20 +178,57 @@ function dateOrNull(value: any): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
+/** Kept rather than rejected: projects name their own finishing levels. */
+function finishingOrNull(value: any): string | null {
+  const text = String(value ?? '').trim();
+  return text ? text.slice(0, 64) : null;
+}
+
+/** Three states, because "the vendor never said" is not the same as "not". */
+function furnishedOrNull(value: any): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'string') {
+    if (!value.trim()) return null;
+    return /^(1|true|yes|y)$/i.test(value.trim()) ? 1 : 0;
+  }
+  return value ? 1 : 0;
+}
+
 /** Every unit inside one container, newest first. */
 export async function listUnitsAdmin(developmentId: string): Promise<UnitAdmin[]> {
-  const target = String(developmentId || '').trim();
-  if (!target) return [];
+  return selectUnits('development_id = ?', [String(developmentId || '').trim()]);
+}
+
+/**
+ * Everything one business has on sale or under rent.
+ *
+ * A broker's own cards carry `business_id`, and a developer's project units
+ * hang off the container instead, so the vendor's screen unions the two: a
+ * broker handed a compound would otherwise see an empty page.
+ */
+export async function listUnitsForBusiness(businessId: string, developmentId?: string | null): Promise<UnitAdmin[]> {
+  const clauses = ['business_id = ?'];
+  const params: any[] = [String(businessId || '').trim()];
+  if (developmentId) {
+    clauses.push('development_id = ?');
+    params.push(String(developmentId));
+  }
+  return selectUnits(clauses.join(' OR '), params);
+}
+
+async function selectUnits(where: string, params: any[]): Promise<UnitAdmin[]> {
+  if (!String(params[0] || '').trim()) return [];
   try {
     const rows = await query(
-      `SELECT id, development_id, market_id, slug, title_ar, title_en, unit_type,
-              listing_kind, bedrooms, bathrooms, area_sqm, price, currency,
-              deposit, deposit_months, min_stay_nights, available_from, amenities,
-              status, active
+      `SELECT id, market_id, development_id, business_id, slug, title_ar, title_en,
+              unit_type, listing_kind, bedrooms, bathrooms, area_sqm, price, currency,
+              price_per_sqm, down_payment_pct, installment_years, delivery_year,
+              finishing, furnished, deposit, deposit_months, min_stay_nights,
+              available_from, amenities, status, active
          FROM units
-        WHERE development_id = ?
+        WHERE ${where}
         ORDER BY created_at DESC`,
-      [target]
+      params
     );
     return (rows as any[]).map(toUnit);
   } catch {
@@ -210,16 +296,21 @@ export async function createUnit(input: any): Promise<{ id: string; slug: string
   }
 
   const id = crypto.randomUUID();
+  // A unit can be handed to the broker who sells it, so their own dashboard
+  // shows it without them having to retype it.
+  const businessId = String(input?.businessId ?? input?.business_id ?? '').trim() || null;
   await execute(
-    `INSERT INTO units (id, market_id, development_id, slug, title_ar, title_en, unit_type,
+    `INSERT INTO units (id, market_id, development_id, business_id, slug, title_ar, title_en, unit_type,
                         listing_kind, bedrooms, bathrooms, area_sqm, price, currency,
-                        deposit, deposit_months, min_stay_nights, available_from, amenities,
-                        status, active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        price_per_sqm, down_payment_pct, installment_years, delivery_year,
+                        finishing, furnished, deposit, deposit_months, min_stay_nights,
+                        available_from, amenities, status, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       String(development.market_id),
       String(development.id),
+      businessId,
       unitSlug,
       titleAr,
       titleEn || null,
@@ -230,6 +321,12 @@ export async function createUnit(input: any): Promise<{ id: string; slug: string
       numberOrNull(input?.areaSqm ?? input?.area_sqm),
       numberOrNull(input?.price),
       input?.currency ? String(input.currency).trim().toUpperCase().slice(0, 3) : development.currency || 'EGP',
+      numberOrNull(input?.pricePerSqm ?? input?.price_per_sqm),
+      numberOrNull(input?.downPaymentPct ?? input?.down_payment_pct),
+      numberOrNull(input?.installmentYears ?? input?.installment_years),
+      numberOrNull(input?.deliveryYear ?? input?.delivery_year),
+      finishingOrNull(input?.finishing),
+      furnishedOrNull(input?.furnished),
       deposit,
       depositMonths,
       minStayNights,
@@ -260,6 +357,13 @@ export async function updateUnit(id: string, patch: any): Promise<void> {
     areaSqm: 'area_sqm',
     price: 'price',
     currency: 'currency',
+    pricePerSqm: 'price_per_sqm',
+    downPaymentPct: 'down_payment_pct',
+    installmentYears: 'installment_years',
+    deliveryYear: 'delivery_year',
+    finishing: 'finishing',
+    furnished: 'furnished',
+    businessId: 'business_id',
     deposit: 'deposit',
     depositMonths: 'deposit_months',
     minStayNights: 'min_stay_nights',
@@ -296,10 +400,19 @@ export async function updateUnit(id: string, patch: any): Promise<void> {
     }
     if (column === 'active') value = value ? 1 : 0;
     if (column === 'currency') value = String(value || 'EGP').toUpperCase().slice(0, 3);
-    if (['bedrooms', 'bathrooms', 'area_sqm', 'price', 'deposit', 'deposit_months', 'min_stay_nights'].includes(column)) {
+    if (
+      [
+        'bedrooms', 'bathrooms', 'area_sqm', 'price', 'deposit', 'deposit_months',
+        'min_stay_nights', 'price_per_sqm', 'down_payment_pct', 'installment_years',
+        'delivery_year',
+      ].includes(column)
+    ) {
       value = numberOrNull(value);
     }
     if (column === 'available_from') value = dateOrNull(value);
+    if (column === 'finishing') value = finishingOrNull(value);
+    if (column === 'furnished') value = furnishedOrNull(value);
+    if (column === 'business_id') value = String(value ?? '').trim() || null;
     if (column === 'amenities') {
       const list = amenityList(value);
       value = list.length ? JSON.stringify(list) : null;

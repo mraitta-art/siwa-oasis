@@ -75,17 +75,11 @@ credentials.json
 service-account.json
 
 # database backups (can be large and contain sensitive data)
+# A stray dump anywhere stays ignored, but every file inside migrations/ is
+# source: it is the only record of how the live schema got its shape. Listing
+# migrations one by one meant a new schema change could be silently untracked.
 *.sql
-!migrations/037_dynamic_transportation_services.sql
-!migrations/041_minisite_vendor_handoffs.sql
-!migrations/042_crm_contact_groups.sql
-!migrations/043_vendor_profile_contact_and_approval.sql
-!migrations/044_vendor_service_levels.sql
-!migrations/045_outreach_templates.sql
-!migrations/046_businesses_publish_flags.sql
-!migrations/047_vendor_crm_tables.sql
-!migrations/20261031_section_name_ar.sql
-!migrations/20261102_unit_offer_terms.sql
+!migrations/*.sql
 database_backups/
 *.dump
 # JSON dumps of live tables: vendor contact data, never a source file

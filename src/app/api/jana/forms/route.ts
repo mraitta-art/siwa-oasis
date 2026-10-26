@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth';
 import { getFormFields, getBusinessTypeById, invalidateCache } from '@/lib/cache';
 import { mergeBlueprintSchemas, type BlueprintSchema } from '@/lib/governance/blueprint-core';
 import { getSectionLookupIds, resolveFormFieldSectionId, resolveSectionId } from '@/lib/section-registry';
+import { collidesWithUnitTerm } from '@/lib/unit-terms';
 import { CATALOG_SPEC_ITEM_TYPE_IDS } from '@/lib/marketplace-item-types';
 import crypto from 'crypto';
 
@@ -543,6 +544,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ id }, { status: 201 });
     }
     const { business_type_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, version_type } = body;
+    // Arabic is the language the market asks for, not an afterthought: /ar pages
+    // print the question itself, so a field without one asks in English.
+    const labelAr = String(body.label_ar ?? '').trim() || null;
+    const placeholder = String(body.placeholder ?? '').trim() || null;
+    const isComparable = body.is_comparable ? 1 : 0;
     const section_id = resolveSectionId(String(body.section_id || 'basic'));
     const field_scope = body.field_scope === 'catalog_spec' ? 'catalog_spec' : 'profile';
     const rawAppliesTo = parseJson(body.applies_to, []);
@@ -554,6 +560,20 @@ export async function POST(request: NextRequest) {
 
     if (!business_type_id || !name || !label || !field_type) {
       return NextResponse.json({ error: 'Missing required fields: business_type_id, name, label, field_type' }, { status: 400 });
+    }
+    // One question, one place to answer it. Bedrooms, price, deposit and the
+    // rest of the offer terms are columns on `units`, published through the
+    // inventory screen; a text field over the same name would be a second
+    // answer that goes stale the first time the real number moves.
+    const clash = collidesWithUnitTerm(name);
+    if (clash) {
+      return NextResponse.json(
+        {
+          error: `"${name}" duplicates the ${clash} column on a unit. Offer terms are entered on the inventory screen (market compound units, or the vendor's own inventory page) so they can be filtered and compared; keep this field for the words about it, under a different name.`,
+          rule: 'unit_term_belongs_on_units',
+        },
+        { status: 400 }
+      );
     }
     if (field_scope === 'catalog_spec' && section_id !== 'sec_9_marketplace_catalog') {
       return NextResponse.json({ error: 'Catalog specification fields must belong to the Marketplace & Local Products section.' }, { status: 400 });
@@ -607,22 +627,22 @@ export async function POST(request: NextRequest) {
 
     try {
       const commonParams = [
-        id, business_type_id, section_id, name, label, field_type,
+        id, business_type_id, section_id, name, label, labelAr, field_type, placeholder,
         required ? 1 : 0, vendor_editable ?? 1, searchable ? 1 : 0, help_text || null,
         finalOptions, finalValidation, finalAcl,
-        default_value || null, finalSortOrder, required_feature || null,
+        default_value || null, finalSortOrder, required_feature || null, isComparable,
         body.section_origin || 'own'
       ];
       if (hasFieldScopeColumns) {
         await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin, field_scope, applies_to, version_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, label_ar, field_type, placeholder, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, is_comparable, section_origin, field_scope, applies_to, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [...commonParams, field_scope, field_scope === 'catalog_spec' ? JSON.stringify(applies_to) : null, finalVersionType]
         );
       } else {
         await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, section_origin, version_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, label_ar, field_type, placeholder, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, is_comparable, section_origin, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [...commonParams, finalVersionType]
         );
       }
@@ -672,6 +692,8 @@ export async function PUT(request: NextRequest) {
     }
     const { id, label, required, vendor_editable, searchable, help_text, sort_order, options, section_id, is_hidden, acl, validation, field_type, required_feature, version_type, field_scope, applies_to } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    const labelAr = body.label_ar === undefined ? undefined : String(body.label_ar).trim() || null;
+    const placeholder = body.placeholder === undefined ? undefined : String(body.placeholder).trim() || null;
 
     const currentField = await queryOne('SELECT * FROM form_fields WHERE id = ?', [id]) as any;
     const hasFieldScopeColumns = await supportsFormFieldScope();
@@ -705,7 +727,11 @@ export async function PUT(request: NextRequest) {
         nextSectionId,
         currentField.name,
         label ?? currentField.label,
+        // The Arabic question travels with the field: copying an inherited
+        // definition without it would hand the /ar page English again.
+        labelAr ?? currentField?.label_ar ?? null,
         field_type ?? currentField.field_type,
+        placeholder ?? currentField?.placeholder ?? null,
         required !== undefined ? (required ? 1 : 0) : currentField.required,
         vendor_editable !== undefined ? (vendor_editable ? 1 : 0) : currentField.vendor_editable,
         searchable !== undefined ? (searchable ? 1 : 0) : currentField.searchable,
@@ -715,17 +741,18 @@ export async function PUT(request: NextRequest) {
         acl !== undefined ? (typeof acl === 'string' ? acl : JSON.stringify(acl)) : currentField.acl,
         currentField.default_value || null,
         sort_order !== undefined ? sort_order : currentField.sort_order || 0,
+        body.is_comparable !== undefined ? (body.is_comparable ? 1 : 0) : Number(currentField?.is_comparable ? 1 : 0),
       ];
       if (hasFieldScopeColumns) {
         await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, section_origin, field_scope, applies_to, required_feature, version_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?, ?, ?)`,
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, label_ar, field_type, placeholder, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, is_comparable, section_origin, field_scope, applies_to, required_feature, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?, ?, ?)`,
           [...childFieldParams, nextFieldScope, nextFieldScope === 'catalog_spec' ? JSON.stringify(nextAppliesTo) : null, required_feature ?? currentField.required_feature ?? null, targetVersionType]
         );
       } else {
         await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, field_type, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, section_origin, required_feature, version_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?)`,
+          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, label_ar, field_type, placeholder, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, is_comparable, section_origin, required_feature, version_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'own', ?, ?)`,
           [...childFieldParams, required_feature ?? currentField.required_feature ?? null, targetVersionType]
         );
       }
@@ -817,6 +844,9 @@ export async function PUT(request: NextRequest) {
     const updates = [];
     const params = [];
     if (label !== undefined) { updates.push('label=?'); params.push(label); }
+    if (labelAr !== undefined) { updates.push('label_ar=?'); params.push(labelAr); }
+    if (placeholder !== undefined) { updates.push('placeholder=?'); params.push(placeholder); }
+    if (body.is_comparable !== undefined) { updates.push('is_comparable=?'); params.push(body.is_comparable ? 1 : 0); }
     if (field_type !== undefined) { updates.push('field_type=?'); params.push(field_type); }
     if (required !== undefined) { updates.push('required=?'); params.push(required ? 1 : 0); }
     if (vendor_editable !== undefined) { updates.push('vendor_editable=?'); params.push(vendor_editable ? 1 : 0); }

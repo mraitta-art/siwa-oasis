@@ -91,6 +91,7 @@ export default function BusinessFormsPage() {
   const [creatingSection, setCreatingSection] = useState(false);
   const [managerPurpose, setManagerPurpose] = useState('minisite');
   const [selectedManagerSection, setSelectedManagerSection] = useState<string>('');
+  const [markets, setMarkets] = useState<any[]>([]);
 
   useEffect(() => {
     fetchMetadata();
@@ -99,13 +100,14 @@ export default function BusinessFormsPage() {
 
   async function fetchMetadata() {
     try {
-      const [tRes, sRes, bRes, trRes, tmplRes, vRes] = await Promise.all([
+      const [tRes, sRes, bRes, trRes, tmplRes, vRes, mRes] = await Promise.all([
         fetch('/api/jana/types'),
         fetch('/api/jana/sections'),
         fetch('/api/jana/businesses'),
         fetch('/api/jana/tiers'),
         fetch('/api/jana/templates'),
         fetch('/api/jana/vendors'),
+        fetch('/api/jana/markets'),
       ]);
       if (tRes.ok) setTypes(await tRes.json());
       if (sRes.ok) setSections(await sRes.json());
@@ -113,6 +115,12 @@ export default function BusinessFormsPage() {
       if (trRes.ok) setTiers(await trRes.json());
       if (tmplRes.ok) setTemplates(await tmplRes.json());
       if (vRes.ok) setVendors(await vRes.json());
+      // Markets come back as one payload with compounds and listings; only the
+      // market rows matter here, and only for tagging sections to a market.
+      if (mRes.ok) {
+        const payload = await mRes.json();
+        setMarkets(Array.isArray(payload?.markets) ? payload.markets : []);
+      }
     } catch (e) {
       console.error('Error fetching metadata:', e);
     }
@@ -161,6 +169,21 @@ export default function BusinessFormsPage() {
     if (placements.has(placement)) placements.delete(placement);
     else placements.add(placement);
     updateSectionPolicy(section, { placements: Array.from(placements) });
+  }
+
+  /**
+   * Tag a section with a market (`options.markets`). An untagged section is
+   * public in every market, which is how all nine sections behave today; a
+   * tagged one is public only in the markets it lists. This exists because
+   * `sections.active` is a single global switch — turning a section on for El
+   * Alamein by flipping it would have opened it on every Siwa page as well.
+   */
+  function toggleSectionMarket(section: any, marketSlug: string) {
+    const options = parseSectionOptions(section);
+    const current = new Set<string>(Array.isArray(options.markets) ? options.markets.map((m: any) => String(m)) : []);
+    if (current.has(marketSlug)) current.delete(marketSlug);
+    else current.add(marketSlug);
+    updateSectionPolicy(section, { markets: Array.from(current) });
   }
 
   async function loadManagedForm(targetId: string, businessId = '') {
@@ -832,6 +855,7 @@ export default function BusinessFormsPage() {
                         {visibleManagerSections.map(section => {
                           const opts = parseSectionOptions(section);
                           const placements = opts.placements || ['body'];
+                          const sectionMarkets: string[] = Array.isArray(opts.markets) ? opts.markets.map((m: any) => String(m)) : [];
                           const fieldCount = managerFields.filter(f => f.section_id === section.id).length;
                           const isActive = selectedManagerSection === section.id;
                           return (
@@ -850,6 +874,27 @@ export default function BusinessFormsPage() {
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isActive ? '#0f172a' : '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{section.name}</div>
                                 <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{fieldCount} field{fieldCount !== 1 ? 's' : ''}</div>
+                                {/* Which markets show this section. Clicking a market
+                                    adds or removes its tag; no tag means every market,
+                                    which is the behaviour before this control existed. */}
+                                {markets.length > 1 && (
+                                  <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '3px' }} onClick={e => e.stopPropagation()}>
+                                    {sectionMarkets.length === 0 && <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>all markets</span>}
+                                    {markets.map(market => {
+                                      const tagged = sectionMarkets.includes(market.slug);
+                                      return (
+                                        <button
+                                          key={market.slug}
+                                          onClick={() => toggleSectionMarket(section, market.slug)}
+                                          title={tagged
+                                            ? `Shown in ${market.nameEn} only. Click to remove the tag (a section with no tag shows in every market).`
+                                            : `Show this section in ${market.nameEn} only`}
+                                          style={{ border: 0, background: tagged ? '#dbeafe' : '#f1f5f9', color: tagged ? '#1d4ed8' : '#94a3b8', borderRadius: '999px', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer' }}
+                                        >{market.slug}</button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                               <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                                 <button onClick={() => updateSectionPolicy(section, { purposes: Array.from(new Set([...(opts.purposes || []), managerPurpose])) })} title="Include in this purpose" style={{ border: 0, background: 'transparent', color: '#64748b', cursor: 'pointer', padding: '0.2rem', fontSize: '0.65rem' }}><i className="fas fa-link"></i></button>
@@ -901,11 +946,15 @@ export default function BusinessFormsPage() {
                                   <div key={field.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.85rem 1rem', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#fafafa' }}>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <strong style={{ color: '#1e293b', fontSize: '0.88rem' }}>{field.label || field.name}</strong>
+                                      {field.label_ar && <span dir="rtl" style={{ color: '#475569', fontSize: '0.8rem', marginInlineStart: '0.5rem' }}>{field.label_ar}</span>}
                                       <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.15rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                                         <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>{field.field_type}</span>
                                         <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>{field.source_level || field.override_level || 'own'}</span>
                                         {field.required && <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>required</span>}
                                         {field.vendor_editable && <span style={{ background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>vendor editable</span>}
+                                        {field.searchable && <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>searchable</span>}
+                                        {field.is_comparable && <span style={{ background: '#ede9fe', color: '#6d28d9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>comparable</span>}
+                                        {Array.isArray(field.options) && field.options.length > 0 && <span style={{ background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>{field.options.length} options</span>}
                                       </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
@@ -928,10 +977,27 @@ export default function BusinessFormsPage() {
               {editingField && <div style={{ background: '#fffbeb', border: '1px solid #f5d77a', borderRadius: '16px', padding: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>{editingField.id ? 'Update form field' : 'Create form field'}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                  <input value={editingField.label || ''} onChange={e => setEditingField({ ...editingField, label: e.target.value })} placeholder="Field label" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
+                  <input value={editingField.label || ''} onChange={e => setEditingField({ ...editingField, label: e.target.value })} placeholder="Field label (what the form asks)" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
+                  {/* The /ar page prints the question itself, so the question needs
+                      an Arabic form or the Arabic vendor is asked in English. */}
+                  <input dir="rtl" value={editingField.label_ar || ''} onChange={e => setEditingField({ ...editingField, label_ar: e.target.value })} placeholder="السؤال بالعربية (اختياري)" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
                   <input value={editingField.name || ''} onChange={e => setEditingField({ ...editingField, name: e.target.value })} placeholder="Field name (optional)" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
+                  <input value={editingField.placeholder || ''} onChange={e => setEditingField({ ...editingField, placeholder: e.target.value })} placeholder="Placeholder shown inside the box" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
                   <select value={editingField.field_type || 'text'} onChange={e => setEditingField({ ...editingField, field_type: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="text">Text</option><option value="textarea">Textarea</option><option value="number">Number</option><option value="select">Select</option><option value="checkbox">Checkbox</option><option value="rich_text">Rich text</option></select>
-                  <select value={editingField.section_id || ''} onChange={e => setEditingField({ ...editingField, section_id: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="">Select section</option>{managerSections.map(section => <option key={section.id} value={section.id}>{section.name}</option>)}</select>
+                  <select value={editingField.section_id || ''} onChange={e => setEditingField({ ...editingField, section_id: e.target.value })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="">Select section</option>{managerSections.map(section => <option key={section.id} value={section.id}>{section.name}{section.name_ar ? ` — ${section.name_ar}` : ''}</option>)}</select>
+                  {/* A choice field with no choices is a box the vendor cannot fill,
+                      so the list is edited here and not only in the section builder. */}
+                  {['select', 'checkbox'].includes(editingField.field_type || 'text') && <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>OPTIONS (comma separated — each one becomes a choice, and a filter)</label>
+                    <input value={Array.isArray(editingField.options) ? editingField.options.join(', ') : String(editingField.options || '')} onChange={e => setEditingField({ ...editingField, options: e.target.value.split(',').map(item => item.trim()).filter(Boolean) })} placeholder="Pool, Private beach, Gym" style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                      {(Array.isArray(editingField.options) ? editingField.options : []).map((option: string) => <span key={option} style={{ background: '#f1f5f9', color: '#334155', padding: '1px 7px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700 }}>{option}</span>)}
+                    </div>
+                  </div>}
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>HELP TEXT (what the vendor is told before answering)</label>
+                    <textarea value={editingField.help_text || ''} onChange={e => setEditingField({ ...editingField, help_text: e.target.value })} rows={2} placeholder="Answer once per property; it appears under the field on the public page." style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', fontFamily: 'inherit' }} />
+                  </div>
                   {managerTarget === 'type' && <select value={editingField.field_scope || 'profile'} onChange={e => setEditingField({ ...editingField, field_scope: e.target.value, section_id: e.target.value === 'catalog_spec' ? 'sec_9_marketplace_catalog' : editingField.section_id, applies_to: e.target.value === 'catalog_spec' ? (editingField.applies_to || []) : [] })} style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px', background: '#fff' }}><option value="profile">Business profile field</option><option value="catalog_spec">Sellable catalog specification</option></select>}
                   {managerTarget === 'type' && editingField.field_scope === 'catalog_spec' && <div style={{ gridColumn: '1 / -1', border: '1px solid #e7d78f', borderRadius: '9px', padding: '0.85rem', background: '#fffdf4' }}>
                     <div style={{ fontSize: '0.76rem', fontWeight: 850, color: '#475569', marginBottom: '0.65rem' }}>APPLIES TO LISTING KINDS</div>
@@ -947,6 +1013,9 @@ export default function BusinessFormsPage() {
                   </div>}
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.required} onChange={e => setEditingField({ ...editingField, required: e.target.checked })} /> Required</label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.vendor_editable} onChange={e => setEditingField({ ...editingField, vendor_editable: e.target.checked })} /> Vendor editable</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.searchable} onChange={e => setEditingField({ ...editingField, searchable: e.target.checked })} /> Searchable</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}><input type="checkbox" checked={!!editingField.is_comparable} onChange={e => setEditingField({ ...editingField, is_comparable: e.target.checked })} /> Shows in comparisons</label>
+                  <input value={editingField.required_feature || ''} onChange={e => setEditingField({ ...editingField, required_feature: e.target.value })} placeholder="Tier gate (optional, e.g. hero_automation)" style={{ padding: '0.7rem', border: '1px solid #d6c47a', borderRadius: '8px' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}><button onClick={() => setEditingField(null)} style={{ border: 0, background: 'transparent', padding: '0.6rem 0.9rem', cursor: 'pointer' }}>Cancel</button><button onClick={saveManagedField} style={{ border: 0, borderRadius: '8px', background: '#1e293b', color: '#fff', padding: '0.6rem 1rem', fontWeight: 800, cursor: 'pointer' }}>Save field</button></div>
               </div>}

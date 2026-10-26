@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { createHash, randomUUID } from 'crypto';
 import { getPublicAppUrl, normalizeBusinessSlug } from '@/lib/public-url';
 import { createBusinessEntity } from '@/lib/business-creation';
+import { getMarketBySlug, resolveSignupMarket } from '@/lib/markets';
 import { getVendorAgreementText, VENDOR_AGREEMENT_VERSION, type VendorAgreementLanguage } from '@/lib/vendor-agreement';
 
 function slugify(text: string): string {
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
       businessId,
       newBusinessName,
       businessType,
+      market,
       termsAccepted,
       termsVersion,
       termsLanguage,
@@ -158,7 +160,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1c. Enforce child-only business type requirement
-    const typeCheck = (await query('SELECT is_parent, name FROM business_types WHERE id = ?', [businessType])) as any[];
+    const typeCheck = (await query('SELECT is_parent, name, market_id FROM business_types WHERE id = ?', [businessType])) as any[];
     if (typeCheck.length === 0) {
       return NextResponse.json({ error: 'Selected business category does not exist' }, { status: 400 });
     }
@@ -168,6 +170,17 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Which marketplace this vendor is joining. A registration URL has no market
+    // in it, so it is resolved exactly like the category list was: query string,
+    // then the category the invitation carried, then the hostname. Without this
+    // every vendor on every domain would land in Siwa.
+    const signupMarket = await resolveSignupMarket({
+      market: typeof market === 'string' ? market : null,
+      typeId: businessType,
+      host: req.headers.get('host'),
+    });
+    const marketRow = await getMarketBySlug(signupMarket);
 
     const userId   = randomUUID();
     const hashedPw = await bcrypt.hash(password, 10);
@@ -204,6 +217,9 @@ export async function POST(req: NextRequest) {
         id: targetBizId,
         name: newBusinessName.trim(),
         type_id: businessType,
+        // Filed inside the marketplace the vendor registered in. The creation
+        // layer rejects a category tagged for a different one.
+        market_id: signupMarket,
         vendor_id: userId,
         status: needsApproval ? 'pending' : 'active',
         is_shared: false,
@@ -225,9 +241,10 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success:    true,
-        message:    'Welcome to Siwa Oasis! Your business is registered and your studio is ready.',
+        message:    `Welcome to ${marketRow?.nameEn || 'Siwify'}! Your business is registered and your studio is ready.`,
         userId,
         businessId: targetBizId,
+        market:     signupMarket,
         templateId: 'essentials_free',
         tier:       'free',
         publicMinisiteUrl: `${getPublicAppUrl().replace(/\/$/, '')}/${finalSlug}`,
@@ -298,10 +315,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success:    true,
       message:    isPrimary
-        ? 'Welcome to Siwa Oasis! You are now the primary owner of this business.'
-        : 'Welcome to Siwa Oasis! You have joined the team for this business.',
+        ? `Welcome to ${marketRow?.nameEn || 'Siwify'}! You are now the primary owner of this business.`
+        : `Welcome to ${marketRow?.nameEn || 'Siwify'}! You have joined the team for this business.`,
       userId,
       businessId,
+      market:     signupMarket,
       templateId,
       tier,
       ownership: isPrimary ? 'primary' : 'co-vendor'
@@ -309,6 +327,15 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Registration Error:', error.message || error);
+    // A rule the creation layer enforced (category from another market, unknown
+    // market, reserved slug) is the vendor's mistake to correct, not a server
+    // fault: say which rule failed instead of swallowing it into a 500.
+    if (error?.rule) {
+      return NextResponse.json(
+        { error: error.message, code: error.rule },
+        { status: error.rule === 'TYPE_NOT_IN_MARKET' || error.rule === 'UNKNOWN_MARKET' ? 400 : 409 }
+      );
+    }
     const msg = error.code === 'ER_DUP_ENTRY'
       ? (error.message?.includes('phone') ? 'An account with this phone number already exists.' : 'An account with this email already exists.')
       : error.code === 'ER_NO_REFERENCED_ROW_2'

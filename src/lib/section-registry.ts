@@ -211,6 +211,40 @@ function toStringArray(value: unknown): string[] {
   return [];
 }
 
+const DEFAULT_SECTION_MARKET = 'siwa';
+
+/**
+ * The markets a section is switched on for (`sections.options.markets`).
+ *
+ * `sections.active` is one global flag shared by every market, so turning a
+ * section on for a new market would silently turn it on for the pages that
+ * already exist. This is the per-market door instead: a section that lists
+ * markets is public only in those markets, and a section that lists none keeps
+ * today's behaviour of being public everywhere.
+ *
+ * Deliberately free of `@/lib/markets`, which pulls `next/headers` in and would
+ * drag server code into the client bundles that import this file.
+ */
+export function sectionMarketScope(options: unknown): string[] {
+  const parsed =
+    typeof options === 'string'
+      ? (() => {
+          try { return JSON.parse(options || '{}'); } catch { return {}; }
+        })()
+      : options;
+  const markets = toStringArray((parsed as any)?.markets).map((value) => value.toLowerCase());
+  return [...new Set(markets)];
+}
+
+export function sectionAppliesToMarket(section: any, marketId?: string | null): boolean {
+  const markets = sectionMarketScope(section?.options);
+  if (!markets.length) return true;
+  // A page with no recorded market is read as the default market everywhere else
+  // in the app, so it has to read the same way here or legacy pages would lose
+  // sections the day one is tagged to a market.
+  return markets.includes(String(marketId || DEFAULT_SECTION_MARKET).trim().toLowerCase());
+}
+
 function collectSectionData(customData: Record<string, any> | undefined, sectionId: string): Record<string, any> {
   const normalizedId = resolveSectionId(sectionId);
   const legacyIds = getSectionLookupIds(normalizedId).filter(id => id !== normalizedId);

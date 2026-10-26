@@ -6,6 +6,7 @@ import {
   isSectionHidden,
   isSectionApprovedForMinisite,
   getEffectiveSectionLabel,
+  sectionAppliesToMarket,
 } from '@/lib/section-registry';
 
 /**
@@ -108,6 +109,9 @@ export async function resolveSectionNav(business: any): Promise<SectionNavItem[]
 
     const options = typeof def.options === 'string' ? safeJson(def.options) : (def.options || {});
     if (Array.isArray(options?.placements) && !options.placements.includes('body')) continue;
+    // A tab for a section this market never switched on would lead to a page that
+    // filters itself out, so the door is checked here as well as on the route.
+    if (!sectionAppliesToMarket(def, business.market_id)) continue;
 
     if (isSectionHidden(id, customData, ctrl, [], false)) continue;
     if (!isSectionApprovedForMinisite(id, customData, ctrl, false)) continue;

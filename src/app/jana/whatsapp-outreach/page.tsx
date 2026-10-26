@@ -116,10 +116,13 @@ export default function WhatsAppOutreachPage() {
 
   async function loadBizTypes() {
     try {
-      const res = await fetch('/api/signup/types');
+      // `market=all`: the outreach desk filters the whole platform, so it must
+      // still see a category another market owns (the picker is a filter, not an
+      // intake form where a wrong market could be submitted).
+      const res = await fetch('/api/signup/types?market=all');
       if (res.ok) {
         const data = await res.json();
-        setBizTypes(Array.isArray(data) ? data : []);
+        setBizTypes(Array.isArray(data) ? data : Array.isArray(data?.types) ? data.types : []);
       }
     } catch (e) { console.error('Failed to load types', e); }
   }

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
-import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden } from '@/lib/section-registry';
+import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, sectionAppliesToMarket } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
@@ -438,6 +438,10 @@ export default async function VanitySectionPage({
         try { return typeof s.options === 'string' ? JSON.parse(s.options) : s.options || {}; } catch { return {}; }
       })();
       if (Array.isArray(sectionOptions.placements) && !sectionOptions.placements.includes('body')) return false;
+      // Per-market section door: `sections.active` is global, so a section turned
+      // on for El Alamein only is listed under options.markets and stays out of
+      // Siwa pages instead of being switched on for the whole platform.
+      if (!sectionAppliesToMarket(s, biz.market_id)) return false;
       if (isSectionHidden(s.id, biz.custom_data, sectionControls[s.id], Array.isArray(templateHidden) ? templateHidden : [], isAdmin)) return false;
       if (Array.isArray(customHidden) && customHidden.includes(s.id) && !isAdmin) return false;
       if (!isSectionApprovedForMinisite(s.id, biz.custom_data, sectionControls[s.id], isAdmin)) return false;

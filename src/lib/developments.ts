@@ -98,6 +98,14 @@ export interface UnitSummary {
   areaSqm: number | null;
   price: number | null;
   currency: string;
+  /** What one square metre costs: the figure a buyer compares projects on. */
+  pricePerSqm: number | null;
+  /** The payment plan, as the two numbers that describe it. */
+  downPaymentPct: number | null;
+  installmentYears: number | null;
+  deliveryYear: number | null;
+  finishing: string | null;
+  furnished: boolean | null;
   /** Refundable amount asked for a rental; null on sale units. */
   deposit: number | null;
   depositMonths: number | null;
@@ -266,6 +274,8 @@ export async function listUnits(
     const rows = await query(
       `SELECT id, slug, title_ar, title_en, unit_type, listing_kind,
               bedrooms, bathrooms, area_sqm, price, currency,
+              price_per_sqm, down_payment_pct, installment_years, delivery_year,
+              finishing, furnished,
               deposit, deposit_months, min_stay_nights, available_from, amenities, status
        FROM units
        WHERE ${where.join(' AND ')}
@@ -287,6 +297,18 @@ export async function listUnits(
       areaSqm: row.area_sqm === null || row.area_sqm === undefined ? null : Number(row.area_sqm),
       price: row.price === null || row.price === undefined ? null : Number(row.price),
       currency: String(row.currency || 'EGP'),
+      pricePerSqm: row.price_per_sqm === null || row.price_per_sqm === undefined ? null : Number(row.price_per_sqm),
+      downPaymentPct:
+        row.down_payment_pct === null || row.down_payment_pct === undefined ? null : Number(row.down_payment_pct),
+      installmentYears:
+        row.installment_years === null || row.installment_years === undefined
+          ? null
+          : Number(row.installment_years),
+      deliveryYear:
+        row.delivery_year === null || row.delivery_year === undefined ? null : Number(row.delivery_year),
+      finishing: row.finishing ? String(row.finishing) : null,
+      furnished:
+        row.furnished === null || row.furnished === undefined ? null : Boolean(Number(row.furnished)),
       deposit: row.deposit === null || row.deposit === undefined ? null : Number(row.deposit),
       depositMonths:
         row.deposit_months === null || row.deposit_months === undefined ? null : Number(row.deposit_months),

@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
+import UnitTermsFields, { EMPTY_UNIT_TERMS, termsOf, termsPayload } from '@/components/UnitTermsFields';
+import { finishingLabel } from '@/lib/unit-terms';
 
 interface MarketRow {
   id: string;
@@ -843,6 +845,9 @@ function UnitsPanel({
     availableFrom: '',
     amenities: '',
     status: 'available',
+    // The buyer-side numbers, rendered by the same component the vendor's own
+    // inventory screen uses.
+    terms: { ...EMPTY_UNIT_TERMS },
   });
   // A unit is edited in place: the row opens its own inputs and saves through
   // the same PATCH endpoint, so nothing on this page is create-only.
@@ -872,10 +877,11 @@ function UnitsPanel({
     setBusy(true);
     setError(null);
     try {
+      const { terms, ...rest } = form;
       const res = await fetch('/api/jana/units', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ developmentId, ...form, currency }),
+        body: JSON.stringify({ developmentId, ...rest, ...termsPayload(terms), currency }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Could not add the unit');
@@ -891,6 +897,7 @@ function UnitsPanel({
         minStayNights: '',
         availableFrom: '',
         amenities: '',
+        terms: { ...EMPTY_UNIT_TERMS },
       });
       setOpen(false);
       await load();
@@ -1018,6 +1025,13 @@ function UnitsPanel({
             <label style={LABEL}>AMENITIES</label>
             <input className="form-control" value={form.amenities} placeholder="wifi, pool, ac" onChange={(e) => setForm({ ...form, amenities: e.target.value })} />
           </div>
+          <UnitTermsFields
+            kind={form.listingKind}
+            currency={currency}
+            value={form.terms}
+            onChange={(patch) => setForm({ ...form, terms: { ...form.terms, ...patch } })}
+            labelStyle={LABEL}
+          />
         </div>
       )}
 
@@ -1066,6 +1080,12 @@ function UnitsPanel({
                   {unit.depositMonths ? ` · ${unit.depositMonths} mo deposit` : ''}
                   {unit.minStayNights ? ` · min ${unit.minStayNights} nights` : ''}
                   {unit.availableFrom ? ` · from ${unit.availableFrom}` : ''}
+                  {unit.pricePerSqm ? ` · ${Number(unit.pricePerSqm).toLocaleString('en-US')} ${unit.currency}/m²` : ''}
+                  {unit.downPaymentPct ? ` · ${unit.downPaymentPct}% down` : ''}
+                  {unit.installmentYears ? ` · ${unit.installmentYears}y plan` : ''}
+                  {unit.deliveryYear ? ` · handover ${unit.deliveryYear}` : ''}
+                  {finishingLabel(unit.finishing, false) ? ` · ${finishingLabel(unit.finishing, false)}` : ''}
+                  {unit.furnished === null || unit.furnished === undefined ? '' : unit.furnished ? ' · furnished' : ' · unfurnished'}
                 </span>
                 {Array.isArray(unit.amenities) && unit.amenities.length > 0 && (
                   <span style={{ color: '#94a3b8' }}>{unit.amenities.join(' · ')}</span>
@@ -1114,6 +1134,7 @@ function UnitsPanel({
                             minStayNights: unit.minStayNights == null ? '' : String(unit.minStayNights),
                             availableFrom: unit.availableFrom || '',
                             amenities: Array.isArray(unit.amenities) ? unit.amenities.join(', ') : '',
+                            terms: termsOf(unit),
                           }
                     )
                   }
@@ -1260,6 +1281,13 @@ function UnitsPanel({
                       onChange={(e) => setEditing({ ...editing, amenities: e.target.value })}
                     />
                   </div>
+                  <UnitTermsFields
+                    kind={editing.listingKind}
+                    currency={unit.currency}
+                    value={editing.terms || EMPTY_UNIT_TERMS}
+                    onChange={(patch) => setEditing({ ...editing, terms: { ...(editing.terms || EMPTY_UNIT_TERMS), ...patch } })}
+                    labelStyle={LABEL}
+                  />
                   <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                     <button
                       className="btn btn-primary"
@@ -1278,6 +1306,7 @@ function UnitsPanel({
                           minStayNights: editing.minStayNights === '' ? null : editing.minStayNights,
                           availableFrom: editing.availableFrom || null,
                           amenities: String(editing.amenities || '').trim() || null,
+                          ...termsPayload(editing.terms || EMPTY_UNIT_TERMS),
                         });
                         if (saved) {
                           setEditing(null);

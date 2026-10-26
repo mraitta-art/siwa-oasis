@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { normalizeCustomData, queryStrict } from '@/lib/db';
-import { getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, filterCoreSectionsForBusinessType } from '@/lib/section-registry';
+import { getEffectiveSectionLabel, getMinisiteSectionIds, isSectionApprovedForMinisite, isSectionHidden, filterCoreSectionsForBusinessType, sectionAppliesToMarket } from '@/lib/section-registry';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { fetchMinisiteLayout } from '@/lib/minisite-layout';
 import { findBusinessSectionBlogConflict } from '@/lib/blog-distribution';
@@ -25,10 +25,11 @@ export async function GET(request: NextRequest) {
       id: string;
       slug: string | null;
       type_id: string | null;
+      market_id: string | null;
       custom_data: unknown;
       template_features: unknown;
     }>(
-      `SELECT b.id, b.slug, b.type_id, b.custom_data, mt.settings AS template_features
+      `SELECT b.id, b.slug, b.type_id, b.market_id, b.custom_data, mt.settings AS template_features
        FROM businesses b
        LEFT JOIN minisite_templates mt ON mt.id = b.template_id
        WHERE b.id = ? LIMIT 1`,
@@ -123,6 +124,9 @@ export async function GET(request: NextRequest) {
       const placements = options.placements;
       const control = controlsBySection.get(section.id);
       if (Array.isArray(placements) && !placements.includes('body')) return false;
+      // Same per-market door the public minisite uses, so the blog picker never
+      // offers to write into a section this business's market does not carry.
+      if (!sectionAppliesToMarket(section, business.market_id)) return false;
       if (isSectionHidden(section.id, customData, control, templateHidden, false)) return false;
       if (Array.isArray(customHidden) && customHidden.includes(section.id)) return false;
       if (!isSectionApprovedForMinisite(section.id, customData, control, false)) return false;

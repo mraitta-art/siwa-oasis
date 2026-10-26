@@ -1,0 +1,65 @@
+-- Advanced shared package and offer architecture.
+-- Extends the existing tour product aggregate without deleting legacy data.
+
+ALTER TABLE tour_products
+  ADD COLUMN IF NOT EXISTS product_kind VARCHAR(40) NOT NULL DEFAULT 'package',
+  ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  ADD COLUMN IF NOT EXISTS approval_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS approval_notes TEXT,
+  ADD COLUMN IF NOT EXISTS approved_by VARCHAR(36),
+  ADD COLUMN IF NOT EXISTS valid_from DATE,
+  ADD COLUMN IF NOT EXISTS valid_until DATE;
+
+ALTER TABLE tour_stops
+  MODIFY COLUMN business_id VARCHAR(36) NULL,
+  ADD COLUMN IF NOT EXISTS business_name VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS item_type VARCHAR(40) NOT NULL DEFAULT 'activity',
+  ADD COLUMN IF NOT EXISTS title VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS start_time TIME NULL,
+  ADD COLUMN IF NOT EXISTS end_time TIME NULL,
+  ADD COLUMN IF NOT EXISTS start_date DATE NULL,
+  ADD COLUMN IF NOT EXISTS location_name VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS location_address VARCHAR(500) NULL,
+  ADD COLUMN IF NOT EXISTS latitude DECIMAL(10,7) NULL,
+  ADD COLUMN IF NOT EXISTS longitude DECIMAL(10,7) NULL,
+  ADD COLUMN IF NOT EXISTS meal_type VARCHAR(40) NULL,
+  ADD COLUMN IF NOT EXISTS accommodation_nights INT NULL,
+  ADD COLUMN IF NOT EXISTS transfer_minutes INT NULL,
+  ADD COLUMN IF NOT EXISTS end_date DATE NULL,
+  ADD COLUMN IF NOT EXISTS metadata JSON NULL;
+
+ALTER TABLE tour_promotions
+  ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  ADD COLUMN IF NOT EXISTS approval_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS approval_notes TEXT,
+  ADD COLUMN IF NOT EXISTS approved_by VARCHAR(36),
+  ADD COLUMN IF NOT EXISTS is_stackable BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS automatic BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS minimum_spend DECIMAL(10,2) NULL,
+  ADD COLUMN IF NOT EXISTS maximum_discount DECIMAL(10,2) NULL;
+
+CREATE TABLE IF NOT EXISTS tour_product_discount_rules (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  product_id VARCHAR(36) NOT NULL,
+  promotion_id VARCHAR(36) NULL,
+  rule_type VARCHAR(40) NOT NULL DEFAULT 'percent',
+  value DECIMAL(10,2) NOT NULL,
+  currency VARCHAR(3) NULL,
+  min_group_size INT NULL,
+  max_group_size INT NULL,
+  min_days INT NULL,
+  valid_from DATE NULL,
+  valid_until DATE NULL,
+  coupon_code VARCHAR(80) NULL,
+  is_automatic BOOLEAN NOT NULL DEFAULT FALSE,
+  is_stackable BOOLEAN NOT NULL DEFAULT FALSE,
+  usage_limit INT NULL,
+  usage_count INT NOT NULL DEFAULT 0,
+  status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  approval_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  created_by VARCHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES tour_products(id) ON DELETE CASCADE,
+  FOREIGN KEY (promotion_id) REFERENCES tour_promotions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

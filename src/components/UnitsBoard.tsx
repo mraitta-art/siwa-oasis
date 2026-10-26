@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import type { UnitSummary } from '@/lib/developments';
+import { finishingLabel } from '@/lib/unit-terms';
 
 /**
  * The inventory of one container, with the two questions a visitor actually
@@ -33,6 +34,12 @@ const TEXT = {
     showing: 'units',
     empty: 'No units match these filters yet.',
     amenities: 'Amenities',
+    perSqm: 'per m²',
+    down: 'Down payment',
+    years: 'years',
+    handover: 'Handover',
+    furnished: 'Furnished',
+    unfurnished: 'Unfurnished',
   },
   ar: {
     all: 'الكل',
@@ -53,6 +60,12 @@ const TEXT = {
     showing: 'وحدة',
     empty: 'لا توجد وحدات مطابقة لهذه الاختيارات بعد.',
     amenities: 'المرافق',
+    perSqm: 'للمتر',
+    down: 'مقدم',
+    years: 'سنوات',
+    handover: 'التسليم',
+    furnished: 'مفروش',
+    unfurnished: 'غير مفروش',
   },
 };
 
@@ -148,6 +161,26 @@ export default function UnitsBoard({ units, ar }: { units: UnitSummary[]; ar: bo
               unit.areaSqm ? `${unit.areaSqm} m²` : null,
             ].filter(Boolean) as string[];
 
+            // A buyer weighing two projects divides the price by the area and asks
+            // for the plan, so those numbers sit on the card instead of behind
+            // a phone call.
+            const terms = [
+              unit.pricePerSqm ? `${money(unit.pricePerSqm, unit.currency)} ${t.perSqm}` : null,
+              unit.downPaymentPct !== null || unit.installmentYears !== null
+                ? [
+                    unit.downPaymentPct !== null ? `${t.down} ${unit.downPaymentPct}%` : null,
+                    unit.installmentYears !== null ? `${unit.installmentYears} ${t.years}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                : null,
+              unit.deliveryYear ? `${t.handover} ${unit.deliveryYear}` : null,
+              // An unknown finishing value prints as the developer typed it
+              // rather than vanishing from the card.
+              finishingLabel(unit.finishing, ar),
+              unit.furnished === null ? null : unit.furnished ? t.furnished : t.unfurnished,
+            ].filter(Boolean) as string[];
+
             return (
               <div
                 key={unit.id}
@@ -169,6 +202,26 @@ export default function UnitsBoard({ units, ar }: { units: UnitSummary[]; ar: bo
 
                 {facts.length > 0 && (
                   <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{facts.join(' · ')}</div>
+                )}
+
+                {terms.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    {terms.map((term) => (
+                      <span
+                        key={term}
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          color: '#0F4C81',
+                          background: '#EFF6FF',
+                          padding: '0.15rem 0.55rem',
+                          borderRadius: 6,
+                        }}
+                      >
+                        {term}
+                      </span>
+                    ))}
+                  </div>
                 )}
 
                 {(unit.deposit !== null || unit.minStayNights !== null || unit.availableFrom) && (
