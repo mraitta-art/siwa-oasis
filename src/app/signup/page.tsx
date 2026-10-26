@@ -30,7 +30,7 @@ interface Business {
 const ARABIC_TEXT: Record<string, string> = {
   back: 'رجوع', signIn: 'تسجيل الدخول', account: 'الحساب', category: 'الفئة', business: 'النشاط التجاري', agreement: 'الاتفاقية',
   createAccount: 'إنشاء حسابك', joinMarketplace: 'انضم إلى السوق الرقمي لواحة سيوة', fullName: 'الاسم الكامل', email: 'البريد الإلكتروني',
-  phone: 'رقم الهاتف', contacts: 'جهات الاتصال للمسؤولية', contactsHint: 'أضف جهة اتصال أساسية واحدة على الأقل للتحقق من النشاط واعتماد الطلبات.',
+  phone: 'رقم الهاتف', contacts: 'جهات اتصال إضافية (اختياري)', contactsHint: 'اختياري — رقمك أعلاه هو هويتك الأساسية للتسجيل والدعم. أضف رقمًا آخر فقط إذا كان هناك من يُتصل به للتحقق.',
   password: 'كلمة المرور', minPassword: '٨ أحرف على الأقل', confirmPassword: 'تأكيد كلمة المرور', repeatPassword: 'أعد إدخال كلمة المرور',
   passwordsMatch: 'كلمتا المرور متطابقتان', continue: 'متابعة', chooseCategory: 'اختر فئة نشاطك', categoryHint: 'اختر الوصف الأقرب لنشاطك التجاري', industry: 'المجال', businessType: 'نوع النشاط',
   noSubcategories: 'لا توجد فئات فرعية. اختر مجالاً أعلاه.', change: 'تغيير', yourBusiness: 'نشاطك التجاري', businessHint: 'اختر ملفاً غير مطالب به أو سجّل اسماً جديداً لنشاطك.',
@@ -262,8 +262,12 @@ export default function VendorSignup() {
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
     if (!phone.trim())       errs.phone       = 'Phone number is required';
     else if (!/^\+[1-9][0-9]{7,14}$/.test(normalizedPhone)) errs.phone = 'Enter a valid phone number for the selected country';
-    if (registrationContacts.filter(contact => contact.phone.trim()).length === 0) errs.registrationContacts = 'At least one registration contact phone number is required';
-    else if (!registrationContacts.some(contact => contact.name.trim())) errs.registrationContacts = 'At least one contact name is required';
+    // Extra contacts are OPTIONAL now — only a row the vendor actually started
+    // must carry a real number (any written form; the server canonicalises).
+    const startedRows = registrationContacts.filter(c => c.name.trim() || c.phone.trim());
+    if (startedRows.some(c => c.phone.replace(/\D/g, '').length < 8)) {
+      errs.registrationContacts = 'For any contact you add, enter a real phone number — or clear the row.';
+    }
     if (!password)           errs.password    = 'Password is required';
     else if (password.length < 8) errs.password = 'At least 8 characters';
     if (!confirmPw)          errs.confirmPw   = 'Please confirm your password';
@@ -305,10 +309,9 @@ export default function VendorSignup() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           email, password, displayName, phone: `${countryCode}${phone.replace(/\D/g, '')}`,
-          registrationContacts: registrationContacts.map(contact => ({
-            name: contact.name.trim(),
-            phone: contact.phone.trim(),
-          })),
+          registrationContacts: registrationContacts
+            .map(contact => ({ name: contact.name.trim(), phone: contact.phone.trim() }))
+            .filter(contact => contact.name || contact.phone),
           businessId:      registerMode === 'select' ? businessId : undefined,
           newBusinessName: registerMode === 'new' ? newBusinessName.trim() : undefined,
           businessType: childId,
@@ -564,8 +567,8 @@ export default function VendorSignup() {
               </div>
 
               <div className="field-group">
-                <label className="field-label">{t('contacts', 'Responsibility Contacts')}</label>
-                <span className="field-hint">{t('contactsHint', 'Add at least one primary contact who can be reached for business verification and approvals.')}</span>
+                <label className="field-label">{t('contacts', 'Extra contacts (optional)')}</label>
+                <span className="field-hint">{t('contactsHint', 'Optional — your number above is your primary identity for sign-in and support. Add another only if someone else should be reachable for verification.')}</span>
                 {registrationContacts.map((contact, index) => (
                   <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.6rem', marginTop: '0.6rem' }}>
                     <input

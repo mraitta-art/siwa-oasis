@@ -6,6 +6,7 @@ import { getPublicAppUrl, normalizeBusinessSlug } from '@/lib/public-url';
 import { createBusinessEntity } from '@/lib/business-creation';
 import { getMarketBySlug, resolveSignupMarket } from '@/lib/markets';
 import { getVendorAgreementText, VENDOR_AGREEMENT_VERSION, type VendorAgreementLanguage } from '@/lib/vendor-agreement';
+import { normalizePhoneValue } from '@/lib/egypt-phone';
 
 function slugify(text: string): string {
   return normalizeBusinessSlug(text);
@@ -88,20 +89,28 @@ export async function POST(req: NextRequest) {
       promotionConsent,
     } = await req.json();
 
+    // Responsibility contacts are OPTIONAL. A vendor registers with their own
+    // account phone (the login identity); extra contacts are stored when given,
+    // and every written form of a number is canonicalised through the same
+    // identity module the login system uses.
     const contacts = Array.isArray(registrationContacts) ? registrationContacts : [];
-    const normalizedContacts = contacts.map((contact: any) => ({
-      name: String(contact?.name || '').trim(),
-      phone: String(contact?.phone || '').trim(),
-    }));
+    const normalizedContacts = contacts
+      .map((contact: any) => {
+        const digits = normalizePhoneValue(contact?.phone || '');
+        return {
+          name: String(contact?.name || '').trim(),
+          phone: digits ? `+${digits}` : '',
+        };
+      })
+      .filter(c => c.name || c.phone);
 
-    if (!email || !password || !phone || normalizedContacts.length === 0 || normalizedContacts.some(c => !c.phone) || (!businessId && !newBusinessName) || !businessType) {
+    if (!email || !password || !phone || (!businessId && !newBusinessName) || !businessType) {
       return NextResponse.json({ error: 'Missing required information' }, { status: 400 });
     }
-    if (!normalizedContacts.some(c => c.name)) {
-      return NextResponse.json({ error: 'At least one registration contact name is required' }, { status: 400 });
-    }
-    if (normalizedContacts.some(c => !/^\+[1-9][0-9]{7,14}$/.test(c.phone))) {
-      return NextResponse.json({ error: 'Each registration contact must use a valid international phone number' }, { status: 400 });
+    // A contact row the vendor started must carry a real number — but rows can
+    // be left out entirely.
+    if (normalizedContacts.some(c => !c.phone)) {
+      return NextResponse.json({ error: 'أدخل رقم هاتف صحيح لكل جهة اتصال أضفتها، أو احذف الصف.' }, { status: 400 });
     }
     if (new Set(normalizedContacts.map(c => c.phone)).size !== normalizedContacts.length) {
       return NextResponse.json({ error: 'Registration contact numbers must be different' }, { status: 400 });
