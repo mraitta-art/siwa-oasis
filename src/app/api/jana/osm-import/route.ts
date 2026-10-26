@@ -91,6 +91,9 @@ export async function POST(request: NextRequest) {
       is_standalone: true,
       source: 'openstreetmap_import',
       actor_id: user.id,
+      // Import feeder: pending drafts get their pack from the capped bulk desk
+      // once promoted, not from an AI call per imported pin.
+      auto_marketing_pack: false,
     });
     try {
       await execute('INSERT INTO activity_log (message, user_email) VALUES (?, ?)', [`OpenStreetMap draft imported: ${place.name}`, user.email]);

@@ -13,7 +13,7 @@
 
 import crypto from 'crypto';
 import { execute, query, queryOne } from '@/lib/db';
-import type { MarketingPack } from '@/lib/marketing-content';
+import { generateMarketingPack, type MarketingPack } from '@/lib/marketing-content';
 
 export interface MarketingContext {
   id: string;
@@ -147,4 +147,37 @@ export async function publishCaptionsAsDrafts(businessId: string, pack: Marketin
     inserted += 1;
   }
   return inserted;
+}
+
+/**
+ * The on-creation automation: a brand-new business gets its marketing pack
+ * generated and saved as a draft without anyone clicking anything, so the desk
+ * (and the vendor's site) never starts from zero.
+ *
+ * It NEVER throws — a missing row, a Gemini failure, anything: the caller is
+ * mid-creation and a marketing nicety must not roll that back. Returns a small
+ * outcome record for logging.
+ */
+export async function autoGeneratePackForBusiness(
+  businessId: string
+): Promise<{ ok: boolean; generated_by?: string; skipped?: string }> {
+  try {
+    const ctx = await loadBusinessForMarketing(businessId);
+    if (!ctx) return { ok: false, skipped: 'business not found' };
+    const pack = await generateMarketingPack({
+      market: ctx.market,
+      businessName: ctx.businessName,
+      businessNameAr: ctx.businessNameAr,
+      typeId: ctx.typeId,
+      typologyLabel: ctx.typologyLabel,
+      location: ctx.location,
+      currency: ctx.currency,
+      marketNameEn: ctx.marketNameEn,
+      marketNameAr: ctx.marketNameAr,
+    });
+    await saveMarketingPack(businessId, pack);
+    return { ok: true, generated_by: pack.generated_by };
+  } catch (error: any) {
+    return { ok: false, skipped: error?.message || 'auto-generation failed' };
+  }
 }

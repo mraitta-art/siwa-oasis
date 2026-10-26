@@ -213,6 +213,9 @@ export async function POST(req: NextRequest) {
           status: 'pending',
           is_standalone: true,
           source: 'paste_import',
+          // Import feeder: pending drafts get their pack from the capped bulk
+          // desk once promoted, not from an AI call per pasted row.
+          auto_marketing_pack: false,
         });
         return NextResponse.json({
           success: true,

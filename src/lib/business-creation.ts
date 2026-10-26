@@ -4,6 +4,7 @@ import { syncManifestFromLegacyData } from '@/lib/minisite-manifest';
 import { normalizeBusinessSlug } from '@/lib/public-url';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug } from '@/lib/markets';
 import { isReservedSlug } from '@/lib/market-routes';
+import { autoGeneratePackForBusiness } from '@/lib/marketing-store';
 
 export function normalizeBusinessName(name: string) {
   return String(name ?? '').replace(/\s+/g, ' ').trim();
@@ -76,6 +77,13 @@ export interface CreateBusinessInput {
   is_shared?: boolean;
   source?: string;
   actor_id?: string;
+  /**
+   * On-creation marketing automation (default on): the new business gets its
+   * market-aware marketing pack generated and saved as an unpublished draft
+   * immediately, so no storefront starts from zero. Import/feeders that create
+   * many pending drafts pass false and let the capped bulk desk handle them.
+   */
+  auto_marketing_pack?: boolean;
 }
 
 export async function createBusinessEntity(input: CreateBusinessInput) {
@@ -345,6 +353,19 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
       await syncManifestFromLegacyData(id, 'business_created', actorId);
     } catch (error: any) {
       console.warn('[MANIFEST BOOTSTRAP SKIPPED]', error?.message || error);
+    }
+  }
+
+  // Automation A: every freshly created business leaves with a marketing pack
+  // already drafted for its market. It runs after the row exists (the generator
+  // reads it back), and a failure here is logged, never thrown — losing the
+  // nicety must never roll back the listing itself.
+  if (input.auto_marketing_pack !== false) {
+    try {
+      const outcome = await autoGeneratePackForBusiness(id);
+      if (!outcome.ok) console.warn('[AUTO MARKETING PACK SKIPPED]', id, outcome.skipped);
+    } catch (error: any) {
+      console.warn('[AUTO MARKETING PACK FAILED]', id, error?.message || error);
     }
   }
 
