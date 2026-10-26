@@ -6,6 +6,8 @@ import Link from 'next/link';
 export interface SectionTabItem {
   id: string;
   label: string;
+  /** Arabic label carried from resolveSectionNav; the page swaps it in for /ar. */
+  labelAr?: string;
   href: string;
 }
 

@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery = true, enable_blog = true, curation_policy = 'manual_review', options, required_tier } = body;
+    const { id, name, name_ar, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery = true, enable_blog = true, curation_policy = 'manual_review', options, required_tier } = body;
     if (!id || !name) return NextResponse.json({ error: 'ID and Name required' }, { status: 400 });
     console.log('[SECTIONS POST] Attempting to create section:', { id, name, business_type_id, is_universal });
 
@@ -128,6 +128,12 @@ export async function POST(request: NextRequest) {
     } catch (dbErr: any) {
       console.error('[SECTIONS POST DB ERROR]', dbErr);
       return NextResponse.json({ error: `Database Error: ${dbErr.message}` }, { status: 500 });
+    }
+
+    // The Arabic label is written after the insert so a database without the
+    // name_ar column still creates the section (the column is a later addition).
+    if (name_ar !== undefined && (await getSectionColumns()).has('name_ar')) {
+      await execute('UPDATE sections SET name_ar = ? WHERE id = ?', [name_ar || null, id]);
     }
 
     // --- AUTO-GENESIS: Materialize DNA Fields ---
@@ -166,7 +172,7 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { id, name, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog, curation_policy, options, required_tier } = body;
+    const { id, name, name_ar, icon, required, vendor_editable, show_on_public, show_on_minisite, is_filterable, show_on_card, is_universal, section_type, description, inheritance_rules, display_order, sort_order, active, business_type_id, propagation_hero, propagation_blog, propagation_card, enable_gallery, enable_blog, curation_policy, options, required_tier } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
     const availableColumns = await getSectionColumns();
@@ -180,6 +186,7 @@ export async function PUT(request: NextRequest) {
     };
 
     if (name !== undefined) { applyUpdate('name', name); }
+    if (name_ar !== undefined) { applyUpdate('name_ar', name_ar || null); }
     if (icon !== undefined) { applyUpdate('icon', icon); }
     if (required !== undefined) { applyUpdate('required', required); }
     if (vendor_editable !== undefined) { applyUpdate('vendor_editable', vendor_editable); }

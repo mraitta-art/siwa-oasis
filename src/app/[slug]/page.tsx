@@ -357,18 +357,18 @@ export async function generateMetadata({
       },
       robots: isThin ? { index: false, follow: true } : { index: true, follow: true },
       openGraph: {
-        title: ar ? `${business.name} — ${typeName}` : `${business.name} · ${typeName}`,
+        title: `${businessName} · ${typeName}`,
         description: metaDescription,
         url: canonical,
         siteName: 'Siwify',
         type: 'website',
         locale: ar ? 'ar_EG' : 'en_US',
         alternateLocale: ar ? ['en_US'] : ['ar_EG'],
-        images: [{ url: image, width: 1200, height: 630, alt: business.name }],
+        images: [{ url: image, width: 1200, height: 630, alt: businessName }],
       },
       twitter: {
         card: 'summary_large_image',
-        title: ar ? `${business.name} — ${typeName}` : `${business.name} · ${typeName}`,
+        title: `${businessName} · ${typeName}`,
         description: metaDescription,
         images: [image],
       },
@@ -464,11 +464,14 @@ export async function generateMetadata({
 
 function BusinessJsonLd({
   business,
+  name,
   typeName,
   image,
   description,
 }: {
   business: any;
+  /** Localised display name; the other language rides along as alternateName. */
+  name?: string;
   typeName: string;
   image: string;
   description: string;
@@ -488,7 +491,7 @@ function BusinessJsonLd({
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: business.name,
+    name: name || business.name,
     url: `${siteBase()}${businessPublicPath(business)}`,
     description,
     address: {
@@ -499,6 +502,9 @@ function BusinessJsonLd({
     },
   };
   if (image && image.startsWith('http')) data.image = [image];
+  // The unused name is still declared, so a search engine sees both spellings.
+  const alternate = (name && name !== business.name ? business.name : business.name_ar) as string | null;
+  if (alternate && alternate !== (name || business.name)) data.alternateName = alternate;
   if (phone) data.telephone = phone.startsWith('00') ? `+${phone.slice(2)}` : `+20${phone.replace(/^0/, '')}`;
   if (typeName) data.additionalType = typeName;
   if (sameAs.length) data.sameAs = [...new Set(sameAs)];
@@ -781,10 +787,20 @@ export default async function CanonicalVanityPage({
       const typeName = displayType(
         arabic ? mini.typeNameAr || mini.storefront.type_name : mini.storefront.type_name
       );
+      // One name for the whole page: the structured data, the share card and the
+      // hero all print the same language.
+      const businessName = String(
+        (arabic ? business.name_ar || business.name : business.name) || business.name
+      );
       // The hero prints `business.name`, so the Arabic address hands it the
       // Arabic one instead of an English title over Arabic chrome.
       const storefront = arabic
-        ? { ...mini.storefront, name: business.name_ar || mini.storefront.name }
+        ? {
+            ...mini.storefront,
+            name: business.name_ar || mini.storefront.name,
+            // Carried so the hero badge prints the Arabic typology too.
+            type_name_ar: mini.typeNameAr,
+          }
         : mini.storefront;
       const description =
         String(
@@ -801,6 +817,11 @@ export default async function CanonicalVanityPage({
         `${storefront.name} — ${typeName} in Siwa Oasis.`;
       const image = heroImageFor(business, mini.storefront.gallery, cd);
       const publicSlug = business.slug || slug;
+      // Tabs follow the address, not the browser: an /ar page gets Arabic labels
+      // while the hrefs stay locale-free, since the shell adds the prefix.
+      const sectionNav: SectionTabItem[] = arabic
+        ? mini.sectionNav.map((item) => ({ ...item, label: item.labelAr || item.label }))
+        : mini.sectionNav;
       // An /ar address should render Arabic chrome, not only an Arabic title.
       const layout =
         arabic
@@ -809,10 +830,10 @@ export default async function CanonicalVanityPage({
 
       return (
         <>
-          <BusinessJsonLd business={business} typeName={typeName} image={image} description={description} />
+          <BusinessJsonLd business={business} name={businessName} typeName={typeName} image={image} description={description} />
           {!Number(business.is_claimed) && <ClaimStrip business={business} lang={lang} />}
           <MinisiteTapTracker slug={publicSlug} />
-          <MinisiteSectionTabs slug={publicSlug} items={mini.sectionNav} />
+          <MinisiteSectionTabs slug={publicSlug} items={sectionNav} lang={lang} />
           <MinisiteBuilderRenderer
             layout={layout}
             business={storefront}

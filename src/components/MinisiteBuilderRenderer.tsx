@@ -12,6 +12,8 @@ export interface BusinessContext {
   name: string;
   type_id: string;
   type_name?: string;
+  /** Arabic typology name, handed in only when the address is Arabic. */
+  type_name_ar?: string | null;
   custom_data: any;
   gallery: any[];
   blogs: any[];
@@ -43,6 +45,10 @@ export default function MinisiteBuilderRenderer({
   const brandHeroKey = `biz_${business.id}_hero`;
   const brandHeroFallbackKey = `biz_${business.id}_tab_sec_1_identity_hero`;
   const mode = layout.mode || 'replace';
+  // Pages under /ar carry lang inside their layout, so every block can print the
+  // Arabic typology without a second copy of the locale live in this component.
+  const pageIsArabic = (layout.site_settings as any)?.lang === 'ar';
+  const typeLabel = (pageIsArabic ? business.type_name_ar || business.type_name : business.type_name) || '';
 
   let needsBrandHero = false;
   const instanceKeys: string[] = [];
@@ -241,7 +247,7 @@ export default function MinisiteBuilderRenderer({
             ? props.subtitle || ''
             : identity.tagline ||
               identity.description?.substring(0, 180) ||
-              business.type_name ||
+              typeLabel ||
               '';
         const heroCover = mode === 'untied' ? props.coverImage || coverUrl : coverUrl;
         const heroLogo = mode === 'untied' ? props.logoUrl || logoUrl : logoUrl;
@@ -298,7 +304,7 @@ export default function MinisiteBuilderRenderer({
                   />
                 </div>
               )}
-              {business.type_name && mode === 'replace' && (
+              {typeLabel && mode === 'replace' && (
                 <div
                   style={{
                     display: 'inline-block',
@@ -314,7 +320,7 @@ export default function MinisiteBuilderRenderer({
                     border: '1px solid rgba(212, 175, 55, 0.3)',
                   }}
                 >
-                  {business.type_name}
+                  {typeLabel}
                 </div>
               )}
               <h1

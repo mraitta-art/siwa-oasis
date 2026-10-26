@@ -67,7 +67,7 @@ export async function generateMetadata({
     const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
 
     // Fetch section details & label
-    const [secRow] = await safeQuery<any>('SELECT name, description FROM sections WHERE id = ? LIMIT 1', [section]);
+    const [secRow] = await safeQuery<any>('SELECT name, name_ar, description FROM sections WHERE id = ? LIMIT 1', [section]);
     const sectionName = secRow?.name || section.replace(/^(sec_\d+_)?/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     
     // Check custom section label override
@@ -94,18 +94,22 @@ export async function generateMetadata({
     const marketSlug = String(biz.market_id || urlMarket || DEFAULT_MARKET_SLUG);
     const publicPath = `/${marketSlug}/${biz.slug || slug}/${section}`;
     const locale = (await pathLocale()) ?? 'en';
+    const ar = locale === 'ar';
+    // An /ar section URL titles itself in Arabic, name and tab label together.
+    const displayName = ar ? biz.name_ar || biz.name : biz.name;
+    const displayLabel = ar ? secRow?.name_ar || sectionLabel : sectionLabel;
     const base = getPublicAppUrl().replace(/\/$/, '');
     const canonical = localeUrl(base, locale, publicPath);
 
     return {
-      title: `${biz.name} — ${sectionLabel} | Siwa Oasis Registry`,
+      title: `${displayName} — ${displayLabel} | Siwa Oasis Registry`,
       description: cleanDesc,
       alternates: {
         canonical,
         languages: languageAlternates(base, publicPath),
       },
       openGraph: {
-        title: `${biz.name} — ${sectionLabel}`,
+        title: `${displayName} — ${displayLabel}`,
         description: cleanDesc,
         type: 'website',
         url: canonical,
@@ -194,6 +198,13 @@ export default async function VanitySectionPage({
       } catch {}
 
       biz.custom_data = normalizeCustomData(biz.custom_data);
+      // b.* carries no joined typology, and the hero prints one. Read both labels
+      // so the section page names the category in the visitor's language.
+      if (biz.type_id) {
+        const [typeRow] = await safeQuery<any>('SELECT name, name_ar FROM business_types WHERE id = ? LIMIT 1', [biz.type_id]);
+        biz.type_name = typeRow?.name || null;
+        biz.type_name_ar = typeRow?.name_ar || null;
+      }
       try { if (typeof biz.tier_features === 'string') biz.tier_features = JSON.parse(biz.tier_features); } catch {}
       try { if (typeof biz.template_features === 'string') biz.template_features = JSON.parse(biz.template_features); } catch {}
     }
@@ -471,7 +482,9 @@ export default async function VanitySectionPage({
     sections.forEach((s: any) => {
       const label = getEffectiveSectionLabel(s.id, s.name, { ...biz.custom_data, section_labels: legacyLabels, section_labels_ar: arabicLabels }, sectionControls[s.id]);
       finalLabels[s.id] = label;
-      const arLabel = getEffectiveSectionLabel(s.id, s.name, { ...biz.custom_data, section_labels: arabicLabels }, sectionControls[s.id]);
+      // The Arabic pass falls back to the section's own Arabic name before the
+      // English one, so a vendor override still wins but a shared tab is Arabic.
+      const arLabel = getEffectiveSectionLabel(s.id, s.name_ar || s.name, { ...biz.custom_data, section_labels: arabicLabels }, sectionControls[s.id]);
       if (arLabel) {
         finalLabelsAr[s.id] = arLabel;
       }

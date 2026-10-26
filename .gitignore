@@ -84,8 +84,12 @@ service-account.json
 !migrations/045_outreach_templates.sql
 !migrations/046_businesses_publish_flags.sql
 !migrations/047_vendor_crm_tables.sql
+!migrations/20261031_section_name_ar.sql
+!migrations/20261102_unit_offer_terms.sql
 database_backups/
 *.dump
+# JSON dumps of live tables: vendor contact data, never a source file
+backups/*.json
 .env*
 # local Vercel CLI helper scripts
 /.vercel-tmp/

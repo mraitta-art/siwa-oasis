@@ -20,6 +20,8 @@ import {
 export interface SectionNavItem {
   id: string;
   label: string;
+  /** Arabic tab label: the section's own name_ar, the business override, or the English label. */
+  labelAr: string;
   href: string;
 }
 
@@ -70,7 +72,7 @@ export async function resolveSectionNav(business: any): Promise<SectionNavItem[]
   // Public, placed-in-body section definitions (also include universal sections, like the route does).
   const ph = candidateIds.map(() => '?').join(',');
   const defs = await query<any>(
-    `SELECT id, name, options FROM sections WHERE (id IN (${ph}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
+    `SELECT id, name, name_ar, options FROM sections WHERE (id IN (${ph}) OR is_universal = 1) AND (show_on_public = 1 OR show_on_public = TRUE) ORDER BY sort_order ASC`,
     candidateIds,
   ).catch(() => []);
   if (!defs.length) return [];
@@ -117,7 +119,21 @@ export async function resolveSectionNav(business: any): Promise<SectionNavItem[]
     if (!hasOwnData && !hasGallery && !hasBlog) continue;
 
     seen.add(id);
-    out.push({ id, label: getEffectiveSectionLabel(id, def.name, customData, ctrl), href: `${businessPublicPath(business)}/${id}` });
+    // The Arabic label prefers the business's own Arabic override over the
+    // English one, so `section_labels` is swapped for `section_labels_ar` here
+    // exactly like the section page does.
+    const labelAr = getEffectiveSectionLabel(
+      id,
+      def.name_ar || def.name,
+      { ...customData, section_labels: customData.section_labels_ar || {} },
+      ctrl,
+    );
+    out.push({
+      id,
+      label: getEffectiveSectionLabel(id, def.name, customData, ctrl),
+      labelAr,
+      href: `${businessPublicPath(business)}/${id}`,
+    });
   }
 
   out.sort((a, b) => secNum(a.id) - secNum(b.id) || a.label.localeCompare(b.label));

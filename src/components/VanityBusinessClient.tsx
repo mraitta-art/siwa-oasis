@@ -452,6 +452,11 @@ export default function VanityBusinessClient({
   };
 
   const biz = initialData;
+  // Arabic mode prints the Arabic brand name and typology when an admin wrote
+  // them, falling back to English so a half-translated page never renders blank.
+  const arLabels = minisiteLang === 'ar';
+  const bizName = (arLabels ? biz.name_ar || biz.name : biz.name) || '';
+  const bizType = (arLabels ? biz.type_name_ar || biz.type_name : biz.type_name) || biz.type_id || '';
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
 
@@ -516,7 +521,7 @@ export default function VanityBusinessClient({
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
-    const shareTitle = biz.name || `${platformName} Minisite`;
+    const shareTitle = bizName || `${platformName} Minisite`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -537,7 +542,7 @@ export default function VanityBusinessClient({
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem', direction: isRTL ? 'rtl' : 'ltr' }}>
       <MinisiteClaimBanner
         businessId={biz.id}
-        businessName={biz.name}
+        businessName={bizName}
         slug={slug}
         initialClaimed={Boolean(biz.is_claimed || biz.custom_data?.claim_record)}
       />
@@ -592,7 +597,7 @@ export default function VanityBusinessClient({
       )}
       <AutomatedMinisiteHero 
         businessId={biz.id}
-        businessName={biz.name}
+        businessName={bizName}
         businessLogo={biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined)}
         logoSize={logoSize}
         logoPosition={logoPosition}
@@ -624,7 +629,7 @@ export default function VanityBusinessClient({
         <div className="container minisite-nav-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1240px', padding: '0 clamp(1rem, 3vw, 2rem)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
-              {(biz?.name || '').toUpperCase()}
+              {bizName.toUpperCase()}
             </div>
             {isTrusted && (
               <span style={{ 
@@ -1840,12 +1845,12 @@ export default function VanityBusinessClient({
             {/* 📍 INTERACTIVE GOOGLE SATELLITE/ROAD MAP & STATIONARY ACCESS */}
             <div style={{ marginTop: '3.5rem' }}>
               <MinisiteLocationMap
-                businessName={biz.name}
+                businessName={bizName}
                 address={dynamicAddress}
                 latitude={data.latitude || data.lat || data.basic?.latitude || data.sec_1_identity?.latitude}
                 longitude={data.longitude || data.lng || data.basic?.longitude || data.sec_1_identity?.longitude}
                 googleMapsUrl={data.google_maps_url || data.basic?.google_maps_url || data.sec_1_identity?.google_maps_url}
-                businessType={biz.type_name || biz.type_id}
+                businessType={bizType}
                 accessibilityNotes={data.accessibility || data.route_notes || data.basic?.accessibility}
                 stationHubName={data.station_name || data.hub_name}
                 stationaryUnitCode={data.unit_code || data.stationary_unit || data.bungalow_number}
@@ -1857,7 +1862,7 @@ export default function VanityBusinessClient({
             <div style={{ marginTop: '2rem' }}>
               <MinisiteContributions
                 businessId={biz.id}
-                businessName={biz.name}
+                businessName={bizName}
                 slug={slug}
                 primaryColor="#D4AF37"
               />
@@ -2087,10 +2092,10 @@ export default function VanityBusinessClient({
               ★ VERIFIED OASIS PARTNER
             </div>
             <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#f8fafc', marginBottom: '0.5rem' }}>
-              {biz.name}
+              {bizName}
             </div>
             <p style={{ opacity: 0.5, fontSize: '0.78rem', margin: 0 }}>
-              © {new Date().getFullYear()} {biz.name}. All rights reserved.
+              © {new Date().getFullYear()} {bizName}. All rights reserved.
             </p>
           </div>
         )}
@@ -2170,7 +2175,7 @@ export default function VanityBusinessClient({
             {/* Drawer Header */}
             <div style={{ padding: '1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {(biz?.name || '').toUpperCase()}
+                {bizName.toUpperCase()}
               </div>
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}

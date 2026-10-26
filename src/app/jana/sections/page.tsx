@@ -15,7 +15,7 @@ interface BusinessType {
 }
 
 interface Section {
-  id: string; name: string; icon: string; description?: string;
+  id: string; name: string; name_ar?: string | null; icon: string; description?: string;
   active: boolean; is_universal: boolean; sort_order: number;
   enable_gallery: boolean; enable_blog: boolean;
   vendor_editable: boolean; show_on_public: boolean; show_on_minisite: boolean;
@@ -95,7 +95,7 @@ const css = {
 };
 
 const BLANK_SECTION = (): Partial<Section> => ({
-  name: '', icon: 'fa-layer-group', description: '',
+  name: '', name_ar: '', icon: 'fa-layer-group', description: '',
   active: true, is_universal: false, sort_order: 0,
   enable_gallery: true, enable_blog: true,
   vendor_editable: true, show_on_public: true, show_on_minisite: true,
@@ -1008,6 +1008,21 @@ export default function UnifiedSectionArchitect() {
                 <div style={{gridColumn:'1 / -1'}}>
                   <label style={css.label()}>Section Name *</label>
                   <input style={css.input()} value={editSection.name||''} onChange={e => setEditSection(s => ({...s,name:e.target.value}))} placeholder="e.g. Amenities, Location, Pricing" />
+                </div>
+
+                {/* Arabic name — the tab label every /ar minisite prints */}
+                <div style={{gridColumn:'1 / -1'}}>
+                  <label style={css.label()}>Section Name (Arabic)</label>
+                  <input
+                    style={css.input()}
+                    dir="rtl"
+                    value={editSection.name_ar||''}
+                    onChange={e => setEditSection(s => ({...s,name_ar:e.target.value}))}
+                    placeholder="مثال: المرافق والخدمات"
+                  />
+                  <p style={{color:'#94a3b8',fontSize:'0.7rem',marginTop:'0.35rem'}}>
+                    Shown on Arabic minisite tabs. Leave empty and the English name is used instead.
+                  </p>
                 </div>
 
                 {/* Icon */}
