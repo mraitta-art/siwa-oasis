@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import DynamicForm from '@/components/DynamicForm';
 import { useAdmin } from '@/context/AdminContext';
@@ -13,6 +13,15 @@ interface Business {
   vendor_id: string | null; approved_by_vendor: boolean; views: number; template_name?: string;
   market_id?: string | null;
 }
+
+/** The label above one box of the inline ADD PLACE form. */
+const PLACE_FIELD_LABEL: React.CSSProperties = {
+  fontSize: '0.6rem',
+  fontWeight: 800,
+  color: '#6b7280',
+  display: 'block',
+  marginBottom: '0.2rem',
+};
 
 export default function BusinessRegistryPage() {
   const { notify } = useAdmin();
@@ -35,7 +44,17 @@ export default function BusinessRegistryPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
   const [developments, setDevelopments] = useState<any[]>([]);
-  const [places, setPlaces] = useState<{ id: string; path: string; type: string; depth: number; nameAr: string; nameEn: string }[]>([]);
+  const [places, setPlaces] = useState<{ id: string; path: string; type: string; depth: number; nameAr: string; nameEn: string; active?: boolean }[]>([]);
+  // 3b does not only pick: the market's city is the parent a new place hangs
+  // off, and `childTypes` is what the server will accept under it.
+  const [placeContext, setPlaceContext] = useState<{
+    city: { id: string; path: string; nameEn: string; nameAr: string; type: string } | null;
+    childTypes: string[];
+  }>({ city: null, childTypes: [] });
+  const [showPlaceForm, setShowPlaceForm] = useState(false);
+  const [newPlace, setNewPlace] = useState({ nameEn: '', nameAr: '', type: '', active: true });
+  const [placeBusy, setPlaceBusy] = useState(false);
+  const [placeError, setPlaceError] = useState<string | null>(null);
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newBiz, setNewBiz] = useState({
     name: '',
@@ -78,15 +97,29 @@ export default function BusinessRegistryPage() {
 
   // Geography is loaded per market: a town in El Alamein is not a valid place
   // for a Siwa listing, and the server enforces the same rule on write.
+  const loadPlaces = useCallback(async (market: string) => {
+    if (!market) {
+      setPlaces([]);
+      setPlaceContext({ city: null, childTypes: [] });
+      return;
+    }
+    try {
+      const res = await fetch(`/api/jana/places?market=${encodeURIComponent(market)}`);
+      const data = res.ok ? await res.json() : { places: [] };
+      setPlaces(Array.isArray(data.places) ? data.places : []);
+      setPlaceContext({
+        city: data.city || null,
+        childTypes: Array.isArray(data.childTypes) ? data.childTypes : [],
+      });
+    } catch {
+      setPlaces([]);
+      setPlaceContext({ city: null, childTypes: [] });
+    }
+  }, []);
+
   useEffect(() => {
-    if (!newBiz.market_id) { setPlaces([]); return; }
-    let cancelled = false;
-    fetch(`/api/jana/places?market=${encodeURIComponent(newBiz.market_id)}`)
-      .then((r) => (r.ok ? r.json() : { places: [] }))
-      .then((data) => { if (!cancelled) setPlaces(Array.isArray(data.places) ? data.places : []); })
-      .catch(() => { if (!cancelled) setPlaces([]); });
-    return () => { cancelled = true; };
-  }, [newBiz.market_id]);
+    loadPlaces(newBiz.market_id);
+  }, [newBiz.market_id, loadPlaces]);
 
   async function bulkAction(updates: any) {
     if (selectedIds.length === 0) return;
@@ -239,6 +272,13 @@ export default function BusinessRegistryPage() {
   };
 
   async function submitRegistration() {
+    // A switched-off place cannot hold a published listing: the page it would
+    // appear on does not exist. Turn it on first, from the warning under 3b.
+    const chosenPlace = places.find((place) => place.id === newBiz.location_id);
+    if (chosenPlace && chosenPlace.active === false) {
+      notify(`"${chosenPlace.nameEn}" is switched off — activate it, or pick another place.`, 'error');
+      return;
+    }
     if (!newBiz.market_id) {
       alert('Pick a market first — every listing lives in exactly one.');
       return;
@@ -275,6 +315,77 @@ export default function BusinessRegistryPage() {
     setIsSyncing(false);
   }
 
+  /**
+   * 3b is not a picker only. A market with no place yet used to send the admin
+   * to GEOGRAPHY and back; the place is created straight under the market's own
+   * city, so it can never land in another market, and it comes back selected
+   * because that is where the listing being registered belongs.
+   */
+  async function addPlace() {
+    const nameEn = newPlace.nameEn.trim();
+    if (!placeContext.city) {
+      setPlaceError('This market has no city row yet, so a new place has nothing to sit under.');
+      return;
+    }
+    if (!nameEn) {
+      setPlaceError('An English name is required — it becomes the address.');
+      return;
+    }
+    setPlaceBusy(true);
+    setPlaceError(null);
+    try {
+      const res = await fetch('/api/jana/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parentId: placeContext.city.id,
+          marketId: newBiz.market_id,
+          nameEn,
+          nameAr: newPlace.nameAr.trim() || undefined,
+          type: newPlace.type || placeContext.childTypes[0],
+          active: newPlace.active,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not add the place');
+      await loadPlaces(newBiz.market_id);
+      if (newPlace.active) setNewBiz((prev) => ({ ...prev, location_id: data.id }));
+      setNewPlace({ nameEn: '', nameAr: '', type: '', active: true });
+      setShowPlaceForm(false);
+      notify(
+        `Place "${nameEn}" added${newPlace.active ? ' and activated' : ' (switched off)'}.`,
+        'success'
+      );
+    } catch (e: any) {
+      setPlaceError(e.message || 'Could not add the place');
+    } finally {
+      setPlaceBusy(false);
+    }
+  }
+
+  /** A place that exists but is switched off can be turned on without leaving 3b. */
+  async function activatePlace(id: string, name: string) {
+    setPlaceBusy(true);
+    setPlaceError(null);
+    try {
+      const res = await fetch('/api/jana/locations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, active: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not activate the place');
+      }
+      await loadPlaces(newBiz.market_id);
+      notify(`"${name}" is active: it can be filed at and gets its own page.`, 'success');
+    } catch (e: any) {
+      setPlaceError(e.message || 'Could not activate the place');
+    } finally {
+      setPlaceBusy(false);
+    }
+  }
+
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><i className="fas fa-spinner fa-spin fa-2x" style={{ color: '#D4AF37' }}></i></div>;
 
   const selectableBusinessTypes = types
@@ -290,6 +401,8 @@ export default function BusinessRegistryPage() {
   const selectableParents = types
     .filter((type: any) => (type.is_parent || Number(type.is_parent) === 1) && type.id !== 'SECTION_TEMPLATE' && type.active !== false && Number(type.active) !== 0 && selectableTypesByParent.has(type.id))
     .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+  // Read once so the warning under 3b and the filing hint agree.
+  const selectedPlace = places.find((place) => place.id === newBiz.location_id);
 
   return (
     <div className="animate-in">
@@ -418,11 +531,128 @@ export default function BusinessRegistryPage() {
                 ))}
               </select>
             </div>
-            {/* 3b. Place inside the market (optional) */}
+            {/* 3b. Place inside the market (optional) — chosen here, or created here */}
             <div>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', display: 'block', marginBottom: '0.3rem' }}>
-                3b. PLACE INSIDE THE MARKET (OPTIONAL)
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280' }}>
+                  3b. PLACE INSIDE THE MARKET (OPTIONAL)
+                </label>
+                <div style={{ flex: 1 }} />
+                <button
+                  type="button"
+                  className="btn btn-xs btn-outline"
+                  disabled={!placeContext.city || placeBusy}
+                  title={
+                    placeContext.city
+                      ? `Add a place under ${placeContext.city.nameEn}`
+                      : 'Pick a market that has a city row first'
+                  }
+                  onClick={() => {
+                    setShowPlaceForm((open) => !open);
+                    setPlaceError(null);
+                  }}
+                >
+                  <i className={`fas ${showPlaceForm ? 'fa-xmark' : 'fa-plus'}`}></i>{' '}
+                  {showPlaceForm ? 'CANCEL' : 'ADD PLACE'}
+                </button>
+              </div>
+
+              {/* A disabled button with a tooltip is not an explanation: the reason a
+                  place cannot be added is written where the form would open. */}
+              {!placeContext.city && (
+                <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#b45309', marginBottom: '0.35rem' }}>
+                  {newBiz.market_id
+                    ? 'This market has no city row yet: set one in GEOGRAPHY before adding a place.'
+                    : 'Pick a market in 0. first — a new place is created under that market city.'}
+                </div>
+              )}
+
+              {showPlaceForm && (
+                <div
+                  style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 8,
+                    padding: '0.6rem',
+                    background: '#f8fafc',
+                    marginBottom: '0.45rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <div>
+                      <label style={PLACE_FIELD_LABEL}>NAME (ENGLISH) *</label>
+                      <input
+                        className="form-control"
+                        placeholder="Shali"
+                        value={newPlace.nameEn}
+                        onChange={(e) => setNewPlace({ ...newPlace, nameEn: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={PLACE_FIELD_LABEL}>NAME (ARABIC)</label>
+                      <input
+                        className="form-control"
+                        dir="rtl"
+                        placeholder="شالي"
+                        value={newPlace.nameAr}
+                        onChange={(e) => setNewPlace({ ...newPlace, nameAr: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={PLACE_FIELD_LABEL}>LEVEL</label>
+                      <select
+                        className="form-control"
+                        value={newPlace.type || placeContext.childTypes[0] || ''}
+                        onChange={(e) => setNewPlace({ ...newPlace, type: e.target.value })}
+                      >
+                        {placeContext.childTypes.map((childType) => (
+                          <option key={childType} value={childType}>
+                            {childType}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <label
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={newPlace.active}
+                          onChange={(e) => setNewPlace({ ...newPlace, active: e.target.checked })}
+                        />
+                        ACTIVE
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-xs"
+                        disabled={placeBusy}
+                        onClick={addPlace}
+                      >
+                        {placeBusy ? 'ADDING…' : 'ADD'}
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.62rem', color: '#6b7280', marginTop: '0.35rem' }}>
+                    {placeContext.city
+                      ? `Added under ${placeContext.city.nameEn} (${placeContext.city.path}). An active place can be filed at, and gets its own page in this market.`
+                      : 'This market has no city row yet — set one in GEOGRAPHY first.'}
+                  </div>
+                </div>
+              )}
+
               <select
                 className="form-control"
                 value={newBiz.location_id}
@@ -431,20 +661,55 @@ export default function BusinessRegistryPage() {
                 style={{ background: places.length ? '#fff' : '#f1f5f9' }}
               >
                 <option value="">
-                  {places.length ? '-- Inherits the market city --' : '-- No places under this market yet: add one in GEOGRAPHY --'}
+                  {places.length
+                    ? '-- Inherits the market city --'
+                    : '-- No places under this market yet: add one above --'}
                 </option>
                 {places.map((place) => (
                   <option key={place.id} value={place.id}>
                     {'· '.repeat(Math.max(0, place.depth - 1))}
                     {place.nameEn}{place.nameAr ? ` — ${place.nameAr}` : ''} ({place.type})
+                    {place.active === false ? ' — switched off' : ''}
                   </option>
                 ))}
               </select>
+              {selectedPlace && selectedPlace.active === false && (
+                <div
+                  style={{
+                    fontSize: '0.65rem',
+                    color: '#b45309',
+                    fontWeight: 700,
+                    marginTop: '0.3rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span>
+                    “{selectedPlace.nameEn}” is switched off: nothing can be filed there until it is
+                    activated.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline"
+                    disabled={placeBusy}
+                    onClick={() => activatePlace(selectedPlace.id, selectedPlace.nameEn)}
+                  >
+                    <i className="fas fa-bolt"></i> ACTIVATE
+                  </button>
+                </div>
+              )}
               <div style={{ fontSize: '0.62rem', color: '#6b7280', marginTop: '0.25rem' }}>
                 {newBiz.location_id
-                  ? `Filed at ${places.find((p) => p.id === newBiz.location_id)?.path || 'the chosen place'} — it appears on that place's page.`
+                  ? `Filed at ${selectedPlace?.path || 'the chosen place'} — it appears on that place's page.`
                   : 'Left empty, the listing belongs to the city itself.'}
               </div>
+              {placeError && (
+                <div style={{ fontSize: '0.65rem', color: '#b91c1c', fontWeight: 700, marginTop: '0.25rem' }}>
+                  {placeError}
+                </div>
+              )}
             </div>
             {/* Template — auto-resolves from tier when not set */}
             <div>

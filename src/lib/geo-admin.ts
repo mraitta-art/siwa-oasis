@@ -227,6 +227,17 @@ export interface PlaceOption {
   depth: number;
   nameAr: string;
   nameEn: string;
+  /** A switched-off place exists but cannot be filed at or reached. */
+  active: boolean;
+}
+
+/** What a listing's place picker needs: the option list, plus where to add more. */
+export interface MarketPlacePicker {
+  /** The market's own city row — the parent every new place is added under. */
+  city: { id: string; path: string; nameAr: string; nameEn: string; type: GeoType } | null;
+  /** The levels a new place may take under that city. */
+  childTypes: GeoType[];
+  places: PlaceOption[];
 }
 
 /**
@@ -238,16 +249,47 @@ export interface PlaceOption {
  * same thing is how a directory starts disagreeing with itself.
  */
 export async function listMarketPlaces(marketSlug: string): Promise<PlaceOption[]> {
+  return (await collectMarketPlaces(marketSlug, false)).places;
+}
+
+/**
+ * The same list for a picker that also has to *manage* places: switched-off rows
+ * are included with `active: false` so the admin can switch one back on without
+ * leaving the listing form, and the city is carried so a new place has a parent.
+ */
+export async function describeMarketPlaces(marketSlug: string): Promise<MarketPlacePicker> {
+  const { city, places } = await collectMarketPlaces(marketSlug, true);
+  if (!city) return { city: null, childTypes: [], places: [] };
+
+  const type = toGeoType(city.type);
+  return {
+    city: {
+      id: String(city.id),
+      path: String(city.path),
+      nameAr: String(city.name_ar || city.name_en || ''),
+      nameEn: String(city.name_en || city.name_ar || ''),
+      type,
+    },
+    childTypes: childTypesFor(type),
+    places,
+  };
+}
+
+async function collectMarketPlaces(
+  marketSlug: string,
+  includeInactive: boolean
+): Promise<{ city: any; places: PlaceOption[] }> {
   const market = (await queryOne('SELECT location_id FROM markets WHERE slug = ? LIMIT 1', [
     marketSlug,
   ])) as any;
-  if (!market?.location_id) return [];
+  if (!market?.location_id) return { city: null, places: [] };
 
-  const city = (await queryOne('SELECT path FROM locations WHERE id = ? LIMIT 1', [
-    String(market.location_id),
-  ])) as any;
+  const city = (await queryOne(
+    'SELECT id, path, type, name, name_ar, name_en FROM locations WHERE id = ? LIMIT 1',
+    [String(market.location_id)]
+  )) as any;
   const cityPath = city?.path ? String(city.path) : '';
-  if (!cityPath) return [];
+  if (!cityPath) return { city: null, places: [] };
 
   const cityDepth = cityPath.split('/').filter(Boolean).length;
   const tree = await listGeoTree();
@@ -255,7 +297,11 @@ export async function listMarketPlaces(marketSlug: string): Promise<PlaceOption[
 
   const walk = (nodes: GeoNode[]) => {
     for (const node of nodes) {
-      if (node.active && node.path !== cityPath && node.path.startsWith(`${cityPath}/`)) {
+      if (
+        (includeInactive || node.active) &&
+        node.path !== cityPath &&
+        node.path.startsWith(`${cityPath}/`)
+      ) {
         places.push({
           id: node.id,
           path: node.path,
@@ -263,6 +309,7 @@ export async function listMarketPlaces(marketSlug: string): Promise<PlaceOption[
           depth: node.path.split('/').filter(Boolean).length - cityDepth,
           nameAr: node.nameAr,
           nameEn: node.nameEn,
+          active: node.active,
         });
       }
       walk(node.children);
@@ -270,7 +317,8 @@ export async function listMarketPlaces(marketSlug: string): Promise<PlaceOption[
   };
 
   walk(tree);
-  return places.sort((a, b) => a.depth - b.depth || a.nameEn.localeCompare(b.nameEn));
+  places.sort((a, b) => a.depth - b.depth || a.nameEn.localeCompare(b.nameEn));
+  return { city, places };
 }
 
 async function requireRow(id: string) {
