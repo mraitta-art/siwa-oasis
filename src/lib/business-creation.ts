@@ -238,6 +238,15 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
     ) as any;
     templateId = tier?.default_template_id || null;
   }
+  // A typology or a tier can carry a `default_template_id` that points at a row
+  // no longer present in `minisite_templates` — the dangling-pointer content debt.
+  // Storing that id would pin a template that renders nothing, so confirm it
+  // resolves to a real template; when it does not, drop it and let the active-
+  // template search below pick one that exists.
+  if (templateId) {
+    const resolves = await queryOne('SELECT id FROM minisite_templates WHERE id = ? LIMIT 1', [templateId]);
+    if (!resolves) templateId = null;
+  }
   // Graceful template fallback — never throw or block business creation
   if (!templateId && !isStandalone) {
     const fallbackTmpl = await queryOne(

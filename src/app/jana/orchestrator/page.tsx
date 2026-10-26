@@ -24,88 +24,163 @@ import { useAdmin } from '@/context/AdminContext';
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 
-type Step = 'ARCHITECTURE' | 'AESTHETICS' | 'DNA_CONFIG' | 'AUTHORITY' | 'DEPLOYMENT';
+type Step =
+  | 'MARKET'
+  | 'ARCHITECTURE'
+  | 'STRUCTURE'
+  | 'AESTHETICS'
+  | 'DNA_CONFIG'
+  | 'AUTHORITY'
+  | 'DEPLOYMENT';
+
+interface DevelopmentDraft {
+  kind: string;
+  developerName: string;
+  deliveryYear: string;
+  status: string;
+}
 
 interface WizardState {
   step: Step;
+  market: string;
   selectedParent: string;
   selectedType: string;
+  containerKind: 'business' | 'development';
+  existingDevelopmentId: string;
+  locationId: string;
+  development: DevelopmentDraft;
   businessName: string;
   selectedVendor: string;
   businessData: Record<string, any>;
   minisiteTemplate: string;
   fields: any[];
   createdBizId?: string;
+  createdDevId?: string;
 }
 
 const STORAGE_KEY = 'siwa_governance_wizard_state';
-const STEPS: Step[] = ['ARCHITECTURE', 'AESTHETICS', 'DNA_CONFIG', 'AUTHORITY', 'DEPLOYMENT'];
+const STEPS: Step[] = ['MARKET', 'ARCHITECTURE', 'STRUCTURE', 'AESTHETICS', 'DNA_CONFIG', 'AUTHORITY', 'DEPLOYMENT'];
+
+// The container classifiers and lifecycle states mirror the server's
+// DEVELOPMENT_KINDS / DEVELOPMENT_STATUSES. They live here as plain data so the
+// picker can render without importing a server module into a client component.
+const DEVELOPMENT_KINDS = ['compound', 'town', 'village', 'resort'];
+const DEVELOPMENT_STATUSES = ['announced', 'under_construction', 'delivered', 'sold_out'];
+
+// Shared inline styles for the STRUCTURE step's small selects/inputs, so the
+// container draft form matches the wizard's typography without a new CSS block.
+const fieldLabel: React.CSSProperties = { fontSize: '0.65rem', fontWeight: 900, color: '#d97706', letterSpacing: '1.5px', display: 'block', marginBottom: '0.4rem' };
+const fieldInput: React.CSSProperties = { width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', color: '#0f172a', background: '#fff' };
 
 function OrchestratorContent() {
   const { notify } = useAdmin();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [markets, setMarkets] = useState<any[]>([]);
+  const [compounds, setCompounds] = useState<any[]>([]);
+  const [places, setPlaces] = useState<any[]>([]);
   const [typologies, setTypologies] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [allSections, setAllSections] = useState<any[]>([]);
   const [visualTemplates, setVisualTemplates] = useState<any[]>([]);
 
   const [state, setState] = useState<WizardState>({
-    step: 'ARCHITECTURE',
+    step: 'MARKET',
+    market: searchParams.get('market') || '',
     selectedParent: '',
     selectedType: searchParams.get('type') || '',
+    containerKind: 'business',
+    existingDevelopmentId: '',
+    locationId: '',
+    development: { kind: 'compound', developerName: '', deliveryYear: '', status: 'announced' },
     businessName: '',
     selectedVendor: '',
     businessData: {},
-    minisiteTemplate: 'desert_luxury_v1',
+    // No template is pinned by default: the server resolves the right one from the
+    // typology, its parent, then the tier. The old hardcoded 'desert_luxury_v1' was
+    // a row that no longer exists.
+    minisiteTemplate: '',
     fields: []
   });
 
+  const updateState = (updates: Partial<WizardState>) => setState(prev => ({ ...prev, ...updates }));
+  const updateDevelopment = (updates: Partial<DevelopmentDraft>) =>
+    setState(prev => ({ ...prev, development: { ...prev.development, ...updates } }));
+
+  // Market-independent reference data plus the market/compound hierarchy, loaded
+  // once. Markets come from the admin registry, so a dark market can still be
+  // authored here even while its public door is closed.
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (searchParams.get('type')) parsed.selectedType = searchParams.get('type');
-        if (searchParams.get('template')) parsed.minisiteTemplate = searchParams.get('template');
-        
-        // Auto-fix for old cached states (e.g., if step was 'IDENTITY' or 'AMBIENCE')
-        if (parsed.step && !STEPS.includes(parsed.step)) {
-          parsed.step = 'ARCHITECTURE';
-        }
-        
-        setState(prev => ({ ...prev, ...parsed }));
+        if (searchParams.get('market')) parsed.market = searchParams.get('market');
+        // Any cached step that is no longer in the model starts over at MARKET.
+        if (parsed.step && !STEPS.includes(parsed.step)) parsed.step = 'MARKET';
+        setState(prev => ({ ...prev, ...parsed, development: { ...prev.development, ...(parsed.development || {}) } }));
       } catch (e) {}
-    } else if (searchParams.get('template')) {
-      setState(prev => ({ ...prev, minisiteTemplate: searchParams.get('template') || prev.minisiteTemplate }));
     }
 
-    const safeFetch = (url: string) =>
-      fetch(url)
-        .then(async res => {
-          if (res.status === 401 || res.status === 403) {
-            // Not authenticated in production — redirect to login
-            window.location.href = '/login?redirect=/jana/orchestrator';
-            return [];
-          }
-          const data = await res.json();
-          return Array.isArray(data) ? data : [];
-        })
-        .catch(() => []);
+    const safeJson = async (url: string) => {
+      try {
+        const res = await fetch(url);
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/login?redirect=/jana/orchestrator';
+          return null;
+        }
+        return await res.json();
+      } catch {
+        return null;
+      }
+    };
 
     Promise.all([
-      safeFetch('/api/jana/types'),
-      safeFetch('/api/jana/vendors'),
-      safeFetch('/api/jana/sections'),
-      safeFetch('/api/jana/templates'),
-    ]).then(([types, vendorList, sectionsList, visualList]) => {
-      setTypologies(types);
-      setVendors(vendorList);
-      setAllSections(sectionsList);
-      setVisualTemplates(visualList);
+      safeJson('/api/jana/vendors'),
+      safeJson('/api/jana/sections'),
+      safeJson('/api/jana/templates'),
+      safeJson('/api/jana/markets'),
+    ]).then(([vendorList, sectionsList, visualList, marketData]) => {
+      setVendors(Array.isArray(vendorList) ? vendorList : []);
+      setAllSections(Array.isArray(sectionsList) ? sectionsList : []);
+      setVisualTemplates(Array.isArray(visualList) ? visualList : []);
+      const list = Array.isArray(marketData?.markets) ? marketData.markets : [];
+      setMarkets(list);
+      setCompounds(Array.isArray(marketData?.compounds) ? marketData.compounds : []);
+      setState(prev => {
+        if (prev.market) return prev;
+        const firstActive = list.find((m: any) => m.active) || list[0];
+        return { ...prev, market: firstActive ? String(firstActive.slug ?? firstActive.id) : 'siwa' };
+      });
       setLoading(false);
     });
   }, [searchParams]);
+
+  // Market-scoped reads: only the categories offered in this market (plus the
+  // shared ones) and only the places inside its geography. The write side re-checks
+  // both; this simply stops the wizard from offering an invalid choice.
+  useEffect(() => {
+    if (!state.market) return;
+    let cancelled = false;
+    fetch(`/api/signup/types?market=${encodeURIComponent(state.market)}`)
+      .then(res => (res.ok ? res.json() : { types: [] }))
+      .then(data => { if (!cancelled) setTypologies(Array.isArray(data?.types) ? data.types : []); })
+      .catch(() => { if (!cancelled) setTypologies([]); });
+    fetch(`/api/jana/places?market=${encodeURIComponent(state.market)}`)
+      .then(res => (res.ok ? res.json() : {}))
+      .then((data: any) => { if (!cancelled) setPlaces(Array.isArray(data?.places) ? data.places : []); })
+      .catch(() => { if (!cancelled) setPlaces([]); });
+    // A market switch invalidates choices that no longer exist in this market.
+    setState(prev => ({
+      ...prev,
+      selectedType: prev.selectedType && searchParams.get('type') === prev.selectedType ? prev.selectedType : '',
+      selectedParent: '',
+      existingDevelopmentId: '',
+      locationId: '',
+    }));
+    return () => { cancelled = true; };
+  }, [state.market]);
 
   useEffect(() => {
     if (!loading) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -117,36 +192,44 @@ function OrchestratorContent() {
         .then(res => res.json())
         .then(fields => {
           if (Array.isArray(fields)) updateState({ fields });
-        });
+        })
+        .catch(() => {});
     }
   }, [state.selectedType]);
-
-  const updateState = (updates: Partial<WizardState>) => setState(prev => ({ ...prev, ...updates }));
 
   const handleFinalize = async () => {
     setLoading(true);
     try {
-      const bizRes = await fetch('/api/jana/businesses', {
+      const res = await fetch('/api/jana/orchestrator/provision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          market: state.market,
+          containerKind: state.containerKind,
+          existingDevelopmentId: state.containerKind === 'business' ? (state.existingDevelopmentId || null) : null,
+          location_id: state.locationId || null,
+          development: state.containerKind === 'development'
+            ? { ...state.development, locationId: state.locationId || null }
+            : undefined,
           name: state.businessName,
           type_id: state.selectedType,
-          vendor_id: state.selectedVendor,
-          template_id: state.minisiteTemplate,
+          vendor_id: state.selectedVendor || null,
+          template_id: state.minisiteTemplate || null,
           custom_data: state.businessData,
+          subscription_tier: 'free',
+          url_style: 'market',
           status: 'pending'
         })
       });
-      if (bizRes.ok) {
-        const created = await bizRes.json();
-        const bizId = created?.id || created?.slug || '';
+      const created = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const bizId = created?.business?.id || created?.id || '';
+        const devId = created?.development?.id || '';
         localStorage.removeItem(STORAGE_KEY);
-        updateState({ step: 'DEPLOYMENT', createdBizId: bizId });
-        notify('Entity Synthesized Successfully', 'success');
+        setState(prev => ({ ...prev, step: 'DEPLOYMENT', createdBizId: bizId, createdDevId: devId || undefined }));
+        notify(state.containerKind === 'development' ? 'Development & Page Synthesized' : 'Entity Synthesized Successfully', 'success');
       } else {
-        const errJson = await bizRes.json().catch(() => ({}));
-        notify(errJson?.error || 'Orchestration Failed', 'error');
+        notify(created?.error || 'Orchestration Failed', 'error');
       }
     } catch (err: any) {
       notify(err?.message || 'Orchestration Failed', 'error');
@@ -167,11 +250,14 @@ function OrchestratorContent() {
 
   if (loading) return <div className="loader-screen">ORCHESTRATING...</div>;
 
-  // Filter typologies (business categories) into parent/child hierarchy
-  // NOTE: "Typologies" here refers to the DATA MODEL (business classification)
-  // NOT the ARCHITECTURE step (which is the workflow process above)
+  // The compounds that live in this market — the containers a listing can be
+  // filed inside. Filtered client-side from the single admin registry read.
+  const marketCompounds = compounds.filter(c => String(c.marketId) === String(state.market));
+  // NOTE: "Typologies" here refers to the DATA MODEL (business classification),
+  // NOT the ARCHITECTURE step (the workflow process). This distinction is intentional.
   const parentTypologies = typologies.filter(t => t.is_parent || !t.parent_id);
   const childTypologies = state.selectedParent ? typologies.filter(t => t.parent_id === state.selectedParent) : [];
+  const selectedMarketName = String(markets.find(m => String(m.slug ?? m.id) === state.market)?.nameEn || state.market);
 
   return (
     <div className="orchestrator-container">
@@ -202,6 +288,131 @@ function OrchestratorContent() {
         {/* Active Phase Glass Card */}
         <div className="glass-card animate-in">
           
+          {/* STEP 0: MARKET — every entity is filed inside one market first.
+              Without this the write defaulted to Siwa, so an El Alamein compound
+              landed in the wrong registry. Dark markets are selectable here on
+              purpose: the desk can author a market before its public door opens. */}
+          {state.step === 'MARKET' && (
+            <div className="phase-content">
+              <div className="phase-header">
+                <h2>Choose the Market</h2>
+                {state.market && (
+                  <span className="tag" style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>
+                    Current: {selectedMarketName}
+                  </span>
+                )}
+              </div>
+              <p style={{ opacity: 0.6, marginBottom: '2rem', fontSize: '0.9rem' }}>
+                The category tree, geography and URL namespace all follow this choice.
+              </p>
+              <div className="grid-selection">
+                {markets.map(m => {
+                  const slug = String(m.slug ?? m.id);
+                  return (
+                    <button
+                      key={slug}
+                      onClick={() => updateState({ market: slug })}
+                      className={`selection-card ${state.market === slug ? 'selected' : ''}`}
+                    >
+                      <i className="fas fa-map-location-dot icon"></i>
+                      <div className="name">{m.nameEn || slug}</div>
+                      <div className="tag" style={{ color: m.active ? '#059669' : '#94a3b8' }}>
+                        {m.active ? 'LIVE MARKET' : 'DARK / PREPARING'}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: STRUCTURE — is this a single listing, or a container
+              (compound / town / resort) that other listings live inside? This is
+              the four-object model: a development is its own row, not a business. */}
+          {state.step === 'STRUCTURE' && (
+            <div className="phase-content">
+              <div className="phase-header">
+                <h2>What Are You Setting Up?</h2>
+              </div>
+              <div className="grid-selection">
+                <button
+                  onClick={() => updateState({ containerKind: 'business' })}
+                  className={`selection-card ${state.containerKind === 'business' ? 'selected' : ''}`}
+                >
+                  <i className="fas fa-store icon"></i>
+                  <div className="name">Single Listing</div>
+                  <div className="tag">A SHOP, HOTEL OR SERVICE</div>
+                </button>
+                <button
+                  onClick={() => updateState({ containerKind: 'development' })}
+                  className={`selection-card ${state.containerKind === 'development' ? 'selected' : ''}`}
+                >
+                  <i className="fas fa-building flag icon" style={{ color: '#0F4C81' }}></i>
+                  <div className="name">Development / Compound</div>
+                  <div className="tag">A PROJECT THAT HOLDS LISTINGS &amp; UNITS</div>
+                </button>
+              </div>
+
+              <div style={{ marginTop: '2rem' }} className="dna-form-wrapper">
+                <div className="form-group main-name-input" style={{ marginBottom: '1.5rem' }}>
+                  <label>PLACE (OPTIONAL)</label>
+                  <select
+                    value={state.locationId}
+                    onChange={e => updateState({ locationId: e.target.value })}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', color: '#0f172a', background: '#fff' }}
+                  >
+                    <option value="">Market default city (recommended)</option>
+                    {places.filter(p => p.active).map(p => (
+                      <option key={p.id} value={p.id}>{p.nameEn || p.nameAr} — {p.type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {state.containerKind === 'business' ? (
+                  <div className="form-group main-name-input" style={{ marginBottom: 0 }}>
+                    <label>FILE INSIDE AN EXISTING PROJECT (OPTIONAL)</label>
+                    <select
+                      value={state.existingDevelopmentId}
+                      onChange={e => updateState({ existingDevelopmentId: e.target.value })}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', color: '#0f172a', background: '#fff' }}
+                    >
+                      <option value="">Standalone — not inside a project</option>
+                      {marketCompounds.map(c => (
+                        <option key={c.id} value={c.id}>{c.nameEn || c.nameAr} ({c.kind})</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label style={fieldLabel}>CONTAINER KIND</label>
+                      <select value={state.development.kind} onChange={e => updateDevelopment({ kind: e.target.value })} style={fieldInput}>
+                        {DEVELOPMENT_KINDS.map(k => <option key={k} value={k}>{k.toUpperCase()}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label style={fieldLabel}>STATUS</label>
+                      <select value={state.development.status} onChange={e => updateDevelopment({ status: e.target.value })} style={fieldInput}>
+                        {DEVELOPMENT_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ').toUpperCase()}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label style={fieldLabel}>DEVELOPER (OPTIONAL)</label>
+                      <input type="text" value={state.development.developerName} onChange={e => updateDevelopment({ developerName: e.target.value })} placeholder="e.g. Dorra Group" style={fieldInput} />
+                    </div>
+                    <div className="form-group">
+                      <label style={fieldLabel}>DELIVERY YEAR (OPTIONAL)</label>
+                      <input type="number" inputMode="numeric" value={state.development.deliveryYear} onChange={e => updateDevelopment({ deliveryYear: e.target.value })} placeholder="2028" style={fieldInput} />
+                    </div>
+                    <p style={{ gridColumn: '1 / -1', fontSize: '0.75rem', color: '#94a3b8', margin: '0.25rem 0 0' }}>
+                      The project's name and Arabic name are taken from the entity name you set on the next steps. Inventory (units) is added afterwards in the vendor inventory desk.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* STEP 1: ARCHITECTURE - Business Type Selection */}
           {/* NOTE: This STEP is called "ARCHITECTURE" (workflow process),
                     but it displays "Typology" headings (data classification).
@@ -255,14 +466,26 @@ function OrchestratorContent() {
             </div>
           )}
 
-          {/* STEP 2: AESTHETICS */}
+          {/* STEP: AESTHETICS */}
           {state.step === 'AESTHETICS' && (
              <div className="phase-content">
                 <div className="phase-header">
                    <h2>Visual Blueprint Selection</h2>
                 </div>
                 <div className="grid-selection templates">
-                   {visualTemplates.length > 0 ? visualTemplates.map(t => (
+                   <div
+                      onClick={() => updateState({ minisiteTemplate: '' })}
+                      className={`template-card ${!state.minisiteTemplate ? 'selected' : ''}`}
+                   >
+                      <div className="preview-window">
+                         <i className={`fas fa-wand-magic-sparkles icon`}></i>
+                      </div>
+                      <div className="info">
+                         <div className="name">AUTO (RECOMMENDED)</div>
+                         <div className="tag">RESOLVED FROM TYPOLOGY &amp; TIER</div>
+                      </div>
+                   </div>
+                   {visualTemplates.map(t => (
                      <div 
                         key={t.id} 
                         onClick={() => updateState({ minisiteTemplate: t.id })}
@@ -276,10 +499,11 @@ function OrchestratorContent() {
                            <div className="tag">{t.type_name ? t.type_name.toUpperCase() : 'UNIVERSAL MINISITE'}</div>
                         </div>
                      </div>
-                   )) : (
+                   ))}
+                   {visualTemplates.length === 0 && (
                      <div className="empty-state">
                        <i className="fas fa-palette"></i>
-                       <div>No specific visual templates found. Using 'desert_luxury_v1' fallback.</div>
+                       <div>No specific visual templates yet — the system resolves one from the typology and plan.</div>
                      </div>
                    )}
                 </div>
@@ -451,7 +675,7 @@ function OrchestratorContent() {
           {/* Persistent Controls */}
           {state.step !== 'DEPLOYMENT' && (
             <div className="wizard-controls">
-              <button onClick={prevStep} className="btn-ghost" disabled={state.step === 'ARCHITECTURE'}>
+              <button onClick={prevStep} className="btn-ghost" disabled={state.step === 'MARKET'}>
                 <i className="fas fa-chevron-left"></i> PREVIOUS
               </button>
               
@@ -459,6 +683,7 @@ function OrchestratorContent() {
                 onClick={nextStep}
                 className="btn-premium next-btn"
                 disabled={
+                  (state.step === 'MARKET' && !state.market) ||
                   (state.step === 'ARCHITECTURE' && !state.selectedType) ||
                   (state.step === 'DNA_CONFIG' && !state.businessName)
                 }
