@@ -8,6 +8,7 @@ import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteSectionTabs';
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
+import { normalizePhoneValue } from '@/lib/egypt-phone';
 import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
 import { query, queryOne, normalizeCustomData, stripCustomDataSecrets } from '@/lib/db';
 import { businessPublicPath, getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
@@ -52,7 +53,9 @@ function parseJson(value: unknown, fallback: any = {}) {
 }
 
 function digits(value: unknown) {
-  return String(value || '').replace(/[^0-9]/g, '');
+  // Canonicalise the way an Egyptian writes their number (012… / +20 012… / 002…) —
+  // wa.me links silently break if the trunk 0 survives.
+  return normalizePhoneValue(value);
 }
 
 /** Category labels are stored lowercase in the DB ("camps"); Arabic has no case. */

@@ -7,6 +7,7 @@ import { invalidateCache } from '@/lib/cache';
 import { getBusinessTier, getTierRules, validateMinisiteLayout } from '@/lib/minisite-governance';
 import { MINISITE_LAYOUT_KEY, type MinisiteLayout } from '@/lib/minisite-layout';
 import { applyVendorServiceLevel } from '@/lib/vendor-service-levels';
+import { normalizePhoneValue } from '@/lib/egypt-phone';
 import {
   getVendorAgreementText,
   VENDOR_AGREEMENT_VERSION,
@@ -188,7 +189,7 @@ export async function POST(
       'minisite_acceptance',
       acceptedAt
     );
-    const phone = String(handoff.vendor_phone || '').replace(/\D/g, '');
+    const phone = normalizePhoneValue(handoff.vendor_phone);
     if (phone.length < 8 || phone.length > 15) {
       return NextResponse.json({ error: 'The invitation has no valid WhatsApp contact. Please contact SiWiFy.' }, { status: 409 });
     }

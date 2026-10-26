@@ -1,6 +1,12 @@
 import { createHmac, randomInt, randomUUID } from 'crypto';
 import { queryOne, execute } from '@/lib/db';
 import { getJwtSecret } from '@/lib/jwt-secret';
+import {
+  digitsOnlySql,
+  isEgyptMobile,
+  normalizePhoneValue,
+  phoneLookupCandidates,
+} from '@/lib/egypt-phone';
 
 /**
  * Phone-first vendor identity.
@@ -18,11 +24,9 @@ const OTP_WINDOW_HOURS = 1;           // rate-limit horizon: 1 hour
 const OTP_MAX_PER_WINDOW = 5;         // at most 5 codes per number per hour
 
 export function normalizePhone(value: unknown): string {
-  let digits = String(value || '').replace(/\D/g, '');
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  // Egyptian local 01XXXXXXXXX -> international 201XXXXXXXXX
-  if (digits.length === 11 && digits.startsWith('01')) digits = `2${digits}`;
-  return digits;
+  // One canonical collapse for every way an Egyptian writes their number:
+  // +20 12 22597304 · 01222597304 · 00201222597304 · 1222597304 → 201222597304
+  return normalizePhoneValue(value);
 }
 
 /** A phone as it is displayed/stored for a vendor: +<international digits>. */
@@ -55,6 +59,11 @@ export async function issuePhoneOtp(rawPhone: unknown): Promise<{ id: string; co
   const digits = normalizePhone(rawPhone);
   if (digits.length < 8 || digits.length > 15) {
     throw new OtpError('أدخل رقم هاتف صحيح بصيغة دولية.', 400);
+  }
+  // In Egypt a "phone" that isn't a mobile can't receive a WhatsApp code, so
+  // say so in the language the vendor types — before burning a rate-limit slot.
+  if (digits.startsWith('20') && !isEgyptMobile(digits)) {
+    throw new OtpError('تأكد رقم الموبايل المصري — بيبدأ بـ 010 أو 011 أو 012 أو 015.', 400);
   }
 
   const recent = await queryOne<any>(
@@ -139,9 +148,9 @@ export async function resolveVendorByPhone(rawPhone: unknown): Promise<ResolvedV
   const existing = await queryOne<any>(
     `SELECT id, phone, role, display_name, business_id, subscription_tier
        FROM profiles
-      WHERE REPLACE(REPLACE(COALESCE(phone, ''), '+', ''), ' ', '') = ?
+      WHERE ${digitsOnlySql('phone')} IN (${phoneLookupCandidates(digits).map(() => '?').join(', ')})
       LIMIT 1`,
-    [digits]
+    phoneLookupCandidates(digits)
   );
   if (existing) {
     if (existing.role !== 'vendor') {
@@ -184,13 +193,15 @@ export async function resolveVendorByPhone(rawPhone: unknown): Promise<ResolvedV
 async function findLinkableBusiness(digits: string): Promise<{ id: string; slug: string; name: string } | null> {
   // Match a business whose recorded vendor phone is this number and that no one
   // has claimed yet. Prefer the most recently created such row. vendor_phone is
-  // the canonical contact column every send path writes.
+  // the canonical contact column every send path writes — but older rows hold
+  // local forms (012…), so match against every written variant of this number.
+  const candidates = phoneLookupCandidates(digits);
   return await queryOne<any>(
     `SELECT id, slug, name FROM businesses
       WHERE is_claimed = 0
-        AND REPLACE(REPLACE(COALESCE(vendor_phone, ''), '+', ''), ' ', '') = ?
+        AND ${digitsOnlySql('vendor_phone')} IN (${candidates.map(() => '?').join(', ')})
       ORDER BY created_at DESC LIMIT 1`,
-    [digits]
+    candidates
   );
 }
 

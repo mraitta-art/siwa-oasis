@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'crypto';
 import { execute, queryOne } from '@/lib/db';
 import { getPublicAppUrl } from '@/lib/public-url';
 import { applyVendorServiceLevel } from '@/lib/vendor-service-levels';
+import { normalizePhoneValue } from '@/lib/egypt-phone';
 
 /**
  * The one place that issues a vendor review token and (optionally) delivers it.
@@ -15,10 +16,8 @@ import { applyVendorServiceLevel } from '@/lib/vendor-service-levels';
 const TOKEN_TTL_DAYS = 7;
 
 export function normalizeInvitationPhone(value: unknown): string {
-  let digits = String(value || '').replace(/\D/g, '');
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith('01')) digits = `2${digits}`;
-  return digits;
+  // Same single collapse the login system uses: one number, one identity.
+  return normalizePhoneValue(value);
 }
 
 function fail(message: string, status: number): never {

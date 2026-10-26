@@ -22,7 +22,7 @@ export default function VendorLoginPage() {
     setError('');
     setNotice('');
     if (phone.replace(/\D/g, '').length < 8) {
-      setError('اكتب رقم موبايلك كامل، مثالي: 01012345678');
+      setError('اكتب رقم موبايلك كامل — مثلاً: 01222597304 أو ‎+20 12 22597304');
       return;
     }
     setBusy(true);
@@ -122,7 +122,7 @@ export default function VendorLoginPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 inputMode="tel"
-                placeholder="01012345678"
+                placeholder="01222597304"
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
@@ -135,6 +135,9 @@ export default function VendorLoginPage() {
                   letterSpacing: '0.05em',
                 }}
               />
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 6 }}>
+                اكتبه بأي طريقة مريحة: 012… أو ‎+20 12… أو 002… — كله بيوصل لنفس الحساب.
+              </div>
               <button
                 onClick={sendCode}
                 disabled={busy}

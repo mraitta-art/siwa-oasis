@@ -2,6 +2,7 @@ import { execute, query, queryOne } from '@/lib/db';
 import { createBusinessEntity } from '@/lib/business-creation';
 import { resolveTemplateForBusiness, type TemplateResolution } from '@/lib/vendor-template-resolve';
 import { normalizeInvitationPhone } from '@/lib/minisite-invitation';
+import { digitsOnlySql, normalizePhoneValue, phoneLookupCandidates } from '@/lib/egypt-phone';
 
 /**
  * Prospect intake.
@@ -32,18 +33,20 @@ export interface ExistingProspect {
 
 /** Phone is the identity here: one vendor = one number, never two records. */
 export async function findBusinessByPhone(phone: string): Promise<ExistingProspect | null> {
-  if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
+  const digits = normalizePhoneValue(phone);
   if (!digits) return null;
-  const local = digits.startsWith('20') ? `0${digits.slice(2)}` : null;
+  // Match every written variant (2012… · 012… · 12…) against pure-digit columns,
+  // so an admin saving '01222597304' and a vendor typing '+20 12…' is still ONE vendor.
+  const candidates = phoneLookupCandidates(digits);
+  const placeholders = candidates.map(() => '?').join(', ');
 
   try {
     return await queryOne<ExistingProspect>(
       `SELECT id, name, slug, is_claimed FROM businesses
-        WHERE REPLACE(REPLACE(vendor_phone, '+', ''), ' ', '') IN (?, ?)
-           OR REPLACE(REPLACE(phone, '+', ''), ' ', '') IN (?, ?)
+        WHERE ${digitsOnlySql('vendor_phone')} IN (${placeholders})
+           OR ${digitsOnlySql('phone')} IN (${placeholders})
         LIMIT 1`,
-      [digits, local || digits, digits, local || digits]
+      [...candidates, ...candidates]
     );
   } catch {
     return null;

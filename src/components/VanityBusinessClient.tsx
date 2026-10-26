@@ -16,6 +16,7 @@ import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionAppr
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 import { BRAND_MARK_URL } from '@/lib/brand-assets';
 import { consentAllows } from '@/lib/vendor-consents';
+import { normalizePhoneValue } from '@/lib/egypt-phone';
 
 /**
  * VANITY URL CLIENT COMPONENT
@@ -481,8 +482,10 @@ export default function VanityBusinessClient({
   const dynamicPhone = isMasterTemplate ? '+201000000000' : (biz.vendor_phone || identity.phone || data.phone || '+201200000000');
   const dynamicWhatsapp = isMasterTemplate ? '201000000000' : (identity.whatsapp || identity.whatsapp_number || data.whatsapp || biz.vendor_phone || identity.phone || '201200000000');
   const dynamicWhatsappMsg = identity.whatsapp_message || data.whatsapp_message || '';
-  const cleanPhone = String(dynamicPhone).replace(/[^0-9+]/g, '');
-  const cleanWhatsapp = String(dynamicWhatsapp).replace(/[^0-9]/g, '');
+  // One Egyptian number, every written form: 012… / +20 012… / 002… all collapse
+  // to canonical digits, otherwise wa.me silently opens a dead chat.
+  const cleanWhatsapp = normalizePhoneValue(dynamicWhatsapp) || normalizePhoneValue(dynamicPhone);
+  const cleanPhone = cleanWhatsapp ? `+${cleanWhatsapp}` : String(dynamicPhone).replace(/[^0-9+]/g, '');
   const whatsappMsgQuery = dynamicWhatsappMsg ? `?text=${encodeURIComponent(dynamicWhatsappMsg)}` : '';
   const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}${whatsappMsgQuery}`;
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
