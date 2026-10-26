@@ -834,6 +834,14 @@ function UnitsPanel({
     bedrooms: '',
     areaSqm: '',
     price: '',
+    // The four rental terms a tenant asks before booking. They stay strings on
+    // the form and become null when empty, so `units` never stores a 0 deposit
+    // just because the box was touched.
+    deposit: '',
+    depositMonths: '',
+    minStayNights: '',
+    availableFrom: '',
+    amenities: '',
     status: 'available',
   });
   // A unit is edited in place: the row opens its own inputs and saves through
@@ -871,7 +879,19 @@ function UnitsPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Could not add the unit');
-      setForm({ ...form, titleAr: '', titleEn: '', bedrooms: '', areaSqm: '', price: '' });
+      setForm({
+        ...form,
+        titleAr: '',
+        titleEn: '',
+        bedrooms: '',
+        areaSqm: '',
+        price: '',
+        deposit: '',
+        depositMonths: '',
+        minStayNights: '',
+        availableFrom: '',
+        amenities: '',
+      });
       setOpen(false);
       await load();
       onChanged();
@@ -974,6 +994,30 @@ function UnitsPanel({
             <label style={LABEL}>PRICE ({currency})</label>
             <input className="form-control" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value.replace(/[^0-9.]/g, '') })} />
           </div>
+          {form.listingKind !== 'sale' && (
+            <>
+              <div>
+                <label style={LABEL}>DEPOSIT ({currency})</label>
+                <input className="form-control" value={form.deposit} onChange={(e) => setForm({ ...form, deposit: e.target.value.replace(/[^0-9.]/g, '') })} />
+              </div>
+              <div>
+                <label style={LABEL}>DEPOSIT (MONTHS)</label>
+                <input className="form-control" value={form.depositMonths} onChange={(e) => setForm({ ...form, depositMonths: e.target.value.replace(/[^0-9]/g, '') })} />
+              </div>
+              <div>
+                <label style={LABEL}>MIN STAY (NIGHTS)</label>
+                <input className="form-control" value={form.minStayNights} onChange={(e) => setForm({ ...form, minStayNights: e.target.value.replace(/[^0-9]/g, '') })} />
+              </div>
+              <div>
+                <label style={LABEL}>AVAILABLE FROM</label>
+                <input className="form-control" type="date" value={form.availableFrom} onChange={(e) => setForm({ ...form, availableFrom: e.target.value })} />
+              </div>
+            </>
+          )}
+          <div>
+            <label style={LABEL}>AMENITIES</label>
+            <input className="form-control" value={form.amenities} placeholder="wifi, pool, ac" onChange={(e) => setForm({ ...form, amenities: e.target.value })} />
+          </div>
         </div>
       )}
 
@@ -1018,7 +1062,14 @@ function UnitsPanel({
                   {unit.listingKind}
                   {unit.bedrooms ? ` · ${unit.bedrooms} BR` : ''}
                   {unit.price ? ` · ${Number(unit.price).toLocaleString('en-US')} ${unit.currency}` : ''}
+                  {unit.deposit ? ` · deposit ${Number(unit.deposit).toLocaleString('en-US')} ${unit.currency}` : ''}
+                  {unit.depositMonths ? ` · ${unit.depositMonths} mo deposit` : ''}
+                  {unit.minStayNights ? ` · min ${unit.minStayNights} nights` : ''}
+                  {unit.availableFrom ? ` · from ${unit.availableFrom}` : ''}
                 </span>
+                {Array.isArray(unit.amenities) && unit.amenities.length > 0 && (
+                  <span style={{ color: '#94a3b8' }}>{unit.amenities.join(' · ')}</span>
+                )}
                 <div style={{ flex: 1 }}></div>
                 <select
                   className="form-control"
@@ -1036,6 +1087,15 @@ function UnitsPanel({
                 <button
                   className="btn btn-xs btn-outline"
                   disabled={busy}
+                  title="Only published units appear on the public page"
+                  style={{ color: unit.active ? '#047857' : '#94a3b8', borderColor: unit.active ? '#047857' : '#cbd5e1' }}
+                  onClick={() => patch(unit.id, { active: !unit.active })}
+                >
+                  {unit.active ? 'LIVE' : 'HIDDEN'}
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  disabled={busy}
                   onClick={() =>
                     setEditing(
                       editing?.id === unit.id
@@ -1049,6 +1109,11 @@ function UnitsPanel({
                             bedrooms: unit.bedrooms == null ? '' : String(unit.bedrooms),
                             areaSqm: unit.areaSqm == null ? '' : String(unit.areaSqm),
                             price: unit.price == null ? '' : String(unit.price),
+                            deposit: unit.deposit == null ? '' : String(unit.deposit),
+                            depositMonths: unit.depositMonths == null ? '' : String(unit.depositMonths),
+                            minStayNights: unit.minStayNights == null ? '' : String(unit.minStayNights),
+                            availableFrom: unit.availableFrom || '',
+                            amenities: Array.isArray(unit.amenities) ? unit.amenities.join(', ') : '',
                           }
                     )
                   }
@@ -1143,6 +1208,58 @@ function UnitsPanel({
                       }
                     />
                   </div>
+                  {editing.listingKind !== 'sale' && (
+                    <>
+                      <div>
+                        <label style={LABEL}>DEPOSIT ({unit.currency})</label>
+                        <input
+                          className="form-control"
+                          value={editing.deposit}
+                          onChange={(e) =>
+                            setEditing({ ...editing, deposit: e.target.value.replace(/[^0-9.]/g, '') })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label style={LABEL}>DEPOSIT (MONTHS)</label>
+                        <input
+                          className="form-control"
+                          value={editing.depositMonths}
+                          onChange={(e) =>
+                            setEditing({ ...editing, depositMonths: e.target.value.replace(/[^0-9]/g, '') })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label style={LABEL}>MIN STAY (NIGHTS)</label>
+                        <input
+                          className="form-control"
+                          value={editing.minStayNights}
+                          onChange={(e) =>
+                            setEditing({ ...editing, minStayNights: e.target.value.replace(/[^0-9]/g, '') })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label style={LABEL}>AVAILABLE FROM</label>
+                        <input
+                          className="form-control"
+                          type="date"
+                          value={editing.availableFrom}
+                          onChange={(e) => setEditing({ ...editing, availableFrom: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <label style={LABEL}>AMENITIES</label>
+                    <input
+                      className="form-control"
+                      value={editing.amenities}
+                      placeholder="wifi, pool, ac"
+                      onChange={(e) => setEditing({ ...editing, amenities: e.target.value })}
+                    />
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                     <button
                       className="btn btn-primary"
@@ -1156,6 +1273,11 @@ function UnitsPanel({
                           bedrooms: editing.bedrooms === '' ? null : editing.bedrooms,
                           areaSqm: editing.areaSqm === '' ? null : editing.areaSqm,
                           price: editing.price === '' ? null : editing.price,
+                          deposit: editing.deposit === '' ? null : editing.deposit,
+                          depositMonths: editing.depositMonths === '' ? null : editing.depositMonths,
+                          minStayNights: editing.minStayNights === '' ? null : editing.minStayNights,
+                          availableFrom: editing.availableFrom || null,
+                          amenities: String(editing.amenities || '').trim() || null,
                         });
                         if (saved) {
                           setEditing(null);

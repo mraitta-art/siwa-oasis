@@ -9,11 +9,39 @@
  */
 
 import crypto from 'crypto';
-import { execute, query, queryOne } from '@/lib/db';
+import { dayOnly, execute, query, queryOne } from '@/lib/db';
 import { AdminDataError } from '@/lib/markets-admin';
 
 export const UNIT_KINDS = ['rent_night', 'rent_month', 'sale'] as const;
 export const UNIT_STATUSES = ['available', 'reserved', 'sold', 'rented', 'inactive'] as const;
+
+/** Unit types whose bedroom count is not optional: a tenant asks before booking. */
+const RESIDENTIAL_TYPES = new Set([
+  'apartment', 'flat', 'villa', 'chalet', 'studio', 'room', 'suite', 'bungalow',
+  'townhouse', 'duplex', 'penthouse', 'cabin', 'tent', 'house',
+]);
+
+/**
+ * What a unit still owes before it can be published.
+ *
+ * A card without a price is not a listing, it is a placeholder, and renting by
+ * the night without a bedroom count breaks every "2 BR" filter. Returns the
+ * missing pieces in the reader's words so the admin screen can print them.
+ */
+export function unitGaps(unit: any): string[] {
+  const kind = String(unit?.listing_kind ?? unit?.listingKind ?? '').trim();
+  const type = String(unit?.unit_type ?? unit?.unitType ?? '').trim().toLowerCase();
+  const price = unit?.price;
+  const bedrooms = unit?.bedrooms;
+  const gaps: string[] = [];
+
+  if (!(UNIT_KINDS as readonly string[]).includes(kind)) gaps.push('whether it is for rent or for sale');
+  if (price === null || price === undefined || price === '') gaps.push('a price');
+  if (RESIDENTIAL_TYPES.has(type) && (bedrooms === null || bedrooms === undefined || bedrooms === '')) {
+    gaps.push('how many bedrooms it has');
+  }
+  return gaps;
+}
 
 export interface UnitAdmin {
   id: string;
@@ -29,6 +57,13 @@ export interface UnitAdmin {
   areaSqm: number | null;
   price: number | null;
   currency: string;
+  deposit: number | null;
+  /** Rentals that quote the deposit in months instead of cash. */
+  depositMonths: number | null;
+  minStayNights: number | null;
+  /** `YYYY-MM-DD`, the first date a renter can move in. */
+  availableFrom: string | null;
+  amenities: string[];
   status: string;
   active: boolean;
 }
@@ -65,9 +100,33 @@ function toUnit(row: any): UnitAdmin {
     areaSqm: numberOrNull(row.area_sqm),
     price: numberOrNull(row.price),
     currency: String(row.currency || 'EGP'),
+    deposit: numberOrNull(row.deposit),
+    depositMonths: numberOrNull(row.deposit_months),
+    minStayNights: numberOrNull(row.min_stay_nights),
+    availableFrom: dayOnly(row.available_from),
+    amenities: amenityList(row.amenities),
     status: String(row.status || 'available'),
     active: Boolean(Number(row.active)),
   };
+}
+
+/** A comma-separated box on the admin form, a JSON array in the column. */
+function amenityList(value: any): string[] {
+  if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
+  if (!value) return [];
+  if (Buffer.isBuffer(value)) return amenityList(value.toString('utf8'));
+  const text = String(value).trim();
+  if (text.startsWith('[')) {
+    try { return amenityList(JSON.parse(text)); } catch { /* fall through to CSV */ }
+  }
+  return text.split(',').map((entry) => entry.trim()).filter(Boolean);
+}
+
+/** `units` stores a date, not a timestamp; anything else is a typo, not a date. */
+function dateOrNull(value: any): string | null {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
 /** Every unit inside one container, newest first. */
@@ -77,7 +136,9 @@ export async function listUnitsAdmin(developmentId: string): Promise<UnitAdmin[]
   try {
     const rows = await query(
       `SELECT id, development_id, market_id, slug, title_ar, title_en, unit_type,
-              listing_kind, bedrooms, bathrooms, area_sqm, price, currency, status, active
+              listing_kind, bedrooms, bathrooms, area_sqm, price, currency,
+              deposit, deposit_months, min_stay_nights, available_from, amenities,
+              status, active
          FROM units
         WHERE development_id = ?
         ORDER BY created_at DESC`,
@@ -91,8 +152,14 @@ export async function listUnitsAdmin(developmentId: string): Promise<UnitAdmin[]
 }
 
 async function requireDevelopment(id: string): Promise<any> {
+  // The currency belongs to the market, not the container: `developments` never
+  // had the column, so it is read from the market the container sits in.
   const development = (await queryOne(
-    'SELECT id, market_id, slug, currency FROM developments WHERE id = ? LIMIT 1',
+    `SELECT d.id, d.market_id, d.slug, m.currency
+       FROM developments d
+       LEFT JOIN markets m ON m.id = d.market_id
+      WHERE d.id = ?
+      LIMIT 1`,
     [String(id || '')]
   )) as any;
   if (!development) throw new AdminDataError('Container not found.', 404);
@@ -123,11 +190,32 @@ export async function createUnit(input: any): Promise<{ id: string; slug: string
     unitSlug = `${String(development.slug)}-${base}-${counter++}`;
   }
 
+  const deposit = numberOrNull(input?.deposit);
+  const depositMonths = numberOrNull(input?.depositMonths ?? input?.deposit_months);
+  const minStayNights = numberOrNull(input?.minStayNights ?? input?.min_stay_nights);
+  const availableFrom = dateOrNull(input?.availableFrom ?? input?.available_from);
+  const amenities = amenityList(input?.amenities);
+  const active = input?.active === false ? 0 : 1;
+
+  // The publish gate: a unit that goes live has to answer the questions a
+  // visitor filters on, or it becomes a blank card in the results.
+  if (active) {
+    const gaps = unitGaps({
+      listingKind,
+      price: input?.price,
+      unitType: input?.unitType,
+      bedrooms: input?.bedrooms,
+    });
+    if (gaps.length) throw new AdminDataError(`A published unit needs ${gaps.join(', ')}.`);
+  }
+
   const id = crypto.randomUUID();
   await execute(
     `INSERT INTO units (id, market_id, development_id, slug, title_ar, title_en, unit_type,
-                        listing_kind, bedrooms, bathrooms, area_sqm, price, currency, status, active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        listing_kind, bedrooms, bathrooms, area_sqm, price, currency,
+                        deposit, deposit_months, min_stay_nights, available_from, amenities,
+                        status, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       String(development.market_id),
@@ -142,8 +230,13 @@ export async function createUnit(input: any): Promise<{ id: string; slug: string
       numberOrNull(input?.areaSqm ?? input?.area_sqm),
       numberOrNull(input?.price),
       input?.currency ? String(input.currency).trim().toUpperCase().slice(0, 3) : development.currency || 'EGP',
+      deposit,
+      depositMonths,
+      minStayNights,
+      availableFrom,
+      amenities.length ? JSON.stringify(amenities) : null,
       status,
-      input?.active === false ? 0 : 1,
+      active,
     ]
   );
 
@@ -167,12 +260,20 @@ export async function updateUnit(id: string, patch: any): Promise<void> {
     areaSqm: 'area_sqm',
     price: 'price',
     currency: 'currency',
+    deposit: 'deposit',
+    depositMonths: 'deposit_months',
+    minStayNights: 'min_stay_nights',
+    availableFrom: 'available_from',
+    amenities: 'amenities',
     status: 'status',
     active: 'active',
   };
 
   const sets: string[] = [];
   const params: any[] = [];
+  // Turning a unit on is the moment the page starts advertising it, so it is
+  // also the moment the publish gate is checked.
+  const activating = Boolean(patch && 'active' in patch && patch.active);
 
   for (const [key, column] of Object.entries(columns)) {
     if (!patch || !(key in patch)) continue;
@@ -195,8 +296,13 @@ export async function updateUnit(id: string, patch: any): Promise<void> {
     }
     if (column === 'active') value = value ? 1 : 0;
     if (column === 'currency') value = String(value || 'EGP').toUpperCase().slice(0, 3);
-    if (['bedrooms', 'bathrooms', 'area_sqm', 'price'].includes(column)) {
+    if (['bedrooms', 'bathrooms', 'area_sqm', 'price', 'deposit', 'deposit_months', 'min_stay_nights'].includes(column)) {
       value = numberOrNull(value);
+    }
+    if (column === 'available_from') value = dateOrNull(value);
+    if (column === 'amenities') {
+      const list = amenityList(value);
+      value = list.length ? JSON.stringify(list) : null;
     }
 
     sets.push(`${column} = ?`);
@@ -206,6 +312,20 @@ export async function updateUnit(id: string, patch: any): Promise<void> {
   if (sets.length === 0) return;
   params.push(target);
   await execute(`UPDATE units SET ${sets.join(', ')} WHERE id = ?`, params);
+
+  if (activating) {
+    const row = await queryOne(
+      'SELECT listing_kind, price, unit_type, bedrooms FROM units WHERE id = ? LIMIT 1',
+      [target]
+    );
+    const gaps = unitGaps(row);
+    if (gaps.length) {
+      // Roll the switch back: an incomplete unit must not stay published just
+      // because the rest of the patch was accepted.
+      await execute('UPDATE units SET active = 0 WHERE id = ?', [target]);
+      throw new AdminDataError(`A published unit needs ${gaps.join(', ')}.`);
+    }
+  }
 }
 
 export async function deleteUnit(id: string): Promise<void> {

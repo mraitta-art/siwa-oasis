@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import UnitsBoard from '@/components/UnitsBoard';
 import { normalizeCustomData, queryOne, stripCustomDataSecrets } from '@/lib/db';
 import {
   getDevelopmentFacets,
@@ -45,7 +46,6 @@ const LABEL = {
     available: 'الوحدات المتاحة',
     empty: 'لا توجد وحدات أو أنشطة منشورة في هذا المشروع بعد.',
     open: 'افتح صفحة المشروع',
-    rooms: 'غرف',
   },
   en: {
     back: '← All projects',
@@ -53,7 +53,6 @@ const LABEL = {
     available: 'Available units',
     empty: 'No units or businesses are published in this project yet.',
     open: 'Open the project page',
-    rooms: 'BR',
   },
 };
 
@@ -65,7 +64,6 @@ const PLACE_LABEL = {
     available: 'الوحدات المتاحة',
     empty: 'لا توجد أنشطة منشورة هنا بعد.',
     open: 'افتح الصفحة',
-    rooms: 'غرف',
   },
   en: {
     back: '← Back to the market',
@@ -73,7 +71,6 @@ const PLACE_LABEL = {
     available: 'Available units',
     empty: 'No businesses are published in this area yet.',
     open: 'Open the page',
-    rooms: 'BR',
   },
 };
 
@@ -273,29 +270,7 @@ export default async function CompoundPage({
         {units.length > 0 && (
           <div>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '0 0 1rem' }}>{t.available}</h2>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              {units.map((unit) => (
-                <div
-                  key={unit.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '1rem',
-                    padding: '0.85rem 1rem',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: 12,
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  <span style={{ fontWeight: 800 }}>{ar ? unit.titleAr : unit.titleEn || unit.titleAr}</span>
-                  <span style={{ color: '#64748B' }}>
-                    {unit.bedrooms ? `${unit.bedrooms} ${t.rooms}` : null}
-                    {unit.areaSqm ? ` · ${unit.areaSqm} m²` : null}
-                    {unit.price ? ` · ${unit.price.toLocaleString('en-US')} ${unit.currency}` : null}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <UnitsBoard units={units} ar={ar} />
           </div>
         )}
       </section>

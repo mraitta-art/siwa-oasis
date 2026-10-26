@@ -11,7 +11,7 @@
  * expects (إقامة · مطاعم · متاجر · خدمات) without a single extra table.
  */
 
-import { query } from '@/lib/db';
+import { dayOnly, query } from '@/lib/db';
 
 /**
  * What a container is, not where it sits.
@@ -31,6 +31,19 @@ export function isPlaceKind(kind: string): boolean {
 export function normalizeKind(value: unknown): DevelopmentKind {
   const text = String(value ?? '').trim().toLowerCase();
   return (DEVELOPMENT_KINDS as readonly string[]).includes(text) ? (text as DevelopmentKind) : 'compound';
+}
+
+/** `units.amenities` is JSON; a Buffer or a string both mean the same list. */
+function amenitiesOf(value: any): string[] {
+  if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
+  if (!value) return [];
+  const text = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed.map((entry) => String(entry).trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
 }
 
 export interface Development {
@@ -81,9 +94,17 @@ export interface UnitSummary {
   unitType: string | null;
   listingKind: 'rent_night' | 'rent_month' | 'sale';
   bedrooms: number | null;
+  bathrooms: number | null;
   areaSqm: number | null;
   price: number | null;
   currency: string;
+  /** Refundable amount asked for a rental; null on sale units. */
+  deposit: number | null;
+  depositMonths: number | null;
+  minStayNights: number | null;
+  /** `YYYY-MM-DD`, so the client component receives a string and not a Date. */
+  availableFrom: string | null;
+  amenities: string[];
   status: string;
 }
 
@@ -244,7 +265,8 @@ export async function listUnits(
   try {
     const rows = await query(
       `SELECT id, slug, title_ar, title_en, unit_type, listing_kind,
-              bedrooms, area_sqm, price, currency, status
+              bedrooms, bathrooms, area_sqm, price, currency,
+              deposit, deposit_months, min_stay_nights, available_from, amenities, status
        FROM units
        WHERE ${where.join(' AND ')}
        ORDER BY price IS NULL, price
@@ -261,9 +283,19 @@ export async function listUnits(
         ? String(row.listing_kind)
         : 'rent_night') as UnitSummary['listingKind'],
       bedrooms: row.bedrooms === null || row.bedrooms === undefined ? null : Number(row.bedrooms),
+      bathrooms: row.bathrooms === null || row.bathrooms === undefined ? null : Number(row.bathrooms),
       areaSqm: row.area_sqm === null || row.area_sqm === undefined ? null : Number(row.area_sqm),
       price: row.price === null || row.price === undefined ? null : Number(row.price),
       currency: String(row.currency || 'EGP'),
+      deposit: row.deposit === null || row.deposit === undefined ? null : Number(row.deposit),
+      depositMonths:
+        row.deposit_months === null || row.deposit_months === undefined ? null : Number(row.deposit_months),
+      minStayNights:
+        row.min_stay_nights === null || row.min_stay_nights === undefined
+          ? null
+          : Number(row.min_stay_nights),
+      availableFrom: dayOnly(row.available_from),
+      amenities: amenitiesOf(row.amenities),
       status: String(row.status || 'available'),
     }));
   } catch {
