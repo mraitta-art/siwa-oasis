@@ -328,6 +328,29 @@ export default function FreeVendorMobileDashboard() {
 
       <div style={{ padding: '1.25rem' }}>
 
+        {/* ── SINGLE-NUMBER GUARANTEE ── reassurance that the account is theirs
+            alone, tied to their verified WhatsApp number. */}
+        <div
+          dir={isRTL ? 'rtl' : 'ltr'}
+          style={{
+            marginBottom: '1rem',
+            padding: '0.85rem 1rem',
+            borderRadius: 16,
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(212,175,55,0.10))',
+            border: '1px solid rgba(52,211,153,0.35)',
+            fontSize: '0.78rem',
+            lineHeight: 1.7,
+            color: '#e2e8f0',
+          }}
+        >
+          <span style={{ fontWeight: 900, color: '#34d399' }}>
+            {isRTL ? '🔒 نسخهك مرتبطة برقمك انت وبس: ' : '🔒 This version is tied to your number alone: '}
+          </span>
+          {isRTL
+            ? 'مفيش حد تاني يقدر يدير نشاطك من أي مكان. ولما تحتاج تدخل من لابتوب أو جهاز تاني، هتحتاج رقمك وبعدها تأكيد بالإيميل.'
+            : 'No one else can manage your business from anywhere. To sign in from a laptop or another device you will need your number and then an email confirmation.'}
+        </div>
+
         {/* ── PRIVATE VALUE & UPGRADE PANEL ──
             What the vendor gets, and how to grow — told ONLY here, inside their
             own dashboard. The public minisite never carries owner instructions. */}

@@ -471,6 +471,8 @@ async function routeRequest(request: NextRequest) {
     pathname.startsWith('/vendor/minisite-review') ||
     pathname.startsWith('/vendor/app') ||
     pathname.startsWith('/vendor/social-toolkit') ||
+    pathname.startsWith('/vendor/login') ||
+    pathname.startsWith('/api/vendor-auth') ||
     pathname.startsWith('/onboard') ||
     pathname.startsWith('/api/onboard');
 
