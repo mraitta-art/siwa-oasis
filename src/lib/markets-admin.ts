@@ -17,7 +17,7 @@
  */
 
 import crypto from 'crypto';
-import { query, queryOne, execute } from '@/lib/db';
+import { query, queryOne, execute, dayOnly } from '@/lib/db';
 import {
   DEFAULT_MARKET_SLUG,
   getMarketBySlug,
@@ -25,7 +25,67 @@ import {
   listMarkets,
 } from '@/lib/markets';
 import { isReservedSlug } from '@/lib/market-routes';
-import { DEVELOPMENT_KINDS, isPlaceKind, normalizeKind } from '@/lib/developments';
+import {
+  DEVELOPMENT_KINDS,
+  amenitiesOf,
+  isPlaceKind,
+  normalizeKind,
+  paymentPlansOf,
+  type PaymentPlan,
+} from '@/lib/developments';
+import { isPaymentFrequency } from '@/lib/property-math';
+import { ensureDeveloperId } from '@/lib/developers';
+
+/**
+ * Clean a facilities list to the JSON shape stored on `developments.facilities`.
+ * Accepts a real array or a comma/newline separated string from the editor.
+ */
+function toFacilitiesJson(value: any): string[] {
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+    ? value.split(/[\n,]/)
+    : [];
+  return amenitiesOf(list);
+}
+
+/**
+ * Normalize payment plans to the stored snake_case JSON. A blank numeric becomes
+ * null rather than 0, because "0% down" is a real plan and an empty box is not.
+ */
+function toPaymentPlansJson(value: any): PaymentPlan[] {
+  const raw = Array.isArray(value) ? value : [];
+  const cleaned = raw
+    .filter((entry: any) => entry && typeof entry === 'object')
+    .map((entry: any) => {
+      const years = Number(entry.installmentYears ?? entry.installment_years);
+      const down = Number(entry.downPaymentPct ?? entry.down_payment_pct);
+      return {
+        name: String(entry.name ?? '').trim(),
+        downPaymentPct: Number.isFinite(down) ? down : null,
+        installmentYears: Number.isFinite(years) && years > 0 ? Math.trunc(years) : null,
+        frequency: isPaymentFrequency(entry.frequency) ? entry.frequency : 'monthly',
+        postHandover: Boolean(Number(entry.postHandover ?? entry.post_handover ?? 0)),
+      };
+    })
+    // A plan the buyer cannot compute (no term) is not a plan; drop it.
+    .filter((plan: PaymentPlan) => plan.installmentYears !== null);
+  return cleaned;
+}
+
+/**
+ * Normalize a verified-on input to a MySQL DATETIME string, or null to clear it.
+ * A date-only value ('YYYY-MM-DD') gets midnight appended; anything already a
+ * datetime passes through. An empty box means "erase", which is honest — the
+ * public page then shows no date rather than a stale one pretending to be fresh.
+ */
+function toDataVerified(value: any): string | null {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text} 00:00:00`;
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(text)) return text.replace('T', ' ');
+  return null;
+}
 
 /** A validation failure the API turns into a 4xx instead of a 500. */
 export class AdminDataError extends Error {
@@ -76,6 +136,14 @@ export interface CompoundAdmin {
   listings: number;
   /** Business that speaks for this compound, when one is linked. */
   pageBusinessId: string | null;
+  /** Compound-level facilities shown on the comparison table. */
+  facilities: string[];
+  /** Advertised payment plans for the project. */
+  paymentPlans: PaymentPlan[];
+  /** `YYYY-MM-DD` prices/plans were last checked, or null. */
+  dataVerifiedAt: string | null;
+  /** Admin chose to answer at siwify.com/{slug} instead of /{market}/{slug}. */
+  placeAtRoot: boolean;
 }
 
 export interface ListingAdmin {
@@ -286,6 +354,7 @@ export async function listCompoundsAdmin(): Promise<CompoundAdmin[]> {
     const rows = await query(
       `SELECT d.id, d.market_id, d.location_id, d.slug, d.name_ar, d.name_en, d.kind,
               d.developer_name, d.delivery_year, d.status, d.active, d.page_business_id,
+              d.facilities, d.payment_plans, d.data_verified_at, d.place_at_root,
               (SELECT COUNT(*) FROM businesses b WHERE b.development_id = d.id) AS listings
        FROM developments d
        ORDER BY d.market_id, d.name_en`
@@ -305,6 +374,10 @@ export async function listCompoundsAdmin(): Promise<CompoundAdmin[]> {
       active: Boolean(Number(row.active)),
       listings: Number(row.listings) || 0,
       pageBusinessId: row.page_business_id ? String(row.page_business_id) : null,
+      facilities: amenitiesOf(row.facilities),
+      paymentPlans: paymentPlansOf(row.payment_plans),
+      dataVerifiedAt: dayOnly(row.data_verified_at),
+      placeAtRoot: Boolean(Number(row.place_at_root)),
     }));
   } catch {
     return [];
@@ -639,11 +712,43 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
     }
   }
 
-  const baseSlug = slugify(nameEn) || kind;
-  let compoundSlug = baseSlug;
-  let counter = 1;
-  while (await queryOne('SELECT id FROM developments WHERE slug = ? LIMIT 1', [compoundSlug])) {
-    compoundSlug = `${baseSlug}-${counter++}`;
+  // The admin has the upper hand on the address. A manual slug wins over the
+  // derived one, but a manual collision is an error to fix, never something
+  // silently renamed behind the admin's back. With no manual slug the auto
+  // counter loop stays exactly as before, so nothing that works today changes.
+  const manualSlug = input?.slug ? normalizeSlug(input.slug) : '';
+  const placeAtRoot =
+    input?.placeAtRoot === true || input?.placeAtRoot === 1 || input?.placeAtRoot === '1';
+  let compoundSlug: string;
+  if (manualSlug) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manualSlug)) {
+      throw new AdminDataError(
+        'Project slug must be lowercase letters, digits and single hyphens — for example "marina-view".'
+      );
+    }
+    // A root vanity becomes the site's first segment, so it may not steal a route.
+    if (placeAtRoot && isReservedSlug(manualSlug)) {
+      throw new AdminDataError(
+        `"${manualSlug}" is already an app route. A root address cannot use it — pick another slug, or keep the project under its market.`,
+        409,
+        'SLUG_RESERVED'
+      );
+    }
+    if (await queryOne('SELECT id FROM developments WHERE slug = ? LIMIT 1', [manualSlug])) {
+      throw new AdminDataError(
+        `Project slug "${manualSlug}" is already taken. Choose another — a manual slug is never renamed for you.`,
+        409,
+        'SLUG_TAKEN'
+      );
+    }
+    compoundSlug = manualSlug;
+  } else {
+    const baseSlug = slugify(nameEn) || kind;
+    compoundSlug = baseSlug;
+    let counter = 1;
+    while (await queryOne('SELECT id FROM developments WHERE slug = ? LIMIT 1', [compoundSlug])) {
+      compoundSlug = `${baseSlug}-${counter++}`;
+    }
   }
 
   // A town usually already exists as a geography row. When its slug matches a
@@ -681,10 +786,16 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
 
   const id = crypto.randomUUID();
 
+  // The developer becomes a real row the moment an admin names it, so the
+  // portfolio page exists for a brand-new project rather than only after a
+  // re-save. A blank name yields a null id, which is what we store.
+  const developerId = await ensureDeveloperId(input?.developerName);
+
   await execute(
     `INSERT INTO developments (id, market_id, location_id, slug, name_ar, name_en, kind,
-                               developer_name, lat, lng, delivery_year, status, active, page_business_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                               developer_name, developer_id, lat, lng, delivery_year, status, active, page_business_id,
+                               facilities, payment_plans, place_at_root, data_verified_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       market.slug,
@@ -694,12 +805,17 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
       nameEn,
       kind,
       input?.developerName ? String(input.developerName) : null,
+      developerId,
       lat,
       lng,
       deliveryYear,
       status,
       input?.active === false ? 0 : 1,
       pageBusinessId,
+      JSON.stringify(toFacilitiesJson(input?.facilities)),
+      JSON.stringify(toPaymentPlansJson(input?.paymentPlans)),
+      placeAtRoot ? 1 : 0,
+      toDataVerified(input?.dataVerifiedAt),
     ]
   );
 
@@ -709,7 +825,11 @@ export async function createCompound(input: any): Promise<{ id: string; slug: st
 export async function updateCompound(id: string, patch: any): Promise<void> {
   const target = String(id || '').trim();
   if (!target) throw new AdminDataError('Compound id is required.');
-  if (!(await queryOne('SELECT id FROM developments WHERE id = ? LIMIT 1', [target]))) {
+  const current = (await queryOne(
+    'SELECT id, slug, place_at_root FROM developments WHERE id = ? LIMIT 1',
+    [target]
+  )) as any;
+  if (!current) {
     throw new AdminDataError('Compound not found.', 404);
   }
 
@@ -723,6 +843,9 @@ export async function updateCompound(id: string, patch: any): Promise<void> {
     active: 'active',
     locationId: 'location_id',
     pageBusinessId: 'page_business_id',
+    facilities: 'facilities',
+    paymentPlans: 'payment_plans',
+    dataVerifiedAt: 'data_verified_at',
   };
 
   const sets: string[] = [];
@@ -751,6 +874,11 @@ export async function updateCompound(id: string, patch: any): Promise<void> {
     }
     if (column === 'developer_name') value = value ? String(value) : null;
     if (column === 'location_id') value = value ? String(value) : null;
+    // JSON columns are serialized here, not by the generic line below: an empty
+    // list is `[]`, which is meaningful, whereas '' would become NULL.
+    if (column === 'facilities') value = JSON.stringify(toFacilitiesJson(value));
+    if (column === 'payment_plans') value = JSON.stringify(toPaymentPlansJson(value));
+    if (column === 'data_verified_at') value = toDataVerified(value);
     // name_ar is NOT NULL, and the generic line below turns '' into NULL, which
     // TiDB rejects. An empty Arabic name means "leave what is there", not "erase".
     if (column === 'name_ar' && !String(value ?? '').trim()) continue;
@@ -760,6 +888,68 @@ export async function updateCompound(id: string, patch: any): Promise<void> {
 
     sets.push(`${column} = ?`);
     params.push(value === '' ? null : value);
+  }
+
+  // A rename must follow the developer row, not just the string: recompute the
+  // link whenever the name is part of this patch, so the portfolio stays exact.
+  if (patch && 'developerName' in patch) {
+    sets.push('developer_id = ?');
+    params.push(await ensureDeveloperId(patch.developerName));
+  }
+
+  // Admin's upper hand on the address, applied as a deliberate edit only.
+  // The effective root flag and final slug are resolved together, because a
+  // reserved slug matters exactly when the page is being placed at the root.
+  const rootInPatch =
+    patch && 'placeAtRoot' in patch
+      ? patch.placeAtRoot === true || patch.placeAtRoot === 1 || patch.placeAtRoot === '1'
+      : Number(current.place_at_root) === 1;
+  const slugInPatch =
+    patch && 'slug' in patch && patch.slug !== undefined && patch.slug !== null
+      ? normalizeSlug(patch.slug)
+      : '';
+  const finalSlug = slugInPatch || String(current.slug);
+
+  if (rootInPatch !== (Number(current.place_at_root) === 1)) {
+    sets.push('place_at_root = ?');
+    params.push(rootInPatch ? 1 : 0);
+  }
+
+  if (slugInPatch && slugInPatch !== String(current.slug)) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slugInPatch)) {
+      throw new AdminDataError(
+        'Project slug must be lowercase letters, digits and single hyphens — for example "marina-view".'
+      );
+    }
+    // A slug moving to a root address may not land on an app route.
+    if (rootInPatch && isReservedSlug(finalSlug)) {
+      throw new AdminDataError(
+        `"${finalSlug}" is already an app route and cannot sit at the root.`,
+        409,
+        'SLUG_RESERVED'
+      );
+    }
+    const clash = (await queryOne(
+      'SELECT id FROM developments WHERE slug = ? AND id <> ? LIMIT 1',
+      [slugInPatch, target]
+    )) as any;
+    if (clash) {
+      throw new AdminDataError(
+        `Project slug "${slugInPatch}" is already taken. A manual slug is never renamed for you.`,
+        409,
+        'SLUG_TAKEN'
+      );
+    }
+    sets.push('slug = ?');
+    params.push(slugInPatch);
+  } else if (rootInPatch && isReservedSlug(finalSlug)) {
+    // Turning the root flag on for a row whose current slug is a route would
+    // shadow that route, so it is refused before the flag can do any damage.
+    throw new AdminDataError(
+      `"${finalSlug}" is already an app route, so this project cannot be placed at the root. Give it a different slug first.`,
+      409,
+      'SLUG_RESERVED'
+    );
   }
 
   if (sets.length === 0) return;

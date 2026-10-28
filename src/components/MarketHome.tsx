@@ -10,6 +10,8 @@ import {
 import { marketCopy } from '@/lib/market-copy';
 import { pathLocale } from '@/lib/site-locale';
 import { listMarketZones } from '@/lib/zones';
+import { listDevelopersByMarket } from '@/lib/developers';
+import DeveloperGrid from '@/components/development/DeveloperGrid';
 
 /**
  * /{market} — the front door of one marketplace.
@@ -44,10 +46,11 @@ export default async function MarketHome({
   const otherName = marketName(market, ar ? 'en' : 'ar');
   const copy = marketCopy(market, locale);
 
-  const [categories, listings, zones] = await Promise.all([
+  const [categories, listings, zones, devs] = await Promise.all([
     listMarketCategories(market.slug, 12),
     listMarketListings(market.slug, { parentTypeId: category, limit: 24 }),
     listMarketZones(market.slug),
+    listDevelopersByMarket(market.slug),
   ]);
 
   const activeCategory = category && categories.some((c) => c.id === category) ? category : null;
@@ -175,6 +178,10 @@ export default async function MarketHome({
           </div>
         </section>
       )}
+
+      {/* Brands building here — the market's developers, each opening its
+          portfolio. Renders nothing when no compound carries a developer. */}
+      <DeveloperGrid developers={devs} ar={ar} localePrefix={ar ? '/ar' : ''} theme="dark" />
 
       <section style={{ maxWidth: 1120, margin: '0 auto', padding: '1rem 1.5rem 4rem' }}>
         {categoryBlurb && (

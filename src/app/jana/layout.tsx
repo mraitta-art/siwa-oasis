@@ -228,6 +228,7 @@ const NAV_GROUPS = [
     defaultCollapsed: true,
     items: [
       { name: 'Markets & Expansion', path: '/jana/markets', icon: 'fa-sitemap' },
+      { name: 'Developers & Brands', path: '/jana/developers', icon: 'fa-building-circle-exclamation' },
       { name: 'Data Manager', path: '/jana/data-manager', icon: 'fa-database' },
       { name: 'Moderation', path: '/jana/moderation', icon: 'fa-user-shield' },
       { name: 'Diagnostic', path: '/jana/diagnostic', icon: 'fa-heartbeat' },
@@ -378,6 +379,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes('/demo-automation')) return { title: 'Demo Automation', tip: 'Generate demo data and automate repetitive setup tasks.' };
     // System
     if (pathname.includes('/data-manager')) return { title: 'Data Manager', tip: 'Import, export, and backup your database.' };
+    if (pathname.includes('/jana/developers')) return { title: 'Developers & Brands', tip: 'The companies behind the projects. A developer slug is frozen once set; editing the name never moves the URL.' };
     if (pathname.includes('/forms')) return { title: 'Forms', tip: 'Manage form definitions and field configurations.' };
     if (pathname.includes('/moderation')) return { title: 'Moderation', tip: 'Review and moderate user-submitted content.' };
     if (pathname.includes('/upgrades')) return { title: 'Upgrades', tip: 'Review and approve vendor upgrade requests.' };

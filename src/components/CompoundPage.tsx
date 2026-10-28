@@ -1,13 +1,18 @@
 import Link from 'next/link';
 import UnitsBoard from '@/components/UnitsBoard';
+import InstallmentCalculator from '@/components/development/InstallmentCalculator';
 import { normalizeCustomData, queryOne, stripCustomDataSecrets } from '@/lib/db';
 import {
   getDevelopmentFacets,
   isPlaceKind,
+  listDevelopments,
   listDevelopmentListings,
   listUnits,
   type Development,
+  type PaymentPlan,
 } from '@/lib/developments';
+import type { PaymentFrequency } from '@/lib/property-math';
+import { slugifyDeveloper } from '@/lib/developers';
 
 /**
  * A compound's public page.
@@ -78,10 +83,17 @@ export default async function CompoundPage({
   compound,
   marketSlug,
   lang,
+  marketOpen = true,
 }: {
   compound: Development;
   marketSlug: string;
   lang: 'ar' | 'en';
+  /**
+   * False when this project is reached as a root vanity (siwify.com/{slug}) and
+   * its market is still dark. The market front door is closed, so nothing on the
+   * page may point at it — the project is published on its own, not the market.
+   */
+  marketOpen?: boolean;
 }) {
   const ar = lang === 'ar';
   // A town has no developer or delivery date, and calling it a project reads
@@ -91,7 +103,7 @@ export default async function CompoundPage({
   const t = place ? PLACE_LABEL[ar ? 'ar' : 'en'] : LABEL[ar ? 'ar' : 'en'];
   const href = (path: string) => (ar ? `/ar${path}` : path);
 
-  const [facets, listings, units, pageBusiness] = await Promise.all([
+  const [facets, listings, units, pageBusiness, siblingProjects] = await Promise.all([
     getDevelopmentFacets(compound.id),
     listDevelopmentListings(compound.id, { limit: 120 }),
     listUnits({ developmentId: compound.id, limit: 60 }),
@@ -101,6 +113,9 @@ export default async function CompoundPage({
           [compound.pageBusinessId]
         ).catch(() => null)
       : Promise.resolve(null),
+    // The market's own projects, so "compare this project" can pre-load it
+    // alongside its competitors instead of a lone column.
+    listDevelopments(marketSlug, 'compound'),
   ]);
 
   const title = ar
@@ -150,20 +165,94 @@ export default async function CompoundPage({
     ...(place
       ? []
       : [
-          compound.developerName,
           compound.deliveryYear ? String(compound.deliveryYear) : null,
           STATUS[compound.status][ar ? 'ar' : 'en'],
         ]),
   ].filter(Boolean) as string[];
 
+  // Project-level comparison facts, only for a developer's project (kind
+  // 'compound' / 'resort') — a town has no facilities list or payment plan.
+  const saleUnits = units.filter((u) => u.listingKind === 'sale' && u.price && u.price > 0);
+  const cheapest = saleUnits.reduce<(typeof saleUnits)[number] | null>(
+    (low, u) => ((low?.price ?? Infinity) > (u.price ?? Infinity) ? u : low),
+    saleUnits.length ? saleUnits[0] : null
+  );
+  // Advertised plans win; unit-derived plans are the fallback.
+  const plans: PaymentPlan[] =
+    compound.paymentPlans.length > 0
+      ? compound.paymentPlans
+      : saleUnits
+          .filter((u) => u.downPaymentPct !== null || u.installmentYears !== null)
+          .map((u) => ({
+            name: '',
+            downPaymentPct: u.downPaymentPct,
+            installmentYears: u.installmentYears,
+            frequency: 'monthly' as PaymentFrequency,
+            postHandover: false,
+          }));
+  const bestPlan = plans
+    .filter((p) => (p.installmentYears ?? 0) > 0)
+    .reduce<PaymentPlan | null>((best, p) => ((p.installmentYears ?? 0) > (best?.installmentYears ?? 0) ? p : best), null);
+
+  const calcSeed =
+    cheapest?.price && bestPlan?.installmentYears
+      ? {
+          price: cheapest.price,
+          downPaymentPct: bestPlan.downPaymentPct ?? 0,
+          installmentYears: bestPlan.installmentYears,
+          frequency: bestPlan.frequency,
+        }
+      : null;
+
+  const currency = units[0]?.currency || 'EGP';
+  const hasFacts = !place && (compound.facilities.length > 0 || plans.length > 0 || Boolean(compound.dataVerifiedAt));
+  const compareHref = (() => {
+    // Pre-load the project plus up to three of its same-market competitors, so
+    // the buyer lands on a populated table instead of a lone column. The compare
+    // engine caps at four regardless of how many ids are passed.
+    const competitorIds = siblingProjects
+      .filter((s: Development) => s.id !== compound.id)
+      .slice(0, 3)
+      .map((s: Development) => s.id);
+    return href(`/compare/projects?ids=${[compound.id, ...competitorIds].join(',')}`);
+  })();
+
+  // A developer name that slugifies to something becomes a link to their whole
+  // portfolio — the page a listing portal cannot offer, and the reason the
+  // developers table exists at all.
+  const developerSlug = !place && compound.developerName ? slugifyDeveloper(compound.developerName) : '';
+
+  // The back link follows who actually owns the visitor's route home. When the
+  // market is open that is the market door; when a root-pinned project reaches a
+  // dark market, the door is closed, so back means the developer's portfolio (or
+  // the site home) instead of a link that would answer 404.
+  const backHref = marketOpen
+    ? href(`/${marketSlug}`)
+    : developerSlug
+    ? href(`/developers/${developerSlug}`)
+    : href('/');
+  const backLabel = marketOpen
+    ? t.back
+    : developerSlug
+    ? ar
+      ? `← كل مشروعات ${compound.developerName}`
+      : `← All ${compound.developerName} projects`
+    : ar
+    ? '← الرئيسية'
+    : '← Home';
+
+  const FACTS = ar
+    ? { facilities: 'المرافق', plans: 'خطط السداد', verified: 'تم التحقق من الأسعار في', compare: 'قارن هذا المشروع', down: 'مقدمة', years: 'تقسيط', calc: 'احسب قسطك' }
+    : { facilities: 'Facilities', plans: 'Payment plans', verified: 'Prices verified on', compare: 'Compare this project', down: 'down', years: 'instalment', calc: 'Work out your instalment' };
+
   return (
     <div dir={ar ? 'rtl' : 'ltr'} style={{ minHeight: '100vh', background: '#FFFFFF', color: '#0F172A' }}>
       <header style={{ maxWidth: 1000, margin: '0 auto', padding: '3rem 1.5rem 1.5rem' }}>
         <Link
-          href={href(`/${marketSlug}`)}
+          href={backHref}
           style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textDecoration: 'none' }}
         >
-          {t.back}
+          {backLabel}
         </Link>
         <h1 style={{ margin: '0.75rem 0 0.6rem', fontSize: '2rem', fontWeight: 900, lineHeight: 1.25 }}>
           {title}
@@ -185,6 +274,14 @@ export default async function CompoundPage({
             </span>
           ))}
         </div>
+        {developerSlug && (
+          <Link
+            href={href(`/developers/${developerSlug}`)}
+            style={{ display: 'inline-block', marginTop: '0.7rem', fontSize: '0.8rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {ar ? `كل مشروعات ${compound.developerName}` : `All projects by ${compound.developerName}`} →
+          </Link>
+        )}
       </header>
 
       {tagline && (
@@ -217,6 +314,70 @@ export default async function CompoundPage({
                 {t.open} →
               </Link>
             )}
+          </div>
+        </section>
+      )}
+
+      {hasFacts && (
+        <section style={{ maxWidth: 1000, margin: '0 auto', padding: '0 1.5rem 2rem' }}>
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 16, padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#94A3B8', letterSpacing: '1.5px' }}>
+                {(ar ? 'حقائق المشروع' : 'Project facts').toUpperCase()}
+              </div>
+              <Link
+                href={compareHref}
+                style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+              >
+                {FACTS.compare} →
+              </Link>
+            </div>
+
+            {compound.facilities.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#475569', marginBottom: '0.5rem' }}>{FACTS.facilities}</div>
+                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  {compound.facilities.map((facility) => (
+                    <span key={facility} style={{ fontSize: '0.72rem', fontWeight: 800, padding: '0.3rem 0.7rem', borderRadius: 999, background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#475569' }}>
+                      {facility}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {plans.length > 0 && (
+              <div style={{ marginTop: '1.25rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#475569', marginBottom: '0.5rem' }}>{FACTS.plans}</div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  {plans.map((plan, index) => (
+                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: '#0F172A', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: '0.6rem 0.8rem' }}>
+                      <span style={{ fontWeight: 800 }}>{plan.name || (ar ? `خطة ${index + 1}` : `Plan ${index + 1}`)}</span>
+                      <span style={{ color: '#475569' }}>
+                        {plan.downPaymentPct !== null ? `${plan.downPaymentPct}% ${FACTS.down}` : ''}
+                        {plan.downPaymentPct !== null && plan.installmentYears !== null ? ' · ' : ''}
+                        {plan.installmentYears !== null ? `${plan.installmentYears} ${FACTS.years}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {compound.dataVerifiedAt && (
+              <p style={{ margin: '1rem 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>
+                {FACTS.verified}: {compound.dataVerifiedAt}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {calcSeed && (
+        <section style={{ maxWidth: 1000, margin: '0 auto', padding: '0 1.5rem 2rem' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '0 0 1rem' }}>{FACTS.calc}</h2>
+          <div style={{ maxWidth: 520 }}>
+            <InstallmentCalculator seed={calcSeed} currency={currency} ar={ar} />
           </div>
         </section>
       )}

@@ -21,6 +21,8 @@ import MarketHome from '@/components/MarketHome';
 import CompoundPage from '@/components/CompoundPage';
 import ZonePage from '@/components/ZonePage';
 import { getZone } from '@/lib/zones';
+import DeveloperPortfolio from '@/components/development/DeveloperPortfolio';
+import { resolveVanityRoot } from '@/lib/vanity-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -462,6 +464,34 @@ export async function generateMetadata({
     }
   }
 
+  // A root vanity (an admin-chosen siwify.com/{slug}) resolves last, and only
+  // for a market-less URL, so it can claim an address nothing else wanted but
+  // can never pull one out from under a page that already answers here today.
+  if (!(await pathMarketSlug())) {
+    const vanity = await resolveVanityRoot(slug);
+    if (vanity) {
+      const locale = (await pathLocale()) ?? 'en';
+      const ar = locale === 'ar';
+      const label =
+        vanity.kind === 'development'
+          ? ar
+            ? vanity.development.nameAr || vanity.development.nameEn
+            : vanity.development.nameEn || vanity.development.nameAr
+          : ar
+            ? vanity.developer.nameAr || vanity.developer.name
+            : vanity.developer.name;
+      const publicPath = `/${slug}`;
+      const canonical = localeUrl(base, locale, publicPath);
+      return {
+        title: `${label} | Siwify`,
+        description: ar ? `${label} على Siwify.` : `${label} on Siwify.`,
+        alternates: { canonical, languages: languageAlternates(base, publicPath) },
+        robots: { index: true, follow: true },
+        openGraph: { title: label, url: canonical, siteName: 'Siwify', type: 'website' },
+      };
+    }
+  }
+
   return { title: 'Not found | Siwify', robots: { index: false, follow: true } };
 }
 
@@ -854,6 +884,33 @@ export default async function CanonicalVanityPage({
       const zoneLang =
         langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? market?.defaultLocale ?? lang);
       return <ZonePage zone={zone} marketSlug={zoneMarket} lang={zoneLang} />;
+    }
+  }
+
+  // A root vanity (an admin-chosen siwify.com/{slug}) renders last, after the
+  // compound and zone branches, and only for a market-less URL — the same order
+  // generateMetadata resolves in, so markup and metadata never disagree about who
+  // owns the address. A flag can claim an empty address, never a taken one.
+  if (!(await pathMarketSlug())) {
+    const vanity = await resolveVanityRoot(slug);
+    if (vanity) {
+      const vanityLang =
+        langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? lang);
+      const ar = vanityLang === 'ar';
+      if (vanity.kind === 'development') {
+        // A root pin publishes the project on its own merit. If its market is
+        // still dark, tell the page so it never links back to a closed door.
+        const vanityMarket = await getMarketBySlug(vanity.development.marketId);
+        return (
+          <CompoundPage
+            compound={vanity.development}
+            marketSlug={vanity.development.marketId}
+            lang={vanityLang}
+            marketOpen={Boolean(vanityMarket?.active)}
+          />
+        );
+      }
+      return <DeveloperPortfolio slug={vanity.developer.slug} ar={ar} />;
     }
   }
 

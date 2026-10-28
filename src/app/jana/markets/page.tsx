@@ -60,6 +60,20 @@ interface CompoundRow {
   listings: number;
   /** Business that speaks for this compound, when one is linked. */
   pageBusinessId: string | null;
+  /** Compound-level facilities for the comparison view. */
+  facilities: string[];
+  /** Advertised payment plans. */
+  paymentPlans: {
+    name: string;
+    downPaymentPct: number | null;
+    installmentYears: number | null;
+    frequency: string;
+    postHandover: boolean;
+  }[];
+  /** `YYYY-MM-DD` the admin last verified prices/plans. */
+  dataVerifiedAt: string | null;
+  /** Admin placed this project at siwify.com/{slug} instead of /{market}/{slug}. */
+  placeAtRoot: boolean;
 }
 
 interface ListingRow {
@@ -624,10 +638,55 @@ function CompoundForm({
     deliveryYear: draft?.deliveryYear ? String(draft.deliveryYear) : '',
     status: draft?.status || 'under_construction',
     pageBusinessId: draft?.pageBusinessId || '',
+    dataVerifiedAt: draft?.dataVerifiedAt || '',
     // Editable, because a container that should stop answering at its URL must
     // be hideable without deleting the listings filed inside it.
     active: draft ? draft.active : true,
+    // The address is the admin's call: a manual slug wins over the derived one,
+    // and placeAtRoot decides whether it sits at siwify.com/{slug} or under the
+    // market rule. Both default to the automatic behaviour.
+    slug: draft?.slug || '',
+    placeAtRoot: draft ? Boolean(draft.placeAtRoot) : false,
   });
+  // Facilities stay a simple one-per-line list (a paste-friendly chip box).
+  const [facilitiesText, setFacilitiesText] = useState((draft?.facilities || []).join('\n'));
+
+  // Payment plans are a repeater: each row is a real plan with its own fields,
+  // because "name | 25 | 5 | quarterly" as free text is a footgun an admin will
+  // mis-type. Values are kept as strings for the inputs and coerced on submit.
+  type PlanRow = {
+    name: string;
+    downPaymentPct: string;
+    installmentYears: string;
+    frequency: string;
+    postHandover: boolean;
+  };
+  const blankPlan = (): PlanRow => ({ name: '', downPaymentPct: '', installmentYears: '', frequency: 'monthly', postHandover: false });
+  const [plans, setPlans] = useState<PlanRow[]>(
+    (draft?.paymentPlans || []).map((p) => ({
+      name: p.name || '',
+      downPaymentPct: p.downPaymentPct === null || p.downPaymentPct === undefined ? '' : String(p.downPaymentPct),
+      installmentYears: p.installmentYears === null || p.installmentYears === undefined ? '' : String(p.installmentYears),
+      frequency: p.frequency || 'monthly',
+      postHandover: Boolean(p.postHandover),
+    }))
+  );
+  const updatePlan = (index: number, patch: Partial<PlanRow>) =>
+    setPlans((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  const addPlan = () => setPlans((prev) => [...prev, blankPlan()]);
+  const removePlan = (index: number) => setPlans((prev) => prev.filter((_, i) => i !== index));
+  // A row is submitted only if it carries a down payment or a term; a fully blank
+  // row is an admin mid-editing, not a plan to publish.
+  const submitPlans = plans
+    .filter((row) => row.downPaymentPct.trim() !== '' || row.installmentYears.trim() !== '')
+    .map((row) => ({
+      name: row.name.trim(),
+      downPaymentPct: row.downPaymentPct.trim() === '' ? null : Number(row.downPaymentPct),
+      installmentYears: row.installmentYears.trim() === '' ? null : Number(row.installmentYears),
+      frequency: row.frequency,
+      postHandover: row.postHandover,
+    }));
+
   // A town has no developer, no delivery date and no construction status. Those
   // fields are hidden rather than emptied, so the record keeps whatever a
   // reclassified project already had.
@@ -656,12 +715,18 @@ function CompoundForm({
     setSaving(true);
     setError(null);
     try {
+      const payload = {
+        ...form,
+        facilities: facilitiesText
+          .split(/[\n,]/)
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+        paymentPlans: submitPlans,
+      };
       const res = await fetch('/api/jana/developments', {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          editing ? { id: draft?.id, ...form } : { ...form, market }
-        ),
+        body: JSON.stringify(editing ? { id: draft?.id, ...payload } : { ...payload, market }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Could not save it');
@@ -762,6 +827,68 @@ function CompoundForm({
             <option value="sold_out">sold_out</option>
           </select>
         </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={LABEL}>FACILITIES (one per line)</label>
+          <textarea
+            className="form-control"
+            rows={3}
+            value={facilitiesText}
+            placeholder={'Private beach access\nInfinity pool\nClubhouse & gym'}
+            onChange={(e) => setFacilitiesText(e.target.value)}
+          />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={LABEL}>PAYMENT PLANS</label>
+          {plans.length === 0 && (
+            <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: 6 }}>
+              No published plans. Add one, or leave empty to fall back to each unit's own terms.
+            </span>
+          )}
+          {plans.map((row, i) => (
+            <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', marginBottom: 8 }}>
+              <div style={{ flex: '2 1 160px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#666' }}>Name</span>
+                <input className="form-control" value={row.name} placeholder="Standard" onChange={(e) => updatePlan(i, { name: e.target.value })} />
+              </div>
+              <div style={{ flex: '1 1 80px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#666' }}>Down %</span>
+                <input className="form-control" type="number" min={0} max={100} value={row.downPaymentPct} placeholder="25" onChange={(e) => updatePlan(i, { downPaymentPct: e.target.value })} />
+              </div>
+              <div style={{ flex: '1 1 80px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#666' }}>Years</span>
+                <input className="form-control" type="number" min={0} value={row.installmentYears} placeholder="5" onChange={(e) => updatePlan(i, { installmentYears: e.target.value })} />
+              </div>
+              <div style={{ flex: '1 1 120px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#666' }}>Frequency</span>
+                <select className="form-control" value={row.frequency} onChange={(e) => updatePlan(i, { frequency: e.target.value })}>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="semi_annual">Semi-annual</option>
+                  <option value="annual">Annual</option>
+                </select>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', paddingBottom: 8 }}>
+                <input type="checkbox" checked={row.postHandover} onChange={(e) => updatePlan(i, { postHandover: e.target.checked })} />
+                Post-handover
+              </label>
+              <button type="button" onClick={() => removePlan(i)} style={{ color: '#b91c1c', background: 'none', border: '1px solid #b91c1c', borderRadius: 4, padding: '4px 8px', cursor: 'pointer' }}>
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addPlan} style={{ color: '#b45309', background: 'none', border: '1px dashed #b45309', borderRadius: 4, padding: '4px 10px', cursor: 'pointer' }}>
+            ＋ Add payment plan
+          </button>
+        </div>
+        <div>
+          <label style={LABEL}>PRICES VERIFIED ON</label>
+          <input
+            className="form-control"
+            type="date"
+            value={form.dataVerifiedAt}
+            onChange={(e) => setForm({ ...form, dataVerifiedAt: e.target.value })}
+          />
+        </div>
           </>
         )}
         <div>
@@ -789,6 +916,44 @@ function CompoundForm({
           <label htmlFor={`container-active-${market}`} style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280' }}>
             VISIBLE (uncheck to hide the page)
           </label>
+        </div>
+        {/* ── The address is the admin's upper hand ──────────────────────────
+            A slug is normally derived from the English name and the page answers
+            at /{market}/{slug}. The admin may overrule both: set the slug by hand
+            and/or place it directly at siwify.com/{slug}. Both are warned actions
+            — they change a live URL — so the notice states the responsibility. */}
+        <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #d4af37', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#92400e', marginBottom: '0.4rem' }}>
+            <i className="fas fa-link"></i> ADDRESS — <span style={{ fontWeight: 600 }}>العنوان على مسؤوليتك · on your responsibility</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
+            <div>
+              <label style={LABEL}>SLUG (optional override)</label>
+              <input
+                className="form-control"
+                value={form.slug}
+                placeholder="leave blank to auto-derive"
+                onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                id={`container-root-${market}`}
+                type="checkbox"
+                checked={form.placeAtRoot}
+                onChange={(e) => setForm({ ...form, placeAtRoot: e.target.checked })}
+              />
+              <label htmlFor={`container-root-${market}`} style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280' }}>
+                PLACE AT ROOT — siwify.com/{form.slug || 'slug'}
+              </label>
+            </div>
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#b45309', marginTop: '0.4rem', lineHeight: 1.5 }}>
+            Default: <code>siwify.com/{market}/{form.slug || 'auto-slug'}</code>.
+            Overriding the slug or placing it at the root changes the page's address and can break links already shared.
+            Set a root slug only after you have read the instructions — you are choosing an address the market rule would not give you.
+            A name that collides with an existing page or an app route will be rejected.
+          </div>
         </div>
       </div>
       {error && (

@@ -33,8 +33,8 @@ export function normalizeKind(value: unknown): DevelopmentKind {
   return (DEVELOPMENT_KINDS as readonly string[]).includes(text) ? (text as DevelopmentKind) : 'compound';
 }
 
-/** `units.amenities` is JSON; a Buffer or a string both mean the same list. */
-function amenitiesOf(value: any): string[] {
+/** `units.amenities` and `developments.facilities` are JSON; a Buffer or a string both mean the same list. */
+export function amenitiesOf(value: any): string[] {
   if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
   if (!value) return [];
   const text = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
@@ -43,6 +43,52 @@ function amenitiesOf(value: any): string[] {
     return Array.isArray(parsed) ? parsed.map((entry) => String(entry).trim()).filter(Boolean) : [];
   } catch {
     return [];
+  }
+}
+
+/**
+ * A project-level payment plan, before any unit is entered.
+ *
+ * `frequency` is the instalment cadence; `post_handover` marks a plan whose
+ * instalments only begin after delivery. Numbers are left raw — the calculator
+ * in `property-math.ts` turns them into an instalment figure.
+ */
+export interface PaymentPlan {
+  name: string;
+  downPaymentPct: number | null;
+  installmentYears: number | null;
+  frequency: 'monthly' | 'quarterly' | 'semi_annual' | 'annual';
+  postHandover: boolean;
+}
+
+const PAYMENT_FREQUENCIES: PaymentPlan['frequency'][] = ['monthly', 'quarterly', 'semi_annual', 'annual'];
+
+function numberOf(value: any): number | null {
+  return value === null || value === undefined || value === '' ? null : Number(value);
+}
+
+export function paymentPlansOf(value: any): PaymentPlan[] {
+  const raw = Array.isArray(value) ? value : value ? safeJson(value) : null;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((entry: any) => entry && typeof entry === 'object')
+    .map((entry: any) => ({
+      name: String(entry.name ?? '').trim(),
+      downPaymentPct: numberOf(entry.down_payment_pct ?? entry.downPaymentPct),
+      installmentYears: numberOf(entry.installment_years ?? entry.installmentYears),
+      frequency: (PAYMENT_FREQUENCIES as readonly string[]).includes(String(entry.frequency))
+        ? (String(entry.frequency) as PaymentPlan['frequency'])
+        : 'monthly',
+      postHandover: Boolean(Number(entry.post_handover ?? entry.postHandover ?? 0)),
+    }));
+}
+
+function safeJson(value: any): any {
+  const text = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
 }
 
@@ -61,6 +107,12 @@ export interface Development {
   status: 'announced' | 'under_construction' | 'delivered' | 'sold_out';
   /** Business that serves as this compound's page, when one is linked. */
   pageBusinessId: string | null;
+  /** Compound-level facilities; a unit may override via its own amenities. */
+  facilities: string[];
+  /** Advertised payment plans, used to seed the calculator when no unit is entered. */
+  paymentPlans: PaymentPlan[];
+  /** `YYYY-MM-DD` the admin last checked prices/plans, or null. Printed as "verified on". */
+  dataVerifiedAt: string | null;
 }
 
 export interface DevelopmentFacet {
@@ -133,11 +185,15 @@ function toDevelopment(row: any): Development {
       ? String(row.status)
       : 'announced') as Development['status'],
     pageBusinessId: row.page_business_id ? String(row.page_business_id) : null,
+    facilities: amenitiesOf(row.facilities),
+    paymentPlans: paymentPlansOf(row.payment_plans),
+    dataVerifiedAt: dayOnly(row.data_verified_at),
   };
 }
 
 const DEVELOPMENT_COLUMNS = `id, market_id, location_id, slug, name_ar, name_en, kind,
-  developer_name, lat, lng, delivery_year, status, page_business_id`;
+  developer_name, lat, lng, delivery_year, status, page_business_id,
+  facilities, payment_plans, data_verified_at`;
 
 /**
  * Active containers in one market, for the market's project index.
@@ -160,6 +216,27 @@ export async function listDevelopments(marketSlug: string, kind?: DevelopmentKin
   }
 }
 
+/**
+ * Every active container across markets, for the market-agnostic compare picker.
+ *
+ * Comparison is not bound to one market, so the picker lists what a visitor can
+ * actually line up anywhere on the platform. `kind` defaults to projects only —
+ * a town is not something you compare with a compound on price per m².
+ */
+export async function listAllActiveCompounds(kind?: DevelopmentKind): Promise<Development[]> {
+  try {
+    const rows = await query(
+      `SELECT ${DEVELOPMENT_COLUMNS} FROM developments
+       WHERE active = 1${kind ? ' AND kind = ?' : ''}
+       ORDER BY market_id, name_en`,
+      kind ? [kind] : []
+    );
+    return (rows || []).map(toDevelopment);
+  } catch {
+    return [];
+  }
+}
+
 export async function getDevelopmentBySlug(marketSlug: string, slug: string): Promise<Development | null> {
   try {
     const rows = await query(
@@ -171,6 +248,97 @@ export async function getDevelopmentBySlug(marketSlug: string, slug: string): Pr
     return rows && rows.length > 0 ? toDevelopment(rows[0]) : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * A project an admin chose to place at siwify.com/{slug} as well as its
+ * /{market}/{slug} rule. Resolved across markets (a vanity is global), only for
+ * a market-less URL, and only after every other branch in the router — so the
+ * flag claims an address, it never steals one.
+ */
+export async function getRootDevelopment(slug: string): Promise<Development | null> {
+  const target = String(slug || '').trim();
+  if (!target) return null;
+  try {
+    const rows = await query(
+      `SELECT ${DEVELOPMENT_COLUMNS} FROM developments
+       WHERE active = 1 AND place_at_root = 1 AND slug = ?
+       LIMIT 1`,
+      [target]
+    );
+    return rows && rows.length > 0 ? toDevelopment(rows[0]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Containers by id, for the comparison view.
+ *
+ * Comparison is keyed on ids chosen across markets, so this deliberately does
+ * not take a market slug — a buyer lining El Alamein against a North Coast
+ * project is the whole point. Order follows the ids given, so the columns the
+ * user picked stay in the order they picked them.
+ */
+export async function getDevelopmentsByIds(ids: string[]): Promise<Development[]> {
+  const clean = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  if (clean.length === 0) return [];
+  try {
+    const placeholders = clean.map(() => '?').join(',');
+    const rows = await query(
+      `SELECT ${DEVELOPMENT_COLUMNS} FROM developments
+       WHERE active = 1 AND id IN (${placeholders})`,
+      clean
+    );
+    const byId = new Map<string, Development>(((rows || []) as any[]).map((row) => [String(row.id), toDevelopment(row)]));
+    return clean.map((id) => byId.get(id)).filter((d): d is Development => Boolean(d));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Every active container a single developer built, across markets.
+ *
+ * This is the investor question the free-text `developer_name` could never
+ * answer reliably ("sodic" vs "Sodic" were different strings). Now that a
+ * development points at a `developers` row, one query returns the portfolio a
+ * buyer can browse and line up against itself.
+ */
+export async function getDevelopmentsByDeveloperId(developerId: string): Promise<Development[]> {
+  try {
+    const rows = await query(
+      `SELECT ${DEVELOPMENT_COLUMNS} FROM developments
+       WHERE active = 1 AND developer_id = ?
+       ORDER BY market_id, name_en`,
+      [developerId]
+    );
+    return (rows || []).map(toDevelopment);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Which of these developments the admin pinned at the site root.
+ *
+ * Used to prefer a project's short vanity address over its /{market}/{slug}
+ * rule when linking a portfolio. Degrades to an empty set if the flag column is
+ * not present yet, so a portfolio built before migration 20261108 still renders.
+ */
+export async function listRootPinnedSlugs(ids: string[]): Promise<Set<string>> {
+  const clean = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  if (clean.length === 0) return new Set();
+  try {
+    const placeholders = clean.map(() => '?').join(',');
+    const rows = await query(
+      `SELECT slug FROM developments WHERE active = 1 AND place_at_root = 1 AND id IN (${placeholders})`,
+      clean
+    );
+    return new Set((rows || []).map((row: any) => String(row.slug)));
+  } catch {
+    return new Set();
   }
 }
 

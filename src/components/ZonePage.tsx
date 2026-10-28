@@ -4,6 +4,8 @@ import {
   listZoneListings,
   type Zone,
 } from '@/lib/zones';
+import { listDevelopersByZone } from '@/lib/developers';
+import DeveloperGrid from '@/components/development/DeveloperGrid';
 
 /**
  * A zone's public page — /{market}/{zone}.
@@ -59,9 +61,10 @@ export default async function ZonePage({
   const t = LABEL[ar ? 'ar' : 'en'];
   const href = (path: string) => (ar ? `/ar${path}` : path);
 
-  const [facets, listings] = await Promise.all([
+  const [facets, listings, developers] = await Promise.all([
     getZoneFacets(zone),
     listZoneListings(zone),
+    listDevelopersByZone(zone.marketSlug, zone.path),
   ]);
 
   const title = ar ? zone.nameAr || zone.nameEn : zone.nameEn || zone.nameAr;
@@ -220,6 +223,15 @@ export default async function ZonePage({
           </div>
         ))}
       </section>
+
+      {/* Brands with a live listing in this zone — the same developer grid the
+          market door uses, light theme to match, empty-safe. */}
+      <DeveloperGrid
+        developers={developers}
+        ar={ar}
+        localePrefix={ar ? '/ar' : ''}
+        theme="light"
+      />
     </div>
   );
 }

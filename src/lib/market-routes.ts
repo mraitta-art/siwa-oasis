@@ -88,6 +88,9 @@ export const RESERVED_SLUGS: readonly string[] = [
   'api', '_next', 'admin', 'jana', 'vendor', 'login', 'logout', 'signup',
   'visitor', 'visitors', 'onboard', 'dashboard', 'uploads', 'media',
   'categories', 'blog', 'projects', 'ar', 'en',
+  // Comparison and developer-portfolio routes are static first segments; a
+  // business may never take the address the app already owns.
+  'compare', 'developers',
   'sitemap.xml', 'robots.txt', 'icon.svg', 'manifest.webmanifest',
 ];
 
