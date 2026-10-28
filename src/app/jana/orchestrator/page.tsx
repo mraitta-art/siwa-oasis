@@ -134,6 +134,22 @@ const PLACE_TYPES: { id: string; label: string }[] = [
   { id: 'neighborhood', label: 'NEIGHBORHOOD' },
 ];
 
+// One line of guidance per step, shown in a persistent hint bar so the operator
+// always knows what the current screen is for and what the choice unlocks. It is
+// the in-product answer to "how do I use this wizard?".
+const STEP_HINTS: Record<Step, string> = {
+  INTENT: 'Start here: pick what you are creating. The wizard then shows only the steps that journey needs.',
+  MARKET: 'Choose the market this belongs to. The category tree, geography and URL namespace all follow it. Dark markets are selectable so you can build one before it opens to the public.',
+  MARKET_IDENTITY: 'Give the new market its slug and both names, then pick its governorate — the platform creates the city row from the slug. Leave it DARK and open the publication gate when ready.',
+  GEOGRAPHY: 'Add a district, area or village under an existing parent inside the market. It renders a zone page listing everything filed there.',
+  ARCHITECTURE: 'Pick the business typology (category). Choose a parent, then a child when one fits.',
+  STRUCTURE: 'A listing files itself inside an optional existing project. A development defines its own kind, developer and status — no typology is needed.',
+  AESTHETICS: 'Choose the minisite look, or leave AUTO so it resolves from the typology and tier.',
+  DNA_CONFIG: 'Set the entity name and its section content. Arabic is stored exactly as you write it — never auto-translated.',
+  AUTHORITY: 'Assign a vendor to manage this entity, or keep it under internal Siwa governance.',
+  DEPLOYMENT: 'Done. Review how the new object connects, then start another or open its registry.',
+};
+
 // The container classifiers and lifecycle states mirror the server's
 // DEVELOPMENT_KINDS / DEVELOPMENT_STATUSES. They live here as plain data so the
 // picker can render without importing a server module into a client component.
@@ -485,6 +501,14 @@ function OrchestratorContent() {
         {/* Active Phase Glass Card */}
         <div className="glass-card animate-in">
 
+          {/* Persistent guidance bar — what this step is for, and what it unlocks. */}
+          {STEP_HINTS[state.step] && (
+            <div className="step-hint">
+              <i className="fas fa-circle-info"></i>
+              <span>{STEP_HINTS[state.step]}</span>
+            </div>
+          )}
+
           {/* STEP 0: INTENT — the admin declares what they are initiating, and
               the wizard compiles a different journey for each. This replaces the
               old forced-linear flow that made every task drag through a typology. */}
@@ -512,6 +536,37 @@ function OrchestratorContent() {
                     <div className="tag">{it.tag}</div>
                   </button>
                 ))}
+              </div>
+
+              {/* QUICK GUIDE — a compact, self-serve how-to so an operator knows
+                  what each journey does and the rules that hold across all of them. */}
+              <div className="quick-guide">
+                <div className="quick-guide-title">
+                  <i className="fas fa-route"></i> HOW EACH JOURNEY RUNS
+                </div>
+                <div className="quick-guide-grid">
+                  {INTENT_META.map(it => (
+                    <div key={it.id} className="quick-guide-row">
+                      <div className="qg-name">
+                        <i className={`fas ${it.icon}`}></i> {it.name}
+                      </div>
+                      <div className="qg-steps">
+                        {SEQUENCE[it.id].map((s, idx) => (
+                          <span key={s} className="qg-step">
+                            {idx > 0 && <span className="qg-arrow">›</span>}
+                            {s.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <ul className="quick-guide-notes">
+                  <li>Every object is filed inside the market you choose, so its category tree, geography and URL address stay consistent.</li>
+                  <li>A new market publishes DARK — flip its publication gate when it is ready for the public.</li>
+                  <li>Typing a new developer name creates the brand record automatically and links it.</li>
+                  <li>Selling inventory (units, listings, auctions) happens afterwards, inside the entity — the wizard only lays the foundation.</li>
+                </ul>
               </div>
             </div>
           )}
@@ -1254,6 +1309,45 @@ function OrchestratorContent() {
         .selection-card .name { font-weight: 800; font-size: clamp(0.82rem, 1.5vw, 0.95rem); margin-bottom: 0.35rem; color: #0f172a; line-height: 1.2; }
         .selection-card .tag { font-size: clamp(0.55rem, 1vw, 0.6rem); color: #64748b; font-weight: 900; letter-spacing: 0.5px; }
         .selection-card .tag.success { color: #059669; }
+
+        /* Persistent per-step guidance strip at the top of the active card. */
+        .step-hint {
+          display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 1.6rem;
+          padding: 0.8rem 1rem; font-size: 0.8rem; line-height: 1.5; color: var(--siwa-gold);
+          background: rgba(197, 164, 104, 0.06); border: 1px solid rgba(197, 164, 104, 0.22); border-radius: 12px;
+        }
+        .step-hint i { margin-top: 0.1rem; flex-shrink: 0; }
+
+        /* Self-serve how-to panel on the intent picker. */
+        .quick-guide {
+          margin-top: 2.2rem; padding: 1.4rem 1.5rem; background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--siwa-border); border-radius: 16px;
+        }
+        .quick-guide-title {
+          font-family: 'Space Grotesk', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em;
+          color: var(--siwa-gold); margin-bottom: 1.1rem;
+        }
+        .quick-guide-title i { margin-right: 0.4rem; }
+        .quick-guide-grid { display: flex; flex-direction: column; gap: 0.7rem; }
+        .quick-guide-row {
+          display: grid; grid-template-columns: 220px 1fr; gap: 0.4rem 1rem; align-items: baseline;
+          padding-bottom: 0.7rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .quick-guide-row:last-child { border-bottom: none; }
+        .qg-name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; }
+        .qg-name i { color: var(--siwa-gold); margin-right: 0.4rem; width: 1rem; text-align: center; }
+        .qg-steps { display: flex; flex-wrap: wrap; gap: 0.25rem 0.35rem; align-items: center; }
+        .qg-step {
+          font-size: 0.62rem; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.66);
+          background: rgba(255, 255, 255, 0.05); padding: 0.15rem 0.5rem; border-radius: 999px;
+        }
+        .qg-arrow { color: var(--siwa-gold); margin-right: 0.3rem; opacity: 0.6; }
+        .quick-guide-notes {
+          margin: 1.1rem 0 0; padding: 0 0 0 1.1rem; list-style: disc;
+          display: flex; flex-direction: column; gap: 0.35rem;
+        }
+        .quick-guide-notes li { font-size: 0.72rem; line-height: 1.5; color: rgba(255, 255, 255, 0.55); }
+        @media (max-width: 640px) { .quick-guide-row { grid-template-columns: 1fr; } }
 
         .empty-state {
           grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem;
