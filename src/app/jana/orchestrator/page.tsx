@@ -25,7 +25,10 @@ import { useAdmin } from '@/context/AdminContext';
  */
 
 type Step =
+  | 'INTENT'
   | 'MARKET'
+  | 'MARKET_IDENTITY'
+  | 'GEOGRAPHY'
   | 'ARCHITECTURE'
   | 'STRUCTURE'
   | 'AESTHETICS'
@@ -33,15 +36,48 @@ type Step =
   | 'AUTHORITY'
   | 'DEPLOYMENT';
 
+/** The initiation journey the admin chose on step 0. It compiles the step list. */
+type Intent = 'business' | 'development' | 'market' | 'place';
+
 interface DevelopmentDraft {
   kind: string;
+  nameEn: string;
+  nameAr: string;
   developerName: string;
   deliveryYear: string;
   status: string;
 }
 
+interface MarketDraft {
+  slug: string;
+  nameEn: string;
+  nameAr: string;
+  governorateId: string;
+  placeId: string;
+  host: string;
+  defaultLocale: string;
+  currency: string;
+  revenueModel: string;
+  themeAccent: string;
+  active: boolean;
+  launchNotes: string;
+  // Optional first project seeded in the same launch, sent as body.container.
+  seedContainer: boolean;
+  containerKind: string;
+  containerNameEn: string;
+}
+
+interface PlaceDraft {
+  parentId: string;
+  type: string;
+  nameEn: string;
+  nameAr: string;
+  slug: string;
+}
+
 interface WizardState {
   step: Step;
+  intent: Intent;
   market: string;
   selectedParent: string;
   selectedType: string;
@@ -49,6 +85,8 @@ interface WizardState {
   existingDevelopmentId: string;
   locationId: string;
   development: DevelopmentDraft;
+  marketForm: MarketDraft;
+  placeForm: PlaceDraft;
   businessName: string;
   selectedVendor: string;
   businessData: Record<string, any>;
@@ -56,10 +94,45 @@ interface WizardState {
   fields: any[];
   createdBizId?: string;
   createdDevId?: string;
+  createdMarketSlug?: string;
+  createdLocationPath?: string;
+  createdDevSlug?: string;
 }
 
 const STORAGE_KEY = 'siwa_governance_wizard_state';
-const STEPS: Step[] = ['MARKET', 'ARCHITECTURE', 'STRUCTURE', 'AESTHETICS', 'DNA_CONFIG', 'AUTHORITY', 'DEPLOYMENT'];
+
+// Every journey compiles its own ordered steps from one shared library. A
+// container never passes through ARCHITECTURE (a development has no business
+// typology); a market launch never picks an existing market because it is
+// creating one. This is the fix for the old forced-linear, typology-first flow.
+const SEQUENCE: Record<Intent, Step[]> = {
+  business: ['MARKET', 'STRUCTURE', 'ARCHITECTURE', 'AESTHETICS', 'DNA_CONFIG', 'AUTHORITY', 'DEPLOYMENT'],
+  development: ['MARKET', 'STRUCTURE', 'DEPLOYMENT'],
+  market: ['MARKET_IDENTITY', 'DEPLOYMENT'],
+  place: ['MARKET', 'GEOGRAPHY', 'DEPLOYMENT'],
+};
+
+const INTENT_META: { id: Intent; name: string; tag: string; icon: string }[] = [
+  { id: 'business', name: 'List a Business / Service', tag: 'SHOP · HOTEL · DEVELOPMENT SERVICE', icon: 'fa-store' },
+  { id: 'development', name: 'Create a Development', tag: 'COMPOUND · TOWN · VILLAGE · RESORT', icon: 'fa-building' },
+  { id: 'market', name: 'Launch a Market', tag: 'A NEW CITY OR DESTINATION', icon: 'fa-map-location-dot' },
+  { id: 'place', name: 'Add a Place / Zone', tag: 'DISTRICT · AREA · VILLAGE', icon: 'fa-location-dot' },
+];
+
+const REVENUE_MODELS: { id: string; label: string }[] = [
+  { id: 'realestate_lead', label: 'realestate_lead — compounds, price per m²' },
+  { id: 'tourism_whatsapp', label: 'tourism_whatsapp — stays, tours, WhatsApp' },
+  { id: 'directory_lead', label: 'directory_lead — local services' },
+];
+
+const PLACE_TYPES: { id: string; label: string }[] = [
+  { id: 'city', label: 'CITY' },
+  { id: 'district', label: 'DISTRICT' },
+  { id: 'town', label: 'TOWN' },
+  { id: 'area', label: 'AREA' },
+  { id: 'zone', label: 'ZONE' },
+  { id: 'neighborhood', label: 'NEIGHBORHOOD' },
+];
 
 // The container classifiers and lifecycle states mirror the server's
 // DEVELOPMENT_KINDS / DEVELOPMENT_STATUSES. They live here as plain data so the
@@ -79,20 +152,30 @@ function OrchestratorContent() {
   const [markets, setMarkets] = useState<any[]>([]);
   const [compounds, setCompounds] = useState<any[]>([]);
   const [places, setPlaces] = useState<any[]>([]);
+  const [governorates, setGovernorates] = useState<any[]>([]);
+  const [geoOptions, setGeoOptions] = useState<any[]>([]);
   const [typologies, setTypologies] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [allSections, setAllSections] = useState<any[]>([]);
   const [visualTemplates, setVisualTemplates] = useState<any[]>([]);
 
   const [state, setState] = useState<WizardState>({
-    step: 'MARKET',
+    step: 'INTENT',
+    intent: 'business',
     market: searchParams.get('market') || '',
     selectedParent: '',
     selectedType: searchParams.get('type') || '',
     containerKind: 'business',
     existingDevelopmentId: '',
     locationId: '',
-    development: { kind: 'compound', developerName: '', deliveryYear: '', status: 'announced' },
+    development: { kind: 'compound', nameEn: '', nameAr: '', developerName: '', deliveryYear: '', status: 'announced' },
+    marketForm: {
+      slug: '', nameEn: '', nameAr: '', governorateId: '', placeId: '', host: '',
+      defaultLocale: 'ar', currency: 'EGP', revenueModel: 'realestate_lead',
+      themeAccent: '#0F4C81', active: false, launchNotes: '',
+      seedContainer: false, containerKind: 'compound', containerNameEn: '',
+    },
+    placeForm: { parentId: '', type: 'district', nameEn: '', nameAr: '', slug: '' },
     businessName: '',
     selectedVendor: '',
     businessData: {},
@@ -106,6 +189,10 @@ function OrchestratorContent() {
   const updateState = (updates: Partial<WizardState>) => setState(prev => ({ ...prev, ...updates }));
   const updateDevelopment = (updates: Partial<DevelopmentDraft>) =>
     setState(prev => ({ ...prev, development: { ...prev.development, ...updates } }));
+  const updateMarketForm = (updates: Partial<MarketDraft>) =>
+    setState(prev => ({ ...prev, marketForm: { ...prev.marketForm, ...updates } }));
+  const updatePlaceForm = (updates: Partial<PlaceDraft>) =>
+    setState(prev => ({ ...prev, placeForm: { ...prev.placeForm, ...updates } }));
 
   // Market-independent reference data plus the market/compound hierarchy, loaded
   // once. Markets come from the admin registry, so a dark market can still be
@@ -117,9 +204,18 @@ function OrchestratorContent() {
         const parsed = JSON.parse(saved);
         if (searchParams.get('type')) parsed.selectedType = searchParams.get('type');
         if (searchParams.get('market')) parsed.market = searchParams.get('market');
-        // Any cached step that is no longer in the model starts over at MARKET.
-        if (parsed.step && !STEPS.includes(parsed.step)) parsed.step = 'MARKET';
-        setState(prev => ({ ...prev, ...parsed, development: { ...prev.development, ...(parsed.development || {}) } }));
+        // A cached intent that is no longer valid, or a cached step that is not in
+        // that intent's compiled sequence, drops the resume back to the intent picker.
+        if (parsed.intent && !SEQUENCE[parsed.intent as Intent]) parsed.intent = 'business';
+        const seq = SEQUENCE[(parsed.intent || 'business') as Intent];
+        if (parsed.step && !seq.includes(parsed.step)) parsed.step = 'INTENT';
+        setState(prev => ({
+          ...prev,
+          ...parsed,
+          development: { ...prev.development, ...(parsed.development || {}) },
+          marketForm: { ...prev.marketForm, ...(parsed.marketForm || {}) },
+          placeForm: { ...prev.placeForm, ...(parsed.placeForm || {}) },
+        }));
       } catch (e) {}
     }
 
@@ -141,13 +237,16 @@ function OrchestratorContent() {
       safeJson('/api/jana/sections'),
       safeJson('/api/jana/templates'),
       safeJson('/api/jana/markets'),
-    ]).then(([vendorList, sectionsList, visualList, marketData]) => {
+      safeJson('/api/jana/locations'),
+    ]).then(([vendorList, sectionsList, visualList, marketData, geoData]) => {
       setVendors(Array.isArray(vendorList) ? vendorList : []);
       setAllSections(Array.isArray(sectionsList) ? sectionsList : []);
       setVisualTemplates(Array.isArray(visualList) ? visualList : []);
       const list = Array.isArray(marketData?.markets) ? marketData.markets : [];
       setMarkets(list);
       setCompounds(Array.isArray(marketData?.compounds) ? marketData.compounds : []);
+      setGovernorates(Array.isArray(marketData?.governorates) ? marketData.governorates : []);
+      setGeoOptions(Array.isArray(geoData?.options) ? geoData.options : []);
       setState(prev => {
         if (prev.market) return prev;
         const firstActive = list.find((m: any) => m.active) || list[0];
@@ -197,20 +296,71 @@ function OrchestratorContent() {
     }
   }, [state.selectedType]);
 
-  const handleFinalize = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/jana/orchestrator/provision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+  // The active journey's compiled step list. Everything (tracker, next/prev,
+  // the finalize trigger, the gate) reads from here, not from a fixed array.
+  const seq = SEQUENCE[state.intent];
+
+  const buildPayload = (): Record<string, any> => {
+    switch (state.intent) {
+      case 'market': {
+        const mf = state.marketForm;
+        return {
+          intent: 'market',
+          slug: mf.slug,
+          nameEn: mf.nameEn,
+          nameAr: mf.nameAr,
+          host: mf.host || undefined,
+          defaultLocale: mf.defaultLocale,
+          currency: mf.currency,
+          revenueModel: mf.revenueModel,
+          themeAccent: mf.themeAccent,
+          active: mf.active,
+          launchNotes: mf.launchNotes || undefined,
+          // An existing place travels as locationId; otherwise the city row is
+          // created from the slug under the chosen governorate — mirroring the
+          // market form's own rule so the wizard never bypasses it.
+          ...(mf.placeId ? { locationId: mf.placeId } : mf.governorateId ? { governorateId: mf.governorateId } : {}),
+          ...(mf.seedContainer && mf.containerNameEn
+            ? { container: { kind: mf.containerKind, nameEn: mf.containerNameEn } }
+            : {}),
+        };
+      }
+      case 'place': {
+        const pf = state.placeForm;
+        return {
+          intent: 'place',
+          marketId: state.market,
+          parentId: pf.parentId,
+          type: pf.type,
+          nameEn: pf.nameEn,
+          nameAr: pf.nameAr || pf.nameEn,
+          slug: pf.slug || undefined,
+        };
+      }
+      case 'development':
+        return {
+          intent: 'development',
           market: state.market,
-          containerKind: state.containerKind,
-          existingDevelopmentId: state.containerKind === 'business' ? (state.existingDevelopmentId || null) : null,
+          name: state.development.nameEn || state.businessName,
+          nameAr: state.development.nameAr,
           location_id: state.locationId || null,
-          development: state.containerKind === 'development'
-            ? { ...state.development, locationId: state.locationId || null }
-            : undefined,
+          // No type_id: a container stands on its own. If one is ever supplied
+          // the server still mints a page business, but the journey omits it.
+          development: {
+            ...state.development,
+            nameEn: state.development.nameEn || state.businessName,
+            nameAr: state.development.nameAr || state.development.nameEn || state.businessName,
+            locationId: state.locationId || null,
+          },
+        };
+      case 'business':
+      default:
+        return {
+          intent: 'business',
+          market: state.market,
+          containerKind: 'business',
+          existingDevelopmentId: state.existingDevelopmentId || null,
+          location_id: state.locationId || null,
           name: state.businessName,
           type_id: state.selectedType,
           vendor_id: state.selectedVendor || null,
@@ -218,16 +368,41 @@ function OrchestratorContent() {
           custom_data: state.businessData,
           subscription_tier: 'free',
           url_style: 'market',
-          status: 'pending'
-        })
+          status: 'pending',
+        };
+    }
+  };
+
+  const handleFinalize = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/jana/orchestrator/provision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
       });
       const created = await res.json().catch(() => ({}));
       if (res.ok) {
-        const bizId = created?.business?.id || created?.id || '';
-        const devId = created?.development?.id || '';
         localStorage.removeItem(STORAGE_KEY);
-        setState(prev => ({ ...prev, step: 'DEPLOYMENT', createdBizId: bizId, createdDevId: devId || undefined }));
-        notify(state.containerKind === 'development' ? 'Development & Page Synthesized' : 'Entity Synthesized Successfully', 'success');
+        setState(prev => ({
+          ...prev,
+          step: 'DEPLOYMENT',
+          createdBizId: created?.business?.id || created?.id || undefined,
+          createdDevId: created?.development?.id || undefined,
+          createdDevSlug: created?.development?.slug || undefined,
+          createdMarketSlug: created?.market?.slug || undefined,
+          createdLocationPath: created?.location?.path || undefined,
+        }));
+        notify(
+          state.intent === 'market'
+            ? 'Market launched'
+            : state.intent === 'place'
+              ? 'Place added to the geography'
+              : state.intent === 'development'
+                ? 'Development created'
+                : 'Entity synthesized',
+          'success'
+        );
       } else {
         notify(created?.error || 'Orchestration Failed', 'error');
       }
@@ -238,14 +413,18 @@ function OrchestratorContent() {
   };
 
   const nextStep = () => {
-    if (state.step === 'AUTHORITY') return handleFinalize();
-    const idx = STEPS.indexOf(state.step);
-    if (idx < STEPS.length - 1) updateState({ step: STEPS[idx + 1] });
+    const idx = seq.indexOf(state.step);
+    if (idx === -1) return;
+    const next = seq[idx + 1];
+    // Reaching the terminal step runs the write, which flips us to DEPLOYMENT.
+    if (next === 'DEPLOYMENT') return handleFinalize();
+    if (next) updateState({ step: next });
   };
 
   const prevStep = () => {
-    const idx = STEPS.indexOf(state.step);
-    if (idx > 0) updateState({ step: STEPS[idx - 1] });
+    const idx = seq.indexOf(state.step);
+    if (idx > 0) updateState({ step: seq[idx - 1] });
+    else if (idx === 0) updateState({ step: 'INTENT' });
   };
 
   if (loading) return <div className="loader-screen">ORCHESTRATING...</div>;
@@ -259,6 +438,24 @@ function OrchestratorContent() {
   const childTypologies = state.selectedParent ? typologies.filter(t => t.parent_id === state.selectedParent) : [];
   const selectedMarketName = String(markets.find(m => String(m.slug ?? m.id) === state.market)?.nameEn || state.market);
 
+  // The gate that governs the PROCEED button, per step and per journey. A step
+  // that is not required by the active intent simply never appears, so its rule
+  // is unreachable — a development, for example, is never blocked on a typology.
+  const isFinalAction = seq[seq.indexOf(state.step) + 1] === 'DEPLOYMENT';
+  const mf = state.marketForm;
+  const pf = state.placeForm;
+  const canProceed: boolean = (() => {
+    switch (state.step) {
+      case 'MARKET': return Boolean(state.market);
+      case 'MARKET_IDENTITY': return Boolean(mf.slug && mf.nameEn && mf.nameAr && (mf.placeId || mf.governorateId));
+      case 'GEOGRAPHY': return Boolean(pf.parentId && pf.nameEn);
+      case 'STRUCTURE': return state.intent === 'development' ? Boolean(state.development.nameEn) : true;
+      case 'ARCHITECTURE': return Boolean(state.selectedType);
+      case 'DNA_CONFIG': return Boolean(state.businessName);
+      default: return true;
+    }
+  })();
+
   return (
     <div className="orchestrator-container">
       <div className="bg-glow"></div>
@@ -271,15 +468,15 @@ function OrchestratorContent() {
            <p className="subtitle">Architect and deploy high-fidelity entities into the Siwa Oasis registry.</p>
         </header>
 
-        {/* Progress Tracker */}
+        {/* Progress Tracker — reflects the active journey's compiled steps. */}
         <div className="progress-tracker">
-           {STEPS.map((s, i) => {
+           {[('INTENT' as Step), ...seq].map((s, i) => {
              const active = state.step === s;
-             const passed = STEPS.indexOf(state.step) > i;
+             const passed = [('INTENT' as Step), ...seq].indexOf(state.step) > i;
              return (
                <div key={s} className="progress-step">
                  <div className={`progress-bar ${active || passed ? 'active' : ''}`}></div>
-                 <div className={`progress-label ${active ? 'active-text' : passed ? 'passed-text' : ''}`}>{s.replace('_', ' ')}</div>
+                 <div className={`progress-label ${active ? 'active-text' : passed ? 'passed-text' : ''}`}>{s.replace(/_/g, ' ')}</div>
                </div>
              );
            })}
@@ -287,11 +484,184 @@ function OrchestratorContent() {
 
         {/* Active Phase Glass Card */}
         <div className="glass-card animate-in">
-          
-          {/* STEP 0: MARKET — every entity is filed inside one market first.
-              Without this the write defaulted to Siwa, so an El Alamein compound
-              landed in the wrong registry. Dark markets are selectable here on
-              purpose: the desk can author a market before its public door opens. */}
+
+          {/* STEP 0: INTENT — the admin declares what they are initiating, and
+              the wizard compiles a different journey for each. This replaces the
+              old forced-linear flow that made every task drag through a typology. */}
+          {state.step === 'INTENT' && (
+            <div className="phase-content">
+              <div className="phase-header">
+                <h2>What Are You Initiating?</h2>
+              </div>
+              <p style={{ opacity: 0.6, marginBottom: '2rem', fontSize: '0.9rem' }}>
+                Each choice opens its own guided path. A market, a place, a project, or a listing —
+                the steps adapt, and every object stays filed inside the market you choose.
+              </p>
+              <div className="grid-selection">
+                {INTENT_META.map(it => (
+                  <button
+                    key={it.id}
+                    onClick={() => {
+                      const firstStep = it.id === 'market' ? 'MARKET_IDENTITY' : it.id === 'place' ? 'MARKET' : 'MARKET';
+                      updateState({ intent: it.id, step: firstStep });
+                    }}
+                    className={`selection-card ${state.intent === it.id ? 'selected' : ''}`}
+                  >
+                    <i className={`fas ${it.icon} icon`}></i>
+                    <div className="name">{it.name}</div>
+                    <div className="tag">{it.tag}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* MARKET_IDENTITY — launch a brand-new market. Reuses the market form's
+              contract: pick a governorate and the city row is created from the slug
+              on the server. Stays DARK until you flip the publication gate. */}
+          {state.step === 'MARKET_IDENTITY' && (
+            <div className="phase-content">
+              <div className="phase-header">
+                <h2>Launch a New Market</h2>
+              </div>
+              <p style={{ opacity: 0.6, marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                A market is a city or destination — Al Alamein, Hurghada. It creates its own place
+                row from the governorate you pick, and can seed a first project in the same pass.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                <div className="form-group">
+                  <label style={fieldLabel}>URL SEGMENT (SLUG) *</label>
+                  <input value={state.marketForm.slug} placeholder="hurghada"
+                    onChange={e => updateMarketForm({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                    style={fieldInput} />
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>NAME (ENGLISH) *</label>
+                  <input value={state.marketForm.nameEn} placeholder="Hurghada"
+                    onChange={e => updateMarketForm({ nameEn: e.target.value })} style={fieldInput} />
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>NAME (ARABIC) *</label>
+                  <input value={state.marketForm.nameAr} placeholder="الغردقة"
+                    onChange={e => updateMarketForm({ nameAr: e.target.value })} style={fieldInput} />
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>GOVERNORATE *</label>
+                  <select value={state.marketForm.governorateId}
+                    onChange={e => updateMarketForm({ governorateId: e.target.value, placeId: '' })} style={fieldInput}>
+                    <option value="">— select a governorate —</option>
+                    {governorates.map((g: any) => (
+                      <option key={g.id} value={g.id}>{g.nameEn} · {g.nameAr}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>REVENUE MODEL</label>
+                  <select value={state.marketForm.revenueModel}
+                    onChange={e => updateMarketForm({ revenueModel: e.target.value })} style={fieldInput}>
+                    {REVENUE_MODELS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>DEFAULT LOCALE</label>
+                  <select value={state.marketForm.defaultLocale}
+                    onChange={e => updateMarketForm({ defaultLocale: e.target.value })} style={fieldInput}>
+                    <option value="ar">Arabic (ar)</option>
+                    <option value="en">English (en)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>PUBLICATION</label>
+                  <select value={state.marketForm.active ? 'live' : 'dark'}
+                    onChange={e => updateMarketForm({ active: e.target.value === 'live' })} style={fieldInput}>
+                    <option value="dark">DARK — rows only, /{state.marketForm.slug || 'slug'} answers 404</option>
+                    <option value="live">LIVE — front door opens, indexable</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>SEED FIRST PROJECT (OPTIONAL)</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#0f172a', padding: '0.5rem 0' }}>
+                    <input type="checkbox" checked={state.marketForm.seedContainer}
+                      onChange={e => updateMarketForm({ seedContainer: e.target.checked })} />
+                    Create a first development in this market
+                  </label>
+                </div>
+                {state.marketForm.seedContainer && (
+                  <>
+                    <div className="form-group">
+                      <label style={fieldLabel}>PROJECT KIND</label>
+                      <select value={state.marketForm.containerKind}
+                        onChange={e => updateMarketForm({ containerKind: e.target.value })} style={fieldInput}>
+                        {DEVELOPMENT_KINDS.map(k => <option key={k} value={k}>{k.toUpperCase()}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label style={fieldLabel}>PROJECT NAME (EN)</label>
+                      <input value={state.marketForm.containerNameEn} placeholder="Marina View"
+                        onChange={e => updateMarketForm({ containerNameEn: e.target.value })} style={fieldInput} />
+                    </div>
+                  </>
+                )}
+              </div>
+              {governorates.length === 0 && (
+                <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#b45309' }}>
+                  No governorate rows yet — run the geography seed before launching a market.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* GEOGRAPHY — add a place / zone / village under an existing parent. */}
+          {state.step === 'GEOGRAPHY' && (
+            <div className="phase-content">
+              <div className="phase-header">
+                <h2>Add a Place / Zone</h2>
+                <span className="tag" style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>
+                  Inside: {selectedMarketName}
+                </span>
+              </div>
+              <p style={{ opacity: 0.6, marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                A geography row (district, area, town, village) that renders a zone page listing
+                everything filed there. It hangs under a parent already in the tree.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                <div className="form-group">
+                  <label style={fieldLabel}>PARENT *</label>
+                  <select value={state.placeForm.parentId}
+                    onChange={e => updatePlaceForm({ parentId: e.target.value })} style={fieldInput}>
+                    <option value="">— select a parent —</option>
+                    {geoOptions.map((o: any) => (
+                      <option key={o.id} value={o.id}>{'— '.repeat(Math.max(0, o.depth))}{o.label} ({o.type})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>TYPE</label>
+                  <select value={state.placeForm.type}
+                    onChange={e => updatePlaceForm({ type: e.target.value })} style={fieldInput}>
+                    {PLACE_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>NAME (ENGLISH) *</label>
+                  <input value={state.placeForm.nameEn} placeholder="El Hammam"
+                    onChange={e => updatePlaceForm({ nameEn: e.target.value })} style={fieldInput} />
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>NAME (ARABIC)</label>
+                  <input value={state.placeForm.nameAr} placeholder="الحمّام"
+                    onChange={e => updatePlaceForm({ nameAr: e.target.value })} style={fieldInput} />
+                </div>
+                <div className="form-group">
+                  <label style={fieldLabel}>SLUG (OPTIONAL)</label>
+                  <input value={state.placeForm.slug} placeholder="derived from name"
+                    onChange={e => updatePlaceForm({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} style={fieldInput} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP: MARKET — every entity is filed inside one market first. */}
           {state.step === 'MARKET' && (
             <div className="phase-content">
               <div className="phase-header">
@@ -326,34 +696,17 @@ function OrchestratorContent() {
             </div>
           )}
 
-          {/* STEP 2: STRUCTURE — is this a single listing, or a container
-              (compound / town / resort) that other listings live inside? This is
-              the four-object model: a development is its own row, not a business. */}
+          {/* STEP: STRUCTURE — the shape of what is being created. For a
+              business journey it decides which container the listing files inside;
+              for a development journey it collects the container itself, with NO
+              typology step, because a compound is not a business category. */}
           {state.step === 'STRUCTURE' && (
             <div className="phase-content">
               <div className="phase-header">
-                <h2>What Are You Setting Up?</h2>
-              </div>
-              <div className="grid-selection">
-                <button
-                  onClick={() => updateState({ containerKind: 'business' })}
-                  className={`selection-card ${state.containerKind === 'business' ? 'selected' : ''}`}
-                >
-                  <i className="fas fa-store icon"></i>
-                  <div className="name">Single Listing</div>
-                  <div className="tag">A SHOP, HOTEL OR SERVICE</div>
-                </button>
-                <button
-                  onClick={() => updateState({ containerKind: 'development' })}
-                  className={`selection-card ${state.containerKind === 'development' ? 'selected' : ''}`}
-                >
-                  <i className="fas fa-building flag icon" style={{ color: '#0F4C81' }}></i>
-                  <div className="name">Development / Compound</div>
-                  <div className="tag">A PROJECT THAT HOLDS LISTINGS &amp; UNITS</div>
-                </button>
+                <h2>{state.intent === 'development' ? 'Define the Development' : 'Where Does It Live?'}</h2>
               </div>
 
-              <div style={{ marginTop: '2rem' }} className="dna-form-wrapper">
+              <div style={{ marginTop: '0' }} className="dna-form-wrapper">
                 <div className="form-group main-name-input" style={{ marginBottom: '1.5rem' }}>
                   <label>PLACE (OPTIONAL)</label>
                   <select
@@ -368,22 +721,16 @@ function OrchestratorContent() {
                   </select>
                 </div>
 
-                {state.containerKind === 'business' ? (
-                  <div className="form-group main-name-input" style={{ marginBottom: 0 }}>
-                    <label>FILE INSIDE AN EXISTING PROJECT (OPTIONAL)</label>
-                    <select
-                      value={state.existingDevelopmentId}
-                      onChange={e => updateState({ existingDevelopmentId: e.target.value })}
-                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', color: '#0f172a', background: '#fff' }}
-                    >
-                      <option value="">Standalone — not inside a project</option>
-                      {marketCompounds.map(c => (
-                        <option key={c.id} value={c.id}>{c.nameEn || c.nameAr} ({c.kind})</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
+                {state.intent === 'development' ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label style={fieldLabel}>PROJECT NAME (EN) *</label>
+                      <input type="text" value={state.development.nameEn} onChange={e => updateDevelopment({ nameEn: e.target.value })} placeholder="e.g. Marassi Elmilaha" style={fieldInput} />
+                    </div>
+                    <div className="form-group">
+                      <label style={fieldLabel}>PROJECT NAME (AR)</label>
+                      <input type="text" value={state.development.nameAr} onChange={e => updateDevelopment({ nameAr: e.target.value })} placeholder="مراسي" style={fieldInput} />
+                    </div>
                     <div className="form-group">
                       <label style={fieldLabel}>CONTAINER KIND</label>
                       <select value={state.development.kind} onChange={e => updateDevelopment({ kind: e.target.value })} style={fieldInput}>
@@ -405,8 +752,22 @@ function OrchestratorContent() {
                       <input type="number" inputMode="numeric" value={state.development.deliveryYear} onChange={e => updateDevelopment({ deliveryYear: e.target.value })} placeholder="2028" style={fieldInput} />
                     </div>
                     <p style={{ gridColumn: '1 / -1', fontSize: '0.75rem', color: '#94a3b8', margin: '0.25rem 0 0' }}>
-                      The project's name and Arabic name are taken from the entity name you set on the next steps. Inventory (units) is added afterwards in the vendor inventory desk.
+                      Naming a developer creates the brand row automatically, so its portfolio page exists from this project. Inventory (units) is added later in the vendor inventory desk.
                     </p>
+                  </div>
+                ) : (
+                  <div className="form-group main-name-input" style={{ marginBottom: 0 }}>
+                    <label>FILE INSIDE AN EXISTING PROJECT (OPTIONAL)</label>
+                    <select
+                      value={state.existingDevelopmentId}
+                      onChange={e => updateState({ existingDevelopmentId: e.target.value })}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', color: '#0f172a', background: '#fff' }}
+                    >
+                      <option value="">Standalone — not inside a project</option>
+                      {marketCompounds.map(c => (
+                        <option key={c.id} value={c.id}>{c.nameEn || c.nameAr} ({c.kind})</option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>
@@ -575,16 +936,64 @@ function OrchestratorContent() {
             </div>
           )}
 
-          {/* STEP 5: DEPLOYMENT (SUCCESS) */}
+          {/* STEP: DEPLOYMENT (SUCCESS) — a per-journey summary of what now
+              exists and how it interconnects, then the listing-specific minisite
+              chooser only for the business journey. */}
           {state.step === 'DEPLOYMENT' && (
              <div className="success-content">
                 <div className="check-ring">
                   <i className="fas fa-check"></i>
                 </div>
-                <h2>Entity Registered &amp; Ready</h2>
-                <p>The business entity has been created in the database. Choose how to architect its public minisite below.</p>
+                <h2>
+                  {state.intent === 'market' ? 'Market Launched'
+                    : state.intent === 'place' ? 'Place Added'
+                    : state.intent === 'development' ? 'Development Created'
+                    : 'Entity Registered & Ready'}
+                </h2>
 
-                {/* Minisite Architecture Choice — Only for NEW businesses */}
+                {/* The relationship band: where the object landed and the links it
+                    now shares with the rest of the platform. */}
+                <div style={{ margin: '1.5rem auto 0', maxWidth: 720, textAlign: 'left', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 16, padding: '1.25rem 1.4rem' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#d97706', letterSpacing: '2px', marginBottom: '0.75rem' }}>
+                    HOW IT CONNECTS
+                  </div>
+                  {state.intent === 'market' && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
+                      <strong>{state.marketForm.nameEn || state.createdMarketSlug}</strong> now owns its own place row and URL namespace
+                      at <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 6 }}>siwify.com/{state.createdMarketSlug}</code>.
+                      {state.marketForm.active
+                        ? ' It is LIVE and indexable.'
+                        : ' It is DARK — pages answer 404 until you open the publication gate on the markets screen.'}
+                      {state.createdDevSlug ? ` Its first project is live at /${state.createdMarketSlug}/${state.createdDevSlug}.` : ''}
+                    </p>
+                  )}
+                  {state.intent === 'place' && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
+                      A new geography row was filed under <strong>{selectedMarketName}</strong> at path
+                      <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 6, margin: '0 4px' }}>{state.createdLocationPath}</code>
+                      , rendering a zone page that lists everything filed inside it.
+                    </p>
+                  )}
+                  {state.intent === 'development' && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
+                      <strong>{state.development.nameEn || state.businessName}</strong> is a container in
+                      <strong> {selectedMarketName}</strong> at <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 6, margin: '0 4px' }}>/{state.market}/{state.createdDevSlug}</code>.
+                      {state.development.developerName
+                        ? ` The developer “${state.development.developerName}” brand and its portfolio page were created and cross-linked automatically.`
+                        : ' Listings can now be filed inside it from the business journey.'}
+                    </p>
+                  )}
+                  {state.intent === 'business' && (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
+                      The entity was created inside <strong>{selectedMarketName}</strong>
+                      {state.existingDevelopmentId ? ' and filed within its chosen project' : ''}
+                      {state.selectedVendor ? ', owned by the assigned vendor' : ', internally managed'}.
+                    </p>
+                  )}
+                </div>
+
+                {/* Minisite Architecture Choice — only meaningful for a NEW listing. */}
+                {state.intent === 'business' && (
                 <div style={{ margin: '2rem auto', maxWidth: 720, textAlign: 'left' }}>
                   <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#d97706', letterSpacing: '3px', marginBottom: '1.25rem', textAlign: 'center' }}>
                     CHOOSE MINISITE ARCHITECTURE FOR THIS NEW ENTITY
@@ -665,31 +1074,34 @@ function OrchestratorContent() {
                     You can always switch later. Existing sectional minisites are never affected — builder is only activated when you explicitly open the Builder Studio for a business.
                   </p>
                 </div>
+                )}
 
-                <div style={{ marginTop: '1rem' }}>
-                  <Link href="/jana/businesses" className="btn-outline">VIEW ALL IN REGISTRY</Link>
+                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button className="btn-outline" onClick={() => updateState({ step: 'INTENT', intent: 'business', createdBizId: undefined, createdDevId: undefined, createdDevSlug: undefined, createdMarketSlug: undefined, createdLocationPath: undefined, businessName: '', businessData: {}, selectedType: '', selectedParent: '', existingDevelopmentId: '', locationId: '', selectedVendor: '', minisiteTemplate: '', fields: [], development: { kind: 'compound', nameEn: '', nameAr: '', developerName: '', deliveryYear: '', status: 'announced' }, marketForm: { ...state.marketForm, slug: '', nameEn: '', nameAr: '', governorateId: '', placeId: '', seedContainer: false, containerNameEn: '' }, placeForm: { parentId: '', type: 'district', nameEn: '', nameAr: '', slug: '' } })}>
+                    <i className="fas fa-plus" style={{ marginRight: 6 }} /> INITIATE ANOTHER
+                  </button>
+                  <Link href={state.intent === 'business' ? '/jana/businesses' : '/jana/markets'} className="btn-outline">
+                    {state.intent === 'business' ? 'VIEW ALL IN REGISTRY' : 'OPEN MARKETS DESK'}
+                  </Link>
                 </div>
              </div>
           )}
 
-          {/* Persistent Controls */}
-          {state.step !== 'DEPLOYMENT' && (
+          {/* Persistent Controls — the gate is per step and per journey. The
+              next button fires the write on the last step before DEPLOYMENT. */}
+          {state.step !== 'DEPLOYMENT' && state.step !== 'INTENT' && (
             <div className="wizard-controls">
-              <button onClick={prevStep} className="btn-ghost" disabled={state.step === 'MARKET'}>
+              <button onClick={prevStep} className="btn-ghost">
                 <i className="fas fa-chevron-left"></i> PREVIOUS
               </button>
-              
-              <button 
+
+              <button
                 onClick={nextStep}
                 className="btn-premium next-btn"
-                disabled={
-                  (state.step === 'MARKET' && !state.market) ||
-                  (state.step === 'ARCHITECTURE' && !state.selectedType) ||
-                  (state.step === 'DNA_CONFIG' && !state.businessName)
-                }
+                disabled={!canProceed}
               >
-                {state.step === 'AUTHORITY' ? 'SYNTHESIZE & DEPLOY' : 'PROCEED'} 
-                <i className={state.step === 'AUTHORITY' ? "fas fa-rocket" : "fas fa-chevron-right"}></i>
+                {isFinalAction ? 'SYNTHESIZE & DEPLOY' : 'PROCEED'}
+                <i className={isFinalAction ? "fas fa-rocket" : "fas fa-chevron-right"}></i>
               </button>
             </div>
           )}
