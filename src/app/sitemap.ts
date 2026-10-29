@@ -9,27 +9,26 @@ const BASE = 'https://siwify.com';
 
 /**
  * Routes are listed per language with matching hreflang alternates, so Google
- * treats /ar/siwa-stay and /siwa-stay as translations of one page instead of
- * two pages competing for the same query.
+ * treats /siwa-stay (Arabic) and /en/siwa-stay (English) as translations of one
+ * page instead of two pages competing for the same query. Arabic owns the bare
+ * address; English carries the /en prefix; x-default points at Arabic.
  *
- * Only pages that are actually translated get an Arabic twin. The homepage and
- * /categories are still English-only, so listing them as Arabic would be a lie
- * that the crawl would immediately expose.
+ * Only pages that are actually translated get an English twin.
  */
-function withArabic(
+function withLocales(
   path: string,
   changeFrequency: 'daily' | 'weekly' | 'monthly',
   priority: number,
   lastModified: Date,
-  lastModifiedAr: Date = lastModified
+  lastModifiedEn: Date = lastModified
 ): MetadataRoute.Sitemap {
-  const en = `${BASE}${path}`;
-  const ar = `${BASE}/ar${path}`;
-  const languages = { en, ar, 'x-default': en };
+  const ar = path === '/' ? BASE : `${BASE}${path}`;
+  const en = path === '/' ? `${BASE}/en` : `${BASE}/en${path}`;
+  const languages = { ar, en, 'x-default': ar };
 
   return [
-    { url: en, lastModified, changeFrequency, priority, alternates: { languages } },
-    { url: ar, lastModified: lastModifiedAr, changeFrequency, priority, alternates: { languages } },
+    { url: ar, lastModified, changeFrequency, priority, alternates: { languages } },
+    { url: en, lastModified: lastModifiedEn, changeFrequency, priority, alternates: { languages } },
   ];
 }
 
@@ -43,19 +42,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // here too. They now 308 to the market's category doors, and a sitemap must
   // advertise destinations, not redirects — the market route below covers them.
   const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: BASE,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 1.0,
-    },
-    {
-      url: `${BASE}/categories`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-    ...withArabic('/be-a-partner', 'monthly', 0.6, now),
+    ...withLocales('/', 'daily', 1.0, now),
+    ...withLocales('/categories', 'daily', 0.9, now),
+    ...withLocales('/be-a-partner', 'monthly', 0.6, now),
   ];
 
   try {
@@ -63,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // answers 404 has no business in a sitemap.
     const markets = await listMarkets({ activeOnly: true });
     const marketRoutes: MetadataRoute.Sitemap = markets.flatMap((market) =>
-      withArabic(`/${market.slug}`, 'daily', 0.8, now)
+      withLocales(`/${market.slug}`, 'daily', 0.8, now)
     );
 
     // `market_id` arrives with the markets migration. Until it is applied the
@@ -78,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       );
     }
     const businessRoutes: MetadataRoute.Sitemap = (businesses || []).flatMap((b: any) =>
-      withArabic(
+      withLocales(
         // Each listing is listed at the address it answers at: the short form,
         // or the form inside its market. Listing both would be asking a crawler
         // to index a page that only exists to point at another one.

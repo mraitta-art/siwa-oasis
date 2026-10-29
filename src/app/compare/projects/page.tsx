@@ -11,10 +11,10 @@ import InstallmentCalculator from '@/components/development/InstallmentCalculato
  * Compare property projects side by side.
  *
  * One route serves both languages — middleware negotiates the locale into an
- * `x-siwa-locale` header, and the ids live in the query, so `/ar/compare/projects`
- * and `/compare/projects?ids=…` are the same page. It is rendered server-side so
- * the numbers are in the HTML, and marked noindex: a saved combination of ids is
- * a private shortlist, not a page worth crawling.
+ * `x-siwa-locale` header, and the ids live in the query, so `/en/compare/projects`
+ * and `/compare/projects?ids=…` are the same page (the bare path is Arabic). It is
+ * rendered server-side so the numbers are in the HTML, and marked noindex: a saved
+ * combination of ids is a private shortlist, not a page worth crawling.
  */
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,7 @@ const HEAD = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const ar = (await pathLocale()) === 'ar';
+  const ar = (await pathLocale()) !== 'en';
   const h = HEAD[ar ? 'ar' : 'en'];
   return {
     title: `${h.title} | Siwify`,
@@ -52,7 +52,7 @@ export default async function CompareProjectsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
-  const ar = (await pathLocale()) === 'ar';
+  const ar = (await pathLocale()) !== 'en';
   const h = HEAD[ar ? 'ar' : 'en'];
 
   const rawIds = typeof sp.ids === 'string' ? sp.ids : Array.isArray(sp.ids) ? sp.ids.join(',') : '';
@@ -87,7 +87,7 @@ export default async function CompareProjectsPage({
         <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900 }}>{h.title}</h1>
         <p style={{ margin: '0.6rem 0 0', color: '#64748B', fontSize: '0.95rem', lineHeight: 1.7 }}>{h.lede}</p>
         <Link
-          href={`${ar ? '/ar' : ''}/compare/markets`}
+          href={`${ar ? '' : '/en'}/compare/markets`}
           style={{ display: 'inline-block', marginTop: '0.7rem', fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
         >
           {h.markets} →

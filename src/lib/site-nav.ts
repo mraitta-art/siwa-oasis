@@ -38,7 +38,7 @@ export interface NavContext {
 export const NAV_TOKENS = ['{{markets}}', '{{market}}', '{{categories}}'] as const;
 
 function localized(locale: SiteLocale, path: string): string {
-  return locale === 'ar' ? `/ar${path}` : path;
+  return locale === 'en' ? `/en${path}` : path;
 }
 
 function marketPath(locale: SiteLocale, slug: string): string {

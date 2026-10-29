@@ -52,6 +52,17 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'text_section',          name: 'Custom Text Section',     icon: '✍️', manager: null,                  color: '#0ea5e9', desc: 'Admin-written heading and page copy' },
   { zone: 'body',   key: 'cta_section',           name: 'Custom Call to Action',   icon: '📣', manager: null,                  color: '#f97316', desc: 'Editable message and action button' },
 
+  // ── Marketplace front door — the live market blocks (data resolved per market) ──
+  { zone: 'body',   key: 'egypt_hero',            name: 'Egypt Hero',              icon: '🇪🇬', manager: null,                  color: '#0F172A', desc: 'National front door: “Egypt’s marketplace for properties & tourism” headline with browse/list CTAs' },
+  { zone: 'body',   key: 'egypt_destinations',    name: 'Egypt Destinations',      icon: '🗺️', manager: null,                  color: '#0ea5e9', desc: 'Cards for every market across Egypt — live doors link in, seeded ones show “Coming soon”' },
+  { zone: 'body',   key: 'market_hero',           name: 'Market Hero',             icon: '🏞️', manager: null,                  color: '#0F172A', desc: 'The market headline: name, blurb, live counts and browse/list CTAs' },
+  { zone: 'body',   key: 'markets_showcase',      name: 'Other Markets',           icon: '🌍', manager: null,                  color: '#0ea5e9', desc: 'Cards for the other active markets (hidden with a single market)' },
+  { zone: 'body',   key: 'market_categories',     name: 'Browse by Category',      icon: '🗂️', manager: null,                  color: '#8b5cf6', desc: 'Category doors built from live supply, with listing counts' },
+  { zone: 'body',   key: 'services_categories',   name: 'Our Services Grid',       icon: '🛎️', manager: null,                  color: '#0ea5e9', desc: 'Prominent category tiles with icons and live counts — let visitors browse your services' },
+  { zone: 'body',   key: 'market_listings',       name: 'Newest Listings',         icon: '🆕', manager: null,                  color: '#287a55', desc: 'The newest businesses published in this market' },
+  { zone: 'body',   key: 'featured_developers',   name: 'Featured Developers',     icon: '🏗️', manager: null,                  color: '#b45309', desc: 'Developers building here, linking to their portfolio' },
+  { zone: 'body',   key: 'how_it_works',          name: 'How It Works',            icon: '🪜', manager: null,                  color: '#6366f1', desc: 'Three-step explainer for visitors and owners' },
+
   // ── Footer zone ──
   { zone: 'footer', key: 'partner_cta',    name: 'Partner CTA (Footer)',     icon: '🤝', manager: null,                  color: '#ef4444', desc: 'Footer partnership call-to-action' },
   { zone: 'footer', key: 'blog',           name: 'Recent Articles (Footer)', icon: '📰', manager: '/jana/blog',           color: '#8b5cf6', desc: 'Blog posts in footer area' },

@@ -3,18 +3,25 @@ import { headers } from 'next/headers';
 /**
  * Site locale for public pages.
  *
- * Arabic used to be an invisible `?lang=ar` parameter, so no search engine ever
- * saw a second-language URL. Middleware now rewrites `/ar/...` and `/en/...` to
- * the canonical route and passes the locale in a request header, which keeps
- * one route tree while giving every language a real, linkable, crawlable address.
+ * Arabic is the language of the market, so it owns the bare address: `/`,
+ * `/siwa`, `/categories` are Arabic. English is the explicit alternate and
+ * lives under `/en/...`. The legacy `/ar/...` prefix is retired and 308-redirects
+ * to the bare path, so every Arabic URL already indexed survives the move.
+ *
+ * Middleware rewrites `/en/...` to the canonical route and passes the locale in
+ * a request header, which keeps one route tree while giving every language a
+ * real, linkable, crawlable address.
  *
  * Only the path decides the language. `Accept-Language` deliberately does not:
  * public HTML is now served from a CDN cache keyed by URL, so a response that
  * changed per visitor would be handed to the next one.
  */
-export type SiteLocale = 'en' | 'ar';
+export type SiteLocale = 'ar' | 'en';
 
-export const SITE_LOCALES: SiteLocale[] = ['en', 'ar'];
+export const SITE_LOCALES: SiteLocale[] = ['ar', 'en'];
+
+/** The language a URL with no prefix speaks. */
+export const DEFAULT_LOCALE: SiteLocale = 'ar';
 
 /**
  * Which language the URL itself declares, or null when it declares none.
@@ -33,14 +40,16 @@ export async function pathLocale(): Promise<SiteLocale | null> {
 
 export function localeUrl(base: string, locale: SiteLocale, path: string): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
-  return locale === 'ar' ? `${base}/ar${clean}` : `${base}${clean}`;
+  // Arabic is the bare path; English carries the /en prefix.
+  return locale === 'en' ? `${base}/en${clean}` : `${base}${clean}`;
 }
 
 /** hreflang cluster for a page that exists in both languages. */
 export function languageAlternates(base: string, path: string) {
   return {
-    en: localeUrl(base, 'en', path),
     ar: localeUrl(base, 'ar', path),
-    'x-default': localeUrl(base, 'en', path),
+    en: localeUrl(base, 'en', path),
+    // Egypt-first: the default destination is the Arabic (bare) address.
+    'x-default': localeUrl(base, 'ar', path),
   };
 }

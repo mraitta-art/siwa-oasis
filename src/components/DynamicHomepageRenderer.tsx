@@ -22,6 +22,16 @@ import AccommodationExplorer from '@/components/AccommodationExplorer';
 import AuctionsShowcase from '@/components/AuctionsShowcase';
 
 import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
+import MarketHero from '@/components/home/MarketHero';
+import EgyptHero from '@/components/home/EgyptHero';
+import EgyptDestinations from '@/components/home/EgyptDestinations';
+import MarketsShowcase from '@/components/home/MarketsShowcase';
+import MarketCategories from '@/components/home/MarketCategories';
+import MarketListings from '@/components/home/MarketListings';
+import FeaturedDevelopers from '@/components/home/FeaturedDevelopers';
+import MarketHowItWorks from '@/components/home/MarketHowItWorks';
+import ServicesGrid from '@/components/home/ServicesGrid';
+import type { HomeData } from '@/lib/home-data';
 import Link from 'next/link';
 import { validateComponentProps } from '@/lib/component-contracts';
 import { sitePathFromPageId } from '@/lib/site-blog-paths';
@@ -94,14 +104,41 @@ interface SectionProps {
   pageId?: string;
   pagePath?: string;
   sectorDirectoryTopContent?: React.ReactNode;
+  homeData?: HomeData;
 }
 
 
-const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDirectoryTopContent }: SectionProps) => {
+const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDirectoryTopContent, homeData }: SectionProps) => {
   // Guard: skip sections with null/undefined type
   if (!type || typeof type !== 'string') return null;
 
   props = validateComponentProps(type, props);
+
+  // ─── MARKETPLACE FRONT DOOR ────────────────────────────
+  // These blocks render the live market (hero, other markets, category doors,
+  // newest listings, developers, how-it-works). They read homeData resolved
+  // server-side, so they are only meaningful on the home page; without it they
+  // stay silent rather than crash on another pageId.
+  switch (type) {
+    case 'market_hero':
+      return homeData ? <MarketHero data={homeData} props={props} /> : null;
+    case 'egypt_hero':
+      return homeData ? <EgyptHero data={homeData} props={props} /> : null;
+    case 'egypt_destinations':
+      return homeData ? <AnimatedSection><EgyptDestinations data={homeData} props={props} /></AnimatedSection> : null;
+    case 'markets_showcase':
+      return homeData ? <MarketsShowcase data={homeData} props={props} /> : null;
+    case 'market_categories':
+      return homeData ? <AnimatedSection><MarketCategories data={homeData} props={props} /></AnimatedSection> : null;
+    case 'market_listings':
+      return homeData ? <AnimatedSection><MarketListings data={homeData} props={props} /></AnimatedSection> : null;
+    case 'featured_developers':
+      return homeData ? <AnimatedSection><FeaturedDevelopers data={homeData} props={props} /></AnimatedSection> : null;
+    case 'services_categories':
+      return homeData ? <AnimatedSection><ServicesGrid data={homeData} props={props} /></AnimatedSection> : null;
+    case 'how_it_works':
+      return homeData ? <AnimatedSection><MarketHowItWorks data={homeData} props={props} /></AnimatedSection> : null;
+  }
   const responsiveSectionStyle = {
     paddingTop: `clamp(${Number(props?.padding_mobile || 32)}px, 6vw, ${Number(props?.padding_desktop || 72)}px)`,
     paddingBottom: `clamp(${Number(props?.padding_mobile || 32)}px, 6vw, ${Number(props?.padding_desktop || 72)}px)`,
@@ -158,7 +195,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDi
     case 'category_hero': {
       const cat = props?.category || (pageId === 'accommodations' ? 'accommodation' : pageId === 'transportation' ? 'transportation' : pageId === 'activities' ? 'activity' : pageId === 'food-beverage' ? 'food' : pageId || 'accommodation');
       const label = props?.label || (pageId ? pageId.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Category');
-      const title = props?.title || `Find the perfect ${label} in Siwa`;
+      const title = props?.title || `Find the perfect ${label} in Egypt`;
       const accent = props?.accent || '#D4AF37';
       return (
         <CategoryPageHero category={cat} label={label} title={title} accent={accent} />
@@ -276,7 +313,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDi
         <AnimatedSection>
           <section style={{ background: 'var(--bg-alt)', padding: '6rem 2rem', textAlign: 'center' }}>
             <h2 style={{ color: 'var(--text)', fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>{props?.title || 'Verified Businesses'}</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '3rem' }}>{props?.subtitle || 'The Gold Standard of Siwa Oasis Experiences.'}</p>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '3rem' }}>{props?.subtitle || 'Verified businesses and services across Egypt.'}</p>
             <Link href={props?.buttonLink || '/search/vibe'} style={{ display: 'inline-block', padding: '1rem 2.5rem', background: 'var(--gold)', color: 'var(--dark)', textDecoration: 'none', borderRadius: '50px', fontWeight: 900 }}>{props?.buttonText || 'EXPLORE THE COLLECTION'}</Link>
           </section>
         </AnimatedSection>
@@ -502,7 +539,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDi
         <AnimatedSection>
           <section style={{ ...responsiveSectionStyle, paddingLeft: 'clamp(1rem, 5vw, 2rem)', paddingRight: 'clamp(1rem, 5vw, 2rem)', background: 'var(--bg-alt)', textAlign: 'center' }}>
             <h2 style={{ color: 'var(--text)', fontSize: 'clamp(1.4rem, 4vw, 2.2rem)', marginBottom: '0.75rem' }}>{props?.title || 'Stay connected'}</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{props?.subtitle || 'Receive the latest Siwa stories and experiences.'}</p>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{props?.subtitle || 'Receive the latest listings and stories from across Egypt.'}</p>
             <form style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', maxWidth: '620px', margin: '0 auto' }}>
               <input type="email" required placeholder={String(props?.placeholder_text || 'Enter your email...')} aria-label="Email address" style={{ flex: '1 1 260px', minWidth: 0, padding: '0.85rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--card)', color: 'var(--text)' }} />
               <button type="submit" style={{ flex: '0 1 auto', padding: '0.85rem 1.25rem', border: 0, borderRadius: '8px', background: 'var(--gold)', color: 'var(--dark)', fontWeight: 800 }}>{props?.button_text || 'Subscribe'}</button>
@@ -515,7 +552,7 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDi
       return (
         <AnimatedSection>
           <section style={{ ...responsiveSectionStyle, paddingLeft: '1rem', paddingRight: '1rem', textAlign: 'center' }}>
-            <h2 style={{ color: 'var(--text)', fontSize: 'clamp(1.4rem, 4vw, 2.2rem)', marginBottom: '1rem' }}>{props?.title || 'Explore Siwa'}</h2>
+            <h2 style={{ color: 'var(--text)', fontSize: 'clamp(1.4rem, 4vw, 2.2rem)', marginBottom: '1rem' }}>{props?.title || 'Explore Egypt'}</h2>
             <Link href={props?.buttonLink || '/search'} style={{ display: 'inline-block', padding: '0.85rem 1.25rem', borderRadius: '8px', background: 'var(--gold)', color: 'var(--dark)', textDecoration: 'none', fontWeight: 800 }}>{props?.buttonText || 'Search listings'}</Link>
           </section>
         </AnimatedSection>
@@ -561,7 +598,7 @@ function logDuplicateSectionIds(layout: any[]) {
 }
 
 // ── Main renderer ─────────────────────────────────────────────────────────────
-export default function DynamicHomepageRenderer({ layout, settings, pageId = 'main', pagePath, sectorDirectoryTopContent }: { layout: any[], settings: any, pageId?: string, pagePath?: string; sectorDirectoryTopContent?: React.ReactNode }) {
+export default function DynamicHomepageRenderer({ layout, settings, pageId = 'main', pagePath, sectorDirectoryTopContent, homeData }: { layout: any[], settings: any, pageId?: string, pagePath?: string; sectorDirectoryTopContent?: React.ReactNode; homeData?: HomeData }) {
   React.useEffect(() => {
     logDuplicateSectionIds(layout);
   }, [layout]);
@@ -585,6 +622,7 @@ export default function DynamicHomepageRenderer({ layout, settings, pageId = 'ma
                   pageId={pageId}
                   pagePath={pagePath}
                   sectorDirectoryTopContent={sectorDirectoryTopContent}
+                  homeData={homeData}
                 />
               </SectionIndexContext.Provider>
             </div>

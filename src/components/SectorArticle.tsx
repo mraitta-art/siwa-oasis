@@ -35,7 +35,7 @@ async function loadSectorBusinesses(slug: SectorHubSlug) {
 export default async function SectorArticle({ slug }: { slug: SectorHubSlug }) {
   const copy = SECTOR_COPY[slug];
   const sector = BRAND_SECTORS[slug];
-  const ar = (await pathLocale()) === 'ar';
+  const ar = (await pathLocale()) !== 'en';
   const text = ar ? copy.ar : copy;
   const base = getPublicAppUrl().replace(/\/$/, '');
   const businesses = await loadSectorBusinesses(slug);

@@ -16,7 +16,7 @@ type SectorSlug = 'siwa-stay' | 'siwa-go' | 'siwa-retreats';
  * the URL for the same reason: one address, one language, no negotiation.
  */
 export async function sectorMetadata(slug: SectorSlug): Promise<Metadata> {
-  const canonicalLocale = (await pathLocale()) ?? 'en';
+  const canonicalLocale = (await pathLocale()) ?? 'ar';
   const ar = canonicalLocale === 'ar';
   const copy = SECTOR_COPY[slug];
   const text = ar ? copy.ar : copy;

@@ -270,8 +270,8 @@ export default function AutomatedMinisiteHero({
           type: 'image',
           mediaUrl: coverUrl,
           title: (businessName || '').toUpperCase(),
-          subtitle: 'SIWA OASIS',
-          caption: 'AUTHENTIC EXPERIENCE',
+          subtitle: 'SIWIFY MARKETPLACE',
+          caption: 'VERIFIED \u00b7 BOOK DIRECT',
           animation: 'kenburns',
         });
       }

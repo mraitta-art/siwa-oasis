@@ -39,7 +39,7 @@ export default async function MarketHome({
   // A dark market has no front door: its rows exist, but nothing is published.
   if (!market || !market.active) notFound();
 
-  const locale = (await pathLocale()) ?? market.defaultLocale;
+  const locale = (await pathLocale()) ?? 'ar';
   const ar = locale === 'ar';
   const accent = accentFor(market);
   const name = marketName(market, locale);
@@ -54,7 +54,7 @@ export default async function MarketHome({
   ]);
 
   const activeCategory = category && categories.some((c) => c.id === category) ? category : null;
-  const base = ar ? `/ar/${market.slug}` : `/${market.slug}`;
+  const base = ar ? `/${market.slug}` : `/en/${market.slug}`;
 
   // A parent category may carry its own blurb (business_types.description).
   // Stubs like "Master lodging category" say nothing, so only copy with a few
@@ -77,7 +77,7 @@ export default async function MarketHome({
     >
       <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0.9rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <Link href={ar ? '/ar' : '/'} style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 900, letterSpacing: '2px' }}>
+          <Link href={ar ? '/' : '/en'} style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 900, letterSpacing: '2px' }}>
             Siwify
           </Link>
           <Link
@@ -181,7 +181,7 @@ export default async function MarketHome({
 
       {/* Brands building here — the market's developers, each opening its
           portfolio. Renders nothing when no compound carries a developer. */}
-      <DeveloperGrid developers={devs} ar={ar} localePrefix={ar ? '/ar' : ''} theme="dark" />
+      <DeveloperGrid developers={devs} ar={ar} localePrefix={ar ? '' : '/en'} theme="dark" />
 
       <section style={{ maxWidth: 1120, margin: '0 auto', padding: '1rem 1.5rem 4rem' }}>
         {categoryBlurb && (

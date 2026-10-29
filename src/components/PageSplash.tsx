@@ -8,7 +8,7 @@ import BrandLoader from '@/components/BrandLoader';
  * loading boundary wraps every public page, React flushes that shell before the
  * page resolves, and `notFound()` can then no longer answer with a 404 status.
  */
-export default function PageSplash({ sublabel = 'Siwa Oasis · Digital Platform' }: { sublabel?: string }) {
+export default function PageSplash({ sublabel = 'Egypt\u2019s Properties & Tourism Marketplace' }: { sublabel?: string }) {
   return (
     <div
       style={{

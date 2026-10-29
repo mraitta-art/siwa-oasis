@@ -13,7 +13,7 @@ import type { SectorHubSlug } from '@/lib/sector-content';
  * document's rtl.
  */
 export default async function SectorHub({ slug }: { slug: SectorHubSlug }) {
-  const ar = (await pathLocale()) === 'ar';
+  const ar = (await pathLocale()) !== 'en';
 
   if (!ar) {
     return (

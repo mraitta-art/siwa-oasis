@@ -101,7 +101,7 @@ export default async function CompoundPage({
   // the categories and the URL stay the same.
   const place = isPlaceKind(compound.kind);
   const t = place ? PLACE_LABEL[ar ? 'ar' : 'en'] : LABEL[ar ? 'ar' : 'en'];
-  const href = (path: string) => (ar ? `/ar${path}` : path);
+  const href = (path: string) => (ar ? path : `/en${path}`);
 
   const [facets, listings, units, pageBusiness, siblingProjects] = await Promise.all([
     getDevelopmentFacets(compound.id),

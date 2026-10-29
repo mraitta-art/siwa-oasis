@@ -59,7 +59,7 @@ export default async function ZonePage({
 }) {
   const ar = lang === 'ar';
   const t = LABEL[ar ? 'ar' : 'en'];
-  const href = (path: string) => (ar ? `/ar${path}` : path);
+  const href = (path: string) => (ar ? path : `/en${path}`);
 
   const [facets, listings, developers] = await Promise.all([
     getZoneFacets(zone),
@@ -229,7 +229,7 @@ export default async function ZonePage({
       <DeveloperGrid
         developers={developers}
         ar={ar}
-        localePrefix={ar ? '/ar' : ''}
+        localePrefix={ar ? '' : '/en'}
         theme="light"
       />
     </div>

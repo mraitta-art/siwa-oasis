@@ -8,8 +8,8 @@ import { pathLocale } from '@/lib/site-locale';
 export const metadata: Metadata = {
   metadataBase: new URL('https://siwify.com'),
   applicationName: 'SiWiFy',
-  title: 'SIWIFY | The Premium Desert Marketplace of Siwa Oasis',
-  description: 'Discover Siwa Oasis - Hotels, eco-lodges, restaurants, 4x4 safari, healing salt lakes, and direct bookings on SiWiFy.com',
+  title: 'Siwify | Properties & Tourism Marketplace in Egypt',
+  description: 'Siwify is Egypt\u2019s marketplace for properties and tourism \u2014 verified resorts, chalets, hotels, desert camps, tours and local services all over Egypt. Book direct with owners, no middleman.',
   manifest: '/manifest.json',
   robots: {
     index: true,
@@ -26,22 +26,22 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://siwify.com',
-    siteName: 'SIWIFY',
-    title: 'SIWIFY | The Premium Desert Marketplace of Siwa Oasis',
-    description: 'Discover Siwa Oasis - Hotels, eco-lodges, restaurants, 4x4 safari, healing salt lakes, and direct bookings on SiWiFy.com',
+    siteName: 'Siwify',
+    title: 'Siwify | Properties & Tourism Marketplace in Egypt',
+    description: 'Siwify is Egypt\u2019s marketplace for properties and tourism \u2014 verified resorts, chalets, hotels, desert camps, tours and local services all over Egypt. Book direct with owners, no middleman.',
     images: [
       {
         url: BRAND_OG_IMAGE_URL,
         width: 1200,
         height: 630,
-        alt: 'SiWiFy.com - Siwa Oasis Marketplace',
+        alt: 'Siwify \u2014 properties and tourism marketplace in Egypt',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SIWIFY | The Premium Desert Marketplace of Siwa Oasis',
-    description: 'Discover Siwa Oasis - Hotels, eco-lodges, restaurants, 4x4 safari, healing salt lakes, and direct bookings on SiWiFy.com',
+    title: 'Siwify | Properties & Tourism Marketplace in Egypt',
+    description: 'Siwify is Egypt\u2019s marketplace for properties and tourism \u2014 verified resorts, chalets, hotels, desert camps, tours and local services all over Egypt. Book direct with owners, no middleman.',
     images: [BRAND_OG_IMAGE_URL],
   },
   icons: {
@@ -68,11 +68,11 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // The document language follows the URL, not Accept-Language: `/ar/...` is the
-  // only Arabic address, and the dashboards (never rewritten under /ar) must not
-  // inherit `dir="rtl"` from a visitor's browser settings. Reading a request
-  // header here makes every route dynamic — see the build output for the count.
-  const locale = (await pathLocale()) ?? 'en';
+  // The document language follows the URL, not Accept-Language: the bare path
+  // is Arabic and `/en/...` is the only English address, so the dashboards
+  // (never rewritten under /en) must not inherit `dir` from a visitor's browser
+  // settings. Reading a request header here makes every route dynamic.
+  const locale = (await pathLocale()) ?? 'ar';
 
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>

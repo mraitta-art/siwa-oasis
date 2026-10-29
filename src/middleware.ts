@@ -379,12 +379,21 @@ function withPublicCache(request: NextRequest, response: NextResponse) {
 async function routeRequest(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Arabic is now the bare path, so the legacy `/ar/...` prefix is retired. A
+  // 308 keeps the method and tells crawlers the move is permanent, so every
+  // Arabic URL already indexed under /ar survives and consolidates onto root.
+  if (pathname === '/ar' || pathname.startsWith('/ar/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname === '/ar' ? '/' : pathname.slice(3);
+    return NextResponse.redirect(url, 308);
+  }
+
   // Two optional prefixes are stripped here, in this order: locale, then
   // market. The route tree stays flat, so /{slug} and /{slug}/{section} keep
   // serving every shape and no new dynamic segment can collide with another
   // (/{market}/{business} and /{business}/{section} look identical to Next).
   //
-  //   /ar/siwa/gagal-hotel -> /gagal-hotel   locale: ar, market: siwa
+  //   /en/siwa/gagal-hotel -> /gagal-hotel   locale: en, market: siwa
   //   /el-alamein/gagal     -> /gagal        market: el-alamein
   //
   // A market prefix only counts when something follows it: `/siwa` alone is
@@ -393,7 +402,8 @@ async function routeRequest(request: NextRequest) {
   let localeHeader: string | null = null;
   let marketHeader: string | null = null;
 
-  if (segments[0] === 'ar' || segments[0] === 'en') {
+  // Arabic is the default and owns the bare path, so only `en` is a prefix now.
+  if (segments[0] === 'en') {
     localeHeader = segments.shift() as string;
   }
 
@@ -419,7 +429,7 @@ async function routeRequest(request: NextRequest) {
   const retiredHub = LEGACY_HUB_TARGETS[rest.toLowerCase()];
   if (retiredHub) {
     const url = request.nextUrl.clone();
-    url.pathname = `${localeHeader === 'ar' ? '/ar' : ''}/${retiredHub.market}`;
+    url.pathname = localeHeader === 'en' ? `/en/${retiredHub.market}` : `/${retiredHub.market}`;
     url.search = `?category=${encodeURIComponent(retiredHub.category)}`;
     return NextResponse.redirect(url, 308);
   }
@@ -455,10 +465,12 @@ async function routeRequest(request: NextRequest) {
 
   // Legacy ?lang=ar|en links (old share cards and QR codes) become permanent
   // locale URLs, so the language survives in the address bar and in the index.
+  // Arabic is the bare path now, so ?lang=ar only drops the query; ?lang=en
+  // gains the /en prefix.
   const legacyLang = request.nextUrl.searchParams.get('lang');
   if ((legacyLang === 'ar' || legacyLang === 'en') && !pathname.startsWith('/api') && !pathname.startsWith('/_next')) {
     const url = request.nextUrl.clone();
-    url.pathname = `/${legacyLang}${pathname === '/' ? '' : pathname}`;
+    if (legacyLang === 'en') url.pathname = `/en${pathname === '/' ? '' : pathname}`;
     url.searchParams.delete('lang');
     return NextResponse.redirect(url, 308);
   }

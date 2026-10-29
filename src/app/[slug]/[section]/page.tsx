@@ -93,7 +93,7 @@ export async function generateMetadata({
 
     const marketSlug = String(biz.market_id || urlMarket || DEFAULT_MARKET_SLUG);
     const publicPath = `/${marketSlug}/${biz.slug || slug}/${section}`;
-    const locale = (await pathLocale()) ?? 'en';
+    const locale = (await pathLocale()) ?? 'ar';
     const ar = locale === 'ar';
     // An /ar section URL titles itself in Arabic, name and tab label together.
     const displayName = ar ? biz.name_ar || biz.name : biz.name;

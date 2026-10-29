@@ -54,7 +54,7 @@ export default function MarketComparisonTable({
   ar?: boolean;
 }) {
   const t = L[ar ? 'ar' : 'en'];
-  const localePrefix = ar ? '/ar' : '';
+  const localePrefix = ar ? '' : '/en';
 
   const value = (list: (number | null)[]) => list.filter((n): n is number => n !== null);
   const minOf = (key: (m: MarketOpportunity) => number | null) => {

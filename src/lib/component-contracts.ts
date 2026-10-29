@@ -54,6 +54,17 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
     allowed: [...COMMON_TEXT, 'sectionId', 'categoryFilter', 'category', 'label', 'description', 'ctaLabel', 'showPartnerCta', 'accentColor'],
   },
   sector_investment: { allowed: [...COMMON_TEXT, 'category', 'label'] },
+  // ── Marketplace front door (home page). Copy/layout only; the data behind
+  //    each block is resolved server-side into homeData, never typed by an editor.
+  market_hero: { allowed: [...COMMON_TEXT, 'buttonText', 'buttonLink', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  egypt_hero: { allowed: [...COMMON_TEXT, 'buttonText', 'buttonLink', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  egypt_destinations: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  markets_showcase: { allowed: [...COMMON_TEXT, 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  market_categories: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  services_categories: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  market_listings: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  featured_developers: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  how_it_works: { allowed: [...COMMON_TEXT, 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   reservation_accommodation: {
     allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
     defaults: { sector: 'accommodation', defaultKind: 'all' },

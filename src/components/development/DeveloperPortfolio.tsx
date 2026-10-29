@@ -45,7 +45,7 @@ const STRINGS = {
 
 export default async function DeveloperPortfolio({ slug, ar }: { slug: string; ar: boolean }) {
   const t = STRINGS[ar ? 'ar' : 'en'];
-  const localePrefix = ar ? '/ar' : '';
+  const localePrefix = ar ? '' : '/en';
 
   const developer = await getDeveloperBySlug(slug);
   if (!developer) notFound();

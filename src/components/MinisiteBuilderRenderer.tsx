@@ -1356,7 +1356,7 @@ export default function MinisiteBuilderRenderer({
                 fontWeight: 600,
               }}
             >
-              Oasis Registry
+              Browse the marketplace
             </Link>
           </div>
         </nav>
@@ -1387,7 +1387,7 @@ export default function MinisiteBuilderRenderer({
           }}
         >
           <div>
-            Powered by <strong style={{ color: primaryColor }}>SiWiFy</strong> Official Oasis Registry
+            Powered by <strong style={{ color: primaryColor }}>SiWiFy</strong> — Egypt&rsquo;s properties &amp; tourism marketplace
           </div>
         </footer>
       )}

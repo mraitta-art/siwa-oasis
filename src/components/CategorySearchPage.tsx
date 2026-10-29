@@ -102,7 +102,7 @@ const CATEGORY_TO_PAGE: Record<string, string> = {
 // ─── Per-sector hero background images ───────────────────────────────────────
 const DEFAULT_HERO = {
   image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1400',
-  tagline: 'Discover the magic of Siwa Oasis',
+  tagline: 'Discover the best of Egypt on Siwify',
   gradient: 'linear-gradient(160deg,rgba(7,11,8,0.88) 0%,rgba(24,40,27,0.6) 60%,rgba(7,11,8,0.95) 100%)',
 };
 

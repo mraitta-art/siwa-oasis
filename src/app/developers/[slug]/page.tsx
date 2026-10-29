@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const ar = (await pathLocale()) === 'ar';
+  const ar = (await pathLocale()) !== 'en';
   const developer = await getDeveloperBySlug(slug);
   const name = developer ? (ar ? developer.nameAr || developer.name : developer.name) : slug;
   return {
@@ -34,7 +34,7 @@ export async function generateMetadata({
 
 export default async function DeveloperPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const ar = (await pathLocale()) === 'ar';
+  const ar = (await pathLocale()) !== 'en';
   const developer = await getDeveloperBySlug(slug);
   if (!developer) notFound();
   return <DeveloperPortfolio slug={slug} ar={ar} />;

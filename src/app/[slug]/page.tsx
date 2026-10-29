@@ -252,13 +252,13 @@ function heroImageFor(business: any, gallery: any[], cd: any) {
 }
 
 async function resolveLang(langParam?: string): Promise<Lang> {
-  // `x-siwa-locale` is set by middleware for /ar/... and /en/... URLs. The query
-  // parameter stays as a fallback for a link that slipped past the redirect,
-  // but Accept-Language no longer picks the language: the address does, so the
-  // document's lang/dir and its content can never disagree.
+  // `x-siwa-locale` is set by middleware for /en/... URLs (Arabic owns the bare
+  // path). The query parameter stays as a fallback for a link that slipped past
+  // the redirect, but Accept-Language no longer picks the language: the address
+  // does, so the document's lang/dir and its content can never disagree.
   const fromPath = await pathLocale();
   if (fromPath) return fromPath;
-  return langParam === 'ar' ? 'ar' : 'en';
+  return langParam === 'en' ? 'en' : 'ar';
 }
 
 export async function generateMetadata({
@@ -278,7 +278,7 @@ export async function generateMetadata({
     if (!market || !market.active) {
       return { title: 'Not found | Siwify', robots: { index: false, follow: false } };
     }
-    const locale = (await pathLocale()) ?? market.defaultLocale;
+    const locale = (await pathLocale()) ?? 'ar';
     const publicPath = `/${market.slug}`;
     const canonical = localeUrl(base, locale, publicPath);
     const label = marketName(market, locale);
@@ -312,12 +312,12 @@ export async function generateMetadata({
       gallery = [];
     }
 
-    const locale = (await pathLocale()) ?? 'en';
+    const locale = (await pathLocale()) ?? 'ar';
     const ar = locale === 'ar';
     // The Arabic page prints the Arabic typology and the Arabic name. `||` and
     // not `??`: an admin can save the Arabic field empty, and a blank chip is
     // worse than an English one.
-    const typeName = displayType(ar ? typeRow?.name_ar || typeRow?.name : typeRow?.name) || 'Siwa';
+    const typeName = displayType(ar ? typeRow?.name_ar || typeRow?.name : typeRow?.name) || 'Egypt';
     const businessName = String((ar ? (business as any).name_ar || business.name : business.name) || business.name);
     const description =
       String(
@@ -330,7 +330,7 @@ export async function generateMetadata({
         .replace(/<[^>]*>/g, ' ')
         .trim()
         .slice(0, 158) ||
-      `${businessName} — ${typeName} in Siwa Oasis. See photos, services and contact directly on WhatsApp. No commission.`;
+      `${businessName} — ${typeName}, listed on Siwify, Egypt's marketplace for properties & tourism. See photos, services and contact directly on WhatsApp. No commission.`;
 
     const image = heroImageFor(business, gallery, cd);
     const marketSlug = String((business as any).market_id || (await pathMarketSlug()) || DEFAULT_MARKET_SLUG);
@@ -347,10 +347,10 @@ export async function generateMetadata({
     const isThin = !Number(business.is_claimed) && gallery.length === 0 && description.length < 80;
 
     const title = ar
-      ? `${businessName} — ${typeName} في واحة سيوة | Siwify`
-      : `${businessName} · ${typeName} | Siwify`;
+      ? `${businessName} — ${typeName} في مصر | Siwify`
+      : `${businessName} · ${typeName} in Egypt | Siwify`;
     const metaDescription = ar
-      ? `${businessName} في واحة سيوة — صور وخدمات وتواصل مباشر عبر واتساب بدون عمولة.`
+      ? `${businessName} في مصر — صور وخدمات وتواصل مباشر عبر واتساب بدون عمولة.`
       : description;
 
     return {
@@ -388,7 +388,7 @@ export async function generateMetadata({
     const compound = await getDevelopmentBySlug(compoundMarket, slug);
     if (compound) {
       const market = await getMarketBySlug(compoundMarket);
-      const locale = (await pathLocale()) ?? market?.defaultLocale ?? 'en';
+      const locale = (await pathLocale()) ?? 'ar';
       const ar = locale === 'ar';
       const label = ar ? compound.nameAr || compound.nameEn : compound.nameEn || compound.nameAr;
       const facets = await getDevelopmentFacets(compound.id);
@@ -419,7 +419,7 @@ export async function generateMetadata({
   const cfg = await loadWebsiteConfig(slug);
   if (cfg) {
     const name = cfg.site_settings?.site_name || slug.replace(/[-_]+/g, ' ');
-    const locale = (await pathLocale()) ?? 'en';
+    const locale = (await pathLocale()) ?? 'ar';
     return {
       title: `${name} | Siwify`,
       description: String(cfg.site_settings?.site_description || '').slice(0, 158) || `${name} on Siwify.`,
@@ -445,7 +445,7 @@ export async function generateMetadata({
     const zone = await getZone(zoneMarket, slug);
     if (zone) {
       const market = await getMarketBySlug(zoneMarket);
-      const locale = (await pathLocale()) ?? market?.defaultLocale ?? 'en';
+      const locale = (await pathLocale()) ?? 'ar';
       const ar = locale === 'ar';
       const label = ar ? zone.nameAr || zone.nameEn : zone.nameEn || zone.nameAr;
       const publicPath = `/${zoneMarket}/${zone.slug}`;
@@ -470,7 +470,7 @@ export async function generateMetadata({
   if (!(await pathMarketSlug())) {
     const vanity = await resolveVanityRoot(slug);
     if (vanity) {
-      const locale = (await pathLocale()) ?? 'en';
+      const locale = (await pathLocale()) ?? 'ar';
       const ar = locale === 'ar';
       const label =
         vanity.kind === 'development'
@@ -560,13 +560,13 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
   const cover = heroImageFor(business, [], cd);
   const name = business.name || initialSlug;
   const tagline =
-    identity.tagline || cd?.tagline || (ar ? 'تجربة أصيلة في واحة سيوة' : 'An authentic experience in Siwa Oasis');
+    identity.tagline || cd?.tagline || (ar ? 'تجربة أصيلة على سيوِيفاي' : 'An authentic experience, listed on Siwify');
   const description =
     identity.description ||
     cd?.description ||
     (ar
-      ? `${name} أحد مقدمي الخدمات في واحة سيوة. تواصل مباشرة للحجز والاستفسار.`
-      : `${name} is a listed provider in Siwa Oasis. Contact directly to book or ask anything.`);
+      ? `${name} أحد مقدّمي الخدمات على سيوِيفاي. تواصل مباشرة للحجز والاستفسار.`
+      : `${name} is a listed provider on Siwify, Egypt's marketplace. Contact directly to book or ask anything.`);
   const rawPhone = digits(business.vendor_phone || business.phone || identity.whatsapp || identity.phone);
   const wa = waNumber(rawPhone);
   const waText = encodeURIComponent(
@@ -679,7 +679,7 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
 
         <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <Link
-            href={ar ? `/${initialSlug}` : `/ar/${initialSlug}`}
+            href={ar ? `/en/${initialSlug}` : `/${initialSlug}`}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
@@ -800,7 +800,7 @@ export default async function CanonicalVanityPage({
           .replace(/<[^>]*>/g, ' ')
           .trim()
           .slice(0, 158) ||
-        `${storefront.name} — ${typeName} in Siwa Oasis.`;
+        `${storefront.name} — ${typeName}, listed on Siwify, Egypt.`;
       const image = heroImageFor(business, mini.storefront.gallery, cd);
       const publicSlug = business.slug || slug;
       // Tabs follow the address, not the browser: an /ar page gets Arabic labels
@@ -834,7 +834,7 @@ export default async function CanonicalVanityPage({
           business={business}
           typeName=""
           image={heroImageFor(business, [], cd)}
-          description={`${business.name} — Siwa Oasis`}
+          description={`${business.name} — Siwify marketplace`}
         />
         <BilingualLanding business={business} lang={lang} initialSlug={slug} />
       </>
@@ -864,12 +864,9 @@ export default async function CanonicalVanityPage({
   if (compoundSlug) {
     const compound = await getDevelopmentBySlug(compoundSlug, slug);
     if (compound) {
-      // The path decides the language; when it declares none, the market's own
-      // default does. El Alamein is seeded default_locale = 'ar', so its bare
-      // address already answers in Arabic — the Arabic page cannot be missing.
-      const market = await getMarketBySlug(compoundSlug);
-      const compoundLang =
-        langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? market?.defaultLocale ?? lang);
+      // The path decides the language; when it declares none the page falls back
+      // to the site default, which is now Arabic (the bare path is Arabic).
+      const compoundLang = (await pathLocale()) ?? lang;
       return <CompoundPage compound={compound} marketSlug={compoundSlug} lang={compoundLang} />;
     }
   }
@@ -880,9 +877,7 @@ export default async function CanonicalVanityPage({
   if (zoneMarket) {
     const zone = await getZone(zoneMarket, slug);
     if (zone) {
-      const market = await getMarketBySlug(zoneMarket);
-      const zoneLang =
-        langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? market?.defaultLocale ?? lang);
+      const zoneLang = (await pathLocale()) ?? lang;
       return <ZonePage zone={zone} marketSlug={zoneMarket} lang={zoneLang} />;
     }
   }
@@ -894,8 +889,7 @@ export default async function CanonicalVanityPage({
   if (!(await pathMarketSlug())) {
     const vanity = await resolveVanityRoot(slug);
     if (vanity) {
-      const vanityLang =
-        langParam === 'ar' ? 'ar' : ((await pathLocale()) ?? lang);
+      const vanityLang = (await pathLocale()) ?? lang;
       const ar = vanityLang === 'ar';
       if (vanity.kind === 'development') {
         // A root pin publishes the project on its own merit. If its market is

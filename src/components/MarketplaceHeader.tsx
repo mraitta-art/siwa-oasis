@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import LanguageSwitch from '@/components/LanguageSwitch';
 
 export interface NavLink {
   href: string;
@@ -246,6 +247,9 @@ export default function MarketplaceHeader({
             );
           })}
         </nav>
+
+        {/* Language switch — one tap to the same page in the other language. */}
+        <LanguageSwitch color={navInactiveColor} borderColor={burgerBorder} />
 
         {/* Hamburger — hidden on desktop via .mh-burger CSS class */}
         <button
