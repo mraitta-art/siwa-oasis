@@ -362,9 +362,23 @@ export default async function Home() {
 
   // Fully CMS-driven body: the editor's layout wins whenever it has one; the
   // seeded default front door only covers an untouched (or cleared) template.
-  const bodyLayout = template?.body_components?.length
+  const rawBody: LayoutSection[] = template?.body_components?.length
     ? template.body_components
     : defaultHomeLayout({ ar, name });
+
+  // The three pillars are the site's primary navigation, so the gateway is
+  // surfaced on the front door even on a hand-built layout that predates it.
+  // Injected once, straight after the hero, and never duplicated if the editor
+  // has already placed it themselves.
+  const bodyLayout: LayoutSection[] = rawBody.some(s => s?.type === 'pillar_gateway')
+    ? rawBody
+    : (() => {
+        const heroIdx = rawBody.findIndex(s => s?.type === 'egypt_hero' || s?.type === 'market_hero' || s?.type === 'hero_carousel');
+        const gateway: LayoutSection = { id: 'pillar-gateway', type: 'pillar_gateway' };
+        return heroIdx === -1
+          ? [gateway, ...rawBody]
+          : [...rawBody.slice(0, heroIdx + 1), gateway, ...rawBody.slice(heroIdx + 1)];
+      })();
 
   const layout: LayoutSection[] = [
     ...(template?.header_components || []),
