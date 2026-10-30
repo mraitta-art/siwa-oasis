@@ -10,7 +10,7 @@ import { optimizeImageUrlsDeep } from '@/lib/image-url';
  * empty market's front door does not show a bare heading.
  */
 export default function MarketListings({ data, props }: { data: HomeData; props?: any }) {
-  const { ar, base, accent, name } = data;
+  const { ar, base, accent, name, platform } = data;
 
   const max = Number.isFinite(props?.max) && props.max > 0 ? Math.trunc(props.max) : 6;
   const listings = data.listings.slice(0, max);
@@ -33,7 +33,7 @@ export default function MarketListings({ data, props }: { data: HomeData; props?
           return (
             <Link
               key={listing.id}
-              href={`${base}/${listing.slug}`}
+              href={platform ? (ar ? `/${listing.slug}` : `/en/${listing.slug}`) : `${base}/${listing.slug}`}
               style={{
                 textDecoration: 'none',
                 background: 'var(--card)',

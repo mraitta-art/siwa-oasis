@@ -36,4 +36,6 @@ export interface HomeData {
   developers: MarketDeveloper[];
   /** The "How it works" steps, already localised to a [title, body] pair. */
   steps: [string, string][];
+  /** True on the national platform door (Egypt): sections link flat, not `/market/...`. */
+  platform: boolean;
 }

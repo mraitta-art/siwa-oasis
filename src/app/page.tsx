@@ -29,9 +29,13 @@ import HomeRibbon, { type RibbonSettings } from '@/components/home/HomeRibbon';
 import { getWebsiteTemplate } from '@/lib/cache';
 import { optimizeImageUrlsDeep } from '@/lib/image-url';
 import { BRAND_MARK_URL, BRAND_LOCKUP_URL } from '@/lib/brand-assets';
+import { headers } from 'next/headers';
 import {
   DEFAULT_MARKET_SLUG,
   getMarketBySlug,
+  getPlatformMarket,
+  listCountryCategories,
+  listCountryListings,
   listMarketCategories,
   listMarketListings,
   listMarkets,
@@ -39,7 +43,7 @@ import {
   pathMarketSlug,
   type Market,
 } from '@/lib/markets';
-import { listDevelopersByMarket } from '@/lib/developers';
+import { listDevelopersByMarket, type MarketDeveloper } from '@/lib/developers';
 import type { HomeData } from '@/lib/home-data';
 import { marketCopy } from '@/lib/market-copy';
 import { pathLocale, type SiteLocale } from '@/lib/site-locale';
@@ -116,6 +120,47 @@ const DEFAULT_FOOTER_TEXT = [
 ].join('\n');
 
 /**
+ * The national door has no single market to name, so an untouched template
+ * still reads as Egypt — the three pillars, the plan page and the category
+ * doors — instead of falling back to one oasis.
+ */
+const PLATFORM_NAV_TEXT: Record<'ar' | 'en', string> = {
+  ar: [
+    'الرئيسية | /',
+    'السياحة | /tourism',
+    'العقارات | /properties',
+    'خطّط رحلتك | /plan',
+    'كل التصنيفات | /categories',
+  ].join('\n'),
+  en: [
+    'Home | /en',
+    'Tourism | /en/tourism',
+    'Properties | /en/properties',
+    'Plan a trip | /en/plan',
+    'All categories | /en/categories',
+  ].join('\n'),
+};
+
+const PLATFORM_FOOTER_TEXT: Record<'ar' | 'en', string> = {
+  ar: [
+    'استكشف | السياحة | /tourism',
+    'استكشف | العقارات | /properties',
+    'استكشف | خطّط رحلتك | /plan',
+    'استكشف | كل التصنيفات | /categories',
+    'شركاؤنا | بوابة الشركاء | /login',
+    'شركاؤنا | أضف نشاطك | /signup',
+  ].join('\n'),
+  en: [
+    'EXPLORE | Tourism | /en/tourism',
+    'EXPLORE | Properties | /en/properties',
+    'EXPLORE | Plan a trip | /en/plan',
+    'EXPLORE | All categories | /en/categories',
+    'PARTNERS | Vendor portal | /en/login',
+    'PARTNERS | List your business | /en/signup',
+  ].join('\n'),
+};
+
+/**
  * The front-door body used when the editor has not arranged one yet. Every item
  * is a real CMS section type, so the dashboard can add, remove, reorder or
  * replace any of them — this only decides what an untouched template shows, and
@@ -148,7 +193,7 @@ function isSafeLink(href: string) {
 }
 
 function getNavLinks(settings: SiteSettings | null, ctx: NavContext): NavLink[] {
-  const fallback = settings?.nav_links_text ?? DEFAULT_NAV_TEXT;
+  const fallback = settings?.nav_links_text ?? (ctx.platform ? PLATFORM_NAV_TEXT[ctx.locale === 'en' ? 'en' : 'ar'] : DEFAULT_NAV_TEXT);
   const lines = parseLinks(expandNavTokens(fallback, ctx), DEFAULT_NAV_LINKS.map(link => `${link.label} | ${link.href}`).join('\n'));
   return lines.flatMap(line => {
     const [label, ...hrefParts] = line.split('|').map(part => part.trim());
@@ -159,7 +204,7 @@ function getNavLinks(settings: SiteSettings | null, ctx: NavContext): NavLink[] 
 }
 
 function getFooterLinks(settings: SiteSettings | null, ctx: NavContext): FooterLink[] {
-  const fallback = settings?.footer_links_text ?? DEFAULT_FOOTER_TEXT;
+  const fallback = settings?.footer_links_text ?? (ctx.platform ? PLATFORM_FOOTER_TEXT[ctx.locale === 'en' ? 'en' : 'ar'] : DEFAULT_FOOTER_TEXT);
   const lines = parseLinks(expandNavTokens(fallback, ctx), DEFAULT_FOOTER_LINKS.map(link => `${link.group} | ${link.label} | ${link.href}`).join('\n'));
   return lines.flatMap(line => {
     const [group, label, ...hrefParts] = line.split('|').map(part => part.trim());
@@ -237,16 +282,33 @@ function buildThemeCSS(s: SiteSettings | null): string {
   }
 }
 
-/** The market this front door speaks for. */
-async function currentMarket(): Promise<{ market: Market; locale: SiteLocale }> {
+/**
+ * The market this front door speaks for, and whether it is the national
+ * platform door. The bare apex (siwify.com, www, localhost, Vercel previews)
+ * presents Egypt as a whole and aggregates every live market; only a dedicated
+ * market subdomain opens a single market. This unties the root from Siwa
+ * without a migration, while /siwa and friends stay their own market doors.
+ */
+async function currentMarket(): Promise<{ market: Market; locale: SiteLocale; platform: boolean }> {
+  const host = (await headers()).get('host') || '';
   const [locale, requested] = await Promise.all([pathLocale(), pathMarketSlug()]);
   const resolvedLocale: SiteLocale = locale ?? 'ar';
+
+  const clean = host.toLowerCase().replace(/^www\./, '').replace(/:\d+$/, '').replace(/\/.*$/, '');
+  const isApex =
+    clean === 'siwify.com' ||
+    clean === 'localhost' ||
+    clean === '127.0.0.1' ||
+    clean === '' ||
+    /\.vercel\.app$/.test(clean);
+  if (isApex) return { market: getPlatformMarket(), locale: resolvedLocale, platform: true };
+
   const wanted = (await getMarketBySlug(requested ?? DEFAULT_MARKET_SLUG))
     ?? (await getMarketBySlug(DEFAULT_MARKET_SLUG));
   // A dark market has no front door. Falling back keeps the root reachable
   // instead of 404-ing the site's own homepage.
   const market: Market = wanted && wanted.active ? wanted : (await getMarketBySlug(DEFAULT_MARKET_SLUG))!;
-  return { market, locale: resolvedLocale };
+  return { market, locale: resolvedLocale, platform: false };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -292,26 +354,48 @@ export default async function Home() {
 
   const settings: SiteSettings | null = template?.site_settings || null;
 
-  const { market, locale } = await currentMarket();
+  const { market, locale, platform } = await currentMarket();
   const ar = locale === 'ar';
 
-  const [markets, allMarkets, categories, listings, developers] = await Promise.all([
+  const activeSlugs = (await listMarkets({ activeOnly: true })).map((m) => m.slug);
+  const [markets, allMarkets, categories, listings, developerGroups] = await Promise.all([
     listMarkets({ activeOnly: true }),
     listMarkets({ activeOnly: false }),
-    listMarketCategories(market.slug, 8),
-    listMarketListings(market.slug, { limit: 6 }),
-    listDevelopersByMarket(market.slug),
+    platform ? listCountryCategories(activeSlugs, 8) : listMarketCategories(market.slug, 8),
+    platform ? listCountryListings(activeSlugs, { limit: 6 }) : listMarketListings(market.slug, { limit: 6 }),
+    platform
+      ? Promise.all(activeSlugs.map((s) => listDevelopersByMarket(s)))
+      : listDevelopersByMarket(market.slug).then((d) => [d]),
   ]);
+
+  // The national door folds every live market into one Egypt view: developers
+  // are de-duplicated by id and their project counts summed across markets.
+  const developers: MarketDeveloper[] = platform
+    ? (() => {
+        const byId = new Map<string, MarketDeveloper>();
+        for (const group of developerGroups) {
+          for (const dev of group) {
+            const prev = byId.get(dev.id);
+            if (prev) prev.projects += dev.projects;
+            else byId.set(dev.id, { ...dev });
+          }
+        }
+        return [...byId.values()].sort((a, b) => b.projects - a.projects);
+      })()
+    : developerGroups[0];
 
   const name = marketName(market, locale);
   const otherName = marketName(market, ar ? 'en' : 'ar');
   const accent = market.themeAccent || '#D4AF37';
-  const base = ar ? `/${market.slug}` : `/en/${market.slug}`;
+  // A market door scopes its links under `/{market}`; the national door has no
+  // such path, so it links flat (listings) and through /categories (shelves).
+  const base = platform ? (ar ? '' : '/en') : (ar ? `/${market.slug}` : `/en/${market.slug}`);
   const inventory = categories.reduce((sum, c) => sum + c.listings, 0);
 
   const navContext: NavContext = {
     locale,
-    market: { slug: market.slug, name },
+    platform,
+    market: platform ? null : { slug: market.slug, name },
     markets: markets.map(m => ({ slug: m.slug, name: marketName(m, locale) })),
     categories: categories.map(c => ({ id: c.id, name: ar ? c.nameAr || c.name : c.name, listings: c.listings })),
   };
@@ -358,6 +442,7 @@ export default async function Home() {
     listings,
     developers,
     steps,
+    platform,
   };
 
   // Fully CMS-driven body: the editor's layout wins whenever it has one; the

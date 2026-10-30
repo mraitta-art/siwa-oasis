@@ -18,6 +18,7 @@ import { DEFAULT_MARKET_SLUG, getMarketBySlug, marketName, pathMarketSlug } from
 import { isMarketSegment } from '@/lib/market-routes';
 import { getDevelopmentBySlug, getDevelopmentFacets } from '@/lib/developments';
 import { MINISITE_VERTICAL_THEMES, resolveMinisiteVertical } from '@/lib/minisite-verticals';
+import { optimizeImageUrlsDeep } from '@/lib/image-url';
 import MarketHome from '@/components/MarketHome';
 import CompoundPage from '@/components/CompoundPage';
 import ZonePage from '@/components/ZonePage';
@@ -765,7 +766,7 @@ export default async function CanonicalVanityPage({
 
   if (business) {
     const cd = normalizeCustomData(business.custom_data);
-    const mini = await loadMinisite(business);
+    const mini = optimizeImageUrlsDeep(await loadMinisite(business));
 
     if (mini) {
       // The Arabic address prints the Arabic typology and the Arabic name, with
@@ -887,7 +888,7 @@ export default async function CanonicalVanityPage({
       // The path decides the language; when it declares none the page falls back
       // to the site default, which is now Arabic (the bare path is Arabic).
       const compoundLang = (await pathLocale()) ?? lang;
-      return <CompoundPage compound={compound} marketSlug={compoundSlug} lang={compoundLang} />;
+      return <CompoundPage compound={optimizeImageUrlsDeep(compound)} marketSlug={compoundSlug} lang={compoundLang} />;
     }
   }
 
@@ -917,7 +918,7 @@ export default async function CanonicalVanityPage({
         const vanityMarket = await getMarketBySlug(vanity.development.marketId);
         return (
           <CompoundPage
-            compound={vanity.development}
+            compound={optimizeImageUrlsDeep(vanity.development)}
             marketSlug={vanity.development.marketId}
             lang={vanityLang}
             marketOpen={Boolean(vanityMarket?.active)}

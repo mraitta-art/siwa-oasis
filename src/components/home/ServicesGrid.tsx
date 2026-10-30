@@ -23,11 +23,14 @@ function iconClass(icon: string | null): { fa: string } | { glyph: string } | nu
 }
 
 export default function ServicesGrid({ data, props }: { data: HomeData; props?: any }) {
-  const { ar, base, accent } = data;
+  const { ar, base, accent, platform } = data;
 
   const max = Number.isFinite(props?.max) && props.max > 0 ? Math.trunc(props.max) : 12;
   const categories = data.categories.slice(0, max);
   const allHref = ar ? '/categories' : '/en/categories';
+  // The national door has no single-market path, so category shelves open the
+  // country-wide /categories page; a market door keeps its own `/{market}` base.
+  const doorBase = platform ? allHref : base;
 
   const heading = typeof props?.title === 'string' && props.title
     ? props.title
@@ -67,7 +70,7 @@ export default function ServicesGrid({ data, props }: { data: HomeData; props?: 
             return (
               <Link
                 key={c.id}
-                href={`${base}?category=${encodeURIComponent(c.id)}`}
+                href={`${doorBase}?category=${encodeURIComponent(c.id)}`}
                 style={{
                   textDecoration: 'none',
                   color: 'var(--text)',

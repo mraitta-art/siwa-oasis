@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
+import { optimizeImageUrlsDeep } from '@/lib/image-url';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
 import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, sectionAppliesToMarket } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
@@ -554,15 +555,15 @@ export default async function VanitySectionPage({
         <MinisiteTapTracker slug={slug} />
         <VanityBusinessClient 
           slug={slug} 
-          initialData={biz} 
-          sections={sections} 
+          initialData={optimizeImageUrlsDeep(biz)} 
+          sections={optimizeImageUrlsDeep(sections)} 
           sectionLabels={finalLabels} 
           sectionLabelsAr={finalLabelsAr} 
           sectionComponents={sectionComponents} 
           templatePlan={templatePlan} 
           isMasterTemplate={biz.is_master === 1} 
           isTrusted={biz.is_trusted === 1} 
-          siteSettings={siteSettings}
+          siteSettings={optimizeImageUrlsDeep(siteSettings)}
           initialActiveTab={section}
           lockedSections={lockedSections}
           marketRevenueModel={marketRevenueModel}

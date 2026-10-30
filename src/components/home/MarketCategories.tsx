@@ -9,10 +9,12 @@ import type { HomeData } from '@/lib/home-data';
  * listMarketCategories (server), so a door never links to an empty shelf.
  */
 export default function MarketCategories({ data, props }: { data: HomeData; props?: any }) {
-  const { ar, base, accent } = data;
+  const { ar, base, accent, platform } = data;
 
   const max = Number.isFinite(props?.max) && props.max > 0 ? Math.trunc(props.max) : 8;
   const categories = data.categories.slice(0, max);
+  // The national door links to the country-wide /categories page, not `/{market}`.
+  const doorBase = platform ? (ar ? '/categories' : '/en/categories') : base;
 
   const heading = typeof props?.title === 'string' && props.title
     ? props.title
@@ -24,7 +26,7 @@ export default function MarketCategories({ data, props }: { data: HomeData; prop
         <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--text)' }}>
           {heading}
         </h2>
-        <Link href={base} style={{ color: 'var(--text-light)', fontSize: '0.78rem', fontWeight: 800, textDecoration: 'none' }}>
+        <Link href={doorBase} style={{ color: 'var(--text-light)', fontSize: '0.78rem', fontWeight: 800, textDecoration: 'none' }}>
           {ar ? 'الكل ←' : 'All →'}
         </Link>
       </div>
@@ -38,7 +40,7 @@ export default function MarketCategories({ data, props }: { data: HomeData; prop
           {categories.map(c => (
             <Link
               key={c.id}
-              href={`${base}?category=${encodeURIComponent(c.id)}`}
+              href={`${doorBase}?category=${encodeURIComponent(c.id)}`}
               style={{
                 textDecoration: 'none',
                 background: 'var(--card)',

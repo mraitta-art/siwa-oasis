@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import type { HomeData } from '@/lib/home-data';
+import { PILLARS, pillarUrl } from '@/lib/pillars';
 
 /**
  * The Egypt-wide front-door hero for the platform root (`/`).
@@ -17,7 +18,7 @@ import type { HomeData } from '@/lib/home-data';
  * and keeps SSR/SEO parity.
  */
 export default function EgyptHero({ data, props }: { data: HomeData; props?: any }) {
-  const { ar, accent, inventory, categories } = data;
+  const { ar, accent, inventory, categories, locale } = data;
 
   const title = typeof props?.title === 'string' && props.title
     ? props.title
@@ -87,6 +88,52 @@ export default function EgyptHero({ data, props }: { data: HomeData; props?: any
             }}
           >
             {ar ? 'أضف نشاطك مجانًا' : 'List your business \u2014 free'}
+          </Link>
+        </div>
+
+        {/* Universal quick-nav: the hero itself is a door into every specialized
+            page — the three intents plus the general category map — so a first-time
+            visitor can self-classify without scrolling. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1.5rem' }}>
+          {PILLARS.map((p) => (
+            <Link
+              key={p.slug}
+              href={pillarUrl(p.slug, locale)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.85rem',
+                borderRadius: 999,
+                border: `1px solid ${p.accent}66`,
+                background: `${p.accent}1f`,
+                color: '#FFFFFF',
+                textDecoration: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+              }}
+            >
+              <i className={`fas ${p.icon}`} aria-hidden style={{ color: p.accent }} />
+              {ar ? p.label.ar : p.label.en}
+            </Link>
+          ))}
+          <Link
+            href={ar ? '/categories' : '/en/categories'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.4rem 0.85rem',
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.28)',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+            }}
+          >
+            <i className="fas fa-layer-group" aria-hidden /> {ar ? 'كل التصنيفات' : 'All categories'}
           </Link>
         </div>
 

@@ -33,6 +33,8 @@ export interface NavContext {
   market: NavMarket | null;
   markets: NavMarket[];
   categories: NavCategory[];
+  /** On the national platform door, `{{market}}` has no single door to open. */
+  platform?: boolean;
 }
 
 export const NAV_TOKENS = ['{{markets}}', '{{market}}', '{{categories}}'] as const;

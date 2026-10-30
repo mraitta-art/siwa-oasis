@@ -384,3 +384,96 @@ export async function listMarketListings(
     };
   });
 }
+
+/* ─── National platform door (Egypt) ─────────────────────────────────────── */
+
+export const PLATFORM_SLUG = 'egypt';
+
+/**
+ * The market the bare apex (`siwify.com/`) presents: Egypt as a whole, which
+ * aggregates every live market instead of speaking for one oasis. It is a
+ * synthetic row (no `markets` record needed) so the vision ships without a
+ * migration; the real markets (Siwa, El Alamein, …) stay their own doors.
+ */
+export function getPlatformMarket(): Market {
+  return {
+    slug: PLATFORM_SLUG,
+    locationId: 'eg',
+    nameAr: 'مصر',
+    nameEn: 'Egypt',
+    host: 'siwify.com',
+    defaultLocale: 'ar',
+    currency: 'EGP',
+    revenueModel: 'directory_lead',
+    themeAccent: '#D4AF37',
+    active: true,
+  };
+}
+
+/** Egypt-wide category facets, aggregated across the given live markets. */
+export async function listCountryCategories(marketSlugs: string[], limit = 12): Promise<MarketCategoryFacet[]> {
+  if (!marketSlugs.length) return [];
+  const placeholders = marketSlugs.map(() => '?').join(',');
+  const rows = await query(
+    `SELECT COALESCE(bt.parent_id, bt.id) AS id,
+            COALESCE(pt.name, bt.name) AS name,
+            COALESCE(pt.name_ar, bt.name_ar) AS name_ar,
+            COALESCE(pt.icon, bt.icon) AS icon,
+            MAX(COALESCE(pt.description, bt.description)) AS description,
+            COUNT(*) AS listings
+     FROM businesses b
+     JOIN business_types bt ON bt.id = b.type_id
+     LEFT JOIN business_types pt ON pt.id = bt.parent_id
+     WHERE b.status = 'active' AND b.market_id IN (${placeholders})
+     GROUP BY id, name, name_ar, icon
+     ORDER BY listings DESC, name
+     LIMIT ${clampLimit(limit, 12)}`,
+    marketSlugs
+  );
+  return (rows as any[]).map((row) => ({
+    id: String(row.id),
+    name: String(row.name ?? row.id),
+    nameAr: row.name_ar ? String(row.name_ar) : null,
+    icon: row.icon ? String(row.icon) : null,
+    description: row.description ? String(row.description) : null,
+    listings: Number(row.listings) || 0,
+  }));
+}
+
+/** Egypt-wide newest listings, aggregated across the given live markets. */
+export async function listCountryListings(
+  marketSlugs: string[],
+  options: { limit?: number } = {}
+): Promise<MarketListing[]> {
+  if (!marketSlugs.length) return [];
+  const limit = clampLimit(options.limit, 24);
+  const placeholders = marketSlugs.map(() => '?').join(',');
+  const rows = await query(
+    `SELECT b.id, b.slug, b.name, b.name_ar, b.type_id, b.is_trusted, b.custom_data,
+            bt.name AS type_name, bt.name_ar AS type_name_ar, bt.parent_id
+     FROM businesses b
+     LEFT JOIN business_types bt ON bt.id = b.type_id
+     WHERE b.status = 'active' AND b.market_id IN (${placeholders})
+     ORDER BY b.is_featured DESC, b.is_trusted DESC, b.created_at DESC
+     LIMIT ${limit}`,
+    marketSlugs
+  );
+  return (rows as any[]).map((row) => {
+    let customData: any = row.custom_data;
+    if (typeof customData === 'string') {
+      try { customData = JSON.parse(customData); } catch { customData = null; }
+    }
+    return {
+      id: String(row.id),
+      slug: String(row.slug || row.id),
+      name: String(row.name),
+      nameAr: row.name_ar ? String(row.name_ar) : null,
+      typeId: row.type_id ? String(row.type_id) : null,
+      typeName: row.type_name ? String(row.type_name) : null,
+      typeNameAr: row.type_name_ar ? String(row.type_name_ar) : null,
+      parentTypeId: row.parent_id ? String(row.parent_id) : null,
+      isTrusted: Number(row.is_trusted) === 1,
+      coverImage: firstImage(customData),
+    };
+  });
+}
