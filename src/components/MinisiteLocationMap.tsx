@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export interface LocationMapProps {
   businessName: string;
@@ -13,27 +13,25 @@ export interface LocationMapProps {
   stationHubName?: string;
   stationaryUnitCode?: string; // e.g. "Bungalow #4", "Tent #12"
   primaryColor?: string;
+  ar?: boolean; // Arabic-primary mode (minisite locale toggle)
+  businessId?: string; // used to fetch dynamic nearby landmarks
 }
 
-// Key Siwa Oasis Landmarks for proximity reference
-const SIWA_LANDMARKS = [
-  { name: 'Shali Fortress (Old Town)', lat: 29.2038, lng: 25.5196, icon: '🏛️' },
-  { name: 'Cleopatra Spring', lat: 29.1912, lng: 25.5492, icon: '🌊' },
-  { name: 'Siwa Salt Lakes', lat: 29.2230, lng: 25.4670, icon: '🧂' },
-  { name: 'Great Sand Sea (Safari Gate)', lat: 29.1750, lng: 25.4850, icon: '🏜️' },
-  { name: 'Temple of the Oracle (Amon)', lat: 29.2045, lng: 25.5532, icon: '👑' },
-];
+interface NearbyLandmark {
+  name: string;
+  distKm: number;
+  primaryType?: string;
+}
 
-function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth radius in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
+// Choose an icon from the returned Google primary type, falling back to a pin.
+function landmarkIcon(primaryType?: string): string {
+  const type = String(primaryType || '');
+  if (type.includes('museum')) return '🏛️';
+  if (type.includes('park')) return '🌳';
+  if (type.includes('natural') || type.includes('beach')) return '🏜️';
+  if (type.includes('tourist_attraction')) return '✨';
+  if (type.includes('place_of_worship')) return '🕌';
+  return '📍';
 }
 
 export default function MinisiteLocationMap({
@@ -47,42 +45,104 @@ export default function MinisiteLocationMap({
   stationHubName,
   stationaryUnitCode,
   primaryColor = '#D4AF37',
+  ar = false,
+  businessId,
 }: LocationMapProps) {
-  const lat = Number(latitude) || 29.2032;
-  const lng = Number(longitude) || 25.5195;
-  const hasCoordinates = Boolean(latitude && longitude);
+  const L = ar
+    ? {
+        access: 'الموقع وطرق الوصول',
+        transport: 'محطة الانطلاق ومسار الالتقاط',
+        badge: 'إحداثيات موثّقة',
+        gps: 'إحداثيات GPS',
+        routingActive: 'توجيه GPS مباشر • روابط الملاحة بنقرة واحدة بالأسفل',
+        navGoogle: 'الاتجاهات عبر خرائط Google',
+        navWaze: 'Waze',
+        navApple: 'خرائط Apple',
+        proximity: 'أبرز المعالم القريبة',
+        km: 'كم',
+        unit: 'الوحدة',
+        addressNotSet: 'لم يتم تحديد العنوان بعد',
+      }
+    : {
+        access: 'Stationary Location & Access',
+        transport: 'Base Station & Pickup Route',
+        badge: 'Verified Coordinates',
+        gps: 'GPS Pin',
+        routingActive: 'Direct GPS routing active • 1-click navigation links below',
+        navGoogle: 'Google Maps Navigate',
+        navWaze: 'Waze',
+        navApple: 'Apple Maps',
+        proximity: 'Nearby highlights',
+        km: 'km',
+        unit: 'Unit',
+        addressNotSet: 'Address not set yet',
+      };
 
-  // Navigation Links
-  const mapsSearchQuery = hasCoordinates 
-    ? `${lat},${lng}` 
-    : encodeURIComponent(`${businessName} Siwa Oasis Egypt`);
+  // Coordinates come only from the business record — no Siwa fallback. When they
+  // are absent we render an address-based map instead of a fake pin.
+  const parsedLat = Number(latitude);
+  const parsedLng = Number(longitude);
+  const lat = Number.isFinite(parsedLat) ? parsedLat : null;
+  const lng = Number.isFinite(parsedLng) ? parsedLng : null;
+  const hasCoordinates =
+    lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+  const trimmedAddress = String(address || '').trim();
+  const displayAddress = trimmedAddress || L.addressNotSet;
+
+  // Navigation links: pin by coordinates when present, otherwise search by name
+  // and address (never a hardcoded place name).
+  const mapsSearchQuery = hasCoordinates
+    ? `${lat},${lng}`
+    : encodeURIComponent(trimmedAddress ? `${businessName} ${trimmedAddress}` : `${businessName}, Egypt`);
 
   const directGoogleMapsLink = googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${mapsSearchQuery}`;
-  const directWazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-  const directAppleMapsLink = `https://maps.apple.com/?q=${mapsSearchQuery}&ll=${lat},${lng}`;
+  const directWazeLink = hasCoordinates
+    ? `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`
+    : `https://waze.com/ul?q=${mapsSearchQuery}&navigate=yes`;
+  const directAppleMapsLink = hasCoordinates
+    ? `https://maps.apple.com/?ll=${lat},${lng}&q=${mapsSearchQuery}`
+    : `https://maps.apple.com/?q=${mapsSearchQuery}`;
 
-  // Determine nearby landmarks
-  const nearbyLandmarks = SIWA_LANDMARKS.map(lm => ({
-    ...lm,
-    distKm: calculateDistanceKm(lat, lng, lm.lat, lm.lng),
-  })).sort((a, b) => a.distKm - b.distKm);
-
-  const isTransport = String(businessType).toLowerCase().includes('transport') || 
-                      String(businessType).toLowerCase().includes('safari') || 
+  const isTransport = String(businessType).toLowerCase().includes('transport') ||
+                      String(businessType).toLowerCase().includes('safari') ||
                       String(businessType).toLowerCase().includes('car') ||
                       String(businessType).toLowerCase().includes('transfer');
 
+  // Dynamic neighbourhood highlights, fetched once per business and cached
+  // server-side. Language switching just picks the matching set from state.
+  const [nearby, setNearby] = useState<{ ar: NearbyLandmark[]; en: NearbyLandmark[] } | null>(null);
+  useEffect(() => {
+    if (!businessId) return;
+    let active = true;
+    fetch(`/api/minisite/nearby?id=${encodeURIComponent(businessId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!active || !json) return;
+        setNearby({ ar: Array.isArray(json.ar) ? json.ar : [], en: Array.isArray(json.en) ? json.en : [] });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [businessId]);
+
+  const nearbyLandmarks = (nearby ? (ar ? nearby.ar : nearby.en) : []).slice(0, 4);
+
   return (
-    <div style={{
-      background: '#fff',
-      borderRadius: '24px',
-      border: '1px solid #f1f5f9',
-      boxShadow: '0 20px 40px -15px rgba(0,0,0,0.06)',
-      overflow: 'hidden',
-      marginBottom: '2.5rem',
-      maxWidth: '100%',
-      boxSizing: 'border-box'
-    }}>
+    <div
+      dir={ar ? 'rtl' : 'ltr'}
+      style={{
+        background: '#fff',
+        borderRadius: '24px',
+        border: '1px solid #f1f5f9',
+        boxShadow: '0 20px 40px -15px rgba(0,0,0,0.06)',
+        overflow: 'hidden',
+        marginBottom: '2.5rem',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
+      }}
+    >
       {/* HEADER */}
       <div style={{
         padding: '1.5rem 1.75rem',
@@ -109,10 +169,10 @@ export default function MinisiteLocationMap({
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-              {isTransport ? 'Base Station & Pickup Route' : 'Stationary Location & Access'}
+              {isTransport ? L.transport : L.access}
             </h3>
             <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-              {address || 'Siwa Oasis, Matrouh Governorate, Egypt'}
+              {displayAddress}
             </div>
           </div>
         </div>
@@ -134,13 +194,13 @@ export default function MinisiteLocationMap({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '4px 10px', borderRadius: '50px', background: 'rgba(212,175,55,0.15)', border: `1px solid rgba(212,175,55,0.3)`, color: '#D4AF37', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>
-              <i className="fas fa-location-crosshairs" /> Verified Oasis Coordinates
+              <i className="fas fa-location-crosshairs" /> {L.badge}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc' }}>
               {businessName}
             </div>
             <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-              {address || 'Siwa Oasis, Matrouh Governorate, Egypt'}
+              {displayAddress}
             </div>
           </div>
 
@@ -161,20 +221,22 @@ export default function MinisiteLocationMap({
               }}
             >
               <span style={{ color: primaryColor }}>📍</span>
-              <span>{stationaryUnitCode ? `Unit: ${stationaryUnitCode}` : stationHubName}</span>
+              <span>{stationaryUnitCode ? `${L.unit}: ${stationaryUnitCode}` : stationHubName}</span>
             </div>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem' }}>
-          <div style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <i className="fas fa-satellite" style={{ color: '#D4AF37' }} />
-            <span>GPS Pin: <strong>{lat.toFixed(4)}° N, {lng.toFixed(4)}° E</strong></span>
+        {hasCoordinates && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem' }}>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <i className="fas fa-satellite" style={{ color: '#D4AF37' }} />
+              <span>{L.gps}: <strong>{lat!.toFixed(4)}, {lng!.toFixed(4)}</strong></span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              {L.routingActive}
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-            Direct GPS routing active • 1-click navigation links below
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ACTION & DETAILS BAR */}
@@ -204,7 +266,7 @@ export default function MinisiteLocationMap({
             }}
           >
             <i className="fab fa-google" style={{ color: '#4285F4' }}></i>
-            Google Maps Navigate
+            {L.navGoogle}
           </a>
 
           <a
@@ -228,7 +290,7 @@ export default function MinisiteLocationMap({
             }}
           >
             <i className="fab fa-waze" style={{ color: '#33ccff' }}></i>
-            Waze
+            {L.navWaze}
           </a>
 
           <a
@@ -252,7 +314,7 @@ export default function MinisiteLocationMap({
             }}
           >
             <i className="fab fa-apple"></i>
-            Apple Maps
+            {L.navApple}
           </a>
         </div>
 
@@ -275,36 +337,38 @@ export default function MinisiteLocationMap({
           </div>
         )}
 
-        {/* PROXIMITY TO KEY LANDMARKS */}
-        <div>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.75rem' }}>
-            PROXIMITY TO SIWA OASIS HIGHLIGHTS
+        {/* PROXIMITY TO NEARBY HIGHLIGHTS (dynamic, hidden when empty) */}
+        {nearbyLandmarks.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1px', marginBottom: '0.75rem' }}>
+              {L.proximity}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+              {nearbyLandmarks.map((landmark, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.55rem 0.85rem',
+                    background: '#fff',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: '#334155' }}>
+                    {landmarkIcon(landmark.primaryType)} {landmark.name}
+                  </span>
+                  <span style={{ fontWeight: 900, color: '#0f172a', background: '#f1f5f9', padding: '2px 6px', borderRadius: '6px' }}>
+                    {landmark.distKm} {L.km}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
-            {nearbyLandmarks.slice(0, 4).map((landmark, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.55rem 0.85rem',
-                  background: '#fff',
-                  borderRadius: '10px',
-                  border: '1px solid #e2e8f0',
-                  fontSize: '0.75rem'
-                }}
-              >
-                <span style={{ fontWeight: 700, color: '#334155' }}>
-                  {landmark.icon} {landmark.name}
-                </span>
-                <span style={{ fontWeight: 900, color: '#0f172a', background: '#f1f5f9', padding: '2px 6px', borderRadius: '6px' }}>
-                  {landmark.distKm} km
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

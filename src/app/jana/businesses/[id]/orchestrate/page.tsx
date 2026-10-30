@@ -665,6 +665,30 @@ export default function BusinessOrchestrator() {
             <div className="tab-content animate-in">
               <h2 className="section-title">Minisite Navigation Branding</h2>
 
+              {/* Vertical skin override. Auto lets the market/type/development
+                  signals pick Tourism or Properties; forcing a value writes it to
+                  custom_data.minisite_vertical, which the resolver treats as the
+                  top precedence. Empty means Auto. */}
+              <div style={{ marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+                <label className="dna-label" style={{ margin: 0 }}>MINISITE VERTICAL DESIGN</label>
+                <select
+                  className="dna-input"
+                  style={{ marginTop: '0.75rem', maxWidth: 320 }}
+                  value={biz.custom_data?.minisite_vertical || ''}
+                  onChange={(e) => setBiz((prev: any) => ({
+                    ...prev,
+                    custom_data: { ...(prev.custom_data || {}), minisite_vertical: e.target.value },
+                  }))}
+                >
+                  <option value="">Auto (detect from market & type)</option>
+                  <option value="tourism">Tourism (emerald, experience-first)</option>
+                  <option value="properties">Properties (navy, investment-first)</option>
+                </select>
+                <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.5rem', fontWeight: 700 }}>
+                  Auto resolves to Properties for a realestate market, a linked development, or a compound/developer/sales-office type.
+                </div>
+              </div>
+
               {/* Live Preview Bar */}
               <div style={{ marginBottom: '3rem' }}>
                 <label className="dna-label">LIVE NAVIGATION PREVIEW</label>

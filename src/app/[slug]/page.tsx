@@ -17,6 +17,7 @@ import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug, marketName, pathMarketSlug } from '@/lib/markets';
 import { isMarketSegment } from '@/lib/market-routes';
 import { getDevelopmentBySlug, getDevelopmentFacets } from '@/lib/developments';
+import { MINISITE_VERTICAL_THEMES, resolveMinisiteVertical } from '@/lib/minisite-verticals';
 import MarketHome from '@/components/MarketHome';
 import CompoundPage from '@/components/CompoundPage';
 import ZonePage from '@/components/ZonePage';
@@ -809,18 +810,37 @@ export default async function CanonicalVanityPage({
         ? mini.sectionNav.map((item) => ({ ...item, label: item.labelAr || item.label }))
         : mini.sectionNav;
       // An /ar address should render Arabic chrome, not only an Arabic title.
-      const layout =
-        arabic
-          ? { ...mini.layout, site_settings: { ...((mini.layout as any)?.site_settings || {}), lang: 'ar' } }
-          : mini.layout;
+      //
+      // The same vertical skin the sectional minisite wears is applied here so
+      // the landing page a QR code opens is not generic-gold while its tabs are
+      // themed. The builder body derives its whole palette from
+      // site_settings.primary_color, so one override repaints hero, cards and
+      // buttons; the section navigator takes the accent as a prop.
+      const pageMarket = String((business as any).market_id || (await pathMarketSlug()) || DEFAULT_MARKET_SLUG);
+      const verticalMarket = await getMarketBySlug(pageMarket).catch(() => null);
+      const vertical = resolveMinisiteVertical({
+        override: cd?.minisite_vertical,
+        typeId: business.type_id,
+        hasDevelopment: Boolean((business as any).development_id),
+        marketRevenueModel: verticalMarket?.revenueModel,
+      });
+      const verticalAccent = MINISITE_VERTICAL_THEMES[vertical].accent;
+      const themedLayout = {
+        ...mini.layout,
+        site_settings: {
+          ...((mini.layout as any)?.site_settings || {}),
+          ...(arabic ? { lang: 'ar' } : {}),
+          primary_color: verticalAccent,
+        },
+      };
 
       return (
         <>
           <BusinessJsonLd business={business} name={businessName} typeName={typeName} image={image} description={description} />
           <MinisiteTapTracker slug={publicSlug} />
-          <MinisiteSectionTabs slug={publicSlug} items={sectionNav} lang={lang} />
+          <MinisiteSectionTabs slug={publicSlug} items={sectionNav} lang={lang} accent={verticalAccent} />
           <MinisiteBuilderRenderer
-            layout={layout}
+            layout={themedLayout}
             business={storefront}
             showQRCode
           />

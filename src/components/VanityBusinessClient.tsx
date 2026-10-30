@@ -12,8 +12,19 @@ import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteLocationMap from '@/components/MinisiteLocationMap';
 import MinisiteContributions from '@/components/MinisiteContributions';
 import MinisiteGoogleReviews from '@/components/MinisiteGoogleReviews';
+import UnitsBoard from '@/components/UnitsBoard';
+import InstallmentCalculator from '@/components/development/InstallmentCalculator';
+import PropertiesTours from '@/components/pillars/PropertiesTours';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
+import {
+  MINISITE_VERTICAL_THEMES,
+  resolveMinisiteVertical,
+  orderActiveSections,
+  type CtaKey,
+  type PropertyBundle,
+} from '@/lib/minisite-verticals';
+import { pillarUrl } from '@/lib/pillars';
 import { BRAND_MARK_URL } from '@/lib/brand-assets';
 import { consentAllows } from '@/lib/vendor-consents';
 import { normalizePhoneValue } from '@/lib/egypt-phone';
@@ -252,6 +263,8 @@ export default function VanityBusinessClient({
   siteSettings,
   initialActiveTab,
   lockedSections = [],
+  marketRevenueModel,
+  propertyBundle = null,
   isAdmin = false
 }: { 
   slug: string, 
@@ -266,6 +279,10 @@ export default function VanityBusinessClient({
   siteSettings?: any,
   initialActiveTab?: string,
   lockedSections?: string[],
+  /** The market's revenue model, so a realestate market resolves to Properties. */
+  marketRevenueModel?: string,
+  /** Server-resolved property facts, present only for a linked development. */
+  propertyBundle?: PropertyBundle | null,
   isAdmin?: boolean
 }) {
   const [activeTab, setActiveTab] = useState<string | null>(initialActiveTab || null);
@@ -273,8 +290,11 @@ export default function VanityBusinessClient({
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const [allowedMinisiteComponentKeys, setAllowedMinisiteComponentKeys] = useState<string[]>([]);
   const [liveSettings, setLiveSettings] = useState<any>(siteSettings || null);
-  const [minisiteLang, setMinisiteLang] = useState<'en' | 'ar'>('en');
-  const [isRTL, setIsRTL] = useState(false);
+  // Arabic is the primary minisite language; the mount effect below still aligns
+  // to the document dir and honours a saved preference, but starting in Arabic
+  // avoids an English flash on the Arabic-rooted pages.
+  const [minisiteLang, setMinisiteLang] = useState<'en' | 'ar'>('ar');
+  const [isRTL, setIsRTL] = useState(true);
   const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
   const [utmSource, setUtmSource] = useState<string | null>(null);
 
@@ -460,13 +480,25 @@ export default function VanityBusinessClient({
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
 
+  // Vertical skin — auto-detected from the market's revenue model, the business
+  // type and any linked development, and overridable by an admin choice stored
+  // at custom_data.minisite_vertical. It drives the accent, the tab order and
+  // the header CTAs; the pure resolver keeps the same rules on the server route.
+  const vertical = resolveMinisiteVertical({
+    override: data.minisite_vertical,
+    typeId: biz.type_id,
+    hasDevelopment: Boolean(biz.development_id) || Boolean(propertyBundle),
+    marketRevenueModel,
+  });
+  const theme = MINISITE_VERTICAL_THEMES[vertical];
+
   // Dynamically filter activeSections so sections without active components or data automatically disappear from header tabs, mobile menu, and hero
   const activeSections = React.useMemo(() => {
     const sourceSections = (sections || []).length > 0 ? sections : getMinisiteSectionIds(biz?.type_id, []).map(id => ({ id }));
     const allowedIds = new Set(filterCoreSectionsForBusinessType(biz?.type_id, sourceSections.map(section => section.id)));
     const seenIds = new Set<string>();
 
-    return sourceSections.filter(section => {
+    const filtered = sourceSections.filter(section => {
       if (!section || !section.id) return false;
       if (seenIds.has(section.id)) return false;
       if (!allowedIds.has(section.id)) return false;
@@ -475,7 +507,10 @@ export default function VanityBusinessClient({
       seenIds.add(section.id);
       return true;
     });
-  }, [sections, data, biz?.type_id, isAdmin]);
+
+    // The theme decides which section a visitor meets first; nothing is dropped.
+    return orderActiveSections(filtered, theme);
+  }, [sections, data, biz?.type_id, isAdmin, theme]);
   
   // Resolve Brand Assets — priority: basic (new) → sec_1_identity (legacy) → business_info (legacy) → root custom_data
   const identity = { ...(data.business_info || {}), ...(data.sec_1_identity || {}), ...(data.basic || {}) };
@@ -488,8 +523,14 @@ export default function VanityBusinessClient({
   const cleanPhone = cleanWhatsapp ? `+${cleanWhatsapp}` : String(dynamicPhone).replace(/[^0-9+]/g, '');
   const whatsappMsgQuery = dynamicWhatsappMsg ? `?text=${encodeURIComponent(dynamicWhatsappMsg)}` : '';
   const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}${whatsappMsgQuery}`;
+  // A header CTA opens the same WhatsApp line the business already publishes, but
+  // carries an intent the visitor can read in the pre-filled message, written in
+  // the language currently shown (Arabic is primary).
+  const waIntent = (message: string) =>
+    `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  const ctaLabel = (key: CtaKey) => theme.labels[arLabels ? 'ar' : 'en'][key] || key;
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
-  const dynamicAddress = isMasterTemplate ? 'Oasis District, Shali Town, Siwa, Egypt' : (identity.address || data.address || 'Siwa Oasis, Matrouh, Egypt');
+  const dynamicAddress = isMasterTemplate ? '' : (identity.address || data.address || '');
   const dynamicLogo = identity.business_logo || identity.logo || identity.logo_url || data.business_logo || data.logo || data.logo_url || data.basic?.business_logo || data.basic?.logo || data.basic?.logo_url || biz.logo_url || undefined;
   const logoSize = identity.logo_size || data.logo_size || data.basic?.logo_size || biz.custom_data?.logo_size || 'lg';
   const logoPosition = identity.logo_position || data.logo_position || data.basic?.logo_position || biz.custom_data?.logo_position || 'left';
@@ -609,7 +650,7 @@ export default function VanityBusinessClient({
           remove_watermark: biz.tier_features?.remove_watermark,
           allow_youtube_story: biz.tier_features?.allow_youtube_story 
         }}
-        settings={liveSettings || siteSettings || {}}
+        settings={{ ...(liveSettings || siteSettings || {}), primaryColor: theme.accent }}
         onSectionNavigate={(sectionId) => {
           const target = SECTION_NAV_ALIASES[sectionId] || sectionId;
           try {
@@ -634,8 +675,8 @@ export default function VanityBusinessClient({
               <span style={{ 
                 display: 'inline-flex', alignItems: 'center', gap: '4px',
                 padding: '2px 8px', borderRadius: '12px',
-                background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)',
-                color: '#D4AF37', fontSize: '0.55rem', fontWeight: 900,
+                background: theme.accentSoft, border: `1px solid ${theme.accent}`,
+                color: theme.accent, fontSize: '0.55rem', fontWeight: 900,
                 textTransform: 'uppercase', letterSpacing: '0.5px',
                 flexShrink: 0
               }} title="Verified Authentic Heritage Business">
@@ -660,9 +701,9 @@ export default function VanityBusinessClient({
                   }}
                   style={{ 
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: activeTab === s.id ? '#D4AF37' : '#64748b', 
+                    color: activeTab === s.id ? theme.accent : '#64748b', 
                     fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1px',
-                    borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
+                    borderBottom: activeTab === s.id ? `2px solid ${theme.accent}` : '2px solid transparent',
                     paddingBottom: '0.5rem', transition: 'all 0.3s',
                     display: 'flex', alignItems: 'center', gap: '4px'
                   }}>
@@ -674,39 +715,70 @@ export default function VanityBusinessClient({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Fixed Phone & WhatsApp Quick Direct Contact Buttons */}
-            {cleanPhone && (
-              <a
-                href={`tel:${cleanPhone}`}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
-                  padding: '5px 12px', borderRadius: '20px', background: '#f8fafc',
-                  border: '1px solid #e2e8f0', color: '#1e293b', fontSize: '0.68rem',
-                  fontWeight: 900, textDecoration: 'none', transition: 'all 0.2s'
-                }}
-                title="Call Phone Direct"
-              >
-                <i className="fas fa-phone-alt" style={{ color: '#D4AF37', fontSize: '0.75rem' }} />
-                <span>CALL</span>
-              </a>
-            )}
-            {cleanWhatsapp && (
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
-                  padding: '5px 12px', borderRadius: '20px', background: '#dcfce7',
-                  border: '1px solid #86efac', color: '#15803d', fontSize: '0.68rem',
-                  fontWeight: 900, textDecoration: 'none', transition: 'all 0.2s'
-                }}
-                title="Chat on WhatsApp"
-              >
-                <i className="fab fa-whatsapp" style={{ color: '#16a34a', fontSize: '0.85rem' }} />
-                <span>WHATSAPP</span>
-              </a>
-            )}
+            {/* Theme-driven CTA cluster: a tourism skin offers Book-on-WhatsApp +
+                Plan-your-trip + Call; a properties skin offers Request-a-viewing +
+                Talk-to-developer + Call. All reuse the number and WhatsApp line the
+                business already publishes — no new endpoints. */}
+            {theme.ctas.map((cta) => {
+              const chip = {
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                padding: '5px 12px', borderRadius: '20px', fontSize: '0.68rem',
+                fontWeight: 900, textDecoration: 'none', transition: 'all 0.2s',
+              } as React.CSSProperties;
+
+              if (cta === 'call') {
+                if (!cleanPhone) return null;
+                return (
+                  <a key={cta} href={`tel:${cleanPhone}`} style={{ ...chip, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b' }} title={ctaLabel('call')}>
+                    <i className="fas fa-phone-alt" style={{ color: theme.accent, fontSize: '0.75rem' }} />
+                    <span>{ctaLabel('call')}</span>
+                  </a>
+                );
+              }
+
+              if (cta === 'whatsapp_book') {
+                if (!cleanWhatsapp && !cleanPhone) return null;
+                return (
+                  <a key={cta} href={whatsappLink} target="_blank" rel="noopener noreferrer" style={{ ...chip, background: '#dcfce7', border: '1px solid #86efac', color: '#15803d' }} title={ctaLabel('whatsapp_book')}>
+                    <i className="fab fa-whatsapp" style={{ color: '#16a34a', fontSize: '0.85rem' }} />
+                    <span>{ctaLabel('whatsapp_book')}</span>
+                  </a>
+                );
+              }
+
+              if (cta === 'plan_trip') {
+                return (
+                  <Link key={cta} href={pillarUrl('plan', arLabels ? 'ar' : 'en')} style={{ ...chip, background: theme.accent, border: `1px solid ${theme.accent}`, color: '#ffffff' }}>
+                    <i className="fas fa-route" style={{ fontSize: '0.75rem' }} />
+                    <span>{ctaLabel('plan_trip')}</span>
+                  </Link>
+                );
+              }
+
+              if (cta === 'viewing') {
+                if (!cleanWhatsapp && !cleanPhone) return null;
+                const intent = arLabels ? `أرغب في حجز معاينة لـ ${bizName}` : `I'd like to book a viewing of ${bizName}`;
+                return (
+                  <a key={cta} href={waIntent(intent)} target="_blank" rel="noopener noreferrer" style={{ ...chip, background: theme.accent, border: `1px solid ${theme.accent}`, color: '#ffffff' }} title={ctaLabel('viewing')}>
+                    <i className="fas fa-building" style={{ fontSize: '0.75rem' }} />
+                    <span>{ctaLabel('viewing')}</span>
+                  </a>
+                );
+              }
+
+              if (cta === 'developer') {
+                if (!cleanWhatsapp && !cleanPhone) return null;
+                const intent = arLabels ? `أرغب في التحدث إلى المطوّر بشأن ${bizName}` : `I'd like to talk to the developer about ${bizName}`;
+                return (
+                  <a key={cta} href={waIntent(intent)} target="_blank" rel="noopener noreferrer" style={{ ...chip, background: '#f8fafc', border: `1px solid ${theme.accent}`, color: theme.accent }} title={ctaLabel('developer')}>
+                    <i className="fas fa-user-tie" style={{ fontSize: '0.75rem' }} />
+                    <span>{ctaLabel('developer')}</span>
+                  </a>
+                );
+              }
+
+              return null;
+            })}
 
             {/* Language Toggle Switcher — only shown when admin enables multilingual */}
             {(liveSettings?.enable_minisite_multilingual === true || biz?.tier_features?.allow_multilingual === true) && (
@@ -730,8 +802,8 @@ export default function VanityBusinessClient({
                   type="button"
                   onClick={() => switchLanguage('ar')}
                   style={{
-                    border: 'none', background: minisiteLang === 'ar' ? '#D4AF37' : 'transparent',
-                    color: minisiteLang === 'ar' ? '#1e293b' : '#64748b',
+                    border: 'none', background: minisiteLang === 'ar' ? theme.accent : 'transparent',
+                    color: minisiteLang === 'ar' ? '#ffffff' : '#64748b',
                     padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
                     fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
                   }}
@@ -799,9 +871,9 @@ export default function VanityBusinessClient({
                   }}
                   style={{ 
                     background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
-                    color: activeTab === s.id ? '#D4AF37' : '#64748b', 
+                    color: activeTab === s.id ? theme.accent : '#64748b', 
                     fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.5px',
-                    borderBottom: activeTab === s.id ? '2px solid #D4AF37' : '2px solid transparent',
+                    borderBottom: activeTab === s.id ? `2px solid ${theme.accent}` : '2px solid transparent',
                     paddingBottom: '0.4rem', transition: 'all 0.3s',
                     display: 'flex', alignItems: 'center', gap: '4px'
                   }}>
@@ -1841,6 +1913,89 @@ export default function VanityBusinessClient({
               </div>
             )}
 
+            {/* Property modules, reused from the compound path and fed by the
+                server-resolved bundle. Shown for a Properties vertical, or for any
+                module an editor switched on through allowedMinisiteComponentKeys.
+                Nothing renders when there is no bundle, so a property business
+                without a linked development keeps just the navy skin. */}
+            {propertyBundle && (() => {
+              const P = MINISITE_VERTICAL_THEMES.properties.labels[arLabels ? 'ar' : 'en'];
+              const bundle = propertyBundle;
+              const show = (key: string) => vertical === 'properties' || allowedMinisiteComponentKeys.includes(key);
+              const heading: React.CSSProperties = { fontSize: '1.05rem', fontWeight: 900, margin: '0 0 1rem', color: '#0F172A' };
+              const devHref = arLabels ? `/developers/${bundle.developerSlug}` : `/en/developers/${bundle.developerSlug}`;
+              return (
+                <div style={{ marginTop: '4rem', display: 'grid', gap: '2rem' }}>
+                  {show('available_units') && bundle.units.length > 0 && (
+                    <section style={{ padding: '2rem 0' }}>
+                      <h2 style={heading}>{P.available_units}</h2>
+                      <UnitsBoard units={bundle.units} ar={arLabels} />
+                    </section>
+                  )}
+
+                  {show('payment_plans') && bundle.plans.length > 0 && (
+                    <section style={{ padding: '2rem 0' }}>
+                      <h2 style={heading}>{P.payment_plans}</h2>
+                      <div style={{ display: 'grid', gap: '0.5rem', maxWidth: 560 }}>
+                        {bundle.plans.map((plan, index) => (
+                          <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: '#0F172A', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: '0.6rem 0.8rem' }}>
+                            <span style={{ fontWeight: 800 }}>{plan.name || (arLabels ? `خطة ${index + 1}` : `Plan ${index + 1}`)}</span>
+                            <span style={{ color: '#475569' }}>
+                              {plan.downPaymentPct !== null ? `${plan.downPaymentPct}% ${P.down}` : ''}
+                              {plan.downPaymentPct !== null && plan.installmentYears !== null ? ' · ' : ''}
+                              {plan.installmentYears !== null ? `${plan.installmentYears} ${P.years}` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {bundle.calcSeed && (
+                        <div style={{ marginTop: '1.25rem', maxWidth: 520 }}>
+                          <h3 style={{ fontSize: '0.95rem', fontWeight: 900, margin: '0 0 0.75rem', color: theme.accent }}>{P.calc}</h3>
+                          <InstallmentCalculator seed={bundle.calcSeed} currency={bundle.currency} ar={arLabels} />
+                        </div>
+                      )}
+                      {bundle.facilities.length > 0 && (
+                        <div style={{ marginTop: '1.25rem' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#475569', marginBottom: '0.5rem' }}>{P.facilities}</div>
+                          <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                            {bundle.facilities.map((facility) => (
+                              <span key={facility} style={{ fontSize: '0.72rem', fontWeight: 800, padding: '0.3rem 0.7rem', borderRadius: 999, background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#475569' }}>{facility}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {bundle.dataVerifiedAt && (
+                        <p style={{ margin: '1rem 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>{P.verified}: {bundle.dataVerifiedAt}</p>
+                      )}
+                    </section>
+                  )}
+
+                  {show('property_comparison') && (
+                    <section style={{ padding: '1rem 0' }}>
+                      <a href={bundle.compareHref} style={{ fontSize: '0.85rem', fontWeight: 900, color: theme.accent, textDecoration: 'none' }}>
+                        {P.compare} →
+                      </a>
+                    </section>
+                  )}
+
+                  {show('developer_portfolio') && bundle.developerSlug && (
+                    <section style={{ padding: '1rem 0' }}>
+                      <a href={devHref} style={{ fontSize: '0.85rem', fontWeight: 900, color: theme.accent, textDecoration: 'none' }}>
+                        {P.developer_portfolio} →
+                      </a>
+                    </section>
+                  )}
+
+                  {show('properties_tours') && (
+                    <section style={{ padding: '2rem 0' }}>
+                      <h2 style={heading}>{P.tours}</h2>
+                      <PropertiesTours ar={arLabels} accent={theme.accent} projects={bundle.projects} />
+                    </section>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* 📍 INTERACTIVE GOOGLE SATELLITE/ROAD MAP & STATIONARY ACCESS */}
             <div style={{ marginTop: '3.5rem' }}>
               <MinisiteLocationMap
@@ -1853,7 +2008,9 @@ export default function VanityBusinessClient({
                 accessibilityNotes={data.accessibility || data.route_notes || data.basic?.accessibility}
                 stationHubName={data.station_name || data.hub_name}
                 stationaryUnitCode={data.unit_code || data.stationary_unit || data.bungalow_number}
-                primaryColor="#D4AF37"
+                primaryColor={theme.accent}
+                ar={arLabels}
+                businessId={biz.id}
               />
             </div>
 
@@ -1930,6 +2087,7 @@ export default function VanityBusinessClient({
                       </div>
                     )}
 
+                    {dynamicAddress && (
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37' }}>
                         <i className="fas fa-map-marker-alt"></i>
@@ -1939,6 +2097,7 @@ export default function VanityBusinessClient({
                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>{dynamicAddress}</div>
                       </div>
                     </div>
+                    )}
                   </div>
 
                   {/* 🌍 SOCIAL CONNECT */}
@@ -2247,12 +2406,14 @@ export default function VanityBusinessClient({
                     </a>
                   )}
 
+                  {dynamicAddress && (
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', color: '#1e293b' }}>
                     <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', border: '1px solid #e2e8f0' }}>
                       <i className="fas fa-map-marker-alt" style={{ fontSize: '0.7rem' }}></i>
                     </div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', lineHeight: 1.3 }}>{dynamicAddress}</div>
                   </div>
+                  )}
                 </div>
 
                 {/* Social Connect */}

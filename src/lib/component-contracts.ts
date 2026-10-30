@@ -94,6 +94,25 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
     allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'businessSlug', 'business_slug', 'accentColor', 'defaultKind', 'allowSectorSwitching', 'padding_mobile', 'padding_desktop', 'content_max_width'],
     defaults: { sector: 'products', defaultKind: 'all' },
   },
+  // ── Reused property modules (Properties minisite). The switch keys below feed
+  //    allowedMinisiteComponentKeys so an editor can turn each module on per
+  //    business; the units/plans/comparison data is resolved server-side into
+  //    the property bundle, never typed here. Only copy and accent are editable.
+  available_units: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'development_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+  },
+  payment_plans: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'development_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+  },
+  property_comparison: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'development_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+  },
+  developer_portfolio: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'development_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+  },
+  properties_tours: {
+    allowed: [...COMMON_TEXT, 'businessId', 'business_id', 'development_id', 'accentColor', 'padding_mobile', 'padding_desktop', 'content_max_width'],
+  },
 };
 
 

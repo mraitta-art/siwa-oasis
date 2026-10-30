@@ -16,6 +16,8 @@ interface Props {
   items: SectionTabItem[];
   activeId?: string;
   lang?: 'en' | 'ar';
+  /** Vertical accent; the active tab paints with it. Defaults to the legacy gold. */
+  accent?: string;
 }
 
 const LABELS = {
@@ -28,7 +30,7 @@ const LABELS = {
  * where VanityBusinessClient renders the full features of that case. Renders
  * nothing when the minisite has no populated sections (stays a flat page).
  */
-export default function MinisiteSectionTabs({ slug, items, activeId, lang = 'en' }: Props) {
+export default function MinisiteSectionTabs({ slug, items, activeId, lang = 'en', accent = '#D4AF37' }: Props) {
   if (!items || items.length === 0) return null;
   const overview = (LABELS[lang] || LABELS.en).overview;
   const isActive = (id: string) => (activeId ? activeId === id : false);
@@ -76,9 +78,9 @@ export default function MinisiteSectionTabs({ slug, items, activeId, lang = 'en'
             fontSize: '0.8rem',
             fontWeight: 800,
             textDecoration: 'none',
-            background: isActive(item.id) ? '#D4AF37' : '#F8FAFC',
+            background: isActive(item.id) ? accent : '#F8FAFC',
             color: isActive(item.id) ? '#0F172A' : '#334155',
-            border: '1px solid ' + (isActive(item.id) ? '#D4AF37' : '#E2E8F0'),
+            border: '1px solid ' + (isActive(item.id) ? accent : '#E2E8F0'),
           }}
         >
           {item.label}

@@ -51,6 +51,13 @@ const PALETTE: PaletteItem[] = [
   { zone: 'body',   key: 'services',              name: 'Business Listings CTA',   icon: '🏢', manager: '/jana/businesses',     color: '#10b981', desc: 'Simple verified-businesses banner' },
   { zone: 'body',   key: 'text_section',          name: 'Custom Text Section',     icon: '✍️', manager: null,                  color: '#0ea5e9', desc: 'Admin-written heading and page copy' },
   { zone: 'body',   key: 'cta_section',           name: 'Custom Call to Action',   icon: '📣', manager: null,                  color: '#f97316', desc: 'Editable message and action button' },
+  // ── Reused property modules — toggles for the Properties minisite; the data
+  //    (units, plans, comparison, developer, tours) is resolved server-side. ──
+  { zone: 'body',   key: 'available_units',       name: 'Available Units',         icon: '🏢', manager: null,                  color: '#0F4C81', desc: 'Board of available units for the linked development' },
+  { zone: 'body',   key: 'payment_plans',         name: 'Payment Plans',           icon: '💳', manager: null,                  color: '#0F4C81', desc: 'Advertised payment plans and an instalment calculator' },
+  { zone: 'body',   key: 'property_comparison',   name: 'Project Comparison',      icon: '⚖️', manager: null,                  color: '#0F4C81', desc: 'Link to compare this project with same-market competitors' },
+  { zone: 'body',   key: 'developer_portfolio',   name: 'Developer Portfolio',     icon: '🏗️', manager: null,                  color: '#0F4C81', desc: 'Link to the developer\'s full portfolio' },
+  { zone: 'body',   key: 'properties_tours',      name: 'Site Visit Booking',      icon: '📅', manager: null,                  color: '#0F4C81', desc: 'Request-a-viewing lead form for the project' },
 
   // ── Marketplace front door — the live market blocks (data resolved per market) ──
   { zone: 'body',   key: 'egypt_hero',            name: 'Egypt Hero',              icon: '🇪🇬', manager: null,                  color: '#0F172A', desc: 'National front door: “Egypt’s marketplace for properties & tourism” headline with browse/list CTAs' },

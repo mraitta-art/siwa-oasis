@@ -3,15 +3,14 @@ import UnitsBoard from '@/components/UnitsBoard';
 import InstallmentCalculator from '@/components/development/InstallmentCalculator';
 import { normalizeCustomData, queryOne, stripCustomDataSecrets } from '@/lib/db';
 import {
+  buildDevelopmentFacts,
   getDevelopmentFacets,
   isPlaceKind,
   listDevelopments,
   listDevelopmentListings,
   listUnits,
   type Development,
-  type PaymentPlan,
 } from '@/lib/developments';
-import type { PaymentFrequency } from '@/lib/property-math';
 import { slugifyDeveloper } from '@/lib/developers';
 
 /**
@@ -172,50 +171,11 @@ export default async function CompoundPage({
 
   // Project-level comparison facts, only for a developer's project (kind
   // 'compound' / 'resort') — a town has no facilities list or payment plan.
-  const saleUnits = units.filter((u) => u.listingKind === 'sale' && u.price && u.price > 0);
-  const cheapest = saleUnits.reduce<(typeof saleUnits)[number] | null>(
-    (low, u) => ((low?.price ?? Infinity) > (u.price ?? Infinity) ? u : low),
-    saleUnits.length ? saleUnits[0] : null
-  );
-  // Advertised plans win; unit-derived plans are the fallback.
-  const plans: PaymentPlan[] =
-    compound.paymentPlans.length > 0
-      ? compound.paymentPlans
-      : saleUnits
-          .filter((u) => u.downPaymentPct !== null || u.installmentYears !== null)
-          .map((u) => ({
-            name: '',
-            downPaymentPct: u.downPaymentPct,
-            installmentYears: u.installmentYears,
-            frequency: 'monthly' as PaymentFrequency,
-            postHandover: false,
-          }));
-  const bestPlan = plans
-    .filter((p) => (p.installmentYears ?? 0) > 0)
-    .reduce<PaymentPlan | null>((best, p) => ((p.installmentYears ?? 0) > (best?.installmentYears ?? 0) ? p : best), null);
-
-  const calcSeed =
-    cheapest?.price && bestPlan?.installmentYears
-      ? {
-          price: cheapest.price,
-          downPaymentPct: bestPlan.downPaymentPct ?? 0,
-          installmentYears: bestPlan.installmentYears,
-          frequency: bestPlan.frequency,
-        }
-      : null;
-
-  const currency = units[0]?.currency || 'EGP';
-  const hasFacts = !place && (compound.facilities.length > 0 || plans.length > 0 || Boolean(compound.dataVerifiedAt));
-  const compareHref = (() => {
-    // Pre-load the project plus up to three of its same-market competitors, so
-    // the buyer lands on a populated table instead of a lone column. The compare
-    // engine caps at four regardless of how many ids are passed.
-    const competitorIds = siblingProjects
-      .filter((s: Development) => s.id !== compound.id)
-      .slice(0, 3)
-      .map((s: Development) => s.id);
-    return href(`/compare/projects?ids=${[compound.id, ...competitorIds].join(',')}`);
-  })();
+  // Built by the shared helper so this page and the themed business minisite
+  // compute the identical cheapest unit, plans, calculator seed and compare set.
+  const facts = buildDevelopmentFacts(compound, units, siblingProjects);
+  const { plans, calcSeed, currency, hasFacts } = facts;
+  const compareHref = href(facts.compareQueryString);
 
   // A developer name that slugifies to something becomes a link to their whole
   // portfolio — the page a listing portal cannot offer, and the reason the

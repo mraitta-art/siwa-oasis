@@ -252,6 +252,45 @@ export async function getDevelopmentBySlug(marketSlug: string, slug: string): Pr
 }
 
 /**
+ * A container by its id, for callers that already hold the id — a listing's
+ * `development_id`, or a compare selection — and have no market/slug to name it.
+ */
+export async function getDevelopmentById(developmentId: string): Promise<Development | null> {
+  const target = String(developmentId || '').trim();
+  if (!target) return null;
+  try {
+    const rows = await query(
+      `SELECT ${DEVELOPMENT_COLUMNS} FROM developments WHERE active = 1 AND id = ? LIMIT 1`,
+      [target]
+    );
+    return rows && rows.length > 0 ? toDevelopment(rows[0]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The project a business page speaks for, when the link is stored on the
+ * development side (`page_business_id`) rather than on the business.
+ *
+ * The compound→business pointer is one-way by design, so a Properties minisite
+ * that only knows its own business id still reaches its project through here.
+ */
+export async function getDevelopmentByPageBusinessId(businessId: string): Promise<Development | null> {
+  const target = String(businessId || '').trim();
+  if (!target) return null;
+  try {
+    const rows = await query(
+      `SELECT ${DEVELOPMENT_COLUMNS} FROM developments WHERE active = 1 AND page_business_id = ? LIMIT 1`,
+      [target]
+    );
+    return rows && rows.length > 0 ? toDevelopment(rows[0]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * A project an admin chose to place at siwify.com/{slug} as well as its
  * /{market}/{slug} rule. Resolved across markets (a vanity is global), only for
  * a market-less URL, and only after every other branch in the router — so the
@@ -491,4 +530,94 @@ export async function listUnits(
   } catch {
     return [];
   }
+}
+
+/**
+ * The project-level facts a compound page (and a Properties minisite) shows.
+ *
+ * Extracted verbatim from the inline computation that used to live in
+ * CompoundPage, so the bespoke project page and the themed business minisite can
+ * never drift: cheapest sale unit, the advertised-or-unit-derived payment plans,
+ * the plan with the longest instalment, a calculator seed, and the compare link
+ * with up to three same-market competitors. A town or village (`place`) carries
+ * none of this, and the flags say so rather than rendering empty panels.
+ */
+export interface DevelopmentFacts {
+  place: boolean;
+  plans: PaymentPlan[];
+  bestPlan: PaymentPlan | null;
+  cheapest: UnitSummary | null;
+  calcSeed: {
+    price: number;
+    downPaymentPct: number;
+    installmentYears: number;
+    frequency: PaymentPlan['frequency'];
+  } | null;
+  currency: string;
+  hasFacts: boolean;
+  competitorIds: string[];
+  /** Compare link without a locale prefix; callers add their own. */
+  compareQueryString: string;
+}
+
+export function buildDevelopmentFacts(
+  development: Development,
+  units: UnitSummary[],
+  siblingProjects: Development[]
+): DevelopmentFacts {
+  const place = isPlaceKind(development.kind);
+
+  const saleUnits = units.filter((u) => u.listingKind === 'sale' && u.price && u.price > 0);
+  const cheapest = saleUnits.reduce<UnitSummary | null>(
+    (low, u) => ((low?.price ?? Infinity) > (u.price ?? Infinity) ? u : low),
+    saleUnits.length ? saleUnits[0] : null
+  );
+
+  // Advertised plans win; unit-derived plans are the fallback.
+  const plans: PaymentPlan[] =
+    development.paymentPlans.length > 0
+      ? development.paymentPlans
+      : saleUnits
+          .filter((u) => u.downPaymentPct !== null || u.installmentYears !== null)
+          .map((u) => ({
+            name: '',
+            downPaymentPct: u.downPaymentPct,
+            installmentYears: u.installmentYears,
+            frequency: 'monthly' as PaymentPlan['frequency'],
+            postHandover: false,
+          }));
+
+  const bestPlan = plans
+    .filter((p) => (p.installmentYears ?? 0) > 0)
+    .reduce<PaymentPlan | null>((best, p) => ((p.installmentYears ?? 0) > (best?.installmentYears ?? 0) ? p : best), null);
+
+  const calcSeed =
+    cheapest?.price && bestPlan?.installmentYears
+      ? {
+          price: cheapest.price,
+          downPaymentPct: bestPlan.downPaymentPct ?? 0,
+          installmentYears: bestPlan.installmentYears,
+          frequency: bestPlan.frequency,
+        }
+      : null;
+
+  const currency = units[0]?.currency || 'EGP';
+  const hasFacts = !place && (development.facilities.length > 0 || plans.length > 0 || Boolean(development.dataVerifiedAt));
+
+  const competitorIds = siblingProjects
+    .filter((s: Development) => s.id !== development.id)
+    .slice(0, 3)
+    .map((s: Development) => s.id);
+
+  return {
+    place,
+    plans,
+    bestPlan,
+    cheapest,
+    calcSeed,
+    currency,
+    hasFacts,
+    competitorIds,
+    compareQueryString: `/compare/projects?ids=${[development.id, ...competitorIds].join(',')}`,
+  };
 }

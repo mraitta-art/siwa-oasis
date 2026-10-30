@@ -9,7 +9,9 @@ import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
 import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
-import { DEFAULT_MARKET_SLUG, pathMarketSlug } from '@/lib/markets';
+import { DEFAULT_MARKET_SLUG, getMarketBySlug, pathMarketSlug } from '@/lib/markets';
+import { resolveMinisiteVertical } from '@/lib/minisite-verticals';
+import { getMinisitePropertyBundle } from '@/lib/minisite-verticals.server';
 import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -525,6 +527,28 @@ export default async function VanitySectionPage({
       }
     });
 
+    // Resolve the minisite vertical from data the server already holds, so the
+    // Properties skin can load its property bundle here instead of the client
+    // reaching into `@/lib/developments`. An admin override on the business wins
+    // over the market/type/development signals, exactly like the client resolver.
+    const routeMarket = await getMarketBySlug(marketSlug).catch(() => null);
+    const marketRevenueModel = routeMarket?.revenueModel ?? undefined;
+    const routeLocale = (await pathLocale()) ?? 'ar';
+    const vertical = resolveMinisiteVertical({
+      override: normalizeCustomData(biz.custom_data)?.minisite_vertical,
+      typeId: biz.type_id,
+      hasDevelopment: Boolean(biz.development_id),
+      marketRevenueModel,
+    });
+    const propertyBundle =
+      vertical === 'properties'
+        ? await getMinisitePropertyBundle(
+            { id: biz.id, development_id: biz.development_id },
+            marketSlug,
+            routeLocale === 'ar'
+          )
+        : null;
+
     return (
       <>
         <MinisiteTapTracker slug={slug} />
@@ -541,6 +565,8 @@ export default async function VanitySectionPage({
           siteSettings={siteSettings}
           initialActiveTab={section}
           lockedSections={lockedSections}
+          marketRevenueModel={marketRevenueModel}
+          propertyBundle={propertyBundle}
         />
       </>
     );

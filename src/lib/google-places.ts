@@ -327,6 +327,145 @@ export function readBusinessCoordinates(customData: unknown): { lat: number; lng
 }
 
 /**
+ * Neighbourhood highlights around a point, sourced live from Places Nearby
+ * Search instead of a hardcoded landmark list. Names come back in the asked
+ * language, so we cache an Arabic and an English set keyed to the coordinates
+ * the business sits on. Every lookup is billable, so results are snapshotted
+ * into `custom_data.google_nearby` and only refreshed once that ages past the
+ * same GOOGLE_PLACE_TTL_DAYS window — two calls per business per window, never
+ * per page view.
+ */
+export interface NearbyLandmark {
+  name: string;
+  lat: number;
+  lng: number;
+  primaryType: string;
+  distKm: number;
+}
+
+export interface NearbyBundle {
+  ar: NearbyLandmark[];
+  en: NearbyLandmark[];
+}
+
+const NEARBY_PRIMARY_TYPES = ['tourist_attraction', 'point_of_interest', 'museum', 'park'];
+const NEARBY_FIELD_MASK = 'places.displayName,places.location,places.primaryType';
+
+type RawNearbyLandmark = Omit<NearbyLandmark, 'distKm'>;
+
+async function fetchNearbyLandmarksByPosition(input: {
+  lat: number;
+  lng: number;
+  languageCode: 'ar' | 'en';
+  radiusMeters?: number;
+}): Promise<RawNearbyLandmark[]> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return [];
+
+  const body = {
+    includedPrimaryTypes: NEARBY_PRIMARY_TYPES,
+    locationBias: {
+      circle: {
+        center: { latitude: input.lat, longitude: input.lng },
+        radius: Math.max(500, Math.min(50000, input.radiusMeters || 5000)),
+      },
+    },
+    maxResultCount: 10,
+    languageCode: input.languageCode,
+  };
+
+  try {
+    const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': NEARBY_FIELD_MASK,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(12000),
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+
+    const payload = await readJson(response);
+    const places: any[] = Array.isArray(payload?.places) ? payload.places : [];
+
+    return places
+      .map((place: any): RawNearbyLandmark | null => {
+        const lat = Number(place?.location?.latitude);
+        const lng = Number(place?.location?.longitude);
+        const name = String(place?.displayName?.text || '').trim();
+        if (!name || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return { name, lat, lng, primaryType: String(place?.primaryType || '') };
+      })
+      .filter((landmark: RawNearbyLandmark | null): landmark is RawNearbyLandmark => Boolean(landmark));
+  } catch {
+    return [];
+  }
+}
+
+function rankNearby(raw: RawNearbyLandmark[], center: { lat: number; lng: number }): NearbyLandmark[] {
+  return raw
+    .map(landmark => ({
+      ...landmark,
+      distKm: Number(distanceKm(center, { lat: landmark.lat, lng: landmark.lng }).toFixed(1)),
+    }))
+    .sort((a, b) => a.distKm - b.distKm)
+    .slice(0, 8);
+}
+
+/**
+ * Returns this business's cached nearby landmarks for both languages, refreshing
+ * the Arabic + English pair from Places Nearby when the snapshot is missing or
+ * stale. Empty when Places is not configured or the business has no coordinates.
+ */
+export async function getBusinessNearbyLandmarks(
+  businessId: string,
+  customData: unknown,
+  coords: { lat: number; lng: number } | null
+): Promise<NearbyBundle> {
+  const empty: NearbyBundle = { ar: [], en: [] };
+  if (!isGooglePlacesConfigured() || !coords) return empty;
+
+  const data = parseCustomData(customData);
+  const cached = data.google_nearby as
+    | (NearbyBundle & { fetched_at?: string; lat?: number; lng?: number })
+    | undefined;
+
+  const isFresh =
+    cached &&
+    cached.fetched_at &&
+    Number(cached.lat) === coords.lat &&
+    Number(cached.lng) === coords.lng &&
+    Date.now() - new Date(cached.fetched_at).getTime() < googlePlaceTtlMs();
+
+  if (isFresh && cached) {
+    return { ar: cached.ar || [], en: cached.en || [] };
+  }
+
+  const [arRaw, enRaw] = await Promise.all([
+    fetchNearbyLandmarksByPosition({ ...coords, languageCode: 'ar' }),
+    fetchNearbyLandmarksByPosition({ ...coords, languageCode: 'en' }),
+  ]);
+
+  const bundle: NearbyBundle & { fetched_at: string; lat: number; lng: number } = {
+    ar: rankNearby(arRaw, coords),
+    en: rankNearby(enRaw, coords),
+    fetched_at: new Date().toISOString(),
+    lat: coords.lat,
+    lng: coords.lng,
+  };
+
+  await execute('UPDATE businesses SET custom_data = ? WHERE id = ?', [
+    JSON.stringify({ ...data, google_nearby: bundle }),
+    businessId,
+  ]).catch((error: any) => console.warn('[google-places] nearby cache write skipped:', error?.message || error));
+
+  return { ar: bundle.ar, en: bundle.en };
+}
+
+/**
  * Finds whether a Google Maps profile already exists for this business, so we
  * never advise a vendor to create a duplicate listing. Read-only, one Places
  * Text Search SKU per call.
