@@ -59,6 +59,7 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
   market_hero: { allowed: [...COMMON_TEXT, 'buttonText', 'buttonLink', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   egypt_hero: { allowed: [...COMMON_TEXT, 'buttonText', 'buttonLink', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   egypt_destinations: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
+  pillar_gateway: { allowed: [...COMMON_TEXT, 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   markets_showcase: { allowed: [...COMMON_TEXT, 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   market_categories: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   services_categories: { allowed: [...COMMON_TEXT, 'max', 'padding_mobile', 'padding_desktop', 'content_max_width'] },

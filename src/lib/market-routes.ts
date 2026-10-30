@@ -88,6 +88,9 @@ export const RESERVED_SLUGS: readonly string[] = [
   'api', '_next', 'admin', 'jana', 'vendor', 'login', 'logout', 'signup',
   'visitor', 'visitors', 'onboard', 'dashboard', 'uploads', 'media',
   'categories', 'blog', 'projects', 'ar', 'en',
+  // The three pillar pages own these bare first segments; a business slug that
+  // collided with one would be unreachable behind the static route.
+  'tourism', 'properties', 'plan',
   // Comparison and developer-portfolio routes are static first segments; a
   // business may never take the address the app already owns.
   'compare', 'developers',

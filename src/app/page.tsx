@@ -129,6 +129,7 @@ function defaultHomeLayout(opts: { ar: boolean; name: string }): LayoutSection[]
     : 'A full page on your own link, in Arabic and English, with no commission on bookings.';
   return [
     { id: 'fd-hero', type: 'egypt_hero' },
+    { id: 'fd-pillars', type: 'pillar_gateway' },
     { id: 'fd-destinations', type: 'egypt_destinations' },
     { id: 'fd-services', type: 'services_categories' },
     { id: 'fd-listings', type: 'market_listings' },

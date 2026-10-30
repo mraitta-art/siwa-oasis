@@ -25,6 +25,7 @@ import PartnerRegistrationForm from '@/components/PartnerRegistrationForm';
 import MarketHero from '@/components/home/MarketHero';
 import EgyptHero from '@/components/home/EgyptHero';
 import EgyptDestinations from '@/components/home/EgyptDestinations';
+import PillarGateway from '@/components/home/PillarGateway';
 import MarketsShowcase from '@/components/home/MarketsShowcase';
 import MarketCategories from '@/components/home/MarketCategories';
 import MarketListings from '@/components/home/MarketListings';
@@ -126,6 +127,8 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDi
       return homeData ? <EgyptHero data={homeData} props={props} /> : null;
     case 'egypt_destinations':
       return homeData ? <AnimatedSection><EgyptDestinations data={homeData} props={props} /></AnimatedSection> : null;
+    case 'pillar_gateway':
+      return homeData ? <AnimatedSection><PillarGateway data={homeData} props={props} /></AnimatedSection> : null;
     case 'markets_showcase':
       return homeData ? <MarketsShowcase data={homeData} props={props} /> : null;
     case 'market_categories':
