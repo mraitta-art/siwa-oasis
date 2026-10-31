@@ -5,9 +5,10 @@ import { PILLARS, pillarUrl, type PillarSlug } from '@/lib/pillars';
 import type { SiteLocale } from '@/lib/site-locale';
 
 /**
- * The shared chrome for the three pillar pages (`/tourism`, `/properties`,
- * `/plan`): the same marketplace header the home page wears, a localised hero
- * band that names the intent, and the global footer.
+ * The shared chrome for the pillar pages (`/tourism`, `/properties`,
+ * `/transportation`, `/plan`): the same marketplace header the home page wears,
+ * a localised hero band that names the intent with a tab bar across the
+ * sections, and the global footer.
  *
  * It is a Server Component — only the header it renders is a client island — so
  * a page passes its server-fetched body straight in as `children` and keeps full
@@ -15,12 +16,13 @@ import type { SiteLocale } from '@/lib/site-locale';
  * direction and swaps every string through the `ar` flag the caller resolved.
  */
 
-/** Header links for a pillar page: home, the three pillars, all categories. */
+/** Header links for a pillar page: home, the four pillars, all categories. */
 export function pillarNavLinks(locale: SiteLocale): NavLink[] {
   const ar = locale === 'ar';
   const icons: Record<PillarSlug, string> = {
     tourism: 'fa-umbrella-beach',
     properties: 'fa-building-universal-access',
+    transportation: 'fa-truck-fast',
     plan: 'fa-route',
   };
   return [
@@ -84,29 +86,47 @@ export default function PillarChrome({
             {subtitle}
           </p>
 
-          {/* Cross-links to the other two pillars — the three are one journey */}
-          <nav aria-label={ar ? 'المسارات الأخرى' : 'Other journeys'} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', marginTop: '1.7rem' }}>
-            {PILLARS.filter(p => pillarUrl(p.slug, locale) !== activePath).map(p => (
-              <Link
-                key={p.slug}
-                href={pillarUrl(p.slug, locale)}
-                style={{
-                  color: '#FFFFFF',
-                  textDecoration: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  padding: '0.55rem 1.05rem',
-                  borderRadius: 999,
-                  border: '1px solid rgba(255,255,255,0.28)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                }}
-              >
-                <i className={`fas ${p.icon}`} aria-hidden="true" style={{ color: p.accent }} />
-                {ar ? p.label.ar : p.label.en}
-              </Link>
-            ))}
+          {/* Pillar tab bar — the section switcher (Tourism · Properties ·
+              Transportation · Plan). Linked HeroUI tabs (`tabs__tab` markup
+              with data-selected), rendered server-side so every pillar stays a
+              real crawlable <a href> in the SSR payload. */}
+          <nav
+            aria-label={ar ? 'أقسام المنصة' : 'Platform sections'}
+            dir={ar ? 'rtl' : 'ltr'}
+            className="tabs tabs--secondary"
+            data-orientation="horizontal"
+            style={{ display: 'flex', marginTop: '1.7rem' }}
+          >
+            <div className="tabs__list-container">
+              <div className="tabs__list" role="tablist" style={{ display: 'flex', gap: '0.25rem' }}>
+                {PILLARS.map(p => {
+                  const active = pillarUrl(p.slug, locale) === activePath;
+                  return (
+                    <Link
+                      key={p.slug}
+                      href={pillarUrl(p.slug, locale)}
+                      role="tab"
+                      aria-selected={active}
+                      data-selected={active ? 'true' : undefined}
+                      className="tabs__tab"
+                      style={{
+                        width: 'auto',
+                        color: active ? '#FFFFFF' : 'rgba(255,255,255,0.72)',
+                        fontWeight: active ? 900 : 600,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        borderBottom: active ? `2px solid ${p.accent}` : '2px solid transparent',
+                      }}
+                    >
+                      <i className={`fas ${p.icon}`} aria-hidden="true" style={{ color: active ? p.accent : undefined }} />
+                      {ar ? p.label.ar : p.label.en}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </nav>
         </div>
       </section>
@@ -119,7 +139,7 @@ export default function PillarChrome({
           <span style={{ fontWeight: 900, letterSpacing: '2px', fontSize: '0.7rem', color: accent }}>SIWIFY</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontSize: '0.82rem' }}>
             {PILLARS.map(p => (
-              <Link key={p.slug} href={pillarUrl(p.slug, locale)} style={{ color: '#475569', textDecoration: 'none' }}>
+              <Link key={p.slug} href={pillarUrl(p.slug, locale)} className="link link--primary" style={{ color: '#475569', textDecoration: 'none' }}>
                 {ar ? p.label.ar : p.label.en}
               </Link>
             ))}

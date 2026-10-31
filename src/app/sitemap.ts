@@ -43,10 +43,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // advertise destinations, not redirects — the market route below covers them.
   const staticRoutes: MetadataRoute.Sitemap = [
     ...withLocales('/', 'daily', 1.0, now),
-    // The three pillar pages are the site's main navigation — high priority, and
+    // The pillar pages are the site's main navigation — high priority, and
     // refreshed often because their market/developer content changes live.
     ...withLocales('/tourism', 'daily', 0.9, now),
     ...withLocales('/properties', 'daily', 0.9, now),
+    ...withLocales('/transportation', 'daily', 0.9, now),
     ...withLocales('/plan', 'weekly', 0.8, now),
     ...withLocales('/categories', 'daily', 0.9, now),
     ...withLocales('/be-a-partner', 'monthly', 0.6, now),

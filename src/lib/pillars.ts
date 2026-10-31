@@ -1,11 +1,16 @@
 /**
- * The three top-level pillars that sit beside the market doors.
+ * The top-level pillars — the platform's main sections — that sit beside the
+ * market doors.
  *
  * A market is a place (Siwa, El Alamein, ...); a pillar is an intent that
- * crosses every place — travel, property, or planning a journey that is both.
- * They are the site's main navigation, so they live at the bare root
- * (`/tourism`, `/properties`, `/plan` for Arabic) and under `/en/...` for
- * English, exactly like every other public page.
+ * crosses every place — travel, property, movement, or planning a journey that
+ * mixes them. They are the site's main navigation, so they live at the bare root
+ * (`/tourism`, `/properties`, `/transportation`, `/plan` for Arabic) and under
+ * `/en/...` for English, exactly like every other public page.
+ *
+ * Each pillar is written to stand alone: it owns its page, its copy and its
+ * data reads, so a section can be promoted to its own subdomain later without
+ * untangling it from the others.
  *
  * This module is deliberately free of `next/headers` and database reads so both
  * the server pillar pages and the client homepage gateway can import it.
@@ -13,7 +18,7 @@
 
 import type { SiteLocale } from '@/lib/site-locale';
 
-export type PillarSlug = 'tourism' | 'properties' | 'plan';
+export type PillarSlug = 'tourism' | 'properties' | 'transportation' | 'plan';
 
 export interface Pillar {
   slug: PillarSlug;
@@ -60,6 +65,22 @@ export const PILLARS: Pillar[] = [
     blurb: {
       ar: 'مشروعات ومطورون وطلبات معاينة عقارية.',
       en: 'Developments, builders and property viewing tours.',
+    },
+  },
+  {
+    slug: 'transportation',
+    icon: 'fa-truck-fast',
+    accent: '#b45309',
+    label: { ar: 'نقل ولوجستيات', en: 'Transportation & Logistics' },
+    eyebrow: { ar: 'نقل', en: 'TRANSPORTATION' },
+    title: { ar: 'نقل ولوجستيات في كل أنحاء مصر', en: 'Transportation & logistics all over Egypt' },
+    subtitle: {
+      ar: 'تحويلات محلية، نقل دفع رباعي للصحراء، تكاتك وتأجير، وشحن بضائع — تواصل مباشر مع أصحاب الخدمة بدون وسيط.',
+      en: 'Local transfers, 4x4 desert transport, tuk-tuks and rentals, and freight logistics — booked direct with local operators, no middleman.',
+    },
+    blurb: {
+      ar: 'تنقّلات، شحن ولوجستيات في كل وجهة.',
+      en: 'Transfers, freight and logistics in every destination.',
     },
   },
   {

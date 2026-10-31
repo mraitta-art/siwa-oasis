@@ -61,7 +61,6 @@ export const LEGACY_HUB_TARGETS: Record<string, { market: string; category: stri
   '/siwa-retreats': { market: 'siwa', category: 'retreats' },
   // Transport
   '/siwa-move': { market: 'siwa', category: 'logistics' },
-  '/transportation': { market: 'siwa', category: 'logistics' },
   '/transportations': { market: 'siwa', category: 'logistics' },
   // Investment
   '/siwa-invest': { market: 'siwa', category: 'investment_parent' },
@@ -88,9 +87,9 @@ export const RESERVED_SLUGS: readonly string[] = [
   'api', '_next', 'admin', 'jana', 'vendor', 'login', 'logout', 'signup',
   'visitor', 'visitors', 'onboard', 'dashboard', 'uploads', 'media',
   'categories', 'blog', 'projects', 'ar', 'en',
-  // The three pillar pages own these bare first segments; a business slug that
+  // The pillar pages own these bare first segments; a business slug that
   // collided with one would be unreachable behind the static route.
-  'tourism', 'properties', 'plan',
+  'tourism', 'properties', 'transportation', 'plan',
   // Comparison and developer-portfolio routes are static first segments; a
   // business may never take the address the app already owns.
   'compare', 'developers',

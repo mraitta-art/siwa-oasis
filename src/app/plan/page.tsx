@@ -145,6 +145,9 @@ export default async function PlanPage() {
                 <Link href={pillarUrl('tourism', locale)} style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 999, padding: '0.4rem 0.8rem' }}>
                   {ar ? 'السياحة' : 'Tourism'}
                 </Link>
+                <Link href={pillarUrl('transportation', locale)} style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 999, padding: '0.4rem 0.8rem' }}>
+                  {ar ? 'النقل' : 'Transportation'}
+                </Link>
               </div>
             </div>
           );

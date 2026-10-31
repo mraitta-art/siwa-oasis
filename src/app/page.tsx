@@ -129,6 +129,7 @@ const PLATFORM_NAV_TEXT: Record<'ar' | 'en', string> = {
     'الرئيسية | /',
     'السياحة | /tourism',
     'العقارات | /properties',
+    'النقل واللوجستيات | /transportation',
     'خطّط رحلتك | /plan',
     'كل التصنيفات | /categories',
   ].join('\n'),
@@ -136,6 +137,7 @@ const PLATFORM_NAV_TEXT: Record<'ar' | 'en', string> = {
     'Home | /en',
     'Tourism | /en/tourism',
     'Properties | /en/properties',
+    'Transportation | /en/transportation',
     'Plan a trip | /en/plan',
     'All categories | /en/categories',
   ].join('\n'),
@@ -145,6 +147,7 @@ const PLATFORM_FOOTER_TEXT: Record<'ar' | 'en', string> = {
   ar: [
     'استكشف | السياحة | /tourism',
     'استكشف | العقارات | /properties',
+    'استكشف | النقل واللوجستيات | /transportation',
     'استكشف | خطّط رحلتك | /plan',
     'استكشف | كل التصنيفات | /categories',
     'شركاؤنا | بوابة الشركاء | /login',
@@ -153,6 +156,7 @@ const PLATFORM_FOOTER_TEXT: Record<'ar' | 'en', string> = {
   en: [
     'EXPLORE | Tourism | /en/tourism',
     'EXPLORE | Properties | /en/properties',
+    'EXPLORE | Transportation | /en/transportation',
     'EXPLORE | Plan a trip | /en/plan',
     'EXPLORE | All categories | /en/categories',
     'PARTNERS | Vendor portal | /en/login',
