@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
 import { useMinisiteLang } from '@/components/minisite/MinisiteLang';
-import { componentDefault } from '@/lib/minisite-i18n';
+import { componentDefault, label as minisiteLabel } from '@/lib/minisite-i18n';
 import { MinisiteLayout, MinisiteLayoutComponent } from '@/lib/minisite-layout';
 
 export interface BusinessContext {
@@ -244,8 +244,8 @@ export default function MinisiteBuilderRenderer({
       case 'vendor_hero': {
         const title =
           mode === 'untied'
-            ? props.title || 'Welcome to Our Sanctuary'
-            : business.name || 'Siwa Business';
+            ? props.title || componentDefault('vendor_hero', 'title', pageIsArabic)
+            : business.name || componentDefault('vendor_hero', 'title', pageIsArabic);
         const subtitle =
           mode === 'untied'
             ? props.subtitle || ''
@@ -392,8 +392,8 @@ export default function MinisiteBuilderRenderer({
       // 2. VENDOR GALLERY
       // ──────────────────────────────────────────────
       case 'vendor_gallery': {
-        const title = props.title || 'Visual Spaces & Highlights';
-        const subtitle = props.subtitle || 'Authentic atmosphere captured from the oasis.';
+        const title = props.title || componentDefault('vendor_gallery', 'title', pageIsArabic);
+        const subtitle = props.subtitle || componentDefault('vendor_gallery', 'subtitle', pageIsArabic);
 
         // Replace mode uses approved gallery items; untied uses props.images
         const sectionGalleryItems =
@@ -491,8 +491,8 @@ export default function MinisiteBuilderRenderer({
       // 3. VENDOR SERVICES & AMENITIES
       // ──────────────────────────────────────────────
       case 'vendor_services': {
-        const title = props.title || 'Core Amenities & Services';
-        const subtitle = props.subtitle || 'Crafted with traditional desert hospitality.';
+        const title = props.title || componentDefault('vendor_services', 'title', pageIsArabic);
+        const subtitle = props.subtitle || componentDefault('vendor_services', 'subtitle', pageIsArabic);
 
         let servicesList: string[] = [];
         if (mode === 'untied') {
@@ -871,7 +871,7 @@ export default function MinisiteBuilderRenderer({
       // 5. VENDOR BLOG & STORIES
       // ──────────────────────────────────────────────
       case 'vendor_blog': {
-        const title = props.title || 'Stories & Desert Dispatch';
+        const title = props.title || componentDefault('vendor_blog', 'title', pageIsArabic);
         const blogLayout = ['grid', 'list', 'featured', 'masonry', 'minimal'].includes(props.blogLayout)
           ? props.blogLayout
           : 'grid';
@@ -1004,12 +1004,12 @@ export default function MinisiteBuilderRenderer({
       // 7. TEXT & STORY SECTION
       // ──────────────────────────────────────────────
       case 'text_section': {
-        const title = props.title || 'Our Desert Heritage';
+        const title = props.title || componentDefault('text_section', 'title', pageIsArabic);
         const content =
           props.content ||
           (mode === 'replace'
-            ? identity.description || identity.section_blog || ''
-            : 'Custom narrative crafted for visitors of this establishment.');
+            ? identity.description || identity.section_blog || componentDefault('text_section', 'content', pageIsArabic)
+            : componentDefault('text_section', 'content', pageIsArabic));
 
         return (
           <section
@@ -1051,10 +1051,10 @@ export default function MinisiteBuilderRenderer({
       // 8. CTA CALLOUT
       // ──────────────────────────────────────────────
       case 'cta_section': {
-        const title = props.title || 'Ready to Experience Siwa with Us?';
+        const title = props.title || componentDefault('cta_section', 'title', pageIsArabic);
         const description =
-          props.description || 'Reach out directly to arrange your stay, journey, or reservation.';
-        const btnText = props.buttonText || (phone ? 'Direct WhatsApp' : 'Contact Host');
+          props.description || componentDefault('cta_section', 'description', pageIsArabic);
+        const btnText = props.buttonText || (phone ? componentDefault('cta_section', 'buttonText', pageIsArabic) : (pageIsArabic ? 'تواصل مع صاحب النشاط' : 'Contact Host'));
         const btnLink =
           props.buttonLink ||
           (phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}` : '#contact');
@@ -1129,7 +1129,7 @@ export default function MinisiteBuilderRenderer({
       // 9. FAQ ACCORDION
       // ──────────────────────────────────────────────
       case 'faq': {
-        const title = props.title || 'Frequently Asked Questions';
+        const title = props.title || componentDefault('faq', 'title', pageIsArabic);
         const rawFaqs = Array.isArray(props.faqs)
           ? props.faqs
           : [
@@ -1218,7 +1218,7 @@ export default function MinisiteBuilderRenderer({
       // 10. TESTIMONIALS
       // ──────────────────────────────────────────────
       case 'testimonials': {
-        const title = props.title || 'Guest Endorsements';
+        const title = props.title || componentDefault('testimonials', 'title', pageIsArabic);
         const rawReviews = Array.isArray(props.testimonials)
           ? props.testimonials
           : [
@@ -1392,7 +1392,9 @@ export default function MinisiteBuilderRenderer({
           }}
         >
           <div>
-            Powered by <strong style={{ color: primaryColor }}>SiWiFy</strong> — Egypt&rsquo;s properties &amp; tourism marketplace
+            {pageIsArabic
+              ? <>على منصة <strong style={{ color: primaryColor }}>SiWiFy</strong> — {minisiteLabel('platform_footer_tagline', true)}</>
+              : <>Listed on <strong style={{ color: primaryColor }}>SiWiFy</strong> — {minisiteLabel('platform_footer_tagline', false)}</>}
           </div>
         </footer>
       )}

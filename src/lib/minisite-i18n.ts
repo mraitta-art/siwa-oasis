@@ -79,6 +79,7 @@ export const MINISITE_I18N = {
   en: { ar: 'English', en: 'English' },
   ar: { ar: 'عربي', en: 'عربي' },
   powered_by: { ar: 'على منصة', en: 'listed on' },
+  platform_footer_tagline: { ar: 'سوق العقارات والسياحة في مصر', en: 'Egypt\'s properties & tourism marketplace' },
   all_rights: { ar: 'كل الحقوق محفوظة', en: 'All rights reserved' },
   list_your_business: { ar: 'أضف نشاطك', en: 'List your business' },
   authentic_experience: { ar: 'تجربة أصيلة', en: 'Authentic experience' },
