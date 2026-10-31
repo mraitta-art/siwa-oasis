@@ -16,6 +16,8 @@ import UnitsBoard from '@/components/UnitsBoard';
 import InstallmentCalculator from '@/components/development/InstallmentCalculator';
 import PropertiesTours from '@/components/pillars/PropertiesTours';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
+import { MinisiteLangToggle, useMinisiteLang } from '@/components/minisite/MinisiteLang';
+import { label as minisiteLabel } from '@/lib/minisite-i18n';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 import {
   MINISITE_VERTICAL_THEMES,
@@ -290,11 +292,11 @@ export default function VanityBusinessClient({
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const [allowedMinisiteComponentKeys, setAllowedMinisiteComponentKeys] = useState<string[]>([]);
   const [liveSettings, setLiveSettings] = useState<any>(siteSettings || null);
-  // Arabic is the primary minisite language; the mount effect below still aligns
-  // to the document dir and honours a saved preference, but starting in Arabic
-  // avoids an English flash on the Arabic-rooted pages.
-  const [minisiteLang, setMinisiteLang] = useState<'en' | 'ar'>('ar');
-  const [isRTL, setIsRTL] = useState(true);
+  // The language lives in MinisiteLangProvider — seeded from the address by the
+  // route, persisted under the shared key — so a visitor who switches to English
+  // on the landing page still sees English on every section tab. `isRTL` stays
+  // as the render-local alias the markup below already speaks.
+  const { lang: minisiteLang, ar: isRTL } = useMinisiteLang();
   const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
   const [utmSource, setUtmSource] = useState<string | null>(null);
 
@@ -349,33 +351,6 @@ export default function VanityBusinessClient({
         .catch(() => {});
     }
   }, [initialData?.id]);
-
-  // Initialize minisite language from localStorage or document default
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('minisite_lang') as 'en' | 'ar' | null;
-      if (saved === 'ar' || saved === 'en') {
-        setMinisiteLang(saved);
-        setIsRTL(saved === 'ar');
-      } else {
-        const docRTL = document.documentElement.dir === 'rtl' || window.getComputedStyle(document.body).direction === 'rtl';
-        setMinisiteLang(docRTL ? 'ar' : 'en');
-        setIsRTL(docRTL);
-      }
-    } catch {
-      setIsRTL(false);
-    }
-  }, []);
-
-  const switchLanguage = (lang: 'en' | 'ar') => {
-    setMinisiteLang(lang);
-    setIsRTL(lang === 'ar');
-    try {
-      localStorage.setItem('minisite_lang', lang);
-      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-      document.documentElement.lang = lang;
-    } catch {}
-  };
 
   useEffect(() => {
     if (!liveSettings) {
@@ -563,6 +538,7 @@ export default function VanityBusinessClient({
   };
 
   const handleShare = async () => {
+    const ar = minisiteLang === 'ar';
     const shareUrl = window.location.href;
     const shareTitle = bizName || `${platformName} Minisite`;
     if (navigator.share) {
@@ -573,11 +549,11 @@ export default function VanityBusinessClient({
         });
       } catch (err) {
         navigator.clipboard.writeText(shareUrl);
-        showToastMessage('Link copied to clipboard!');
+        showToastMessage(minisiteLabel('link_copied_clipboard', ar));
       }
     } else {
       navigator.clipboard.writeText(shareUrl);
-      showToastMessage('Link copied to clipboard!');
+      showToastMessage(minisiteLabel('link_copied_clipboard', ar));
     }
   };
 
@@ -780,38 +756,10 @@ export default function VanityBusinessClient({
               return null;
             })}
 
-            {/* Language Toggle Switcher — only shown when admin enables multilingual */}
-            {(liveSettings?.enable_minisite_multilingual === true || biz?.tier_features?.allow_multilingual === true) && (
-              <div style={{ 
-                display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
-                borderRadius: '20px', padding: '3px', border: '1px solid #e2e8f0' 
-              }}>
-                <button
-                  type="button"
-                  onClick={() => switchLanguage('en')}
-                  style={{
-                    border: 'none', background: minisiteLang === 'en' ? '#1e293b' : 'transparent',
-                    color: minisiteLang === 'en' ? '#fff' : '#64748b',
-                    padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
-                    fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
-                  }}
-                >
-                  EN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchLanguage('ar')}
-                  style={{
-                    border: 'none', background: minisiteLang === 'ar' ? theme.accent : 'transparent',
-                    color: minisiteLang === 'ar' ? '#ffffff' : '#64748b',
-                    padding: '3px 9px', borderRadius: '16px', fontSize: '0.65rem',
-                    fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
-                  }}
-                >
-                  عربي
-                </button>
-              </div>
-            )}
+            {/* Language switch — always available. The platform is Arabic-first
+                and English-complete everywhere, so no admin gate and no tier
+                feature stands between a visitor and their language. */}
+            <MinisiteLangToggle accent={theme.accent} />
 
             <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">
               {platformLogo ? (
@@ -822,32 +770,15 @@ export default function VanityBusinessClient({
 
           {/* Mobile navigation toggle */}
           <div className="minisite-mobile-header-btns" style={{ display: 'none', gap: '0.5rem', alignItems: 'center' }}>
-            {/* Mobile Language Switcher — only shown when admin enables multilingual */}
-            {(liveSettings?.enable_minisite_multilingual === true || biz?.tier_features?.allow_multilingual === true) && (
-              <div style={{ 
-                display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', 
-                borderRadius: '16px', padding: '2px', border: '1px solid #e2e8f0' 
-              }}>
-                <button
-                  type="button"
-                  onClick={() => switchLanguage(minisiteLang === 'en' ? 'ar' : 'en')}
-                  style={{
-                    border: 'none', background: 'transparent',
-                    color: '#1e293b', padding: '2px 7px', fontSize: '0.65rem',
-                    fontWeight: 900, cursor: 'pointer'
-                  }}
-                >
-                  {minisiteLang === 'en' ? 'عربي' : 'EN'}
-                </button>
-              </div>
-            )}
+            {/* Mobile language switch — one button naming the language it opens. */}
+            <MinisiteLangToggle accent={theme.accent} size="sm" compact />
             <Link href="/" style={{ color: '#64748b', padding: '0.5rem', fontSize: '1.1rem' }} title={`${platformName} Home`}>
               <i className="fas fa-home"></i>
             </Link>
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e293b', padding: '0.5rem', fontSize: '1.2rem' }}
-              title="Open Chapters Menu"
+              title={minisiteLabel('open_menu', minisiteLang === 'ar')}
             >
               <i className="fas fa-bars"></i>
             </button>
@@ -2482,10 +2413,10 @@ export default function VanityBusinessClient({
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifySelf: 'stretch',
             justifyContent: 'center', height: '100%', textDecoration: 'none', color: '#1e293b'
           }}
-          title="Call Phone"
+          title={minisiteLabel('call', minisiteLang === 'ar')}
         >
           <i className="fas fa-phone-alt" style={{ fontSize: '1.1rem', color: '#D4AF37', marginBottom: '0.2rem' }}></i>
-          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>CALL DIRECT</span>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>{minisiteLabel('call_direct', minisiteLang === 'ar').toUpperCase()}</span>
         </a>
 
         <a 
@@ -2497,10 +2428,10 @@ export default function VanityBusinessClient({
             justifyContent: 'center', height: '100%', textDecoration: 'none', color: '#15803d',
             borderLeft: '1px solid #f1f5f9'
           }}
-          title="Chat on WhatsApp"
+          title={minisiteLabel('whatsapp', minisiteLang === 'ar')}
         >
           <i className="fab fa-whatsapp" style={{ fontSize: '1.25rem', color: '#16a34a', marginBottom: '0.2rem' }}></i>
-          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>WHATSAPP</span>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>{minisiteLabel('whatsapp', minisiteLang === 'ar').toUpperCase()}</span>
         </a>
 
         <button 
@@ -2512,7 +2443,7 @@ export default function VanityBusinessClient({
           }}
         >
           <i className="fas fa-compass" style={{ fontSize: '1.15rem', color: '#1e293b', marginBottom: '0.2rem' }}></i>
-          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>CHAPTERS</span>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>{minisiteLabel('sections', minisiteLang === 'ar').toUpperCase()}</span>
         </button>
 
         <button 
@@ -2524,7 +2455,7 @@ export default function VanityBusinessClient({
           }}
         >
           <i className="fas fa-share-alt" style={{ fontSize: '1.1rem', color: '#64748b', marginBottom: '0.2rem' }}></i>
-          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>SHARE SITE</span>
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.5px' }}>{minisiteLabel('share_site', minisiteLang === 'ar').toUpperCase()}</span>
         </button>
       </div>
 

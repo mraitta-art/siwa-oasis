@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
+import { useMinisiteLang } from '@/components/minisite/MinisiteLang';
+import { componentDefault } from '@/lib/minisite-i18n';
 import { MinisiteLayout, MinisiteLayoutComponent } from '@/lib/minisite-layout';
 
 export interface BusinessContext {
@@ -45,9 +47,11 @@ export default function MinisiteBuilderRenderer({
   const brandHeroKey = `biz_${business.id}_hero`;
   const brandHeroFallbackKey = `biz_${business.id}_tab_sec_1_identity_hero`;
   const mode = layout.mode || 'replace';
-  // Pages under /ar carry lang inside their layout, so every block can print the
-  // Arabic typology without a second copy of the locale live in this component.
-  const pageIsArabic = (layout.site_settings as any)?.lang === 'ar';
+  // The route's MinisiteLangProvider owns the language; the layout's `lang` is
+  // only the seeds' fallback for a preview rendered outside a provider, so one
+  // answer can disagree with the header toggle nobody has to chase.
+  const { ar: providerAr } = useMinisiteLang();
+  const pageIsArabic = providerAr || (layout.site_settings as any)?.lang === 'ar';
   const typeLabel = (pageIsArabic ? business.type_name_ar || business.type_name : business.type_name) || '';
 
   let needsBrandHero = false;
@@ -582,10 +586,11 @@ export default function MinisiteBuilderRenderer({
       // 4. VENDOR PACKAGES & TOURS
       // ──────────────────────────────────────────────
       case 'vendor_packages': {
-        const isArabic = ((siteSettings as any)?.lang === 'ar' || (typeof window !== 'undefined' && document.documentElement.dir === 'rtl'));
-        const defaultTitle = isArabic ? 'باقات وتجارب الرحلات' : 'Curated Packages & Itineraries';
-        const title = props.title || defaultTitle;
-        const subtitle = props.subtitle || (isArabic ? 'باقات سياحية ورحلات مخصصة مع إمكانية الحجز المباشر' : 'Turnkey travel packages, desert safaris, and curated journeys');
+        const isArabic = pageIsArabic;
+        // Default wording lives in the shared dictionary, not inline here — an
+        // admin override (`props.title`) still wins over it.
+        const title = props.title || componentDefault('vendor_packages', 'title', isArabic);
+        const subtitle = props.subtitle || componentDefault('vendor_packages', 'subtitle', isArabic);
         const packages =
           mode === 'untied'
             ? Array.isArray(props.packages)

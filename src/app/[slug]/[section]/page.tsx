@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import VanityBusinessClient from '@/components/VanityBusinessClient';
+import { MinisiteLangProvider } from '@/components/minisite/MinisiteLang';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import { optimizeImageUrlsDeep } from '@/lib/image-url';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
@@ -553,22 +554,26 @@ export default async function VanitySectionPage({
     return (
       <>
         <MinisiteTapTracker slug={slug} />
-        <VanityBusinessClient 
-          slug={slug} 
-          initialData={optimizeImageUrlsDeep(biz)} 
-          sections={optimizeImageUrlsDeep(sections)} 
-          sectionLabels={finalLabels} 
-          sectionLabelsAr={finalLabelsAr} 
-          sectionComponents={sectionComponents} 
-          templatePlan={templatePlan} 
-          isMasterTemplate={biz.is_master === 1} 
-          isTrusted={biz.is_trusted === 1} 
-          siteSettings={optimizeImageUrlsDeep(siteSettings)}
-          initialActiveTab={section}
-          lockedSections={lockedSections}
-          marketRevenueModel={marketRevenueModel}
-          propertyBundle={propertyBundle}
-        />
+        {/* The address seeds the language, so switching to English on `/slug`
+            and opening a section tab lands on English, not Arabic. */}
+        <MinisiteLangProvider initialLang={routeLocale}>
+          <VanityBusinessClient 
+            slug={slug} 
+            initialData={optimizeImageUrlsDeep(biz)} 
+            sections={optimizeImageUrlsDeep(sections)} 
+            sectionLabels={finalLabels} 
+            sectionLabelsAr={finalLabelsAr} 
+            sectionComponents={sectionComponents} 
+            templatePlan={templatePlan} 
+            isMasterTemplate={biz.is_master === 1} 
+            isTrusted={biz.is_trusted === 1} 
+            siteSettings={optimizeImageUrlsDeep(siteSettings)}
+            initialActiveTab={section}
+            lockedSections={lockedSections}
+            marketRevenueModel={marketRevenueModel}
+            propertyBundle={propertyBundle}
+          />
+        </MinisiteLangProvider>
       </>
     );
   } catch (e: any) {

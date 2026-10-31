@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
+import { MinisiteLangProvider } from '@/components/minisite/MinisiteLang';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteSectionTabs';
@@ -840,11 +841,15 @@ export default async function CanonicalVanityPage({
           <BusinessJsonLd business={business} name={businessName} typeName={typeName} image={image} description={description} />
           <MinisiteTapTracker slug={publicSlug} />
           <MinisiteSectionTabs slug={publicSlug} items={sectionNav} lang={lang} accent={verticalAccent} />
-          <MinisiteBuilderRenderer
-            layout={themedLayout}
-            business={storefront}
-            showQRCode
-          />
+          {/* One language owner for the whole minisite: the address seeds it, the
+              header toggle moves it, and every surface below reads the answer. */}
+          <MinisiteLangProvider initialLang={lang}>
+            <MinisiteBuilderRenderer
+              layout={themedLayout}
+              business={storefront}
+              showQRCode
+            />
+          </MinisiteLangProvider>
         </>
       );
     }
