@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
 import { invalidateCache } from '@/lib/cache';
 import { resolveSlideQuota } from '@/lib/slide-quota';
+import { sanitizeSlideBlocks } from '@/lib/slide-blocks';
 import { evaluateVendorTrial, readVendorTrial, resolveTrialQuota } from '@/lib/vendor-trial';
 
 function parseJson(value: unknown): Record<string, any> {
@@ -77,6 +78,11 @@ export async function POST(
       _source: 'business',
       _platform: platform,
       _originalUrl: source_url,
+      // Vendor-proposed hero info blocks. Sanitizer forces approved=false on
+      // every entry (trusted: false) — only the admin hero-carousel panel
+      // can flip a block to visible. Vendors may propose field picks freely,
+      // nothing leaks to the minisite until admin approves.
+      blocks: sanitizeSlideBlocks(slide.blocks, { trusted: false }),
     };
 
     const updatedSlides = [...existingSlides, newSlide].map((s, idx) => ({ ...s, displayOrder: idx }));

@@ -3,6 +3,7 @@ import { execute, query } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { invalidateCache } from '@/lib/cache';
 import { parseBizSiteId, resolveSlideQuota } from '@/lib/slide-quota';
+import { sanitizeSlideBlocks } from '@/lib/slide-blocks';
 
 const MAX_CAROUSEL_CONFIG_BYTES = 3 * 1024 * 1024;
 const VALID_SLIDE_TYPES = new Set(['image', 'youtube', 'video', 'branded', 'embed']);
@@ -166,8 +167,17 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    
-    const config = JSON.stringify({ slides, deletedDynamicIds, siteId });
+
+    // Info blocks: admin path is trusted (approved flag can be true), but the
+    // payload still passes through a strict sanitizer to reject unknown
+    // kinds/zones/layouts and cap array + string sizes. This is a defense-in-
+    // depth guard for a compromised admin session, not the primary gate.
+    const sanitizedSlides = slides.map((slide: any) => ({
+      ...slide,
+      blocks: sanitizeSlideBlocks(slide.blocks, { trusted: true }),
+    }));
+
+    const config = JSON.stringify({ slides: sanitizedSlides, deletedDynamicIds, siteId });
     
     // Governance rule: block net slide additions that push a vendor minisite
     // past its tier's maxSlides. Deletes / reorders (count not increasing)

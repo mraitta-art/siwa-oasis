@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLang } from '@/context/LangContext';
 import CarouselSocialMediaModal, { SocialImportedSlide } from '@/components/CarouselSocialMediaModal';
+import SlideBlocksEditor from '@/components/SlideBlocksEditor';
 import { resolveSlideQuota, buildQuotaCopy } from '@/lib/slide-quota';
+import type { SlideBlock } from '@/lib/slide-blocks';
 
 interface CarouselSlide {
   id: string;
@@ -31,6 +33,9 @@ interface CarouselSlide {
   subtitleSize?: number;
   textAlign?: 'center' | 'left' | 'right';
   fontFamily?: string;
+  // Admin-placed info blocks (caption pill / field labels / values / pairs)
+  // rendered by SlideInfoBlocksOverlay on the live minisite.
+  blocks?: SlideBlock[];
   // source tracks where this slide came from (for display only)
   _source?: 'manual' | 'business' | 'journey' | 'investment' | 'workflow';
   isOverride?: boolean;
@@ -717,6 +722,7 @@ function HeroCarouselManagerContent() {
     subtitleSize: 0,
     textAlign: 'center',
     fontFamily: '',
+    blocks: [],
   };
 
   const [formData, setFormData] = useState<Partial<CarouselSlide>>(defaultFormData);
@@ -1895,6 +1901,18 @@ function HeroCarouselManagerContent() {
               </div>
             )}
 
+            {/* Slide Info Blocks — admin-approved caption / fields / values overlay
+                rendered by SlideInfoBlocksOverlay on the live minisite hero. Any
+                field the admin drops here is automatically hidden from the body
+                field grid to prevent duplication (Model A per-slide picks). */}
+            <div style={{ marginTop: '1.5rem' }}>
+              <SlideBlocksEditor
+                blocks={formData.blocks || []}
+                onChange={(b) => setFormData(p => ({ ...p, blocks: b }))}
+                ar={isArabic}
+              />
+            </div>
+
             <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
               <button onClick={handleSave} disabled={saving}
                 style={{ background: '#D4AF37', color: '#0f172a', border: 'none', padding: '0.9rem 2rem', borderRadius: '10px', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
@@ -1905,7 +1923,7 @@ function HeroCarouselManagerContent() {
                 {t('Cancel', 'إلغاء')}
               </button>
             </div>
-          </div>
+            </div>
         )}
 
         {/* Live Interactive Preview Player */}

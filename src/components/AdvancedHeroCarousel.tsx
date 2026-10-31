@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import YouTubeFacade, { extractYouTubeId } from './YouTubeFacade';
 import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';
+import SlideInfoBlocksOverlay, { ResolvedField } from './SlideInfoBlocksOverlay';
+import type { SlideBlock } from '@/lib/slide-blocks';
 
 interface Slide {
   id: string;
@@ -33,6 +35,12 @@ interface Slide {
   subtitleSize?: number;
   textAlign?: 'center' | 'left' | 'right';
   fontFamily?: string;
+  /**
+   * Admin-approved info blocks placed on top of the media (caption pill, field
+   * labels / values / fields+values at a 9-zone position, each with a preset
+   * layout). The slide is still a media backdrop — blocks are the overlay.
+   */
+  blocks?: SlideBlock[];
 }
 
 interface AdvancedCarouselProps {
@@ -63,6 +71,15 @@ interface AdvancedCarouselProps {
    *  Receives the section id WITHOUT the leading #.
    *  Use this to imperatively switch the active tab in the parent. */
   onSectionNavigate?: (sectionId: string) => void;
+  /**
+   * Field-name → resolved display data (label + value + hide_value state) for
+   * the current minisite. Only needed when slides carry admin-approved
+   * `blocks` of kind 'fieldLabels' | 'fieldValues' | 'fieldsValues'. Home page
+   * carousels can leave this undefined — the overlay skips silently.
+   */
+  fieldsIndex?: Record<string, ResolvedField>;
+  /** Accent color used by the info blocks (borders/glass highlights). */
+  blocksAccent?: string;
 }
 
 export default function AdvancedHeroCarousel({
@@ -84,6 +101,8 @@ export default function AdvancedHeroCarousel({
   },
   visualSettings = {},
   onSectionNavigate,
+  fieldsIndex,
+  blocksAccent,
 }: AdvancedCarouselProps & { autoPlay?: boolean }) {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -530,6 +549,16 @@ export default function AdvancedHeroCarousel({
           </div>
         </div>
       )}
+
+      {/* Admin-approved info blocks overlay. Positioned absolutely on top of
+          the current slide's media. Renders nothing when blocks are absent
+          or none are approved — safe on home-page carousels too. */}
+      <SlideInfoBlocksOverlay
+        blocks={slide.blocks}
+        fieldsIndex={fieldsIndex}
+        slideCaption={slide.caption}
+        accent={blocksAccent || visualSettings.titleColor || '#D4AF37'}
+      />
 
       {showArrows && validSlides.length > 1 && (
         <>

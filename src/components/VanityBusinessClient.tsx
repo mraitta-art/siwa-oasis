@@ -18,6 +18,7 @@ import PropertiesTours from '@/components/pillars/PropertiesTours';
 import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
 import { MinisiteLangToggle, useMinisiteLang } from '@/components/minisite/MinisiteLang';
 import { label as minisiteLabel } from '@/lib/minisite-i18n';
+import { extractClaimedFieldKeys } from '@/lib/slide-blocks';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 import {
   MINISITE_VERTICAL_THEMES,
@@ -299,6 +300,14 @@ export default function VanityBusinessClient({
   const { lang: minisiteLang, ar: isRTL } = useMinisiteLang();
   const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
   const [utmSource, setUtmSource] = useState<string | null>(null);
+  // Raw admin slides currently rendered by AutomatedMinisiteHero — used to
+  // derive the set of field names already claimed by an approved hero block
+  // (Model A: fields shown on the hero are auto-hidden on the body).
+  const [adminHeroSlides, setAdminHeroSlides] = useState<any[]>([]);
+  const slideClaimedFields = React.useMemo(
+    () => extractClaimedFieldKeys(adminHeroSlides),
+    [adminHeroSlides],
+  );
 
   // UTM social attribution — read source from URL on mount and show toast
   useEffect(() => {
@@ -639,6 +648,7 @@ export default function VanityBusinessClient({
           }
 
         }}
+        onAdminSlidesChange={setAdminHeroSlides}
       />
 
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
@@ -1195,12 +1205,17 @@ export default function VanityBusinessClient({
                         // the label but blanks the value. The raw value always stays in
                         // custom_data, so the section blog can still interpolate it as a token.
                         const fv: Record<string, string> = (biz.custom_data?.field_visibility?.[section.id]) || {};
+                        // Model A: any field already surfaced on the hero by an approved
+                        // block is removed from the body grid so it never appears twice.
+                        // The raw value stays in custom_data; section-blog tokens still work.
+                        const claimedFromHero = slideClaimedFields;
 
                         if (Array.isArray(section.fields)) {
                           section.fields.forEach((field: any) => {
                             const key = field?.name;
                             if (!key || seen.has(key)) return;
                             if (fv[key] === 'hide_field') return;
+                            if (claimedFromHero.has(key)) return;
                             seen.add(key);
                             const val = secData?.[key];
                             fieldEntries.push({ key, val, matchedField: field });
@@ -1228,6 +1243,7 @@ export default function VanityBusinessClient({
                             )
                               return;
                             if (fv[key] === 'hide_field') return;
+                            if (claimedFromHero.has(key)) return;
                             seen.add(key);
                             const val = secData[key];
                             const matchedField = section.fields?.find((f: any) => f.name === key);

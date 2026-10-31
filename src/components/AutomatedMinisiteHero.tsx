@@ -5,6 +5,8 @@ import Link from 'next/link';
 import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 import { resolveSectionId } from '@/lib/section-registry';
 import { BRAND_MARK_URL } from '@/lib/brand-assets';
+import { buildFieldsIndexFromSections } from '@/lib/slide-blocks';
+import { useMinisiteLang } from './minisite/MinisiteLang';
 
 interface AutomatedMinisiteHeroProps {
   businessId?: string;
@@ -39,6 +41,12 @@ interface AutomatedMinisiteHeroProps {
   };
   /** Callback so carousel CTAs can directly switch the active tab in the parent */
   onSectionNavigate?: (sectionId: string) => void;
+  /**
+   * Optional hook for the parent (VanityBusinessClient) to observe the raw
+   * admin slides so the body field renderer can automatically skip any field
+   * already claimed by an approved hero block (Model A: per-slide picks).
+   */
+  onAdminSlidesChange?: (slides: any[]) => void;
 }
 
 export default function AutomatedMinisiteHero({
@@ -53,9 +61,13 @@ export default function AutomatedMinisiteHero({
   tierFeatures = {},
   settings = {},
   onSectionNavigate,
+  onAdminSlidesChange,
 }: AutomatedMinisiteHeroProps) {
   // Prefer the minisite-wide admin carousel, then the active section's carousel.
   const [adminSlides, setAdminSlides] = useState<any[] | null>(null);
+  // Arabic-first toggle from MinisiteLangProvider. Falls back to true when the
+  // hero is rendered outside a provider (e.g. marketing pages).
+  const { ar: langIsArabic } = useMinisiteLang();
 
   useEffect(() => {
     if (!businessId) return;
@@ -92,6 +104,14 @@ export default function AutomatedMinisiteHero({
       cancelled = true;
     };
   }, [businessId, activeSectionId, activeSections]);
+
+  // Publish the raw admin slides (the ones that carry `.blocks`) upward so
+  // the body field renderer can subtract any field already shown on the hero.
+  useEffect(() => {
+    if (typeof onAdminSlidesChange === 'function') {
+      onAdminSlidesChange(adminSlides || []);
+    }
+  }, [adminSlides, onAdminSlidesChange]);
 
   const slides = useMemo(() => {
     const allSlides: any[] = [];
@@ -322,6 +342,17 @@ export default function AutomatedMinisiteHero({
   const isLeftLogo = String(rawPos).toLowerCase() === 'left';
   const isCenterLogo = String(rawPos).toLowerCase() === 'center';
 
+  // Fields index for hero blocks: fieldName → label + resolved value.
+  // Rebuilds whenever activeSections, customData, or language changes.
+  // Cheap enough (a few dozen fields) to compute on every render.
+  const fieldsIndex = useMemo(
+    () => buildFieldsIndexFromSections({
+      sections: activeSections,
+      customData,
+      ar: langIsArabic,
+    }),
+    [activeSections, customData, langIsArabic],
+  );
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       
@@ -423,6 +454,8 @@ export default function AutomatedMinisiteHero({
           watermarkText: watermarkText
         }}
         onSectionNavigate={onSectionNavigate}
+        fieldsIndex={fieldsIndex}
+        blocksAccent={primaryColor}
       />
 
       {/* FREEMIUM WATERMARK OVERLAY - Dynamic from Site Settings */}
