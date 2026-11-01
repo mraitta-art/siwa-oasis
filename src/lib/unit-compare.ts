@@ -51,6 +51,26 @@ export interface UnitComparison extends UnitSummary {
    */
   nightlyToMonthlyEquivalent: number | null;
 
+  /**
+   * Approximate weekly equivalent of a nightly stay: `price × 7`. Non-null
+   * ONLY for `rent_night` rows. Presented because short-stay visitors plan in
+   * weeks (a beach week, a safari weekend) rather than months, and a monthly
+   * projection can make a 4-night trip look unaffordable when it is not.
+   */
+  nightlyToWeeklyEquivalent: number | null;
+
+  /**
+   * Twelve-month cost projection, an apples-to-apples long-horizon figure that
+   * every kind can contribute to:
+   *   sale        = down-payment amount + (monthly obligation × 12)
+   *   rent_month  = price × 12
+   *   rent_night  = price × 30 × 12   (a full-year stay; a projection)
+   * Null when any ingredient is missing. This is the ONLY number that lets a
+   * mixed shortlist be read as one column, so the table marks it with an
+   * explicit "12-month view" label and the mixed-kind notice still applies.
+   */
+  twelveMonthProjection: number | null;
+
   /** Whether the unit has a usable sale plan; drives the "no plan" empty cell. */
   hasPlan: boolean;
 
@@ -67,6 +87,9 @@ export interface UnitComparison extends UnitSummary {
   longestTerm: boolean;
   lowestDown: boolean;
   cheapestMonthly: boolean;
+  /** Cheapest `twelveMonthProjection`. Only meaningful when the shortlist is
+   *  two or more rows AND at least two of them have a non-null projection. */
+  cheapestYear: boolean;
 }
 
 export interface UnitComparisonResult {
@@ -110,6 +133,38 @@ function nightMonthlyEquivalent(u: UnitSummary): number | null {
   return price === null ? null : Math.round(price * 30 * 100) / 100;
 }
 
+/** Night→week equivalent. Same honesty rule as the monthly projection. */
+function nightWeeklyEquivalent(u: UnitSummary): number | null {
+  if (u.listingKind !== 'rent_night') return null;
+  const price = num(u.price);
+  return price === null ? null : Math.round(price * 7 * 100) / 100;
+}
+
+/**
+ * Twelve-month cost projection. Different formulas per kind because they
+ * measure different commitments, but the OUTPUT is one number in EGP so the
+ * reader can line them up. Nightly stays are projections and are labelled as
+ * such in the table; sale rows include the down-payment cash so the year cost
+ * reflects what actually leaves the buyer's account in 12 months.
+ */
+function twelveMonthProjectionOf(u: UnitSummary): number | null {
+  const price = num(u.price);
+  if (price === null) return null;
+  if (u.listingKind === 'rent_month') return Math.round(price * 12 * 100) / 100;
+  if (u.listingKind === 'rent_night') return Math.round(price * 30 * 12 * 100) / 100;
+  // sale: cash down + 12 × monthly obligation. Falls back to null when the
+  // row has no plan because a cash-price single-payment "year cost" would be
+  // misleading — the whole price is due at once, not amortized over twelve.
+  const years = num(u.installmentYears);
+  if (years === null || years <= 0) return null;
+  const downPct = u.downPaymentPct === null || u.downPaymentPct === undefined ? 0 : Number(u.downPaymentPct);
+  if (!Number.isFinite(downPct) || downPct < 0 || downPct > 100) return null;
+  const cash = price * (downPct / 100);
+  const financed = price * (1 - downPct / 100);
+  const monthly = financed / (years * 12);
+  return Math.round((cash + monthly * 12) * 100) / 100;
+}
+
 function effectivePpsqm(u: UnitSummary): number | null {
   const stored = num(u.pricePerSqm);
   if (stored !== null) return stored;
@@ -135,11 +190,15 @@ function detectCommonKind(units: UnitSummary[]): ListingKind | null {
 function decorate(u: UnitSummary): UnitComparison {
   const monthly = monthlyCostOf(u);
   const nightly = nightMonthlyEquivalent(u);
+  const weekly = nightWeeklyEquivalent(u);
+  const year = twelveMonthProjectionOf(u);
   return {
     ...u,
     effectivePricePerSqm: effectivePpsqm(u),
     monthlyCost: monthly,
     nightlyToMonthlyEquivalent: nightly,
+    nightlyToWeeklyEquivalent: weekly,
+    twelveMonthProjection: year,
     hasPlan:
       u.listingKind === 'sale'
       && (u.downPaymentPct !== null || u.installmentYears !== null),
@@ -152,6 +211,7 @@ function decorate(u: UnitSummary): UnitComparison {
     longestTerm: false,
     lowestDown: false,
     cheapestMonthly: false,
+    cheapestYear: false,
   };
 }
 
@@ -239,6 +299,19 @@ function markBest(rows: UnitComparison[]): void {
     for (const r of rows) {
       const eff = r.monthlyCost ?? r.nightlyToMonthlyEquivalent;
       if (eff !== null && eff === low) r.cheapestMonthly = true;
+    }
+  }
+
+  // Cheapest 12-month projection. The single long-horizon number that mixes
+  // kinds honestly. Only flag when at least two rows have a value, otherwise
+  // the star just marks the only present row.
+  const yearVals = rows
+    .map((r) => r.twelveMonthProjection)
+    .filter((v): v is number => v !== null && Number.isFinite(v) && v > 0);
+  if (yearVals.length >= 2) {
+    const low = Math.min(...yearVals);
+    for (const r of rows) {
+      if (r.twelveMonthProjection !== null && r.twelveMonthProjection === low) r.cheapestYear = true;
     }
   }
 }
@@ -370,6 +443,13 @@ export const UNIT_COMPARE_LABELS = {
     term: 'مدة الخطة',
     monthly: 'التكلفة الشهرية',
     monthlyApprox: 'شهرى تقديري',
+    weeklyApprox: 'أسبوعى تقديري',
+    twelveMonth: 'تكلفة ١٢ شهر',
+    twelveMonthNote: {
+      sale: 'دفعة + ١٢ قسط',
+      rent_month: 'إيجار سنة كاملة',
+      rent_night: 'إقامة سنة كاملة (تقديرى)',
+    } as Record<ListingKind, string>,
     deposit: 'التأمين',
     minStay: 'أقل عدد ليالٍ',
     availableFrom: 'متاح من',
@@ -400,6 +480,13 @@ export const UNIT_COMPARE_LABELS = {
     term: 'Plan term',
     monthly: 'Monthly cost',
     monthlyApprox: 'Monthly (est.)',
+    weeklyApprox: 'Weekly (est.)',
+    twelveMonth: '12-month cost',
+    twelveMonthNote: {
+      sale: 'down + 12 instalments',
+      rent_month: 'one full year of rent',
+      rent_night: 'one full year of stay (est.)',
+    } as Record<ListingKind, string>,
     deposit: 'Deposit',
     minStay: 'Min stay',
     availableFrom: 'Available from',

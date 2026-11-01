@@ -6,6 +6,7 @@ import { listAllActiveCompounds } from '@/lib/developments';
 import ProjectComparisonTable from '@/components/development/ProjectComparisonTable';
 import ProjectPicker from '@/components/development/ProjectPicker';
 import InstallmentCalculator from '@/components/development/InstallmentCalculator';
+import CompareShareButton from '@/components/development/CompareShareButton';
 
 /**
  * Compare property projects side by side.
@@ -27,6 +28,7 @@ const HEAD = {
     calcTitle: 'احسب قسطك',
     markets: 'قارن المناطق كفرص استثمارية',
     units: 'قارن الوحدات داخل المشروعات',
+    stays: 'قارن أماكن الإقامة القصيرة',
   },
   en: {
     title: 'Compare projects',
@@ -35,6 +37,7 @@ const HEAD = {
     calcTitle: 'Work out your instalment',
     markets: 'Compare markets as opportunities',
     units: 'Compare specific units',
+    stays: 'Compare short-term stays',
   },
 };
 
@@ -88,18 +91,27 @@ export default async function CompareProjectsPage({
       <header style={{ maxWidth: 1100, margin: '0 auto', padding: '3rem 1.5rem 1.25rem' }}>
         <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900 }}>{h.title}</h1>
         <p style={{ margin: '0.6rem 0 0', color: '#64748B', fontSize: '0.95rem', lineHeight: 1.7 }}>{h.lede}</p>
-        <Link
-          href={`${ar ? '' : '/en'}/compare/markets`}
-          style={{ display: 'inline-block', marginTop: '0.7rem', fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
-        >
-          {h.markets} →
-        </Link>
-        <Link
-          href={`${ar ? '' : '/en'}/compare/units`}
-          style={{ display: 'inline-block', marginTop: '0.7rem', marginInlineStart: '1rem', fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
-        >
-          {h.units} →
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+          <Link
+            href={`${ar ? '' : '/en'}/compare/markets`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.markets} →
+          </Link>
+          <Link
+            href={`${ar ? '' : '/en'}/compare/units`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.units} →
+          </Link>
+          <Link
+            href={`${ar ? '' : '/en'}/compare/stays`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.stays} →
+          </Link>
+          <CompareShareButton ar={ar} />
+        </div>
       </header>
 
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 1.5rem 1.25rem' }}>

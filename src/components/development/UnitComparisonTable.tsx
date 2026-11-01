@@ -191,6 +191,38 @@ export default function UnitComparisonTable({
       },
     },
     {
+      // Weekly view of a nightly stay only. Sale and rent_month rows print
+      // "—" because dividing a month-rent by 4 or amortizing a plan over
+      // 7 days would lie. The kind-visibility rule below keeps the row
+      // hidden entirely when nothing in the shortlist uses it.
+      label: t.weeklyApprox,
+      render: (u) => {
+        if (u.nightlyToWeeklyEquivalent === null) return { text: t.none };
+        const value = Math.round(u.nightlyToWeeklyEquivalent);
+        return {
+          text: `${money(value, ar, u.currency || 'EGP')} · ${ar ? 'تقديرى' : 'est.'}`,
+          sub: ar ? 'سعر الليلة × ٧' : 'nightly × 7',
+        };
+      },
+      when: ['rent_night'],
+    },
+    {
+      // The single apples-to-apples number across kinds. Every row prints
+      // its own formula as the sub-label so the reader sees WHY the
+      // nightly figure is a projection and WHY the sale figure includes
+      // the down payment cash.
+      label: t.twelveMonth,
+      render: (u) => {
+        if (u.twelveMonthProjection === null) return { text: t.none };
+        const value = Math.round(u.twelveMonthProjection);
+        return {
+          text: money(value, ar, u.currency || 'EGP'),
+          best: u.cheapestYear,
+          sub: t.twelveMonthNote[u.listingKind as ListingKind] || (ar ? 'تقديرى' : 'est.'),
+        };
+      },
+    },
+    {
       label: t.deposit,
       render: (u) => ({
         text: u.deposit !== null ? money(Math.round(u.deposit), ar, u.currency || 'EGP') : t.none,

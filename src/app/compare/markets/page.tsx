@@ -5,6 +5,7 @@ import { listMarkets } from '@/lib/markets';
 import { compareMarketOpportunities } from '@/lib/market-opportunity';
 import MarketComparisonTable from '@/components/development/MarketComparisonTable';
 import ProjectPicker from '@/components/development/ProjectPicker';
+import CompareShareButton from '@/components/development/CompareShareButton';
 
 /**
  * Compare markets as places to invest.
@@ -25,6 +26,8 @@ const HEAD = {
     pick: 'ابدأ باختيار المناطق بالأعلى.',
     pickerTitle: 'اختر المناطق للمقارنة',
     projects: 'قارن المشروعات',
+    units: 'قارن الوحدات داخل المشروعات',
+    stays: 'قارن أماكن الإقامة القصيرة',
   },
   en: {
     title: 'Compare markets as opportunities',
@@ -32,6 +35,8 @@ const HEAD = {
     pick: 'Start by choosing markets above.',
     pickerTitle: 'Choose markets to compare',
     projects: 'Compare projects',
+    units: 'Compare specific units',
+    stays: 'Compare short-term stays',
   },
 };
 
@@ -73,12 +78,27 @@ export default async function CompareMarketsPage({
       <header style={{ maxWidth: 1100, margin: '0 auto', padding: '3rem 1.5rem 1.25rem' }}>
         <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900 }}>{h.title}</h1>
         <p style={{ margin: '0.6rem 0 0', color: '#64748B', fontSize: '0.95rem', lineHeight: 1.7 }}>{h.lede}</p>
-        <Link
-          href={`${ar ? '' : '/en'}/compare/projects`}
-          style={{ display: 'inline-block', marginTop: '0.7rem', fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
-        >
-          {h.projects} →
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+          <Link
+            href={`${ar ? '' : '/en'}/compare/projects`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.projects} →
+          </Link>
+          <Link
+            href={`${ar ? '' : '/en'}/compare/units`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.units} →
+          </Link>
+          <Link
+            href={`${ar ? '' : '/en'}/compare/stays`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.stays} →
+          </Link>
+          <CompareShareButton ar={ar} />
+        </div>
       </header>
 
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 1.5rem 1.25rem' }}>

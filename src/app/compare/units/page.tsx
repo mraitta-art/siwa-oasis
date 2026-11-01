@@ -5,6 +5,7 @@ import { isListingKind, type ListingKind } from '@/lib/listing-kind';
 import { compareUnits, buildUnitCatalog } from '@/lib/unit-compare';
 import UnitComparisonTable from '@/components/development/UnitComparisonTable';
 import UnitPicker from '@/components/development/UnitPicker';
+import CompareShareButton from '@/components/development/CompareShareButton';
 
 /**
  * Compare specific units side by side.
@@ -34,6 +35,7 @@ const HEAD = {
     lede:
       'قارن حتى أربع وحدات جنبًا إلى جنب: السعر، السعر للمتر، المساحة، المرافق، التسليم وخطط السداد. تعمل أيضًا عبر مشروعين أو سوقين مختلفين.',
     pick: 'ابدأ باختيار الوحدات بالأعلى.',
+    stays: 'قارن أماكن الإقامة القصيرة',
     projects: 'قارن المشروعات كاملة بدلًا من ذلك',
     markets: 'قارن المناطق كفرص استثمارية',
   },
@@ -42,6 +44,7 @@ const HEAD = {
     lede:
       'Line up to four units side by side: price, price per m², area, amenities, handover and payment plans — across two compounds or two markets if you want.',
     pick: 'Start by choosing units above.',
+    stays: 'Compare short-term stays',
     projects: 'Compare whole projects instead',
     markets: 'Compare markets as opportunities',
   },
@@ -103,7 +106,13 @@ export default async function CompareUnitsPage({
       <header style={{ maxWidth: 1100, margin: '0 auto', padding: '3rem 1.5rem 1.25rem' }}>
         <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900 }}>{h.title}</h1>
         <p style={{ margin: '0.6rem 0 0', color: '#64748B', fontSize: '0.95rem', lineHeight: 1.7 }}>{h.lede}</p>
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+          <Link
+            href={`${localePrefix}/compare/stays`}
+            style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+          >
+            {h.stays} →
+          </Link>
           <Link
             href={`${localePrefix}/compare/projects`}
             style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
@@ -116,6 +125,7 @@ export default async function CompareUnitsPage({
           >
             {h.markets} →
           </Link>
+          <CompareShareButton ar={ar} />
         </div>
       </header>
 
