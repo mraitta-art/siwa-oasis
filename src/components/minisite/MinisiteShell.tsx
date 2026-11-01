@@ -9,6 +9,13 @@ import { label, pick, type MinisiteLang } from '@/lib/minisite-i18n';
 import { MINISITE_VERTICAL_THEMES, type CtaKey, type MinisiteVertical } from '@/lib/minisite-verticals';
 import { normalizePhoneValue } from '@/lib/egypt-phone';
 import { PILLARS, pillarLabel, pillarUrl } from '@/lib/pillars';
+import {
+  BRAND_MARK_ALT_AR,
+  BRAND_MARK_ALT_EN,
+  BRAND_MARK_URL,
+  BRAND_NAME_AR,
+  BRAND_NAME_EN,
+} from '@/lib/brand-assets';
 
 /**
  * MinisiteShell — the only chrome a public minisite wears.
@@ -287,7 +294,24 @@ function MinisiteShellChrome({
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', color: '#F8FAFC', textDecoration: 'none' }}
           >
             {platform?.logo ? (
-              <img src={platform.logo} alt={platformName} style={{ height: 18, objectFit: 'contain' }} />
+              <img
+                src={platform.logo}
+                // The strip's mark doubles as the identity signal Google
+                // binds to Image Search. When the caller hands in the
+                // platform emblem, we use the professional bilingual caption
+                // so the file itself carries "marketplace + Egypt + verticals"
+                // even when the page is not around to explain it.
+                alt={platform.logo === BRAND_MARK_URL
+                  ? (ar ? BRAND_MARK_ALT_AR : BRAND_MARK_ALT_EN)
+                  : `${platformName} — ${ar ? BRAND_NAME_AR : BRAND_NAME_EN}`}
+                width={18}
+                height={18}
+                // The strip scrolls away on first paint, so this instance
+                // does not compete with the header for LCP priority.
+                decoding="async"
+                loading="eager"
+                style={{ height: 18, width: 'auto', maxWidth: 82, objectFit: 'contain' }}
+              />
             ) : (
               <i className="fas fa-sun" aria-hidden="true" style={{ color: accent }} />
             )}
@@ -327,7 +351,21 @@ function MinisiteShellChrome({
             {brand.logo && (
               <img
                 src={brand.logo}
-                alt=""
+                // The header mark sits on top of the fold and is the first
+                // brand signal Google reads on a minisite. Alt names the
+                // business when it wears its own logo, and the marketplace
+                // when it falls back to the platform emblem.
+                alt={brand.logo === BRAND_MARK_URL
+                  ? (ar ? BRAND_MARK_ALT_AR : BRAND_MARK_ALT_EN)
+                  : `${displayName} — ${ar ? BRAND_NAME_AR : BRAND_NAME_EN} minisite`}
+                width={30}
+                height={30}
+                // Explicit dimensions + async decode reserve the slot in the
+                // layout, so the brand never shifts the header when it
+                // finishes loading (a real CLS hit on a slow connection).
+                decoding="async"
+                fetchPriority="high"
+                loading="eager"
                 style={{
                   height: 30,
                   width: 30,

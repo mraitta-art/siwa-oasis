@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 import { resolveSectionId } from '@/lib/section-registry';
-import { BRAND_MARK_URL } from '@/lib/brand-assets';
+import { BRAND_MARK_URL, BRAND_MARK_ALT_EN, BRAND_MARK_ALT_AR } from '@/lib/brand-assets';
 import { buildFieldsIndexFromSections, type ResolvedField } from '@/lib/slide-blocks';
 import type { ListingKind } from '@/lib/listing-kind';
 import { useMinisiteLang } from './minisite/MinisiteLang';
@@ -418,7 +418,24 @@ export default function AutomatedMinisiteHero({
             overflow: 'hidden'
           }}>
           {brandLogo ? (
-            <img src={brandLogo} alt={brandName} style={{ height: '20px', objectFit: 'contain', flexShrink: 0 }} />
+            <img
+              src={brandLogo}
+              // When the caller supplied a custom logo we fall back to the
+              // brand name; when the hero prints the platform mark, the
+              // bilingual caption names the marketplace so the file carries
+              // its own identity signal into Image Search.
+              alt={brandLogo === BRAND_MARK_URL
+                ? (langIsArabic ? BRAND_MARK_ALT_AR : BRAND_MARK_ALT_EN)
+                : brandName}
+              width={20}
+              height={20}
+              // The hero anchor sits above the fold, so the browser should
+              // fetch it before the rest of the carousel's slides.
+              fetchPriority="high"
+              decoding="async"
+              loading="eager"
+              style={{ height: '20px', width: 'auto', maxWidth: 88, objectFit: 'contain', flexShrink: 0 }}
+            />
           ) : (
             <i className="fas fa-sun" style={{ color: primaryColor, fontSize: '1rem', flexShrink: 0 }}></i>
           )}
