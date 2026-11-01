@@ -26,6 +26,7 @@ const HEAD = {
     pick: 'ابدأ باختيار المشروعات بالأعلى.',
     calcTitle: 'احسب قسطك',
     markets: 'قارن المناطق كفرص استثمارية',
+    units: 'قارن الوحدات داخل المشروعات',
   },
   en: {
     title: 'Compare projects',
@@ -33,6 +34,7 @@ const HEAD = {
     pick: 'Start by choosing projects above.',
     calcTitle: 'Work out your instalment',
     markets: 'Compare markets as opportunities',
+    units: 'Compare specific units',
   },
 };
 
@@ -91,6 +93,12 @@ export default async function CompareProjectsPage({
           style={{ display: 'inline-block', marginTop: '0.7rem', fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
         >
           {h.markets} →
+        </Link>
+        <Link
+          href={`${ar ? '' : '/en'}/compare/units`}
+          style={{ display: 'inline-block', marginTop: '0.7rem', marginInlineStart: '1rem', fontSize: '0.82rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+        >
+          {h.units} →
         </Link>
       </header>
 

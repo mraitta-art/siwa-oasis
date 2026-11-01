@@ -390,7 +390,23 @@ export default async function CompoundPage({
 
         {units.length > 0 && (
           <div>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '0 0 1rem' }}>{t.available}</h2>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0 }}>{t.available}</h2>
+              {/* Compare entry point. `?development=` pre-scope's the picker to
+                  this compound's own units, so a visitor who has been reading
+                  about one project does not have to hunt for its rows in the
+                  global catalog. The link is present only when there is
+                  something to compare (>= 2 units) — a single apartment does
+                  not need a compare flow. */}
+              {units.length >= 2 && (
+                <Link
+                  href={href(`/compare/units?development=${encodeURIComponent(compound.id)}`)}
+                  style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0F4C81', textDecoration: 'none' }}
+                >
+                  {ar ? 'قارن الوحدات →' : 'Compare units →'}
+                </Link>
+              )}
+            </div>
             <UnitsBoard units={units} ar={ar} />
           </div>
         )}

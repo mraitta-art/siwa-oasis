@@ -179,6 +179,13 @@ export interface UnitSummary {
   availableFrom: string | null;
   amenities: string[];
   status: string;
+  /**
+   * Set when the unit is inventory inside a compound. Optional because a
+   * business listing a single property has no `development_id` — the compare
+   * catalog and the picker read this to enrich the row with a compound title,
+   * and the fallback label is what a direct-listing row prints.
+   */
+  developmentId?: string | null;
 }
 
 function toDevelopment(row: any): Development {
@@ -501,7 +508,8 @@ export async function listUnits(
               bedrooms, bathrooms, area_sqm, price, currency,
               price_per_sqm, down_payment_pct, installment_years, delivery_year,
               finishing, furnished,
-              deposit, deposit_months, min_stay_nights, available_from, amenities, status
+              deposit, deposit_months, min_stay_nights, available_from, amenities, status,
+              development_id
        FROM units
        WHERE ${where.join(' AND ')}
        ORDER BY price IS NULL, price
@@ -544,6 +552,163 @@ export async function listUnits(
       availableFrom: dayOnly(row.available_from),
       amenities: amenitiesOf(row.amenities),
       status: String(row.status || 'available'),
+      developmentId: row.development_id ? String(row.development_id) : null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Units by explicit ids, preserving the caller's order.
+ *
+ * Used by `/compare/units`: the shortlist is a private state living in the URL,
+ * so the page must fetch exactly the ids the visitor picked — not "the first N
+ * active units" — and render them in the order they appear in `?ids=`.
+ * Unknown, inactive, or malformed ids are silently dropped rather than throwing,
+ * matching `compareDevelopments`.
+ */
+export async function getUnitsByIds(ids: string[]): Promise<UnitSummary[]> {
+  const clean = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  if (clean.length === 0) return [];
+  const placeholders = clean.map(() => '?').join(',');
+  try {
+    const rows = await query(
+      `SELECT id, slug, title_ar, title_en, unit_type, listing_kind,
+              bedrooms, bathrooms, area_sqm, price, currency,
+              price_per_sqm, down_payment_pct, installment_years, delivery_year,
+              finishing, furnished,
+              deposit, deposit_months, min_stay_nights, available_from, amenities, status,
+              development_id
+       FROM units
+       WHERE id IN (${placeholders}) AND active = 1`,
+      clean
+    );
+    const byId = new Map<string, any>();
+    for (const row of rows || []) byId.set(String(row.id), row);
+    // Preserve caller order — a saved shortlist should not reshuffle on reload.
+    return clean
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((row: any) => ({
+        id: String(row.id),
+        slug: String(row.slug),
+        titleAr: String(row.title_ar),
+        titleEn: row.title_en ? String(row.title_en) : null,
+        unitType: row.unit_type ? String(row.unit_type) : null,
+        listingKind: (['rent_night', 'rent_month', 'sale'].includes(String(row.listing_kind))
+          ? String(row.listing_kind)
+          : 'rent_night') as UnitSummary['listingKind'],
+        bedrooms: row.bedrooms === null || row.bedrooms === undefined ? null : Number(row.bedrooms),
+        bathrooms: row.bathrooms === null || row.bathrooms === undefined ? null : Number(row.bathrooms),
+        areaSqm: row.area_sqm === null || row.area_sqm === undefined ? null : Number(row.area_sqm),
+        price: row.price === null || row.price === undefined ? null : Number(row.price),
+        currency: String(row.currency || 'EGP'),
+        pricePerSqm: row.price_per_sqm === null || row.price_per_sqm === undefined ? null : Number(row.price_per_sqm),
+        downPaymentPct:
+          row.down_payment_pct === null || row.down_payment_pct === undefined ? null : Number(row.down_payment_pct),
+        installmentYears:
+          row.installment_years === null || row.installment_years === undefined
+            ? null
+            : Number(row.installment_years),
+        deliveryYear:
+          row.delivery_year === null || row.delivery_year === undefined ? null : Number(row.delivery_year),
+        finishing: row.finishing ? String(row.finishing) : null,
+        furnished:
+          row.furnished === null || row.furnished === undefined ? null : Boolean(Number(row.furnished)),
+        deposit: row.deposit === null || row.deposit === undefined ? null : Number(row.deposit),
+        depositMonths:
+          row.deposit_months === null || row.deposit_months === undefined ? null : Number(row.deposit_months),
+        minStayNights:
+          row.min_stay_nights === null || row.min_stay_nights === undefined
+            ? null
+            : Number(row.min_stay_nights),
+        availableFrom: dayOnly(row.available_from),
+        amenities: amenitiesOf(row.amenities),
+        status: String(row.status || 'available'),
+        developmentId: row.development_id ? String(row.development_id) : null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Every active unit, for the units-picker catalog on `/compare/units`.
+ *
+ * Filtered by listing kind when the caller asks — comparing three apartments
+ * for sale should not show monthly-rent and nightly-stay rows. Capped hard at
+ * `limit` (default 240) so a first visit stays under a query the browser can
+ * receive in one round trip; anything above that is a search problem, not a
+ * comparison problem.
+ */
+export async function listAllActiveUnits(opts: {
+  listingKind?: UnitSummary['listingKind'];
+  developmentId?: string | null;
+  limit?: number;
+} = {}): Promise<UnitSummary[]> {
+  const limit = Math.min(Math.max(opts.limit ?? 240, 1), 500);
+  const where: string[] = ['active = 1'];
+  const params: any[] = [];
+  if (opts.listingKind) {
+    where.push('listing_kind = ?');
+    params.push(opts.listingKind);
+  }
+  if (opts.developmentId) {
+    where.push('development_id = ?');
+    params.push(opts.developmentId);
+  }
+  try {
+    const rows = await query(
+      `SELECT id, slug, title_ar, title_en, unit_type, listing_kind,
+              bedrooms, bathrooms, area_sqm, price, currency,
+              price_per_sqm, down_payment_pct, installment_years, delivery_year,
+              finishing, furnished,
+              deposit, deposit_months, min_stay_nights, available_from, amenities, status,
+              development_id
+       FROM units
+       WHERE ${where.join(' AND ')}
+       ORDER BY price IS NULL, price
+       LIMIT ${limit}`,
+      params
+    );
+    return (rows || []).map((row: any) => ({
+      id: String(row.id),
+      slug: String(row.slug),
+      titleAr: String(row.title_ar),
+      titleEn: row.title_en ? String(row.title_en) : null,
+      unitType: row.unit_type ? String(row.unit_type) : null,
+      listingKind: (['rent_night', 'rent_month', 'sale'].includes(String(row.listing_kind))
+        ? String(row.listing_kind)
+        : 'rent_night') as UnitSummary['listingKind'],
+      bedrooms: row.bedrooms === null || row.bedrooms === undefined ? null : Number(row.bedrooms),
+      bathrooms: row.bathrooms === null || row.bathrooms === undefined ? null : Number(row.bathrooms),
+      areaSqm: row.area_sqm === null || row.area_sqm === undefined ? null : Number(row.area_sqm),
+      price: row.price === null || row.price === undefined ? null : Number(row.price),
+      currency: String(row.currency || 'EGP'),
+      pricePerSqm: row.price_per_sqm === null || row.price_per_sqm === undefined ? null : Number(row.price_per_sqm),
+      downPaymentPct:
+        row.down_payment_pct === null || row.down_payment_pct === undefined ? null : Number(row.down_payment_pct),
+      installmentYears:
+        row.installment_years === null || row.installment_years === undefined
+          ? null
+          : Number(row.installment_years),
+      deliveryYear:
+        row.delivery_year === null || row.delivery_year === undefined ? null : Number(row.delivery_year),
+      finishing: row.finishing ? String(row.finishing) : null,
+      furnished:
+        row.furnished === null || row.furnished === undefined ? null : Boolean(Number(row.furnished)),
+      deposit: row.deposit === null || row.deposit === undefined ? null : Number(row.deposit),
+      depositMonths:
+        row.deposit_months === null || row.deposit_months === undefined ? null : Number(row.deposit_months),
+      minStayNights:
+        row.min_stay_nights === null || row.min_stay_nights === undefined
+          ? null
+          : Number(row.min_stay_nights),
+      availableFrom: dayOnly(row.available_from),
+      amenities: amenitiesOf(row.amenities),
+      status: String(row.status || 'available'),
+      developmentId: row.development_id ? String(row.development_id) : null,
     }));
   } catch {
     return [];
