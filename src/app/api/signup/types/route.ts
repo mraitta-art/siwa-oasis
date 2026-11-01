@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryStrict } from '@/lib/db';
-import { getMarketBySlug, MARKET_TYPE_SCOPE_SQL, resolveSignupMarket } from '@/lib/markets';
+import { getMarketBySlug, marketTypeScope, resolveSignupMarket } from '@/lib/markets';
 
 /**
  * PUBLIC Business Types API — for vendor signup only.
@@ -25,9 +25,12 @@ export async function GET(request: NextRequest) {
       host: request.headers.get('host'),
     });
     const marketRow = market ? await getMarketBySlug(market) : null;
-    const scope = market
-      ? { sql: `AND ${MARKET_TYPE_SCOPE_SQL}`, params: [market] }
-      : { sql: '', params: [] as string[] };
+    // The helper owns the param list because the scope binds the slug twice: once
+    // to `market_id`, once to the `market_ids` array that lets one tree serve two
+    // markets. Writing `AND ${MARKET_TYPE_SCOPE_SQL}` with a single param would
+    // silently bind the same value into both slots and answer nothing.
+    const scope = market ? marketTypeScope(market) : { sql: '', params: [] as string[] };
+    const scopeSql = scope.sql ? `AND ${scope.sql}` : '';
 
     let types: any[];
     // `name_ar` exists on `business_types`, but `description_ar` does not: an
@@ -43,20 +46,21 @@ export async function GET(request: NextRequest) {
       types = await queryStrict(
         `SELECT id, name, name_ar, icon, icon_color, description, is_parent, parent_id, market_id
          FROM business_types
-         WHERE active = TRUE ${scope.sql}
+         WHERE active = TRUE ${scopeSql}
          ORDER BY is_parent DESC, sort_order ASC, name ASC`,
         scope.params
       ) as any[];
     } catch {
       // A database old enough to have no `name_ar` cannot show Arabic names, and
-      // one with no `market_id` cannot be scoped by market. Neither is worth an
-      // empty picker: an unscoped English list still lets a vendor register, so
-      // fail open and let the write path reject a cross-market category instead.
+      // one with no market scoping columns cannot be scoped by market. Neither is
+      // worth an empty picker: an unscoped English list still lets a vendor
+      // register, so fail open and let the write path reject a cross-market
+      // category instead.
       try {
         types = await queryStrict(
           `SELECT id, name, icon, icon_color, description, is_parent, parent_id, market_id
            FROM business_types
-           WHERE active = TRUE ${scope.sql}
+           WHERE active = TRUE ${scopeSql}
            ORDER BY is_parent DESC, sort_order ASC, name ASC`,
           scope.params
         ) as any[];

@@ -88,12 +88,90 @@ export const MINISITE_I18N = {
   on_the_map: { ar: 'على الخريطة', en: 'On the map' },
   reviews: { ar: 'تقييمات الزوار', en: 'Visitor reviews' },
   scan_to_open: { ar: 'امسح الرمز لفتح الصفحة', en: 'Scan to open this page' },
+  get_in_touch: { ar: 'تواصل معنا', en: 'Get in touch' },
+  packages_eyebrow: { ar: 'باقات وبرامج وتجارب سياحية', en: 'Packages & itineraries' },
+  special_package: { ar: 'باقة مميزة', en: 'Special package' },
+  inquire_price: { ar: 'تواصل للسعر', en: 'Inquire' },
+  book_deal: { ar: 'احجز العرض', en: 'Book deal' },
+  discount: { ar: 'خصم', en: 'off' },
+  visitor: { ar: 'زائر', en: 'Visitor' },
+  gallery_photo: { ar: 'صورة من المكان', en: 'Gallery photo' },
+
+  // ── The hero ───────────────────────────────────────────────────────────────
+  // The hero prints its English captions in a display face set in caps, so these
+  // English values are stored the way they are printed; Arabic keeps its natural
+  // case because upper-casing has no meaning in that script. A call site that
+  // interpolates a section name passes it already cased, which is why the token
+  // is written the same way in both columns.
+  hero_read_more: { ar: 'اقرأ المزيد', en: 'READ MORE' },
+  hero_discover_experience: { ar: 'اكتشف تجربة {section}', en: 'DISCOVER THE {section} EXPERIENCE' },
+  hero_explore_section: { ar: 'استكشف {section}', en: 'EXPLORE {section}' },
+  hero_discover_more: { ar: 'اكتشف المزيد', en: 'DISCOVER MORE' },
+  hero_read_full_story: { ar: 'اقرأ الحكاية كاملة', en: 'READ FULL STORY' },
+  hero_marketplace: { ar: 'سوق SIWIFY', en: 'SIWIFY MARKETPLACE' },
+  hero_verified_book_direct: { ar: 'موثّق · احجز مباشرة', en: 'VERIFIED · BOOK DIRECT' },
+  hero_authentic_experience: { ar: 'تجربة أصيلة', en: 'AUTHENTIC EXPERIENCE' },
+  hero_scroll_explore: { ar: 'انزل لاستكشاف {name}', en: 'SCROLL TO EXPLORE {name}' },
+  hero_scroll_story: { ar: 'انزل لتصفّح الحكاية', en: 'SCROLL TO EXPLORE STORY' },
+  hero_powered_by: { ar: 'على منصة {name}', en: 'POWERED BY {name}' },
+  hero_story_dna: { ar: 'تجربة {section} الأصيلة.', en: 'Experience our unique {section} DNA.' },
+
+  // ── Community contributions ────────────────────────────────────────────────
+  contrib_count: { ar: '{n} تقييم ونصيحة موثّقة من الزوار', en: '{n} verified reviews & traveler tips' },
+  contrib_count_one: { ar: '{n} تقييم ونصيحة موثّقة من الزوار', en: '{n} verified review & traveler tips' },
+  contrib_community_line: { ar: 'تجارب موثّقة على SiWiFy.com', en: 'Community verified experiences on SiWiFy.com' },
+  contrib_write: { ar: 'اكتب تقييمًا أو نصيحة', en: 'Write a Review / Tip' },
+  contrib_cancel: { ar: 'إلغاء الإضافة', en: 'Cancel Contribution' },
+  contrib_share_title: { ar: 'شارك تجربتك مع {name}', en: 'Share Your Experience with {name}' },
+  contrib_name: { ar: 'الاسم *', en: 'Your Name *' },
+  contrib_name_placeholder: { ar: 'مثال: سارة حسن', en: 'e.g. Sarah Jenkins' },
+  contrib_origin: { ar: 'نوع المسافر / المدينة', en: 'Traveler Type / Origin' },
+  contrib_origin_placeholder: { ar: 'مثال: مسافر منفرد / القاهرة / لندن', en: 'e.g. Solo Explorer / Cairo / London' },
+  contrib_rating: { ar: 'التقييم (من ١ إلى ٥ نجوم)', en: 'Rating (1 to 5 Stars)' },
+  contrib_rating_5: { ar: '⭐⭐⭐⭐⭐ (٥ - استثنائي)', en: '⭐⭐⭐⭐⭐ (5 - Exceptional)' },
+  contrib_rating_4: { ar: '⭐⭐⭐⭐ (٤ - جيد جدًا)', en: '⭐⭐⭐⭐ (4 - Very Good)' },
+  contrib_rating_3: { ar: '⭐⭐⭐ (٣ - متوسط)', en: '⭐⭐⭐ (3 - Average)' },
+  contrib_rating_2: { ar: '⭐⭐ (٢ - ضعيف)', en: '⭐⭐ (2 - Poor)' },
+  contrib_rating_1: { ar: '⭐ (١ - سيئ جدًا)', en: '⭐ (1 - Terrible)' },
+  contrib_review_text: { ar: 'تقييمك أو نصيحتك *', en: 'Your Review or Oasis Tip *' },
+  contrib_review_placeholder: {
+    ar: 'أخبر الزوّار عن إقامتك أو رحلتك أو السائق أو أجمل مكان شاهدته...',
+    en: 'Tell other travelers about your stay, safari, driver, or favorite secret spot...',
+  },
+  contrib_submitting: { ar: 'جارٍ الإرسال...', en: 'Submitting...' },
+  contrib_post: { ar: 'نشر المساهمة الموثّقة 🚀', en: 'Post Verified Contribution 🚀' },
+  contrib_loading: { ar: 'جارٍ تحميل مشاركات المجتمع...', en: 'Loading community contributions...' },
+  contrib_empty_title: { ar: 'كن أول من يشارك تقييمًا!', en: 'Be the First to Contribute a Review!' },
+  contrib_empty_body: {
+    ar: 'هل أقمت أو تناولت أو تجوّلت مع {name}؟ شارك ملاحظاتك مع مجتمع الواحة.',
+    en: 'Have you stayed, dined, or toured with {name}? Share your feedback with the oasis community.',
+  },
+  contrib_verified_guest: { ar: 'ضيف موثّق', en: 'Verified Guest' },
+  contrib_recent: { ar: 'الأحدث', en: 'Recent' },
+  contrib_failed: { ar: 'تعذّر إرسال المساهمة.', en: 'Failed to submit contribution.' },
+  contrib_network_error: { ar: 'خطأ في الاتصال بالخادم.', en: 'Network error submitting review.' },
 } satisfies Record<string, Bilingual>;
 
 /** One chrome string, in the language the minisite is showing. */
 export function label(key: keyof typeof MINISITE_I18N, ar: boolean): string {
   const pair = MINISITE_I18N[key];
   return ar ? pair.ar : pair.en;
+}
+
+/**
+ * A chrome string with the blanks filled in. Split-and-join rather than a
+ * regular expression, because an interpolated value may itself contain a `$`
+ * sequence that `String.replace` would silently interpret.
+ */
+export function labelWith(
+  key: keyof typeof MINISITE_I18N,
+  ar: boolean,
+  tokens: Record<string, string | number>
+): string {
+  return Object.entries(tokens).reduce(
+    (acc, [name, value]) => acc.split(`{${name}}`).join(String(value)),
+    label(key, ar)
+  );
 }
 
 /**
@@ -153,6 +231,54 @@ export const MINISITE_COMPONENT_DEFAULTS: Partial<
     title: { ar: 'المزادات والمناقصات', en: 'Auctions & Tenders' },
   },
 };
+
+/**
+ * The placeholder content a component shows when a business has none of its own.
+ * These were English sentences living inside the renderer, which put an English
+ * FAQ on an Arabic page; they are bilingual now and read through `label()`-style
+ * resolution at the call site.
+ */
+export const MINISITE_DEFAULT_FAQS: Array<{ q: Bilingual; a: Bilingual }> = [
+  {
+    q: { ar: 'ما أفضل طريقة للوصول إلى المكان؟', en: 'What is the best way to get here?' },
+    a: {
+      ar: 'يصل الزوار بسيارة خاصة أو بالحافلة العامة، ويمكن ترتيب لقاء من نقطة الوصول.',
+      en: 'Guests arrive by private car or public bus, and a pickup can be arranged on request.',
+    },
+  },
+  {
+    q: { ar: 'هل الحجز المسبق مطلوب؟', en: 'Are reservations required in advance?' },
+    a: {
+      ar: 'يُنصح بالحجز المسبق، خصوصًا في موسم الشتاء حين تمتلئ الأماكن بسرعة.',
+      en: 'Advance booking is strongly recommended during the high season.',
+    },
+  },
+];
+
+export const MINISITE_DEFAULT_TESTIMONIALS: Array<{ name: Bilingual; text: Bilingual }> = [
+  {
+    name: { ar: 'سارة م.', en: 'Sarah M.' },
+    text: {
+      ar: 'تجربة استثنائية في هدوء المكان وجماله الذي لا يمحوه الزمن.',
+      en: 'An exceptional experience immersed in the silence and timeless beauty of the place.',
+    },
+  },
+  {
+    name: { ar: 'طارق إ.', en: 'Tarek E.' },
+    text: {
+      ar: 'عمارة أصيلة وضيافة دافئة تليق بتراث المكان وأهله.',
+      en: 'Authentic architecture and warm hospitality that truly honors the heritage of the place.',
+    },
+  },
+];
+
+/**
+ * The same written form for both scripts of a placeholder row: the Arabic page
+ * gets the Arabic wording, the English page gets the English one.
+ */
+export function bilingualPair(ar: boolean, pair: Bilingual): string {
+  return ar ? pair.ar : pair.en;
+}
 
 /**
  * The default wording for one field of one component type, in the language the

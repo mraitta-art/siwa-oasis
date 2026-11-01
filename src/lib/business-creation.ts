@@ -15,6 +15,35 @@ export function buildBusinessSlug(name: string, existingSlug?: string) {
   return base;
 }
 
+/**
+ * The extra markets a category is offered in on top of the one that owns it.
+ *
+ * Read on its own rather than added to the type lookup above, because a database
+ * that has not run `20261115_new_cairo_market.sql` has no `market_ids` column,
+ * and asking for a missing column in the same SELECT would make the lookup come
+ * back empty and fail the creation as "Business type not found". Here any
+ * failure — missing column, malformed value — answers "none", which is precisely
+ * the behaviour that existed before the column did.
+ */
+async function marketsSharingType(typeId: string): Promise<string[]> {
+  try {
+    const row = await queryOne<any>(
+      'SELECT market_ids AS shared_in FROM business_types WHERE id = ? LIMIT 1',
+      [typeId]
+    );
+    const raw = (row as any)?.shared_in;
+    if (!raw) return [];
+    // mysql2 hands back a JSON column parsed or as text depending on the driver
+    // version, so accept both instead of trusting one shape.
+    const parsed = Array.isArray(raw) ? raw : typeof raw === 'string' ? JSON.parse(raw) : [];
+    return (Array.isArray(parsed) ? parsed : [])
+      .map((entry) => String(entry ?? '').trim().toLowerCase())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function buildCanonicalBusinessCustomData(name: string, customData: Record<string, any> = {}) {
   const normalizedName = normalizeBusinessName(name);
   const next = { ...(customData || {}) };
@@ -212,8 +241,12 @@ export async function createBusinessEntity(input: CreateBusinessInput) {
   ) as any;
   if (!selectedType) throw new Error(`Business type "${typeId}" not found.`);
   // A category tagged with a market (salt lakes, tuk-tuk, Siwan kitchen) is not
-  // offered anywhere else. Shared categories stay NULL and work in every market.
-  if (selectedType.market_id && String(selectedType.market_id) !== market) {
+  // offered anywhere else. Shared categories stay NULL and work in every market,
+  // and `market_ids` is how one tree is offered in two specific markets — El
+  // Alamein's real-estate typologies serving New Cairo without a second copy of
+  // the six rows, and without either of them appearing in the Siwa wizard.
+  const sharedIn = await marketsSharingType(typeId);
+  if (selectedType.market_id && String(selectedType.market_id) !== market && !sharedIn.includes(market)) {
     const error = new Error(`"${selectedType.name}" is not offered in ${marketRow.nameEn}. Pick a category that exists in that market.`);
     (error as any).rule = 'TYPE_NOT_IN_MARKET';
     throw error;

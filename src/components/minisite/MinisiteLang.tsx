@@ -135,6 +135,38 @@ function useMinisiteLangMaybe(): MinisiteLangValue | null {
 }
 
 /**
+ * The provider above this component, if there is one.
+ *
+ * A route that already owns the language (`/[slug]`, `/[slug]/[section]`) wraps
+ * its surface in `MinisiteLangProvider`; the shell then decorates that provider
+ * instead of nesting a second, competing one. Everywhere else the shell is the
+ * first one on the page and creates it.
+ */
+export function useHasMinisiteLang(): boolean {
+  return useMinisiteLangMaybe() !== null;
+}
+
+/**
+ * Set by `MinisiteShell` around everything it renders.
+ *
+ * A body component that used to draw its own platform nav and footer (the
+ * builder does) needs to know whether the shell above it already drew them.
+ * Asking the shell through context keeps that decision where the chrome lives,
+ * instead of a prop every call site has to remember: an admin preview renders
+ * the body bare, the public page never shows the band twice.
+ */
+const MinisiteChromeContext = createContext(false);
+
+export function MinisiteChromeProvider({ children }: { children: React.ReactNode }) {
+  return <MinisiteChromeContext.Provider value={true}>{children}</MinisiteChromeContext.Provider>;
+}
+
+/** True when a `MinisiteShell` is already drawing the platform chrome. */
+export function useHasMinisiteChrome(): boolean {
+  return useContext(MinisiteChromeContext);
+}
+
+/**
  * The EN / عربي control. It used to appear only when an admin flipped
  * `enable_minisite_multilingual`, which left most minisites unable to reach
  * English at all — the platform is Arabic-first and English-complete everywhere

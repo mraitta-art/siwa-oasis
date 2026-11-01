@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useMinisiteLang } from './minisite/MinisiteLang';
 
 export interface MinisiteClaimBannerProps {
   businessId: string;
@@ -25,7 +26,10 @@ export default function MinisiteClaimBanner({
   const [agreeBio, setAgreeBio] = useState(true);
   const [agreeSocial, setAgreeSocial] = useState(true);
   const [successData, setSuccessData] = useState<any>(null);
-  const [lang, setLang] = useState<'ar' | 'en'>('ar');
+  // The ribbon used to keep a language of its own, so switching it left the rest
+  // of the minisite in the other script. It now reads the same store the header
+  // toggle writes, and its own button drives that store.
+  const { lang, toggle: toggleLang } = useMinisiteLang();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -75,7 +79,7 @@ export default function MinisiteClaimBanner({
     <>
       {/* ── TOP STICKY OFFICIAL SIWIFY RIBBON ── */}
       <aside
-        aria-label="Official Siwify Partner Ribbon"
+        aria-label={isRTL ? 'شريط شريك Siwify الرسمي' : 'Official Siwify Partner Ribbon'}
         dir={isRTL ? 'rtl' : 'ltr'}
         style={{
           position: 'sticky',
@@ -272,7 +276,7 @@ export default function MinisiteClaimBanner({
             {/* LANGUAGE SWITCHER */}
             <button
               type="button"
-              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              onClick={toggleLang}
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.15)',
@@ -291,7 +295,9 @@ export default function MinisiteClaimBanner({
             <button
               type="button"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              title={isCollapsed ? 'Expand Ribbon' : 'Minimize Ribbon'}
+              title={isCollapsed
+                ? (isRTL ? 'توسيع الشريط' : 'Expand Ribbon')
+                : (isRTL ? 'تصغير الشريط' : 'Minimize Ribbon')}
               style={{
                 background: 'transparent',
                 border: 0,
@@ -345,8 +351,7 @@ export default function MinisiteClaimBanner({
               style={{
                 position: 'absolute',
                 top: '1.25rem',
-                left: isRTL ? '1.25rem' : 'auto',
-                right: isRTL ? 'auto' : '1.25rem',
+                insetInlineEnd: '1.25rem',
                 border: 0,
                 background: 'rgba(255,255,255,0.08)',
                 width: '36px',

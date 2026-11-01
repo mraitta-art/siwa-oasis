@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useMinisiteLang } from './minisite/MinisiteLang';
 
 export interface LocationMapProps {
   businessName: string;
@@ -45,9 +46,15 @@ export default function MinisiteLocationMap({
   stationHubName,
   stationaryUnitCode,
   primaryColor = '#D4AF37',
-  ar = false,
+  ar: arProp,
   businessId,
 }: LocationMapProps) {
+  // Same rule as the reviews: the minisite's language is the default, an explicit
+  // prop still overrides it. A map that defaults to English labels would be an
+  // English island on an Arabic page.
+  const { ar: minisiteAr } = useMinisiteLang();
+  const ar = arProp ?? minisiteAr;
+
   const L = ar
     ? {
         access: 'الموقع وطرق الوصول',

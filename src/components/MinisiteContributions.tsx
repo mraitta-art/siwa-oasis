@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useMinisiteLang } from './minisite/MinisiteLang';
+import { label, labelWith } from '@/lib/minisite-i18n';
 
 export interface ContributionItem {
   id: string;
@@ -27,6 +29,10 @@ export default function MinisiteContributions({
   slug,
   primaryColor = '#D4AF37',
 }: MinisiteContributionsProps) {
+  // Every string in this card came from the dictionary, because it is the one
+  // satellite that had no language at all: an Arabic minisite was showing an
+  // English review form to the visitor writing the review.
+  const { ar } = useMinisiteLang();
   const [contributions, setContributions] = useState<ContributionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -79,11 +85,11 @@ export default function MinisiteContributions({
         setContent('');
         setTitle('');
       } else {
-        alert(result.error || 'Failed to submit contribution.');
+        alert(result.error || label('contrib_failed', ar));
       }
     } catch (err) {
       console.error(err);
-      alert('Network error submitting review.');
+      alert(label('contrib_network_error', ar));
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +100,7 @@ export default function MinisiteContributions({
     : '5.0';
 
   return (
-    <div style={{
+    <div dir={ar ? 'rtl' : 'ltr'} style={{
       background: '#fff',
       borderRadius: '24px',
       border: '1px solid #f1f5f9',
@@ -120,11 +126,11 @@ export default function MinisiteContributions({
             <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>{averageRating}</span>
             <div style={{ color: '#f59e0b', fontSize: '1.1rem' }}>★★★★★</div>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
-              ({contributions.length} verified {contributions.length === 1 ? 'review' : 'reviews'} & traveler tips)
+              ({labelWith(contributions.length === 1 ? 'contrib_count_one' : 'contrib_count', ar, { n: contributions.length })})
             </span>
           </div>
           <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
-            Community verified experiences on SiWiFy.com
+            {label('contrib_community_line', ar)}
           </div>
         </div>
 
@@ -147,7 +153,7 @@ export default function MinisiteContributions({
           }}
         >
           <span>✍️</span>
-          <span>{showForm ? 'Cancel Contribution' : 'Write a Review / Tip'}</span>
+          <span>{showForm ? label('contrib_cancel', ar) : label('contrib_write', ar)}</span>
         </button>
       </div>
 
@@ -164,18 +170,18 @@ export default function MinisiteContributions({
           }}
         >
           <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>
-            Share Your Experience with {businessName}
+            {labelWith('contrib_share_title', ar, { name: businessName })}
           </h4>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', marginBottom: '0.3rem' }}>
-                Your Name *
+                {label('contrib_name', ar)}
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Sarah Jenkins"
+                placeholder={label('contrib_name_placeholder', ar)}
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
@@ -184,11 +190,11 @@ export default function MinisiteContributions({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', marginBottom: '0.3rem' }}>
-                Traveler Type / Origin
+                {label('contrib_origin', ar)}
               </label>
               <input
                 type="text"
-                placeholder="e.g. Solo Explorer / Cairo / London"
+                placeholder={label('contrib_origin_placeholder', ar)}
                 value={authorOrigin}
                 onChange={(e) => setAuthorOrigin(e.target.value)}
                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
@@ -197,30 +203,30 @@ export default function MinisiteContributions({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', marginBottom: '0.3rem' }}>
-                Rating (1 to 5 Stars)
+                {label('contrib_rating', ar)}
               </label>
               <select
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
               >
-                <option value={5}>⭐⭐⭐⭐⭐ (5 - Exceptional)</option>
-                <option value={4}>⭐⭐⭐⭐ (4 - Very Good)</option>
-                <option value={3}>⭐⭐⭐ (3 - Average)</option>
-                <option value={2}>⭐⭐ (2 - Poor)</option>
-                <option value={1}>⭐ (1 - Terrible)</option>
+                <option value={5}>{label('contrib_rating_5', ar)}</option>
+                <option value={4}>{label('contrib_rating_4', ar)}</option>
+                <option value={3}>{label('contrib_rating_3', ar)}</option>
+                <option value={2}>{label('contrib_rating_2', ar)}</option>
+                <option value={1}>{label('contrib_rating_1', ar)}</option>
               </select>
             </div>
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', marginBottom: '0.3rem' }}>
-              Your Review or Oasis Tip *
+              {label('contrib_review_text', ar)}
             </label>
             <textarea
               required
               rows={3}
-              placeholder="Tell other travelers about your stay, safari, driver, or favorite secret spot..."
+              placeholder={label('contrib_review_placeholder', ar)}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
@@ -241,7 +247,7 @@ export default function MinisiteContributions({
               cursor: submitting ? 'not-allowed' : 'pointer'
             }}
           >
-            {submitting ? 'Submitting...' : 'Post Verified Contribution 🚀'}
+            {submitting ? label('contrib_submitting', ar) : label('contrib_post', ar)}
           </button>
         </form>
       )}
@@ -249,16 +255,16 @@ export default function MinisiteContributions({
       {/* LIST OF CONTRIBUTIONS */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
-          Loading community contributions...
+          {label('contrib_loading', ar)}
         </div>
       ) : contributions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem 1rem', background: '#fafbfc', borderRadius: '16px', border: '1px dashed #e2e8f0' }}>
           <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🌴</div>
           <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-            Be the First to Contribute a Review!
+            {label('contrib_empty_title', ar)}
           </div>
           <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            Have you stayed, dined, or toured with {businessName}? Share your feedback with the oasis community.
+            {labelWith('contrib_empty_body', ar, { name: businessName })}
           </div>
         </div>
       ) : (
@@ -278,7 +284,7 @@ export default function MinisiteContributions({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.9rem' }}>{item.author_name}</span>
                     <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(212,175,55,0.15)', color: '#b45309', padding: '2px 8px', borderRadius: '50px' }}>
-                      ✓ {item.author_origin || 'Verified Guest'}
+                      ✓ {item.author_origin || label('contrib_verified_guest', ar)}
                     </span>
                   </div>
                   <div style={{ color: '#f59e0b', fontSize: '0.85rem', marginTop: '2px' }}>
@@ -287,7 +293,7 @@ export default function MinisiteContributions({
                 </div>
 
                 <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                  {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent'}
+                  {item.created_at ? new Date(item.created_at).toLocaleDateString(ar ? 'ar-EG' : 'en-GB') : label('contrib_recent', ar)}
                 </span>
               </div>
 

@@ -6,7 +6,7 @@ import { MinisiteLangProvider } from '@/components/minisite/MinisiteLang';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
 import { optimizeImageUrlsDeep } from '@/lib/image-url';
 import { query as safeQuery, normalizeCustomData } from '@/lib/db';
-import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, sectionAppliesToMarket } from '@/lib/section-registry';
+import { filterCoreSectionsForBusinessType, getEffectiveSectionLabel, isSectionApprovedForMinisite, isSectionHidden, resolveSectionId, sectionAppliesToMarket } from '@/lib/section-registry';
 import { normalizeMinisiteTemplate } from '@/lib/minisite-template';
 import { getPublishedManifest } from '@/lib/minisite-manifest';
 import { getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
@@ -14,6 +14,7 @@ import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug, pathMarketSlug } from '@/lib/markets';
 import { resolveMinisiteVertical } from '@/lib/minisite-verticals';
 import { getMinisitePropertyBundle } from '@/lib/minisite-verticals.server';
+import { resolveTypologyChainIds, loadFieldGroupsForChain } from '@/lib/minisite-section-fields';
 import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -270,6 +271,11 @@ export default async function VanitySectionPage({
     }
 
     let sections: any[] = [];
+    // Resolved once for both the questions and the categories below: the same
+    // `SECTION_TEMPLATE -> parent -> child` order the admin form API walks, so
+    // the body grid and a hero block cannot disagree about which level won.
+    const typeChain = await resolveTypologyChainIds(biz.type_id);
+    const sourceIds = ['SECTION_TEMPLATE', ...(typeChain.length ? typeChain : [biz.type_id])];
     if (sectionIds.length > 0) {
       const placeholders = sectionIds.map(() => '?').join(',');
       const rows = await safeQuery<any>(
@@ -278,9 +284,32 @@ export default async function VanitySectionPage({
       );
         
         const fieldDefs = await safeQuery<any>(
-          `SELECT name, label, section_id, field_type, options, acl, required_feature FROM form_fields WHERE business_type_id IN (?, 'SECTION_TEMPLATE')`,
-          [biz.type_id]
-        );
+          // `label_ar` belongs here: the body grid prints it, and so does an
+          // approved hero info block. Left out, an Arabic page asked its
+          // questions in English while the vendor's form asked them in Arabic.
+          //
+          // The whole typology chain, not just this typology and the universal
+          // template: a child like `hotel_units` inherits most of its questions
+          // from `accommodation`, and a shallow predicate printed an empty field
+          // set for exactly the businesses whose slides need it most.
+          `SELECT name, label, label_ar, section_id, field_type, options, acl, required_feature, group_key, excluded
+             FROM form_fields WHERE business_type_id IN (?)
+            ORDER BY CASE business_type_id` +
+            sourceIds.map(() => ' WHEN ? THEN ?').join('') +
+            ` ELSE 0 END ASC, sort_order ASC`,
+          [sourceIds, ...sourceIds.flatMap((id, index) => [id, index + 1])]
+        ).catch(async () =>
+          // A database without `20261116_field_groups.sql` applied still answers every
+          // question in this section — the two columns are the only thing lost.
+          safeQuery<any>(
+            `SELECT name, label, label_ar, section_id, field_type, options, acl, required_feature
+               FROM form_fields WHERE business_type_id IN (?) ORDER BY sort_order ASC`,
+            [sourceIds]
+          ));
+
+        // The admin's own category names, keyed by section, so a slide that points
+        // at a group can print its heading in the language the page speaks.
+        const sectionGroups = await loadFieldGroupsForChain(sourceIds, sectionIds.map(resolveSectionId));
 
         const galleryItems = await safeQuery<any>(
           `SELECT id, url, caption, is_hero, section_id, placement, show_on_main, show_on_minisite, approval_status 
@@ -306,10 +335,25 @@ export default async function VanitySectionPage({
         } catch {}
 
         sections = rows.map((s: any) => {
-          const sFields = fieldDefs.filter((f: any) => f.section_id === s.id).map((f: any) => ({
+          const sCanonical = resolveSectionId(String(s.id || ''));
+          // Rows arrive least-specific first, so a later copy of the same question
+          // is the child's own answer and replaces the inherited one; `excluded = 1`
+          // is the child refusing a question it would otherwise inherit.
+          const byName = new Map<string, any>();
+          for (const f of fieldDefs || []) {
+            const name = typeof f?.name === 'string' ? f.name.trim() : '';
+            if (!name) continue;
+            if (resolveSectionId(String(f.section_id || '')) !== sCanonical) continue;
+            if (Number(f?.excluded ?? 0) === 1) { byName.delete(name); continue; }
+            byName.set(name, f);
+          }
+          const sFields = Array.from(byName.values()).map((f: any) => ({
             ...f,
             acl: (() => { try { return typeof f.acl === 'string' ? JSON.parse(f.acl) : f.acl || {}; } catch { return {}; } })()
           }));
+          const sGroups = sectionGroups
+            .filter((g: any) => g.sectionId === sCanonical)
+            .map((g: any) => ({ name: g.name, label: g.label, label_ar: g.label_ar, sort_order: g.sort_order }));
           const sGallery = galleryItems.filter((g: any) => g.section_id === s.id);
           const sBlogs = blogPosts.filter((b: any) => b.section_id === s.id);
           const sTours = (s.id === 'sec_9_marketplace_catalog' || s.id === 'offers-packages' || s.id === 'package' || s.id === 'catalog') ? tourProducts : [];
@@ -332,6 +376,7 @@ export default async function VanitySectionPage({
             order_locked: orderLocked,
             cta_phone_override: resolvedCtaPhone,
             fields: sFields,
+            groups: sGroups,
             gallery: sGallery,
             blogs: sBlogs,
             tourProducts: sTours

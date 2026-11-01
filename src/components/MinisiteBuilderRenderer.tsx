@@ -4,14 +4,28 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import AdvancedHeroCarousel from '@/components/AdvancedHeroCarousel';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
-import { useMinisiteLang } from '@/components/minisite/MinisiteLang';
-import { componentDefault, label as minisiteLabel } from '@/lib/minisite-i18n';
+import { useHasMinisiteChrome, useMinisiteLang } from '@/components/minisite/MinisiteLang';
+import { buildFieldsIndexFromSections } from '@/lib/slide-blocks';
+import type { MinisiteSectionFields } from '@/lib/minisite-section-fields';
+import {
+  bilingualPair,
+  componentDefault,
+  label as minisiteLabel,
+  MINISITE_DEFAULT_FAQS,
+  MINISITE_DEFAULT_TESTIMONIALS,
+  pick,
+} from '@/lib/minisite-i18n';
 import { MinisiteLayout, MinisiteLayoutComponent } from '@/lib/minisite-layout';
 
 export interface BusinessContext {
   id: string;
   slug: string;
   name: string;
+  /**
+   * Arabic business name. Handed alongside `name` rather than pre-swapped by the
+   * route, because the header toggle can move the page to English after load.
+   */
+  name_ar?: string | null;
   type_id: string;
   type_name?: string;
   /** Arabic typology name, handed in only when the address is Arabic. */
@@ -20,6 +34,12 @@ export interface BusinessContext {
   gallery: any[];
   blogs: any[];
   tourProducts: any[];
+  /**
+   * Section field definitions, so an admin's hero info block can print an answer
+   * on the flat landing page as it does on the section tab. Optional: a surface
+   * without them still renders caption blocks, and field blocks skip silently.
+   */
+  sections?: MinisiteSectionFields[];
   siteSettings?: any;
   vendorPhone?: string;
 }
@@ -47,12 +67,20 @@ export default function MinisiteBuilderRenderer({
   const brandHeroKey = `biz_${business.id}_hero`;
   const brandHeroFallbackKey = `biz_${business.id}_tab_sec_1_identity_hero`;
   const mode = layout.mode || 'replace';
-  // The route's MinisiteLangProvider owns the language; the layout's `lang` is
-  // only the seeds' fallback for a preview rendered outside a provider, so one
-  // answer can disagree with the header toggle nobody has to chase.
+  // The route's MinisiteLangProvider owns the language. `site_settings.lang` is
+  // deliberately NOT consulted: an admin who saved a layout in Arabic used to
+  // pin every visitor to Arabic and the header toggle appeared to do nothing.
+  // Outside a provider (an admin preview) the hook answers Arabic on its own.
   const { ar: providerAr } = useMinisiteLang();
-  const pageIsArabic = providerAr || (layout.site_settings as any)?.lang === 'ar';
-  const typeLabel = (pageIsArabic ? business.type_name_ar || business.type_name : business.type_name) || '';
+  const pageIsArabic = providerAr;
+  // The shell draws the platform nav, the tab band and the footer. The builder's
+  // own copies stay for the surfaces that render it bare — an admin preview or a
+  // vendor review link — and go quiet the moment a shell is above it.
+  const chromeFromShell = useHasMinisiteChrome();
+  const typeLabel = pick(pageIsArabic, business.type_name_ar, business.type_name);
+  // One name for every string the body prints: the Arabic page gets the Arabic
+  // registration, the English one gets the Latin, and neither shows a blank.
+  const brandName = pick(pageIsArabic, business.name_ar, business.name);
 
   let needsBrandHero = false;
   const instanceKeys: string[] = [];
@@ -179,6 +207,20 @@ export default function MinisiteBuilderRenderer({
   const navBg = siteSettings.nav_bg_color || 'rgba(9, 14, 23, 0.85)';
   const textColor = siteSettings.text_color || '#f8fafc';
 
+  // Hero info blocks read the questions their section asks. The flat page owns no
+  // field grid, so the definitions arrive through the business context; without
+  // them a "fields + values" block would print nothing here while the same slide
+  // worked on the section tab.
+  const blocksFieldsIndex = useMemo(
+    () =>
+      buildFieldsIndexFromSections({
+        sections: business.sections || [],
+        customData: business.custom_data || {},
+        ar: pageIsArabic,
+      }),
+    [business.sections, business.custom_data, pageIsArabic]
+  );
+
   // Extract vendor custom data for 'replace' mode
   const rawData = business.custom_data || {};
   const identity = {
@@ -244,18 +286,20 @@ export default function MinisiteBuilderRenderer({
       case 'vendor_hero': {
         const title =
           mode === 'untied'
-            ? props.title || componentDefault('vendor_hero', 'title', pageIsArabic)
-            : business.name || componentDefault('vendor_hero', 'title', pageIsArabic);
+            ? pick(pageIsArabic, props.title_ar, props.title) || componentDefault('vendor_hero', 'title', pageIsArabic)
+            : brandName || componentDefault('vendor_hero', 'title', pageIsArabic);
         const subtitle =
           mode === 'untied'
-            ? props.subtitle || ''
-            : identity.tagline ||
+            ? pick(pageIsArabic, props.subtitle_ar, props.subtitle)
+            : pick(pageIsArabic, identity.tagline_ar, identity.tagline) ||
               identity.description?.substring(0, 180) ||
               typeLabel ||
               '';
         const heroCover = mode === 'untied' ? props.coverImage || coverUrl : coverUrl;
         const heroLogo = mode === 'untied' ? props.logoUrl || logoUrl : logoUrl;
-        const ctaBtnText = props.ctaText || (phone ? 'Direct WhatsApp' : 'Get in Touch');
+        const ctaBtnText =
+          pick(pageIsArabic, props.ctaText_ar, props.ctaText) ||
+          minisiteLabel(phone ? 'direct_whatsapp' : 'get_in_touch', pageIsArabic);
         const ctaBtnLink =
           props.ctaLink ||
           (phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}` : '#contact');
@@ -288,6 +332,10 @@ export default function MinisiteBuilderRenderer({
                   showIndicators={heroBackdropSlides.length > 1}
                   showArrows={heroBackdropSlides.length > 1}
                   showProgress={heroBackdropSlides.length > 1}
+                  fieldsIndex={blocksFieldsIndex}
+                  blocksAccent={primaryColor}
+                  blocksRtl={pageIsArabic}
+                  blocksAr={pageIsArabic}
                 />
               </div>
             )}
@@ -392,8 +440,8 @@ export default function MinisiteBuilderRenderer({
       // 2. VENDOR GALLERY
       // ──────────────────────────────────────────────
       case 'vendor_gallery': {
-        const title = props.title || componentDefault('vendor_gallery', 'title', pageIsArabic);
-        const subtitle = props.subtitle || componentDefault('vendor_gallery', 'subtitle', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('vendor_gallery', 'title', pageIsArabic);
+        const subtitle = pick(pageIsArabic, props.subtitle_ar, props.subtitle) || componentDefault('vendor_gallery', 'subtitle', pageIsArabic);
 
         // Replace mode uses approved gallery items; untied uses props.images
         const sectionGalleryItems =
@@ -456,7 +504,7 @@ export default function MinisiteBuilderRenderer({
                 >
                   <img
                     src={item.url}
-                    alt={item.caption || 'Gallery photo'}
+                    alt={item.caption || minisiteLabel('gallery_photo', pageIsArabic)}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -491,8 +539,8 @@ export default function MinisiteBuilderRenderer({
       // 3. VENDOR SERVICES & AMENITIES
       // ──────────────────────────────────────────────
       case 'vendor_services': {
-        const title = props.title || componentDefault('vendor_services', 'title', pageIsArabic);
-        const subtitle = props.subtitle || componentDefault('vendor_services', 'subtitle', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('vendor_services', 'title', pageIsArabic);
+        const subtitle = pick(pageIsArabic, props.subtitle_ar, props.subtitle) || componentDefault('vendor_services', 'subtitle', pageIsArabic);
 
         let servicesList: string[] = [];
         if (mode === 'untied') {
@@ -586,11 +634,10 @@ export default function MinisiteBuilderRenderer({
       // 4. VENDOR PACKAGES & TOURS
       // ──────────────────────────────────────────────
       case 'vendor_packages': {
-        const isArabic = pageIsArabic;
         // Default wording lives in the shared dictionary, not inline here — an
-        // admin override (`props.title`) still wins over it.
-        const title = props.title || componentDefault('vendor_packages', 'title', isArabic);
-        const subtitle = props.subtitle || componentDefault('vendor_packages', 'subtitle', isArabic);
+        // admin override (`props.title_ar` / `props.title`) still wins over it.
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('vendor_packages', 'title', pageIsArabic);
+        const subtitle = pick(pageIsArabic, props.subtitle_ar, props.subtitle) || componentDefault('vendor_packages', 'subtitle', pageIsArabic);
         const packages =
           mode === 'untied'
             ? Array.isArray(props.packages)
@@ -603,21 +650,21 @@ export default function MinisiteBuilderRenderer({
         const getCategoryMeta = (cat: string) => {
           const c = String(cat || '').toLowerCase();
           if (c.includes('hotel') || c.includes('lodge') || c.includes('camp') || c.includes('stay')) {
-            return { icon: 'fa-hotel', label: isArabic ? 'إقامة فندقية' : 'Hotel Stay' };
+            return { icon: 'fa-hotel', label: pageIsArabic ? 'إقامة فندقية' : 'Hotel Stay' };
           }
           if (c.includes('safari') || c.includes('transport') || c.includes('transfer') || c.includes('4x4')) {
-            return { icon: 'fa-truck-monster', label: isArabic ? 'سفاري ونقل 4x4' : 'Safari & 4x4' };
+            return { icon: 'fa-truck-monster', label: pageIsArabic ? 'سفاري ونقل 4x4' : 'Safari & 4x4' };
           }
           if (c.includes('food') || c.includes('dining') || c.includes('restaurant') || c.includes('feast')) {
-            return { icon: 'fa-utensils', label: isArabic ? 'طعام وعشاء بدوي' : 'Dining & Feast' };
+            return { icon: 'fa-utensils', label: pageIsArabic ? 'طعام وعشاء بدوي' : 'Dining & Feast' };
           }
           if (c.includes('wellness') || c.includes('salt') || c.includes('spa') || c.includes('spring')) {
-            return { icon: 'fa-spa', label: isArabic ? 'استشفاء وملاحات' : 'Wellness & Salt' };
+            return { icon: 'fa-spa', label: pageIsArabic ? 'استشفاء وملاحات' : 'Wellness & Salt' };
           }
           if (c.includes('tour') || c.includes('operator') || c.includes('bundle') || c.includes('all-inclusive')) {
-            return { icon: 'fa-compass', label: isArabic ? 'باقة سياحية شاملة' : 'Tour Operator Bundle' };
+            return { icon: 'fa-compass', label: pageIsArabic ? 'باقة سياحية شاملة' : 'Tour Operator Bundle' };
           }
-          return { icon: 'fa-box-open', label: isArabic ? 'باقة مميزة' : 'Experience Offer' };
+          return { icon: 'fa-box-open', label: pageIsArabic ? 'باقة مميزة' : 'Experience Offer' };
         };
 
         return (
@@ -648,7 +695,7 @@ export default function MinisiteBuilderRenderer({
                   marginBottom: '0.6rem',
                 }}
               >
-                <i className="fas fa-box-open" /> {isArabic ? 'باقات وبرامج وتجارب سياحية' : 'PACKAGES & ITINERARIES'}
+                <i className="fas fa-box-open" /> {minisiteLabel('packages_eyebrow', pageIsArabic).toUpperCase()}
               </div>
               <h2
                 style={{
@@ -675,8 +722,8 @@ export default function MinisiteBuilderRenderer({
               }}
             >
               {packages.map((pkg: any, idx: number) => {
-                const pkgTitle = (isArabic && pkg.title_ar ? pkg.title_ar : pkg.title || pkg.name || 'Special Package');
-                const pkgDesc = (isArabic && pkg.description_ar ? pkg.description_ar : pkg.description || '');
+                const pkgTitle = pick(pageIsArabic, pkg.title_ar, pkg.title || pkg.name) || minisiteLabel('special_package', pageIsArabic);
+                const pkgDesc = pick(pageIsArabic, pkg.description_ar, pkg.description);
                 const currentPrice = Number(pkg.price || pkg.package_price || pkg.base_price || 0);
                 const originalPrice = Number(pkg.original_price || pkg.base_price || 0);
                 const hasDiscount = originalPrice > currentPrice;
@@ -685,9 +732,9 @@ export default function MinisiteBuilderRenderer({
                 const highlights: string[] = Array.isArray(pkg.highlights) ? pkg.highlights : (Array.isArray(pkg.inclusions) ? pkg.inclusions : []);
                 const bookingPhone = (business.vendorPhone || identity.whatsapp || identity.phone || '').replace(/[^0-9]/g, '');
                 const bookingText = encodeURIComponent(
-                  isArabic
-                    ? `مرحباً ${business.name}! أرغب في حجز والاستفسار عن: "${pkgTitle}" بسعر ${currentPrice} ${pkg.currency || 'EGP'}.`
-                    : `Hello ${business.name}! I would like to book or inquire about: "${pkgTitle}" (${currentPrice} ${pkg.currency || 'EGP'}).`
+                  pageIsArabic
+                    ? `مرحباً ${brandName}! أرغب في حجز والاستفسار عن: "${pkgTitle}" بسعر ${currentPrice} ${pkg.currency || 'EGP'}.`
+                    : `Hello ${brandName}! I would like to book or inquire about: "${pkgTitle}" (${currentPrice} ${pkg.currency || 'EGP'}).`
                 );
                 const waUrl = bookingPhone ? `https://wa.me/${bookingPhone}?text=${bookingText}` : '#contact';
 
@@ -725,8 +772,9 @@ export default function MinisiteBuilderRenderer({
                         style={{
                           position: 'absolute',
                           top: '12px',
-                          left: isArabic ? 'auto' : '12px',
-                          right: isArabic ? '12px' : 'auto',
+                          // Logical sides: the badge sits at the reading start, which
+                          // is the right edge on an Arabic page.
+                          insetInlineStart: '12px',
                           background: 'rgba(15,23,42,0.85)',
                           backdropFilter: 'blur(8px)',
                           color: '#ffffff',
@@ -749,8 +797,7 @@ export default function MinisiteBuilderRenderer({
                           style={{
                             position: 'absolute',
                             top: '12px',
-                            right: isArabic ? 'auto' : '12px',
-                            left: isArabic ? '12px' : 'auto',
+                            insetInlineEnd: '12px',
                             background: '#dc2626',
                             color: '#ffffff',
                             padding: '4px 10px',
@@ -760,7 +807,7 @@ export default function MinisiteBuilderRenderer({
                             boxShadow: '0 4px 10px rgba(220,38,38,0.4)',
                           }}
                         >
-                          {discountPct}% {isArabic ? 'خصم' : 'OFF'}
+                          {discountPct}% {minisiteLabel('discount', pageIsArabic)}
                         </div>
                       )}
                     </div>
@@ -832,7 +879,7 @@ export default function MinisiteBuilderRenderer({
                             </div>
                           )}
                           <div style={{ fontSize: '1.2rem', fontWeight: 900, color: primaryColor }}>
-                            {currentPrice > 0 ? `${currentPrice} ${pkg.currency || 'EGP'}` : (isArabic ? 'تواصل للسعر' : 'Inquire')}
+                            {currentPrice > 0 ? `${currentPrice} ${pkg.currency || 'EGP'}` : minisiteLabel('inquire_price', pageIsArabic)}
                           </div>
                         </div>
 
@@ -855,7 +902,7 @@ export default function MinisiteBuilderRenderer({
                             transition: 'transform 0.15s',
                           }}
                         >
-                          <i className="fab fa-whatsapp" /> {isArabic ? 'احجز العرض' : 'Book Deal'}
+                          <i className="fab fa-whatsapp" /> {minisiteLabel('book_deal', pageIsArabic)}
                         </a>
                       </div>
                     </div>
@@ -871,7 +918,7 @@ export default function MinisiteBuilderRenderer({
       // 5. VENDOR BLOG & STORIES
       // ──────────────────────────────────────────────
       case 'vendor_blog': {
-        const title = props.title || componentDefault('vendor_blog', 'title', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('vendor_blog', 'title', pageIsArabic);
         const blogLayout = ['grid', 'list', 'featured', 'masonry', 'minimal'].includes(props.blogLayout)
           ? props.blogLayout
           : 'grid';
@@ -995,6 +1042,10 @@ export default function MinisiteBuilderRenderer({
               showIndicators={props.showIndicators !== false}
               showArrows={props.showArrows !== false}
               showProgress={props.showProgress !== false}
+              fieldsIndex={blocksFieldsIndex}
+              blocksAccent={primaryColor}
+              blocksRtl={pageIsArabic}
+              blocksAr={pageIsArabic}
             />
           </section>
         );
@@ -1004,11 +1055,13 @@ export default function MinisiteBuilderRenderer({
       // 7. TEXT & STORY SECTION
       // ──────────────────────────────────────────────
       case 'text_section': {
-        const title = props.title || componentDefault('text_section', 'title', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('text_section', 'title', pageIsArabic);
         const content =
-          props.content ||
+          pick(pageIsArabic, props.content_ar, props.content) ||
           (mode === 'replace'
-            ? identity.description || identity.section_blog || componentDefault('text_section', 'content', pageIsArabic)
+            ? pick(pageIsArabic, identity.description_ar, identity.description) ||
+              pick(pageIsArabic, identity.section_blog_ar, identity.section_blog) ||
+              componentDefault('text_section', 'content', pageIsArabic)
             : componentDefault('text_section', 'content', pageIsArabic));
 
         return (
@@ -1051,10 +1104,14 @@ export default function MinisiteBuilderRenderer({
       // 8. CTA CALLOUT
       // ──────────────────────────────────────────────
       case 'cta_section': {
-        const title = props.title || componentDefault('cta_section', 'title', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('cta_section', 'title', pageIsArabic);
         const description =
-          props.description || componentDefault('cta_section', 'description', pageIsArabic);
-        const btnText = props.buttonText || (phone ? componentDefault('cta_section', 'buttonText', pageIsArabic) : (pageIsArabic ? 'تواصل مع صاحب النشاط' : 'Contact Host'));
+          pick(pageIsArabic, props.description_ar, props.description) || componentDefault('cta_section', 'description', pageIsArabic);
+        const btnText =
+          pick(pageIsArabic, props.buttonText_ar, props.buttonText) ||
+          (phone
+            ? componentDefault('cta_section', 'buttonText', pageIsArabic)
+            : minisiteLabel('contact_host', pageIsArabic));
         const btnLink =
           props.buttonLink ||
           (phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}` : '#contact');
@@ -1129,19 +1186,16 @@ export default function MinisiteBuilderRenderer({
       // 9. FAQ ACCORDION
       // ──────────────────────────────────────────────
       case 'faq': {
-        const title = props.title || componentDefault('faq', 'title', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('faq', 'title', pageIsArabic);
+        // The fallback questions live in the shared dictionary. They used to be
+        // two English sentences hardcoded here, which printed English on the
+        // Arabic page of every business that had not written its own FAQ.
         const rawFaqs = Array.isArray(props.faqs)
           ? props.faqs
-          : [
-              {
-                q: 'What is the best way to get here?',
-                a: 'Siwa is accessible by private 4x4 or public bus from Cairo and Alexandria.',
-              },
-              {
-                q: 'Are reservations required in advance?',
-                a: 'Advance booking is strongly recommended during the high winter season.',
-              },
-            ];
+          : MINISITE_DEFAULT_FAQS.map(faq => ({
+              q: bilingualPair(pageIsArabic, faq.q),
+              a: bilingualPair(pageIsArabic, faq.a),
+            }));
 
         return (
           <section
@@ -1218,21 +1272,14 @@ export default function MinisiteBuilderRenderer({
       // 10. TESTIMONIALS
       // ──────────────────────────────────────────────
       case 'testimonials': {
-        const title = props.title || componentDefault('testimonials', 'title', pageIsArabic);
+        const title = pick(pageIsArabic, props.title_ar, props.title) || componentDefault('testimonials', 'title', pageIsArabic);
         const rawReviews = Array.isArray(props.testimonials)
           ? props.testimonials
-          : [
-              {
-                name: 'Sarah M.',
-                text: 'An exceptional experience immersed in the silence and timeless beauty of the oasis.',
-                rating: 5,
-              },
-              {
-                name: 'Tarek E.',
-                text: 'Authentic architecture and warm hospitality that truly honors Siwan heritage.',
-                rating: 5,
-              },
-            ];
+          : MINISITE_DEFAULT_TESTIMONIALS.map(review => ({
+              name: bilingualPair(pageIsArabic, review.name),
+              text: bilingualPair(pageIsArabic, review.text),
+              rating: 5,
+            }));
 
         return (
           <section
@@ -1293,7 +1340,7 @@ export default function MinisiteBuilderRenderer({
                     }}
                   >
                     <span style={{ fontWeight: 800, color: primaryColor, fontSize: '0.85rem' }}>
-                      {rev.name || 'Visitor'}
+                      {rev.name || minisiteLabel('visitor', pageIsArabic)}
                     </span>
                     <span style={{ color: '#f59e0b', fontSize: '0.8rem' }}>★★★★★</span>
                   </div>
@@ -1319,7 +1366,7 @@ export default function MinisiteBuilderRenderer({
       }}
     >
       {/* Platform minimal navigation banner if enabled */}
-      {siteSettings.show_platform_nav !== false && (
+      {!chromeFromShell && siteSettings.show_platform_nav !== false && (
         <nav
           style={{
             position: 'sticky',
@@ -1361,7 +1408,7 @@ export default function MinisiteBuilderRenderer({
                 fontWeight: 600,
               }}
             >
-              Browse the marketplace
+              {minisiteLabel('home', pageIsArabic)}
             </Link>
           </div>
         </nav>
@@ -1375,12 +1422,12 @@ export default function MinisiteBuilderRenderer({
 
       {showQRCode && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1rem' }}>
-          <MinisiteQRCode businessName={business.name} slug={business.slug} businessId={business.id} src="qr" />
+          <MinisiteQRCode businessName={brandName} slug={business.slug} businessId={business.id} src="qr" />
         </div>
       )}
 
       {/* Optional Platform Footer */}
-      {siteSettings.show_platform_footer !== false && (
+      {!chromeFromShell && siteSettings.show_platform_footer !== false && (
         <footer
           style={{
             borderTop: '1px solid rgba(255,255,255,0.08)',

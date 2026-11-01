@@ -2817,6 +2817,77 @@ function MinisiteBuilderStudioContent() {
                   />
                 </div>
 
+                {/* The Arabic twin of the two fields above. Arabic is the default
+                    language of a minisite, so this is the wording most visitors
+                    read. Both are optional: the renderer resolves
+                    `title_ar || title`, so leaving this empty keeps the English
+                    text on the Arabic page rather than printing a blank heading. */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.3rem' }}>
+                    العنوان (عربي)
+                  </label>
+                  <input
+                    type="text"
+                    dir="rtl"
+                    value={String(selectedComp.props?.title_ar ?? '')}
+                    onChange={(e) => {
+                      const updated = components.map((c) =>
+                        c.id === selectedComp.id
+                          ? { ...c, props: { ...(c.props || {}), title_ar: e.target.value } }
+                          : c
+                      );
+                      setComponents(updated);
+                    }}
+                    placeholder="عنوان القسم بالعربية"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.3rem' }}>
+                    المحتوى / الوصف (عربي)
+                  </label>
+                  <textarea
+                    rows={3}
+                    dir="rtl"
+                    value={String(selectedComp.props?.subtitle_ar ?? selectedComp.props?.description_ar ?? selectedComp.props?.content_ar ?? '')}
+                    onChange={(e) => {
+                      const updated = components.map((c) =>
+                        c.id === selectedComp.id
+                          ? {
+                              ...c,
+                              props: {
+                                ...(c.props || {}),
+                                subtitle_ar: e.target.value,
+                                description_ar: e.target.value,
+                                content_ar: e.target.value,
+                              },
+                            }
+                          : c
+                      );
+                      setComponents(updated);
+                    }}
+                    placeholder="نبذة أو حكي بالعربية"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                    }}
+                  />
+                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.68rem', color: '#64748b' }} dir="rtl">
+                    العربية هي اللغة الافتراضية للموقع؛ تُستخدم هذه النصوص عند توفّرها،
+                    وإلا يظهر النص الإنجليزي بدلاً من ترك العنوان فارغًا.
+                  </p>
+                </div>
+
                 {selectedComp.type === 'vendor_blog' && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.3rem' }}>
@@ -2854,6 +2925,7 @@ function MinisiteBuilderStudioContent() {
 
                 {/* Additional props for CTA */}
                 {selectedComp.type === 'cta_section' && (
+                  <>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.3rem' }}>
                       Button Text
@@ -2879,6 +2951,33 @@ function MinisiteBuilderStudioContent() {
                       }}
                     />
                   </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.3rem' }}>
+                      نص الزر (عربي)
+                    </label>
+                    <input
+                      type="text"
+                      dir="rtl"
+                      value={String(selectedComp.props?.buttonText_ar ?? '')}
+                      onChange={(e) => {
+                        const updated = components.map((c) =>
+                          c.id === selectedComp.id
+                            ? { ...c, props: { ...(c.props || {}), buttonText_ar: e.target.value } }
+                            : c
+                        );
+                        setComponents(updated);
+                      }}
+                      placeholder="مثال: احجز على واتساب"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.85rem',
+                      }}
+                    />
+                  </div>
+                  </>
                 )}
 
                 {/* ── CONTEXTUAL MANAGEMENT BRIDGES ── */}

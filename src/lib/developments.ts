@@ -12,6 +12,7 @@
  */
 
 import { dayOnly, query } from '@/lib/db';
+import type { OfferSnapshot, UnitOffer } from '@/lib/compare-offers';
 
 /**
  * What a container is, not where it sits.
@@ -101,6 +102,14 @@ export interface Development {
   nameEn: string;
   kind: DevelopmentKind;
   developerName: string | null;
+  /**
+   * The `developers` row this project points at, when the link was made.
+   *
+   * `developerName` is the free text an admin typed and stays for display; this
+   * is what answers "which of these projects were built by the same company",
+   * which the string never could ("sodic" vs "Sodic").
+   */
+  developerId: string | null;
   lat: number | null;
   lng: number | null;
   deliveryYear: number | null;
@@ -113,6 +122,10 @@ export interface Development {
   paymentPlans: PaymentPlan[];
   /** `YYYY-MM-DD` the admin last checked prices/plans, or null. Printed as "verified on". */
   dataVerifiedAt: string | null;
+  /** What "delivered" actually means here: phase, date, evidence. Null = never written. */
+  deliveryNote: string | null;
+  /** False until an admin checks the coordinates; false prints `الموقع تقريبي`. */
+  locationVerified: boolean;
 }
 
 export interface DevelopmentFacet {
@@ -178,6 +191,7 @@ function toDevelopment(row: any): Development {
     nameEn: String(row.name_en ?? row.name_ar ?? row.slug),
     kind: normalizeKind(row.kind),
     developerName: row.developer_name ? String(row.developer_name) : null,
+    developerId: row.developer_id ? String(row.developer_id) : null,
     lat: row.lat === null || row.lat === undefined ? null : Number(row.lat),
     lng: row.lng === null || row.lng === undefined ? null : Number(row.lng),
     deliveryYear: row.delivery_year === null || row.delivery_year === undefined ? null : Number(row.delivery_year),
@@ -188,12 +202,16 @@ function toDevelopment(row: any): Development {
     facilities: amenitiesOf(row.facilities),
     paymentPlans: paymentPlansOf(row.payment_plans),
     dataVerifiedAt: dayOnly(row.data_verified_at),
+    deliveryNote: row.delivery_note ? String(row.delivery_note) : null,
+    // `?? 0` so a row read before the column existed is "not verified", never a
+    // NaN that quietly becomes true.
+    locationVerified: Boolean(Number(row.location_verified ?? 0)),
   };
 }
 
 const DEVELOPMENT_COLUMNS = `id, market_id, location_id, slug, name_ar, name_en, kind,
-  developer_name, lat, lng, delivery_year, status, page_business_id,
-  facilities, payment_plans, data_verified_at`;
+  developer_name, developer_id, lat, lng, delivery_year, status, page_business_id,
+  facilities, payment_plans, data_verified_at, delivery_note, location_verified`;
 
 /**
  * Active containers in one market, for the market's project index.
@@ -620,4 +638,246 @@ export function buildDevelopmentFacts(
     competitorIds,
     compareQueryString: `/compare/projects?ids=${[development.id, ...competitorIds].join(',')}`,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The honesty layer's reads: comparable offers, their provenance, contract terms
+// and the geography a project sits in.
+//
+// They belong here and not in `compare-offers.ts` because that file must stay
+// free of the database — the browser and `node --test` both import it. Every one
+// of these defaults to published rows only; an admin surface has to ask for the
+// rest, so an unapproved figure cannot reach a visitor by forgetting a filter.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Full timestamp as text, so a same-day pair from two sources still sorts. */
+function stampText(value: any): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (value instanceof Date) {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+  }
+  return String(value);
+}
+
+function nullableNumber(value: any): number | null {
+  return value === null || value === undefined || value === '' ? null : Number(value);
+}
+
+export interface OfferLoadOptions {
+  /**
+   * Narrows the read to one unit type. `finishing` is deliberately NOT a filter
+   * here: the fallback from a stated grade to the project's unstated ("mixed")
+   * band is a rule that lives in `pickOffer()`, and filtering it away in SQL would
+   * silently delete the offer the comparison should have shown.
+   */
+  unitType?: string | null;
+  includeUnpublished?: boolean;
+}
+
+/**
+ * One offer per (project × unit type × finishing), each carrying its captures.
+ *
+ * Two queries, joined in memory: `IN (...)` over 4 ids is trivial either way,
+ * and keeping them apart means a project with an offer but no approved price is
+ * still visible as such instead of vanishing from the result.
+ */
+export async function loadOffersWithPrices(ids: string[], options: OfferLoadOptions = {}): Promise<UnitOffer[]> {
+  const clean = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  if (clean.length === 0) return [];
+
+  const includeUnpublished = Boolean(options.includeUnpublished);
+  const placeholders = clean.map(() => '?').join(',');
+  const offerParams: any[] = [...clean];
+  let offerFilter = includeUnpublished ? '' : ' AND published = 1';
+  if (options.unitType) {
+    offerFilter += ' AND unit_type = ?';
+    offerParams.push(String(options.unitType).trim());
+  }
+
+  try {
+    const offerRows = (await query(
+      `SELECT id, development_id, unit_type, finishing, area_min_sqm, area_max_sqm, bedrooms, published
+       FROM unit_offers
+       WHERE development_id IN (${placeholders})${offerFilter}`,
+      offerParams
+    )) as any[];
+    if (!offerRows || offerRows.length === 0) return [];
+
+    const offers: UnitOffer[] = offerRows.map((row) => ({
+      id: String(row.id),
+      developmentId: String(row.development_id),
+      unitType: String(row.unit_type ?? ''),
+      finishing: String(row.finishing ?? ''),
+      areaMinSqm: nullableNumber(row.area_min_sqm),
+      areaMaxSqm: nullableNumber(row.area_max_sqm),
+      bedrooms: nullableNumber(row.bedrooms),
+      published: Boolean(Number(row.published)),
+      snapshots: [],
+    }));
+
+    const snapParams: any[] = offers.map((offer) => offer.id);
+    const snapFilter = includeUnpublished ? '' : ' AND published = 1';
+    const snapshotRows = (await query(
+      `SELECT id, offer_id, ppm_min, ppm_mid, ppm_max, currency, source_type, source_url,
+              note, captured_at, published
+       FROM price_snapshots
+       WHERE offer_id IN (${snapParams.map(() => '?').join(',')})${snapFilter}
+       ORDER BY captured_at DESC`,
+      snapParams
+    )) as any[];
+
+    const byOffer = new Map<string, OfferSnapshot[]>(offers.map((offer) => [offer.id, []]));
+    for (const row of snapshotRows || []) {
+      const bucket = byOffer.get(String(row.offer_id));
+      if (!bucket) continue;
+      bucket.push({
+        id: String(row.id),
+        offerId: String(row.offer_id),
+        ppmMin: nullableNumber(row.ppm_min),
+        ppmMid: nullableNumber(row.ppm_mid),
+        ppmMax: nullableNumber(row.ppm_max),
+        currency: String(row.currency || 'EGP'),
+        sourceType: String(row.source_type ?? ''),
+        sourceUrl: String(row.source_url ?? ''),
+        note: row.note ? String(row.note) : null,
+        capturedAt: stampText(row.captured_at) || '',
+        published: Boolean(Number(row.published)),
+      });
+    }
+
+    return offers.map((offer) => ({ ...offer, snapshots: byOffer.get(offer.id) || [] }));
+  } catch {
+    return [];
+  }
+}
+
+/** One project's contract obligations. Every numeric field can be null. */
+export interface DevelopmentContractTerms {
+  id: string;
+  developmentId: string;
+  maintenanceNote: string | null;
+  maintenanceDepositPct: number | null;
+  maintenanceDueTiming: 'at_contract' | 'at_delivery' | 'unknown';
+  transferFeesNote: string | null;
+  transferFeesPct: number | null;
+  transferFeesFixed: number | null;
+  brokerCommissionPct: number | null;
+  reservationNote: string | null;
+  lateDeliveryTerms: string | null;
+  lateClientTerms: string | null;
+  docUrl: string | null;
+  sourceUrl: string | null;
+  /** Only ever set by an explicit admin check, so null means "not checked". */
+  verifiedAt: string | null;
+}
+
+const CONTRACT_TIMINGS: DevelopmentContractTerms['maintenanceDueTiming'][] = ['at_contract', 'at_delivery', 'unknown'];
+
+/**
+ * Contract terms by project id.
+ *
+ * Keyed rather than listed because a caller already holding four projects wants
+ * `terms[id]`, and a missing key is the honest answer to "we have nothing on
+ * file" — an empty object with zeroed fields would not be.
+ */
+export async function loadContractTerms(ids: string[]): Promise<Record<string, DevelopmentContractTerms>> {
+  const clean = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  const out: Record<string, DevelopmentContractTerms> = {};
+  if (clean.length === 0) return out;
+
+  try {
+    const rows = (await query(
+      `SELECT id, development_id, maintenance_note, maintenance_deposit_pct, maintenance_due_timing,
+              transfer_fees_note, transfer_fees_pct, transfer_fees_fixed, broker_commission_pct,
+              reservation_note, late_delivery_terms, late_client_terms, doc_url, source_url, verified_at
+       FROM development_contract_terms
+       WHERE development_id IN (${clean.map(() => '?').join(',')})`,
+      clean
+    )) as any[];
+
+    for (const row of rows || []) {
+      const timing = String(row.maintenance_due_timing ?? 'unknown');
+      out[String(row.development_id)] = {
+        id: String(row.id),
+        developmentId: String(row.development_id),
+        maintenanceNote: row.maintenance_note ? String(row.maintenance_note) : null,
+        maintenanceDepositPct: nullableNumber(row.maintenance_deposit_pct),
+        maintenanceDueTiming: (CONTRACT_TIMINGS as readonly string[]).includes(timing)
+          ? (timing as DevelopmentContractTerms['maintenanceDueTiming'])
+          : 'unknown',
+        transferFeesNote: row.transfer_fees_note ? String(row.transfer_fees_note) : null,
+        transferFeesPct: nullableNumber(row.transfer_fees_pct),
+        transferFeesFixed: nullableNumber(row.transfer_fees_fixed),
+        brokerCommissionPct: nullableNumber(row.broker_commission_pct),
+        reservationNote: row.reservation_note ? String(row.reservation_note) : null,
+        lateDeliveryTerms: row.late_delivery_terms ? String(row.late_delivery_terms) : null,
+        lateClientTerms: row.late_client_terms ? String(row.late_client_terms) : null,
+        docUrl: row.doc_url ? String(row.doc_url) : null,
+        sourceUrl: row.source_url ? String(row.source_url) : null,
+        verifiedAt: stampText(row.verified_at),
+      };
+    }
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+/** Where a project sits, in its own words plus the geography row behind it. */
+export interface LocationBrief {
+  id: string;
+  parentId: string | null;
+  type: string;
+  slug: string;
+  /** Materialised path of slugs, so "same district" is a prefix test. */
+  path: string;
+  nameAr: string;
+  nameEn: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+/**
+ * Geography rows for a set of location ids, keyed by id.
+ *
+ * The comparison used to stop at `market_id`, which left a price-per-m² gap
+ * between two neighbouring districts unexplainable on the page. This is that
+ * missing column: a name to print, a path to group by, and a pin to measure from.
+ * A location that was archived still resolves, because a project's own record
+ * should not go blank because the map changed underneath it.
+ */
+export async function loadLocationBriefs(ids: string[]): Promise<Record<string, LocationBrief>> {
+  const clean = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  const out: Record<string, LocationBrief> = {};
+  if (clean.length === 0) return out;
+
+  try {
+    const rows = (await query(
+      `SELECT id, parent_id, type, slug, path, name, name_ar, name_en, lat, lng
+       FROM locations
+       WHERE id IN (${clean.map(() => '?').join(',')})`,
+      clean
+    )) as any[];
+
+    for (const row of rows || []) {
+      const plain = row.name ? String(row.name) : String(row.slug ?? row.id);
+      out[String(row.id)] = {
+        id: String(row.id),
+        parentId: row.parent_id ? String(row.parent_id) : null,
+        type: String(row.type ?? ''),
+        slug: String(row.slug ?? ''),
+        path: String(row.path ?? ''),
+        // `||` not `??`: an admin can save an empty string, and a blank place
+        // name is worse than the English one.
+        nameAr: String(row.name_ar || plain),
+        nameEn: String(row.name_en || plain),
+        lat: nullableNumber(row.lat),
+        lng: nullableNumber(row.lng),
+      };
+    }
+    return out;
+  } catch {
+    return out;
+  }
 }

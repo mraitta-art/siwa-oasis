@@ -30,6 +30,40 @@ async function supportsFormFieldScope() {
   }
 }
 
+/**
+ * Is the group layer (`field_groups`, `form_fields.group_key`, `excluded`) applied?
+ * Cached for the same reason the scope check above is: the columns are named in
+ * the INSERT list, so an unapplied `20261116_field_groups.sql` must cost the
+ * groups and nothing else — never the field itself.
+ */
+let fieldGroupSupport: { value: boolean; checkedAt: number } | null = null;
+
+async function supportsFieldGroups() {
+  if (fieldGroupSupport && Date.now() - fieldGroupSupport.checkedAt < 30000) {
+    return fieldGroupSupport.value;
+  }
+  try {
+    const columns = await query(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'form_fields'
+         AND COLUMN_NAME IN ('group_key', 'excluded')`
+    ) as any[];
+    const available = columns.length === 2;
+    fieldGroupSupport = { value: available, checkedAt: Date.now() };
+    return available;
+  } catch {
+    fieldGroupSupport = { value: false, checkedAt: Date.now() };
+    return false;
+  }
+}
+
+/** `form_fields.group_key` is a group name, not an id — same cap, same trim rules. */
+function normalizeGroupKey(value: unknown): string | null {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return null;
+  return text.slice(0, 64);
+}
+
 async function ensureBusinessOverrideTable() {
   await execute(`CREATE TABLE IF NOT EXISTS business_form_overrides (
     id VARCHAR(100) PRIMARY KEY,
@@ -103,7 +137,13 @@ async function getBusinessForm(businessId: string) {
     });
   }
 
+  const hasGroupLayer = await supportsFieldGroups();
   return Array.from(merged.values())
+    // `excluded = 1` is the subtractive case the additive merge above could not
+    // express: a child that inherits a parent question and refuses it marks its
+    // own row excluded, and the question leaves the resolved form for this
+    // business alone — every other business still inherits it.
+    .filter(field => !hasGroupLayer || Number(field.excluded ?? 0) !== 1)
     .map(field => ({
       ...field,
       source_section_id: field.section_id,
@@ -625,6 +665,12 @@ export async function POST(request: NextRequest) {
       sort_order: finalSortOrder
     });
 
+    const hasGroupLayer = await supportsFieldGroups();
+    // Membership is a name, and the name is scoped the same way the field is, so
+    // a group defined on `accommodation` holds a field belonging to `hotel_units`
+    // without a second lookup to say so.
+    const groupKey = hasGroupLayer ? normalizeGroupKey(body.group_key) : null;
+
     try {
       const commonParams = [
         id, business_type_id, section_id, name, label, labelAr, field_type, placeholder,
@@ -633,19 +679,27 @@ export async function POST(request: NextRequest) {
         default_value || null, finalSortOrder, required_feature || null, isComparable,
         body.section_origin || 'own'
       ];
+      const columns = [
+        'id', 'business_type_id', 'section_id', 'name', 'label', 'label_ar', 'field_type', 'placeholder',
+        'required', 'vendor_editable', 'searchable', 'help_text', 'options', 'validation', 'acl',
+        'default_value', 'sort_order', 'required_feature', 'is_comparable', 'section_origin'
+      ];
+      const values: any[] = [...commonParams];
       if (hasFieldScopeColumns) {
-        await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, label_ar, field_type, placeholder, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, is_comparable, section_origin, field_scope, applies_to, version_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [...commonParams, field_scope, field_scope === 'catalog_spec' ? JSON.stringify(applies_to) : null, finalVersionType]
-        );
-      } else {
-        await execute(
-          `INSERT INTO form_fields (id, business_type_id, section_id, name, label, label_ar, field_type, placeholder, required, vendor_editable, searchable, help_text, options, validation, acl, default_value, sort_order, required_feature, is_comparable, section_origin, version_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [...commonParams, finalVersionType]
-        );
+        columns.push('field_scope', 'applies_to');
+        values.push(field_scope, field_scope === 'catalog_spec' ? JSON.stringify(applies_to) : null);
       }
+      if (hasGroupLayer) {
+        columns.push('group_key', 'excluded');
+        values.push(groupKey, body.excluded ? 1 : 0);
+      }
+      columns.push('version_type');
+      values.push(finalVersionType);
+
+      await execute(
+        `INSERT INTO form_fields (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+        values
+      );
       console.log('[FORMS POST] Field created successfully');
       invalidateCache.formFields();
     } catch (dbErr: any) {
@@ -697,6 +751,16 @@ export async function PUT(request: NextRequest) {
 
     const currentField = await queryOne('SELECT * FROM form_fields WHERE id = ?', [id]) as any;
     const hasFieldScopeColumns = await supportsFormFieldScope();
+    const hasGroupLayer = await supportsFieldGroups();
+    // An omitted `group_key` means "keep whatever category this field already has",
+    // not "move it out of every group" — an editor that saves the other sixty
+    // properties of the field must not silently orphan it.
+    const nextGroupKey = body.group_key === undefined
+      ? (hasGroupLayer ? normalizeGroupKey(currentField?.group_key) : null)
+      : normalizeGroupKey(body.group_key);
+    const nextExcluded = body.excluded === undefined
+      ? Number(currentField?.excluded ?? 0) === 1
+      : Boolean(body.excluded);
     const targetVersionType = version_type === 'initial' ? 'initial' : 'latest';
     const currentFieldVersionType = currentField?.version_type || 'latest';
     const nextFieldScope = field_scope === undefined
@@ -757,6 +821,12 @@ export async function PUT(request: NextRequest) {
         );
       }
       invalidateCache.formFields();
+      if (hasGroupLayer) {
+        // The copy above cannot name the two new columns without failing on a
+        // database that has not applied the migration, so membership travels in a
+        // second statement that only runs when the columns are really there.
+        await execute('UPDATE form_fields SET group_key = ?, excluded = ? WHERE id = ?', [nextGroupKey, nextExcluded ? 1 : 0, childFieldId]);
+      }
       return NextResponse.json({ success: true, id: childFieldId, override: true });
     }
 
@@ -816,6 +886,10 @@ export async function PUT(request: NextRequest) {
         );
       }
 
+      if (hasGroupLayer) {
+        await execute('UPDATE form_fields SET group_key = ?, excluded = ? WHERE id = ?', [nextGroupKey, nextExcluded ? 1 : 0, siblingId]);
+      }
+
       return NextResponse.json({ success: true, id: siblingId });
     }
 
@@ -865,6 +939,10 @@ export async function PUT(request: NextRequest) {
     if (validation !== undefined) { updates.push('validation=?'); params.push(typeof validation === 'string' ? validation : JSON.stringify(validation)); }
     if (required_feature !== undefined) { updates.push('required_feature=?'); params.push(required_feature); }
     if (version_type !== undefined) { updates.push('version_type=?'); params.push(targetVersionType); }
+    if (hasGroupLayer && (body.group_key !== undefined || body.excluded !== undefined)) {
+      updates.push('group_key=?', 'excluded=?');
+      params.push(nextGroupKey, nextExcluded ? 1 : 0);
+    }
 
     if (updates.length > 0) {
       params.push(id);

@@ -5,15 +5,16 @@ import MarketplaceHeader from '@/components/MarketplaceHeader';
 import DynamicHomepageRenderer from '@/components/DynamicHomepageRenderer';
 import MinisiteBuilderRenderer, { type BusinessContext } from '@/components/MinisiteBuilderRenderer';
 import { MinisiteLangProvider } from '@/components/minisite/MinisiteLang';
+import MinisiteShell, { type MinisiteShellBrand } from '@/components/minisite/MinisiteShell';
 import MinisiteQRCode from '@/components/MinisiteQRCode';
 import MinisiteTapTracker from '@/components/MinisiteTapTracker';
-import MinisiteSectionTabs, { type SectionTabItem } from '@/components/MinisiteSectionTabs';
 import type { MinisiteLayout } from '@/lib/minisite-governance-client';
 import { normalizePhoneValue } from '@/lib/egypt-phone';
 import { MINISITE_LAYOUT_KEY } from '@/lib/minisite-layout';
 import { query, queryOne, normalizeCustomData, stripCustomDataSecrets } from '@/lib/db';
 import { businessPublicPath, getBusinessSlugCandidates, getPublicAppUrl } from '@/lib/public-url';
-import { resolveSectionNav } from '@/lib/vanity-section-nav';
+import { resolveSectionNav, type SectionNavItem } from '@/lib/vanity-section-nav';
+import { loadMinisiteSectionFields } from '@/lib/minisite-section-fields';
 import { languageAlternates, localeUrl, pathLocale } from '@/lib/site-locale';
 import { DEFAULT_MARKET_SLUG, getMarketBySlug, marketName, pathMarketSlug } from '@/lib/markets';
 import { isMarketSegment } from '@/lib/market-routes';
@@ -218,20 +219,33 @@ async function loadMinisite(business: any) {
       site_settings: layout?.site_settings || {},
     } as MinisiteLayout;
 
+    const sectionNav: SectionNavItem[] = await resolveSectionNav(business);
+
+    // The hero's info blocks need the section's own questions to print an answer.
+    // The section tab gets them from its route; the flat landing page gets them
+    // here, so an admin's "fields + values" block says the same thing on both.
+    const sectionFields = await loadMinisiteSectionFields(
+      business.type_id,
+      sectionNav.map((item) => item.id)
+    );
+
     const storefront: BusinessContext = {
       id: business.id,
       slug: business.slug || business.id,
       name: business.name,
+      // Both scripts travel: the client toggle can swap the whole page, so the
+      // renderer is handed the Arabic name as well and picks per language.
+      name_ar: business.name_ar || null,
       type_id: String(business.type_id || ''),
       type_name: typeRow?.name || '',
+      type_name_ar: typeRow?.name_ar || null,
       custom_data: parseJson(business.custom_data),
       gallery: gallery || [],
       blogs: blogs || [],
       tourProducts: products || [],
       vendorPhone: business.vendor_phone || business.phone || '',
+      sections: sectionFields,
     };
-
-    const sectionNav: SectionTabItem[] = await resolveSectionNav(business);
 
     // Carried beside the storefront rather than inside it: the renderer's
     // contract stays untouched, and only the metadata needs the second name.
@@ -590,7 +604,6 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
     >
       <MinisiteTapTracker slug={business.slug || initialSlug} />
       <MarketplaceHeader title={name} accentColor="#D4AF37" />
-      <MinisiteSectionTabs slug={business.slug || initialSlug} items={[]} />
 
       <section
         style={{
@@ -771,7 +784,8 @@ export default async function CanonicalVanityPage({
 
     if (mini) {
       // The Arabic address prints the Arabic typology and the Arabic name, with
-      // the English ones behind them so a page can never render blank.
+      // the English ones behind them so a page can never render blank. This pair
+      // is only what the machine reads — <title>, canonical, hreflang, JSON-LD.
       const arabic = lang === 'ar';
       const typeName = displayType(
         arabic ? mini.typeNameAr || mini.storefront.type_name : mini.storefront.type_name
@@ -781,16 +795,12 @@ export default async function CanonicalVanityPage({
       const businessName = String(
         (arabic ? business.name_ar || business.name : business.name) || business.name
       );
-      // The hero prints `business.name`, so the Arabic address hands it the
-      // Arabic one instead of an English title over Arabic chrome.
-      const storefront = arabic
-        ? {
-            ...mini.storefront,
-            name: business.name_ar || mini.storefront.name,
-            // Carried so the hero badge prints the Arabic typology too.
-            type_name_ar: mini.typeNameAr,
-          }
-        : mini.storefront;
+      // Brand assets live in three historical places; the newest spelling wins.
+      const identity = {
+        ...(cd?.business_info || {}),
+        ...(cd?.sec_1_identity || {}),
+        ...(cd?.basic || {}),
+      } as Record<string, any>;
       const description =
         String(
           cd?.tagline ||
@@ -803,14 +813,9 @@ export default async function CanonicalVanityPage({
           .replace(/<[^>]*>/g, ' ')
           .trim()
           .slice(0, 158) ||
-        `${storefront.name} — ${typeName}, listed on Siwify, Egypt.`;
+        `${businessName} — ${typeName}, listed on Siwify, Egypt.`;
       const image = heroImageFor(business, mini.storefront.gallery, cd);
       const publicSlug = business.slug || slug;
-      // Tabs follow the address, not the browser: an /ar page gets Arabic labels
-      // while the hrefs stay locale-free, since the shell adds the prefix.
-      const sectionNav: SectionTabItem[] = arabic
-        ? mini.sectionNav.map((item) => ({ ...item, label: item.labelAr || item.label }))
-        : mini.sectionNav;
       // An /ar address should render Arabic chrome, not only an Arabic title.
       //
       // The same vertical skin the sectional minisite wears is applied here so
@@ -827,28 +832,63 @@ export default async function CanonicalVanityPage({
         marketRevenueModel: verticalMarket?.revenueModel,
       });
       const verticalAccent = MINISITE_VERTICAL_THEMES[vertical].accent;
+      const ss = (((mini.layout as any)?.site_settings || {}) as Record<string, any>);
+      // Only the accent is injected. This used to force `lang: 'ar'` into the
+      // layout, and the builder read that as an unconditional answer: the header
+      // toggle moved but the body stayed Arabic. The provider seeds the language
+      // from the address now, so the layout no longer carries one.
       const themedLayout = {
         ...mini.layout,
-        site_settings: {
-          ...((mini.layout as any)?.site_settings || {}),
-          ...(arabic ? { lang: 'ar' } : {}),
-          primary_color: verticalAccent,
-        },
+        site_settings: { ...ss, primary_color: verticalAccent },
       };
+      // Every written form of the number collapses to canonical digits, or the
+      // shell's WhatsApp button opens a dead chat.
+      const whatsappDigits =
+        normalizePhoneValue(
+          identity.whatsapp ||
+            identity.whatsapp_number ||
+            cd?.whatsapp ||
+            business.vendor_phone ||
+            identity.phone ||
+            business.phone ||
+            ''
+        ) || '';
 
       return (
         <>
           <BusinessJsonLd business={business} name={businessName} typeName={typeName} image={image} description={description} />
           <MinisiteTapTracker slug={publicSlug} />
-          <MinisiteSectionTabs slug={publicSlug} items={sectionNav} lang={lang} accent={verticalAccent} />
           {/* One language owner for the whole minisite: the address seeds it, the
               header toggle moves it, and every surface below reads the answer. */}
           <MinisiteLangProvider initialLang={lang}>
-            <MinisiteBuilderRenderer
-              layout={themedLayout}
-              business={storefront}
-              showQRCode
-            />
+            <MinisiteShell
+              vertical={vertical}
+              brand={{
+                name: business.name,
+                nameAr: business.name_ar,
+                typeLabel: mini.storefront.type_name,
+                typeLabelAr: mini.typeNameAr,
+                logo: identity.business_logo || identity.logo || null,
+                isTrusted: Number(business.is_trusted) === 1,
+              }}
+              sections={mini.sectionNav}
+              activeSectionId={null}
+              overviewHref={businessPublicPath(business)}
+              contact={{
+                phone: mini.storefront.vendorPhone,
+                whatsapp: whatsappDigits,
+                whatsappMessage: identity.whatsapp_message || cd?.whatsapp_message || null,
+              }}
+              showPlatformNav={ss.show_platform_nav !== false}
+              showPlatformFooter={ss.show_platform_footer !== false}
+              platform={{ name: 'SiWiFy' }}
+            >
+              <MinisiteBuilderRenderer
+                layout={themedLayout}
+                business={mini.storefront}
+                showQRCode
+              />
+            </MinisiteShell>
           </MinisiteLangProvider>
         </>
       );

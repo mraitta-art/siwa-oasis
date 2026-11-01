@@ -6,7 +6,9 @@ import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 import { resolveSectionId } from '@/lib/section-registry';
 import { BRAND_MARK_URL } from '@/lib/brand-assets';
 import { buildFieldsIndexFromSections } from '@/lib/slide-blocks';
+import type { ListingKind } from '@/lib/listing-kind';
 import { useMinisiteLang } from './minisite/MinisiteLang';
+import { label, labelWith, pick } from '@/lib/minisite-i18n';
 
 interface AutomatedMinisiteHeroProps {
   businessId?: string;
@@ -47,6 +49,14 @@ interface AutomatedMinisiteHeroProps {
    * already claimed by an approved hero block (Model A: per-slide picks).
    */
   onAdminSlidesChange?: (slides: any[]) => void;
+  /**
+   * The minisite's public specialization. Forwarded verbatim to the info-blocks
+   * overlay so a spec-sheet block formats price-bearing fields with the kind's
+   * basis (total /month /night). `null` prints raw values.
+   */
+  listingKind?: ListingKind | null;
+  /** Currency the units are priced in. Defaults to EGP when the caller has no signal. */
+  currency?: string;
 }
 
 export default function AutomatedMinisiteHero({
@@ -62,6 +72,8 @@ export default function AutomatedMinisiteHero({
   settings = {},
   onSectionNavigate,
   onAdminSlidesChange,
+  listingKind = null,
+  currency = 'EGP',
 }: AutomatedMinisiteHeroProps) {
   // Prefer the minisite-wide admin carousel, then the active section's carousel.
   const [adminSlides, setAdminSlides] = useState<any[] | null>(null);
@@ -146,8 +158,14 @@ export default function AutomatedMinisiteHero({
       capturedSectionIds.add(sectionId);
 
       const sectionData = customData[sectionId] || customData[section?.id] || {};
-      const sectionName = section?.name || sectionId.replace(/_/g, ' ');
-      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData._media?.mini_blog || sectionData.section_news || sectionData.description || `Experience our unique ${sectionName.toLowerCase()} DNA.`;
+      // A section name is admin-authored and comes in both scripts; the hero
+      // prints it in the language the minisite is showing. English captions are
+      // set in caps, so the value is cased once here rather than at every
+      // template, which keeps the Arabic sentence in its natural case.
+      const sectionNameRaw =
+        pick(langIsArabic, section?.name_ar, section?.name) || sectionId.replace(/_/g, ' ');
+      const sectionName = langIsArabic ? sectionNameRaw : sectionNameRaw.toUpperCase();
+      const miniBlog = sectionData.section_blog || sectionData.mini_blog || sectionData._media?.mini_blog || sectionData.section_news || sectionData.description || labelWith('hero_story_dna', langIsArabic, { section: sectionName });
 
       const allowedMedia = tierFeatures.allowedMediaTypes || ['image'];
       const youtubeStory = (allowedMedia.includes('youtube') && sectionData.youtube_story) ? sectionData.youtube_story : null;
@@ -186,7 +204,7 @@ export default function AutomatedMinisiteHero({
           title: '',
           subtitle: miniBlog,
           caption: (businessName || '').toUpperCase(),
-          ctaText: 'READ MORE',
+          ctaText: label('hero_read_more', langIsArabic),
           ctaLink: `#${sectionId}`,
           animation: 'fade'
         });
@@ -207,9 +225,9 @@ export default function AutomatedMinisiteHero({
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
           title: slideData.title || caption || sectionName,
-          subtitle: slideData.subtitle || `DISCOVER THE ${(sectionName || '').toUpperCase()} EXPERIENCE`,
+          subtitle: slideData.subtitle || labelWith('hero_discover_experience', langIsArabic, { section: sectionName }),
           caption: (businessName || '').toUpperCase(),
-          ctaText: slideData.cta_label || `EXPLORE ${(sectionName || '').toUpperCase()}`,
+          ctaText: slideData.cta_label || labelWith('hero_explore_section', langIsArabic, { section: sectionName }),
           ctaLink: slideData.cta_url || `#${sectionId}`,
           animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
           displayMode: photo.display_mode || (hasMedia ? 'image' : 'text_only'),
@@ -241,15 +259,19 @@ export default function AutomatedMinisiteHero({
         const caption = typeof photo === 'object' ? photo.caption : '';
         const isVid = url ? isHeroVideo(url) : false;
         const hasMedia = !!url;
+        // This branch has no section row to read a name from, only the stored
+        // key, so the label is built from the key in the language being shown.
+        const keyNameRaw = pick(langIsArabic, sectionData?.section_name_ar, sectionKey.replace(/_/g, ' '));
+        const keyName = langIsArabic ? keyNameRaw : keyNameRaw.toUpperCase();
 
         allSlides.push({
           id: `${sectionKey}_direct_${idx}`,
           type: !hasMedia ? 'branded' : (isVid ? 'video' : 'image'),
           mediaUrl: url || null,
-          title: caption || sectionKey.replace(/_/g, ' ').toUpperCase(),
-          subtitle: 'DISCOVER MORE',
+          title: caption || keyName,
+          subtitle: label('hero_discover_more', langIsArabic),
           caption: (businessName || '').toUpperCase(),
-          ctaText: 'READ FULL STORY',
+          ctaText: label('hero_read_full_story', langIsArabic),
           ctaLink: `#${sectionKey}`,
           animation: !hasMedia ? 'fade' : (isVid ? 'fade' : 'kenburns'),
           displayMode: photo.display_mode || (hasMedia ? 'image' : 'text_only'),
@@ -290,24 +312,27 @@ export default function AutomatedMinisiteHero({
           type: 'image',
           mediaUrl: coverUrl,
           title: (businessName || '').toUpperCase(),
-          subtitle: 'SIWIFY MARKETPLACE',
-          caption: 'VERIFIED \u00b7 BOOK DIRECT',
+          subtitle: label('hero_marketplace', langIsArabic),
+          caption: label('hero_verified_book_direct', langIsArabic),
           animation: 'kenburns',
         });
       }
     }
 
     return mergedSlides.slice(0, finalLimit);
-  }, [adminSlides, customData, activeSections, activeSectionId, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides]);
+    // `langIsArabic` belongs in this list: the captions below are built from it,
+    // and a slide memo that ignores it would keep serving English text after the
+    // visitor pressed the language toggle.
+  }, [adminSlides, customData, activeSections, activeSectionId, businessName, settings, tierFeatures.allowedMediaTypes, tierFeatures.maxSlides, langIsArabic]);
 
   // Lock Check: Only lock if tier explicitly disables hero automation
   if (tierFeatures.hero_automation === false) {
     return (
-      <div style={{ height: settings.height || '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height: settings.height || '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }} dir={langIsArabic ? 'rtl' : 'ltr'}>
         <div style={{ textAlign: 'center', color: '#fff' }}>
           <i className="fas fa-sun fa-3x" style={{ color: settings.primaryColor || '#D4AF37', marginBottom: '1.5rem' }}></i>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>AUTHENTIC EXPERIENCE</h2>
-          <p style={{ opacity: 0.6 }}>Scroll to explore {businessName}</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>{label('hero_authentic_experience', langIsArabic)}</h2>
+          <p style={{ opacity: 0.6 }}>{labelWith('hero_scroll_explore', langIsArabic, { name: businessName })}</p>
         </div>
       </div>
     );
@@ -357,58 +382,71 @@ export default function AutomatedMinisiteHero({
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       
       {/* 🏛️ PLATFORM ANCHOR - Dynamic placement away from business logo */}
-      {showPlatformAnchor && (
-        <Link href="/" style={{
-          position: 'absolute',
-          top: 'clamp(0.75rem, 2vw, 2rem)',
-          left: isLeftLogo ? 'auto' : 'clamp(0.75rem, 3vw, 2rem)',
-          right: isLeftLogo ? 'clamp(0.75rem, 3vw, 2rem)' : 'auto',
-          zIndex: 2000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          textDecoration: 'none',
-          background: 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: 'blur(12px)',
-          padding: '0.4rem 1rem',
-          borderRadius: '50px',
-          border: '1px solid rgba(255,255,255,0.15)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-          transition: 'all 0.3s',
-          maxWidth: 'min(45vw, 220px)',
-          overflow: 'hidden'
-        }}>
+      {
+        // The edges are logical, not physical: the anchor keeps clear of the
+        // business plate whichever side the script is read from, so the pairing
+        // survives the toggle instead of stacking on top of itself in Arabic.
+        showPlatformAnchor && (
+          <Link href="/" style={{
+            position: 'absolute',
+            top: 'clamp(0.75rem, 2vw, 2rem)',
+            insetInlineStart: isLeftLogo ? 'auto' : 'clamp(0.75rem, 3vw, 2rem)',
+            insetInlineEnd: isLeftLogo ? 'clamp(0.75rem, 3vw, 2rem)' : 'auto',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            textDecoration: 'none',
+            background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(12px)',
+            padding: '0.4rem 1rem',
+            borderRadius: '50px',
+            border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+            transition: 'all 0.3s',
+            maxWidth: 'min(45vw, 220px)',
+            overflow: 'hidden'
+          }}>
           {brandLogo ? (
             <img src={brandLogo} alt={brandName} style={{ height: '20px', objectFit: 'contain', flexShrink: 0 }} />
           ) : (
             <i className="fas fa-sun" style={{ color: primaryColor, fontSize: '1rem', flexShrink: 0 }}></i>
           )}
-          <span style={{ 
-            color: '#fff', 
-            fontWeight: 900, 
-            fontSize: '0.75rem', 
-            letterSpacing: '1.5px',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>{brandName}</span>
-        </Link>
-      )}
+            <span style={{ 
+              color: '#fff', 
+              fontWeight: 900, 
+              fontSize: '0.75rem', 
+              letterSpacing: '1.5px',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>{brandName}</span>
+          </Link>
+        )
+      }
 
-      {/* MODERN BUSINESS LOGO OVERLAY (Left, Right, or Center Banner) */}
+      {/* MODERN BUSINESS LOGO OVERLAY (Start, Center, or End Banner) */}
       <div style={{
         position: 'absolute',
         top: 'clamp(0.75rem, 2vw, 2rem)',
-        left: isLeftLogo ? 'clamp(0.75rem, 3vw, 2rem)' : (isCenterLogo ? '50%' : 'auto'),
-        right: !isLeftLogo && !isCenterLogo ? 'clamp(0.75rem, 3vw, 2rem)' : 'auto',
-        transform: isCenterLogo ? 'translateX(-50%)' : 'none',
-        maxWidth: isCenterLogo ? 'min(90vw, 420px)' : 'min(50vw, 360px)',
+        // A side plate is pinned to its edge; a centered plate spans the whole
+        // inline axis and lets flexbox do the centering. Centering with
+        // `left: 50%` + `translateX(-50%)` only works in one direction — in
+        // Arabic it would push the logo off the screen.
+        ...(isCenterLogo
+          ? { insetInlineStart: 0, insetInlineEnd: 0, maxWidth: 'min(90vw, 420px)' }
+          : {
+              insetInlineStart: isLeftLogo ? 'clamp(0.75rem, 3vw, 2rem)' : 'auto',
+              insetInlineEnd: isLeftLogo ? 'auto' : 'clamp(0.75rem, 3vw, 2rem)',
+              maxWidth: 'min(50vw, 360px)',
+            }),
         zIndex: 1500,
         pointerEvents: 'none',
         transition: 'all 0.3s ease',
         display: 'flex',
         justifyContent: isLeftLogo ? 'flex-start' : (isCenterLogo ? 'center' : 'flex-end'),
+        margin: '0 auto',
       }}>
         {businessLogo ? (
           <img 
@@ -430,8 +468,8 @@ export default function AutomatedMinisiteHero({
             fontSize: 'clamp(0.9rem, 2.5vw, 1.25rem)',
             letterSpacing: 'clamp(1px, 0.5vw, 4px)',
             textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-            borderLeft: `3px solid ${primaryColor}`,
-            paddingLeft: '0.75rem',
+            borderInlineStart: `3px solid ${primaryColor}`,
+            paddingInlineStart: '0.75rem',
             maxWidth: '100%',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -456,6 +494,12 @@ export default function AutomatedMinisiteHero({
         onSectionNavigate={onSectionNavigate}
         fieldsIndex={fieldsIndex}
         blocksAccent={primaryColor}
+        // The blocks sit inside this minisite, so they follow its language:
+        // a zone the admin picked as "start" has to land on the Arabic right.
+        blocksRtl={langIsArabic}
+        blocksAr={langIsArabic}
+        blocksListingKind={listingKind}
+        blocksCurrency={currency}
       />
 
       {/* FREEMIUM WATERMARK OVERLAY - Dynamic from Site Settings */}
@@ -463,7 +507,7 @@ export default function AutomatedMinisiteHero({
         <div style={{
           position: 'absolute',
           bottom: '3rem',
-          right: '2rem',
+          insetInlineEnd: '2rem',
           zIndex: 1000,
           background: 'rgba(15,23,42,0.6)',
           color: 'rgba(255,255,255,0.9)',
@@ -476,7 +520,7 @@ export default function AutomatedMinisiteHero({
           backdropFilter: 'blur(4px)',
           border: '1px solid rgba(255,255,255,0.1)'
         }}>
-          POWERED BY {watermarkText}
+          {labelWith('hero_powered_by', langIsArabic, { name: watermarkText })}
         </div>
       )}
 
@@ -484,8 +528,8 @@ export default function AutomatedMinisiteHero({
       <div style={{
         position: 'absolute',
         bottom: '2rem',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        insetInlineStart: 0,
+        insetInlineEnd: 0,
         zIndex: 100,
         color: '#fff',
         opacity: 0.5,
@@ -494,7 +538,7 @@ export default function AutomatedMinisiteHero({
         letterSpacing: '3px',
         textAlign: 'center'
       }}>
-        SCROLL TO EXPLORE STORY
+        {label('hero_scroll_story', langIsArabic)}
         <div style={{ width: '1px', height: '40px', background: '#fff', margin: '1rem auto 0', opacity: 0.5 }}></div>
       </div>
     </div>

@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import YouTubeFacade, { extractYouTubeId } from './YouTubeFacade';
 import YouTubeCarouselPlayer from './YouTubeCarouselPlayer';
-import SlideInfoBlocksOverlay, { ResolvedField } from './SlideInfoBlocksOverlay';
-import type { SlideBlock } from '@/lib/slide-blocks';
+import SlideInfoBlocksOverlay from './SlideInfoBlocksOverlay';
+import type { SlideBlock, SlideFieldsIndex, FlatFieldsIndex } from '@/lib/slide-blocks';
+import type { ListingKind } from '@/lib/listing-kind';
 
 interface Slide {
   id: string;
@@ -72,14 +73,29 @@ interface AdvancedCarouselProps {
    *  Use this to imperatively switch the active tab in the parent. */
   onSectionNavigate?: (sectionId: string) => void;
   /**
-   * Field-name → resolved display data (label + value + hide_value state) for
-   * the current minisite. Only needed when slides carry admin-approved
-   * `blocks` of kind 'fieldLabels' | 'fieldValues' | 'fieldsValues'. Home page
-   * carousels can leave this undefined — the overlay skips silently.
+   * Field → resolved display data for the current minisite, so blocks of kind
+   * 'fieldLabels' | 'fieldValues' | 'fieldsValues' can print answers. Pass the
+   * section-aware shape when the slides carry section-scoped picks; a plain map
+   * still works. Home page carousels can leave this undefined — the overlay
+   * skips silently.
    */
-  fieldsIndex?: Record<string, ResolvedField>;
+  fieldsIndex?: SlideFieldsIndex | FlatFieldsIndex;
   /** Accent color used by the info blocks (borders/glass highlights). */
   blocksAccent?: string;
+  /** Reading direction of the surface the carousel sits in: flips block sides. */
+  blocksRtl?: boolean;
+  /** Language for the wording inside the blocks (masked-value footnote). */
+  blocksAr?: boolean;
+  /**
+   * Public specialization of the minisite this carousel is presenting. Passed
+   * down to the info-blocks overlay so a spec-sheet block formats price-bearing
+   * fields as `EGP 4.25M` (sale), `EGP 25,000 /month` (lease), or
+   * `EGP 1,200 /night` (short stay). `null` prints raw values, matching legacy
+   * surfaces (home page, non-property businesses).
+   */
+  blocksListingKind?: ListingKind | null;
+  /** The units' currency, forwarded to the overlay's price formatter. */
+  blocksCurrency?: string;
 }
 
 export default function AdvancedHeroCarousel({
@@ -103,6 +119,10 @@ export default function AdvancedHeroCarousel({
   onSectionNavigate,
   fieldsIndex,
   blocksAccent,
+  blocksRtl,
+  blocksAr,
+  blocksListingKind,
+  blocksCurrency,
 }: AdvancedCarouselProps & { autoPlay?: boolean }) {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -558,6 +578,10 @@ export default function AdvancedHeroCarousel({
         fieldsIndex={fieldsIndex}
         slideCaption={slide.caption}
         accent={blocksAccent || visualSettings.titleColor || '#D4AF37'}
+        rtl={blocksRtl ?? false}
+        ar={blocksAr ?? true}
+        listingKind={blocksListingKind ?? null}
+        currency={blocksCurrency || 'EGP'}
       />
 
       {showArrows && validSlides.length > 1 && (

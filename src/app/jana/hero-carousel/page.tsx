@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLang } from '@/context/LangContext';
 import CarouselSocialMediaModal, { SocialImportedSlide } from '@/components/CarouselSocialMediaModal';
-import SlideBlocksEditor from '@/components/SlideBlocksEditor';
+import SlideBlocksEditor, { type SlideBlockFieldOption, type SlideBlockSectionOption } from '@/components/SlideBlocksEditor';
 import { resolveSlideQuota, buildQuotaCopy } from '@/lib/slide-quota';
+import { resolveSectionId } from '@/lib/section-registry';
+import { stringifyFieldValue } from '@/lib/slide-blocks';
 import type { SlideBlock } from '@/lib/slide-blocks';
 
 interface CarouselSlide {
@@ -402,6 +404,29 @@ function HeroCarouselManagerContent() {
   const [loadingMainPages, setLoadingMainPages] = useState(true);
   const [businessSections, setBusinessSections] = useState<DynamicBusinessSection[]>([]);
   const [loadingBusinessSections, setLoadingBusinessSections] = useState(false);
+  // The questions each section asks (`form_fields` resolved for this business) and
+  // the answers stored against them, so the slide-block editor can show a real
+  // field list with a value preview instead of asking the admin to type keys.
+  const [businessFieldDefs, setBusinessFieldDefs] = useState<any[]>([]);
+  const [businessCustomData, setBusinessCustomData] = useState<Record<string, any>>({});
+  // The categories the admin named inside each section (`field_groups`), resolved
+  // through the same typology chain as the fields. Without them a slide can only
+  // ever list loose keys; with them it can carry a whole category under one
+  // bilingual heading.
+  const [businessFieldGroups, setBusinessFieldGroups] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const typeId = selectedBusiness?.type_id;
+    if (!typeId) { setBusinessFieldGroups([]); return; }
+    let isMounted = true;
+    // A database that has not applied the group migration answers 503, and the
+    // editor keeps working exactly as it did — the picker simply has no categories.
+    fetch(`/api/jana/field-groups?type=${encodeURIComponent(typeId)}`)
+      .then(res => (res.ok ? res.json() : []))
+      .then(rows => { if (isMounted) setBusinessFieldGroups(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (isMounted) setBusinessFieldGroups([]); });
+    return () => { isMounted = false; };
+  }, [selectedBusiness?.type_id]);
 
   const initialSiteId = searchParams?.get('siteId') || 'discovery';
   const initialBusinessId = searchParams?.get('businessId') || (
@@ -487,6 +512,8 @@ function HeroCarouselManagerContent() {
   useEffect(() => {
     if (!businessId) {
       setBusinessSections([]);
+      setBusinessFieldDefs([]);
+      setBusinessCustomData({});
       return;
     }
     let isMounted = true;
@@ -495,14 +522,21 @@ function HeroCarouselManagerContent() {
     Promise.all([
       fetch(`/api/jana/businesses?id=${encodeURIComponent(businessId)}`).then(r => r.ok ? r.json() : null),
       fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/section-controls`).then(r => r.ok ? r.json() : null),
-    ]).then(async ([bizData, controlsData]) => {
+      fetch(`/api/jana/forms?business=${encodeURIComponent(businessId)}&scope=all`).then(r => r.ok ? r.json() : []),
+    ]).then(async ([bizData, controlsData, formFields]) => {
       if (!isMounted || !bizData) {
         if (isMounted) {
           setBusinessSections([]);
+          setBusinessFieldDefs([]);
+          setBusinessCustomData({});
           setLoadingBusinessSections(false);
         }
         return;
       }
+      setBusinessFieldDefs(Array.isArray(formFields) ? formFields : []);
+      setBusinessCustomData(
+        bizData.custom_data && typeof bizData.custom_data === 'object' ? bizData.custom_data : {}
+      );
       const typeId = bizData.type_id;
       const controls: Record<string, any> = {};
       (controlsData?.controls || []).forEach((c: any) => { controls[c.section_id] = c; });
@@ -539,6 +573,8 @@ function HeroCarouselManagerContent() {
     }).catch(() => {
       if (isMounted) {
         setBusinessSections([]);
+        setBusinessFieldDefs([]);
+        setBusinessCustomData({});
         setLoadingBusinessSections(false);
       }
     });
@@ -561,6 +597,79 @@ function HeroCarouselManagerContent() {
     tabs.push({ id: 'custom', label: '✍️ Custom Tab', icon: 'fa-pen', tabParam: '' });
     return tabs;
   }, [businessSections]);
+
+  // Sections the slide-block editor can draw fields from: each one carries the
+  // questions its typology asks, the answer this business stored, and the
+  // visibility the admin already set on that field. Read the same way the
+  // renderer reads — `custom_data[sectionId][name]` — so the chip's preview and
+  // the live block can never disagree.
+  const blockSections: SlideBlockSectionOption[] = React.useMemo(() => {
+    if (!businessFieldDefs.length) return [];
+    const customData = businessCustomData || {};
+    const visibility = (customData.field_visibility || {}) as Record<string, Record<string, string>>;
+
+    const fieldsBySection = new Map<string, SlideBlockFieldOption[]>();
+    for (const field of businessFieldDefs) {
+      const name = typeof field?.name === 'string' ? field.name.trim() : '';
+      if (!name) continue;
+      const sectionId = resolveSectionId(String(field.section_id || ''));
+      if (!sectionId) continue;
+      const bucket = fieldsBySection.get(sectionId) || [];
+      if (bucket.some(entry => entry.name === name)) continue;
+
+      const stored =
+        customData?.[sectionId] ??
+        customData?.[String(field.section_id || '')] ??
+        customData?.[sectionId.replace(/^sec_\d+_/, '')] ??
+        {};
+      bucket.push({
+        name,
+        label: String(field.label || name.replace(/_/g, ' ')),
+        labelAr: field.label_ar ? String(field.label_ar) : null,
+        value: stringifyFieldValue(stored?.[name]),
+        // The category this question belongs to, or null for an ungrouped one —
+        // both are projectable, only the heading differs.
+        groupKey: typeof field.group_key === 'string' && field.group_key.trim() ? field.group_key.trim() : null,
+        visibility: (visibility[field.section_id]?.[name] || visibility[sectionId]?.[name] || 'show') as
+          | 'show'
+          | 'hide_value'
+          | 'hide_field',
+      });
+      fieldsBySection.set(sectionId, bucket);
+    }
+
+    // Groups are keyed by (section, name) and arrive least-specific first, so the
+    // map below keeps the level that actually won — the same rule the fields use.
+    const groupsBySection = new Map<string, { name: string; label: string; labelAr: string | null; sort_order: number }[]>();
+    for (const group of businessFieldGroups) {
+      const name = typeof group?.name === 'string' ? group.name.trim() : '';
+      const sectionId = resolveSectionId(String(group?.section_id || ''));
+      if (!name || !sectionId) continue;
+      const bucket = groupsBySection.get(sectionId) || [];
+      const existing = bucket.findIndex(g => g.name === name);
+      const entry = {
+        name,
+        label: String(group.label || name.replace(/[_-]+/g, ' ')),
+        labelAr: group.label_ar ? String(group.label_ar) : null,
+        sort_order: Number(group.sort_order || 0),
+      };
+      if (existing >= 0) bucket[existing] = entry;
+      else bucket.push(entry);
+      groupsBySection.set(sectionId, bucket);
+    }
+
+    return businessSections
+      .map(sec => {
+        const canonical = resolveSectionId(sec.id);
+        return {
+          id: canonical,
+          name: sec.custom_label || sec.name || canonical,
+          fields: fieldsBySection.get(canonical) || [],
+          groups: (groupsBySection.get(canonical) || []).sort((a, b) => a.sort_order - b.sort_order),
+        };
+      })
+      .filter(sec => sec.fields.length > 0);
+  }, [businessFieldDefs, businessCustomData, businessSections, businessFieldGroups]);
 
   // Combine all canonical page presets with any custom pages configured in the visual builder
   const mainPageChoices: { id: string; label: string; url: string }[] = [...MAIN_PAGE_PRESETS];
@@ -1910,6 +2019,12 @@ function HeroCarouselManagerContent() {
                 blocks={formData.blocks || []}
                 onChange={(b) => setFormData(p => ({ ...p, blocks: b }))}
                 ar={isArabic}
+                sections={blockSections}
+                // A block added while editing one tab's hero starts in that tab's
+                // section, which is the section whose fields the chips will list.
+                defaultSectionId={
+                  minisiteTab && minisiteTab !== 'main' && minisiteTab !== 'custom' ? minisiteTab : undefined
+                }
               />
             </div>
 

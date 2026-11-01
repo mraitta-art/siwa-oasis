@@ -6,16 +6,22 @@
  * fixed positions with a preset layout.
  *
  * Design decisions (locked with the user):
- *   - Model A: fields are picked PER SLIDE. Body pages automatically
- *     skip any field a slide has claimed.
+ *   - Slides and body are independent surfaces. A field may appear on the hero
+ *     block, on the body grid, on both, or on neither — the admin's call, made
+ *     through the field visibility system (`hide_field` / `hide_value`), not
+ *     through an automatic exclusion.
  *   - 9-zone grid (not free drag): safe under RTL + mobile.
- *   - Layouts: pill (caption), minimal text, vertical card, chip row, glass panel.
+ *   - Layouts: pill (caption), minimal text, vertical card, chip row, glass
+ *     panel, and spec-sheet (a table-style block whose price-bearing fields are
+ *     formatted with the minisite's listing kind: /night, /month, or total).
  *   - Governance: vendor may PROPOSE blocks, but `approved` is admin-only.
  *     Any write from a non-admin path forces approved=false.
  *   - Storage: JSON inside the existing `website_configs.hero_carousel_*`
  *     row (no DB migration). Hiding never deletes; raw field values stay
  *     in custom_data so section-blog interpolation is preserved.
  */
+
+import { getSectionLookupIds, resolveSectionId } from '@/lib/section-registry';
 
 export type BlockKind =
   | 'caption'          // reuse slide.caption as a positioned block (already exists)
@@ -33,7 +39,8 @@ export type BlockLayout =
   | 'minimal'      // plain text, no container
   | 'card'         // vertical card: label above value, thin divider between pairs
   | 'chip-row'     // horizontal wrap of chips (good for feature lists)
-  | 'glass';       // glass panel with heavier blur (spec-list feel)
+  | 'glass'        // glass panel with heavier blur (spec-list feel)
+  | 'spec-sheet';  // table rows with kind-aware price formatting (sale / rent / stay)
 
 export interface SlideBlock {
   /** Stable id so the admin UI can reorder + React can key. */
@@ -47,6 +54,32 @@ export interface SlideBlock {
    * custom_data.field_visibility system uses).
    */
   fieldKeys?: string[];
+  /**
+   * The section `fieldKeys` were picked from. Optional: a block saved before
+   * the picker existed carries none and resolves across every active section,
+   * exactly as it always did. When it is present the block reads that section's
+   * own answer for the key, so two sections that ask the same question
+   * (`price`, `location`) cannot quietly print the other one's value.
+   */
+  sectionId?: string;
+  /**
+   * The admin's category within `sectionId` — `field_groups.name`. When it is
+   * present and `fieldKeys` is empty, the block projects every field of that
+   * group in the order the definitions set, and the overlay prints the group's
+   * bilingual label as the heading. Chosen over retyping eight keys per slide
+   * because a category belongs to the typology, not to one slide.
+   *
+   * Optional forever: a block saved without it resolves exactly as it always
+   * did, from its own `fieldKeys`.
+   */
+  groupKey?: string;
+  /**
+   * Which slice of the group this slide carries, 1-based. A category with more
+   * questions than one block can hold (eight) is not one slide — it is consecutive
+   * slides under the same heading, and this says which page of the category this
+   * block prints. Absent means page 1.
+   */
+  groupPage?: number;
   /** Optional free-text for kind='caption' when you want a per-block caption. */
   text?: string;
   /** Admin-only flag. Vendor writes are forced to false by the API layer. */
@@ -63,6 +96,14 @@ export interface ResolvedField {
   value: string;
   /** true when admin set field_visibility='hide_value' → overlay renders '—'. */
   valueHidden?: boolean;
+  /** The group this field belongs to within its section, for `groupKey` blocks. */
+  groupKey?: string;
+  /**
+   * true when the answer came from `custom_data` with no `form_fields`
+   * definition behind it. The label is then the key itself, humanized — never a
+   * translation nobody wrote.
+   */
+  fromStoredValue?: boolean;
 }
 
 // ─── Zone positioning ────────────────────────────────────────────────────────
@@ -86,7 +127,7 @@ export const VALID_KINDS: ReadonlySet<BlockKind> = new Set<BlockKind>([
 ]);
 export const VALID_ZONES: ReadonlySet<BlockZone> = new Set<BlockZone>(Object.keys(ZONE_GRID) as BlockZone[]);
 export const VALID_LAYOUTS: ReadonlySet<BlockLayout> = new Set<BlockLayout>([
-  'pill', 'minimal', 'card', 'chip-row', 'glass',
+  'pill', 'minimal', 'card', 'chip-row', 'glass', 'spec-sheet',
 ]);
 
 // Layout defaults per kind — matches what the user described.
@@ -104,6 +145,28 @@ const MAX_FIELDS_PER_BLOCK = 8;
 const MAX_TEXT_LEN = 240;
 const MAX_FIELD_NAME_LEN = 64;
 const MAX_BLOCKS_PER_SLIDE = 6;
+
+/**
+ * `custom_data[sectionId]` is written by more than the field forms, and a hero
+ * block has no business printing any of it. Anything underscore-led, any
+ * visibility blob, and any non-primitive housekeeping key is skipped so a
+ * definition-less value can only ever surface a real answer.
+ */
+const STORED_KEY_SKIP = new Set(['field_visibility', 'media', 'gallery', 'sections', 'options', '_meta']);
+
+function isPrintableStoredValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === '') return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return false;
+  return true;
+}
+
+export function humanizeStoredKey(name: string): string {
+  return String(name || '')
+    .replace(/[_\-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .trim();
+}
 
 // ─── Sanitizer ───────────────────────────────────────────────────────────────
 /**
@@ -133,14 +196,33 @@ export function sanitizeSlideBlocks(input: unknown, opts: { trusted: boolean }):
           .slice(0, MAX_FIELDS_PER_BLOCK)
       : [];
     const id = typeof b.id === 'string' && b.id ? b.id.slice(0, 64) : `blk_${Math.random().toString(36).slice(2, 10)}`;
+    // The section a block reads from is stored canonical, so a legacy alias
+    // typed into the payload still finds the same section at render time.
+    const rawSection =
+      typeof b.sectionId === 'string' && b.sectionId.trim() ? b.sectionId.trim().slice(0, 64) : '';
+    const sectionId = kind === 'caption' || !rawSection ? undefined : resolveSectionId(rawSection);
+    // A category name is free-form data, not a lookup: keep it short and strip
+    // the section prefix, which `sectionId` already carries.
+    const groupKey =
+      kind === 'caption' || typeof b.groupKey !== 'string' || !b.groupKey.trim()
+        ? undefined
+        : b.groupKey.trim().slice(0, MAX_FIELD_NAME_LEN);
     // Approved is admin-only. Vendors can propose, never unlock.
     const approved = opts.trusted ? Boolean(b.approved) : false;
+    // A page number outside the group is not an error the sanitizer can invent a
+    // fix for, but a stray value must not erase the block either: it is clamped to
+    // a positive integer and the renderer shows nothing when the slice is empty.
+    const groupPage = Number.isFinite(Number(b.groupPage)) && Number(b.groupPage) > 1
+      ? Math.floor(Number(b.groupPage))
+      : undefined;
     out.push({
       id,
       kind,
       zone,
       layout,
       fieldKeys: kind === 'caption' ? [] : keys,
+      ...(sectionId ? { sectionId } : {}),
+      ...(groupKey ? { groupKey, ...(groupPage ? { groupPage } : {}) } : {}),
       text: kind === 'caption' ? text : undefined,
       approved,
     });
@@ -173,6 +255,43 @@ export function extractClaimedFieldKeys(slides: Array<{ blocks?: unknown }>): Se
   return set;
 }
 
+/**
+ * The same union, split by the section a block was told to read.
+ * `sectionId` is optional on a block, so the body renderer needs both views: a
+ * field claimed inside section A must disappear from A's grid, while an
+ * unscoped (legacy) block claims its key everywhere.
+ */
+export function extractClaimedFieldKeysBySection(
+  slides: Array<{ blocks?: unknown }>,
+  /**
+   * When the caller can supply the resolved index, a block that names a group
+   * claims the group's members too — otherwise the body grid prints a field the
+   * hero already shows. Without it, blocks claim only their explicit keys, which
+   * is exactly the behaviour every saved slide has today.
+   */
+  index?: SlideFieldsIndex
+): { anySection: Set<string>; bySection: Record<string, Set<string>> } {
+  const anySection = new Set<string>();
+  const bySection: Record<string, Set<string>> = {};
+  for (const s of slides) {
+    const blocks = Array.isArray(s?.blocks) ? (s.blocks as SlideBlock[]) : [];
+    for (const b of blocks) {
+      if (!b?.approved || b.kind === 'caption') continue;
+      const sectionId = b.sectionId ? resolveSectionId(b.sectionId) : '';
+      const target = sectionId ? (bySection[sectionId] ||= new Set<string>()) : anySection;
+      for (const key of b.fieldKeys || []) {
+        if (typeof key === 'string' && key) target.add(key);
+      }
+      if (index && b.groupKey) {
+        for (const entry of fieldsOfGroup(b.groupKey, index, sectionId || undefined)) {
+          target.add(entry.key);
+        }
+      }
+    }
+  }
+  return { anySection, bySection };
+}
+
 // ─── Bilingual labels for the admin editor ─────────────────────────────────
 export const BLOCK_KIND_LABEL: Record<BlockKind, { ar: string; en: string }> = {
   caption:       { ar: 'الكابشن',            en: 'Caption' },
@@ -182,11 +301,12 @@ export const BLOCK_KIND_LABEL: Record<BlockKind, { ar: string; en: string }> = {
 };
 
 export const BLOCK_LAYOUT_LABEL: Record<BlockLayout, { ar: string; en: string }> = {
-  'pill':     { ar: 'شارة (Pill)',    en: 'Pill' },
-  'minimal':  { ar: 'نص بسيط',        en: 'Minimal text' },
-  'card':     { ar: 'بطاقة رأسية',    en: 'Vertical card' },
-  'chip-row': { ar: 'شرائح أفقية',    en: 'Chip row' },
-  'glass':    { ar: 'لوحة زجاجية',    en: 'Glass panel' },
+  'pill':       { ar: 'شارة (Pill)',    en: 'Pill' },
+  'minimal':    { ar: 'نص بسيط',        en: 'Minimal text' },
+  'card':       { ar: 'بطاقة رأسية',    en: 'Vertical card' },
+  'chip-row':   { ar: 'شرائح أفقية',    en: 'Chip row' },
+  'glass':      { ar: 'لوحة زجاجية',    en: 'Glass panel' },
+  'spec-sheet': { ar: 'ورقة مواصفات',   en: 'Spec sheet' },
 };
 
 export const BLOCK_ZONE_LABEL: Record<BlockZone, { ar: string; en: string }> = {
@@ -201,6 +321,16 @@ export const BLOCK_ZONE_LABEL: Record<BlockZone, { ar: string; en: string }> = {
   'bottom-right':  { ar: 'أسفل يسار',   en: 'Bottom-right' },
 };
 
+/**
+ * The footnote a masked value leaves behind.
+ * Kept here so the overlay prints the sentence in the language the page speaks
+ * instead of a hard-coded English line over an Arabic hero.
+ */
+export const BLOCK_HIDDEN_LEGEND = {
+  ar: '— = مخفي بواسطة الإدارة',
+  en: '— = hidden by admin',
+};
+
 // ─── Field index builder (client-side) ────────────────────────────────────
 // Merged from `use client` boundaries — this is pure and importable anywhere.
 // `ResolvedField` is declared above (see SlideBlock area) so this file has
@@ -212,55 +342,251 @@ export interface BuildFieldsIndexInput {
   customData?: Record<string, any>;
   /** Arabic-first toggle from MinisiteLangProvider. */
   ar?: boolean;
+  /**
+   * `field_groups` rows the typology chain resolves to, in inheritance order
+   * (universal, then parent, then child). Only their labels are needed here —
+   * membership is carried on the fields themselves.
+   */
+  fieldGroups?: Array<any>;
+}
+
+/** fieldName → resolved presentation. */
+export type FlatFieldsIndex = Record<string, ResolvedField>;
+
+/** Section-aware field lookup: a block reads its own section first. */
+export interface SlideFieldsIndex {
+  flat: FlatFieldsIndex;
+  bySection: Record<string, FlatFieldsIndex>;
+  /**
+   * The bilingual label of each group, keyed `sectionId:groupName`. A block
+   * carrying `groupKey` prints this as its heading; absent means the group was
+   * deleted or never seeded, and the block still renders without one.
+   */
+  groupLabels?: Record<string, { en: string; ar?: string | null }>;
 }
 
 /**
- * Build a flat fieldName → { label, value, valueHidden? } lookup that the
- * SlideInfoBlocksOverlay consumes. Rules mirror the existing body
- * renderer (VanityBusinessClient.renderFieldsBlock):
+ * Build the lookup the SlideInfoBlocksOverlay consumes.
+ * Rules mirror the existing body renderer (VanityBusinessClient.renderFieldsBlock)
+ * on purpose — the hero and the body must agree about the same field or an admin
+ * sees a value in one place and a dash in the other:
  *   - Arabic label wins when `ar` and label_ar are present.
+ *   - Values are read from `custom_data[sectionId]`, the same single blob the body
+ *     grid reads (no cross-section merging).
  *   - custom_data.field_visibility[sectionId][fieldName] === 'hide_value'
  *     keeps the label but blanks the value → overlay prints "—".
  *   - 'hide_field' entries are omitted entirely (label + value gone).
+ *
+ * Two views come back: `bySection`, keyed by the canonical section id (and every
+ * legacy alias that maps to it, so an old block still resolves), and `flat`, the
+ * first-writer-wins union the unscoped blocks have always used.
  */
 export function buildFieldsIndexFromSections({
   sections = [],
   customData = {},
   ar = true,
-}: BuildFieldsIndexInput): Record<string, ResolvedField> {
-  const index: Record<string, ResolvedField> = {};
+  fieldGroups = [],
+}: BuildFieldsIndexInput): SlideFieldsIndex {
+  const flat: FlatFieldsIndex = {};
+  const bySection: Record<string, FlatFieldsIndex> = {};
   const visibilityMap: Record<string, Record<string, string>> =
     (customData && typeof customData === 'object' && (customData as any).field_visibility) || {};
+  // Later rows win, the same rule the field merge already follows, so a group a
+  // child redefines prints the child's wording and nothing else.
+  const groupLabels: Record<string, { en: string; ar?: string | null }> = {};
+  for (const g of fieldGroups || []) {
+    const name = typeof g?.name === 'string' ? g.name.trim() : '';
+    const sectionId = typeof g?.section_id === 'string' ? g.section_id : (typeof g?.sectionId === 'string' ? g.sectionId : '');
+    if (!name || !sectionId) continue;
+    groupLabels[`${resolveSectionId(sectionId)}:${name}`] = {
+      en: String(g.label || humanizeStoredKey(name)),
+      ar: g.label_ar ? String(g.label_ar) : null,
+    };
+  }
 
   for (const section of sections) {
     if (!section) continue;
     const sectionId = String(section.id || '');
     if (!sectionId) continue;
-    const secVisibility = visibilityMap[sectionId] || {};
+    const canonicalId = resolveSectionId(sectionId);
+    const secVisibility = visibilityMap[sectionId] || visibilityMap[canonicalId] || {};
     const sectionData =
       (customData as any)?.[sectionId] ||
-      (customData as any)?.[String(section.id).replace(/^sec_\d+_/, '')] ||
+      (customData as any)?.[canonicalId] ||
+      (customData as any)?.[String(sectionId).replace(/^sec_\d+_/, '')] ||
       {};
     const fields: any[] = Array.isArray(section.fields) ? section.fields : [];
+    // A section can carry its own categories (the loaders attach them), which is
+    // how a heading reaches a slide without a second query per page.
+    const sectionGroups: any[] = Array.isArray((section as any).groups) ? (section as any).groups : [];
+    for (const g of sectionGroups) {
+      const name = typeof g?.name === 'string' ? g.name.trim() : '';
+      if (!name) continue;
+      const key = `${canonicalId}:${name}`;
+      if (groupLabels[key]) continue;
+      groupLabels[key] = {
+        en: String(g.label || humanizeStoredKey(name)),
+        ar: g.label_ar ? String(g.label_ar) : null,
+      };
+    }
+    // A block may name its section by the canonical id or by any historical
+    // alias, and it is the same section either way.
+    const scopedIds = getSectionLookupIds(sectionId);
 
     for (const f of fields) {
       const name = typeof f?.name === 'string' ? f.name : '';
       if (!name) continue;
       if (secVisibility[name] === 'hide_field') continue;
+      // A child that refuses a parent field drops it from the resolved form, so
+      // it can never reach a hero block or claim a place in the body grid.
+      if (Number(f?.excluded ?? 0) === 1) continue;
       const rawLabel = (ar && f.label_ar) ? f.label_ar : (f.label || name.replace(/_/g, ' '));
       const valueHidden = secVisibility[name] === 'hide_value';
       const rawVal = sectionData?.[name];
       const value = valueHidden
         ? ''
         : (typeof rawVal === 'string' ? rawVal : rawVal == null ? '' : safeStringify(rawVal));
-      // First write wins so cross-section duplicates don't fight. Fields are
-      // expected to be section-scoped but a defensive guard is cheap.
-      if (!index[name]) {
-        index[name] = { label: String(rawLabel || name), value, valueHidden };
+      const groupKey = typeof f?.group_key === 'string' && f.group_key.trim()
+        ? f.group_key.trim()
+        : (typeof f?.groupKey === 'string' && f.groupKey.trim() ? f.groupKey.trim() : undefined);
+      const resolved: ResolvedField = { label: String(rawLabel || name), value, valueHidden, ...(groupKey ? { groupKey } : {}) };
+
+      for (const alias of scopedIds) {
+        const bucket = (bySection[alias] ||= {});
+        // First write wins inside a section too: a typology can inherit the same
+        // field definition at two levels, and the duplicate must not flip.
+        if (!bucket[name]) bucket[name] = resolved;
+      }
+      // First write wins across sections as well, so cross-section duplicates
+      // cannot fight over what an unscoped block prints.
+      if (!flat[name]) flat[name] = resolved;
+    }
+
+    // The stored-value pass. A business can hold an answer that no `form_fields`
+    // row defines — which is the normal state for anything typed before the
+    // definition existed — and a hero block must be able to show it rather than
+    // print nothing. The label is the key, humanized, in both languages: no
+    // Arabic is invented here, because nobody wrote one.
+    if (sectionData && typeof sectionData === 'object' && !Array.isArray(sectionData)) {
+      for (const [name, rawVal] of Object.entries(sectionData)) {
+        if (!name || STORED_KEY_SKIP.has(name) || name.startsWith('_')) continue;
+        if (secVisibility[name] === 'hide_field') continue;
+        if (!isPrintableStoredValue(rawVal)) continue;
+        if (flat[name] || bySection[canonicalId]?.[name]) continue;
+        const valueHidden = secVisibility[name] === 'hide_value';
+        const resolved: ResolvedField = {
+          label: humanizeStoredKey(name),
+          value: valueHidden ? '' : safeStringify(rawVal),
+          valueHidden,
+          fromStoredValue: true,
+        };
+        for (const alias of scopedIds) {
+          const bucket = (bySection[alias] ||= {});
+          if (!bucket[name]) bucket[name] = resolved;
+        }
+        if (!flat[name]) flat[name] = resolved;
       }
     }
   }
-  return index;
+  return { flat, bySection, groupLabels };
+}
+
+/**
+ * Accept either shape. A surface that only knows the old flat map keeps working
+ * unchanged; its blocks simply resolve section-agnostically, as before.
+ */
+export function asFieldsIndex(
+  index?: SlideFieldsIndex | FlatFieldsIndex | null
+): SlideFieldsIndex {
+  if (!index) return { flat: {}, bySection: {} };
+  if ('flat' in index || 'bySection' in index) return index as SlideFieldsIndex;
+  return { flat: index as FlatFieldsIndex, bySection: {} };
+}
+
+/**
+ * The field entries one group owns, in definition order.
+ *
+ * Read off the index rather than a second query, so a group can only ever
+ * contain fields this page is already allowed to show: an excluded definition is
+ * absent, a `hide_field` visibility is absent, and a stored-only answer is
+ * present with its humanized label.
+ *
+ * `sectionId` empty means look across every section, matching how an unscoped
+ * legacy block resolves.
+ */
+export function fieldsOfGroup(
+  groupKey: string,
+  index: SlideFieldsIndex,
+  sectionId?: string,
+): Array<{ key: string; resolved: ResolvedField }> {
+  const key = String(groupKey || '').trim();
+  if (!key) return [];
+  const scoped = sectionId ? index.bySection[resolveSectionId(sectionId)] : undefined;
+  const source: FlatFieldsIndex = scoped || index.flat;
+  const seen = new Set<string>();
+  const entries: Array<{ key: string; resolved: ResolvedField }> = [];
+  for (const [name, resolved] of Object.entries(source)) {
+    if (resolved?.groupKey !== key) continue;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    entries.push({ key: name, resolved });
+  }
+  // An unscoped lookup already collapsed duplicates into `flat`; a scoped one
+  // needs nothing further. Sorted by nothing but insertion order, which is the
+  // definitions' own sort_order.
+  return entries;
+}
+
+/** The heading a group block prints, or null when the group no longer exists. */
+export function groupLabelFor(
+  groupKey: string,
+  sectionId: string | undefined,
+  index: SlideFieldsIndex,
+  ar: boolean,
+): string | null {
+  const key = String(groupKey || '').trim();
+  if (!key || !index.groupLabels) return null;
+  const lookup = `${sectionId ? resolveSectionId(sectionId) : ''}:${key}`;
+  const label = index.groupLabels[lookup] || (sectionId ? null : Object.entries(index.groupLabels).find(([k]) => k.endsWith(`:${key}`))?.[1]);
+  if (!label) return null;
+  const text = ar ? (label.ar || label.en) : label.en;
+  return String(text || '').trim() || null;
+}
+
+/**
+ * The field entries a block should print, in the order the admin picked them.
+ * Entries with neither a label nor a value are dropped, which is what makes a
+ * masked or deleted field disappear instead of printing an empty pill.
+ *
+ * A block that names a group and no keys projects the whole group; a block that
+ * names keys projects exactly those keys, group or not, so an admin can still
+ * hand-pick a subset of a category.
+ */
+export function resolveBlockEntries(
+  block: Pick<SlideBlock, 'fieldKeys' | 'sectionId' | 'groupKey' | 'groupPage'>,
+  index: SlideFieldsIndex
+): Array<{ key: string; resolved: ResolvedField }> {
+  const scoped = block.sectionId ? index.bySection[resolveSectionId(block.sectionId)] : undefined;
+  const explicit = (block.fieldKeys || []).filter(Boolean);
+  if (!explicit.length && block.groupKey) {
+    const members = fieldsOfGroup(block.groupKey, index, block.sectionId);
+    // Page 2 of a fourteen-field category is fields 9-14, printed under the same
+    // heading on the next slide — the tail is never dropped.
+    const page = Math.max(1, Math.floor(Number(block.groupPage) || 1));
+    return members.slice((page - 1) * MAX_FIELDS_PER_BLOCK, page * MAX_FIELDS_PER_BLOCK);
+  }
+  return explicit
+    .map(key => ({ key, resolved: scoped?.[key] || index.flat[key] }))
+    .filter((entry): entry is { key: string; resolved: ResolvedField } =>
+      Boolean(entry.resolved && (entry.resolved.label || entry.resolved.value)));
+}
+
+/**
+ * The same written form the overlay prints, so an admin previewing a value in the
+ * editor cannot be shown something the live slide will not say.
+ */
+export function stringifyFieldValue(value: unknown): string {
+  return safeStringify(value);
 }
 
 function safeStringify(v: any): string {

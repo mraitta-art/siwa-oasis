@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useMinisiteLang } from './minisite/MinisiteLang';
 
 /**
  * Public, read-only Google Maps profile block for a vendor minisite.
@@ -58,7 +59,13 @@ function Stars({ value, size = 12 }: { value: number; size?: number }) {
   );
 }
 
-export default function MinisiteGoogleReviews({ place, lang = 'en', variant = 'sidebar' }: Props) {
+export default function MinisiteGoogleReviews({ place, lang: langProp, variant = 'sidebar' }: Props) {
+  // Arabic is the language of the market, so the minisite's own language is the
+  // default instead of a hard-coded English. An explicit prop still wins, which
+  // keeps an admin preview or an embed outside a minisite able to name a script.
+  const { lang: minisiteLang } = useMinisiteLang();
+  const lang = langProp ?? minisiteLang;
+
   if (!place) return null;
 
   const rating = typeof place.rating === 'number' ? place.rating : null;

@@ -5,8 +5,19 @@ import {
   SlideBlock,
   ZONE_GRID,
   BlockZone,
+  BLOCK_HIDDEN_LEGEND,
+  asFieldsIndex,
+  resolveBlockEntries,
+  groupLabelFor,
+  type FlatFieldsIndex,
   type ResolvedField,
+  type SlideFieldsIndex,
 } from '@/lib/slide-blocks';
+import {
+  maybeFormatPriceField,
+  specFor,
+  type ListingKind,
+} from '@/lib/listing-kind';
 
 /**
  * SlideInfoBlocksOverlay
@@ -27,14 +38,29 @@ export type { ResolvedField };
 
 export interface SlideInfoBlocksOverlayProps {
   blocks?: SlideBlock[] | unknown;
-  /** Field-name → resolved presentation. Caller builds this from sections + custom_data. */
-  fieldsIndex?: Record<string, ResolvedField>;
+  /**
+   * Resolved presentation for the current minisite. The section-aware shape lets
+   * a block read its own section's answer; a plain field-name map still works and
+   * resolves every block across all sections, exactly as it did before.
+   */
+  fieldsIndex?: SlideFieldsIndex | FlatFieldsIndex;
   /** Slide's own caption — used when a block has kind='caption' and no per-block text. */
   slideCaption?: string;
   /** Accent color for glass/card borders. Falls back to the platform gold. */
   accent?: string;
   /** Whether the parent's dir is RTL — for correct logical-property orientation. */
   rtl?: boolean;
+  /** Arabic-first wording for the masked-value footnote. */
+  ar?: boolean;
+  /**
+   * The minisite's specialization. When present, a `spec-sheet` block formats
+   * price-bearing fields through `formatPrice` with this kind's basis (/night,
+   * /month, or total). Absent means no kind formatting — the raw value prints
+   * as it always did.
+   */
+  listingKind?: ListingKind | null;
+  /** The units' currency, defaulting to EGP when the caller has no signal. */
+  currency?: string;
 }
 
 const GOLD = '#D4AF37';
@@ -49,6 +75,33 @@ function groupByZone(blocks: SlideBlock[]): Map<BlockZone, SlideBlock[]> {
     map.set(b.zone, arr);
   }
   return map;
+}
+
+/**
+ * One value, presented for the surface that's about to print it.
+ *
+ * A masked value always becomes `—` regardless of kind. A price-bearing field
+ * is passed through `maybeFormatPriceField` so a stored `4250000` prints as
+ * "EGP 4.25M" on a sale minisite, "EGP 25,000 /month" on a lease, and
+ * "EGP 1,200 /night" on a stay — the same number, three different characters.
+ * A no-kind context preserves the legacy behavior of printing the raw string,
+ * so a business with no units and no specialization still shows admin-typed
+ * prose verbatim.
+ */
+function displayValueFor(
+  entry: { key: string; resolved: ResolvedField },
+  kindCtx: { kind: ListingKind | null; currency: string },
+  ar: boolean,
+): string {
+  if (entry.resolved.valueHidden) return '—';
+  const raw = entry.resolved.value;
+  if (!raw) return '';
+  if (!kindCtx.kind) return raw;
+  return maybeFormatPriceField(entry.key, raw, {
+    kind: kindCtx.kind,
+    currency: kindCtx.currency,
+    ar,
+  });
 }
 
 function Chip({ children, accent }: { children: React.ReactNode; accent: string }) {
@@ -76,11 +129,14 @@ function Chip({ children, accent }: { children: React.ReactNode; accent: string 
 /** Renders one block using its layout. Missing data → returns null (silent skip). */
 function renderBlockBody(
   b: SlideBlock,
-  fieldsIndex: Record<string, ResolvedField>,
+  index: SlideFieldsIndex,
   slideCaption: string | undefined,
   accent: string,
+  ar: boolean,
+  kindCtx: { kind: ListingKind | null; currency: string },
 ): React.ReactNode {
-  const keys = (b.fieldKeys || []).filter(Boolean);
+  // A block that names its section reads that section first, then the union — so
+  // a `price` claimed from Facilities can never print the Identity answer.
 
   // Caption block: text override > slide.caption > null
   if (b.kind === 'caption') {
@@ -121,9 +177,7 @@ function renderBlockBody(
   }
 
   // Fields-ish blocks
-  const entries = keys
-    .map(k => ({ key: k, resolved: fieldsIndex[k] }))
-    .filter((e): e is { key: string; resolved: ResolvedField } => Boolean(e.resolved && (e.resolved.label || e.resolved.value)));
+  const entries = resolveBlockEntries(b, index);
   if (entries.length === 0) return null;
   const safeEntries = entries.slice(0, 8);
 
@@ -147,11 +201,22 @@ function renderBlockBody(
 
   // Field VALUES only
   if (b.kind === 'fieldValues') {
-    const values = safeEntries.map(e => (e.resolved.valueHidden ? '—' : e.resolved.value)).filter(Boolean);
+    const values = safeEntries
+      .map(e => displayValueFor(e, kindCtx, ar))
+      .filter(Boolean);
     if (values.length === 0) return null;
-    if (b.layout === 'card') {
+    if (b.layout === 'card' || b.layout === 'spec-sheet') {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: 240 }}>
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: 260,
+          ...(b.layout === 'spec-sheet' ? {
+            padding: '0.55rem 0.8rem',
+            borderRadius: 10,
+            background: 'rgba(9,14,23,0.55)',
+            borderInlineStart: `3px solid ${accent}`,
+            backdropFilter: 'blur(10px)',
+          } : {}),
+        }}>
           {values.map((v, i) => (
             <div key={i} style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '0.01em' }}>{v}</div>
           ))}
@@ -191,7 +256,7 @@ function renderBlockBody(
           fontWeight: 800,
           color: e.resolved.valueHidden ? 'rgba(248,250,252,0.35)' : '#f8fafc',
         }}>
-          {e.resolved.valueHidden ? '—' : e.resolved.value}
+          {displayValueFor(e, kindCtx, ar)}
         </span>
       </div>
     ));
@@ -203,7 +268,7 @@ function renderBlockBody(
             <Chip key={i} accent={accent}>
               <span style={{ opacity: 0.7, marginRight: 4 }}>{e.resolved.label}:</span>
               <span style={{ fontWeight: 900, color: e.resolved.valueHidden ? 'rgba(248,250,252,0.35)' : '#f8fafc' }}>
-                {e.resolved.valueHidden ? '—' : e.resolved.value}
+                {displayValueFor(e, kindCtx, ar)}
               </span>
             </Chip>
           ))}
@@ -217,10 +282,73 @@ function renderBlockBody(
             <div key={i} style={{ fontSize: '0.72rem', color: '#f8fafc' }}>
               <span style={{ opacity: 0.7 }}>{e.resolved.label}: </span>
               <span style={{ fontWeight: 800, color: e.resolved.valueHidden ? 'rgba(248,250,252,0.35)' : '#f8fafc' }}>
-                {e.resolved.valueHidden ? '—' : e.resolved.value}
+                {displayValueFor(e, kindCtx, ar)}
               </span>
             </div>
           ))}
+        </div>
+      );
+    }
+    // spec-sheet: a table with kind-tinted accent stripe and large values.
+    // Differentiator for public visitors: same number, three characters.
+    if (b.layout === 'spec-sheet') {
+      const kindSpec = specFor(kindCtx.kind);
+      const sheetAccent = kindSpec?.accent || accent;
+      return (
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          maxWidth: 340,
+          padding: '0.75rem 1rem 0.85rem',
+          borderRadius: 12,
+          background: 'rgba(9,14,23,0.68)',
+          border: `1px solid ${sheetAccent}40`,
+          borderInlineStart: `4px solid ${sheetAccent}`,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 12px 34px rgba(0,0,0,0.38)',
+        }}>
+          {kindSpec && (
+            <div style={{
+              fontSize: '0.6rem',
+              fontWeight: 900,
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              color: sheetAccent,
+              marginBottom: '0.4rem',
+            }}>
+              {ar ? kindSpec.badge.ar : kindSpec.badge.en}
+            </div>
+          )}
+          {safeEntries.map((e, i) => {
+            const shown = displayValueFor(e, kindCtx, ar);
+            const hidden = e.resolved.valueHidden;
+            return (
+              <div
+                key={i}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'baseline',
+                  padding: '0.4rem 0',
+                  borderBottom: i < safeEntries.length - 1 ? `1px dashed ${sheetAccent}30` : undefined,
+                  minWidth: 220,
+                }}
+              >
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1.6px', textTransform: 'uppercase', opacity: 0.68 }}>
+                  {e.resolved.label}
+                </span>
+                <span style={{
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  color: hidden ? 'rgba(248,250,252,0.35)' : '#f8fafc',
+                }}>
+                  {shown}
+                </span>
+              </div>
+            );
+          })}
+          {hasHidden && (
+            <div style={{ marginTop: '0.4rem', fontSize: '0.6rem', opacity: 0.55, fontStyle: 'italic' }}>
+              {ar ? BLOCK_HIDDEN_LEGEND.ar : BLOCK_HIDDEN_LEGEND.en}
+            </div>
+          )}
         </div>
       );
     }
@@ -240,7 +368,9 @@ function renderBlockBody(
       }}>
         {list}
         {hasHidden && (
-          <div style={{ marginTop: '0.35rem', fontSize: '0.6rem', opacity: 0.55, fontStyle: 'italic' }}>— = hidden by admin</div>
+          <div style={{ marginTop: '0.35rem', fontSize: '0.6rem', opacity: 0.55, fontStyle: 'italic' }}>
+            {ar ? BLOCK_HIDDEN_LEGEND.ar : BLOCK_HIDDEN_LEGEND.en}
+          </div>
         )}
       </div>
     );
@@ -251,15 +381,21 @@ function renderBlockBody(
 
 export default function SlideInfoBlocksOverlay({
   blocks,
-  fieldsIndex = {},
+  fieldsIndex,
   slideCaption,
   accent = GOLD,
+  rtl = false,
+  ar = true,
+  listingKind = null,
+  currency = 'EGP',
 }: SlideInfoBlocksOverlayProps) {
   const safeBlocks = Array.isArray(blocks) ? (blocks as SlideBlock[]) : [];
   const approved = safeBlocks.filter(b => b && b.approved);
   if (approved.length === 0) return null;
 
+  const index = asFieldsIndex(fieldsIndex);
   const grouped = groupByZone(approved);
+  const kindCtx = { kind: listingKind, currency };
 
   return (
     <div
@@ -280,10 +416,16 @@ export default function SlideInfoBlocksOverlay({
         if (g.align === 'flex-start') pos.top = edgeV;
         else if (g.align === 'flex-end') pos.bottom = edgeV;
         else { pos.top = '50%'; }
-        // Horizontal
-        if (g.justify === 'flex-start') pos.left = edgeH;
-        else if (g.justify === 'flex-end') pos.right = edgeH;
-        else { pos.left = '50%'; }
+        // Horizontal — a zone names a side of the page, not a pixel: on an Arabic
+        // minisite "start" is the right edge, so the band the admin picked is the
+        // band the visitor sees.
+        if (g.justify === 'flex-start') {
+          if (rtl) pos.right = edgeH; else pos.left = edgeH;
+        } else if (g.justify === 'flex-end') {
+          if (rtl) pos.left = edgeH; else pos.right = edgeH;
+        } else {
+          pos.left = '50%';
+        }
         // Transform combination for centered rows/columns
         const tx = g.justify === 'center' ? '-50%' : '0';
         const ty = g.align === 'center' ? '-50%' : '0';
@@ -303,11 +445,27 @@ export default function SlideInfoBlocksOverlay({
               pointerEvents: 'none',
             }}
           >
-            {zblocks.map(b => (
-              <div key={b.id} style={{ pointerEvents: 'auto' }}>
-                {renderBlockBody(b, fieldsIndex, slideCaption, accent)}
-              </div>
-            ))}
+            {zblocks.map(b => {
+              // The category name the admin chose for this bundle of fields, from
+              // `field_groups` — not retyped on the slide, so the same category says
+              // the same thing on every page and in both languages.
+              const heading = b.kind === 'caption' ? null : groupLabelFor(b.groupKey || '', b.sectionId, index, ar);
+              return (
+                <div key={b.id} style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'inherit' }}>
+                  {heading && (
+                    <div style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 900,
+                      letterSpacing: '1.6px',
+                      textTransform: 'uppercase',
+                      color: accent,
+                      textShadow: '0 1px 6px rgba(0,0,0,0.55)',
+                    }}>{heading}</div>
+                  )}
+                  {renderBlockBody(b, index, slideCaption, accent, ar, kindCtx)}
+                </div>
+              );
+            })}
           </div>
         );
       })}

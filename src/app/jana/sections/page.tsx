@@ -35,11 +35,32 @@ const DEFAULT_CONTENT_POLICY = {
   requires_approval: true,
 };
 
+interface FieldGroupRow {
+  id?: string;
+  name: string;
+  label: string;
+  label_ar: string | null;
+  section_id: string;
+  business_type_id: string;
+  sort_order: number;
+  help_text?: string | null;
+
+  /** Which level of the typology chain this category was resolved from. */
+  source_level?: string;
+  is_inherited?: boolean;
+}
+
 interface Field {
   id: string; name: string; label: string; field_type: string;
   section_id: string; business_type_id: string;
   required: boolean; vendor_editable: boolean; show_on_public: boolean;
   version_type?: 'initial' | 'latest';
+  /** The Arabic question an /ar page prints. */
+  label_ar?: string | null;
+  /** The category (`field_groups.name`) this question belongs to inside the section. */
+  group_key?: string | null;
+  /** Subtractive inheritance: this typology refuses a question it would inherit. */
+  excluded?: boolean | number;
   options?: any; help_text?: string; sort_order: number;
   required_feature?: string;
 }
@@ -178,6 +199,16 @@ export default function UnifiedSectionArchitect() {
   const [saving,          setSaving]          = useState(false);
   const [deletingId,      setDeletingId]      = useState<string|null>(null);
 
+  /* ── Categories (field groups) ──────────────────────────────────────── */
+  // The admin's own bundles of questions inside one section. This is the layer a
+  // carousel slide points at, so it is created here — next to the fields it
+  // groups — rather than in a separate screen that would drift from them.
+  const [groups,          setGroups]          = useState<FieldGroupRow[]>([]);
+  const [groupsUnavailable, setGroupsUnavailable] = useState(false);
+  const [newGroupName,    setNewGroupName]    = useState('');
+  const [newGroupLabelAr, setNewGroupLabelAr] = useState('');
+  const [creatingGroup,   setCreatingGroup]   = useState(false);
+
   /* ── Topology Map ───────────────────────────────────────────────────── */
   const [topologyMap, setTopologyMap] = useState<{ id: string; name: string; icon: string; icon_color?: string; is_parent: boolean }[]>([]);
 
@@ -228,6 +259,94 @@ export default function UnifiedSectionArchitect() {
       loadFields(selectedSection, selectedType);
     }
   }, [activeTab, selectedSection, selectedType, loadFields]);
+
+  /* ── Load / Create / Delete Categories ───────────────────────────────── */
+  const loadGroups = useCallback(async (sectionId: string, typeId?: string) => {
+    if (!sectionId) return;
+    // With no typology chosen the universal template is the level being edited,
+    // which is also a valid place to define a category every typology inherits.
+    const scopeType = typeId || 'SECTION_TEMPLATE';
+    try {
+      const res = await fetch(`/api/jana/field-groups?type=${encodeURIComponent(scopeType)}&section=${encodeURIComponent(sectionId)}`);
+      if (!res.ok) {
+        // 503 means the group migration is not applied; the field builder must not
+        // look broken to the admin, it simply has no categories yet.
+        setGroups([]);
+        setGroupsUnavailable(res.status === 503);
+        return;
+      }
+      const rows = await res.json();
+      setGroups(Array.isArray(rows) ? rows : []);
+      setGroupsUnavailable(false);
+    } catch { setGroups([]); }
+  }, []);
+
+  const slugifyGroupName = (text: string) => String(text || '')
+    .trim().toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_|_$/g, '');
+
+  const createGroup = async () => {
+    if (!editField || !selectedSection) return;
+    const label = String(newGroupName || '').trim();
+    const labelAr = String(newGroupLabelAr || '').trim();
+    const name = slugifyGroupName(label);
+    if (name.length < 2) { notify('Pick an English name for the category (letters and digits)', 'error'); return; }
+    if (!labelAr) { notify('The Arabic name is required — an /ar slide would otherwise print an English heading', 'error'); return; }
+    setCreatingGroup(true);
+    try {
+      const res = await fetch('/api/jana/field-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_type_id: editField.business_type_id || selectedType || 'SECTION_TEMPLATE',
+          section_id: selectedSection,
+          name, label, label_ar: labelAr,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        notify(`Category “${label}” created and assigned to this field`);
+        // Assign it to the field being edited in the same breath: an admin who
+        // just named a category means the field in front of them to belong to it.
+        setEditField(f => (f ? { ...f, group_key: name } : f));
+        setNewGroupName(''); setNewGroupLabelAr('');
+        loadGroups(selectedSection, selectedType);
+      } else {
+        notify(data?.error || 'Failed to create category', 'error');
+      }
+    } catch { notify('Failed to create category', 'error'); }
+    setCreatingGroup(false);
+  };
+
+  const deleteGroup = async (group: FieldGroupRow) => {
+    if (!group.id) return;
+    if (!window.confirm(`Delete the category “${group.label}”? Its fields stay exactly as they are — they just stop being grouped.`)) return;
+    try {
+      const res = await fetch(`/api/jana/field-groups?id=${encodeURIComponent(group.id)}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        notify('Category deleted; its fields are now ungrouped');
+        // A field still pointing at the gone category would be invisible in the
+        // picker, so the local view is cleared in the same pass as the reload.
+        setFields(prev => prev.map(f => (f.group_key === group.name ? { ...f, group_key: null } : f)));
+        setEditField(f => (f && f.group_key === group.name ? { ...f, group_key: null } : f));
+        loadGroups(selectedSection, selectedType);
+      } else {
+        notify(data?.error || 'Failed to delete category', 'error');
+      }
+    } catch { notify('Failed to delete category', 'error'); }
+  };
+
+  // Declared after `loadGroups` on purpose: a dependency array is read during the
+  // render that precedes the const, and referring to it there throws.
+  useEffect(() => {
+    if (activeTab === 'fields' && selectedSection) {
+      loadGroups(selectedSection, selectedType);
+    }
+  }, [activeTab, selectedSection, selectedType, loadGroups]);
 
   /* ── Build Topology Map for selected section ──────────────────────────── */
   const buildTopologyMap = useCallback((sectionId: string, allTypes: BusinessType[]) => {
@@ -1182,6 +1301,47 @@ export default function UnifiedSectionArchitect() {
                 </div>
               </div>
 
+              {/* Categories: the bundles a carousel slide presents under one name. */}
+              {groups.length > 0 && (
+                <div style={{marginBottom:'1.5rem',padding:'0.9rem 1.1rem',background:'#fff',borderRadius:'14px',border:'1.5px solid #e2e8f0'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'0.6rem',marginBottom:'0.6rem'}}>
+                    <div style={{fontSize:'0.6rem',fontWeight:900,color:'#94a3b8',letterSpacing:'1px'}}>
+                      CATEGORIES A SLIDE CAN PRESENT
+                    </div>
+                    <div style={{fontSize:'0.62rem',color:'#94a3b8'}}>
+                      in {currentSection?.name || selectedSection}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:'0.45rem'}}>
+                    {groups.map(g => {
+                      const members = fields.filter(f => (f.group_key || '') === g.name);
+                      return (
+                        <span key={`${g.business_type_id}:${g.name}`} title={g.help_text || undefined} style={{display:'inline-flex',alignItems:'center',gap:'0.4rem',padding:'0.4rem 0.5rem 0.4rem 0.75rem',borderRadius:'999px',background:'#f8fafc',border:'1px solid #e2e8f0',fontSize:'0.68rem',fontWeight:800,color:'#1e293b'}}>
+                          <i className="fas fa-layer-group" style={{color:'#D4AF37',fontSize:'0.62rem'}} />
+                          {`${g.label} / ${g.label_ar || '—'}`}
+                          <span style={{color:'#94a3b8',fontWeight:700}}>{`${members.length} field${members.length === 1 ? '' : 's'}`}</span>
+                          {g.is_inherited && (
+                            <span style={{color:'#94a3b8',fontWeight:700,fontSize:'0.6rem'}}>
+                              {g.source_level === 'universal' ? 'universal' : 'parent'}
+                            </span>
+                          )}
+                          {!g.is_inherited && g.id && (
+                            <button onClick={() => deleteGroup(g)} title="Delete category (its fields stay)" style={{border:'none',background:'transparent',color:'#ef4444',cursor:'pointer',fontSize:'0.7rem',padding:0}}>
+                              <i className="fas fa-times" />
+                            </button>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {fields.some(f => !f.group_key) && (
+                    <div style={{fontSize:'0.62rem',color:'#94a3b8',marginTop:'0.55rem'}}>
+                      {fields.filter(f => !f.group_key).length} field(s) here are ungrouped — they still appear on the section page, only no slide presents them as a category.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {fields.length === 0 ? (
                 <div style={{textAlign:'center',padding:'5rem',background:'#fff',borderRadius:'24px',border:'2px dashed #e2e8f0'}}>
                   <i className="fas fa-folder-open fa-3x" style={{color:'#e2e8f0',marginBottom:'1rem',display:'block'}} />
@@ -1244,6 +1404,63 @@ export default function UnifiedSectionArchitect() {
                       <div>
                         <label style={css.label()}>Label (displayed to vendor) *</label>
                         <input style={css.input()} value={editField.label||''} onChange={e => setEditField(f => ({...f!,label:e.target.value}))} placeholder="e.g. Number of Rooms" />
+                      </div>
+                      <div>
+                        <label style={css.label()}>Arabic Label (printed on /ar pages)</label>
+                        <input dir="rtl" style={css.input()} value={editField.label_ar||''} onChange={e => setEditField(f => ({...f!,label_ar:e.target.value}))} placeholder="مثال: عدد الغرف" />
+                        <div style={{fontSize:'0.62rem',color:'#94a3b8',marginTop:'0.3rem'}}>
+                          Left empty, an Arabic page asks this question in English. Every question the platform asks has both names.
+                        </div>
+                      </div>
+                      <div>
+                        <label style={css.label()}>Slide Category (bundle this question into)</label>
+                        <select value={editField.group_key||''} onChange={e => setEditField(f => ({...f!,group_key:e.target.value||null}))} style={css.input()}>
+                          <option value="">Ungrouped — no carousel slide presents it as a category</option>
+                          {groups.map(g => (
+                            <option key={`${g.business_type_id}:${g.name}`} value={g.name}>
+                              {`${g.label} / ${g.label_ar || '—'}${g.is_inherited ? ` (inherited from ${g.source_level === 'universal' ? 'the universal template' : 'a parent typology'})` : ''}`}
+                            </option>
+                          ))}
+                        </select>
+                        <div style={{fontSize:'0.62rem',color:'#94a3b8',marginTop:'0.3rem'}}>
+                          A category is what a hero slide shows as its heading. Choosing an inherited one puts this question inside it at this typology level only.
+                        </div>
+
+                        {!groupsUnavailable && (
+                          <div style={{marginTop:'0.6rem',padding:'0.7rem 0.8rem',borderRadius:'10px',background:'#fafbfd',border:'1px dashed #e2e8f0'}}>
+                            <div style={{fontSize:'0.6rem',fontWeight:900,color:'#94a3b8',letterSpacing:'1px',marginBottom:'0.45rem'}}>NEW CATEGORY</div>
+                            <div style={{display:'flex',gap:'0.5rem',flexWrap:'wrap',alignItems:'center'}}>
+                              <input
+                                style={{...css.input(),flex:'1 1 160px',minWidth:'150px'}}
+                                value={newGroupName}
+                                onChange={e => setNewGroupName(e.target.value)}
+                                placeholder="Financial terms"
+                              />
+                              <input
+                                dir="rtl"
+                                style={{...css.input(),flex:'1 1 160px',minWidth:'150px'}}
+                                value={newGroupLabelAr}
+                                onChange={e => setNewGroupLabelAr(e.target.value)}
+                                placeholder="الشروط المالية"
+                              />
+                              <button
+                                onClick={createGroup}
+                                disabled={creatingGroup || !newGroupName.trim() || !newGroupLabelAr.trim() || !selectedSection}
+                                style={{...css.btn('#D4AF37'),opacity:creatingGroup || !newGroupName.trim() || !newGroupLabelAr.trim() || !selectedSection ? 0.45 : 1}}
+                              >
+                                {creatingGroup ? 'Creating…' : 'Create & assign'}
+                              </button>
+                            </div>
+                            <div style={{fontSize:'0.6rem',color:'#94a3b8',marginTop:'0.45rem'}}>
+                              Created at the level this field belongs to{editField.business_type_id ? ` (${editField.business_type_id})` : ''} and assigned to it in one step. Both names are required.
+                            </div>
+                          </div>
+                        )}
+                        {groupsUnavailable && (
+                          <div style={{marginTop:'0.5rem',fontSize:'0.62rem',color:'#b45309'}}>
+                            Categories are unavailable until <code>migrations/20261116_field_groups.sql</code> is applied. Fields and slides work exactly as before.
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label style={css.label()}>Business Category / Typology *</label>

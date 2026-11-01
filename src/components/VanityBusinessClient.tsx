@@ -15,19 +15,19 @@ import MinisiteGoogleReviews from '@/components/MinisiteGoogleReviews';
 import UnitsBoard from '@/components/UnitsBoard';
 import InstallmentCalculator from '@/components/development/InstallmentCalculator';
 import PropertiesTours from '@/components/pillars/PropertiesTours';
-import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite } from '@/lib/section-registry';
-import { MinisiteLangToggle, useMinisiteLang } from '@/components/minisite/MinisiteLang';
-import { label as minisiteLabel } from '@/lib/minisite-i18n';
-import { extractClaimedFieldKeys } from '@/lib/slide-blocks';
+import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionApprovedForMinisite, resolveSectionId } from '@/lib/section-registry';
+import { useMinisiteLang } from '@/components/minisite/MinisiteLang';
+import MinisiteShell, { type MinisiteShellSection } from '@/components/minisite/MinisiteShell';
+import { label as minisiteLabel, pick } from '@/lib/minisite-i18n';
+import { detectListingKind, specFor } from '@/lib/listing-kind';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 import {
   MINISITE_VERTICAL_THEMES,
   resolveMinisiteVertical,
   orderActiveSections,
-  type CtaKey,
   type PropertyBundle,
 } from '@/lib/minisite-verticals';
-import { pillarUrl } from '@/lib/pillars';
+import { businessPublicPath } from '@/lib/public-url';
 import { BRAND_MARK_URL } from '@/lib/brand-assets';
 import { consentAllows } from '@/lib/vendor-consents';
 import { normalizePhoneValue } from '@/lib/egypt-phone';
@@ -300,14 +300,18 @@ export default function VanityBusinessClient({
   const { lang: minisiteLang, ar: isRTL } = useMinisiteLang();
   const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
   const [utmSource, setUtmSource] = useState<string | null>(null);
-  // Raw admin slides currently rendered by AutomatedMinisiteHero — used to
-  // derive the set of field names already claimed by an approved hero block
-  // (Model A: fields shown on the hero are auto-hidden on the body).
-  const [adminHeroSlides, setAdminHeroSlides] = useState<any[]>([]);
-  const slideClaimedFields = React.useMemo(
-    () => extractClaimedFieldKeys(adminHeroSlides),
-    [adminHeroSlides],
+  // The minisite's public specialization: derived once from the units bundle
+  // so a spec-sheet block formats prices with the right basis (/total, /month,
+  // /night) and the shell can print a "For Sale / Monthly Rent / Short Stay"
+  // badge. A business with no linked development (no bundle) or a bundle with
+  // no units returns a null kind, and the surfaces print raw values as before.
+  const kindDetection = React.useMemo(
+    () => detectListingKind(propertyBundle?.units || []),
+    [propertyBundle?.units],
   );
+  const listingKind = kindDetection.primary;
+  const kindSpec = specFor(listingKind);
+  const bundleCurrency = propertyBundle?.currency || 'EGP';
 
   // UTM social attribution — read source from URL on mount and show toast
   useEffect(() => {
@@ -459,8 +463,8 @@ export default function VanityBusinessClient({
   // Arabic mode prints the Arabic brand name and typology when an admin wrote
   // them, falling back to English so a half-translated page never renders blank.
   const arLabels = minisiteLang === 'ar';
-  const bizName = (arLabels ? biz.name_ar || biz.name : biz.name) || '';
-  const bizType = (arLabels ? biz.type_name_ar || biz.type_name : biz.type_name) || biz.type_id || '';
+  const bizName = pick(arLabels, biz.name_ar, biz.name) || '';
+  const bizType = pick(arLabels, biz.type_name_ar, biz.type_name) || biz.type_id || '';
   const data = biz.custom_data || {};
   const curation = biz.curation_data ? (typeof biz.curation_data === 'string' ? JSON.parse(biz.curation_data) : biz.curation_data) : {};
 
@@ -507,12 +511,6 @@ export default function VanityBusinessClient({
   const cleanPhone = cleanWhatsapp ? `+${cleanWhatsapp}` : String(dynamicPhone).replace(/[^0-9+]/g, '');
   const whatsappMsgQuery = dynamicWhatsappMsg ? `?text=${encodeURIComponent(dynamicWhatsappMsg)}` : '';
   const whatsappLink = `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}${whatsappMsgQuery}`;
-  // A header CTA opens the same WhatsApp line the business already publishes, but
-  // carries an intent the visitor can read in the pre-filled message, written in
-  // the language currently shown (Arabic is primary).
-  const waIntent = (message: string) =>
-    `https://wa.me/${cleanWhatsapp || cleanPhone.replace('+', '')}?text=${encodeURIComponent(message)}`;
-  const ctaLabel = (key: CtaKey) => theme.labels[arLabels ? 'ar' : 'en'][key] || key;
   const dynamicEmail = isMasterTemplate ? 'hello@siwify.com' : (identity.email || data.email || '');
   const dynamicAddress = isMasterTemplate ? '' : (identity.address || data.address || '');
   const dynamicLogo = identity.business_logo || identity.logo || identity.logo_url || data.business_logo || data.logo || data.logo_url || data.basic?.business_logo || data.basic?.logo || data.basic?.logo_url || biz.logo_url || undefined;
@@ -534,6 +532,26 @@ export default function VanityBusinessClient({
 
   const platformName = liveSettings?.site_name || siteSettings?.site_name || 'SiWiFy.com';
   const platformLogo = liveSettings?.logo_url || siteSettings?.logo_url || BRAND_MARK_URL;
+
+  // ── What the shared shell needs ────────────────────────────────────────────
+  // The tab row links to the section's own address — the same one the flat
+  // landing page and the sitemap advertise — so a tap is a real navigation a
+  // crawler can follow instead of a pushState that only rewrites the URL bar.
+  const listingPath = businessPublicPath({
+    slug: biz.slug || slug,
+    id: biz.id,
+    market_id: biz.market_id,
+    url_style: biz.url_style,
+  });
+  const shellSections: MinisiteShellSection[] = activeSections.map(s => ({
+    id: s.id,
+    label: sectionLabels[s.id] || s.name || s.id,
+    labelAr: sectionLabelsAr[s.id] || s.name_ar || null,
+    href: `${listingPath}/${s.id}`,
+    locked: lockedSections.includes(s.id),
+    icon: s.icon || null,
+  }));
+  const chromeSettings = liveSettings || siteSettings || {};
 
   // Filter out hero_carousel from template components: AutomatedMinisiteHero handles the business-specific hero
   const serializedTemplateComponents = (templatePlan?.components || []).filter(c => c.type !== 'hero_carousel');
@@ -567,269 +585,127 @@ export default function VanityBusinessClient({
   };
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '6rem', direction: isRTL ? 'rtl' : 'ltr' }}>
-      {/* Owner instructions, notifications and platform ads live ONLY in the
-          private vendor dashboard (/jana/businesses/<id>/mobile). The public
-          minisite shows the business — not its back office. */}
-      {serializedTemplateComponents.length > 0 && (
-        <div data-minisite-template={templatePlan?.templateId}>
-          {serializedTemplateComponents.map(component => (
-            <DynamicComponentRenderer
-              key={component.id}
-              component={{ type: component.type, props: component.props, label: component.label }}
-            />
-          ))}
-        </div>
-      )}
-      {isMasterTemplate && (
-        <div style={{ 
-          background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)', 
-          color: '#fff', 
-          padding: '0.75rem 1.5rem', 
-          textAlign: 'center', 
-          fontSize: '0.8rem', 
-          fontWeight: 800, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          gap: '1rem',
-          flexWrap: 'wrap',
-          borderBottom: '2px solid #fbbf24',
-          position: 'relative',
-          zIndex: 9999
-        }}>
-          <span>
-            <i className="fas fa-magic" style={{ color: '#fbbf24', marginRight: '0.5rem' }}></i>
-            PREVIEWING CATEGORY MASTER TEMPLATE: This page acts as a design blueprint.
-          </span>
-          <Link 
-            href="/signup?role=vendor" 
-            style={{ 
-              background: '#fbbf24', 
-              color: '#1e1b4b', 
-              padding: '4px 12px', 
-              borderRadius: '20px', 
-              textDecoration: 'none', 
-              fontSize: '0.7rem', 
-              fontWeight: 900,
-              boxShadow: '0 4px 10px rgba(251,191,36,0.3)',
-              display: 'inline-block'
-            }}
-          >
-            USE THIS TEMPLATE FOR YOUR BUSINESS
-          </Link>
-        </div>
-      )}
-      <AutomatedMinisiteHero 
-        businessId={biz.id}
-        businessName={bizName}
-        businessLogo={biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined)}
-        logoSize={logoSize}
-        logoPosition={logoPosition}
-        activeSections={activeSections}
-        activeSectionId={activeTab}
-        customData={data}
-        curationData={curation}
-        tierFeatures={{ 
-          hero_automation: true, 
-          remove_watermark: biz.tier_features?.remove_watermark,
-          allow_youtube_story: biz.tier_features?.allow_youtube_story 
-        }}
-        settings={{ ...(liveSettings || siteSettings || {}), primaryColor: theme.accent }}
-        onSectionNavigate={(sectionId) => {
-          const target = SECTION_NAV_ALIASES[sectionId] || sectionId;
-          try {
-            window.history.pushState(null, '', `/${slug}/${target}`);
-          } catch {}
-          setActiveTab(target);
-          const navEl = document.querySelector('nav');
-          if (navEl) {
-            navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-
-        }}
-        onAdminSlidesChange={setAdminHeroSlides}
-      />
-
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #e2e8f0', padding: '1rem' }}>
-        <div className="container minisite-nav-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1240px', padding: '0 clamp(1rem, 3vw, 2rem)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
-              {bizName.toUpperCase()}
+    // One chrome for both minisite surfaces: the shell owns the platform strip, the
+    // brand bar, the section tabs and the CTA cluster, so this body carries content
+    // only. Its language is the provider the route seeded — never a local copy.
+    <MinisiteShell
+      vertical={vertical}
+      brand={{
+        name: biz.name,
+        nameAr: biz.name_ar,
+        typeLabel: biz.type_name || biz.type_id,
+        typeLabelAr: biz.type_name_ar,
+        logo: biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined),
+        isTrusted,
+        specialization: kindSpec ? {
+          ar: kindSpec.badge.ar,
+          en: kindSpec.badge.en,
+          accent: kindSpec.accent,
+        } : null,
+      }}
+      sections={shellSections}
+      activeSectionId={activeTab}
+      overviewHref={listingPath}
+      contact={{ phone: cleanPhone, whatsapp: cleanWhatsapp, whatsappMessage: dynamicWhatsappMsg }}
+      showPlatformNav={chromeSettings.show_platform_nav !== false}
+      // This surface ends with its own tier footer (QR + free-tier promo), so the
+      // shell's slim platform band stays switched off instead of printing a second one.
+      showPlatformFooter={false}
+      platform={{ name: platformName, logo: platformLogo }}
+      onShare={handleShare}
+      hero={(
+        <>
+          {/* Owner instructions, notifications and platform ads live ONLY in the
+              private vendor dashboard (/jana/businesses/<id>/mobile). The public
+              minisite shows the business — not its back office. */}
+          {serializedTemplateComponents.length > 0 && (
+            <div data-minisite-template={templatePlan?.templateId}>
+              {serializedTemplateComponents.map(component => (
+                <DynamicComponentRenderer
+                  key={component.id}
+                  component={{ type: component.type, props: component.props, label: component.label }}
+                />
+              ))}
             </div>
-            {isTrusted && (
-              <span style={{ 
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '2px 8px', borderRadius: '12px',
-                background: theme.accentSoft, border: `1px solid ${theme.accent}`,
-                color: theme.accent, fontSize: '0.55rem', fontWeight: 900,
-                textTransform: 'uppercase', letterSpacing: '0.5px',
-                flexShrink: 0
-              }} title="Verified Authentic Heritage Business">
-                <i className="fas fa-check-circle" /> TRUSTED
+          )}
+          {isMasterTemplate && (
+            <div style={{ 
+              background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)', 
+              color: '#fff', 
+              padding: '0.75rem 1.5rem', 
+              textAlign: 'center', 
+              fontSize: '0.8rem', 
+              fontWeight: 800, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '1rem',
+              flexWrap: 'wrap',
+              borderBottom: '2px solid #fbbf24',
+              position: 'relative',
+              zIndex: 9999
+            }}>
+              <span>
+                <i className="fas fa-magic" style={{ color: '#fbbf24', marginRight: '0.5rem' }}></i>
+                PREVIEWING CATEGORY MASTER TEMPLATE: This page acts as a design blueprint.
               </span>
-            )}
-          </div>
-          
-          {/* Desktop tabs */}
-          <div className="minisite-desktop-tabs" style={{ display: 'flex', gap: '2rem' }}>
-            {activeSections.map(s => {
-              const customLabel = getSectionLabel(s.id, s.name);
-              const isLocked = lockedSections.includes(s.id);
-              return (
-                <button 
-                  key={s.id} 
-                  onClick={() => {
-                    try {
-                      window.history.pushState(null, '', `/${slug}/${s.id}`);
-                    } catch {}
-                    setActiveTab(s.id);
-                  }}
-                  style={{ 
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: activeTab === s.id ? theme.accent : '#64748b', 
-                    fontSize: '0.7rem', fontWeight: 900, letterSpacing: '1px',
-                    borderBottom: activeTab === s.id ? `2px solid ${theme.accent}` : '2px solid transparent',
-                    paddingBottom: '0.5rem', transition: 'all 0.3s',
-                    display: 'flex', alignItems: 'center', gap: '4px'
-                  }}>
-                  {(customLabel || '').toUpperCase()}
-                  {isLocked && <i className="fas fa-lock" style={{ fontSize: '0.6rem', color: '#f59e0b' }} />}
-                </button>
-              );
-            })}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Theme-driven CTA cluster: a tourism skin offers Book-on-WhatsApp +
-                Plan-your-trip + Call; a properties skin offers Request-a-viewing +
-                Talk-to-developer + Call. All reuse the number and WhatsApp line the
-                business already publishes — no new endpoints. */}
-            {theme.ctas.map((cta) => {
-              const chip = {
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
-                padding: '5px 12px', borderRadius: '20px', fontSize: '0.68rem',
-                fontWeight: 900, textDecoration: 'none', transition: 'all 0.2s',
-              } as React.CSSProperties;
-
-              if (cta === 'call') {
-                if (!cleanPhone) return null;
-                return (
-                  <a key={cta} href={`tel:${cleanPhone}`} style={{ ...chip, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b' }} title={ctaLabel('call')}>
-                    <i className="fas fa-phone-alt" style={{ color: theme.accent, fontSize: '0.75rem' }} />
-                    <span>{ctaLabel('call')}</span>
-                  </a>
-                );
+              <Link 
+                href="/signup?role=vendor" 
+                style={{ 
+                  background: '#fbbf24', 
+                  color: '#1e1b4b', 
+                  padding: '4px 12px', 
+                  borderRadius: '20px', 
+                  textDecoration: 'none', 
+                  fontSize: '0.7rem', 
+                  fontWeight: 900,
+                  boxShadow: '0 4px 10px rgba(251,191,36,0.3)',
+                  display: 'inline-block'
+                }}
+              >
+                USE THIS TEMPLATE FOR YOUR BUSINESS
+              </Link>
+            </div>
+          )}
+          <AutomatedMinisiteHero 
+            businessId={biz.id}
+            businessName={bizName}
+            businessLogo={biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined)}
+            logoSize={logoSize}
+            logoPosition={logoPosition}
+            activeSections={activeSections}
+            activeSectionId={activeTab}
+            customData={data}
+            curationData={curation}
+            tierFeatures={{ 
+              hero_automation: true, 
+              remove_watermark: biz.tier_features?.remove_watermark,
+              allow_youtube_story: biz.tier_features?.allow_youtube_story 
+            }}
+            settings={{ ...(liveSettings || siteSettings || {}), primaryColor: theme.accent }}
+            onSectionNavigate={(sectionId) => {
+              const target = SECTION_NAV_ALIASES[sectionId] || sectionId;
+              try {
+                window.history.pushState(null, '', `${listingPath}/${target}`);
+              } catch {}
+              setActiveTab(target);
+              const navEl = document.querySelector('header');
+              if (navEl) {
+                navEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }
 
-              if (cta === 'whatsapp_book') {
-                if (!cleanWhatsapp && !cleanPhone) return null;
-                return (
-                  <a key={cta} href={whatsappLink} target="_blank" rel="noopener noreferrer" style={{ ...chip, background: '#dcfce7', border: '1px solid #86efac', color: '#15803d' }} title={ctaLabel('whatsapp_book')}>
-                    <i className="fab fa-whatsapp" style={{ color: '#16a34a', fontSize: '0.85rem' }} />
-                    <span>{ctaLabel('whatsapp_book')}</span>
-                  </a>
-                );
-              }
-
-              if (cta === 'plan_trip') {
-                return (
-                  <Link key={cta} href={pillarUrl('plan', arLabels ? 'ar' : 'en')} style={{ ...chip, background: theme.accent, border: `1px solid ${theme.accent}`, color: '#ffffff' }}>
-                    <i className="fas fa-route" style={{ fontSize: '0.75rem' }} />
-                    <span>{ctaLabel('plan_trip')}</span>
-                  </Link>
-                );
-              }
-
-              if (cta === 'viewing') {
-                if (!cleanWhatsapp && !cleanPhone) return null;
-                const intent = arLabels ? `أرغب في حجز معاينة لـ ${bizName}` : `I'd like to book a viewing of ${bizName}`;
-                return (
-                  <a key={cta} href={waIntent(intent)} target="_blank" rel="noopener noreferrer" style={{ ...chip, background: theme.accent, border: `1px solid ${theme.accent}`, color: '#ffffff' }} title={ctaLabel('viewing')}>
-                    <i className="fas fa-building" style={{ fontSize: '0.75rem' }} />
-                    <span>{ctaLabel('viewing')}</span>
-                  </a>
-                );
-              }
-
-              if (cta === 'developer') {
-                if (!cleanWhatsapp && !cleanPhone) return null;
-                const intent = arLabels ? `أرغب في التحدث إلى المطوّر بشأن ${bizName}` : `I'd like to talk to the developer about ${bizName}`;
-                return (
-                  <a key={cta} href={waIntent(intent)} target="_blank" rel="noopener noreferrer" style={{ ...chip, background: '#f8fafc', border: `1px solid ${theme.accent}`, color: theme.accent }} title={ctaLabel('developer')}>
-                    <i className="fas fa-user-tie" style={{ fontSize: '0.75rem' }} />
-                    <span>{ctaLabel('developer')}</span>
-                  </a>
-                );
-              }
-
-              return null;
-            })}
-
-            {/* Language switch — always available. The platform is Arabic-first
-                and English-complete everywhere, so no admin gate and no tier
-                feature stands between a visitor and their language. */}
-            <MinisiteLangToggle accent={theme.accent} />
-
-            <Link href="/" className="btn btn-sm btn-outline gold-border minisite-desktop-home">
-              {platformLogo ? (
-                <img src={platformLogo} alt={platformName} style={{ height: '18px', objectFit: 'contain' }} />
-              ) : platformName}
-            </Link>
-          </div>
-
-          {/* Mobile navigation toggle */}
-          <div className="minisite-mobile-header-btns" style={{ display: 'none', gap: '0.5rem', alignItems: 'center' }}>
-            {/* Mobile language switch — one button naming the language it opens. */}
-            <MinisiteLangToggle accent={theme.accent} size="sm" compact />
-            <Link href="/" style={{ color: '#64748b', padding: '0.5rem', fontSize: '1.1rem' }} title={`${platformName} Home`}>
-              <i className="fas fa-home"></i>
-            </Link>
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e293b', padding: '0.5rem', fontSize: '1.2rem' }}
-              title={minisiteLabel('open_menu', minisiteLang === 'ar')}
-            >
-              <i className="fas fa-bars"></i>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Swipeable Tab Bar */}
-        <div className="minisite-mobile-tabs-sub" style={{ display: 'none', marginTop: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}>
-          <div className="minisite-nav-tabs" style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
-            {activeSections.map(s => {
-              const customLabel = getSectionLabel(s.id, s.name);
-              const isLocked = lockedSections.includes(s.id);
-              return (
-                <button 
-                  key={s.id} 
-                  onClick={() => {
-                    try {
-                      window.history.pushState(null, '', `/${slug}/${s.id}`);
-                    } catch {}
-                    setActiveTab(s.id);
-                  }}
-                  style={{ 
-                    background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
-                    color: activeTab === s.id ? theme.accent : '#64748b', 
-                    fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.5px',
-                    borderBottom: activeTab === s.id ? `2px solid ${theme.accent}` : '2px solid transparent',
-                    paddingBottom: '0.4rem', transition: 'all 0.3s',
-                    display: 'flex', alignItems: 'center', gap: '4px'
-                  }}>
-                  {(customLabel || '').toUpperCase()}
-                  {isLocked && <i className="fas fa-lock" style={{ fontSize: '0.55rem', color: '#f59e0b' }} />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
-
+            }}
+            listingKind={listingKind}
+            currency={bundleCurrency}
+          />
+        </>
+      )}
+    >
+      <div style={{ paddingBottom: '6rem' }}>
       <div className="container" style={{ maxWidth: '1240px', padding: 'clamp(2rem, 5vh, 4rem) clamp(1rem, 3vw, 2rem)' }}>
         <div className="minisite-layout">
-          <main>
+          {/* The shell owns the page's one <main>; this grid column is a layout cell. */}
+          <div className="minisite-main">
             {activeSections.filter(s => s.id === activeTab).map(section => {
               const secData = data[section.id];
               const sectionComponentInstances = sectionComponents[section.id] || [];
@@ -1205,17 +1081,16 @@ export default function VanityBusinessClient({
                         // the label but blanks the value. The raw value always stays in
                         // custom_data, so the section blog can still interpolate it as a token.
                         const fv: Record<string, string> = (biz.custom_data?.field_visibility?.[section.id]) || {};
-                        // Model A: any field already surfaced on the hero by an approved
-                        // block is removed from the body grid so it never appears twice.
-                        // The raw value stays in custom_data; section-blog tokens still work.
-                        const claimedFromHero = slideClaimedFields;
+                        // C-7 revision: slides and body are independent surfaces. A field may
+                        // appear on the hero, on the body, on both, or on neither, and the
+                        // admin's tool for that choice is `field_visibility` above. There is
+                        // no automatic exclusion anymore.
 
                         if (Array.isArray(section.fields)) {
                           section.fields.forEach((field: any) => {
                             const key = field?.name;
                             if (!key || seen.has(key)) return;
                             if (fv[key] === 'hide_field') return;
-                            if (claimedFromHero.has(key)) return;
                             seen.add(key);
                             const val = secData?.[key];
                             fieldEntries.push({ key, val, matchedField: field });
@@ -1243,7 +1118,6 @@ export default function VanityBusinessClient({
                             )
                               return;
                             if (fv[key] === 'hide_field') return;
-                            if (claimedFromHero.has(key)) return;
                             seen.add(key);
                             const val = secData[key];
                             const matchedField = section.fields?.find((f: any) => f.name === key);
@@ -1970,7 +1844,7 @@ export default function VanityBusinessClient({
                 primaryColor="#D4AF37"
               />
             </div>
-          </main>
+          </div>
           <aside>
             <div style={{ position: 'sticky', top: '100px' }}>
               {biz.subscription_tier === 'free' ? (
@@ -2292,19 +2166,15 @@ export default function VanityBusinessClient({
 
             {/* Drawer Content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', marginBottom: '1rem' }}>BUSINESS CHAPTERS</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '1.5px', marginBottom: '1rem' }}>{minisiteLabel('sections', isRTL).toUpperCase()}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
-                {activeSections.map(s => {
-                  const customLabel = getSectionLabel(s.id, s.name);
+                {shellSections.map(s => {
                   const isActive = activeTab === s.id;
                   return (
-                    <button
+                    <a
                       key={s.id}
-                      onClick={() => {
-                        window.location.hash = s.id;
-                        setActiveTab(s.id);
-                        setIsMobileMenuOpen(false);
-                      }}
+                      href={s.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '1rem',
                         width: '100%', padding: '1rem', borderRadius: '14px',
@@ -2313,7 +2183,8 @@ export default function VanityBusinessClient({
                         background: isActive ? 'rgba(212, 175, 55, 0.05)' : '#f8fafc',
                         color: isActive ? '#D4AF37' : '#475569',
                         textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s',
-                        fontWeight: isActive ? 800 : 600, fontSize: '0.85rem'
+                        fontWeight: isActive ? 800 : 600, fontSize: '0.85rem',
+                        textDecoration: 'none'
                       }}
                     >
                       <div style={{ 
@@ -2325,9 +2196,9 @@ export default function VanityBusinessClient({
                       }}>
                         <i className={`fas ${s.icon || 'fa-layer-group'}`} style={{ fontSize: '0.8rem' }}></i>
                       </div>
-                      <span style={{ flex: 1 }}>{(customLabel || '').toUpperCase()}</span>
+                      <span style={{ flex: 1 }}>{pick(isRTL, s.labelAr, s.label)}</span>
                       {isActive && <i className="fas fa-chevron-right" style={{ fontSize: '0.7rem', color: '#D4AF37' }}></i>}
-                    </button>
+                    </a>
                   );
                 })}
               </div>
@@ -2491,6 +2362,7 @@ export default function VanityBusinessClient({
         </div>
       )}
 
-    </div>
+      </div>
+    </MinisiteShell>
   );
 }

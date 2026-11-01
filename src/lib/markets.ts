@@ -193,15 +193,24 @@ export function marketName(market: Market, locale: MarketLocale): string {
 /**
  * SQL predicate for a market's category tree.
  *
- * A null `market_id` means the category is shared by every market; a tagged
- * row is offered only in its own market. Every read of `business_types` must
- * use this instead of `market_id = ?`, otherwise Siwa would lose the shared
- * half of its tree the day a second market opens.
+ * A null `market_id` means the category is shared by every market; a tagged row
+ * is offered in its own market, and in any extra market listed in `market_ids`.
+ * `market_ids` is what lets one real-estate tree serve El Alamein and New Cairo
+ * without a second copy of six typologies — and without leaking either of them
+ * into Siwa, because a tagged row is still invisible to a market that appears
+ * nowhere in it.
+ *
+ * The same slug has to be bound TWICE, so callers should use
+ * `marketTypeScope()` rather than dropping this string into their own `IN`-style
+ * param list. Every read of `business_types` must use this instead of
+ * `market_id = ?`, otherwise Siwa would lose the shared half of its tree the day
+ * a second market opens.
  */
-export const MARKET_TYPE_SCOPE_SQL = '(market_id IS NULL OR market_id = ?)';
+export const MARKET_TYPE_SCOPE_SQL =
+  '(market_id IS NULL OR market_id = ? OR (market_ids IS NOT NULL AND JSON_CONTAINS(market_ids, JSON_ARRAY(?))))';
 
 export function marketTypeScope(marketSlug: string): { sql: string; params: string[] } {
-  return { sql: MARKET_TYPE_SCOPE_SQL, params: [marketSlug] };
+  return { sql: MARKET_TYPE_SCOPE_SQL, params: [marketSlug, marketSlug] };
 }
 
 /**

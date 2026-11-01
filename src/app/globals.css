@@ -1285,7 +1285,8 @@ tr:hover td { background: #f9fafb; }
   box-sizing: border-box;
 }
 
-.minisite-layout > main {
+.minisite-layout > main,
+.minisite-layout > .minisite-main {
   min-width: 0;
   max-width: 100%;
   width: 100%;
@@ -1321,6 +1322,19 @@ tr:hover td { background: #f9fafb; }
 
 .minisite-nav-tabs::-webkit-scrollbar {
   display: none;
+}
+
+/* Minisite shell: on a phone the header CTA cluster keeps its icons and drops
+   its words, so the vertical's actions stay tappable without crowding the
+   language switch. Desktop is untouched. */
+@media (max-width: 768px) {
+  .minisite-shell-ctas .button span {
+    display: none;
+  }
+
+  .minisite-shell-ctas .button {
+    padding-inline: 0.55rem;
+  }
 }
 
 /* Animations for Mobile Drawer and Toast */
@@ -1367,17 +1381,8 @@ tr:hover td { background: #f9fafb; }
 
 /* Mobile Media Queries for Minisite */
 @media (max-width: 768px) {
-  .minisite-desktop-tabs,
-  .minisite-desktop-home {
-    display: none !important;
-  }
-  
   .minisite-mobile-header-btns {
     display: flex !important;
-  }
-  
-  .minisite-mobile-tabs-sub {
-    display: block !important;
   }
   
   .minisite-mobile-bottom-bar {
