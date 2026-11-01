@@ -64,6 +64,7 @@ export default function PillarChrome({
         brandIcon="fa-sun"
         backgroundColor="rgba(8, 14, 10, 0.94)"
         textColor="rgba(248, 250, 252, 0.88)"
+        ar={ar}
       />
 
       {/* Hero band — names the intent, links the sibling pillars */}

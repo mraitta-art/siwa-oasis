@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import LanguageSwitch from '@/components/LanguageSwitch';
+import { BRAND_MARK_URL } from '@/lib/brand-assets';
 
 export interface NavLink {
   href: string;
@@ -22,7 +24,34 @@ interface MarketplaceHeaderProps {
   showBrand?: boolean;
   backgroundColor?: string;
   textColor?: string;
+  /**
+   * Locale switch. When true the header renders right-to-left and any nav link
+   * label that is English-only falls back to its Arabic twin. Callers that
+   * already pass bilingual `navLinks` get no behavior change from this flag
+   * beyond direction and typography (letter-spacing collapses to zero on
+   * Arabic because tracking fractures the connected letterforms).
+   *
+   * When the prop is not passed at all, the header auto-detects from the URL:
+   * a path starting with `/en` is English, everything else is Arabic. That
+   * matches the site-wide convention (bare path is Arabic) and means a
+   * callsite that forgot to thread `ar` still gets a correctly localized
+   * header instead of a silently-English one on the Arabic route.
+   */
+  ar?: boolean;
 }
+
+/**
+ * Bilingual twins for the fallback nav keys. A caller that does not pass
+ * `navLinks` gets one of these two rows depending on `ar`. Keys are matched
+ * on the href so a market that overrides just the label but keeps the same
+ * href still resolves to the correct translation on the fallback path.
+ */
+const CANONICAL_NAV_AR: NavLink[] = [
+  { href: '/', label: 'الرئيسية', icon: 'fa-house' },
+  { href: '/siwa', label: 'الدليل', icon: 'fa-compass' },
+  { href: '/categories', label: 'التصنيفات', icon: 'fa-layer-group' },
+  { href: '/be-a-partner', label: 'أضف نشاطك', icon: 'fa-store' },
+];
 
 /**
  * Fallback links for pages that do not pass their own.
@@ -37,6 +66,25 @@ export const CANONICAL_NAV_LINKS: NavLink[] = [
   { href: '/categories', label: 'Categories', icon: 'fa-layer-group' },
   { href: '/be-a-partner', label: 'List your business', icon: 'fa-store' },
 ];
+
+/**
+ * If a caller passed `navLinks` in English but the page is Arabic, translate
+ * the four known fallback labels and leave custom rows alone. This is not a
+ * dictionary — it is the exact set that ships in `CANONICAL_NAV_LINKS` and
+ * `DEFAULT_NAV_LINKS`, which means a market that renamed its own link to
+ * "Deals" keeps saying "Deals" instead of being force-translated.
+ */
+const EN_TO_AR_LABEL: Record<string, string> = {
+  Home: 'الرئيسية',
+  Directory: 'الدليل',
+  Categories: 'التصنيفات',
+  'List your business': 'أضف نشاطك',
+};
+function localizeNavLink(link: NavLink, ar: boolean): NavLink {
+  if (!ar) return link;
+  const translated = EN_TO_AR_LABEL[link.label];
+  return translated ? { ...link, label: translated } : link;
+}
 
 function isLightBackground(color: string | undefined): boolean {
   if (!color) return false;
@@ -55,19 +103,41 @@ function isLightBackground(color: string | undefined): boolean {
 export default function MarketplaceHeader({
   title = 'SiWiFy',
   activePath,
-  navLinks = CANONICAL_NAV_LINKS,
+  navLinks,
   accentColor = '#D4AF37',
   brandLabel = 'SIWIFY',
   brandIcon = 'fa-sun',
-  brandImage = '',
+  brandImage,
   logoHeight = 32,
   showBrand = true,
   backgroundColor = 'rgba(255, 255, 255, 0.96)',
   textColor = '#0F172A',
+  ar,
 }: MarketplaceHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Explicit wins; otherwise auto-detect from the URL. `/en`, `/en/…` are
+  // English; every other path is Arabic per the site-wide locale rule. The
+  // middleware also injects `x-siwa-locale` server-side, but the header is a
+  // client component and reading the URL here is one less prop to thread.
+  const useArabic = ar ?? !(pathname === '/en' || (pathname && pathname.startsWith('/en/')));
 
   const light = isLightBackground(backgroundColor);
+
+  // Resolve the actual nav list once: explicit wins, then locale-appropriate
+  // canonical fallback, and every row passes through the label translator so
+  // an English fallback list opened on an Arabic page still reads fully
+  // Arabic. Custom labels that are not one of the four canonical strings are
+  // left alone.
+  const resolvedNav: NavLink[] = (navLinks && navLinks.length > 0 ? navLinks : (useArabic ? CANONICAL_NAV_AR : CANONICAL_NAV_LINKS))
+    .map((link) => localizeNavLink(link, useArabic));
+
+  // The brand image defaults to the SiWiFy emblem so a caller that forgot to
+  // pass one still shows the real logo instead of a Font Awesome sun. Callers
+  // can suppress this with an explicit empty string, which routes back to the
+  // fa-icon branch below.
+  const finalBrandImage = brandImage === undefined ? BRAND_MARK_URL : brandImage;
 
   // Dynamic contrast colors: 100% visible on both dark luxury glass and light backgrounds
   const brandColor = light ? '#0f172a' : '#f8fafc';
@@ -82,6 +152,8 @@ export default function MarketplaceHeader({
 
   return (
     <header
+      dir={useArabic ? 'rtl' : 'ltr'}
+      lang={useArabic ? 'ar' : 'en'}
       style={{
         position: 'sticky',
         top: 0,
@@ -148,14 +220,17 @@ export default function MarketplaceHeader({
                 color: brandColor,
                 fontWeight: 900,
                 fontSize: '0.96rem',
-                letterSpacing: '2.2px',
+                // Arabic connected letterforms break under tracking; collapse
+                // to zero on Arabic and keep the 2.2px on Latin so the wordmark
+                // reads the same as the brand lockup.
+                letterSpacing: useArabic ? 0 : '2.2px',
                 flexShrink: 0,
               }}
             >
-              {brandImage
+              {finalBrandImage
                 ? <>
                     <img
-                      src={brandImage}
+                      src={finalBrandImage}
                       alt=""
                       style={{
                         height: `clamp(16px, ${Math.max(16, Math.min(120, logoHeight))}px, 120px)`,
@@ -211,7 +286,7 @@ export default function MarketplaceHeader({
             msOverflowStyle: 'none',
           }}
         >
-          {navLinks.map((link) => {
+          {resolvedNav.map((link) => {
             const isActive = activePath === link.href;
             return (
               <Link
@@ -290,7 +365,7 @@ export default function MarketplaceHeader({
           borderTop: light ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(212, 175, 55, 0.1)',
         }}
       >
-        {navLinks.map((link) => {
+        {resolvedNav.map((link) => {
           const isActive = activePath === link.href;
           return (
             <Link
@@ -339,7 +414,7 @@ export default function MarketplaceHeader({
             boxShadow: '0 18px 35px rgba(0, 0, 0, 0.5)',
           }}
         >
-          {navLinks.map((link) => {
+          {resolvedNav.map((link) => {
             const isActive = activePath === link.href;
             return (
               <Link

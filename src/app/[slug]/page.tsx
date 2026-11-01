@@ -603,7 +603,7 @@ function BilingualLanding({ business, lang, initialSlug }: { business: any; lang
       }}
     >
       <MinisiteTapTracker slug={business.slug || initialSlug} />
-      <MarketplaceHeader title={name} accentColor="#D4AF37" />
+      <MarketplaceHeader title={name} accentColor="#D4AF37" ar={ar} />
 
       <section
         style={{
@@ -914,6 +914,7 @@ export default async function CanonicalVanityPage({
         <MarketplaceHeader
           title={cfg.site_settings?.site_name || slug}
           accentColor={cfg.site_settings?.primary_color || '#D4AF37'}
+          ar={lang === 'ar'}
         />
         <DynamicHomepageRenderer
           layout={cfg.layout}

@@ -497,6 +497,7 @@ export default async function Home() {
           textColor={settings?.header_text_color || 'rgba(248, 250, 252, 0.88)'}
           brandImage={settings?.logo_url || BRAND_MARK_URL}
           logoHeight={settings?.logo_height || 34}
+          ar={ar}
         />
       )}
 
