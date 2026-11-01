@@ -22,6 +22,12 @@
  */
 
 import { getSectionLookupIds, resolveSectionId } from '@/lib/section-registry';
+import {
+  isFieldDestination,
+  resolveDestination,
+  showsOnCarousel,
+  type DestinationsMap,
+} from '@/lib/field-destinations';
 
 export type BlockKind =
   | 'caption'          // reuse slide.caption as a positioned block (already exists)
@@ -356,6 +362,20 @@ export interface BuildFieldsIndexInput {
    * that happens to define a colliding name keeps its own value.
    */
   axes?: Record<string, ResolvedField>;
+  /**
+   * The 4-state destinations panel (`custom_data.field_destinations`). When
+   * present, a section field whose destination resolves to `body` or `hidden`
+   * is dropped from the index entirely, so no hero block can project it even
+   * if the admin typed the key into the block payload. Pass `false` for
+   * `applyDestinations` to opt out. Axes keys are exempt — the panel does not
+   * route them yet — so `developer.name` and `unit.count` always project.
+   */
+  destinations?: DestinationsMap | null;
+  /**
+   * When false, the destination layer is skipped and every section field that
+   * passes the visibility check reaches the hero. Defaults to true.
+   */
+  applyDestinations?: boolean;
 }
 
 /** fieldName → resolved presentation. */
@@ -395,11 +415,28 @@ export function buildFieldsIndexFromSections({
   ar = true,
   fieldGroups = [],
   axes,
+  destinations,
+  applyDestinations = true,
 }: BuildFieldsIndexInput): SlideFieldsIndex {
   const flat: FlatFieldsIndex = {};
   const bySection: Record<string, FlatFieldsIndex> = {};
   const visibilityMap: Record<string, Record<string, string>> =
     (customData && typeof customData === 'object' && (customData as any).field_visibility) || {};
+  // The destinations blob lives inside the same `custom_data`. Callers can
+  // pass it explicitly, but reading it here means a caller that just forwards
+  // `custom_data` (the common case) still gets the C-7 surface separation
+  // without a second prop. An empty object is what a business pre-dating the
+  // panel carries, and `resolveDestination` returns `both` for every key in
+  // that case — the behavior is byte-identical to before this layer existed.
+  const destinationsMap: DestinationsMap =
+    destinations
+    ?? (customData && typeof customData === 'object'
+      ? ((customData as any).field_destinations as DestinationsMap) || {}
+      : {});
+  // Skip the destination layer when the panel is genuinely empty AND the
+  // caller did not pass one. This keeps the fast path cheap for the 99% of
+  // minisites that have never touched the destinations UI.
+  const hasDestinations = applyDestinations && Object.keys(destinationsMap).length > 0;
   // Later rows win, the same rule the field merge already follows, so a group a
   // child redefines prints the child's wording and nothing else.
   const groupLabels: Record<string, { en: string; ar?: string | null }> = {};
@@ -449,6 +486,14 @@ export function buildFieldsIndexFromSections({
       // A child that refuses a parent field drops it from the resolved form, so
       // it can never reach a hero block or claim a place in the body grid.
       if (Number(f?.excluded ?? 0) === 1) continue;
+      // C-7 destination filter: a field the admin routed to `body` or `hidden`
+      // is invisible to the hero index. The body grid reads the same map
+      // through `bodyAllows`, so the surfaces cannot disagree about where a
+      // value actually appears.
+      if (hasDestinations) {
+        const dest = resolveDestination(destinationsMap, visibilityMap, canonicalId, name);
+        if (!isFieldDestination(dest) || !showsOnCarousel(dest)) continue;
+      }
       const rawLabel = (ar && f.label_ar) ? f.label_ar : (f.label || name.replace(/_/g, ' '));
       const valueHidden = secVisibility[name] === 'hide_value';
       const rawVal = sectionData?.[name];
@@ -482,6 +527,13 @@ export function buildFieldsIndexFromSections({
         if (secVisibility[name] === 'hide_field') continue;
         if (!isPrintableStoredValue(rawVal)) continue;
         if (flat[name] || bySection[canonicalId]?.[name]) continue;
+        // Same destination rule as the typed fields — a stored-only answer
+        // the admin routed away from the carousel cannot leak back onto a
+        // slide through the fallback pass.
+        if (hasDestinations) {
+          const dest = resolveDestination(destinationsMap, visibilityMap, canonicalId, name);
+          if (!isFieldDestination(dest) || !showsOnCarousel(dest)) continue;
+        }
         const valueHidden = secVisibility[name] === 'hide_value';
         const resolved: ResolvedField = {
           label: humanizeStoredKey(name),
