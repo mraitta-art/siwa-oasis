@@ -87,6 +87,19 @@ export interface MinisiteShellPlatform {
   homeHref?: string;
 }
 
+export interface MinisiteShellKindTab {
+  /** Stable id — the value on `units.listing_kind`. */
+  kind: string;
+  /** The badge copy. Both scripts always supplied so the toggle never blanks. */
+  label: { ar: string; en: string };
+  /** The kind's accent color — used to tint the chip border and background. */
+  accent: string;
+  /** True when the tab is currently active — a filled pill vs. an outlined one. */
+  active?: boolean;
+  /** Optional count badge — "6 units", "2 plans". Empty omits the pill. */
+  count?: number | null;
+}
+
 export interface MinisiteShellProps {
   vertical: MinisiteVertical;
   brand: MinisiteShellBrand;
@@ -94,6 +107,15 @@ export interface MinisiteShellProps {
   sections?: MinisiteShellSection[];
   /** Currently open section id; `null` means the overview (flat landing) is showing. */
   activeSectionId?: string | null;
+  /**
+   * Mixed-kind specialization switcher. When a business sells AND rents (or
+   * lists a compound nightly), the shell offers the sub-tabs under the brand
+   * bar so a visitor can flip the surface without leaving the page. A
+   * single-kind business passes nothing and the chrome stays as it was.
+   */
+  kindTabs?: MinisiteShellKindTab[] | null;
+  /** Fires when a kind chip is clicked. Absent means the tabs render inert. */
+  onKindChange?: (kind: string) => void;
   /** The flat landing page address, offered as the first "overview" tab. */
   overviewHref?: string;
   contact?: MinisiteShellContact;
@@ -194,6 +216,8 @@ function MinisiteShellChrome({
   brand,
   sections = [],
   activeSectionId = null,
+  kindTabs,
+  onKindChange,
   overviewHref,
   contact,
   showPlatformNav = true,
@@ -430,6 +454,68 @@ function MinisiteShellChrome({
             </Link>
           </div>
         </div>
+
+        {Array.isArray(kindTabs) && kindTabs.length > 1 && (
+          <div
+            aria-label={ar ? 'أنواع العرض' : 'Offer kinds'}
+            style={{
+              maxWidth: 1240,
+              margin: '0 auto',
+              padding: '0.35rem clamp(1rem, 3vw, 2rem) 0.6rem',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.4rem',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            {kindTabs.map(tab => {
+              const active = Boolean(tab.active);
+              const text = pick(ar, tab.label.ar, tab.label.en) || tab.label.en;
+              const onPick = () => { if (typeof onKindChange === 'function') onKindChange(tab.kind); };
+              return (
+                <button
+                  key={tab.kind}
+                  type="button"
+                  onClick={onPick}
+                  aria-pressed={active}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.32rem 0.7rem',
+                    borderRadius: 999,
+                    fontSize: '0.62rem',
+                    fontWeight: 900,
+                    letterSpacing: '1.2px',
+                    textTransform: 'uppercase',
+                    cursor: typeof onKindChange === 'function' ? 'pointer' : 'default',
+                    background: active ? `${tab.accent}26` : 'transparent',
+                    color: active ? tab.accent : 'var(--text-light)',
+                    border: `1px solid ${active ? tab.accent : 'var(--border)'}`,
+                  }}
+                >
+                  <i className="fas fa-tag" aria-hidden="true" style={{ fontSize: '0.55rem' }} />
+                  <span>{text}</span>
+                  {typeof tab.count === 'number' && tab.count > 0 && (
+                    <span
+                      style={{
+                        background: active ? tab.accent : 'rgba(148,163,184,0.22)',
+                        color: active ? '#0f172a' : 'var(--text-light)',
+                        padding: '0.05rem 0.4rem',
+                        borderRadius: 999,
+                        fontSize: '0.55rem',
+                        fontWeight: 900,
+                        marginLeft: 2,
+                      }}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {showTabs && (
           <nav

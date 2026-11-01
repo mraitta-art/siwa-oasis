@@ -19,7 +19,9 @@ import { filterCoreSectionsForBusinessType, getMinisiteSectionIds, isSectionAppr
 import { useMinisiteLang } from '@/components/minisite/MinisiteLang';
 import MinisiteShell, { type MinisiteShellSection } from '@/components/minisite/MinisiteShell';
 import { label as minisiteLabel, pick } from '@/lib/minisite-i18n';
-import { detectListingKind, specFor } from '@/lib/listing-kind';
+import { detectListingKind, specFor, isListingKind as isListingKindSafe, type ListingKind } from '@/lib/listing-kind';
+import { buildAxesFieldsIndex, summarizeUnits } from '@/lib/axis-resolver';
+import { readDestinations, bodyAllows } from '@/lib/field-destinations';
 import type { MinisiteTemplatePlan } from '@/lib/minisite-template';
 import {
   MINISITE_VERTICAL_THEMES,
@@ -300,6 +302,11 @@ export default function VanityBusinessClient({
   const { lang: minisiteLang, ar: isRTL } = useMinisiteLang();
   const [marketplaceItems, setMarketplaceItems] = useState<any[]>([]);
   const [utmSource, setUtmSource] = useState<string | null>(null);
+  // Hoisted here so the specialization, axes and destination memos below can
+  // read the row without hitting a temporal-dead-zone error. The full
+  // derived fields (arLabels, bizName, data, curation) still live further
+  // down where the language toggle is in scope.
+  const biz = initialData;
   // The minisite's public specialization: derived once from the units bundle
   // so a spec-sheet block formats prices with the right basis (/total, /month,
   // /night) and the shell can print a "For Sale / Monthly Rent / Short Stay"
@@ -312,6 +319,110 @@ export default function VanityBusinessClient({
   const listingKind = kindDetection.primary;
   const kindSpec = specFor(listingKind);
   const bundleCurrency = propertyBundle?.currency || 'EGP';
+  // Mixed-kind businesses (a compound that sells AND rents a few units, or a
+  // holiday home listed nightly) get a kind switcher under the brand bar. A
+  // single-kind minisite never sees this state; a business with no units has
+  // no chips at all.
+  const [activeKind, setActiveKind] = useState<ListingKind | null>(listingKind);
+  React.useEffect(() => {
+    // Keep the active kind aligned with the detected primary whenever the
+    // bundle changes (the visitor picked a tab or the data was refreshed).
+    if (listingKind && !kindDetection.all.includes(activeKind as ListingKind)) {
+      setActiveKind(listingKind);
+    }
+  }, [listingKind, kindDetection.all, activeKind]);
+  const effectiveKind: ListingKind | null = kindDetection.mixed
+    ? (activeKind || listingKind)
+    : listingKind;
+  const effectiveKindSpec = specFor(effectiveKind) || kindSpec;
+
+  // The mixed-kind sub-tabs the shell renders. Only offered when more than
+  // one kind actually appears on the bundle — a pure "For Sale" compound
+  // shows the specialization chip only, exactly as before. Counting units
+  // per kind gives the tab pill something meaningful to print.
+  const kindTabs = React.useMemo(() => {
+    if (!kindDetection.mixed) return null;
+    const perKind = new Map<ListingKind, number>();
+    for (const u of (propertyBundle?.units || []) as Array<any>) {
+      const raw = u?.listingKind ?? u?.listing_kind;
+      if (typeof raw !== 'string') continue;
+      if (!kindDetection.all.includes(raw as ListingKind)) continue;
+      perKind.set(raw as ListingKind, (perKind.get(raw as ListingKind) || 0) + 1);
+    }
+    // Order kinds by the same priority the detector used.
+    const priority: Record<ListingKind, number> = { sale: 3, rent_month: 2, rent_night: 1 };
+    return kindDetection.all
+      .slice()
+      .sort((a, b) => (priority[b] || 0) - (priority[a] || 0))
+      .map(kind => {
+        const spec = specFor(kind);
+        if (!spec) return null;
+        return {
+          kind,
+          label: { ar: spec.badge.ar, en: spec.badge.en },
+          accent: spec.accent,
+          active: effectiveKind === kind,
+          count: perKind.get(kind) || null,
+        };
+      })
+      .filter(Boolean) as Array<{
+        kind: string;
+        label: { ar: string; en: string };
+        accent: string;
+        active: boolean;
+        count: number | null;
+      }>;
+  }, [kindDetection, effectiveKind, propertyBundle?.units]);
+
+  const handleKindChange = React.useCallback((kind: string) => {
+    if (!isListingKindSafe(kind)) return;
+    setActiveKind(kind as ListingKind);
+    // Nudge the browser to the top so the freshly-tinted hero is what the
+    // visitor sees when the sub-tab flips, without forcing a scroll on the
+    // initial render (only user-clicked changes hit this handler).
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* no-op */ }
+  }, []);
+
+  // The axes index. Developer / location / unit / plan fields are computed
+  // once and merged into the section-based index the hero overlay reads, so
+  // a block can pick `developer.name` or `location.area` alongside a typology
+  // field like `handover_date`. A business with no linked rows emits nothing
+  // and the picker stays clean.
+  const axesIndex = React.useMemo(() => {
+    return buildAxesFieldsIndex({
+      ar: isRTL,
+      developer: biz?.developer ? {
+        name: biz.developer?.name || null,
+        nameAr: biz.developer?.name_ar || null,
+        brand: biz.developer?.brand || null,
+        foundedYear: biz.developer?.founded_year || null,
+        portfolioCount: biz.developer?.portfolio_count || null,
+        certifications: biz.developer?.certifications || null,
+        tagline: biz.developer?.tagline || null,
+        taglineAr: biz.developer?.tagline_ar || null,
+      } : null,
+      location: {
+        area: biz?.area || biz?.location || null,
+        areaAr: biz?.area_ar || null,
+        city: biz?.city || null,
+        cityAr: biz?.city_ar || null,
+        region: biz?.region || null,
+        country: biz?.country || null,
+        address: biz?.address || null,
+        addressAr: biz?.address_ar || null,
+        coordinates: biz?.coordinates || null,
+      },
+      units: propertyBundle?.units?.length ? summarizeUnits(propertyBundle.units, propertyBundle.bestPlan || null) : null,
+    });
+  }, [biz, propertyBundle, isRTL]);
+
+  // The 4-state destinations map, seeded from `custom_data`. The body grid
+  // consults this for every field card; the hero overlay consults it through
+  // `carouselAllowedKeys` before projecting a block's field picks.
+  const destinations = React.useMemo(
+    () => readDestinations(biz?.custom_data),
+    [biz?.custom_data],
+  );
 
   // UTM social attribution — read source from URL on mount and show toast
   useEffect(() => {
@@ -459,7 +570,10 @@ export default function VanityBusinessClient({
     setToast({ message: msg, show: true });
   };
 
-  const biz = initialData;
+  // `biz` was hoisted to the top of the function so the specialization, axes
+  // and destination memos above could close over it without a TDZ hit. The
+  // Arabic-mode labels still read the language toggle that was declared next
+  // to `useMinisiteLang()`.
   // Arabic mode prints the Arabic brand name and typology when an admin wrote
   // them, falling back to English so a half-translated page never renders blank.
   const arLabels = minisiteLang === 'ar';
@@ -597,16 +711,18 @@ export default function VanityBusinessClient({
         typeLabelAr: biz.type_name_ar,
         logo: biz.tier_features?.allow_custom_logo !== false ? dynamicLogo : (dynamicLogo || undefined),
         isTrusted,
-        specialization: kindSpec ? {
-          ar: kindSpec.badge.ar,
-          en: kindSpec.badge.en,
-          accent: kindSpec.accent,
+        specialization: effectiveKindSpec ? {
+          ar: effectiveKindSpec.badge.ar,
+          en: effectiveKindSpec.badge.en,
+          accent: effectiveKindSpec.accent,
         } : null,
       }}
       sections={shellSections}
       activeSectionId={activeTab}
       overviewHref={listingPath}
       contact={{ phone: cleanPhone, whatsapp: cleanWhatsapp, whatsappMessage: dynamicWhatsappMsg }}
+      kindTabs={kindTabs}
+      onKindChange={handleKindChange}
       showPlatformNav={chromeSettings.show_platform_nav !== false}
       // This surface ends with its own tier footer (QR + free-tier promo), so the
       // shell's slim platform band stays switched off instead of printing a second one.
@@ -695,8 +811,9 @@ export default function VanityBusinessClient({
               }
 
             }}
-            listingKind={listingKind}
+            listingKind={effectiveKind}
             currency={bundleCurrency}
+            axes={axesIndex}
           />
         </>
       )}
@@ -1091,6 +1208,9 @@ export default function VanityBusinessClient({
                             const key = field?.name;
                             if (!key || seen.has(key)) return;
                             if (fv[key] === 'hide_field') return;
+                            // 4-state destinations: a field the admin routed to
+                            // `carousel` or `hidden` drops out of the body grid.
+                            if (!bodyAllows(destinations, biz.custom_data?.field_visibility, section.id, key)) return;
                             seen.add(key);
                             const val = secData?.[key];
                             fieldEntries.push({ key, val, matchedField: field });
@@ -1118,6 +1238,7 @@ export default function VanityBusinessClient({
                             )
                               return;
                             if (fv[key] === 'hide_field') return;
+                            if (!bodyAllows(destinations, biz.custom_data?.field_visibility, section.id, key)) return;
                             seen.add(key);
                             const val = secData[key];
                             const matchedField = section.fields?.find((f: any) => f.name === key);

@@ -348,6 +348,14 @@ export interface BuildFieldsIndexInput {
    * membership is carried on the fields themselves.
    */
   fieldGroups?: Array<any>;
+  /**
+   * Fields contributed by the non-typology axes: developer, location, units.
+   * Produced by `buildAxesFieldsIndex` in `axis-resolver.ts`. They are merged
+   * into `flat` after the sections, so a block with an explicit `sectionId`
+   * still resolves axis keys through the fallback. First-write wins: a section
+   * that happens to define a colliding name keeps its own value.
+   */
+  axes?: Record<string, ResolvedField>;
 }
 
 /** fieldName → resolved presentation. */
@@ -386,6 +394,7 @@ export function buildFieldsIndexFromSections({
   customData = {},
   ar = true,
   fieldGroups = [],
+  axes,
 }: BuildFieldsIndexInput): SlideFieldsIndex {
   const flat: FlatFieldsIndex = {};
   const bySection: Record<string, FlatFieldsIndex> = {};
@@ -486,6 +495,13 @@ export function buildFieldsIndexFromSections({
         }
         if (!flat[name]) flat[name] = resolved;
       }
+    }
+  }
+  // Merge the axis fields (developer / location / unit / plan) after the
+  // typology pass, so a section that already defines the same key keeps it.
+  if (axes) {
+    for (const [name, resolved] of Object.entries(axes)) {
+      if (!flat[name]) flat[name] = resolved;
     }
   }
   return { flat, bySection, groupLabels };

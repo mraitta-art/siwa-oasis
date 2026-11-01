@@ -12,6 +12,11 @@ import {
   defaultLayoutForKind,
 } from '@/lib/slide-blocks';
 import { FIELDS_PER_GROUP_PAGE, groupPageCount } from '@/lib/field-groups';
+import {
+  LISTING_KINDS,
+  LISTING_KIND_SPEC,
+  type ListingKind,
+} from '@/lib/listing-kind';
 
 /**
  * SlideBlocksEditor
@@ -75,6 +80,14 @@ interface Props {
   sections?: SlideBlockSectionOption[];
   /** Section a newly added block should start in — usually the tab being edited. */
   defaultSectionId?: string;
+  /**
+   * The minisite's detected specialization. When present, the matching
+   * "Quick add" preset is highlighted as the recommended one; the other
+   * kinds remain available for admin flexibility (a compound that today
+   * sells can add a payment-plan slide for a future rental wing). Absent
+   * means no recommendation and all presets are offered equally.
+   */
+  listingKind?: ListingKind | null;
 }
 
 const ZONES: BlockZone[] = [
@@ -93,7 +106,7 @@ function newId() {
   return `blk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export default function SlideBlocksEditor({ blocks, onChange, ar = true, sections, defaultSectionId }: Props) {
+export default function SlideBlocksEditor({ blocks, onChange, ar = true, sections, defaultSectionId, listingKind }: Props) {
   const label = (obj: { ar: string; en: string }) => (ar ? obj.ar : obj.en);
 
   const safeBlocks = Array.isArray(blocks) ? blocks : [];
@@ -114,6 +127,39 @@ export default function SlideBlocksEditor({ blocks, onChange, ar = true, section
       ...(kind !== 'caption' && defaultSectionId ? { sectionId: defaultSectionId } : {}),
       text: kind === 'caption' ? '' : undefined,
       approved: false, // admin must explicitly tick — safe default
+    };
+    update([...safeBlocks, b]);
+    setEditingId(b.id);
+  };
+
+  /**
+   * Adds a preset spec-sheet block seeded from the kind's
+   * `recommendedSlideFields`. The preset's key list is intersected with what
+   * the chosen section actually asks (when a section is picked) so the block
+   * never claims a field the business cannot answer. When the intersection is
+   * empty, we keep the raw preset so the admin can widen the scope to
+   * "All sections" and the axes-supplied keys (developer.*, unit.*, etc.)
+   * resolve through the fallback.
+   */
+  const addKindPreset = (preset: ListingKind) => {
+    const spec = LISTING_KIND_SPEC[preset];
+    if (!spec) return;
+    const wanted = spec.recommendedSlideFields.filter(Boolean);
+    const sec = defaultSectionId
+      ? safeSections.find(s => s.id === defaultSectionId)
+      : undefined;
+    const inScope = sec?.fields?.length
+      ? wanted.filter(k => sec.fields.some(f => f.name === k))
+      : [];
+    const finalKeys = (inScope.length ? inScope : wanted).slice(0, MAX_KEYS);
+    const b: SlideBlock = {
+      id: newId(),
+      kind: 'fieldsValues',
+      zone: 'bottom-center',
+      layout: 'spec-sheet',
+      fieldKeys: finalKeys,
+      ...(defaultSectionId ? { sectionId: defaultSectionId } : {}),
+      approved: false,
     };
     update([...safeBlocks, b]);
     setEditingId(b.id);
@@ -170,6 +216,61 @@ export default function SlideBlocksEditor({ blocks, onChange, ar = true, section
             + {label(BLOCK_KIND_LABEL[k])}
           </button>
         ))}
+      </div>
+
+      {/* Quick add by kind — the Egyptian-market presets. Sale defaults to
+          "price + down payment + installment years + handover" (the four
+          questions every Cairo visitor asks first), rent_month to
+          "price + deposit + available from + furnished", rent_night to
+          "price + min stay + breakfast + max occupancy". All three presets
+          are always offered so a compound mixing sale and short-stay units
+          can build one slide for each — the recommended one is only tinted
+          with the kind's accent. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+        <span style={{ color: MUTED, fontSize: '0.62rem', fontWeight: 900, letterSpacing: '1.5px', textTransform: 'uppercase', marginRight: '0.35rem' }}>
+          {ar ? 'اضافة سريعة بالتخصص' : 'Quick add by kind'}
+        </span>
+        {LISTING_KINDS.map(k => {
+          const spec = LISTING_KIND_SPEC[k];
+          const recommended = listingKind === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => addKindPreset(k)}
+              disabled={safeBlocks.length >= 6}
+              title={
+                ar
+                  ? `${spec.badge.ar} — ${spec.recommendedSlideFields.slice(0, 4).join('، ')}`
+                  : `${spec.badge.en} — ${spec.recommendedSlideFields.slice(0, 4).join(', ')}`
+              }
+              style={{
+                background: recommended ? `${spec.accent}26` : 'rgba(15,23,42,0.6)',
+                border: `1px solid ${recommended ? spec.accent : 'rgba(255,255,255,0.12)'}`,
+                color: recommended ? spec.accent : '#e2e8f0',
+                padding: '0.32rem 0.7rem',
+                borderRadius: 999,
+                fontSize: '0.62rem',
+                fontWeight: 900,
+                letterSpacing: '1.2px',
+                textTransform: 'uppercase',
+                cursor: safeBlocks.length >= 6 ? 'not-allowed' : 'pointer',
+                opacity: safeBlocks.length >= 6 ? 0.4 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+            >
+              <i className="fas fa-bolt" aria-hidden="true" style={{ fontSize: '0.6rem' }} />
+              {ar ? spec.badge.ar : spec.badge.en}
+              {recommended && (
+                <span style={{ opacity: 0.75, fontWeight: 800, textTransform: 'none', letterSpacing: 'normal' }}>
+                  {ar ? '(موصى به)' : '(recommended)'}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {safeBlocks.length === 0 && (
@@ -294,8 +395,8 @@ export default function SlideBlocksEditor({ blocks, onChange, ar = true, section
 
       <div style={{ marginTop: '0.75rem', color: MUTED, fontSize: '0.62rem', fontStyle: 'italic' }}>
         {ar
-          ? 'ملاحظة: الحقول المعروضة هنا تختفي تلقائيًا من جسم الصفحة حتى لا تتكرر.'
-          : 'Note: fields shown here are automatically hidden from the body grid to avoid duplication.'}
+          ? 'ملاحظة: السلايدر وجسم الصفحة سطحان مستقلان. الحقل الواحد قد يظهر على الاثنين، أو على احدهما، أو يُخفى، حسب لوحة وجهات الحقول.'
+          : 'Note: the carousel and the body are independent surfaces. A field may appear on both, on one, or on neither, controlled from the field destinations panel.'}
       </div>
     </div>
   );
@@ -358,8 +459,8 @@ function FieldPicker({
           label={ar ? 'القسم' : 'Section'}
           hint={
             ar
-              ? 'القيم تُقرأ من إجابات هذا القسم وحده، والحقل المعروض هنا يختفي من جسم الصفحة تلقائيًا'
-              : 'Values are read from this section only, and a field shown here is removed from the body grid'
+              ? 'القيم تُقرأ من إجابات هذا القسم وحده؛ التكرار مع جسم الصفحة يحدده لوحة وجهات الحقول'
+              : 'Values are read from this section only; whether the same field also appears in the body grid is decided by the field destinations panel'
           }
         >
           <select

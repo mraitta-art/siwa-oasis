@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AdvancedHeroCarousel from './AdvancedHeroCarousel';
 import { resolveSectionId } from '@/lib/section-registry';
 import { BRAND_MARK_URL } from '@/lib/brand-assets';
-import { buildFieldsIndexFromSections } from '@/lib/slide-blocks';
+import { buildFieldsIndexFromSections, type ResolvedField } from '@/lib/slide-blocks';
 import type { ListingKind } from '@/lib/listing-kind';
 import { useMinisiteLang } from './minisite/MinisiteLang';
 import { label, labelWith, pick } from '@/lib/minisite-i18n';
@@ -57,6 +57,14 @@ interface AutomatedMinisiteHeroProps {
   listingKind?: ListingKind | null;
   /** Currency the units are priced in. Defaults to EGP when the caller has no signal. */
   currency?: string;
+  /**
+   * Developer / location / unit / plan fields contributed by the four-axis
+   * resolver. Merged into the section-based index the overlay reads, so a
+   * slide can pick `developer.name` or `location.area` alongside a typology
+   * field. A business without those linked rows passes nothing and the picker
+   * stays scoped to sections.
+   */
+  axes?: Record<string, ResolvedField> | null;
 }
 
 export default function AutomatedMinisiteHero({
@@ -74,6 +82,7 @@ export default function AutomatedMinisiteHero({
   onAdminSlidesChange,
   listingKind = null,
   currency = 'EGP',
+  axes,
 }: AutomatedMinisiteHeroProps) {
   // Prefer the minisite-wide admin carousel, then the active section's carousel.
   const [adminSlides, setAdminSlides] = useState<any[] | null>(null);
@@ -375,8 +384,9 @@ export default function AutomatedMinisiteHero({
       sections: activeSections,
       customData,
       ar: langIsArabic,
+      axes: axes || undefined,
     }),
-    [activeSections, customData, langIsArabic],
+    [activeSections, customData, langIsArabic, axes],
   );
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
