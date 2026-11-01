@@ -184,7 +184,7 @@ function defaultHomeLayout(opts: { ar: boolean; name: string }): LayoutSection[]
     { id: 'fd-listings', type: 'market_listings' },
     { id: 'fd-developers', type: 'featured_developers' },
     { id: 'fd-how', type: 'how_it_works' },
-    { id: 'fd-partner', type: 'partner_cta', props: { title: partnerTitle, subtitle: partnerSubtitle } },
+    { id: 'fd-partner', type: 'partner_cta', props: { ar: opts.ar, title: partnerTitle, subtitle: partnerSubtitle } },
   ];
 }
 

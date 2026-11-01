@@ -31,7 +31,15 @@ const COMPONENT_RULES: Record<string, ComponentRule> = {
   ecosystem_map: { allowed: [...COMMON_TEXT] },
   local_products: { allowed: [...COMMON_TEXT] },
   storytelling_section: { allowed: [...COMMON_TEXT] },
-  partner_cta: { allowed: [...COMMON_TEXT] },
+  // `ar` and the string overrides let a caller pin the CTA language explicitly
+  // (or supply market-specific copy) instead of relying on the component's
+  // internal title-detection heuristic. Without them a Siwa category page
+  // showing an English title would keep its English body even after the
+  // surrounding layout switched to Arabic, and the root Egypt landing (whose
+  // default title is Arabic) would print an English paragraph and English
+  // buttons under an Arabic headline — the exact mixed-language state users
+  // were seeing.
+  partner_cta: { allowed: [...COMMON_TEXT, 'ar', 'body', 'primaryLabel', 'secondaryLabel'] },
   cta_section: { allowed: [...COMMON_TEXT, 'description', 'link', 'link_text', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   text_section: { allowed: [...COMMON_TEXT, 'content', 'padding_mobile', 'padding_desktop', 'content_max_width'] },
   testimonials: { allowed: [...COMMON_TEXT, 'testimonials', 'padding_mobile', 'padding_desktop', 'content_max_width'] },

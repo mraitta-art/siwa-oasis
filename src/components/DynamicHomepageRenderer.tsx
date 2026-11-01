@@ -493,7 +493,17 @@ const SectionRenderer = ({ type, props, siteSettings, pageId, pagePath, sectorDi
       return (
         <AnimatedSection>
           <section>
-            <VendorPartnerCTA title={props?.title} subtitle={props?.subtitle} />
+            <VendorPartnerCTA
+              title={props?.title}
+              subtitle={props?.subtitle}
+              body={props?.body}
+              primaryLabel={props?.primaryLabel}
+              secondaryLabel={props?.secondaryLabel}
+              // Forward the locale signal so a caller that already knows the
+              // layout language does not have to rely on the internal
+              // title-based Arabic detection.
+              ar={typeof props?.ar === 'boolean' ? props.ar : undefined}
+            />
           </section>
         </AnimatedSection>
       );
