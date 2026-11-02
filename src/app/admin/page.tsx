@@ -20,6 +20,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Product & Offers',
     items: [
+      { label: 'Universal Minisite Builder', icon: '🚀', href: '/admin/universal-minisite-builder', badge: 'NEW', badgeColor: '#22c55e' },
       { label: 'Broker Syndication', icon: '🤝', href: '/admin/broker-assignments', badge: 'PRO', badgeColor: '#D4AF37' },
       { label: 'Packages', icon: '📦', href: '/admin/packages', badge: '12', badgeColor: '#f59e0b' },
       { label: 'Offers', icon: '🎁', href: '/admin/offers', badge: '8', badgeColor: '#f59e0b' },
@@ -114,6 +115,8 @@ export default function AdminDashboardPage() {
   ];
 
   const quickLaunch = [
+    { icon: '🚀', label: 'Minisite Builder',  href: '/admin/universal-minisite-builder', color: '#22c55e' },
+    { icon: '🤝', label: 'Brokers',          href: '/admin/broker-assignments',   color: '#D4AF37' },
     { icon: '📊', label: 'Analytics',        href: '/admin/analytics',            color: '#6366f1' },
     { icon: '�', label: 'Packages',         href: '/admin/packages',             color: '#f59e0b' },
     { icon: '🎁', label: 'Offers',           href: '/admin/offers',               color: '#f59e0b' },
