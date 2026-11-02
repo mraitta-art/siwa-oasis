@@ -1624,6 +1624,13 @@ export default function MinisiteBuilderRenderer({
         );
       }
 
+      // ──────────────────────────────────────────────
+      // PROPERTY SPECS CARD (Real Estate Unit Details)
+      // ──────────────────────────────────────────────
+      case 'property_specs': {
+        return renderAssetSpecsSection();
+      }
+
       default:
         return null;
     }
@@ -1693,7 +1700,6 @@ export default function MinisiteBuilderRenderer({
           layout.components.map((comp) => (
             <React.Fragment key={comp.id}>
               {renderComponent(comp)}
-              {comp.type === 'vendor_hero' && hasSpecs && renderAssetSpecsSection()}
             </React.Fragment>
           ))}
       </main>

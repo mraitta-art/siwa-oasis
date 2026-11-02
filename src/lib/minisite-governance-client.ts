@@ -20,7 +20,8 @@ export type MinisiteComponentType =
   | 'cta_section'
   | 'faq'
   | 'testimonials'
-  | 'auctions_feed';
+  | 'auctions_feed'
+  | 'property_specs';
 
 export interface MinisiteLayoutComponent {
   id: string;
@@ -61,6 +62,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
     'cta_section',
     'faq',
     'testimonials',
+    'property_specs',
   ],
   standard: [
     'vendor_hero',
@@ -72,6 +74,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
     'cta_section',
     'faq',
     'testimonials',
+    'property_specs',
   ],
   premium: [
     'vendor_hero',
@@ -84,6 +87,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
     'cta_section',
     'faq',
     'testimonials',
+    'property_specs',
   ],
   admin: [
     'vendor_hero',
@@ -97,6 +101,7 @@ export const DEFAULT_TIER_RULES: Record<MinisiteTier, MinisiteComponentType[]> =
     'faq',
     'testimonials',
     'auctions_feed',
+    'property_specs',
   ],
 };
 
@@ -202,6 +207,15 @@ export const COMPONENT_META: Record<
     tier: 'admin',
     mainSitePages: ['/investment-opportunities', '/offers'],
     canonicalSections: ['sec_7_investment'],
+  },
+  property_specs: {
+    label: 'Property Specs & Pricing Card',
+    icon: 'fa-ruler-combined',
+    description: 'Real estate unit specifications: price, payment plan, area, bedrooms, finishing, and amenity badges. Auto-reads from business custom_data.specs.',
+    vendorScoped: true,
+    tier: 'free',
+    mainSitePages: ['/'],
+    canonicalSections: ['sec_7_investment', 'sec_1_identity'],
   },
 };
 
