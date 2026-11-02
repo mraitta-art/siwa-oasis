@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 /**
@@ -89,6 +89,10 @@ export default function UnitPicker({
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<'sale' | 'rent_month' | 'rent_night' | null>(activeKind ?? null);
 
+  useEffect(() => {
+    setChosen(selected.slice(0, max));
+  }, [selected, max]);
+
   const pushUrl = (ids: string[], nextKind: 'sale' | 'rent_month' | 'rent_night' | null) => {
     const sp = new URLSearchParams(params?.toString() ?? '');
     if (ids.length) sp.set('ids', ids.join(','));
@@ -100,19 +104,21 @@ export default function UnitPicker({
   };
 
   const toggle = (id: string) => {
-    setChosen((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= max ? prev : [...prev, id];
-      pushUrl(next, kind);
-      return next;
-    });
+    const next = chosen.includes(id)
+      ? chosen.filter((x) => x !== id)
+      : chosen.length >= max
+      ? chosen
+      : [...chosen, id];
+    setChosen(next);
+    pushUrl(next, kind);
   };
 
   const changeKind = (next: 'sale' | 'rent_month' | 'rent_night' | null) => {
     setKind(next);
-    // A kind change narrows the catalog; drop any chosen unit that no longer
-    // appears. Otherwise the URL keeps ids the reader can no longer see and
-    // the table renders rows the picker did not offer.
-    const stillVisible = chosen.filter((id) => !next || catalog.find((u) => u.id === id)?.kind === next);
+    // Drop any currently-chosen units that won't be visible under the new filter
+    const stillVisible = next
+      ? chosen.filter((id) => catalog.find((u) => u.id === id)?.kind === next)
+      : chosen;
     setChosen(stillVisible);
     pushUrl(stillVisible, next);
   };

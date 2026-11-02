@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 /**
@@ -73,6 +73,10 @@ export default function ProjectPicker({
   const [chosen, setChosen] = useState<string[]>(selected.slice(0, max));
   const [query, setQuery] = useState('');
 
+  useEffect(() => {
+    setChosen(selected.slice(0, max));
+  }, [selected, max]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return catalog;
@@ -80,11 +84,13 @@ export default function ProjectPicker({
   }, [catalog, query]);
 
   const toggle = (id: string) => {
-    setChosen((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= max ? prev : [...prev, id];
-      router.replace(next.length ? `${base}?ids=${next.join(',')}` : base, { scroll: false });
-      return next;
-    });
+    const next = chosen.includes(id)
+      ? chosen.filter((x) => x !== id)
+      : chosen.length >= max
+      ? chosen
+      : [...chosen, id];
+    setChosen(next);
+    router.replace(next.length ? `${base}?ids=${next.join(',')}` : base, { scroll: false });
   };
 
   const clear = () => {
