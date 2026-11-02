@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { type Lang, type Translations, getStrings } from '@/lib/i18n/vendor';
 
 interface LangContextValue {
@@ -12,34 +13,47 @@ interface LangContextValue {
 }
 
 export const LangContext = createContext<LangContextValue>({
-  lang: 'en',
+  lang: 'ar',
   setLang: () => {},
   toggleLang: () => {},
-  t: getStrings('en'),
-  isRTL: false,
+  t: getStrings('ar'),
+  isRTL: true,
 });
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('en');
+  const pathname = usePathname();
+  const isEnRoute = pathname?.startsWith('/en');
 
-  // Restore from localStorage on mount
+  // Arabic-first default for bare routes (e.g. /vendor), 'en' only for /en/* routes
+  const [lang, setLangState] = useState<Lang>(isEnRoute ? 'en' : 'ar');
+
   useEffect(() => {
+    if (isEnRoute) {
+      setLangState('en');
+      return;
+    }
     try {
-      const saved = localStorage.getItem('vendor_lang') as Lang | null;
+      const saved = localStorage.getItem('siwa_lang_pref') as Lang | null;
       if (saved === 'ar' || saved === 'en') {
         setLangState(saved);
+      } else {
+        setLangState('ar');
       }
-    } catch {}
-  }, []);
+    } catch {
+      setLangState('ar');
+    }
+  }, [isEnRoute]);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    try { localStorage.setItem('vendor_lang', l); } catch {}
+    try { localStorage.setItem('siwa_lang_pref', l); } catch {}
   }, []);
 
   const toggleLang = useCallback(() => {
-    setLang(lang === 'en' ? 'ar' : 'en');
-  }, [lang, setLang]);
+    const next = lang === 'en' ? 'ar' : 'en';
+    setLangState(next);
+    try { localStorage.setItem('siwa_lang_pref', next); } catch {}
+  }, [lang]);
 
   const isRTL = lang === 'ar';
   const t = getStrings(lang);

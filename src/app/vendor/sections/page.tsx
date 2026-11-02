@@ -115,9 +115,16 @@ export default function VendorStudio() {
 
   async function loadStory() {
     try {
-      const res  = await fetch('/api/vendor/story');
+      const res = await fetch('/api/vendor/story');
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (data.error || !data.business || !data.structure) {
+        setLoading(false);
+        return;
+      }
 
       setBusiness(data.business);
       setTypology(data.typology || { child: null, parent: null });
@@ -153,8 +160,8 @@ export default function VendorStudio() {
       setSectionLabels(existingLabels);
       setSectionLabelsAr(existingLabelsAr);
       setHiddenSections(existingHidden);
-    } catch (e: any) {
-      console.error(e.message);
+    } catch {
+      // Graceful fallback without crashing Next.js dev overlay
     } finally {
       setLoading(false);
     }
@@ -349,6 +356,25 @@ export default function VendorStudio() {
       <div style={{ width: 56, height: 56, border: '4px solid rgba(212,175,55,0.15)', borderTop: '4px solid #D4AF37', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
       <p style={{ color: '#D4AF37', fontWeight: 900, letterSpacing: '3px', fontSize: '0.8rem' }}>Loading Studio...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (!business || sections.length === 0) return (
+    <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: '#fff', borderRadius: '22px', border: '1px solid #eef0f5', margin: '2rem auto', maxWidth: 600, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+      <div style={{ width: 64, height: 64, borderRadius: '20px', background: 'rgba(212,175,55,0.1)', color: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: '1.75rem' }}>
+        <i className="fas fa-store-slash" />
+      </div>
+      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>
+        {isRTL ? 'لم يتم العثور على نشاط تجاري مرتبط' : 'No Active Business Found'}
+      </h3>
+      <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+        {isRTL
+          ? 'يرجى تسجيل الدخول أو إدخال بيانات نشاطك التجاري في لوحة البائع أولاً لتفعيل استوديو الأقسام والمحتوى.'
+          : 'Please log in or enter your business details in the vendor dashboard to access the sections studio.'}
+      </p>
+      <Link href="/vendor" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #D4AF37, #f0c842)', color: '#1a1000', borderRadius: '12px', fontWeight: 800, textDecoration: 'none' }}>
+        <i className={`fas ${isRTL ? 'fa-arrow-right' : 'fa-arrow-left'}`} /> {isRTL ? 'العودة للوحة البائع' : 'Return to Dashboard'}
+      </Link>
     </div>
   );
 

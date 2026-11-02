@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useLang } from '@/context/LangContext';
 import VendorOfferingStoryStudioModal from '@/components/VendorOfferingStoryStudioModal';
 import VendorBrandLinksCard from '@/components/VendorBrandLinksCard';
 import VendorAirbnbKitCard from '@/components/VendorAirbnbKitCard';
@@ -42,6 +43,9 @@ const PAGE_CSS = `
   .vd-root {
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     color: #0f172a;
+  }
+  [dir="rtl"] .vd-root {
+    font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
   }
 
   /* Hero Banner */
@@ -364,49 +368,63 @@ const PAGE_CSS = `
 /* ─── Quick action definitions ──────────────────────────── */
 const QUICK_ACTIONS = [
   {
-    icon: 'fa-layer-group', label: 'Content & Profile', desc: 'Edit sections and business details',
+    icon: 'fa-layer-group',
+    label: { en: 'Content & Profile', ar: 'المحتوى والأقسام' },
+    desc: { en: 'Edit sections and business details', ar: 'تعديل الأقسام وتفاصيل النشاط' },
     href: '/vendor/sections',
     iconBg: 'rgba(212,175,55,0.12)', iconColor: '#D4AF37',
     bg: '#fffdf5', border: 'rgba(212,175,55,0.2)',
     hoverBg: 'linear-gradient(135deg, rgba(212,175,55,0.06), rgba(240,200,66,0.04))',
   },
   {
-    icon: 'fa-images', label: 'Media Gallery', desc: 'Upload photos and cover image',
+    icon: 'fa-images',
+    label: { en: 'Media Gallery', ar: 'معرض الوسائط' },
+    desc: { en: 'Upload photos and cover image', ar: 'رفع الصور وصورة الغلاف' },
     href: '/vendor/media',
     iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6',
     bg: '#fdf9ff', border: 'rgba(139,92,246,0.15)',
     hoverBg: 'linear-gradient(135deg, rgba(139,92,246,0.05), rgba(167,139,250,0.03))',
   },
   {
-    icon: 'fa-globe', label: 'Theme & Publish', desc: 'Customize colors and go live',
+    icon: 'fa-globe',
+    label: { en: 'Theme & Publish', ar: 'الثيم والنشر' },
+    desc: { en: 'Customize colors and go live', ar: 'تخصيص الألوان والنشر للجمهور' },
     href: '/vendor/minisite',
     iconBg: 'rgba(34,197,94,0.1)', iconColor: '#22c55e',
     bg: '#f9fffe', border: 'rgba(34,197,94,0.15)',
     hoverBg: 'linear-gradient(135deg, rgba(34,197,94,0.04), rgba(16,185,129,0.02))',
   },
   {
-    icon: 'fa-route', label: 'Journey Requests', desc: 'Respond to traveler inquiries',
+    icon: 'fa-route',
+    label: { en: 'Journey Requests', ar: 'طلبات الرحلات' },
+    desc: { en: 'Respond to traveler inquiries', ar: 'الرد على استفسارات المسافرين' },
     href: '/vendor/journey-requests',
     iconBg: 'rgba(99,102,241,0.1)', iconColor: '#6366f1',
     bg: '#faf9ff', border: 'rgba(99,102,241,0.15)',
     hoverBg: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(79,70,229,0.03))',
   },
   {
-    icon: 'fa-box-open', label: 'My Packages', desc: 'Create promotional deals',
+    icon: 'fa-box-open',
+    label: { en: 'My Packages', ar: 'الباقات والعروض' },
+    desc: { en: 'Create promotional deals', ar: 'إنشاء عروض ترويجية وباقات' },
     href: '/vendor/packages',
     iconBg: 'rgba(249,115,22,0.1)', iconColor: '#f97316',
     bg: '#fffaf5', border: 'rgba(249,115,22,0.15)',
     hoverBg: 'linear-gradient(135deg, rgba(249,115,22,0.05), rgba(234,88,12,0.03))',
   },
   {
-    icon: 'fa-building', label: 'Project & Inventory', desc: 'List a project and its units, plans and handover dates',
+    icon: 'fa-building',
+    label: { en: 'Project & Inventory', ar: 'المشروعات والوحدات' },
+    desc: { en: 'List a project and its units, plans and handover dates', ar: 'إدارة المشروعات والوحدات وخطط السداد' },
     href: '/vendor/inventory',
     iconBg: 'rgba(15,76,129,0.1)', iconColor: '#0F4C81',
     bg: '#f7fbff', border: 'rgba(15,76,129,0.15)',
     hoverBg: 'linear-gradient(135deg, rgba(15,76,129,0.05), rgba(37,99,235,0.03))',
   },
   {
-    icon: 'fa-chart-bar', label: 'Investments', desc: 'List local capital opportunities',
+    icon: 'fa-chart-bar',
+    label: { en: 'Investments', ar: 'الفرص الاستثمارية' },
+    desc: { en: 'List local capital opportunities', ar: 'إدراج الفرص الاستثمارية المحلية' },
     href: '/vendor/investment-opportunities',
     iconBg: 'rgba(236,72,153,0.1)', iconColor: '#ec4899',
     bg: '#fff9fc', border: 'rgba(236,72,153,0.15)',
@@ -415,17 +433,18 @@ const QUICK_ACTIONS = [
 ];
 
 /* ─── Helpers ───────────────────────────────────────────── */
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, isRTL: boolean = false) {
   const d = new Date(dateStr);
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+  if (s < 60) return isRTL ? 'الآن' : 'just now';
+  if (s < 3600) return isRTL ? `منذ ${Math.floor(s / 60)} دقيقة` : `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return isRTL ? `منذ ${Math.floor(s / 3600)} ساعة` : `${Math.floor(s / 3600)}h ago`;
+  return isRTL ? `منذ ${Math.floor(s / 86400)} يوم` : `${Math.floor(s / 86400)}d ago`;
 }
 
 /* ─── Component ─────────────────────────────────────────── */
 export default function VendorDashboardPage() {
+  const { isRTL, lang } = useLang();
   const [story,       setStory]       = useState<StoryData | null>(null);
   const [loading,     setLoading]     = useState(true);
   const [requests,    setRequests]    = useState<JourneyRequest[]>([]);
@@ -559,27 +578,27 @@ export default function VendorDashboardPage() {
 
   const checklistItems = [
     {
-      label: 'Add business name & description',
+      label: isRTL ? 'إضافة اسم النشاط والوصف التعريفي' : 'Add business name & description',
       href: '/vendor/sections',
       done: !!(story?.business?.description?.trim()),
     },
     {
-      label: 'Fill at least one content section',
+      label: isRTL ? 'ملء قسم محتوى واحد على الأقل' : 'Fill at least one content section',
       href: '/vendor/sections',
       done: profilePct > 10,
     },
     {
-      label: 'Upload a cover photo',
-      href: '/vendor/media',
-      done: false,   // Would need media API — default false until we have it
-    },
-    {
-      label: 'Add gallery images (min 3)',
+      label: isRTL ? 'رفع صورة الغلاف الرئيسية' : 'Upload a cover photo',
       href: '/vendor/media',
       done: false,
     },
     {
-      label: 'Publish minisite to the public',
+      label: isRTL ? 'إضافة صور للمعرض (3 صور كحد أدنى)' : 'Add gallery images (min 3)',
+      href: '/vendor/media',
+      done: false,
+    },
+    {
+      label: isRTL ? 'نشر الموقع التعريفي للجمهور' : 'Publish minisite to the public',
       href: '/vendor/minisite',
       done: isPublished,
     },
@@ -591,14 +610,37 @@ export default function VendorDashboardPage() {
   const activityItems = requests.length > 0
     ? requests.map(r => ({
         icon: 'fa-route', iconBg: 'rgba(99,102,241,0.1)', iconColor: '#6366f1',
-        msg: `Journey request from ${r.traveler_name || r.guest_name || 'a traveler'}`,
-        time: timeAgo(r.created_at),
+        msg: isRTL
+          ? `طلب رحلة جديد من ${r.traveler_name || r.guest_name || 'مسافر'}`
+          : `Journey request from ${r.traveler_name || r.guest_name || 'a traveler'}`,
+        time: timeAgo(r.created_at, isRTL),
         status: r.status,
       }))
     : [
-        { icon: 'fa-check-circle', iconBg: 'rgba(34,197,94,0.1)', iconColor: '#22c55e', msg: 'Profile saved — keep filling sections to rank higher', time: 'Active', status: 'info' },
-        { icon: 'fa-lightbulb',    iconBg: 'rgba(212,175,55,0.1)', iconColor: '#D4AF37', msg: 'Tip: Upload a panoramic photo to attract more visitors',   time: 'Suggestion', status: 'tip' },
-        { icon: 'fa-star',         iconBg: 'rgba(139,92,246,0.1)', iconColor: '#8b5cf6', msg: 'Complete your profile to unlock discovery ranking boost',  time: 'Goal', status: 'info' },
+        {
+          icon: 'fa-check-circle',
+          iconBg: 'rgba(34,197,94,0.1)',
+          iconColor: '#22c55e',
+          msg: isRTL ? 'تم حفظ الملف — واصل ملء الأقسام لتحسين الترتيب' : 'Profile saved — keep filling sections to rank higher',
+          time: isRTL ? 'نشط' : 'Active',
+          status: 'info'
+        },
+        {
+          icon: 'fa-lightbulb',
+          iconBg: 'rgba(212,175,55,0.1)',
+          iconColor: '#D4AF37',
+          msg: isRTL ? 'نصيحة: ارفع صورة بانورامية لجذب المزيد من الزوار' : 'Tip: Upload a panoramic photo to attract more visitors',
+          time: isRTL ? 'اقتراح' : 'Suggestion',
+          status: 'tip'
+        },
+        {
+          icon: 'fa-star',
+          iconBg: 'rgba(139,92,246,0.1)',
+          iconColor: '#8b5cf6',
+          msg: isRTL ? 'أكمل ملفك التعريفي لرفع ترتيبك في محرك بحث المنصة' : 'Complete your profile to unlock discovery ranking boost',
+          time: isRTL ? 'هدف' : 'Goal',
+          status: 'info'
+        },
       ];
 
   return (
@@ -606,53 +648,70 @@ export default function VendorDashboardPage() {
       <style dangerouslySetInnerHTML={{ __html: PAGE_CSS }} />
       <div className="vd-root">
 
+        {/* ─── Business Intake Card ─── */}
         <div style={{ marginBottom: '1.5rem', background: '#fff', border: '1px solid #eef0f5', borderRadius: '22px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <div>
-              <div style={{ fontSize: '0.62rem', letterSpacing: '1.2px', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase' }}>Business Intake</div>
-              <h2 style={{ margin: '0.35rem 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Create and manage your business from one place</h2>
+              <div style={{ fontSize: '0.62rem', letterSpacing: '1.2px', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase' }}>
+                {isRTL ? 'بيانات النشاط الأساسية' : 'Business Intake'}
+              </div>
+              <h2 style={{ margin: '0.35rem 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                {isRTL ? 'إنشاء وإدارة بيانات نشاطك التجاري من مكان واحد' : 'Create and manage your business from one place'}
+              </h2>
             </div>
             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>
-              {story?.business?.slug ? `/${story.business.slug}` : '/your-business-link'}
+              {story?.business?.slug ? `/${story.business.slug}` : (isRTL ? '/رابط-نشاطك-العام' : '/your-business-link')}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1.2rem' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>Business Name</label>
+              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>
+                {isRTL ? 'اسم النشاط التجاري' : 'Business Name'}
+              </label>
               <input
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="Enter business name"
+                placeholder={isRTL ? 'أدخل اسم النشاط التجاري' : 'Enter business name'}
                 style={{ width: '100%', border: '1px solid #e2e8f0', background: '#fff', borderRadius: '12px', padding: '0.9rem 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}
               />
 
-              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>Description</label>
+              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>
+                {isRTL ? 'الوصف التعريفي' : 'Description'}
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add your business description"
+                placeholder={isRTL ? 'أضف وصفاً شاملاً لنشاطك التجاري وما تقدمه للزوار' : 'Add your business description'}
                 rows={4}
                 style={{ width: '100%', border: '1px solid #e2e8f0', background: '#fff', borderRadius: '12px', padding: '0.9rem 1rem', fontSize: '0.9rem', fontWeight: 500, color: '#0f172a', resize: 'vertical', marginBottom: '1rem' }}
               />
 
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button onClick={handleSaveIntake} disabled={savingIntake} style={{ background: 'linear-gradient(135deg, #D4AF37, #f0c842)', border: 'none', color: '#1a1000', padding: '0.8rem 1.3rem', borderRadius: '12px', fontWeight: 900, cursor: 'pointer' }}>
-                  {savingIntake ? 'Saving...' : 'Save Business'}
+                  {savingIntake ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ البيانات' : 'Save Business')}
                 </button>
-                {!story?.business?.slug && <span style={{ color: '#64748b', fontSize: '0.75rem', alignSelf: 'center' }}>The public link is created automatically when the record is saved.</span>}
+                {!story?.business?.slug && (
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', alignSelf: 'center' }}>
+                    {isRTL ? 'يتم إنشاء الرابط العام تلقائياً عند حفظ السجل.' : 'The public link is created automatically when the record is saved.'}
+                  </span>
+                )}
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>Business Logo</label>
+              <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.8px', color: '#475569', textTransform: 'uppercase' }}>
+                {isRTL ? 'شعار النشاط (اللوجو)' : 'Business Logo'}
+              </label>
               <div style={{ width: '100%', minHeight: '180px', border: '1px dashed #dbe3ee', borderRadius: '16px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                 {logoUrl ? (
                   <img src={logoUrl} alt="Business logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ textAlign: 'center', color: '#64748b', padding: '1rem' }}>
                     <i className="fas fa-image" style={{ fontSize: '2rem', marginBottom: '0.75rem', display: 'block' }} />
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>No logo yet</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                      {isRTL ? 'لا يوجد شعار حتى الآن' : 'No logo yet'}
+                    </div>
                   </div>
                 )}
               </div>
@@ -682,15 +741,15 @@ export default function VendorDashboardPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="vd-hero-badge">
                 <i className="fas fa-certificate" style={{ fontSize: '0.6rem' }} />
-                System Category Blueprint
+                {isRTL ? 'مخطط تصنيف النظام المعتمد' : 'System Category Blueprint'}
               </div>
               <h1 className="vd-hero-title">
                 {loading ? (
                   <div className="vd-skeleton" style={{ height: 40, width: '60%' }} />
                 ) : (
                   <>
-                    Welcome back,{' '}
-                    <span>{story?.business?.name || 'Vendor Account'}</span>
+                    {isRTL ? 'مرحباً بك مجدداً، ' : 'Welcome back, '}
+                    <span>{story?.business?.name || (isRTL ? 'حساب البائع' : 'Vendor Account')}</span>
                   </>
                 )}
               </h1>
@@ -705,7 +764,7 @@ export default function VendorDashboardPage() {
                 )}
                 {story?.typology?.child && (
                   <>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontWeight: 900 }}>➔</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontWeight: 900 }}>{isRTL ? '⮜' : '➔'}</span>
                     <span style={{ background: 'rgba(212,175,55,0.18)', border: '1px solid rgba(212,175,55,0.35)', color: '#f0c842', fontSize: '0.72rem', fontWeight: 900, padding: '4px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       <i className={`fas ${story.typology.child.icon || 'fa-tag'}`} />
                       {story.typology.child.name}
@@ -722,16 +781,16 @@ export default function VendorDashboardPage() {
                   style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #b45309 100%)', color: '#0f172a', border: 'none', cursor: 'pointer' }}
                 >
                   <i className="fas fa-magic" />
-                  + Add Offering, Photos &amp; Story
+                  {isRTL ? '+ إضافة عروض، صور وقصص' : '+ Add Offering, Photos & Story'}
                 </button>
                 <Link href="/vendor/sections" className="vd-hero-btn-ghost">
                   <i className="fas fa-pen" />
-                  Edit Business Profile
+                  {isRTL ? 'تعديل الملف التعريفي' : 'Edit Business Profile'}
                 </Link>
                 {story?.business?.slug && (
                   <Link href={`/${story.business.slug}`} target="_blank" className="vd-hero-btn-ghost">
                     <i className="fas fa-external-link-alt" style={{ fontSize: '0.7rem' }} />
-                    View Minisite
+                    {isRTL ? 'معاينة الموقع' : 'View Minisite'}
                   </Link>
                 )}
               </div>
@@ -740,10 +799,10 @@ export default function VendorDashboardPage() {
             {/* Status widget */}
             <div className="vd-hero-status">
               <div className={`vd-hero-status-dot ${isPublished ? 'live' : 'draft'}`} />
-              <div className="vd-hero-status-label">Minisite</div>
-              <div className="vd-hero-status-val">{isPublished ? 'Published' : 'Draft'}</div>
+              <div className="vd-hero-status-label">{isRTL ? 'الموقع' : 'Minisite'}</div>
+              <div className="vd-hero-status-val">{isPublished ? (isRTL ? 'منشور' : 'Published') : (isRTL ? 'مسودة' : 'Draft')}</div>
               <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.07)', margin: '0.5rem 0' }} />
-              <div className="vd-hero-status-label">Profile</div>
+              <div className="vd-hero-status-label">{isRTL ? 'اكتمال الملف' : 'Profile'}</div>
               <div className="vd-hero-status-val" style={{ color: '#D4AF37' }}>{profilePct}%</div>
             </div>
           </div>
@@ -770,13 +829,15 @@ export default function VendorDashboardPage() {
             </div>
             <div>
               <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Multi-Section Offerings &amp; Visual Storyteller
+                {isRTL ? 'العروض متعددة الأقسام والقصص المرئية' : 'Multi-Section Offerings & Visual Storyteller'}
               </div>
               <h3 style={{ margin: '2px 0 4px', fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc' }}>
-                Publish Services, Upload Photos &amp; Write Free-Text Blog Stories
+                {isRTL ? 'نشر الخدمات، رفع الصور وكتابة مقالات تدوينية حرة' : 'Publish Services, Upload Photos & Write Free-Text Blog Stories'}
               </h3>
               <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.45, maxWidth: '620px' }}>
-                Select Transportation, Accommodation, Retreats, or Products. Upload multiple photos with preview, and once saved to the database, unlock storytelling narrative articles shared across your minisite and the main Siwa portal.
+                {isRTL
+                  ? 'اختر النقل، الإقامة، الخلوات أو المنتجات. ارفع صوراً متعددة مع المعاينة الفورية، وبمجرد الحفظ ستتمكن من كتابة مقالات سردية تشاركها عبر موقعك التعريفي وبوابة سيوة الرئيسية.'
+                  : 'Select Transportation, Accommodation, Retreats, or Products. Upload multiple photos with preview, and once saved to the database, unlock storytelling narrative articles shared across your minisite and the main Siwa portal.'}
               </p>
             </div>
           </div>
@@ -800,7 +861,7 @@ export default function VendorDashboardPage() {
             }}
           >
             <i className="fas fa-sparkles" />
-            Launch Offering &amp; Story Studio
+            {isRTL ? 'فتح استوديو العروض والقصص' : 'Launch Offering & Story Studio'}
           </button>
         </div>
 
@@ -812,17 +873,27 @@ export default function VendorDashboardPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-                📢 Admin System Notice & Category Taxonomy Specs
+                {isRTL ? '📢 إشعار النظام ومواصفات التصنيف' : '📢 Admin System Notice & Category Taxonomy Specs'}
               </span>
-              <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>Active Blueprint</span>
+              <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>
+                {isRTL ? 'مخطط نشط' : 'Active Blueprint'}
+              </span>
             </div>
             <p style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
               {story?.typology?.parent && story?.typology?.child ? (
-                <>
-                  Welcome! Your business <strong>"{story.business.name}"</strong> is classified under <strong>{story.typology.parent.name} ➔ {story.typology.child.name}</strong>. Admin has configured <strong>{story.structure.length} active content sections</strong> tailored specifically for your category hierarchy.
-                </>
+                isRTL ? (
+                  <>
+                    أهلاً بك! نشاطك التجاري <strong>"{story.business.name}"</strong> مصنف تحت <strong>{story.typology.parent.name} ➔ {story.typology.child.name}</strong>. قام مدير النظام بتهيئة <strong>{story.structure.length} أقسام محتوى نشطة</strong> مخصصة بدقة لهذا التصنيف.
+                  </>
+                ) : (
+                  <>
+                    Welcome! Your business <strong>"{story.business.name}"</strong> is classified under <strong>{story.typology.parent.name} ➔ {story.typology.child.name}</strong>. Admin has configured <strong>{story.structure.length} active content sections</strong> tailored specifically for your category hierarchy.
+                  </>
+                )
               ) : (
-                'System notice: Complete your business sections to rank higher in Siwa Oasis search results.'
+                isRTL
+                  ? 'إشعار النظام: أكمل أقسام نشاطك التجاري للظهور في ترتيب متقدم في نتائج بحث واحة سيوة.'
+                  : 'System notice: Complete your business sections to rank higher in Siwa Oasis search results.'
               )}
             </p>
           </div>
@@ -847,9 +918,9 @@ export default function VendorDashboardPage() {
             let iconBg = 'rgba(212,175,55,0.1)';
             let iconColor = '#D4AF37';
             let iconClass = 'fa-shield-halved';
-            let badgeText = 'Identity & Authority Verification';
-            let statusLabel = 'UNVERIFIED';
-            let title = 'Verify Your Business Identity';
+            let badgeText = isRTL ? 'توثيق الهوية وصلاحيات النشاط' : 'Identity & Authority Verification';
+            let statusLabel = isRTL ? 'غير موثق' : 'UNVERIFIED';
+            let title = isRTL ? 'توثيق هوية نشاطك التجاري' : 'Verify Your Business Identity';
             let desc = '';
 
             if (verificationStatus === 'verified') {
@@ -858,27 +929,33 @@ export default function VendorDashboardPage() {
               iconBg = 'rgba(34,197,94,0.1)';
               iconColor = '#22c55e';
               iconClass = 'fa-check-circle';
-              statusLabel = 'VERIFIED';
-              title = '✓ Trusted Vendor Profile';
-              desc = 'Your identity, authority, and ownership are fully verified. Your minisite has received the gold Trusted badge and is permanently live in the registry.';
+              statusLabel = isRTL ? 'موثق ومعتمد' : 'VERIFIED';
+              title = isRTL ? '✓ ملف بائع معتمد وموثق' : '✓ Trusted Vendor Profile';
+              desc = isRTL
+                ? 'تم التحقق من هويتك وصلاحيات الملكية بنجاح. حصل موقعك على شارة الثقة الذهبية وهو منشور بشكل دائم في دليل سيوة.'
+                : 'Your identity, authority, and ownership are fully verified. Your minisite has received the gold Trusted badge and is permanently live in the registry.';
             } else if (verificationStatus === 'pending') {
               cardBg = 'rgba(59,130,246,0.04)';
               cardBorder = 'rgba(59,130,246,0.15)';
               iconBg = 'rgba(59,130,246,0.1)';
               iconColor = '#3b82f6';
               iconClass = 'fa-hourglass-half';
-              statusLabel = 'UNDER REVIEW';
-              title = 'Verification Documents Under Review';
-              desc = 'Your uploaded ID and ownership documents are currently being audited by the SiWiFy.com admin team. Review typically takes 24-48 hours. Your profile visibility is temporarily protected.';
+              statusLabel = isRTL ? 'قيد المراجعة' : 'UNDER REVIEW';
+              title = isRTL ? 'مستندات التوثيق قيد المراجعة' : 'Verification Documents Under Review';
+              desc = isRTL
+                ? 'مستندات الهوية وإثبات الملكية التي قمت برفعها تخضع حالياً لمراجعة فريق إدارة المنصة. تستغرق المراجعة عادة 24-48 ساعة. ظهور موقعك محمي مؤقتاً.'
+                : 'Your uploaded ID and ownership documents are currently being audited by the SiWiFy.com admin team. Review typically takes 24-48 hours. Your profile visibility is temporarily protected.';
             } else if (verificationStatus === 'rejected') {
               cardBg = 'rgba(239,68,68,0.04)';
               cardBorder = 'rgba(239,68,68,0.15)';
               iconBg = 'rgba(239,68,68,0.1)';
               iconColor = '#ef4444';
               iconClass = 'fa-circle-xmark';
-              statusLabel = 'REJECTED';
-              title = 'Verification Request Rejected';
-              desc = `Your verification application could not be approved. Reason: "${trustRejectionNote || 'Invalid documents.'}". Please update and upload valid documents to reactivate your listing visibility.`;
+              statusLabel = isRTL ? 'مرفوض' : 'REJECTED';
+              title = isRTL ? 'تم رفض طلب التوثيق' : 'Verification Request Rejected';
+              desc = isRTL
+                ? `لم تتم الموافقة على طلب التوثيق. السبب: "${trustRejectionNote || 'مستندات غير واضحة أو غير مطابقة'}". يرجى تحديث ورفع مستندات صالحة لإعادة تفعيل ظهور موقعك.`
+                : `Your verification application could not be approved. Reason: "${trustRejectionNote || 'Invalid documents.'}". Please update and upload valid documents to reactivate your listing visibility.`;
             } else {
               // Unverified status
               if (isExpired) {
@@ -887,13 +964,19 @@ export default function VendorDashboardPage() {
                 iconBg = 'rgba(239,68,68,0.1)';
                 iconColor = '#ef4444';
                 iconClass = 'fa-lock';
-                title = 'Minisite Offline — Verification Required';
-                desc = 'Your 30-day trial visibility window has expired. Your minisite is currently hidden from the public. To reactivate it and keep your data, you must upload your National ID and business ownership documentation.';
+                title = isRTL ? 'الموقع معلق — يلزم التوثيق' : 'Minisite Offline — Verification Required';
+                desc = isRTL
+                  ? 'انتهت فترة التجربة المجانية (30 يوماً). تم حجب موقعك التعريفي مؤقتاً عن الجمهور. لإعادة تفعيله يرجى رفع بطاقة الرقم القومي ومستندات إثبات ملكية النشاط.'
+                  : 'Your 30-day trial visibility window has expired. Your minisite is currently hidden from the public. To reactivate it and keep your data, you must upload your National ID and business ownership documentation.';
               } else {
-                title = 'Complete Verification to Secure Trusted Badge';
+                title = isRTL ? 'أكمل التوثيق للحصول على شارة الثقة الذهبية' : 'Complete Verification to Secure Trusted Badge';
                 desc = daysRemaining !== null
-                  ? `Your minisite is currently online, but your 30-day temporary visibility window has ${daysRemaining} days remaining. Upload your documents now to achieve Trusted status and ensure your profile stays permanently online.`
-                  : 'Upload your National ID and business ownership certificate to achieve Trusted status and display a gold badge on your minisite.';
+                  ? (isRTL
+                      ? `موقعك متاح أونلاين حالياً، لكن تبقى ${daysRemaining} يوماً في نافذة الظهور التجريبية. ارفع مستنداتك الآن للحصول على شارة الثقة وضمان استمرار ظهور ملفك بشكل دائم.`
+                      : `Your minisite is currently online, but your 30-day temporary visibility window has ${daysRemaining} days remaining. Upload your documents now to achieve Trusted status and ensure your profile stays permanently online.`)
+                  : (isRTL
+                      ? 'ارفع بطاقة الرقم القومي وشهادة ملكية النشاط للحصول على شارة الثقة الذهبية وعرضها على موقعك التعريفي.'
+                      : 'Upload your National ID and business ownership certificate to achieve Trusted status and display a gold badge on your minisite.');
               }
             }
 
@@ -917,7 +1000,7 @@ export default function VendorDashboardPage() {
                   </p>
                   {verificationStatus !== 'verified' && (
                     <Link href="/vendor/verification" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: iconColor, color: '#ffffff', textDecoration: 'none', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.2s', border: 'none', cursor: 'pointer' }}>
-                      <i className="fas fa-file-shield" /> {verificationStatus === 'rejected' ? 'Re-upload Documents' : 'Upload Docs & Verify'}
+                      <i className="fas fa-file-shield" /> {verificationStatus === 'rejected' ? (isRTL ? 'إعادة رفع المستندات' : 'Re-upload Documents') : (isRTL ? 'رفع المستندات والتوثيق' : 'Upload Docs & Verify')}
                     </Link>
                   )}
                 </div>
@@ -931,27 +1014,28 @@ export default function VendorDashboardPage() {
           {[
             {
               icon: 'fa-percent', iconBg: 'rgba(212,175,55,0.12)', iconColor: '#D4AF37',
-              val: `${profilePct}%`, label: 'Profile Complete',
-              trend: profilePct >= 80 ? '✓ Strong' : profilePct >= 40 ? 'In progress' : 'Needs work',
+              val: `${profilePct}%`, label: isRTL ? 'اكتمال الملف' : 'Profile Complete',
+              trend: profilePct >= 80 ? (isRTL ? '✓ ممتاز' : '✓ Strong') : profilePct >= 40 ? (isRTL ? 'قيد الإكمال' : 'In progress') : (isRTL ? 'بحاجة للعمل' : 'Needs work'),
               trendClass: profilePct >= 80 ? 'up' : 'warn',
             },
             {
               icon: 'fa-route', iconBg: 'rgba(99,102,241,0.1)', iconColor: '#6366f1',
-              val: requests.length, label: 'Journey Requests',
+              val: requests.length, label: isRTL ? 'طلبات الرحلات' : 'Journey Requests',
               trend: requests.filter(r => r.status === 'pending').length > 0
-                     ? `${requests.filter(r => r.status === 'pending').length} pending` : 'All clear',
+                     ? (isRTL ? `${requests.filter(r => r.status === 'pending').length} معلقة` : `${requests.filter(r => r.status === 'pending').length} pending`)
+                     : (isRTL ? 'تمت معالجة الكل' : 'All clear'),
               trendClass: requests.filter(r => r.status === 'pending').length > 0 ? 'info' : 'up',
             },
             {
               icon: 'fa-tasks', iconBg: 'rgba(34,197,94,0.1)', iconColor: '#22c55e',
-              val: `${doneCount}/${checklistItems.length}`, label: 'Tasks Complete',
-              trend: doneCount === checklistItems.length ? 'All done!' : `${checklistItems.length - doneCount} remaining`,
+              val: `${doneCount}/${checklistItems.length}`, label: isRTL ? 'المهام المنجزة' : 'Tasks Complete',
+              trend: doneCount === checklistItems.length ? (isRTL ? 'اكتمل الكل!' : 'All done!') : (isRTL ? `متبقي ${checklistItems.length - doneCount}` : `${checklistItems.length - doneCount} remaining`),
               trendClass: doneCount === checklistItems.length ? 'up' : 'warn',
             },
             {
               icon: 'fa-globe', iconBg: 'rgba(14,165,233,0.1)', iconColor: '#0ea5e9',
-              val: isPublished ? 'Live' : 'Draft', label: 'Minisite Status',
-              trend: isPublished ? 'Publicly visible' : 'Not published',
+              val: isPublished ? (isRTL ? 'منشور' : 'Live') : (isRTL ? 'مسودة' : 'Draft'), label: isRTL ? 'حالة الموقع' : 'Minisite Status',
+              trend: isPublished ? (isRTL ? 'متاح للجمهور' : 'Publicly visible') : (isRTL ? 'غير منشور' : 'Not published'),
               trendClass: isPublished ? 'up' : 'warn',
             },
           ].map((k, i) => (
@@ -981,11 +1065,13 @@ export default function VendorDashboardPage() {
                   <div className="vd-card-title-icon" style={{ background: 'rgba(212,175,55,0.1)' }}>
                     <i className="fas fa-rocket" style={{ color: '#D4AF37' }} />
                   </div>
-                  Launch Checklist
+                  {isRTL ? 'قائمة إطلاق النشاط' : 'Launch Checklist'}
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div style={{ textAlign: isRTL ? 'left' : 'right' }}>
                   <div className="vd-checklist-pct">{checkPct}%</div>
-                  <div className="vd-checklist-sub">{doneCount} of {checklistItems.length} done</div>
+                  <div className="vd-checklist-sub">
+                    {isRTL ? `${doneCount} من ${checklistItems.length} مكتمل` : `${doneCount} of ${checklistItems.length} done`}
+                  </div>
                 </div>
               </div>
 
@@ -1004,7 +1090,7 @@ export default function VendorDashboardPage() {
                       {item.done ? <i className="fas fa-check" /> : <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>{i + 1}</span>}
                     </div>
                     <span className="vd-check-text">{item.label}</span>
-                    {!item.done && <i className="fas fa-chevron-right vd-check-arrow" />}
+                    {!item.done && <i className={`fas ${isRTL ? 'fa-chevron-left' : 'fa-chevron-right'} vd-check-arrow`} />}
                   </Link>
                 ))}
               </div>
@@ -1013,9 +1099,11 @@ export default function VendorDashboardPage() {
                 <div className="vd-tip">
                   <span className="vd-tip-icon">💡</span>
                   <div className="vd-tip-body">
-                    <div className="vd-tip-title">Improve your ranking</div>
+                    <div className="vd-tip-title">{isRTL ? 'عزز ترتيبك في نتائج البحث' : 'Improve your ranking'}</div>
                     <div className="vd-tip-text">
-                      Businesses with 80%+ profile completion appear 3× more in search results. Fill your sections to attract more travelers.
+                      {isRTL
+                        ? 'الأنشطة التجارية التي يكتمل ملفها بنسبة 80% فأكثر تظهر 3 أضعاف أكثر في نتائج البحث. أكمل أقسامك لجذب المزيد من المسافرين.'
+                        : 'Businesses with 80%+ profile completion appear 3× more in search results. Fill your sections to attract more travelers.'}
                     </div>
                   </div>
                 </div>
@@ -1029,7 +1117,7 @@ export default function VendorDashboardPage() {
                   <div className="vd-card-title-icon" style={{ background: 'rgba(99,102,241,0.1)' }}>
                     <i className="fas fa-bolt" style={{ color: '#6366f1' }} />
                   </div>
-                  Quick Actions
+                  {isRTL ? 'إجراءات سريعة' : 'Quick Actions'}
                 </div>
               </div>
               <div className="vd-actions-grid">
@@ -1044,9 +1132,9 @@ export default function VendorDashboardPage() {
                       <div className="vd-action-icon" style={{ background: a.iconBg }}>
                         <i className={`fas ${a.icon}`} style={{ color: a.iconColor }} />
                       </div>
-                      <div className="vd-action-label">{a.label}</div>
+                      <div className="vd-action-label">{isRTL ? a.label.ar : a.label.en}</div>
                     </div>
-                    <div className="vd-action-desc">{a.desc}</div>
+                    <div className="vd-action-desc">{isRTL ? a.desc.ar : a.desc.en}</div>
                   </Link>
                 ))}
               </div>
@@ -1060,8 +1148,8 @@ export default function VendorDashboardPage() {
             <div className={`vd-pub-card ${isPublished ? 'live' : 'draft'}`}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
                 <div className={`vd-pub-label ${isPublished ? 'live' : 'draft'}`}>
-                  <i className="fas fa-circle" style={{ fontSize: '0.45rem', marginRight: 5 }} />
-                  {isPublished ? 'Minisite is Live' : 'Minisite in Draft'}
+                  <i className="fas fa-circle" style={{ fontSize: '0.45rem', marginInlineEnd: 5 }} />
+                  {isPublished ? (isRTL ? 'الموقع منشور ومتاح' : 'Minisite is Live') : (isRTL ? 'الموقع قيد الإعداد (مسودة)' : 'Minisite in Draft')}
                 </div>
                 {story?.business?.slug && (
                   <Link
@@ -1069,21 +1157,21 @@ export default function VendorDashboardPage() {
                     target="_blank"
                     style={{ fontSize: '0.62rem', color: isPublished ? '#16a34a' : '#d97706', textDecoration: 'none', fontWeight: 700 }}
                   >
-                    Visit →
+                    {isRTL ? 'زيارة الموقع ←' : 'Visit →'}
                   </Link>
                 )}
               </div>
               <p className="vd-pub-desc">
                 {isPublished
-                  ? 'Your minisite is publicly visible and indexed. Travelers can discover and contact you.'
-                  : 'Your content is saved but not public. Publish to go live and start receiving inquiries.'}
+                  ? (isRTL ? 'موقعك التعريفي متاح للجمهور ومفهرس بالكامل. يمكن للمسافرين العثور عليك والتواصل معك مباشرة.' : 'Your minisite is publicly visible and indexed. Travelers can discover and contact you.')
+                  : (isRTL ? 'محتوى موقعك محفوظ لكنه غير منشور للجمهور بعد. انشر موقعك الآن للبدء في استقبال طلبات الزوار.' : 'Your content is saved but not public. Publish to go live and start receiving inquiries.')}
               </p>
               <Link
                 href="/vendor/minisite"
                 className={`vd-pub-btn ${isPublished ? 'live' : 'draft'}`}
               >
                 <i className={`fas ${isPublished ? 'fa-cog' : 'fa-rocket'}`} />
-                {isPublished ? 'Minisite Settings' : 'Publish Now'}
+                {isPublished ? (isRTL ? 'إعدادات الموقع' : 'Minisite Settings') : (isRTL ? 'نشر الموقع الآن' : 'Publish Now')}
               </Link>
             </div>
 
@@ -1094,10 +1182,10 @@ export default function VendorDashboardPage() {
                   <div className="vd-card-title-icon" style={{ background: 'rgba(212,175,55,0.1)' }}>
                     <i className="fas fa-chart-pie" style={{ color: '#D4AF37' }} />
                   </div>
-                  Profile Health
+                  {isRTL ? 'اكتمال أقسام المحتوى' : 'Profile Health'}
                 </div>
                 <Link href="/vendor/sections" className="vd-card-link">
-                  Edit <i className="fas fa-arrow-right" />
+                  {isRTL ? 'تعديل' : 'Edit'} <i className={`fas ${isRTL ? 'fa-arrow-left' : 'fa-arrow-right'}`} />
                 </Link>
               </div>
 
@@ -1132,7 +1220,10 @@ export default function VendorDashboardPage() {
                 })
               ) : (
                 <p style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>
-                  No sections found. <Link href="/vendor/sections" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 700 }}>Add content →</Link>
+                  {isRTL ? 'لم يتم العثور على أقسام.' : 'No sections found.'}{' '}
+                  <Link href="/vendor/sections" style={{ color: '#D4AF37', textDecoration: 'none', fontWeight: 700 }}>
+                    {isRTL ? 'إضافة محتوى ←' : 'Add content →'}
+                  </Link>
                 </p>
               )}
             </div>
@@ -1144,10 +1235,10 @@ export default function VendorDashboardPage() {
                   <div className="vd-card-title-icon" style={{ background: 'rgba(14,165,233,0.1)' }}>
                     <i className="fas fa-bell" style={{ color: '#0ea5e9' }} />
                   </div>
-                  Recent Activity
+                  {isRTL ? 'أحدث الأنشطة والطلبات' : 'Recent Activity'}
                 </div>
                 <Link href="/vendor/journey-requests" className="vd-card-link">
-                  All <i className="fas fa-arrow-right" />
+                  {isRTL ? 'عرض الكل' : 'All'} <i className={`fas ${isRTL ? 'fa-arrow-left' : 'fa-arrow-right'}`} />
                 </Link>
               </div>
               <div className="vd-feed">

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit Minisite Showcase — Chalet 702, Blanca, Marassi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', 'Inter', sans-serif;
+      transition: all 0.25s ease;
+    }
+    html[dir="ltr"] body {
+      font-family: 'Inter', 'Cairo', sans-serif;
+    }
+    .glass-pill {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+  </style>
+</head>
+<body class="bg-[#0b0f17] text-[#f8fafc] min-h-screen">
+
+  <!-- ================= TOP CONTEXT BAR (BREADCRUMB & BROKER/DEV) ================= -->
+  <header class="border-b border-white/10 bg-[#0f172a]/90 backdrop-blur sticky top-0 z-50 px-4 py-2.5">
+    <div class="max-w-6xl mx-auto flex items-center justify-between text-xs">
+      <!-- Breadcrumbs -->
+      <div class="flex items-center gap-2 text-slate-400 overflow-x-auto whitespace-nowrap">
+        <a href="#" class="hover:text-amber-400 flex items-center gap-1.5 transition">
+          <i class="fas fa-building text-amber-400"></i>
+          <span id="txt-market">الساحل الشمالي</span>
+        </a>
+        <span>/</span>
+        <a href="#" class="hover:text-amber-400 font-semibold transition" id="txt-compound">مراسي (Marassi)</a>
+        <span>/</span>
+        <span class="text-slate-200 font-bold" id="txt-phase">بلانكا · شاليه 702</span>
+      </div>
+
+      <!-- Actions: Lang Toggle & Broker / Dev Badge -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="hidden sm:flex items-center gap-2 border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 rounded-full text-amber-300 font-bold text-[11px]">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="txt-badge">معتمد من إعمار مصر</span>
+        </div>
+        <button onclick="toggleLang()" class="px-2.5 py-1 rounded-lg border border-white/20 hover:border-amber-400 text-slate-300 hover:text-white transition font-bold text-xs flex items-center gap-1.5">
+          <i class="fas fa-globe text-amber-400"></i>
+          <span id="btn-lang">English</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= UNIT TITLE & QUICK STATS BAR ================= -->
+  <div class="max-w-6xl mx-auto px-4 pt-6 pb-4">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs px-2.5 py-0.5 rounded-full font-bold" id="txt-kind">
+            للبيع · استلام فوري
+          </span>
+          <span class="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-xs px-2.5 py-0.5 rounded-full font-bold" id="txt-typology">
+            شاليه أرضي مع حديقة خاصة
+          </span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white" id="txt-title">
+          شاليه 702 · فيو اللاجون المفتوح · بلانكا مراسي
+        </h1>
+        <p class="text-sm text-slate-400 mt-1 flex items-center gap-2" id="txt-subtitle">
+          <i class="fas fa-map-marker-alt text-amber-400"></i>
+          سيدي عبد الرحمن، الكيلو 126 طريق الإسكندرية - مطروح
+        </p>
+      </div>
+
+      <!-- Price & Contact CTAs -->
+      <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+        <div class="bg-slate-800/80 border border-slate-700/80 px-4 py-2.5 rounded-2xl text-right">
+          <div class="text-[11px] text-slate-400 font-semibold" id="txt-price-label">السعر الإجمالي (شامل الوديعة)</div>
+          <div class="text-xl sm:text-2xl font-black text-amber-400" id="txt-price">18,500,000 ج.م</div>
+        </div>
+        <a href="https://wa.me/201000000000" target="_blank" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-emerald-900/40 transition">
+          <i class="fab fa-whatsapp text-lg"></i>
+          <span id="btn-whatsapp">حجز استفسار / معاينة</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SECTION NAVIGATION (THE MINISITE CHAPTERS) ================= -->
+  <div class="max-w-6xl mx-auto px-4 mb-6">
+    <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10 scrollbar-none" id="section-nav">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <!-- ================= MAIN SECTION BODY ================= -->
+  <main class="max-w-6xl mx-auto px-4 pb-16">
+
+    <!-- HERO CAROUSEL: Fields and Values Presentation -->
+    <div class="relative w-full rounded-3xl overflow-hidden border border-white/10 bg-slate-900 shadow-2xl mb-8 min-h-[460px] flex flex-col justify-end">
+      <!-- Carousel Background Image with Gradient Overlay -->
+      <img id="carousel-img" src="" alt="Unit Showcase" class="absolute inset-0 w-full h-full object-cover transition duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
+
+      <!-- Slide Top Tag -->
+      <div class="absolute top-5 right-5 sm:right-8 z-10">
+        <div class="glass-pill px-4 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-amber-300">
+          <i id="carousel-chapter-icon" class="fas fa-layer-group"></i>
+          <span id="carousel-chapter-name">الفصل الحالي</span>
+        </div>
+      </div>
+
+      <!-- Carousel Navigation Arrows -->
+      <button onclick="prevSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-pill hover:bg-white/20 text-white flex items-center justify-center transition z-20">
+        <i class="fas fa-chevron-left text-sm"></i>
+      </button>
+      <button onclick="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-pill hover:bg-white/20 text-white flex items-center justify-center transition z-20">
+        <i class="fas fa-chevron-right text-sm"></i>
+      </button>
+
+      <!-- Slide Content: The Dynamic Fields & Values -->
+      <div class="relative z-10 p-6 sm:p-8 max-w-3xl">
+        <div class="text-xs font-black tracking-wider uppercase text-amber-400 mb-1" id="slide-pretitle">
+          بطاقة البيانات الرسمية للوحدة
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-3" id="slide-title">
+          عنوان الشريحة
+        </h2>
+        <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-6" id="slide-desc">
+          شرح مواصفات هذا الفصل كما أدخلها المطور في استمارة التسجيل.
+        </p>
+
+        <!-- DYNAMIC FIELDS & VALUES PILLS (Seeded from form_fields) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="slide-fields">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+
+      <!-- Carousel Indicators Dots -->
+      <div class="relative z-10 flex items-center justify-center gap-2 pb-4" id="carousel-dots">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+
+    <!-- NARRATIVE BLOG & CHAPTER DETAILS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Chapter Story (2 Cols) -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-400 flex items-center justify-center text-lg">
+              <i id="narrative-icon" class="fas fa-book-open"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-white" id="narrative-title">قصة هذا الفصل</h3>
+              <p class="text-xs text-slate-400" id="narrative-subtitle">المحتوى التحريري الكامل المعتمد</p>
+            </div>
+          </div>
+          <div class="text-sm text-slate-300 leading-relaxed space-y-3" id="narrative-content">
+            <!-- Narrative rich text injected -->
+          </div>
+        </div>
+
+        <!-- Section Gallery Grid -->
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 sm:p-8">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center justify-between">
+            <span id="txt-gallery-title">معرض صور الوحدة التابع لهذا الفصل</span>
+            <span class="text-xs text-amber-400 font-semibold" id="txt-gallery-count">4 صور عالية الدقة</span>
+          </h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="section-gallery">
+            <!-- Gallery thumbs injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Quick Inspector & Unit Facts -->
+      <div class="space-y-6">
+        <!-- Key Specifications Card -->
+        <div class="bg-slate-900/90 border border-white/10 rounded-3xl p-6">
+          <h4 class="text-sm font-extrabold text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fas fa-check-circle"></i>
+            <span id="txt-facts-title">المواصفات الجوهرية</span>
+          </h4>
+          <dl class="divide-y divide-white/10 text-xs" id="specs-list">
+            <!-- Specs injected -->
+          </dl>
+        </div>
+
+        <!-- Installment Calculator Quick Box -->
+        <div class="bg-gradient-to-br from-slate-900 to-amber-950/30 border border-amber-500/20 rounded-3xl p-6">
+          <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fas fa-calculator text-amber-400"></i>
+            <span id="txt-calc-title">محاكي خطة السداد</span>
+          </h4>
+          <p class="text-xs text-slate-400 mb-4" id="txt-calc-sub">مقدم 10% وتقسيط حتى 8 سنوات</p>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between py-1.5 border-b border-white/5">
+              <span class="text-slate-400" id="lbl-down">المقدم (10%):</span>
+              <span class="font-bold text-amber-300">1,850,000 ج.م</span>
+            </div>
+            <div class="flex justify-between py-1.5 border-b border-white/5">
+              <span class="text-slate-400" id="lbl-quarterly">القسط الربع سنوي:</span>
+              <span class="font-bold text-white">520,312 ج.م</span>
+            </div>
+            <div class="flex justify-between py-1.5">
+              <span class="text-slate-400" id="lbl-maintenance">وديعة الصيانة:</span>
+              <span class="font-bold text-emerald-400">شاملة</span>
+            </div>
+          </div>
+          <button class="w-full mt-4 py-2.5 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 font-bold text-xs hover:bg-amber-400/30 transition">
+            <span id="btn-calc">طلب تفصيل جدول الأقساط PDF</span>
+          </button>
+        </div>
+
+        <!-- Developer Corporate Trust -->
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-5 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-white p-1.5 shrink-0 flex items-center justify-center">
+            <i class="fas fa-city text-slate-900 text-xl"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-white" id="txt-dev-title">المطور: إعمار مصر</div>
+            <div class="text-[11px] text-slate-400" id="txt-dev-sub">مدرج في البورصة المصرية · سجل 25 عامًا</div>
+            <a href="#" class="text-[11px] text-amber-400 hover:underline font-bold mt-1 inline-block" id="txt-dev-link">تصفح صفحة إعمار مصر ←</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= DATA & INTERACTIVITY SCRIPT ================= -->
+  <script>
+    let currentLang = 'ar';
+    let currentSectionIndex = 0;
+    let currentSlideIndex = 0;
+
+    const SECTIONS = [
+      {
+        id: 'sec_1_identity',
+        icon: 'fa-id-card',
+        name: { ar: 'هوية الوحدة', en: 'Unit Identity' },
+        slides: [
+          {
+            image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1200&auto=format&fit=crop',
+            title: { ar: 'الموقع الدقيق وبيانات التسجيل', en: 'Location & Official Identity' },
+            desc: {
+              ar: 'تقع هذه الوحدة في قلب المرحلة الثانية من بلانكا مراسي على بعد دقائق معدودة من شاطئ مراسي الخاص والنادي الصحي.',
+              en: 'Located in the heart of Blanca Phase 2, Marassi — just minutes walking to the private beach and clubhouse.'
+            },
+            fields: [
+              { label: { ar: 'كود الوحدة', en: 'Unit Code' }, value: 'BL-702-GF' },
+              { label: { ar: 'نوع الوحدة', en: 'Typology' }, value: { ar: 'شاليه أرضي', en: 'Chalet Ground' } },
+              { label: { ar: 'المساحة الصافية', en: 'Net Area' }, value: '145 m²' },
+              { label: { ar: 'مساحة الحديقة', en: 'Garden Area' }, value: '85 m²' },
+              { label: { ar: 'الغرف والحمامات', en: 'Beds & Baths' }, value: '3 Beds + 3 Baths' },
+              { label: { ar: 'حالة الاستلام', en: 'Delivery Status' }, value: { ar: 'جاهز للسكن', en: 'Ready to Move in' } }
+            ]
+          }
+        ],
+        narrative: {
+          ar: 'تم تصميم الشاليه بروح العمارة المتوسطية اليونانية الكلاسيكية التي تميز حي بلانكا، بواجهات بيضاء وزوايا انسيابية تضمن تدفق الضوء الطبيعي طوال اليوم. يطل التراس المفتوح والحديقة الخاصة مباشرة على ممرات المشاة والبحيرة الخضراء مع خصوصية كاملة.',
+          en: 'Designed in the signature Mediterranean white-washed aesthetic of Blanca. The private terrace and garden directly overlook tranquil landscaped walkways with absolute privacy.'
+        },
+        gallery: [
+          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=400&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=400&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?q=80&w=400&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=400&auto=format&fit=crop'
+        ]
+      },
+      {
+        id: 'sec_2_ambience',
+        icon: 'fa-compass',
+        name: { ar: 'الطابع والفيو', en: 'Ambience & View' },
+        slides: [
+          {
+            image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1200&auto=format&fit=crop',
+            title: { ar: 'الإطلالة والنسيم البحري', en: 'Lagoon View & Orientation' },
+            desc: {
+              ar: 'توجيه بحري صريح يمنح الشاليه نسيم البحر المنعش طوال أشهر الصيف مع إطلالة مفتوحة لا تحجبها مبانٍ مجاورة.',
+              en: 'North-facing orientation guaranteeing continuous sea breeze and unhindered horizon views.'
+            },
+            fields: [
+              { label: { ar: 'نوع الإطلالة', en: 'View Type' }, value: { ar: 'لاجون وحديقة', en: 'Lagoon & Garden' } },
+              { label: { ar: 'التوجيه', en: 'Orientation' }, value: { ar: 'بحري صريح', en: 'North-Facing' } },
+              { label: { ar: 'مستوى الهدوء', en: 'Noise Level' }, value: { ar: 'سكني هادئ جداً', en: 'Ultra Quiet' } },
+              { label: { ar: 'مستوى الخصوصية', en: 'Privacy' }, value: { ar: '100% غير مجروح', en: '100% Uncompromised' } }
+            ]
+          }
+        ],
+        narrative: {
+          ar: 'تتميز منطقة بلانكا بمسطحات مائية فيروزية وممرات خالية من حركة السيارات مما يجعل قضاء الإجازة آمنًا للأطفال وهادئًا لعشاق الاسترخاء والتأمل.',
+          en: 'Blanca is renowned for its tranquil turquoise lagoons and car-free pedestrian zones, offering safety for families and serene relaxation.'
+        },
+        gallery: [
+          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=400&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=400&auto=format&fit=crop'
+        ]
+      },
+      {
+        id: 'sec_3_facilities',
+        icon: 'fa-swimming-pool',
+        name: { ar: 'المرافق والبحر', en: 'Sea & Facilities' },
+        slides: [
+          {
+            image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1200&auto=format&fit=crop',
+            title: { ar: 'الوصول إلى الشاطئ والمرافق', en: 'Beach Access & Amenities' },
+            desc: {
+              ar: 'وصول مباشر إلى شاطئ بلانكا بالسيارات الكهربائية (جولف كار) خلال دقيقتين مع كارت عضوية شاطئ مراسي الماسي.',
+              en: 'Direct access to the private beach via complimentary golf cart shuttle within 2 minutes.'
+            },
+            fields: [
+              { label: { ar: 'الوصول للشاطئ', en: 'Beach Access' }, value: { ar: 'خاص مباشر + شاتل', en: 'Private + Shuttle' } },
+              { label: { ar: 'المسافة إلى البحر', en: 'Distance to Sea' }, value: '350 m' },
+              { label: { ar: 'حمام السباحة', en: 'Pool' }, value: { ar: 'مسبح أوليمبي على بعد 50م', en: 'Lagoon Pool 50m' } },
+              { label: { ar: 'موقف السيارات', en: 'Parking' }, value: { ar: 'موقف خاص مظلل', en: 'Dedicated Shaded' } }
+            ]
+          }
+        ],
+        narrative: {
+          ar: 'تتمتع الوحدة بكافة خدمات مراسي العالمية: ملاعب الجولف 18 حفرة، النادي الدولي لليخوت (مراسي مارينا)، مطاعم ونوادي شاطئية عالمية ومول مراسي التجاري.',
+          en: 'Enjoys full access to Marassi master amenities: 18-hole signature golf course, international yacht marina, beach clubs, and M-Plex retail mall.'
+        },
+        gallery: [
+          'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=400&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=400&auto=format&fit=crop'
+        ]
+      },
+      {
+        id: 'sec_7_investment',
+        icon: 'fa-chart-line',
+        name: { ar: 'الشروط المالية', en: 'Financial Terms' },
+        slides: [
+          {
+            image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=1200&auto=format&fit=crop',
+            title: { ar: 'نظام التملك وخطة السداد', en: 'Ownership & Payment Plan' },
+            desc: {
+              ar: 'عقد تملك حر نهائي صادر من شركة إعمار مصر بدون أي نزاعات قانونية مع إمكانية إعادة البيع أو التأجير فوراً.',
+              en: 'Freehold title deed issued directly by Emaar Misr with immediate resale and leasing rights.'
+            },
+            fields: [
+              { label: { ar: 'نظام التملك', en: 'Ownership' }, value: { ar: 'تملك حر (Freehold)', en: 'Freehold' } },
+              { label: { ar: 'المقدم المطلوب', en: 'Down Payment' }, value: '1,850,000 EGP (10%)' },
+              { label: { ar: 'فترة التقسيط', en: 'Installments' }, value: { ar: '8 سنوات متساوية', en: '8 Years Equal' } },
+              { label: { ar: 'القسط الربع سنوي', en: 'Quarterly Due' }, value: '520,312 EGP' },
+              { label: { ar: 'وديعة الصيانة', en: 'Maintenance' }, value: { ar: 'مدفوعة بالكامل', en: 'Fully Paid' } },
+              { label: { ar: 'حقوق إعادة البيع', en: 'Resale Rights' }, value: { ar: 'مسموح فوراً', en: 'Allowed Immediately' } }
+            ]
+          }
+        ],
+        narrative: {
+          ar: 'تعد مراسي أعلى الوجهات عائداً استثمارياً في الساحل الشمالي، حيث يبلغ متوسط دخل الإيجار الأسبوعي لهذا الشاليه في موسم الصيف بين 45,000 إلى 60,000 ج.م، مما يحقق عائداً رأسمالياً وتأجيرياً يتجاوز 14% سنوياً.',
+          en: 'Marassi commands the highest rental yields on the North Coast. This chalet rents for 45,000 to 60,000 EGP per week in prime season, yielding over 14% ROI.'
+        },
+        gallery: [
+          'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=400&auto=format&fit=crop'
+        ]
+      },
+      {
+        id: 'sec_6_guardian',
+        icon: 'fa-shield-alt',
+        name: { ar: 'الإدارة والتشغيل', en: 'Operations' },
+        slides: [
+          {
+            image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop',
+            title: { ar: 'الإدارة الفندقية والأمن المتكامل', en: 'Management & Hotel Program' },
+            desc: {
+              ar: 'تدار القرية بواسطة إدارة إعمار للضيافة مع إمكانية تسليم الشاليه لبرنامج التأجير الفندقي المعتمد.',
+              en: 'Operated by Emaar Hospitality with optional enrollment in the authorized short-stay rental program.'
+            },
+            fields: [
+              { label: { ar: 'شركة الإدارة', en: 'Management' }, value: { ar: 'إعمار للضيافة', en: 'Emaar Hospitality' } },
+              { label: { ar: 'نظام الأمن', en: 'Security' }, value: { ar: 'كاميرات وبوابات 24/7', en: '24/7 Gated Access' } },
+              { label: { ar: 'خدمة الصيانة', en: 'Maintenance' }, value: { ar: 'طوارئ على مدار الساعة', en: '24/7 On-Call' } },
+              { label: { ar: 'برنامج التأجير', en: 'Rental Program' }, value: { ar: 'متاح مع إدارة الحجوزات', en: 'Turnkey Available' } }
+            ]
+          }
+        ],
+        narrative: {
+          ar: 'يتمتع المالك بخدمات التدبير المنزلي، وخدمة الغسيل، وصيانة التكييفات الدورية، وتأمين الدخول الذكي عبر البطاقات المشفرة.',
+          en: 'Owners enjoy housekeeping, periodic HVAC maintenance, and smart keyless entry system management.'
+        },
+        gallery: [
+          'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&auto=format&fit=crop'
+        ]
+      }
+    ];
+
+    const SPECS = [
+      { label: { ar: 'المساحة الإجمالية', en: 'Total Built Area' }, val: '145 m²' },
+      { label: { ar: 'مساحة الحديقة', en: 'Private Garden' }, val: '85 m²' },
+      { label: { ar: 'عدد الغرف', en: 'Bedrooms' }, val: { ar: '3 غرف نوم + ماستر', en: '3 Beds (1 Master)' } },
+      { label: { ar: 'الحمامات', en: 'Bathrooms' }, val: '3' },
+      { label: { ar: 'مستوى التشطيب', en: 'Finishing' }, val: { ar: 'ألترا لوكس مفروش بالكامل', en: 'Fully Furnished Ultra Lux' } },
+      { label: { ar: 'التكييفات', en: 'AC Units' }, val: { ar: 'تكييف مركزي شامل', en: 'Central Inverter AC' } },
+      { label: { ar: 'سنة البناء / التسليم', en: 'Handover Year' }, val: '2024' },
+      { label: { ar: 'حصة في الأرض', en: 'Land Share' }, val: { ar: 'مثبتة في العقد', en: 'Registered in Deed' } }
+    ];
+
+    function renderNav() {
+      const navContainer = document.getElementById('section-nav');
+      navContainer.innerHTML = '';
+      SECTIONS.forEach((sec, idx) => {
+        const isActive = idx === currentSectionIndex;
+        const btn = document.createElement('button');
+        btn.onclick = () => selectSection(idx);
+        btn.className = `flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition ${
+          isActive
+            ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+            : 'bg-slate-900/80 text-slate-400 hover:text-white border border-white/5'
+        }`;
+        btn.innerHTML = `<i class="fas ${sec.icon}"></i> <span>${sec.name[currentLang]}</span>`;
+        navContainer.appendChild(btn);
+      });
+    }
+
+    function selectSection(idx) {
+      currentSectionIndex = idx;
+      currentSlideIndex = 0;
+      renderNav();
+      renderSlide();
+      renderNarrative();
+      renderGallery();
+    }
+
+    function renderSlide() {
+      const sec = SECTIONS[currentSectionIndex];
+      const slide = sec.slides[currentSlideIndex];
+
+      document.getElementById('carousel-img').src = slide.image;
+      document.getElementById('carousel-chapter-icon').className = `fas ${sec.icon}`;
+      document.getElementById('carousel-chapter-name').innerText = sec.name[currentLang];
+
+      document.getElementById('slide-title').innerText = slide.title[currentLang];
+      document.getElementById('slide-desc').innerText = slide.desc[currentLang];
+
+      const fieldsContainer = document.getElementById('slide-fields');
+      fieldsContainer.innerHTML = '';
+      slide.fields.forEach(f => {
+        const valText = typeof f.value === 'object' ? f.value[currentLang] : f.value;
+        const card = document.createElement('div');
+        card.className = 'glass-pill px-3 py-2 rounded-xl border border-white/10';
+        card.innerHTML = `
+          <div class="text-[10px] text-slate-400 font-bold">${f.label[currentLang]}</div>
+          <div class="text-xs font-extrabold text-amber-300 truncate">${valText}</div>
+        `;
+        fieldsContainer.appendChild(card);
+      });
+
+      const dotsContainer = document.getElementById('carousel-dots');
+      dotsContainer.innerHTML = '';
+      sec.slides.forEach((_, sIdx) => {
+        const dot = document.createElement('button');
+        dot.onclick = () => { currentSlideIndex = sIdx; renderSlide(); };
+        dot.className = `h-1.5 rounded-full transition-all ${
+          sIdx === currentSlideIndex ? 'w-8 bg-amber-400' : 'w-2 bg-white/30 hover:bg-white/50'
+        }`;
+        dotsContainer.appendChild(dot);
+      });
+    }
+
+    function prevSlide() {
+      const sec = SECTIONS[currentSectionIndex];
+      currentSlideIndex = (currentSlideIndex - 1 + sec.slides.length) % sec.slides.length;
+      renderSlide();
+    }
+
+    function nextSlide() {
+      const sec = SECTIONS[currentSectionIndex];
+      currentSlideIndex = (currentSlideIndex + 1) % sec.slides.length;
+      renderSlide();
+    }
+
+    function renderNarrative() {
+      const sec = SECTIONS[currentSectionIndex];
+      document.getElementById('narrative-icon').className = `fas ${sec.icon}`;
+      document.getElementById('narrative-title').innerText = sec.name[currentLang];
+      document.getElementById('narrative-content').innerText = sec.narrative[currentLang];
+    }
+
+    function renderGallery() {
+      const sec = SECTIONS[currentSectionIndex];
+      const gal = document.getElementById('section-gallery');
+      gal.innerHTML = '';
+      sec.gallery.forEach(img => {
+        const item = document.createElement('div');
+        item.className = 'aspect-video rounded-xl overflow-hidden border border-white/10 hover:border-amber-400 transition cursor-pointer group';
+        item.innerHTML = `<img src="${img}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
+        gal.appendChild(item);
+      });
+      document.getElementById('txt-gallery-count').innerText = `${sec.gallery.length} ${currentLang === 'ar' ? 'صور عالية الدقة' : 'Photos'}`;
+    }
+
+    function renderSpecs() {
+      const container = document.getElementById('specs-list');
+      container.innerHTML = '';
+      SPECS.forEach(s => {
+        const valText = typeof s.val === 'object' ? s.val[currentLang] : s.val;
+        const row = document.createElement('div');
+        row.className = 'py-2 flex items-center justify-between';
+        row.innerHTML = `
+          <dt class="text-slate-400">${s.label[currentLang]}</dt>
+          <dd class="font-bold text-white text-right">${valText}</dd>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function toggleLang() {
+      currentLang = currentLang === 'ar' ? 'en' : 'ar';
+      document.documentElement.lang = currentLang;
+      document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+
+      document.getElementById('btn-lang').innerText = currentLang === 'ar' ? 'English' : 'العربية';
+
+      if (currentLang === 'en') {
+        document.getElementById('txt-market').innerText = 'North Coast';
+        document.getElementById('txt-compound').innerText = 'Marassi';
+        document.getElementById('txt-phase').innerText = 'Blanca · Chalet 702';
+        document.getElementById('txt-badge').innerText = 'Verified by Emaar Misr';
+        document.getElementById('txt-kind').innerText = 'For Sale · Immediate Delivery';
+        document.getElementById('txt-typology').innerText = 'Ground Chalet with Private Garden';
+        document.getElementById('txt-title').innerText = 'Chalet 702 · Open Lagoon View · Blanca Marassi';
+        document.getElementById('txt-subtitle').innerHTML = '<i class="fas fa-map-marker-alt text-amber-400"></i> Sidi Abdel Rahman, KM 126 Alexandria - Matrouh Road';
+        document.getElementById('txt-price-label').innerText = 'Total Price (Incl. Maintenance)';
+        document.getElementById('txt-price').innerText = '18,500,000 EGP';
+        document.getElementById('btn-whatsapp').innerText = 'Inquire / Book Private Viewing';
+        document.getElementById('slide-pretitle').innerText = 'Official Unit Specifications Sheet';
+        document.getElementById('txt-gallery-title').innerText = 'Unit Gallery for this Chapter';
+        document.getElementById('txt-facts-title').innerText = 'Key Property Facts';
+        document.getElementById('txt-calc-title').innerText = 'Installment Simulator';
+        document.getElementById('txt-calc-sub').innerText = '10% Down Payment, up to 8 years installments';
+        document.getElementById('lbl-down').innerText = 'Down Payment (10%):';
+        document.getElementById('lbl-quarterly').innerText = 'Quarterly Installment:';
+        document.getElementById('lbl-maintenance').innerText = 'Maintenance Fee:';
+        document.getElementById('btn-calc').innerText = 'Download Full Schedule PDF';
+        document.getElementById('txt-dev-title').innerText = 'Developer: Emaar Misr';
+        document.getElementById('txt-dev-sub').innerText = 'EGX Listed · 25-Year Legacy';
+        document.getElementById('txt-dev-link').innerText = 'View Emaar Misr Portfolio →';
+      } else {
+        document.getElementById('txt-market').innerText = 'الساحل الشمالي';
+        document.getElementById('txt-compound').innerText = 'مراسي (Marassi)';
+        document.getElementById('txt-phase').innerText = 'بلانكا · شاليه 702';
+        document.getElementById('txt-badge').innerText = 'معتمد من إعمار مصر';
+        document.getElementById('txt-kind').innerText = 'للبيع · استلام فوري';
+        document.getElementById('txt-typology').innerText = 'شاليه أرضي مع حديقة خاصة';
+        document.getElementById('txt-title').innerText = 'شاليه 702 · فيو اللاجون المفتوح · بلانكا مراسي';
+        document.getElementById('txt-subtitle').innerHTML = '<i class="fas fa-map-marker-alt text-amber-400"></i> سيدي عبد الرحمن، الكيلو 126 طريق الإسكندرية - مطروح';
+        document.getElementById('txt-price-label').innerText = 'السعر الإجمالي (شامل الوديعة)';
+        document.getElementById('txt-price').innerText = '18,500,000 ج.م';
+        document.getElementById('btn-whatsapp').innerText = 'حجز استفسار / معاينة';
+        document.getElementById('slide-pretitle').innerText = 'بطاقة البيانات الرسمية للوحدة';
+        document.getElementById('txt-gallery-title').innerText = 'معرض صور الوحدة التابع لهذا الفصل';
+        document.getElementById('txt-facts-title').innerText = 'المواصفات الجوهرية';
+        document.getElementById('txt-calc-title').innerText = 'محاكي خطة السداد';
+        document.getElementById('txt-calc-sub').innerText = 'مقدم 10% وتقسيط حتى 8 سنوات';
+        document.getElementById('lbl-down').innerText = 'المقدم (10%):';
+        document.getElementById('lbl-quarterly').innerText = 'القسط الربع سنوي:';
+        document.getElementById('lbl-maintenance').innerText = 'وديعة الصيانة:';
+        document.getElementById('btn-calc').innerText = 'طلب تفصيل جدول الأقساط PDF';
+        document.getElementById('txt-dev-title').innerText = 'المطور: إعمار مصر';
+        document.getElementById('txt-dev-sub').innerText = 'مدرج في البورصة المصرية · سجل 25 عامًا';
+        document.getElementById('txt-dev-link').innerText = 'تصفح صفحة إعمار مصر ←';
+      }
+
+      renderNav();
+      renderSlide();
+      renderNarrative();
+      renderGallery();
+      renderSpecs();
+    }
+
+    renderNav();
+    renderSlide();
+    renderNarrative();
+    renderGallery();
+    renderSpecs();
+  </script>
+</body>
+</html>

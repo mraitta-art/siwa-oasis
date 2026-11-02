@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useLang } from '@/context/LangContext';
 
 interface TrialView {
   status: 'none' | 'active' | 'ending' | 'ended';
@@ -55,6 +56,7 @@ function formatDate(value: string | null) {
  * decision and should be editable where it is visible.
  */
 export default function VendorTrialCard() {
+  const { isRTL } = useLang();
   const [state, setState] = useState<TrialState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -150,10 +152,10 @@ export default function VendorTrialCard() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: '0.62rem', letterSpacing: '1.2px', fontWeight: 900, color: '#D4AF37', textTransform: 'uppercase' }}>
-            Free period
+            {isRTL ? 'الفترة التجريبية المجانية' : 'Free period'}
           </div>
           <h2 style={{ margin: '0.35rem 0 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-            Your full service, for a limited time
+            {isRTL ? 'خدماتك بالكامل، لفترة محدودة' : 'Your full service, for a limited time'}
           </h2>
         </div>
         <span
@@ -168,17 +170,19 @@ export default function VendorTrialCard() {
           }}
         >
           {trial.status === 'none'
-            ? 'Not started'
+            ? (isRTL ? 'لم تبدأ' : 'Not started')
             : trial.status === 'ended'
-              ? 'Period ended'
-              : `${trial.days_remaining} day${trial.days_remaining === 1 ? '' : 's'} left`}
+              ? (isRTL ? 'انتهت الفترة' : 'Period ended')
+              : (isRTL ? `متبقي ${trial.days_remaining} يوم` : `${trial.days_remaining} day${trial.days_remaining === 1 ? '' : 's'} left`)}
         </span>
       </div>
 
       <div style={{ marginTop: '1rem', border: `1px solid ${tone.border}`, background: tone.bg, borderRadius: 16, padding: '1rem' }}>
         {trial.status === 'none' ? (
           <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700, lineHeight: 1.65 }}>
-            No free period recorded for this business yet. Everything below is switched on the moment it starts.
+            {isRTL
+              ? 'لم يتم تسجيل فترة مجانية لهذا النشاط حتى الآن. جميع الخدمات بالأسفل يتم تفعيلها فور بدء الفترة.'
+              : 'No free period recorded for this business yet. Everything below is switched on the moment it starts.'}
           </div>
         ) : (
           <>
@@ -187,10 +191,10 @@ export default function VendorTrialCard() {
                 {trial.days_remaining}
               </strong>
               <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b' }}>
-                of {trial.days_total} days remaining
+                {isRTL ? `من إجمالي ${trial.days_total} يوماً` : `of ${trial.days_total} days remaining`}
               </span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8' }}>
-                {trial.status === 'ended' ? 'Ended' : 'Ends'} {formatDate(trial.expires_at)}
+              <span style={{ marginInlineStart: 'auto', fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8' }}>
+                {isRTL ? (trial.status === 'ended' ? 'انتهت في' : 'تنتهي في') : (trial.status === 'ended' ? 'Ended' : 'Ends')} {formatDate(trial.expires_at)}
               </span>
             </div>
             <div style={{ height: 6, background: '#e2e8f0', borderRadius: 999, marginTop: '0.7rem', overflow: 'hidden' }}>
@@ -198,30 +202,32 @@ export default function VendorTrialCard() {
             </div>
             <div style={{ marginTop: '0.6rem', fontSize: '0.68rem', color: tone.chipFg, fontWeight: 700, lineHeight: 1.65 }}>
               {trial.status === 'ended'
-                ? 'The period is over. Your minisite stays online for visitors and Google — editing and the growth tools wait for a plan.'
-                : 'All services are switched on during this period. Your minisite is a real, public page — not a preview.'}
+                ? (isRTL ? 'انتهت الفترة التجريبية. يظل موقعك التعريفي متاحاً للزوار ولمحركات البحث Google — التعديل وأدوات النمو بانتظار تفعيل الباقة.' : 'The period is over. Your minisite stays online for visitors and Google — editing and the growth tools wait for a plan.')
+                : (isRTL ? 'جميع الخدمات مفعلة خلال هذه الفترة. موقعك التعريفي صفحة عامة حقيقية — وليس مجرد معاينة.' : 'All services are switched on during this period. Your minisite is a real, public page — not a preview.')}
             </div>
           </>
         )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.6rem', marginTop: '0.85rem' }}>
-        <Meter label="Photos" used={photosUsed} limit={photoLimit} />
-        <Meter label="Carousel slide" used={Number(quota.slidesUsed) || 0} limit={quota.slides} />
-        <Meter label="Uploaded video" used={Number(quota.videosUsed) || 0} limit={quota.videos} />
-        <Meter label="YouTube embed" used={Number(quota.youtubeUsed) || 0} limit={quota.youtube} />
-        <Meter label="Storage" used={null} limit={quota.storageMB} suffix=" MB" />
+        <Meter label={isRTL ? 'الصور' : 'Photos'} used={photosUsed} limit={photoLimit} />
+        <Meter label={isRTL ? 'شريحة العرض' : 'Carousel slide'} used={Number(quota.slidesUsed) || 0} limit={quota.slides} />
+        <Meter label={isRTL ? 'فيديو مرفوع' : 'Uploaded video'} used={Number(quota.videosUsed) || 0} limit={quota.videos} />
+        <Meter label={isRTL ? 'تضمين يوتيوب' : 'YouTube embed'} used={Number(quota.youtubeUsed) || 0} limit={quota.youtube} />
+        <Meter label={isRTL ? 'المساحة' : 'Storage'} used={null} limit={quota.storageMB} suffix=" MB" />
       </div>
       <div style={{ marginTop: '0.5rem', fontSize: '0.64rem', color: '#94a3b8', fontWeight: 700, lineHeight: 1.7 }}>
-        Carousel, uploaded video and YouTube are try-one features: you can test each of them, one at a time. Delete the one you have to try another.
+        {isRTL
+          ? 'شريط العرض، الفيديو المرفوع ويوتيوب ميزات تجريبية: يمكنك تجربة كل منها على حدة. احذف الحالي لتجربة نوع آخر.'
+          : 'Carousel, uploaded video and YouTube are try-one features: you can test each of them, one at a time. Delete the one you have to try another.'}
       </div>
 
       <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0f172a' }}>
-          Included services
+          {isRTL ? 'الخدمات المشمولة' : 'Included services'}
         </span>
         <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#94a3b8' }}>
-          {activeServices}/{services.length} on · plan: {state.tier.name}
+          {isRTL ? `${activeServices}/${services.length} مفعل · الباقة: ${state.tier.name}` : `${activeServices}/${services.length} on · plan: ${state.tier.name}`}
         </span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem' }}>
@@ -252,7 +258,9 @@ export default function VendorTrialCard() {
       </div>
 
       <div style={{ marginTop: '0.8rem', fontSize: '0.64rem', color: '#94a3b8', fontWeight: 700, lineHeight: 1.7 }}>
-        The length of this period is set by SiWiFy. Nothing is deleted when it ends, and your minisite address never changes hands.
+        {isRTL
+          ? 'يتم تحديد مدة هذه الفترة بواسطة إدارة المنصة. لا يتم حذف أي بيانات عند انتهائها، ويبقى عنوان موقعك ملكك دائماً.'
+          : 'The length of this period is set by SiWiFy. Nothing is deleted when it ends, and your minisite address never changes hands.'}
       </div>
 
       {canManage && (

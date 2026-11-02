@@ -19,50 +19,47 @@ interface VendorInfo {
 /* ─── Nav Structure ──────────────────────────────────────── */
 const NAV_GROUPS = [
   {
-    title: 'Business Setup',
+    title: { en: 'Business Setup', ar: 'إعداد النشاط التجاري' },
     items: [
-      { name: 'Intake & Business Studio', href: '/vendor', faIcon: 'fa-briefcase' },
-      { name: 'Content & Sections', href: '/vendor/sections', faIcon: 'fa-layer-group' },
+      { name: { en: 'Intake & Business Studio', ar: 'استوديو بيانات النشاط' }, href: '/vendor', faIcon: 'fa-briefcase' },
+      { name: { en: 'Content & Sections', ar: 'المحتوى والأقسام' }, href: '/vendor/sections', faIcon: 'fa-layer-group' },
     ],
   },
   {
-    title: 'Media & Social Growth',
+    title: { en: 'Media & Social Growth', ar: 'الوسائط والنمو الرقمي' },
     items: [
-      { name: 'Share & Grow', href: '/vendor/welcome', faIcon: 'fa-bullhorn', badge: 'NEW' },
-      { name: 'Social Toolkit & App', href: '/vendor/social-toolkit', faIcon: 'fa-wand-magic-sparkles', badge: 'APP' },
-      { name: 'Hero Carousel & Reels', href: '/vendor/media', faIcon: 'fa-images', badge: 'NEW' },
-      { name: 'Minisite & Bio Link', href: '/vendor/minisite', faIcon: 'fa-globe', badge: 'LIVE' },
-      { name: 'Templates & Themes', href: '/vendor/templates', faIcon: 'fa-palette' },
+      { name: { en: 'Share & Grow', ar: 'المشاركة والانتشار' }, href: '/vendor/welcome', faIcon: 'fa-bullhorn', badge: 'NEW' },
+      { name: { en: 'Social Toolkit & App', ar: 'أدوات التواصل الاجتماعي' }, href: '/vendor/social-toolkit', faIcon: 'fa-wand-magic-sparkles', badge: 'APP' },
+      { name: { en: 'Hero Carousel & Reels', ar: 'شريط الصور والريلز' }, href: '/vendor/media', faIcon: 'fa-images', badge: 'NEW' },
+      { name: { en: 'Minisite & Bio Link', ar: 'الموقع ورابط البايو' }, href: '/vendor/minisite', faIcon: 'fa-globe', badge: 'LIVE' },
+      { name: { en: 'Templates & Themes', ar: 'القوالب والثيمات' }, href: '/vendor/templates', faIcon: 'fa-palette' },
     ],
   },
   {
-    title: 'Sales & Journeys',
+    title: { en: 'Sales & Journeys', ar: 'المبيعات والطلبات' },
     items: [
-      { name: 'Journey Requests', href: '/vendor/journey-requests', faIcon: 'fa-route', badge: 'REQ' },
-      // A developer or broker owns units (price, plan, handover); only the market
-      // desk could type them until now, so the page had no way to say anything
-      // about its own inventory.
-      { name: 'Project & Inventory', href: '/vendor/inventory', faIcon: 'fa-building', badge: 'NEW' },
-      { name: 'Packages & Catalog', href: '/vendor/packages', faIcon: 'fa-box-open' },
-      { name: 'Package Studio', href: '/vendor/package-studio', faIcon: 'fa-wand-magic-sparkles', badge: 'PRO' },
+      { name: { en: 'Journey Requests', ar: 'طلبات الرحلات' }, href: '/vendor/journey-requests', faIcon: 'fa-route', badge: 'REQ' },
+      { name: { en: 'Project & Inventory', ar: 'المشروعات والوحدات' }, href: '/vendor/inventory', faIcon: 'fa-building', badge: 'NEW' },
+      { name: { en: 'Packages & Catalog', ar: 'الباقات والكتالوج' }, href: '/vendor/packages', faIcon: 'fa-box-open' },
+      { name: { en: 'Package Studio', ar: 'استوديو الباقات' }, href: '/vendor/package-studio', faIcon: 'fa-wand-magic-sparkles', badge: 'PRO' },
     ],
   },
   {
-    title: 'Account & Performance',
+    title: { en: 'Account & Performance', ar: 'الحساب والأداء' },
     items: [
-      { name: 'Visitor Analytics', href: '/vendor/analytics', faIcon: 'fa-chart-line' },
-      { name: 'Plan & Services', href: '/vendor/services', faIcon: 'fa-shield-halved' },
-      { name: 'Verification & Trust', href: '/vendor/verification', faIcon: 'fa-user-check' },
+      { name: { en: 'Visitor Analytics', ar: 'إحصائيات الزوار' }, href: '/vendor/analytics', faIcon: 'fa-chart-line' },
+      { name: { en: 'Plan & Services', ar: 'الاشتراك والخدمات' }, href: '/vendor/services', faIcon: 'fa-shield-halved' },
+      { name: { en: 'Verification & Trust', ar: 'التوثيق والاعتماد' }, href: '/vendor/verification', faIcon: 'fa-user-check' },
     ],
   },
 ];
 
 const MOBILE_TABS = [
-  { name: 'Studio', href: '/vendor', faIcon: 'fa-briefcase' },
-  { name: 'Carousel', href: '/vendor/media', faIcon: 'fa-images' },
-  { name: 'Minisite', href: '/vendor/minisite', faIcon: 'fa-globe' },
-  { name: 'Requests', href: '/vendor/journey-requests', faIcon: 'fa-route' },
-  { name: 'Packages', href: '/vendor/packages', faIcon: 'fa-box-open' },
+  { name: { en: 'Studio', ar: 'الاستوديو' }, href: '/vendor', faIcon: 'fa-briefcase' },
+  { name: { en: 'Carousel', ar: 'الوسائط' }, href: '/vendor/media', faIcon: 'fa-images' },
+  { name: { en: 'Minisite', ar: 'موقعي' }, href: '/vendor/minisite', faIcon: 'fa-globe' },
+  { name: { en: 'Requests', ar: 'الطلبات' }, href: '/vendor/journey-requests', faIcon: 'fa-route' },
+  { name: { en: 'Packages', ar: 'الباقات' }, href: '/vendor/packages', faIcon: 'fa-box-open' },
 ];
 
 /* ─── CSS injected once ───────────────────────────────────── */
@@ -522,13 +519,6 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  /* Redirect any legacy vendor screens back to the single intake studio */
-  useEffect(() => {
-    if (pathname && pathname.startsWith('/vendor/') && pathname !== '/vendor') {
-      router.replace('/vendor');
-    }
-  }, [pathname, router]);
-
   /* Active route check */
   const isActive = useCallback((href: string) =>
     pathname === href || (href !== '/vendor' && pathname.startsWith(href + '/')),
@@ -536,13 +526,16 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
 
   /* Page title from route */
   const pageTitle = (() => {
-    if (pathname === '/vendor') return 'Business Intake';
+    if (pathname === '/vendor') return isRTL ? 'بيانات النشاط' : 'Business Intake';
     const seg = pathname.split('/').filter(Boolean).pop() || '';
     return seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   })();
 
-  /* Initials */
-  const initials = vendor.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  /* Display Name & Initials */
+  const displayName = !vendor.name || vendor.name === 'Vendor Account'
+    ? (isRTL ? 'حساب البائع' : 'Vendor Account')
+    : vendor.name;
+  const initials = displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   /* ── Sidebar JSX ── */
   const sidebarJSX = (
@@ -552,8 +545,8 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
         <Link href="/vendor" className="vs-brand-logo">
           <div className="vs-brand-icon">S</div>
           <div className="vs-brand-text">
-            <span className="vs-brand-name">Vendor Hub</span>
-            <span className="vs-brand-sub">Siwa Oasis Portal</span>
+            <span className="vs-brand-name">{isRTL ? 'مركز البائع' : 'Vendor Hub'}</span>
+            <span className="vs-brand-sub">{isRTL ? 'بوابة واحة سيوة' : 'Siwa Oasis Portal'}</span>
           </div>
         </Link>
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -576,27 +569,27 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="vs-profile-top">
           <div className="vs-avatar">{initials}</div>
           <div className="vs-profile-info">
-            <div className="vs-profile-name">{vendor.name}</div>
+            <div className="vs-profile-name">{displayName}</div>
             <div className="vs-profile-type">
               <span className={`vs-pub-badge ${vendor.isPublished ? 'live' : 'draft'}`}>
                 <i className={`fas fa-circle`} style={{ fontSize: '0.4rem' }} />
-                {vendor.isPublished ? 'Listed' : 'Not listed'}
+                {vendor.isPublished ? (isRTL ? 'منشور' : 'Listed') : (isRTL ? 'مسودة' : 'Not listed')}
               </span>
             </div>
           </div>
         </div>
         <div className="vs-ring-wrap">
           <div className="vs-ring-info">
-            <div className="vs-ring-label">Profile Completion</div>
+            <div className="vs-ring-label">{isRTL ? 'اكتمال الملف' : 'Profile Completion'}</div>
             <div className="vs-ring-bar">
               <div className="vs-ring-fill" style={{ width: `${vendor.profilePct}%` }} />
             </div>
-            <div className="vs-ring-pct">{vendor.profilePct}% complete</div>
+            <div className="vs-ring-pct">{vendor.profilePct}% {isRTL ? 'مكتمل' : 'complete'}</div>
           </div>
           <Link
             href="/vendor"
             style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: 'var(--gold-dim)', border: '1px solid rgba(212,175,55,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
-            title="Business Intake"
+            title={isRTL ? 'بيانات النشاط' : 'Business Intake'}
           >
             <i className="fas fa-pen" style={{ fontSize: '0.65rem', color: 'var(--gold)' }} />
           </Link>
@@ -607,7 +600,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="vs-nav-scroll">
         {NAV_GROUPS.map((group, gi) => (
           <div key={gi} className="vs-nav-group">
-            <div className="vs-nav-title">{group.title}</div>
+            <div className="vs-nav-title">{typeof group.title === 'object' ? (isRTL ? group.title.ar : group.title.en) : group.title}</div>
             <nav>
               {group.items.map((item: any) => {
                 const active = isActive(item.href);
@@ -619,6 +612,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
                   badgeClass = 'req';
                 }
                 if (item.badge === 'LIVE') badgeClass = 'live';
+                const itemName = typeof item.name === 'object' ? (isRTL ? item.name.ar : item.name.en) : item.name;
 
                 return (
                   <Link
@@ -627,7 +621,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
                     className={`vs-nav-item${active ? ' active' : ''}`}
                   >
                     <i className={`fas ${item.faIcon} vs-nav-icon`} />
-                    <span style={{ flex: 1 }}>{item.name}</span>
+                    <span style={{ flex: 1 }}>{itemName}</span>
                     {badgeLabel && (
                       <span className={`vs-nav-badge ${badgeClass}`}>{badgeLabel}</span>
                     )}
@@ -648,18 +642,18 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
             className="vs-footer-link minisite"
           >
             <i className="fas fa-store" style={{ fontSize: '0.6rem' }} />
-            My Minisite
+            {isRTL ? 'موقعي' : 'My Minisite'}
           </Link>
           <Link href="/" target="_blank" className="vs-footer-link site">
             <i className="fas fa-globe" style={{ fontSize: '0.6rem' }} />
-            Live Site
+            {isRTL ? 'الموقع العام' : 'Live Site'}
           </Link>
         </div>
         <div className="vs-user-row">
           <div className="vs-user-avatar">{initials}</div>
           <div className="vs-user-info">
-            <div className="vs-user-name">{vendor.name}</div>
-            <Link href="/logout" className="vs-user-logout">Sign out →</Link>
+            <div className="vs-user-name">{displayName}</div>
+            <Link href="/logout" className="vs-user-logout">{isRTL ? '← تسجيل خروج' : 'Sign out →'}</Link>
           </div>
           <button
             className="vs-lang-btn"
@@ -701,7 +695,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
                 </button>
               )}
               <div className="vs-breadcrumb">
-                <span className="vs-breadcrumb-root">Vendor Hub</span>
+                <span className="vs-breadcrumb-root">{isRTL ? 'مركز البائع' : 'Vendor Hub'}</span>
                 <span className="vs-breadcrumb-sep">/</span>
                 <span className="vs-breadcrumb-page">{pageTitle}</span>
               </div>
@@ -711,7 +705,7 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
               {/* Profile % pill — desktop only */}
               {!isMobile && (
                 <div className="vs-topbar-profile-pill">
-                  <span style={{ fontSize: '0.62rem', color: '#92702a', fontWeight: 800 }}>Profile</span>
+                  <span style={{ fontSize: '0.62rem', color: '#92702a', fontWeight: 800 }}>{isRTL ? 'الملف' : 'Profile'}</span>
                   <div className="vs-topbar-pct-bar">
                     <div className="vs-topbar-pct-fill" style={{ width: `${vendor.profilePct}%` }} />
                   </div>
@@ -742,16 +736,19 @@ function VendorLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Bottom Tabs */}
         <nav className="vs-bottom-tabs">
-          {MOBILE_TABS.map(tab => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`vs-tab${isActive(tab.href) ? ' active' : ''}`}
-            >
-              <i className={`fas ${tab.faIcon}`} />
-              <span>{tab.name}</span>
-            </Link>
-          ))}
+          {MOBILE_TABS.map(tab => {
+            const tabName = typeof tab.name === 'object' ? (isRTL ? tab.name.ar : tab.name.en) : tab.name;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`vs-tab${isActive(tab.href) ? ' active' : ''}`}
+              >
+                <i className={`fas ${tab.faIcon}`} />
+                <span>{tabName}</span>
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
