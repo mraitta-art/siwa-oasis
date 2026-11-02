@@ -251,7 +251,25 @@ export default function MinisiteBuilderRenderer({
       })
       .filter(Boolean);
   });
-  const galleryItems = [...(business.gallery || []), ...customGallery].filter(
+  const rawRootGallery = Array.isArray(rawData.gallery)
+    ? rawData.gallery
+    : Array.isArray(identity.gallery)
+    ? identity.gallery
+    : [];
+
+  const rootGallery = rawRootGallery
+    .map((item: any, idx: number) => {
+      const url = typeof item === 'string' ? item : item?.url;
+      if (typeof url !== 'string' || !url.trim()) return null;
+      return {
+        id: `root-gal-${idx}`,
+        url: url.trim(),
+        caption: typeof item === 'object' ? item.caption || '' : '',
+      };
+    })
+    .filter(Boolean);
+
+  const galleryItems = [...(business.gallery || []), ...customGallery, ...rootGallery].filter(
     (item, index, items) =>
       items.findIndex(
         candidate =>
@@ -274,6 +292,261 @@ export default function MinisiteBuilderRenderer({
     rawData.cover_image ||
     'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?q=80&w=1600&auto=format&fit=crop';
   const phone = business.vendorPhone || identity.phone || identity.mobile || '';
+
+  // ── Asset Specifications (Real Estate Units, Lodges, Safaris, Dining) ──
+  const specs = rawData.specs || {};
+  const assetType = rawData.asset_type || (specs.unitType || specs.listingKind ? 'real_estate' : null);
+  const hasSpecs = specs && typeof specs === 'object' && Object.keys(specs).length > 0;
+
+  const renderAssetSpecsSection = () => {
+    if (!hasSpecs) return null;
+
+    const formattedPrice = specs.price
+      ? Number(specs.price).toLocaleString()
+      : specs.pricePerNight
+      ? Number(specs.pricePerNight).toLocaleString()
+      : specs.pricePerPerson
+      ? Number(specs.pricePerPerson).toLocaleString()
+      : null;
+
+    const currency = specs.currency || (pageIsArabic ? 'ج.م' : 'EGP');
+
+    // Calculate down payment amount if percentage & price exist
+    const downPaymentAmount = (specs.price && specs.downPaymentPct)
+      ? Math.round((Number(specs.price) * Number(specs.downPaymentPct)) / 100).toLocaleString()
+      : null;
+
+    const unitTypeLabels: Record<string, { ar: string; en: string }> = {
+      chalet: { ar: 'شاليه فاخر', en: 'Luxury Chalet' },
+      villa: { ar: 'فيلا مستقلة', en: 'Standalone Villa' },
+      twinhouse: { ar: 'توين هاوس على اللاجون', en: 'Waterfront Twinhouse' },
+      townhouse: { ar: 'تاون هاوس سيجنتشر', en: 'Signature Townhouse' },
+      apartment: { ar: 'شقة سكنية', en: 'Apartment' },
+      commercial: { ar: 'وحدة تجارية', en: 'Commercial Unit' },
+    };
+
+    const finishingLabels: Record<string, { ar: string; en: string }> = {
+      fully_finished: { ar: 'تشطيب كامل فندقي بالتكييفات', en: 'Fully Finished with ACs' },
+      furnished: { ar: 'مفروش بالكامل', en: 'Fully Furnished' },
+      semi_finished: { ar: 'نصف تشطيب', en: 'Semi Finished' },
+      core_and_shell: { ar: 'بدون تشطيب (طوب أحمر)', en: 'Core & Shell' },
+    };
+
+    const resolvedUnitType = unitTypeLabels[specs.unitType]?.[pageIsArabic ? 'ar' : 'en'] || specs.unitType;
+    const resolvedFinishing = finishingLabels[specs.finishing]?.[pageIsArabic ? 'ar' : 'en'] || specs.finishing;
+
+    return (
+      <section
+        style={{
+          maxWidth: 1100,
+          margin: '-3.5rem auto 3rem',
+          padding: '0 1.25rem',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            background: 'linear-gradient(145deg, #131d31 0%, #0c1322 100%)',
+            border: `1.5px solid ${primaryColor}40`,
+            borderRadius: 24,
+            padding: '2.25rem 2rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+            color: '#fff',
+            direction: pageIsArabic ? 'rtl' : 'ltr',
+          }}
+        >
+          {/* Top Badges & Pricing Callout */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              flexWrap: 'wrap',
+              gap: '1.25rem',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              paddingBottom: '1.5rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                {resolvedUnitType && (
+                  <span
+                    style={{
+                      background: `${primaryColor}20`,
+                      color: primaryColor,
+                      border: `1px solid ${primaryColor}50`,
+                      borderRadius: 8,
+                      padding: '4px 12px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    🏢 {resolvedUnitType}
+                  </span>
+                )}
+                {specs.listingKind && (
+                  <span
+                    style={{
+                      background: 'rgba(34,197,94,0.15)',
+                      color: '#4ade80',
+                      border: '1px solid rgba(34,197,94,0.3)',
+                      borderRadius: 8,
+                      padding: '4px 12px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {specs.listingKind === 'sale'
+                      ? (pageIsArabic ? '✓ متاح للبيع والتعاقد' : '✓ Available for Sale')
+                      : (pageIsArabic ? '✓ متاح للإيجار' : '✓ Available for Rent')}
+                  </span>
+                )}
+                {specs.deliveryYear && (
+                  <span
+                    style={{
+                      background: 'rgba(59,130,246,0.15)',
+                      color: '#60a5fa',
+                      border: '1px solid rgba(59,130,246,0.3)',
+                      borderRadius: 8,
+                      padding: '4px 12px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    📅 {pageIsArabic ? `سنة التسليم: ${specs.deliveryYear}` : `Delivery: ${specs.deliveryYear}`}
+                  </span>
+                )}
+              </div>
+
+              {formattedPrice && (
+                <div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
+                    {assetType === 'hospitality'
+                      ? (pageIsArabic ? 'سعر الإقامة بالليلة' : 'Nightly Rate')
+                      : assetType === 'tour'
+                      ? (pageIsArabic ? 'سعر الرحلة للفرد' : 'Price Per Person')
+                      : (pageIsArabic ? 'السعر الإجمالي للوحدة' : 'Total Unit Price')}
+                  </div>
+                  <div style={{ fontSize: 'clamp(2rem, 4.5vw, 2.75rem)', fontWeight: 900, color: '#fef08a', lineHeight: 1.1 }}>
+                    {formattedPrice}{' '}
+                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e2e8f0' }}>{currency}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Payment terms callout */}
+            {specs.downPaymentPct && (
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 16,
+                  padding: '1.1rem 1.4rem',
+                  minWidth: 260,
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: 6, fontWeight: 700 }}>
+                  {pageIsArabic ? '💳 خطة السداد والتسهيلات:' : '💳 Payment Plan & Terms:'}
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#38bdf8' }}>
+                  {pageIsArabic ? `مقدم ${specs.downPaymentPct}%` : `${specs.downPaymentPct}% Down Payment`}
+                  {downPaymentAmount && (
+                    <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600 }}>
+                      {' '}
+                      ({downPaymentAmount} {currency})
+                    </span>
+                  )}
+                </div>
+                {specs.installmentYears && (
+                  <div style={{ fontSize: '0.88rem', color: '#a7f3d0', marginTop: 4, fontWeight: 700 }}>
+                    {pageIsArabic
+                      ? `تقسيط متساوي على ${specs.installmentYears} سنوات`
+                      : `Equal installments over ${specs.installmentYears} years`}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Key Specs Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '1rem',
+              marginBottom: '1.75rem',
+            }}
+          >
+            {specs.areaSqm && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '1rem 1.15rem' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{pageIsArabic ? 'المساحة الكلية' : 'Total Area'}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: 3 }}>
+                  {specs.areaSqm} {pageIsArabic ? 'م²' : 'sqm'}
+                </div>
+              </div>
+            )}
+            {specs.bedrooms && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '1rem 1.15rem' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{pageIsArabic ? 'غرف النوم' : 'Bedrooms'}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: 3 }}>
+                  {specs.bedrooms} {pageIsArabic ? 'غرف نوم' : 'Bedrooms'}
+                </div>
+              </div>
+            )}
+            {specs.bathrooms && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '1rem 1.15rem' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{pageIsArabic ? 'الحمامات' : 'Bathrooms'}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: 3 }}>
+                  {specs.bathrooms} {pageIsArabic ? 'حمامات' : 'Baths'}
+                </div>
+              </div>
+            )}
+            {resolvedFinishing && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '1rem 1.15rem' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{pageIsArabic ? 'حالة التشطيب' : 'Finishing Quality'}</div>
+                <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#fff', marginTop: 3 }}>
+                  {resolvedFinishing}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Amenities & Features Tags */}
+          {Array.isArray(specs.amenities) && specs.amenities.length > 0 && (
+            <div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.75rem', fontWeight: 800 }}>
+                {pageIsArabic ? '🌟 المميزات والخدمات الخاصة بالوحدة:' : '🌟 Included Amenities & Services:'}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                {specs.amenities.map((am: string, i: number) => (
+                  <span
+                    key={i}
+                    style={{
+                      background: 'rgba(212,175,55,0.1)',
+                      border: '1px solid rgba(212,175,55,0.3)',
+                      color: '#fef08a',
+                      borderRadius: 20,
+                      padding: '5px 14px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    ✓ {am}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
 
   // Render individual component block
   const renderComponent = (comp: MinisiteLayoutComponent) => {
@@ -1417,7 +1690,12 @@ export default function MinisiteBuilderRenderer({
       {/* Render All Layout Components */}
       <main>
         {Array.isArray(layout.components) &&
-          layout.components.map((comp) => renderComponent(comp))}
+          layout.components.map((comp) => (
+            <React.Fragment key={comp.id}>
+              {renderComponent(comp)}
+              {comp.type === 'vendor_hero' && hasSpecs && renderAssetSpecsSection()}
+            </React.Fragment>
+          ))}
       </main>
 
       {showQRCode && (
