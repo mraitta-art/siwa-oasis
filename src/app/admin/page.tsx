@@ -20,6 +20,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Product & Offers',
     items: [
+      { label: 'Broker Syndication', icon: '🤝', href: '/admin/broker-assignments', badge: 'PRO', badgeColor: '#D4AF37' },
       { label: 'Packages', icon: '📦', href: '/admin/packages', badge: '12', badgeColor: '#f59e0b' },
       { label: 'Offers', icon: '🎁', href: '/admin/offers', badge: '8', badgeColor: '#f59e0b' },
       { label: 'Discounts', icon: '💰', href: '/admin/discounts', badge: '3', badgeColor: '#f59e0b' },
