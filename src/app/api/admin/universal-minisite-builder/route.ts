@@ -78,11 +78,16 @@ export async function POST(request: NextRequest) {
       .replace(/-+/g, '-');
     const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
 
-    // Resolve typology category
-    let typeId = 'villa_chalet';
-    if (assetType === 'hospitality') typeId = 'hotel_lodge';
-    else if (assetType === 'tour') typeId = 'safari_camp';
-    else if (assetType === 'restaurant') typeId = 'restaurant_cafe';
+    // Resolve typology category — use real business_types IDs from DB
+    // real_estate → parent "real_estate"; hospitality → "accommodation"; tour → "adventure"; restaurant → "food"
+    // Caller can pass typeId directly to use a sub-type (e.g. "eco_lodge", "safari_4x4", "fine_dining")
+    let typeId: string = payload.typeId || 'real_estate';
+    if (!payload.typeId) {
+      if (assetType === 'real_estate')  typeId = 'real_estate';
+      else if (assetType === 'hospitality') typeId = 'accommodation';
+      else if (assetType === 'tour')        typeId = 'adventure';
+      else if (assetType === 'restaurant')  typeId = 'food';
+    }
 
     const businessId = randomUUID();
 

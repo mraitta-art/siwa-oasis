@@ -73,7 +73,7 @@ export default function UniversalMinisiteBuilderPage() {
   });
 
   useEffect(() => {
-    fetch('/api/admin/universal-minisite-builder/metadata')
+    fetch('/api/admin/universal-minisite-builder')
       .then(r => r.json())
       .then(d => {
         if (d.markets) {
@@ -98,6 +98,22 @@ export default function UniversalMinisiteBuilderPage() {
     loc => !marketId || loc.market_id === marketId || !loc.market_id
   );
 
+  // typeId sub-type per asset type — these map to actual business_types.id in DB
+  const TYPE_ID_MAP: Record<AssetType, string> = {
+    real_estate:  specs.unitType === 'apartment' ? 'apartment' :
+                  specs.unitType === 'villa'     ? 'villa' :
+                  specs.unitType === 'commercial' ? 'commercial_unit' :
+                  'real_estate',
+    hospitality:  specs.roomType?.includes('camp') ? 'camp' :
+                  specs.roomType?.includes('eco')  ? 'eco_lodge' :
+                  specs.roomType?.includes('glamp') ? 'glamping_tent' :
+                  'accommodation',
+    tour:         specs.tourDifficulty === 'extreme' ? 'desert_safari' : 'safari_4x4',
+    restaurant:   specs.cuisineType?.includes('fine') ? 'fine_dining' :
+                  specs.cuisineType?.includes('cafe')  ? 'cafe' :
+                  'food',
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -109,6 +125,7 @@ export default function UniversalMinisiteBuilderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           assetType,
+          typeId: TYPE_ID_MAP[assetType],
           marketId,
           locationId,
           developmentId,
