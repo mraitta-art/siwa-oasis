@@ -141,8 +141,8 @@ function LoginContent() {
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
               <i className="fas fa-sun" style={{ color: '#D4AF37' }}></i>
             </div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-              {isArabic ? 'منصة سيوة سيوَفاي' : 'SIWA OASIS'}
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+              Siwify Portal
             </h1>
             <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.35rem' }}>
               {isArabic ? 'تسجيل الدخول الموحد' : 'Secure Sign In'}
